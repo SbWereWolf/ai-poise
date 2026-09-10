@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from conftest import git
 
@@ -17,6 +18,7 @@ def test_work_cli_exposes_one_result_integration_operation(project):
         "input": integration_input(project, source, request_id="cli-integration"),
         "messages": [],
     }
+    source_root = Path(__file__).resolve().parents[2] / "src"
     result = subprocess.run(
         [sys.executable, "-m", "harness", "work"],
         input=json.dumps(packet),
@@ -27,6 +29,7 @@ def test_work_cli_exposes_one_result_integration_operation(project):
             **os.environ,
             "HARNESS_CONFIG": str(project["config_path"]),
             "HARNESS_SESSION": "cli-integrator",
+            "PYTHONPATH": str(source_root),
         },
         timeout=30,
     )

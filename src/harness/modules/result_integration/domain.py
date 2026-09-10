@@ -150,7 +150,8 @@ class IntegrationRun:
     def retry_blocked(self):
         if self.status != "blocked" or not isinstance(self.failure, dict):
             raise DomainError("No blocked integration can be retried")
-        return self._step("prepared", "merge_retry", failure=None)
+        target = "running" if self.failure["reason"] == "integration_commit_failed" else "prepared"
+        return self._step(target, "merge_retry", failure=None)
 
     def cleanup_blocked(self, component, receipt):
         if self.status != "cleanup_pending" or component not in ("worktree", "branch"):

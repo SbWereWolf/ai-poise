@@ -180,7 +180,9 @@ class RuntimeResultIntegration:
                 raise HarnessError("Integration commit message violates the configured pattern")
             receipt = self._run(target, "commit", "-m", intent.authorization, env=self._actor())
             if receipt["actual_exit_code"] != 0:
-                raise HarnessError(f"Integration commit failed: {receipt['stderr']}")
+                blocked = run.blocked("integration_commit_failed", receipt)
+                self._save(intent.task_id, blocked, run.version)
+                return blocked
             merged = run.integrated(self._git(target, "rev-parse", "HEAD"), receipt)
             self._save(intent.task_id, merged, run.version)
             return merged
@@ -239,9 +241,15 @@ class RuntimeResultIntegration:
         if run.status in ("prepared", "running", "awaiting_resolution"):
             run = self._integrate(record, run, intent, target)
         elif run.status == "blocked":
-            if (self._git(target, "rev-parse", "HEAD") != run.target_before
-                    or self._optional_ref(target, "MERGE_HEAD") is not None
-                    or self._git(target, "status", "--porcelain")):
+            commit_retry = run.failure["reason"] == "integration_commit_failed"
+            if commit_retry:
+                if (self._git(target, "rev-parse", "HEAD") != run.target_before
+                        or self._optional_ref(target, "MERGE_HEAD") != intent.expected_source_commit
+                        or self._conflicts(target)):
+                    return run.result()
+            elif (self._git(target, "rev-parse", "HEAD") != run.target_before
+                  or self._optional_ref(target, "MERGE_HEAD") is not None
+                  or self._git(target, "status", "--porcelain")):
                 return run.result()
             retry = run.retry_blocked()
             self._save(intent.task_id, retry, run.version)

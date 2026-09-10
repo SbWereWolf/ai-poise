@@ -1,0 +1,71 @@
+{
+  "schema": "task-blueprint-1",
+  "goal_type": "development",
+  "parameters": {
+    "identity": "text",
+    "membership": "nullable_text",
+    "goal": "text",
+    "requirements": "strings",
+    "dod": "strings",
+    "methods": "list",
+    "artifact_requirements": "list",
+    "contract": "object",
+    "evidence": "object"
+  },
+  "task": {
+    "id": {
+      "$input": "identity"
+    },
+    "sprint_id": {
+      "$input": "membership"
+    },
+    "goal_type": "development",
+    "goal": {
+      "$input": "goal"
+    },
+    "requirements": {
+      "$input": "requirements"
+    },
+    "definition_of_done": {
+      "$input": "dod"
+    },
+    "methods": {
+      "$input": "methods"
+    },
+    "checks": {
+      "baseline": [
+        "BASELINE"
+      ],
+      "solution_planning": [],
+      "verification_planning": [],
+      "test_implementation": [
+        "TEST_RED"
+      ],
+      "test_inspection": [],
+      "test_remediation": [
+        "TEST_RED"
+      ],
+      "test_remediation_inspection": [],
+      "implementation": [
+        "TEST_GREEN"
+      ],
+      "implementation_inspection": [],
+      "implementation_remediation": [
+        "TEST_GREEN"
+      ],
+      "implementation_remediation_inspection": [],
+      "documentation": [
+        "DOC_CHECK"
+      ]
+    },
+    "artifact_requirements": {
+      "$input": "artifact_requirements"
+    },
+    "content_contract": {
+      "$input": "contract"
+    },
+    "evidence_plan": {
+      "$input": "evidence"
+    }
+  }
+}

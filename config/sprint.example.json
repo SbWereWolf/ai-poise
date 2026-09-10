@@ -1,0 +1,29 @@
+{
+  "max_tasks": 1000,
+  "max_dependencies": 3000,
+  "acceptable_terminal_states": [
+    "completed",
+    "cancelled"
+  ],
+  "templates": {
+    "basic": {
+      "version": "1",
+      "goal": "",
+      "requirements": [],
+      "definition_of_done": [],
+      "sections": {
+        "plan": "Заполнить план."
+      },
+      "tasks": [],
+      "dependencies": []
+    }
+  },
+  "section_rules": [
+    {
+      "name": "plan",
+      "template": "Заполнить план.",
+      "normalization": "strip",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,221 @@
+{
+  "id": "0003",
+  "sprint_id": "SPRINT-0001",
+  "goal_type": "documentation",
+  "goal": "Исследовать JetBrains MCP и закрепить каноническую политику его применения AI-агентами при работе с кодом.",
+  "requirements": [
+    "Перед формулированием политики исследовать фактические возможности подключаемых JetBrains MCP Server для используемых IDE; до практической проверки сообщить пользователю, какие PhpStorm, PyCharm и WebStorm MCP Server требуется запустить и какие code-aware capabilities временно expose для исследования.",
+    "Практическое исследование начинать только после того, как обновлённый Harness preflight фактически выдаёт capability inventory подключённых IDE MCP для нужного project/worktree.",
+    "Исследовать только полезную для работы AI-агента с кодом область: semantic navigation и symbol semantics, code/call relationships, IDE inspections/diagnostics, semantic refactoring, IDE formatting и полезную read-only модель кода/проекта.",
+    "Не включать в JetBrains-политику build_project, IDE build/run вместо проектных скриптов, debugger, generic read/write/patch, terminal execution, VCS/Git и database tools.",
+    "На representative files установить фактическую применимость обнаруженных MCP-возможностей как минимум к PHP, Python, JavaScript и TypeScript, а также к другим реально используемым типам исходников; не считать файл code-aware supported только потому, что IDE умеет его открыть.",
+    "PhpStorm и WebStorm не приоритизировать друг относительно друга, если они предоставляют эквивалентно полезную capability для требуемой операции.",
+    "Сформулировать политику семантически: если IDE MCP предоставляет применимую code-aware возможность для требуемой операции над кодом/моделью проекта, агент использует её; точная карта имён tools не зашивается в skill и берётся из preflight/tool descriptions.",
+    "Если IDE MCP умеет форматировать изменяемый тип исходника, форматирование выполняется через IDE MCP, чтобы сторонний formatter агента не перебивал project/IDE formatting policy.",
+    "Если необходимая semantic/structural IDE capability недоступна или неприменима, агент фиксирует причину и без остановки работы использует установленный fallback ast-index для тех операций, которые ast-index способен заменить; silent fallback без зафиксированной причины недопустим.",
+    "Отличать fallback на ast-index от его самостоятельного применения к repository-wide graph/batch/structural задачам, где ast-index является непосредственным подходящим инструментом.",
+    "Каноническую политику записать на русском языке. Agent-facing development skill обновить на английском и дать из него точные ссылки на минимальные нормативные разделы документации, а не на весь большой документ.",
+    "Закрепить общее правило для skills: ссылка на каноническую документацию должна вести на минимальный нормативный раздел, достаточный для конкретного operational rule.",
+    "По итогам исследования дать пользователю список полезных и не нашедших применения exposed MCP capabilities; отключение лишних capabilities пользователь выполняет вручную."
+  ],
+  "definition_of_done": [
+    "Зафиксирована capability matrix IDE × file type × полезный класс операций на основе фактического исследования, а не предположений.",
+    "Русскоязычная каноническая документация однозначно описывает preflight, границы IDE MCP, formatting и ast-index fallback.",
+    "Англоязычный development skill содержит только краткие operational rules и точные ссылки на соответствующие нормативные sections.",
+    "Исключённые capabilities не рекомендованы агентам, debugger отсутствует в политике.",
+    "Логическая inspection проверила непротиворечивость документации, skill и фактических результатов исследования; существенные findings закрыты повторной inspection."
+  ],
+  "methods": [],
+  "checks": {
+    "framing": [],
+    "outline": [],
+    "drafting": [],
+    "validation": [],
+    "inspection": [],
+    "remediation": [],
+    "remediation_inspection": []
+  },
+  "artifact_requirements": [],
+  "content_contract": {
+    "sections": [
+      {
+        "id": "mcp_research_plan",
+        "template": "Какие IDE/server/capabilities нужно включить и какие representative files исследовать.",
+        "normalization": "strip",
+        "write_stages": [
+          "framing",
+          "remediation"
+        ]
+      },
+      {
+        "id": "capability_matrix",
+        "template": "Фактическая матрица IDE × file type × useful code-aware capability.",
+        "normalization": "strip",
+        "write_stages": [
+          "drafting",
+          "remediation"
+        ]
+      },
+      {
+        "id": "policy_decisions",
+        "template": "Границы MCP, formatting, ast-index fallback, исключённые capabilities и rationale.",
+        "normalization": "strip",
+        "write_stages": [
+          "drafting",
+          "remediation"
+        ]
+      },
+      {
+        "id": "skill_links",
+        "template": "Точные ссылки из английского skill на минимальные нормативные sections русской документации.",
+        "normalization": "strip",
+        "write_stages": [
+          "drafting",
+          "remediation"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "mcp_research_plan-required-outline",
+        "kind": "section",
+        "section": "mcp_research_plan",
+        "stages": [
+          "outline"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "capability_matrix-required-validation",
+        "kind": "section",
+        "section": "capability_matrix",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "capability_matrix-required-inspection",
+        "kind": "section",
+        "section": "capability_matrix",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "policy_decisions-required-validation",
+        "kind": "section",
+        "section": "policy_decisions",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "policy_decisions-required-inspection",
+        "kind": "section",
+        "section": "policy_decisions",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "skill_links-required-validation",
+        "kind": "section",
+        "section": "skill_links",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "skill_links-required-inspection",
+        "kind": "section",
+        "section": "skill_links",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "evidence_plan": {
+    "framing": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "outline": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "drafting": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "validation": {
+      "subject_methods": {},
+      "arguments": [
+        {
+          "id": "validation_basis",
+          "kind": "logical",
+          "phase": "prepare",
+          "observation_methods": []
+        }
+      ],
+      "review_arguments": []
+    },
+    "inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": [
+        "validation_basis"
+      ]
+    },
+    "remediation": {
+      "subject_methods": {},
+      "arguments": [
+        {
+          "id": "remediation_basis",
+          "kind": "logical",
+          "phase": "prepare",
+          "observation_methods": []
+        }
+      ],
+      "review_arguments": []
+    },
+    "remediation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": [
+        "remediation_basis"
+      ]
+    }
+  }
+}

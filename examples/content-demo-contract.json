@@ -1,0 +1,240 @@
+{
+  "goal_content": {
+    "sections": [
+      {
+        "id": "notes",
+        "template": "Record test reasoning",
+        "normalization": "strip",
+        "write_stages": [
+          "tests"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "goal-notes",
+        "kind": "section",
+        "section": "notes",
+        "stages": [
+          "tests",
+          "test_review",
+          "implementation",
+          "code_review"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "goal-coverage",
+        "kind": "coverage",
+        "stages": [
+          "tests",
+          "test_review",
+          "implementation",
+          "code_review"
+        ],
+        "phase": "pre",
+        "points": []
+      }
+    ]
+  },
+  "task_content": {
+    "sections": [
+      {
+        "id": "edge_cases",
+        "template": "Describe boundaries",
+        "normalization": "strip",
+        "write_stages": [
+          "implementation"
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "id": "functional",
+        "requirements": [
+          "double(n) возвращает n*2"
+        ],
+        "points": [
+          {
+            "id": "product",
+            "kind": "record",
+            "fields": {
+              "state": [
+                "planned",
+                "documented"
+              ],
+              "reference": []
+            },
+            "write_stages": [
+              "tests",
+              "implementation"
+            ]
+          },
+          {
+            "id": "method",
+            "kind": "method",
+            "fields": {},
+            "write_stages": [
+              "tests",
+              "implementation"
+            ]
+          },
+          {
+            "id": "verdict",
+            "kind": "record",
+            "fields": {
+              "result": [
+                "satisfied",
+                "not_satisfied"
+              ],
+              "basis": []
+            },
+            "write_stages": [
+              "code_review"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reasoning",
+        "requirements": [
+          "double(n) возвращает n*2"
+        ],
+        "points": [
+          {
+            "id": "proof",
+            "kind": "record",
+            "fields": {
+              "facts": [],
+              "assumptions": [],
+              "inference": [],
+              "conclusion": []
+            },
+            "write_stages": [
+              "code_review"
+            ]
+          }
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "product-now",
+        "kind": "trace",
+        "route": "functional",
+        "point": "product",
+        "stages": [
+          "tests",
+          "test_review",
+          "implementation",
+          "code_review"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      },
+      {
+        "id": "method-now",
+        "kind": "trace",
+        "route": "functional",
+        "point": "method",
+        "stages": [
+          "tests",
+          "implementation",
+          "code_review"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      },
+      {
+        "id": "published-later",
+        "kind": "trace",
+        "route": "functional",
+        "point": "product",
+        "stages": [
+          "code_review"
+        ],
+        "phase": "pre",
+        "field_equals": {
+          "state": "documented"
+        }
+      },
+      {
+        "id": "verdict-later",
+        "kind": "trace",
+        "route": "functional",
+        "point": "verdict",
+        "stages": [
+          "code_review"
+        ],
+        "phase": "pre",
+        "field_equals": {
+          "result": "satisfied"
+        }
+      },
+      {
+        "id": "reason-later",
+        "kind": "trace",
+        "route": "reasoning",
+        "point": "proof",
+        "stages": [
+          "code_review"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      },
+      {
+        "id": "boundaries-later",
+        "kind": "section",
+        "section": "edge_cases",
+        "stages": [
+          "implementation",
+          "code_review"
+        ],
+        "phase": "pre",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "initial_trace": {
+    "functional": {
+      "product": {
+        "state": "planned",
+        "reference": "docs/double.md#R1"
+      },
+      "method": "RED"
+    }
+  },
+  "implementation_trace": {
+    "functional": {
+      "product": {
+        "state": "documented",
+        "reference": "docs/double.md#R1"
+      },
+      "method": "GREEN"
+    }
+  },
+  "review_trace": {
+    "functional": {
+      "verdict": {
+        "result": "satisfied",
+        "basis": "GREEN execution and source inspection"
+      }
+    }
+  },
+  "proof": {
+    "reasoning": {
+      "proof": {
+        "facts": "double(n) returns n*2",
+        "assumptions": "integer n",
+        "inference": "Multiplication by two doubles n",
+        "conclusion": "R1 satisfied"
+      }
+    }
+  }
+}

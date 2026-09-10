@@ -1,0 +1,599 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "task_contracts",
+      "dependency_plan"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "decomposition-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "decomposition"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_classification-input-decomposition",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decomposition",
+        "stages": [
+          "task_classification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_contracts-input-decomposition",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decomposition",
+        "stages": [
+          "task_contracts"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_contracts-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "task_contracts"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "dependency_design-input-task_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_contracts",
+        "stages": [
+          "dependency_design"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "dependency_design-input-decomposition",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decomposition",
+        "stages": [
+          "dependency_design"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_planning-input-dependency_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "dependency_plan",
+        "stages": [
+          "execution_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution_planning-input-task_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_contracts",
+        "stages": [
+          "execution_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-task_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_contracts",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "coverage_analysis-input-dependency_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "dependency_plan",
+        "stages": [
+          "coverage_analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-planned_sprint",
+        "kind": "section",
+        "phase": "pre",
+        "section": "planned_sprint",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-task_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_contracts",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-dependency_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "dependency_plan",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sprint_inspection-input-execution_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "execution_plan",
+        "stages": [
+          "sprint_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation_inspection-input-planned_sprint",
+        "kind": "section",
+        "phase": "pre",
+        "section": "planned_sprint",
+        "stages": [
+          "remediation_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-planned_sprint",
+        "kind": "section",
+        "phase": "pre",
+        "section": "planned_sprint",
+        "stages": [
+          "publication"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-task_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "task_contracts",
+        "stages": [
+          "publication"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-dependency_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "dependency_plan",
+        "stages": [
+          "publication"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": []
+  },
+  "goal_type": "sprint_planning",
+  "route": {
+    "entry": "framing",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "framing",
+      "instruction": "Задать цель/границы/DoD sprint и основания. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "constraints",
+        "assumptions"
+      ],
+      "rework_targets": [
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
+        "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "decomposition"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "decomposition",
+      "instruction": "Выделить самостоятельные конечные результаты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "decomposition"
+      ],
+      "rework_targets": [
+        "decomposition",
+        "framing",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "decomposition": "candidate work item ID, одна цель/result/scope, вклад в sprint requirements, need rationale.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "task_classification"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "task_classification",
+      "instruction": "Классифицировать каждый candidate. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "goal_classification"
+      ],
+      "rework_targets": [
+        "task_classification",
+        "framing",
+        "decomposition",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "goal_classification": "один goal_type, основной deliverable, grounds по skill, независимые вторичные цели вынесены в отдельные candidates.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "task_contracts"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "task_contracts",
+      "instruction": "Заполнить все draft tasks. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "task_contracts",
+        "planned_sprint"
+      ],
+      "rework_targets": [
+        "task_contracts",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "planned_sprint": "Record the complete typed sprint plan for reviewed publication.",
+        "report": "Record the substantive result for this stage.",
+        "task_contracts": "draft tasks с goal_type, полным template/creation fields/exact methods, origin draft ID; индивид. validation receipts."
+      },
+      "transitions": {
+        "complete": "dependency_design"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "dependency_design",
+      "instruction": "Спроектировать semantic prerequisites и materialization. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "dependency_plan"
+      ],
+      "rework_targets": [
+        "dependency_design",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "dependency_plan": "same-sprint directed edges, required predecessor result SHA/artifact/materialization, justification; без циклов.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "execution_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "execution_planning",
+      "instruction": "Определить priorities и shared context/resources. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "execution_plan",
+        "shared_context_plan",
+        "shared_artifacts_plan",
+        "risks"
+      ],
+      "rework_targets": [
+        "execution_planning",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "execution_plan": "priorities/risk ordering, checkpoints, ресурсные ограничения, shared preparation; eligible order выводится из DAG, не ручная вторая очередь.",
+        "report": "Record the substantive result for this stage.",
+        "risks": "id, condition, impact, mitigation/контроль, owner decision; explicit none допускается.",
+        "shared_artifacts_plan": "artifact IDs/types/expected producers/consumers, exact paths/format/criteria, ownership sprint.",
+        "shared_context_plan": "общие факты/sections с owners и потребляющими task refs, что не дублировать."
+      },
+      "transitions": {
+        "complete": "coverage_analysis"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "check",
+      "id": "coverage_analysis",
+      "instruction": "Проверить полноту пути от цели sprint к испытаниям. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "planned_sprint"
+      ],
+      "rework_targets": [
+        "coverage_analysis",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "planned_sprint": "sprint draft+task drafts+edges+coverage единым объектом, publication target/revision, validation и publish receipts.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "inconclusive": "task_contracts",
+        "not_satisfied": "task_contracts",
+        "satisfied": "sprint_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "sprint_inspection",
+      "instruction": "Read-only осмотреть весь план. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "sprint_inspection",
+        "remediation",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "remediation",
+        "clear": "publication"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "revise",
+      "id": "remediation",
+      "instruction": "Исправить draft sprint без перезаписи выполненной истории. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "planned_sprint",
+        "task_contracts",
+        "dependency_plan"
+      ],
+      "rework_targets": [
+        "remediation",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "dependency_plan": "same-sprint directed edges, required predecessor result SHA/artifact/materialization, justification; без циклов.",
+        "planned_sprint": "Record the complete typed sprint plan for reviewed publication.",
+        "report": "Record the substantive result for this stage.",
+        "task_contracts": "draft tasks с goal_type, полным template/creation fields/exact methods, origin draft ID; индивид. validation receipts."
+      },
+      "transitions": {
+        "complete": "remediation_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "remediation_inspection",
+      "instruction": "Осмотреть изменения плана. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "remediation_inspection",
+        "remediation",
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "remediation",
+        "clear": "publication"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "publish",
+      "id": "publication",
+      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop. Publish only after explicit user authorization. Read the reviewed planned_sprint section; do not submit a replacement draft. Submit stage_work with kind=sprint, section=planned_sprint, and the explicit user authorization. The draft must already be retained and reviewed; do not resubmit a replacement draft in publication.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [],
+      "rework_targets": [
+        "framing",
+        "decomposition",
+        "task_classification",
+        "task_contracts",
+        "dependency_design",
+        "execution_planning",
+        "coverage_analysis",
+        "sprint_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {},
+      "transitions": {
+        "complete": null
+      }
+    }
+  ]
+}

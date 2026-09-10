@@ -1,0 +1,38 @@
+{
+  "schema": "project-receipt-1",
+  "request_id": "AI-POISE-LOCAL-LAYOUT-20260910-2",
+  "request_digest": "01b21ee8bd29ed09ad00c7a84b06b871181ae5f3cd5adbf4437b97183f645f0d",
+  "template": {
+    "id": "linux-reference",
+    "version": "1",
+    "digest": "05cea08528fa6be253c1adf1c4bdbb18a033480ad5666c3d88a570c2a0050fe1"
+  },
+  "files": {
+    "project.json": "905360aa7859456a2a5d5904309bd8b1b17ddbd0bcb6902c6b798536be357b98",
+    "config/processes/integration.json": "910eba79a369a9f030e37de61564293d0707a44ced7ef410736e8994e64b2bec",
+    "config/processes/environment_diagnostics.json": "da4b08f85bc16955254396f63e398b9575078d820ae62b2828333b17c594f0e9",
+    "config/processes/verification.json": "ece13fe3d4216ad0801ea7fcfaa1da79165848facbfae38d092f8b4f0b1383cd",
+    "config/processes/development.json": "40f3cca4e17c189e2311a28eb4b8110b7959ee01d8055b4a6b45b6f393d28e5b",
+    "config/processes/environment_remediation.json": "d4a56ea3f7ac339f9eff5df4bcdf2d55bcfdf6b646ab438163904f4ea3cb6607",
+    "config/processes/analysis.json": "5ffd4050eafa65f56f558b5b5ab414c5be2b5b43d3f426fa6050406e33b7b325",
+    "config/processes/task_planning.json": "1f2b13e009d041486ccd28f7f16a59281c0177200751668a66d6532f089f256c",
+    "config/processes/sprint_planning.json": "4b1ae466e950dfd3711f01582b984c79e29b5631274bd76000fc75f662f412b3",
+    "config/processes/design.json": "6c7c7c274977b70f8ce8988757bded6ed91aaa5a5c17c0e5a4cf158dc3731c51",
+    "config/processes/review.json": "14cb64d0a9b03d36af385921c591aac2e2de87ba4c721dc3a1619f25a45815eb",
+    "config/processes/documentation.json": "798d350b6977a6ca1563db062c32cfa3357833f5828878ea766e2ced65fbf93b",
+    "config/processes/profiling.json": "81599a0254673a86750093611dfc96ff31a73e012218d062f1add756c52f9051",
+    "config/processes/test_development.json": "9f7310e905cc0803df7afe3170d1a3e5c14a51e60822a22e66522b4811751aa6"
+  },
+  "result": {
+    "status": "created",
+    "project": "ai-poise",
+    "revision": "e23b487c87722e2e43de1a8bbc11cfef439effbb4b023eef49eb67e428d9f18e",
+    "config_path": "/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json",
+    "process_count": 13,
+    "readiness": {
+      "repository": "not_checked",
+      "remote": "not_checked"
+    },
+    "replayed": false
+  }
+}

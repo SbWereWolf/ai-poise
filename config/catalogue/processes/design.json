@@ -1,0 +1,456 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "design",
+      "interfaces_contracts"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "design_verification-post-verdict",
+        "kind": "section",
+        "phase": "post",
+        "section": "design_verification.verdict",
+        "stages": [
+          "design_verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "alternatives-input-baseline",
+        "kind": "section",
+        "phase": "pre",
+        "section": "baseline",
+        "stages": [
+          "alternatives"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "alternatives-input-decision_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decision_criteria",
+        "stages": [
+          "alternatives"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decision-input-alternatives",
+        "kind": "section",
+        "phase": "pre",
+        "section": "alternatives",
+        "stages": [
+          "decision"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "decision-input-decision_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "decision_criteria",
+        "stages": [
+          "decision"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "detailed_design-input-selected_approach",
+        "kind": "section",
+        "phase": "pre",
+        "section": "selected_approach",
+        "stages": [
+          "detailed_design"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "detailed_design-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "detailed_design"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_verification-input-design",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design",
+        "stages": [
+          "design_verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_verification-input-interfaces_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "interfaces_contracts",
+        "stages": [
+          "design_verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_verification-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "design_verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-design",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "design_inspection-input-interfaces_contracts",
+        "kind": "section",
+        "phase": "pre",
+        "section": "interfaces_contracts",
+        "stages": [
+          "design_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "remediation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation_inspection-input-design",
+        "kind": "section",
+        "phase": "pre",
+        "section": "design",
+        "stages": [
+          "remediation_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": [
+      {
+        "id": "design_verification.verdict",
+        "normalization": "strip",
+        "template": "Fill after obtaining the declared observations.",
+        "write_stages": [
+          "design_verification"
+        ]
+      }
+    ]
+  },
+  "goal_type": "design",
+  "route": {
+    "entry": "framing",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "framing",
+      "instruction": "Зафиксировать исходную архитектуру и критерии выбора. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "baseline",
+        "assumptions",
+        "decision_criteria",
+        "verification_plan"
+      ],
+      "rework_targets": [
+        "framing",
+        "alternatives",
+        "decision",
+        "detailed_design",
+        "design_verification",
+        "design_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
+        "baseline": "applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён.",
+        "decision_criteria": "id, statement, priority/weights только при явно выбранной scoring model, evidence/predicate для сравнения.",
+        "report": "Record the substantive result for this stage.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+      },
+      "transitions": {
+        "complete": "alternatives"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "alternatives",
+      "instruction": "Сравнить допустимые решения. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "alternatives"
+      ],
+      "rework_targets": [
+        "alternatives",
+        "framing",
+        "decision",
+        "detailed_design",
+        "design_verification",
+        "design_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "alternatives": "id, description, requirements/constraints coverage, pros/cons, risk/assumption refs, evaluation по каждому критерию.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "decision"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "decision",
+      "instruction": "Выбрать решение и обосновать отказ от других. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "selected_approach",
+        "decisions"
+      ],
+      "rework_targets": [
+        "decision",
+        "framing",
+        "alternatives",
+        "detailed_design",
+        "design_verification",
+        "design_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "report": "Record the substantive result for this stage.",
+        "selected_approach": "alternative_id, rationale, criteria comparisons, constraints/evidence refs, rejected alternatives причины."
+      },
+      "transitions": {
+        "complete": "detailed_design"
+      }
+    },
+    {
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "detailed_design",
+      "instruction": "Описать конкретные contracts и failure modes. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report",
+        "design",
+        "interfaces_contracts",
+        "impact_analysis"
+      ],
+      "rework_targets": [
+        "detailed_design",
+        "framing",
+        "alternatives",
+        "decision",
+        "design_verification",
+        "design_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "design": "components/responsibilities, данные, состояния/переходы, interfaces, errors/failures, concurrency/security/observability applicability, requirement mapping; каждый неприменимый блок явно помечен с причиной.",
+        "impact_analysis": "affected/unchanged codebases/components/contracts; prerequisites/risks; downstream requirements, не самостоятельная реализация.",
+        "interfaces_contracts": "applicability; API/CLI/data contract, inputs/outputs/errors, side effects, invariants, versioned target references, schema validators.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "design_verification"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "check",
+      "id": "design_verification",
+      "instruction": "Проверить design против требований. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "design_verification",
+        "framing",
+        "alternatives",
+        "decision",
+        "detailed_design",
+        "design_inspection",
+        "remediation",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "inconclusive": "detailed_design",
+        "not_satisfied": "detailed_design",
+        "satisfied": "design_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "design_inspection",
+      "instruction": "Осмотреть consistency, неопределённости и лишнюю сложность. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "design_inspection",
+        "remediation",
+        "framing",
+        "alternatives",
+        "decision",
+        "detailed_design",
+        "design_verification",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "remediation",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "revise",
+      "id": "remediation",
+      "instruction": "Исправить design findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report",
+        "design",
+        "interfaces_contracts"
+      ],
+      "rework_targets": [
+        "remediation",
+        "framing",
+        "alternatives",
+        "decision",
+        "detailed_design",
+        "design_verification",
+        "design_inspection",
+        "remediation_inspection"
+      ],
+      "sections": {
+        "design": "components/responsibilities, данные, состояния/переходы, interfaces, errors/failures, concurrency/security/observability applicability, requirement mapping; каждый неприменимый блок явно помечен с причиной.",
+        "interfaces_contracts": "applicability; API/CLI/data contract, inputs/outputs/errors, side effects, invariants, versioned target references, schema validators.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "remediation_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "remediation_inspection",
+      "instruction": "Проверить design corrections read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "remediation_inspection",
+        "remediation",
+        "framing",
+        "alternatives",
+        "decision",
+        "detailed_design",
+        "design_verification",
+        "design_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "remediation",
+        "clear": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "project-setup-settings-1",
+  "root": "..",
+  "templates": {
+    "linux-reference": {
+      "path": "config/project-templates/linux-reference.json",
+      "version": "1",
+      "digest": "05cea08528fa6be253c1adf1c4bdbb18a033480ad5666c3d88a570c2a0050fe1"
+    },
+    "wsl-system": {
+      "path": "config/project-templates/wsl-system.json",
+      "version": "2",
+      "digest": "16a8333f11988a75f3bf87a26481e514a89155db74a788e66a7cf87882ac8fbb"
+    },
+    "wsl-harness": {
+      "path": "config/project-templates/wsl-harness.json",
+      "version": "2",
+      "digest": "eb0a51ccff5d870aad34fd742ad4bdb54dfda485e5e5032a4ddc238382c65789"
+    }
+  },
+  "manifest": "project.json",
+  "receipt": "setup-receipt.json",
+  "lock": "projects/.project-setup.lock",
+  "file_mode": 384,
+  "directory_mode": 448,
+  "json_indent": 2,
+  "lock_seconds": 2.0,
+  "lock_poll_seconds": 0.01,
+  "git_seconds": 15.0,
+  "max_input_bytes": 1048576,
+  "max_edits": 1000,
+  "max_survey_steps": 100,
+  "output_chars": 8192,
+  "exit_codes": {
+    "success": 0,
+    "rejected": 2,
+    "aborted": 3
+  }
+}

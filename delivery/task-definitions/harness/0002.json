@@ -1,0 +1,190 @@
+{
+  "id": "0002",
+  "sprint_id": "SPRINT-0001",
+  "goal_type": "development",
+  "goal": "Добавить в обычный Harness preflight пакетное discovery доступных IDE MCP capabilities и передавать inventory агенту в bootstrap.",
+  "requirements": [
+    "Использовать уже реализованные MCP initialize/tools-list/probe primitives; не создавать второй MCP discovery engine.",
+    "В project config явно перечислять потенциально используемые IDE MCP endpoints/launch contracts для конкретного проекта, без предположения, что установленная IDE автоматически доступна агенту.",
+    "Во время bootstrap preflight механически проверить каждый настроенный IDE MCP Server, выполнить безопасные initialize и tools/list и собрать фактически exposed capabilities.",
+    "Проверять, что capability относится к нужному project/worktree; наличие отвечающего MCP Server без подтверждённой project binding не считать достаточной доступностью для code-aware работы.",
+    "Preflight не должен вызывать все обнаруженные tools: mutating/refactoring/formatting/run/debug/database/VCS операции во время discovery запрещены.",
+    "Нормализованный capability inventory должен входить в обычный bootstrap/task snapshot, чтобы агент выбирал code-aware инструменты по фактически доступным descriptions текущей IDE.",
+    "Поддержать одновременно настроенные PhpStorm, PyCharm и WebStorm MCP без искусственного приоритета; unavailable server должен иметь явный диагностический статус, не блокируя остальные доступные IDE.",
+    "Не зашивать в Harness статический список JetBrains tool names как бизнес-правило: конкретный список приходит из tools/list, а политика использования принадлежит документации/skill проекта.",
+    "Capability discovery должен быть batch/declarative и не требовать от агента отдельного вызова на каждый MCP Server."
+  ],
+  "definition_of_done": [
+    "Один bootstrap/preflight возвращает единый inventory по всем настроенным IDE MCP servers с server status, project binding и exposed tools.",
+    "TDD покрывает несколько IDE, unavailable server, wrong worktree binding, mutating tool presence без вызова и изменение tools/list между сессиями.",
+    "Существующие low-level MCP probes переиспользованы, отдельный engine не создан.",
+    "Документация runtime/preflight обновлена; результат прошёл implementation inspection и reinspection."
+  ],
+  "methods": [
+    {
+      "id": "BASELINE",
+      "argv": [
+        "python3.13",
+        "-m",
+        "pytest",
+        "tests/hook_transport",
+        "tests/runtime_services",
+        "-q"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "timeout_seconds": 120,
+      "expected_exit_code": 0,
+      "stdout_contains": [],
+      "stderr_contains": []
+    }
+  ],
+  "checks": {
+    "baseline": [
+      "BASELINE"
+    ],
+    "solution_planning": [],
+    "verification_planning": [],
+    "test_implementation": [],
+    "test_inspection": [],
+    "test_remediation": [],
+    "test_remediation_inspection": [],
+    "implementation": [],
+    "implementation_inspection": [],
+    "implementation_remediation": [],
+    "implementation_remediation_inspection": [],
+    "documentation": []
+  },
+  "artifact_requirements": [],
+  "content_contract": {
+    "sections": [],
+    "routes": [
+      {
+        "id": "task-verification",
+        "requirements": [
+          "Использовать уже реализованные MCP initialize/tools-list/probe primitives; не создавать второй MCP discovery engine.",
+          "В project config явно перечислять потенциально используемые IDE MCP endpoints/launch contracts для конкретного проекта, без предположения, что установленная IDE автоматически доступна агенту.",
+          "Во время bootstrap preflight механически проверить каждый настроенный IDE MCP Server, выполнить безопасные initialize и tools/list и собрать фактически exposed capabilities.",
+          "Проверять, что capability относится к нужному project/worktree; наличие отвечающего MCP Server без подтверждённой project binding не считать достаточной доступностью для code-aware работы.",
+          "Preflight не должен вызывать все обнаруженные tools: mutating/refactoring/formatting/run/debug/database/VCS операции во время discovery запрещены.",
+          "Нормализованный capability inventory должен входить в обычный bootstrap/task snapshot, чтобы агент выбирал code-aware инструменты по фактически доступным descriptions текущей IDE.",
+          "Поддержать одновременно настроенные PhpStorm, PyCharm и WebStorm MCP без искусственного приоритета; unavailable server должен иметь явный диагностический статус, не блокируя остальные доступные IDE.",
+          "Не зашивать в Harness статический список JetBrains tool names как бизнес-правило: конкретный список приходит из tools/list, а политика использования принадлежит документации/skill проекта.",
+          "Capability discovery должен быть batch/declarative и не требовать от агента отдельного вызова на каждый MCP Server."
+        ],
+        "points": [
+          {
+            "id": "red_method",
+            "kind": "method",
+            "fields": {},
+            "write_stages": [
+              "verification_planning"
+            ]
+          },
+          {
+            "id": "green_method",
+            "kind": "method",
+            "fields": {},
+            "write_stages": [
+              "verification_planning"
+            ]
+          }
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "task-red-method-before-test-code",
+        "kind": "trace",
+        "route": "task-verification",
+        "point": "red_method",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      },
+      {
+        "id": "task-green-method-before-production-code",
+        "kind": "trace",
+        "route": "task-verification",
+        "point": "green_method",
+        "stages": [
+          "implementation"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      }
+    ]
+  },
+  "evidence_plan": {
+    "baseline": {
+      "subject_methods": {
+        "BASELINE": {
+          "exit_codes": [
+            0
+          ],
+          "stdout_contains": [],
+          "stderr_contains": []
+        }
+      },
+      "arguments": [],
+      "review_arguments": []
+    },
+    "solution_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "verification_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_remediation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_remediation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_remediation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_remediation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "documentation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  }
+}

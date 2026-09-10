@@ -1,0 +1,418 @@
+{
+  "goal_type": "environment_diagnostics",
+  "route": {
+    "entry": "framing",
+    "max_transitions": 120,
+    "max_stage_visits": 12
+  },
+  "content_contract": {
+    "sections": [
+      {
+        "id": "framing.facts",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "framing"
+        ]
+      },
+      {
+        "id": "reproduction.reproduction",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "reproduction"
+        ]
+      },
+      {
+        "id": "experiments.facts",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "experiments"
+        ]
+      },
+      {
+        "id": "confirmation.confirmation",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "confirmation"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "framing-post-facts",
+        "kind": "section",
+        "stages": [
+          "framing"
+        ],
+        "phase": "post",
+        "section": "framing.facts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction-post-reproduction",
+        "kind": "section",
+        "stages": [
+          "reproduction"
+        ],
+        "phase": "post",
+        "section": "reproduction.reproduction",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments-post-facts",
+        "kind": "section",
+        "stages": [
+          "experiments"
+        ],
+        "phase": "post",
+        "section": "experiments.facts",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-post-confirmation",
+        "kind": "section",
+        "stages": [
+          "confirmation"
+        ],
+        "phase": "post",
+        "section": "confirmation.confirmation",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reproduction-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "reproduction"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments-input-hypotheses",
+        "kind": "section",
+        "stages": [
+          "experiments"
+        ],
+        "phase": "pre",
+        "section": "hypotheses",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "experiments-input-diagnostic_plan",
+        "kind": "section",
+        "stages": [
+          "experiments"
+        ],
+        "phase": "pre",
+        "section": "diagnostic_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "root_cause_analysis-input-hypotheses",
+        "kind": "section",
+        "stages": [
+          "root_cause_analysis"
+        ],
+        "phase": "pre",
+        "section": "hypotheses",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-root_cause",
+        "kind": "section",
+        "stages": [
+          "confirmation"
+        ],
+        "phase": "pre",
+        "section": "root_cause",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-diagnostic_plan",
+        "kind": "section",
+        "stages": [
+          "confirmation"
+        ],
+        "phase": "pre",
+        "section": "diagnostic_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-confirmation_plan",
+        "kind": "section",
+        "stages": [
+          "confirmation"
+        ],
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-root_cause",
+        "kind": "section",
+        "stages": [
+          "self_inspection"
+        ],
+        "phase": "pre",
+        "section": "root_cause",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-recommendations",
+        "kind": "section",
+        "stages": [
+          "self_inspection"
+        ],
+        "phase": "pre",
+        "section": "recommendations",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "instruction": "Определить симптом и необходимые факты среды. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+      },
+      "required_sections": [
+        "report",
+        "verification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "reproduction"
+      },
+      "rework_targets": [
+        "framing",
+        "reproduction",
+        "hypothesis_planning",
+        "experiments",
+        "root_cause_analysis",
+        "confirmation",
+        "self_inspection"
+      ]
+    },
+    {
+      "id": "reproduction",
+      "handler": "observe",
+      "instruction": "Проверить исходный симптом. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "hypothesis_planning"
+      },
+      "rework_targets": [
+        "reproduction",
+        "framing",
+        "hypothesis_planning",
+        "experiments",
+        "root_cause_analysis",
+        "confirmation",
+        "self_inspection"
+      ]
+    },
+    {
+      "id": "hypothesis_planning",
+      "handler": "produce",
+      "instruction": "Составить проверяемые альтернативные причины. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "hypotheses": "id, statement, supporting/contradicting facts, exact test, expected true/false observations, unresolved/supported/refuted.",
+        "diagnostic_plan": "ordered hypothesis checks, exact commands, allowed temporary effects, restoration и budget."
+      },
+      "required_sections": [
+        "report",
+        "hypotheses",
+        "diagnostic_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "experiments"
+      },
+      "rework_targets": [
+        "hypothesis_planning",
+        "framing",
+        "reproduction",
+        "experiments",
+        "root_cause_analysis",
+        "confirmation",
+        "self_inspection"
+      ]
+    },
+    {
+      "id": "experiments",
+      "handler": "observe",
+      "instruction": "Выполнить диагностические experiments. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "root_cause_analysis"
+      },
+      "rework_targets": [
+        "experiments",
+        "framing",
+        "reproduction",
+        "hypothesis_planning",
+        "root_cause_analysis",
+        "confirmation",
+        "self_inspection"
+      ]
+    },
+    {
+      "id": "root_cause_analysis",
+      "handler": "produce",
+      "instruction": "Обосновать причину и отвергнутые альтернативы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "root_cause": "cause statement, symptoms/facts/experiments links, rejected alternatives, confirmation refs, limitations; inconclusive только если разрешён DoD задачи.",
+        "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
+        "confirmation_plan": "Root cause refs, точный controlled confirmation method, expected distinguishing observations, restore operation/probe и limits. Формируется root_cause_analysis."
+      },
+      "required_sections": [
+        "report",
+        "root_cause",
+        "recommendations",
+        "confirmation_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "confirmation"
+      },
+      "rework_targets": [
+        "root_cause_analysis",
+        "framing",
+        "reproduction",
+        "hypothesis_planning",
+        "experiments",
+        "confirmation",
+        "self_inspection"
+      ]
+    },
+    {
+      "id": "confirmation",
+      "handler": "check",
+      "instruction": "Проверить причинность контролируемым изменением. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "self_inspection",
+        "not_satisfied": "self_inspection",
+        "inconclusive": "self_inspection"
+      },
+      "rework_targets": [
+        "confirmation",
+        "framing",
+        "reproduction",
+        "hypothesis_planning",
+        "experiments",
+        "root_cause_analysis",
+        "self_inspection"
+      ]
+    },
+    {
+      "id": "self_inspection",
+      "handler": "inspect",
+      "instruction": "Проверить диагноз и рекомендацию. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "reproduction"
+      },
+      "rework_targets": [
+        "self_inspection",
+        "reproduction",
+        "hypothesis_planning",
+        "experiments",
+        "root_cause_analysis",
+        "confirmation",
+        "framing"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "root_cause",
+      "recommendations"
+    ]
+  }
+}

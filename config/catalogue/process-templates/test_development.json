@@ -1,0 +1,391 @@
+{
+  "goal_type": "test_development",
+  "route": {
+    "entry": "baseline",
+    "max_transitions": 120,
+    "max_stage_visits": 12
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "test_planning-input-coverage_matrix",
+        "kind": "section",
+        "stages": [
+          "test_planning"
+        ],
+        "phase": "pre",
+        "section": "coverage_matrix",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_implementation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_implementation-input-fixture_plan",
+        "kind": "section",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "section": "fixture_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sensitivity_verification-input-sensitivity_plan",
+        "kind": "section",
+        "stages": [
+          "sensitivity_verification"
+        ],
+        "phase": "pre",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sensitivity_verification-input-test_registry",
+        "kind": "section",
+        "stages": [
+          "sensitivity_verification"
+        ],
+        "phase": "pre",
+        "section": "test_registry",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "sensitivity_verification-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "sensitivity_verification"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-coverage_matrix",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "coverage_matrix",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-test_registry",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "test_registry",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-sensitivity_plan",
+        "kind": "section",
+        "stages": [
+          "test_inspection"
+        ],
+        "phase": "pre",
+        "section": "sensitivity_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "remediation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "baseline",
+      "handler": "observe",
+      "instruction": "Установить существующее покрытие/известное поведение. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "coverage_planning"
+      },
+      "rework_targets": [
+        "baseline",
+        "coverage_planning",
+        "test_planning",
+        "test_implementation",
+        "sensitivity_verification",
+        "test_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "coverage_planning",
+      "handler": "produce",
+      "instruction": "Связать поведение с будущими тестами. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "coverage_matrix": "requirement→scenario→case→oracle→method, обязательность и причина explicit exclusion."
+      },
+      "required_sections": [
+        "report",
+        "coverage_matrix"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "test_planning"
+      },
+      "rework_targets": [
+        "coverage_planning",
+        "baseline",
+        "test_planning",
+        "test_implementation",
+        "sensitivity_verification",
+        "test_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "test_planning",
+      "handler": "produce",
+      "instruction": "Спроектировать oracle, fixtures, sensitivity и команды. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution.",
+        "fixture_plan": "required/not_applicable+reason; при required id,purpose,consumers,input invariants,создание/cleanup,метод validation.",
+        "sensitivity_plan": "case_id, negative-control/known-bad revision/mutation method, exact commands/expected detectable error, clean target restoration; not_applicable только с обоснованием и inspection verdict."
+      },
+      "required_sections": [
+        "report",
+        "verification_plan",
+        "test_registry",
+        "fixture_plan",
+        "sensitivity_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "test_implementation"
+      },
+      "rework_targets": [
+        "test_planning",
+        "baseline",
+        "coverage_planning",
+        "test_implementation",
+        "sensitivity_verification",
+        "test_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "test_implementation",
+      "handler": "produce",
+      "instruction": "Написать только тестовый deliverable. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": false,
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution."
+      },
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "sensitivity_verification"
+      },
+      "rework_targets": [
+        "test_implementation",
+        "baseline",
+        "coverage_planning",
+        "test_planning",
+        "sensitivity_verification",
+        "test_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "sensitivity_verification",
+      "handler": "check",
+      "instruction": "Подтвердить различение правильного и неправильного поведения. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "test_inspection",
+        "not_satisfied": "test_implementation",
+        "inconclusive": "test_implementation"
+      },
+      "rework_targets": [
+        "sensitivity_verification",
+        "baseline",
+        "coverage_planning",
+        "test_planning",
+        "test_implementation",
+        "test_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "test_inspection",
+      "handler": "inspect",
+      "instruction": "Осмотреть coverage/oracles/isolation/fixtures. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "test_inspection",
+        "remediation",
+        "baseline",
+        "coverage_planning",
+        "test_planning",
+        "test_implementation",
+        "sensitivity_verification",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation",
+      "handler": "revise",
+      "instruction": "Исправить дефекты тестового результата. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": false,
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution."
+      },
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "remediation_inspection"
+      },
+      "rework_targets": [
+        "remediation",
+        "baseline",
+        "coverage_planning",
+        "test_planning",
+        "test_implementation",
+        "sensitivity_verification",
+        "test_inspection",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation_inspection",
+      "handler": "inspect",
+      "instruction": "Проверить исправления read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "remediation_inspection",
+        "remediation",
+        "baseline",
+        "coverage_planning",
+        "test_planning",
+        "test_implementation",
+        "sensitivity_verification",
+        "test_inspection"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "tests",
+      "fixtures"
+    ],
+    "sections": []
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "accounting": {
+    "causes": [
+      "initial",
+      "internal_qa",
+      "delivered_rework",
+      "requirement_change",
+      "harness_incident"
+    ],
+    "max_blob_bytes": 1048576,
+    "max_events": 1000,
+    "max_files": 1000,
+    "path_categories": {
+      "code": [
+        "src/**"
+      ],
+      "documentation": [
+        "docs/**",
+        "*.md"
+      ],
+      "fixtures": [
+        "fixtures/**"
+      ],
+      "tests": [
+        "tests/**"
+      ]
+    },
+    "sources": {
+      "codex": "observed",
+      "test": "reported"
+    },
+    "time_mode": "tool_cycle",
+    "timezone": "UTC",
+    "tokenizer": {
+      "command": null,
+      "identity": "not-configured",
+      "kind": "unavailable"
+    },
+    "week_start": 0
+  },
+  "automatic_checks": [],
+  "batch": {
+    "artifact_directories": {
+      "runtime": "generated",
+      "sprint": "artifacts",
+      "task": "artifacts"
+    },
+    "artifact_lock": "artifact.lock",
+    "file_mode": 384,
+    "initial_read_lines": 50,
+    "max_artifact_bytes": 262144,
+    "max_input_bytes": 1048576,
+    "max_items": 1000,
+    "message_reasons": [
+      "initial",
+      "continue",
+      "feedback",
+      "requirement_change",
+      "clarification",
+      "authorization",
+      "cancel"
+    ],
+    "message_source": {
+      "id": "chat-visible",
+      "mode": "agent_reported"
+    },
+    "templates": {
+      "note": {
+        "parameters": [
+          "title",
+          "body"
+        ],
+        "text": "# ${title}\n\n${body}\n",
+        "version": "1"
+      }
+    }
+  },
+  "environment_names": [
+    "PATH",
+    "HOME"
+  ],
+  "git": {
+    "author_email": "ulfnew@gmail.com",
+    "author_name": "SbWereWolf",
+    "base_ref": "master",
+    "branch_template": "tasks/{task_id}",
+    "commit_pattern": ".+",
+    "push_required": false,
+    "remote": "origin",
+    "repository": "/home/sbwerewolf/workdata/ai-poise"
+  },
+  "limits": {
+    "git_seconds": 15.0,
+    "lock_poll_seconds": 0.01,
+    "lock_seconds": 2.0,
+    "output_chars": 2200,
+    "preview_chars": 300,
+    "verify_attempts": 5
+  },
+  "paths": {
+    "database": "tasks.sqlite",
+    "git_index": "snapshot.index",
+    "lock": "tasks.lock",
+    "response": "response.json",
+    "runs": "runs",
+    "runtime": ".runtime",
+    "sprints": "sprint",
+    "state": "/home/sbwerewolf/workdata/ai-poise/projects/ai-poise",
+    "stderr": "stderr.txt",
+    "stdout": "stdout.txt",
+    "tasks": "task",
+    "worktrees": "worktrees"
+  },
+  "processes": {
+    "analysis": "config/processes/analysis.json",
+    "design": "config/processes/design.json",
+    "development": "config/processes/development.json",
+    "documentation": "config/processes/documentation.json",
+    "environment_diagnostics": "config/processes/environment_diagnostics.json",
+    "environment_remediation": "config/processes/environment_remediation.json",
+    "integration": "config/processes/integration.json",
+    "profiling": "config/processes/profiling.json",
+    "review": "config/processes/review.json",
+    "sprint_planning": "config/processes/sprint_planning.json",
+    "task_planning": "config/processes/task_planning.json",
+    "test_development": "config/processes/test_development.json",
+    "verification": "config/processes/verification.json"
+  },
+  "project": "ai-poise",
+  "runtime_services": {
+    "handoff": {
+      "bundle": "source.bundle",
+      "directory": "handoffs",
+      "file_mode": 384,
+      "preserved_directory": "preserved",
+      "receipt": "handoff.json"
+    },
+    "output": {
+      "chunk_bytes": 65536,
+      "directory": "views",
+      "file_mode": 384,
+      "job": "job.json",
+      "known": [
+        {
+          "argv_tokens": [
+            "-m",
+            "unittest"
+          ],
+          "extended_bytes": 4096,
+          "files": {
+            "extended": "extended.txt",
+            "full": "full.txt",
+            "selected": "selected.txt"
+          },
+          "id": "unittest",
+          "parser": "lines",
+          "primary_chars": 512,
+          "selected_bytes": 4096,
+          "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*"
+        }
+      ],
+      "manifest": "views.json",
+      "unknown": {
+        "argv_tokens": [],
+        "extended_bytes": 4096,
+        "files": {
+          "extended": "extended.txt",
+          "full": "full.txt",
+          "selected": null
+        },
+        "id": "unknown",
+        "parser": "tail",
+        "primary_chars": 512,
+        "selected_bytes": 4096,
+        "selection_pattern": null
+      },
+      "worker_stderr": "worker-err.txt",
+      "worker_stdout": "worker-out.txt",
+      "worker_timeout_seconds": 15
+    },
+    "transfer": {
+      "archive": "work.zip",
+      "bundles_directory": "bundles",
+      "chunk_bytes": 65536,
+      "database": "snapshot.sqlite",
+      "directory": "transfers",
+      "file_mode": 384,
+      "files_directory": "files",
+      "manifest": "manifest.json",
+      "max_file_bytes": 33554432,
+      "max_files": 10000,
+      "max_tasks": 1000,
+      "max_total_bytes": 134217728
+    }
+  },
+  "schema": "ddd-accounting-11",
+  "sprint": {
+    "acceptable_terminal_states": [
+      "completed",
+      "cancelled"
+    ],
+    "max_dependencies": 3000,
+    "max_tasks": 1000,
+    "section_rules": [
+      {
+        "name": "plan",
+        "normalization": "strip",
+        "required": true,
+        "template": "Заполнить план."
+      }
+    ],
+    "templates": {
+      "basic": {
+        "definition_of_done": [],
+        "dependencies": [],
+        "goal": "",
+        "requirements": [],
+        "sections": {
+          "plan": "Заполнить план."
+        },
+        "tasks": [],
+        "version": "1"
+      }
+    }
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "id": "DEMO-1",
+  "sprint_id": null,
+  "goal_type": "development",
+  "goal": "Исправить double(2), получить 4.",
+  "requirements": [
+    "double(n) возвращает n*2"
+  ],
+  "definition_of_done": [
+    "Регрессионный тест RED до правки, GREEN после."
+  ],
+  "methods": [
+    {
+      "id": "RED",
+      "argv": [
+        "REPLACE_WITH_ABSOLUTE_PYTHON_EXECUTABLE",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": ".",
+      "environment": {
+        "LANG": "C.UTF-8"
+      },
+      "timeout_seconds": 10,
+      "expected_exit_code": 1,
+      "stdout_contains": [],
+      "stderr_contains": [
+        "test_double",
+        "AssertionError: 3 != 4",
+        "Ran 1 test"
+      ]
+    },
+    {
+      "id": "GREEN",
+      "argv": [
+        "REPLACE_WITH_ABSOLUTE_PYTHON_EXECUTABLE",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": ".",
+      "environment": {
+        "LANG": "C.UTF-8"
+      },
+      "timeout_seconds": 10,
+      "expected_exit_code": 0,
+      "stdout_contains": [],
+      "stderr_contains": [
+        "test_double",
+        "Ran 1 test",
+        "OK"
+      ]
+    }
+  ],
+  "checks": {
+    "tests": [
+      "RED"
+    ],
+    "test_review": [],
+    "test_fix": [
+      "RED"
+    ],
+    "test_recheck": [],
+    "implementation": [
+      "GREEN"
+    ],
+    "code_review": [
+      "GREEN"
+    ],
+    "code_fix": [
+      "GREEN"
+    ],
+    "code_recheck": [
+      "GREEN"
+    ]
+  },
+  "artifact_requirements": [
+    {
+      "scope": "task",
+      "pattern": "result.md",
+      "minimum": 1,
+      "maximum": 1
+    }
+  ],
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "evidence_plan": {
+    "tests": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_review": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_fix": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_recheck": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "code_review": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "code_fix": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "code_recheck": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  }
+}

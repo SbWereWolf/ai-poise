@@ -1,0 +1,208 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "verdict",
+      "result"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "execution-input-verification_program",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_program",
+        "stages": [
+          "execution"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution-input-verification_methods",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_methods",
+        "stages": [
+          "execution"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "execution-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "execution"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis-input-verification_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_criteria",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-verification_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_criteria",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verdict",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": []
+  },
+  "goal_type": "verification",
+  "route": {
+    "entry": "planning",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "planning",
+      "instruction": "Определить программу, критерии и точные способы доказательства. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "verification_criteria",
+        "verification_program",
+        "verification_methods",
+        "environment"
+      ],
+      "rework_targets": [
+        "planning",
+        "execution",
+        "analysis",
+        "self_inspection"
+      ],
+      "sections": {
+        "environment": "relevant facts/readiness, versions/input generation, resource identities, no secret values; required facts и observation methods явно заданы.",
+        "report": "Record the substantive result for this stage.",
+        "verification_criteria": "id, subject requirement/DoD, expected predicate/вердикт, applicable scope.",
+        "verification_methods": "Typed methods: command с точным PlannedInvocation; logical_argument/inspection с обязательными submission_stage=execution, evidence_phase PREPARE/CONTINUE, source_refs, criteria/obligation refs, observation_method_refs (явно [] для PREPARE), required=true/false. Никакого определения kind по отсутствию команды. CONTINUE references указывают только на реально исполняемые объявленные command observations; циклический/неизвестный reference недопустим.",
+        "verification_program": "ordered methods, exact inputs/environment/readiness, обязательность, stop/continue-on-outcome, ресурсные границы и limits."
+      },
+      "transitions": {
+        "complete": "execution"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "check",
+      "id": "execution",
+      "instruction": "Выполнить программу и получить evidence. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "execution",
+        "planning",
+        "analysis",
+        "self_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "inconclusive": "analysis",
+        "not_satisfied": "analysis",
+        "satisfied": "analysis"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "analysis",
+      "instruction": "Интерпретировать evidence и сформировать несоответствия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "verdict",
+        "result",
+        "product_findings"
+      ],
+      "rework_targets": [
+        "analysis",
+        "planning",
+        "execution",
+        "self_inspection"
+      ],
+      "sections": {
+        "product_findings": "Record product_findings.",
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
+        "verdict": "по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи."
+      },
+      "transitions": {
+        "complete": "self_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "self_inspection",
+      "instruction": "Осмотреть качество самой проверки. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "self_inspection",
+        "planning",
+        "execution",
+        "analysis"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "planning",
+        "clear": null
+      }
+    }
+  ]
+}

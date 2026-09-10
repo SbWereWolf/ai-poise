@@ -1,0 +1,122 @@
+{
+  "created_at": "2026-09-06T16:04:53+05:00",
+  "packaged_at": "2026-09-06T16:21:24+05:00",
+  "status": "DESIGN_ONLY_NO_PRODUCT_CODE",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 3405,
+      "sha256": "343017d3353a12fde90dcadd63f0e55bcacaaf093440b4f482c6de7e8572d31c"
+    },
+    {
+      "path": "architecture_2026-09-06T16-04-53+05-00.md",
+      "bytes": 16624,
+      "sha256": "5f8fd731d57fe4212f3a72fd73420114608ccdd6e7ced039dcf394707acd318e"
+    },
+    {
+      "path": "data/architecture-model.json",
+      "bytes": 4925,
+      "sha256": "a5f6ef446bf82408e14d040399ee80c4a8f850bbb11a47dc75dc4b63e58f09a6"
+    },
+    {
+      "path": "data/stage-library-map.json",
+      "bytes": 60373,
+      "sha256": "f56144c9375741da4a8f483b303ca055177eed0e305edb6b1453ae26f8cbe66a"
+    },
+    {
+      "path": "data/storage-catalog.json",
+      "bytes": 21354,
+      "sha256": "d406fdb26e39689ae2cfde54f6994a8c663f287f61ecff9c9977f141444e66e9"
+    },
+    {
+      "path": "docs/01-domain-model.md",
+      "bytes": 23405,
+      "sha256": "8f85b4f1bf22ceb24b6373649e25d00246c850169cd2788b9890973e966ca99c"
+    },
+    {
+      "path": "docs/02-libraries-and-api.md",
+      "bytes": 19910,
+      "sha256": "a0dcc64e69a550efdaacad20ea49207a35fc02746a5543ef82097447096386fa"
+    },
+    {
+      "path": "docs/03-data-storage.md",
+      "bytes": 33237,
+      "sha256": "cc1e2c36ef57627a18e55b2a113334f6ff9594f924c29550360095e11817a396"
+    },
+    {
+      "path": "docs/04-runner-and-transactions.md",
+      "bytes": 26657,
+      "sha256": "121e1a48099e2e76c96804902e28dfdda8ddc9fabb3072afcd76ef93dfaa43f8"
+    },
+    {
+      "path": "docs/05-realization-and-checks.md",
+      "bytes": 14942,
+      "sha256": "a791c301f5ef61d9ef1dd1782a1097ad6d1428df7cf4f387bfbecb4374ec4940"
+    },
+    {
+      "path": "docs/06-ddd-invariant.md",
+      "bytes": 4974,
+      "sha256": "b870c97fcfca7fc6d79e48becfa311479d0be8c9d5562a2ea232971135c2db04"
+    },
+    {
+      "path": "evidence/design-check.json",
+      "bytes": 2936,
+      "sha256": "a5760ff7c96f0ef1c8f8ee42684c0c3af6e685ab47612a1b5dbf32d48d3ea7df"
+    },
+    {
+      "path": "evidence/design-check.md",
+      "bytes": 3246,
+      "sha256": "63f88cf40c61bbaef72cb19b62dace047857951bde68aea57a5ed26dbc2fe5e5"
+    },
+    {
+      "path": "evidence/input-hashes-after.json",
+      "bytes": 535,
+      "sha256": "fe4338deaa5cff32d082e27bfe84ada9c206ede85b768f7ebc2b352b67957e34"
+    },
+    {
+      "path": "evidence/input-hashes-before.json",
+      "bytes": 535,
+      "sha256": "fe4338deaa5cff32d082e27bfe84ada9c206ede85b768f7ebc2b352b67957e34"
+    },
+    {
+      "path": "evidence/prototype-symbols.json",
+      "bytes": 5326,
+      "sha256": "8833fbc6a22e481b32f5e2f5216aecd4721c8e8e7585c6f981641fc27d0db952"
+    },
+    {
+      "path": "reference/feedback-map.json",
+      "bytes": 12921,
+      "sha256": "3ad472a67ab131a87ce24aa550b4b309e0acb8e3f02345a8f0e2aff93ab6ffff"
+    },
+    {
+      "path": "reference/path-only-artifact-decision.md",
+      "bytes": 3217,
+      "sha256": "433643a58a33945b87d5628c54f8944ef86c920ef70966cafea84801fedc290c"
+    },
+    {
+      "path": "reference/previous-prototype-inspection.md",
+      "bytes": 2160,
+      "sha256": "87a115253b104e3feaea4bfc5f96c8156aad435e57fb18aa37c2235a6a9030f4"
+    },
+    {
+      "path": "reference/runner-and-handler-contract.md",
+      "bytes": 13846,
+      "sha256": "762a3fe7186fb009bab282a171cd1d5075946924c823c64437898356e89ebae0"
+    },
+    {
+      "path": "reference/stage-handler-map.json",
+      "bytes": 98525,
+      "sha256": "15a4ece3ff0daeb425b54420c4c3e7988e3fcdfad6d4fd8183ac73bb3dd19ea5"
+    },
+    {
+      "path": "sources.md",
+      "bytes": 6631,
+      "sha256": "001c697873ad86851a637d9c29852709fe87ca958cded376d6ac6284ab7c94e9"
+    },
+    {
+      "path": "stage-library-map.md",
+      "bytes": 14679,
+      "sha256": "52f3f1473a2ec41eab9dffc6432cad6562e6a83020b33556d2ea154971798b76"
+    }
+  ]
+}

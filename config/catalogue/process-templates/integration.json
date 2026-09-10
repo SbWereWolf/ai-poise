@@ -1,0 +1,379 @@
+{
+  "goal_type": "integration",
+  "route": {
+    "entry": "framing",
+    "max_transitions": 120,
+    "max_stage_visits": 12
+  },
+  "content_contract": {
+    "sections": [
+      {
+        "id": "integration.conflict_resolutions",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "integration"
+        ]
+      },
+      {
+        "id": "verification.verdict",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "verification"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "integration-post-conflict_resolutions",
+        "kind": "section",
+        "stages": [
+          "integration"
+        ],
+        "phase": "post",
+        "section": "integration.conflict_resolutions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-post-verdict",
+        "kind": "section",
+        "stages": [
+          "verification"
+        ],
+        "phase": "post",
+        "section": "verification.verdict",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning-input-constraints",
+        "kind": "section",
+        "stages": [
+          "integration_planning"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration-input-integration_plan",
+        "kind": "section",
+        "stages": [
+          "integration"
+        ],
+        "phase": "pre",
+        "section": "integration_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "integration"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "verification"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation-input-integration_plan",
+        "kind": "section",
+        "stages": [
+          "remediation"
+        ],
+        "phase": "pre",
+        "section": "integration_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "remediation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-integration_plan",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "integration_plan",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "instruction": "Зафиксировать source/target и нужные требования источников. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной."
+      },
+      "required_sections": [
+        "report",
+        "constraints"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "integration_planning"
+      },
+      "rework_targets": [
+        "framing",
+        "integration_planning",
+        "integration",
+        "verification",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "integration_planning",
+      "handler": "produce",
+      "instruction": "Задать стратегию и exact checks. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "integration_plan": "explicit merge/rebase/cherry-pick strategy, order, private refs, conflicts policy, exact targeted checks и target publication predicate.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+      },
+      "required_sections": [
+        "report",
+        "integration_plan",
+        "verification_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "integration"
+      },
+      "rework_targets": [
+        "integration_planning",
+        "framing",
+        "integration",
+        "verification",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "integration",
+      "handler": "apply_plan",
+      "instruction": "Выполнить объединение и решить semantic conflicts. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**",
+        "tests/**",
+        "fixtures/**",
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "verification"
+      },
+      "rework_targets": [
+        "integration",
+        "framing",
+        "integration_planning",
+        "verification",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "verification",
+      "handler": "check",
+      "instruction": "Подтвердить совместный результат. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "inspection",
+        "not_satisfied": "inspection",
+        "inconclusive": "inspection"
+      },
+      "rework_targets": [
+        "verification",
+        "framing",
+        "integration_planning",
+        "integration",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "inspection",
+      "handler": "inspect",
+      "instruction": "Read-only проверить сохранность source intentions. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication",
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "inspection",
+        "remediation",
+        "framing",
+        "integration_planning",
+        "integration",
+        "verification",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation",
+      "handler": "revise",
+      "instruction": "Исправить дефекты объединения без новой функциональности. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**",
+        "tests/**",
+        "fixtures/**",
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "conflict_resolutions": "После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set Harness сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее."
+      },
+      "required_sections": [
+        "report",
+        "conflict_resolutions"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "remediation_inspection"
+      },
+      "rework_targets": [
+        "remediation",
+        "framing",
+        "integration_planning",
+        "integration",
+        "verification",
+        "inspection",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation_inspection",
+      "handler": "inspect",
+      "instruction": "Осмотреть corrections. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication",
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "remediation_inspection",
+        "remediation",
+        "framing",
+        "integration_planning",
+        "integration",
+        "verification",
+        "inspection"
+      ]
+    },
+    {
+      "id": "publication",
+      "handler": "publish",
+      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop. Publish only after explicit user authorization. Publish the reviewed commit, not unreviewed edits.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {},
+      "required_sections": [],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": null
+      },
+      "rework_targets": [
+        "framing",
+        "integration_planning",
+        "integration",
+        "verification",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [],
+    "sections": []
+  }
+}

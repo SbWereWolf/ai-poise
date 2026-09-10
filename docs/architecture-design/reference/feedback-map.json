@@ -1,0 +1,346 @@
+{
+  "created_at": "2026-09-06T15:39:15+05:00",
+  "status": "MAPPED_NOT_EXECUTED",
+  "edges": [
+    {
+      "id": "FB-ANA-01",
+      "goal_type": "analysis",
+      "from_stage": "self_inspection",
+      "to_stage": "evidence_collection",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Недостаёт источника, наблюдения или релевантной выборки.",
+      "source_line": 9
+    },
+    {
+      "id": "FB-ANA-02",
+      "goal_type": "analysis",
+      "from_stage": "self_inspection",
+      "to_stage": "reasoning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Нужные факты уже есть, но заключение шире основания либо логически ошибочно.",
+      "source_line": 10
+    },
+    {
+      "id": "FB-ANA-03",
+      "goal_type": "analysis",
+      "from_stage": "self_inspection",
+      "to_stage": "challenge",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Не рассмотрено конкретное альтернативное объяснение или counterevidence.",
+      "source_line": 11
+    },
+    {
+      "id": "FB-DES-01",
+      "goal_type": "design",
+      "from_stage": "design_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Обнаружено противоречие, неописанный failure mode или неоднозначный contract.",
+      "source_line": 12
+    },
+    {
+      "id": "FB-DES-02",
+      "goal_type": "design",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправлена схема, но не все зависимые описания/примеры; требуется новая попытка.",
+      "source_line": 13
+    },
+    {
+      "id": "FB-DEV-01",
+      "goal_type": "development",
+      "from_stage": "test_inspection",
+      "to_stage": "test_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Осмотр нашёл дефект oracle или пропущенный сценарий теста.",
+      "source_line": 14
+    },
+    {
+      "id": "FB-DEV-02",
+      "goal_type": "development",
+      "from_stage": "test_remediation_inspection",
+      "to_stage": "test_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправление теста не устранило замечание либо создало новый дефект.",
+      "source_line": 15
+    },
+    {
+      "id": "FB-DEV-03",
+      "goal_type": "development",
+      "from_stage": "implementation_inspection",
+      "to_stage": "implementation_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Осмотр предъявленного кода нашёл недостаток реализации.",
+      "source_line": 16
+    },
+    {
+      "id": "FB-DEV-04",
+      "goal_type": "development",
+      "from_stage": "implementation_remediation_inspection",
+      "to_stage": "implementation_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Первое исправление кода неполно; требуется новая попытка с новыми доказательствами.",
+      "source_line": 17
+    },
+    {
+      "id": "FB-DIA-01",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "reproduction",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Неверно воспроизведён исходный симптом.",
+      "source_line": 18
+    },
+    {
+      "id": "FB-DIA-02",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "hypothesis_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Не проверена существенная альтернативная причина.",
+      "source_line": 19
+    },
+    {
+      "id": "FB-DIA-03",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "experiments",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "План различения есть, фактического наблюдения недостаточно.",
+      "source_line": 20
+    },
+    {
+      "id": "FB-DIA-04",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "root_cause_analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Факты есть, причинный вывод или рекомендация неверны.",
+      "source_line": 21
+    },
+    {
+      "id": "FB-DIA-05",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "confirmation",
+      "from_handler": "inspect",
+      "to_handler": "check",
+      "reason": "Не подтверждено устранение именно исходного симптома контролируемым опытом.",
+      "source_line": 22
+    },
+    {
+      "id": "FB-DOC-01",
+      "goal_type": "documentation",
+      "from_stage": "inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Найдена неточность, пропущенная предпосылка или непонятная инструкция.",
+      "source_line": 23
+    },
+    {
+      "id": "FB-DOC-02",
+      "goal_type": "documentation",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Предыдущее исправление оставило неоднозначность/сломало зависимый пример.",
+      "source_line": 24
+    },
+    {
+      "id": "FB-ENV-01",
+      "goal_type": "environment_remediation",
+      "from_stage": "inspection",
+      "to_stage": "correction",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Не достигнута часть состояния или найден побочный эффект.",
+      "source_line": 25
+    },
+    {
+      "id": "FB-ENV-02",
+      "goal_type": "environment_remediation",
+      "from_stage": "correction_inspection",
+      "to_stage": "correction",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Предыдущее исправление неполно; состояние надо скорректировать ещё раз.",
+      "source_line": 26
+    },
+    {
+      "id": "FB-INT-01",
+      "goal_type": "integration",
+      "from_stage": "inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Проверка смысла объединения обнаружила потерю source behavior.",
+      "source_line": 27
+    },
+    {
+      "id": "FB-INT-02",
+      "goal_type": "integration",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправлено не всё либо возник вторичный integration-specific дефект.",
+      "source_line": 28
+    },
+    {
+      "id": "FB-PRO-01",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "experiment_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Неверно спроектированы контролируемые переменные или необходим другой эксперимент.",
+      "source_line": 29
+    },
+    {
+      "id": "FB-PRO-02",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "measurement",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отсутствует пригодная серия на требуемом target/workload.",
+      "source_line": 30
+    },
+    {
+      "id": "FB-PRO-03",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Измерения пригодны, но неверно интерпретированы.",
+      "source_line": 31
+    },
+    {
+      "id": "FB-PRO-04",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "confirmation",
+      "from_handler": "inspect",
+      "to_handler": "check",
+      "reason": "Основному выводу не хватает предусмотренного контрольного подтверждения.",
+      "source_line": 32
+    },
+    {
+      "id": "FB-REV-01",
+      "goal_type": "review",
+      "from_stage": "self_inspection",
+      "to_stage": "inspection",
+      "from_handler": "inspect",
+      "to_handler": "inspect",
+      "reason": "Неверный, дублирующий или недоказанный finding либо неполный scope coverage.",
+      "source_line": 33
+    },
+    {
+      "id": "FB-SPL-01",
+      "goal_type": "sprint_planning",
+      "from_stage": "sprint_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Пробел scope, лишняя задача или неверная семантическая зависимость.",
+      "source_line": 34
+    },
+    {
+      "id": "FB-SPL-02",
+      "goal_type": "sprint_planning",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправленный план содержит оставшийся dangling reference или неполный дочерний contract.",
+      "source_line": 35
+    },
+    {
+      "id": "FB-TPL-01",
+      "goal_type": "task_planning",
+      "from_stage": "task_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Неполный или противоречивый contract создаваемой задачи.",
+      "source_line": 36
+    },
+    {
+      "id": "FB-TPL-02",
+      "goal_type": "task_planning",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправление contract оставило неверную ссылку/обязательное поле.",
+      "source_line": 37
+    },
+    {
+      "id": "FB-TST-01",
+      "goal_type": "test_development",
+      "from_stage": "test_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Дефект качества теста или фикстуры подтверждён осмотром.",
+      "source_line": 38
+    },
+    {
+      "id": "FB-TST-02",
+      "goal_type": "test_development",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправленный тест всё ещё зависит от порядка/среды или неправильно проверяет требование.",
+      "source_line": 39
+    },
+    {
+      "id": "FB-VER-01",
+      "goal_type": "verification",
+      "from_stage": "self_inspection",
+      "to_stage": "planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Программа не покрывает критерий или метод не способен его проверить.",
+      "source_line": 40
+    },
+    {
+      "id": "FB-VER-02",
+      "goal_type": "verification",
+      "from_stage": "self_inspection",
+      "to_stage": "execution",
+      "from_handler": "inspect",
+      "to_handler": "check",
+      "reason": "Нужное фактическое наблюдение отсутствует либо получено неверно.",
+      "source_line": 41
+    },
+    {
+      "id": "FB-VER-03",
+      "goal_type": "verification",
+      "from_stage": "self_inspection",
+      "to_stage": "analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Наблюдения достаточны, но вывод или finding оформлены неверно.",
+      "source_line": 42
+    }
+  ]
+}

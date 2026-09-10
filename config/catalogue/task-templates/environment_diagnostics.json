@@ -1,0 +1,60 @@
+{
+  "schema": "task-blueprint-1",
+  "goal_type": "environment_diagnostics",
+  "parameters": {
+    "identity": "text",
+    "membership": "nullable_text",
+    "goal": "text",
+    "requirements": "strings",
+    "dod": "strings",
+    "methods": "list",
+    "artifact_requirements": "list",
+    "contract": "object",
+    "evidence": "object"
+  },
+  "task": {
+    "id": {
+      "$input": "identity"
+    },
+    "sprint_id": {
+      "$input": "membership"
+    },
+    "goal_type": "environment_diagnostics",
+    "goal": {
+      "$input": "goal"
+    },
+    "requirements": {
+      "$input": "requirements"
+    },
+    "definition_of_done": {
+      "$input": "dod"
+    },
+    "methods": {
+      "$input": "methods"
+    },
+    "checks": {
+      "framing": [],
+      "reproduction": [
+        "REPRODUCE"
+      ],
+      "hypothesis_planning": [],
+      "experiments": [
+        "EXPERIMENT"
+      ],
+      "root_cause_analysis": [],
+      "confirmation": [
+        "CONFIRM"
+      ],
+      "self_inspection": []
+    },
+    "artifact_requirements": {
+      "$input": "artifact_requirements"
+    },
+    "content_contract": {
+      "$input": "contract"
+    },
+    "evidence_plan": {
+      "$input": "evidence"
+    }
+  }
+}

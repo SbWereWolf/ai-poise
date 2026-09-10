@@ -1,0 +1,68 @@
+{
+  "schema": "requirements-bootstrap-1",
+  "purpose": "Approved future requirements for the first Harness Requirements DB. Task 0001 imports them through the new API; this file is not a second canonical store after import.",
+  "system_requirements": [
+    {
+      "id": "bootstrap-system-requirements-traceability",
+      "status": "future",
+      "text": "Требования Системы, приложений и задач должны образовывать явную трассируемую цепочку: каждое требование задачи является частным следствием одного или нескольких требований приложения и через них имеет путь к одному или нескольким корневым требованиям Системы. Неустаревшие системные требования должны быть распределены на ответственность одного или нескольких приложений."
+    },
+    {
+      "id": "bootstrap-system-code-aware-tools",
+      "status": "future",
+      "text": "При работе AI-агента с программным кодом и моделью проекта операции, для которых доступная среда разработки предоставляет специализированную code-aware возможность, должны выполняться через эту возможность; если необходимая semantic/structural IDE-возможность недоступна или неприменима, используется установленный fallback на ast-index для поддерживаемых им операций."
+    }
+  ],
+  "application_requirements": [
+    {
+      "id": "bootstrap-harness-requirements-graph",
+      "application": "harness",
+      "status": "future",
+      "text": "Harness должен предоставлять отдельный project-local канонический граф требований уровня Системы и приложений со статусами актуальное/будущее/устаревшее, many-to-many происхождением и механической проверкой покрытия System → Applications."
+    },
+    {
+      "id": "bootstrap-harness-task-traceability",
+      "application": "harness",
+      "status": "future",
+      "text": "Harness должен при постановке задачи проверять и показывать полную цепочку System → Application → Task, предлагать недостающие верхние требования для согласования до публикации и сохранять immutable snapshot согласованной цепочки в Task DB."
+    },
+    {
+      "id": "bootstrap-harness-ide-mcp-preflight",
+      "application": "harness",
+      "status": "future",
+      "text": "Harness должен на preflight механически определять фактически доступные MCP-возможности настроенных для проекта IDE, проверять их связь с нужным project/worktree и предоставлять полученный capability inventory агенту."
+    },
+    {
+      "id": "bootstrap-harness-ide-mcp-policy",
+      "application": "harness",
+      "status": "future",
+      "text": "Правила и skills Harness должны направлять AI-агента использовать применимые IDE MCP-возможности для code-aware операций над кодом и моделью проекта, использовать IDE formatting при его доступности и автоматически переходить на ast-index для поддерживаемых semantic/structural операций при недоступности или неприменимости IDE capability с фиксацией причины."
+    }
+  ],
+  "derivations": [
+    {
+      "child": "bootstrap-harness-requirements-graph",
+      "parents": [
+        "bootstrap-system-requirements-traceability"
+      ]
+    },
+    {
+      "child": "bootstrap-harness-task-traceability",
+      "parents": [
+        "bootstrap-system-requirements-traceability"
+      ]
+    },
+    {
+      "child": "bootstrap-harness-ide-mcp-preflight",
+      "parents": [
+        "bootstrap-system-code-aware-tools"
+      ]
+    },
+    {
+      "child": "bootstrap-harness-ide-mcp-policy",
+      "parents": [
+        "bootstrap-system-code-aware-tools"
+      ]
+    }
+  ]
+}

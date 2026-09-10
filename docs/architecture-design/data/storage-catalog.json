@@ -1,0 +1,527 @@
+{
+  "created_at": "2026-09-06T16:04:53+05:00",
+  "status": "LOGICAL_DESIGN_NOT_DDL",
+  "tables": [
+    {
+      "table": "store_meta",
+      "writer": "configuration",
+      "purpose": "Идентичность store и единственная поддерживаемая версия формата",
+      "keys": "store_id; exact schema/config format IDs",
+      "references": [],
+      "indexes": [
+        "store_id PK"
+      ],
+      "access": "Проверка до открытия работы; изменение только явной операцией создания формата"
+    },
+    {
+      "table": "config_snapshots",
+      "writer": "configuration",
+      "purpose": "Неизменные полностью разрешённые процессы и execution policies",
+      "keys": "snapshot_id/digest; kind; schema_id; canonical body",
+      "references": [],
+      "indexes": [
+        "digest UNIQUE"
+      ],
+      "access": "Добавление проверенного snapshot; загрузка exact version"
+    },
+    {
+      "table": "projects",
+      "writer": "configuration",
+      "purpose": "Стабильная идентичность проекта отдельно от его локальных manifest snapshots",
+      "keys": "project_id; display_name; current_binding_id",
+      "references": [
+        "project_bindings"
+      ],
+      "indexes": [
+        "project_id PK"
+      ],
+      "access": "Явное создание проекта и смена current binding; прежние снимки не перезаписываются"
+    },
+    {
+      "table": "project_bindings",
+      "writer": "configuration",
+      "purpose": "Неизменные явно принятые project/codebase/runtime mappings без секретных значений",
+      "keys": "binding_id; project_id; config_snapshot_id; paths/environment mapping",
+      "references": [
+        "projects",
+        "config_snapshots"
+      ],
+      "indexes": [
+        "binding_id PK",
+        "project_id, binding_id UNIQUE"
+      ],
+      "access": "Создание/смена manifest; capture binding per work cycle"
+    },
+    {
+      "table": "owners",
+      "writer": "owner infrastructure",
+      "purpose": "Общий FK-якорь владельца текстов и файлов: task, sprint, runtime",
+      "keys": "owner_id; kind; project_id",
+      "references": [
+        "projects"
+      ],
+      "indexes": [
+        "owner_id PK",
+        "owner_id, kind, project_id UNIQUE"
+      ],
+      "access": "Только вместе с созданием соответствующей сущности; не отдельный agent API"
+    },
+    {
+      "table": "tasks",
+      "writer": "tasks",
+      "purpose": "Корень задачи: контракт, версия, lifecycle, текущий подход и последний итог",
+      "keys": "task_id=owner_id; goal_type; process_snapshot_id; version; lifecycle; current_iteration_id; last_result_id",
+      "references": [
+        "owners",
+        "config_snapshots",
+        "stage_iterations",
+        "stage_results"
+      ],
+      "indexes": [
+        "task_id PK",
+        "project_id, lifecycle",
+        "goal_type, lifecycle"
+      ],
+      "access": "TaskRepository; никаких прямых status updates из runner"
+    },
+    {
+      "table": "sprints",
+      "writer": "sprints",
+      "purpose": "Корень спринта и указатель его опубликованного плана/результата",
+      "keys": "sprint_id=owner_id; version; lifecycle; plan_revision_id; result_record_revision_id",
+      "references": [
+        "owners",
+        "record_revisions"
+      ],
+      "indexes": [
+        "sprint_id PK",
+        "project_id, lifecycle"
+      ],
+      "access": "SprintRepository; не хранит вложенные JSON всех задач"
+    },
+    {
+      "table": "sprint_memberships",
+      "writer": "sprints",
+      "purpose": "Единственное место принадлежности task спринту",
+      "keys": "sprint_id; task_id; project_id; membership_revision",
+      "references": [
+        "sprints",
+        "tasks"
+      ],
+      "indexes": [
+        "sprint_id, task_id PK",
+        "task_id UNIQUE"
+      ],
+      "access": "Через Sprint API; task читает членство как факт, не меняет вторую копию sprint_id"
+    },
+    {
+      "table": "sprint_dependencies",
+      "writer": "sprints",
+      "purpose": "DAG и явный контракт доступности predecessor",
+      "keys": "dependency_id; sprint_id; predecessor_id; successor_id; readiness_contract; decision_ref",
+      "references": [
+        "sprint_memberships",
+        "record_revisions"
+      ],
+      "indexes": [
+        "sprint_id, predecessor_id, successor_id UNIQUE",
+        "sprint_id, successor_id"
+      ],
+      "access": "Оба конца ссылаются составными FK на membership одного sprint; цикл проверяет Sprint"
+    },
+    {
+      "table": "stage_iterations",
+      "writer": "tasks",
+      "purpose": "Попытка содержательного этапа и фазовая позиция",
+      "keys": "iteration_id; task_id; stage_key; iteration_no; phase; entry_subject_id; current_submission_id; verified_result_id",
+      "references": [
+        "tasks",
+        "workspace_subjects",
+        "submissions",
+        "stage_results"
+      ],
+      "indexes": [
+        "task_id, stage_key, iteration_no UNIQUE",
+        "task_id, phase"
+      ],
+      "access": "Создание и переход через Task; не новая запись на каждый failed test"
+    },
+    {
+      "table": "submissions",
+      "writer": "tasks",
+      "purpose": "Неизменные содержательные пакеты PREPARE/CONTINUE и их результаты валидации",
+      "keys": "submission_id; iteration_id; phase; payload_digest; payload; parent_submission_id",
+      "references": [
+        "stage_iterations",
+        "submissions"
+      ],
+      "indexes": [
+        "iteration_id, phase, payload_digest UNIQUE"
+      ],
+      "access": "Одинаковый payload не дублирует содержательные слои; валидный кандидат не равен verified"
+    },
+    {
+      "table": "stage_results",
+      "writer": "tasks",
+      "purpose": "Неизменный зафиксированный результат этапа/задачи",
+      "keys": "result_id; iteration_id; submission_id; verified_subject_id; ref set; rendered report ref",
+      "references": [
+        "stage_iterations",
+        "submissions",
+        "workspace_subjects"
+      ],
+      "indexes": [
+        "iteration_id, result_id",
+        "result_id PK"
+      ],
+      "access": "Создание после нужных receipts; принятие хранится отдельным decision record"
+    },
+    {
+      "table": "sections",
+      "writer": "content via owner repository",
+      "purpose": "Идентичность обычной текстовой секции и указатели актуальных слоёв",
+      "keys": "section_id; owner_id; section_key; rendered_template TEXT; normalization_ref; working_revision_id; accepted_revision_id",
+      "references": [
+        "owners",
+        "section_revisions"
+      ],
+      "indexes": [
+        "owner_id, section_key UNIQUE"
+      ],
+      "access": "Общий mapper; разрешение append/перехода указателей выдаёт Task или Sprint"
+    },
+    {
+      "table": "section_revisions",
+      "writer": "content via owner repository",
+      "purpose": "Текст каждого слоя секции без перезаписи предыдущего",
+      "keys": "revision_id; section_id; owner_id; revision_no; submission_id; content TEXT; digest; content_state; bytes; lines; at",
+      "references": [
+        "sections",
+        "owners",
+        "submissions"
+      ],
+      "indexes": [
+        "section_id, revision_no UNIQUE",
+        "section_id, revision_id UNIQUE"
+      ],
+      "access": "Append; current/template/size query без открытия artifact files"
+    },
+    {
+      "table": "work_records",
+      "writer": "typed owner repository",
+      "purpose": "Идентичность first-class requirement/DoD/method/obligation/finding/resolution/evidence/decision",
+      "keys": "record_id; owner_id; kind; business_key; current_revision_id",
+      "references": [
+        "owners",
+        "record_revisions"
+      ],
+      "indexes": [
+        "owner_id, kind, business_key UNIQUE",
+        "owner_id, kind"
+      ],
+      "access": "Не generic agent CRUD; typed доменные объекты отображаются в общий технический формат"
+    },
+    {
+      "table": "record_revisions",
+      "writer": "typed owner repository",
+      "purpose": "Версии типизированного business record и индексируемые поля",
+      "keys": "revision_id; record_id; owner_id; revision_no; schema_ref; state; outcome; authority; payload JSON; submission_id; at",
+      "references": [
+        "work_records",
+        "owners",
+        "submissions",
+        "config_snapshots"
+      ],
+      "indexes": [
+        "record_id, revision_no UNIQUE",
+        "owner_id, state, outcome",
+        "record_id, revision_id UNIQUE"
+      ],
+      "access": "Append; schema проверяется по kind+process; значимые состояния/ссылки не прячутся только в JSON"
+    },
+    {
+      "table": "record_links",
+      "writer": "content via owner repository",
+      "purpose": "Трассировка и типизированные связи между конкретными версиями",
+      "keys": "link_id; from_revision_id; to_revision_id; relation_kind; relation_policy_ref",
+      "references": [
+        "record_revisions",
+        "config_snapshots"
+      ],
+      "indexes": [
+        "from_revision_id, to_revision_id, relation_kind UNIQUE",
+        "to_revision_id, relation_kind"
+      ],
+      "access": "FK обеспечивает существование; типы концов и propagation проверяет домен"
+    },
+    {
+      "table": "workspaces",
+      "writer": "workspaces",
+      "purpose": "Рабочее дерево конкретной работы по codebase",
+      "keys": "workspace_id; owner_id; codebase_id; branch_ref; runtime_binding; checkout_path",
+      "references": [
+        "owners",
+        "project_bindings"
+      ],
+      "indexes": [
+        "workspace_id PK",
+        "runtime_binding, checkout_path UNIQUE",
+        "owner_id, codebase_id"
+      ],
+      "access": "WorkspacePort provisioning; не shared mutable checkout"
+    },
+    {
+      "table": "workspace_subjects",
+      "writer": "workspaces",
+      "purpose": "Снимки проверяемого состояния: task base, entry, current, verified",
+      "keys": "subject_id; workspace_id; tree_oid; commit_oid; observation_phase; environment_signature; method_dependencies",
+      "references": [
+        "workspaces"
+      ],
+      "indexes": [
+        "subject_id PK",
+        "workspace_id, observation_phase"
+      ],
+      "access": "Append; accounting baseline не заменяется после rebase; environment поля только заданные policy"
+    },
+    {
+      "table": "sessions",
+      "writer": "sessions",
+      "purpose": "Внутренняя сессия и текущая формальная работа",
+      "keys": "session_id=runtime owner_id; adapter; external_session_id; agent_instance_id; current_task_id; state; version",
+      "references": [
+        "owners",
+        "tasks"
+      ],
+      "indexes": [
+        "session_id PK",
+        "adapter, external_session_id, agent_instance_id UNIQUE where applicable"
+      ],
+      "access": "Hook identity либо явно передаваемый generated binding; не общий current-session file"
+    },
+    {
+      "table": "work_cycles",
+      "writer": "sessions",
+      "purpose": "Рабочий цикл для одного поручения и максимум одной задачи",
+      "keys": "cycle_id; session_id; task_id or explicit none; iteration_id or explicit none; primary_cause; start/end",
+      "references": [
+        "sessions",
+        "tasks",
+        "stage_iterations"
+      ],
+      "indexes": [
+        "session_id, cycle_id",
+        "task_id, iteration_id"
+      ],
+      "access": "Начало/доклад/handoff; отсутствие task не создаёт hidden formal task"
+    },
+    {
+      "table": "operations",
+      "writer": "operations",
+      "purpose": "Намерение составного действия и известное состояние выполнения",
+      "keys": "operation_id; cycle_id; kind; request_key; state; scope; input_digest; revision_set; result_ref",
+      "references": [
+        "work_cycles"
+      ],
+      "indexes": [
+        "request_key UNIQUE",
+        "cycle_id, state"
+      ],
+      "access": "Общий координатор; replay request не тождественен reuse проверки после изменения subject"
+    },
+    {
+      "table": "operation_steps",
+      "writer": "operations",
+      "purpose": "Шаги внешних и транзакционных действий",
+      "keys": "step_id; operation_id; sequence; kind; state; request_fingerprint; receipt_ref; retry_count",
+      "references": [
+        "operations"
+      ],
+      "indexes": [
+        "operation_id, sequence UNIQUE",
+        "operation_id, state"
+      ],
+      "access": "Intent перед эффектом, receipt после; unknown outcome не повторять вслепую"
+    },
+    {
+      "table": "executions",
+      "writer": "executions",
+      "purpose": "Попытка точного запуска над определённым предметом",
+      "keys": "execution_id; operation_step_id; owner_id; method_revision_ref; resolved_invocation; subject_id; environment_binding; state",
+      "references": [
+        "operation_steps",
+        "owners",
+        "record_revisions",
+        "workspace_subjects"
+      ],
+      "indexes": [
+        "execution_id PK",
+        "operation_step_id, execution_id",
+        "owner_id, state"
+      ],
+      "access": "Одна exact попытка; проверки могут иметь явный no-repository subject в методе"
+    },
+    {
+      "table": "execution_receipts",
+      "writer": "executions",
+      "purpose": "Неизменный фактический outcome без статуса успешности задачи",
+      "keys": "receipt_id; execution_id; started/finished; actual_exit; timeout/signal/discovery; raw_refs; parser_version; actual_facts",
+      "references": [
+        "executions"
+      ],
+      "indexes": [
+        "execution_id, receipt_id UNIQUE"
+      ],
+      "access": "Append; verdict против ожиданий рассчитывает verification, renderer outcome отдельно"
+    },
+    {
+      "table": "record_execution_refs",
+      "writer": "verification via owner repository",
+      "purpose": "Связь evidence record с реальной попыткой/receipt",
+      "keys": "evidence_revision_id; receipt_id",
+      "references": [
+        "record_revisions",
+        "execution_receipts"
+      ],
+      "indexes": [
+        "evidence_revision_id, receipt_id PK"
+      ],
+      "access": "Нет receipt для purely logical evidence; semantic kind проверяется доменом"
+    },
+    {
+      "table": "artifacts",
+      "writer": "artifacts",
+      "purpose": "Стабильная идентичность path-only артефакта в области владельца",
+      "keys": "artifact_id; owner_id; canonical_relative_path; current_snapshot_id",
+      "references": [
+        "owners",
+        "artifact_snapshots"
+      ],
+      "indexes": [
+        "owner_id, canonical_relative_path UNIQUE"
+      ],
+      "access": "Путь один — ID один; абсолютный machine path не canonical identity"
+    },
+    {
+      "table": "artifact_snapshots",
+      "writer": "artifacts",
+      "purpose": "Зафиксированная версия файла и её внутренние технические факты",
+      "keys": "snapshot_id; artifact_id; owner_id; digest; bytes; stored_relative_path; state; at",
+      "references": [
+        "artifacts",
+        "owners"
+      ],
+      "indexes": [
+        "artifact_id, digest UNIQUE",
+        "snapshot_id PK"
+      ],
+      "access": "Снимок referenced evidence immutable внутри того же owner root; old version не портится overwrite исходного пути"
+    },
+    {
+      "table": "artifact_links",
+      "writer": "artifacts via owner coordinator",
+      "purpose": "Ссылка результата/доказательства на конкретный snapshot",
+      "keys": "link_id; snapshot_id; referring_owner_id; record_revision_id or result_id or operation_step_id",
+      "references": [
+        "artifact_snapshots",
+        "owners",
+        "record_revisions",
+        "stage_results",
+        "operation_steps"
+      ],
+      "indexes": [
+        "snapshot_id, referring_owner_id",
+        "record_revision_id"
+      ],
+      "access": "Типизированный FK: один разрешённый referent, не неопределённая пара type/id"
+    },
+    {
+      "table": "background_jobs",
+      "writer": "operations",
+      "purpose": "Ограниченная очередь materialize/metrics и других non-critical работ",
+      "keys": "job_id; operation_id; owner_id; handler_ref; immutable_input_ref; state; attempt_count; budget",
+      "references": [
+        "operations",
+        "owners"
+      ],
+      "indexes": [
+        "job_id PK",
+        "state, job_id"
+      ],
+      "access": "Только явно разрешённые вспомогательные записи; next task legality не вычисляется фоново"
+    },
+    {
+      "table": "usage_events",
+      "writer": "metrics",
+      "purpose": "Исходные reported counters и completeness",
+      "keys": "usage_id; source; source_event_id; cycle_id; counter_kind; input/output/cache/reasoning; total; at",
+      "references": [
+        "work_cycles"
+      ],
+      "indexes": [
+        "source, source_event_id UNIQUE",
+        "cycle_id, at"
+      ],
+      "access": "Idempotent ingest; conflicting duplicate не last-writer-wins; unavailable не ноль"
+    },
+    {
+      "table": "work_intervals",
+      "writer": "metrics",
+      "purpose": "Активное время агента/блокирующих операций, отдельно ожидание пользователя",
+      "keys": "interval_id; cycle_id; source_event_id; kind; starts_at; ends_at; completeness",
+      "references": [
+        "work_cycles"
+      ],
+      "indexes": [
+        "source_event_id UNIQUE",
+        "cycle_id, starts_at"
+      ],
+      "access": "Нет двойного прибавления вложенного command time к уже включающему его work-cycle time"
+    },
+    {
+      "table": "benefit_entries",
+      "writer": "metrics",
+      "purpose": "Зачёт/отзыв конечной полезной работы",
+      "keys": "entry_id; owner_id; result_ref; definition_snapshot; accounting_baseline; measurements; direction; event_key; at",
+      "references": [
+        "owners",
+        "stage_results",
+        "config_snapshots"
+      ],
+      "indexes": [
+        "event_key UNIQUE",
+        "owner_id, at"
+      ],
+      "access": "Append credit/reversal; source code integration не учитывается второй раз"
+    },
+    {
+      "table": "incidents",
+      "writer": "observability",
+      "purpose": "Баг/нарушение согласованности Harness, влияющее на доклад",
+      "keys": "incident_id; operation_id; owner_id; invariant; observation; recovery; disposition; at",
+      "references": [
+        "operations",
+        "owners"
+      ],
+      "indexes": [
+        "operation_id, incident_id",
+        "owner_id, at"
+      ],
+      "access": "Не все ошибки tool являются Incident; восстановленный Incident остаётся видимым"
+    },
+    {
+      "table": "transfers",
+      "writer": "operations",
+      "purpose": "Фиксация snapshot/списка файлов/области переноса и receipt",
+      "keys": "transfer_id; operation_id; mode; included_owners; base_revisions; package_digest; receipt; state",
+      "references": [
+        "operations"
+      ],
+      "indexes": [
+        "transfer_id PK",
+        "operation_id, transfer_id"
+      ],
+      "access": "Согласованная DB copy + files; same-schema only, no auto migration/merge"
+    }
+  ]
+}

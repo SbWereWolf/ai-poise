@@ -1,0 +1,490 @@
+{
+  "goal_type": "task_planning",
+  "route": {
+    "entry": "framing",
+    "max_transitions": 120,
+    "max_stage_visits": 12
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "classification-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "classification"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "classification-input-constraints",
+        "kind": "section",
+        "stages": [
+          "classification"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "requirements-input-goal_classification",
+        "kind": "section",
+        "stages": [
+          "requirements"
+        ],
+        "phase": "pre",
+        "section": "goal_classification",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "acceptance_design-input-deliverables",
+        "kind": "section",
+        "stages": [
+          "acceptance_design"
+        ],
+        "phase": "pre",
+        "section": "deliverables",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "work_planning-input-acceptance_design",
+        "kind": "section",
+        "stages": [
+          "work_planning"
+        ],
+        "phase": "pre",
+        "section": "acceptance_design",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "work_planning-input-constraints",
+        "kind": "section",
+        "stages": [
+          "work_planning"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning-input-work_plan",
+        "kind": "section",
+        "stages": [
+          "verification_planning"
+        ],
+        "phase": "pre",
+        "section": "work_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning-input-acceptance_design",
+        "kind": "section",
+        "stages": [
+          "verification_planning"
+        ],
+        "phase": "pre",
+        "section": "acceptance_design",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "task_inspection-input-acceptance_design",
+        "kind": "section",
+        "stages": [
+          "task_inspection"
+        ],
+        "phase": "pre",
+        "section": "acceptance_design",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation_inspection-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "remediation_inspection"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "publication-input-planned_task",
+        "kind": "section",
+        "stages": [
+          "publication"
+        ],
+        "phase": "pre",
+        "section": "planned_task",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "instruction": "Определить конечную цель планируемой task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
+        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
+        "deliverables": "id, type, owner/path, expected content/schema, acceptance method и requirement refs."
+      },
+      "required_sections": [
+        "report",
+        "constraints",
+        "assumptions",
+        "deliverables"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "classification"
+      },
+      "rework_targets": [
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "classification",
+      "handler": "produce",
+      "instruction": "Выбрать один target goal_type по основному результату. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "goal_classification": "один goal_type, основной deliverable, grounds по skill, независимые вторичные цели вынесены в отдельные candidates."
+      },
+      "required_sections": [
+        "report",
+        "goal_classification"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "requirements"
+      },
+      "rework_targets": [
+        "classification",
+        "framing",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "requirements",
+      "handler": "produce",
+      "instruction": "Уточнить требования в draft target task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication."
+      },
+      "required_sections": [
+        "report",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "acceptance_design"
+      },
+      "rework_targets": [
+        "requirements",
+        "framing",
+        "classification",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "acceptance_design",
+      "handler": "produce",
+      "instruction": "Спроектировать DoD и deliverables будущей task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "acceptance_design": "target requirements→DoD→deliverables/obligations/methods, applicability и разрешённые поздние design steps.",
+        "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication."
+      },
+      "required_sections": [
+        "report",
+        "acceptance_design",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "work_planning"
+      },
+      "rework_targets": [
+        "acceptance_design",
+        "framing",
+        "classification",
+        "requirements",
+        "work_planning",
+        "verification_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "work_planning",
+      "handler": "produce",
+      "instruction": "Заполнить process-specific planning inputs. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "work_plan": "ordered work items и dependencies; outcome каждого; required inputs; scope/риски; без копирования mechanical lifecycle steps.",
+        "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication."
+      },
+      "required_sections": [
+        "report",
+        "work_plan",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "verification_planning"
+      },
+      "rework_targets": [
+        "work_planning",
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "verification_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "verification_planning",
+      "handler": "produce",
+      "instruction": "Зафиксировать способы доказательства будущей задачи. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication."
+      },
+      "required_sections": [
+        "report",
+        "verification_plan",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "task_inspection"
+      },
+      "rework_targets": [
+        "verification_planning",
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "task_inspection",
+      "handler": "inspect",
+      "instruction": "Read-only проверить draft contract. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication",
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "task_inspection",
+        "remediation",
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation",
+      "handler": "revise",
+      "instruction": "Исправить draft по findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication."
+      },
+      "required_sections": [
+        "report",
+        "planned_task"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "remediation_inspection"
+      },
+      "rework_targets": [
+        "remediation",
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "task_inspection",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation_inspection",
+      "handler": "inspect",
+      "instruction": "Осмотреть исправленный contract. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "publication",
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "remediation_inspection",
+        "remediation",
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "task_inspection"
+      ]
+    },
+    {
+      "id": "publication",
+      "handler": "publish",
+      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop. Publish only after explicit user authorization. Read the reviewed planned_task section; do not submit a replacement draft. Submit stage_work with kind=tasks, section=planned_task, and the explicit user authorization. The draft must already be retained and reviewed; do not resubmit a replacement draft in publication.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {},
+      "required_sections": [],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": null
+      },
+      "rework_targets": [
+        "framing",
+        "classification",
+        "requirements",
+        "acceptance_design",
+        "work_planning",
+        "verification_planning",
+        "task_inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "planned_task"
+    ]
+  }
+}

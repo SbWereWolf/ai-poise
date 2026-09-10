@@ -1,0 +1,1420 @@
+{
+  "schema": "catalogue-reference-1",
+  "goal_types": [
+    {
+      "id": "development",
+      "purpose": "Production-код/поведение приложения; тесты и документация — средства качества и сопутствующий результат.",
+      "stages": [
+        {
+          "id": "baseline",
+          "source_id": "GS-DEV-01",
+          "handler": "observe",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "solution_planning",
+          "source_id": "GS-DEV-02",
+          "handler": "produce",
+          "before": [
+            "solution_plan",
+            "decisions",
+            "assumptions",
+            "documentation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "verification_planning",
+          "source_id": "GS-DEV-03",
+          "handler": "produce",
+          "before": [
+            "verification_plan",
+            "test_registry"
+          ],
+          "after": []
+        },
+        {
+          "id": "test_implementation",
+          "source_id": "GS-DEV-04",
+          "handler": "produce",
+          "before": [
+            "test_registry"
+          ],
+          "after": []
+        },
+        {
+          "id": "test_inspection",
+          "source_id": "GS-DEV-05",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "test_remediation",
+          "source_id": "GS-DEV-06",
+          "handler": "revise",
+          "before": [
+            "test_registry"
+          ],
+          "after": []
+        },
+        {
+          "id": "test_remediation_inspection",
+          "source_id": "GS-DEV-07",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "implementation",
+          "source_id": "GS-DEV-08",
+          "handler": "produce",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "implementation_inspection",
+          "source_id": "GS-DEV-09",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "implementation_remediation",
+          "source_id": "GS-DEV-10",
+          "handler": "revise",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "implementation_remediation_inspection",
+          "source_id": "GS-DEV-11",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "documentation",
+          "source_id": "GS-DEV-12",
+          "handler": "produce",
+          "before": [
+            "result"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "baseline": "BASELINE",
+        "test_implementation": "TEST_RED",
+        "test_remediation": "TEST_RED",
+        "implementation": "TEST_GREEN",
+        "implementation_remediation": "TEST_GREEN",
+        "documentation": "DOC_CHECK"
+      }
+    },
+    {
+      "id": "test_development",
+      "purpose": "Тесты и тестовые fixtures как самостоятельный конечный продукт.",
+      "stages": [
+        {
+          "id": "baseline",
+          "source_id": "GS-TST-01",
+          "handler": "observe",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "coverage_planning",
+          "source_id": "GS-TST-02",
+          "handler": "produce",
+          "before": [
+            "coverage_matrix"
+          ],
+          "after": []
+        },
+        {
+          "id": "test_planning",
+          "source_id": "GS-TST-03",
+          "handler": "produce",
+          "before": [
+            "verification_plan",
+            "test_registry",
+            "fixture_plan",
+            "sensitivity_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "test_implementation",
+          "source_id": "GS-TST-04",
+          "handler": "produce",
+          "before": [
+            "test_registry"
+          ],
+          "after": []
+        },
+        {
+          "id": "sensitivity_verification",
+          "source_id": "GS-TST-05",
+          "handler": "check",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "test_inspection",
+          "source_id": "GS-TST-06",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation",
+          "source_id": "GS-TST-07",
+          "handler": "revise",
+          "before": [
+            "test_registry"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_inspection",
+          "source_id": "GS-TST-08",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "baseline": "BASELINE",
+        "test_implementation": "TEST_GREEN",
+        "sensitivity_verification": "SENSITIVITY",
+        "remediation": "TEST_GREEN"
+      }
+    },
+    {
+      "id": "verification",
+      "purpose": "Доказать или опровергнуть соответствие зафиксированного результата требованиям; не исправлять продукт.",
+      "stages": [
+        {
+          "id": "planning",
+          "source_id": "GS-VER-01",
+          "handler": "produce",
+          "before": [
+            "verification_criteria",
+            "verification_program",
+            "verification_methods",
+            "environment"
+          ],
+          "after": []
+        },
+        {
+          "id": "execution",
+          "source_id": "GS-VER-02",
+          "handler": "check",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "analysis",
+          "source_id": "GS-VER-03",
+          "handler": "produce",
+          "before": [
+            "verdict",
+            "result",
+            "product_findings"
+          ],
+          "after": []
+        },
+        {
+          "id": "self_inspection",
+          "source_id": "GS-VER-04",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "execution": "VERIFY"
+      }
+    },
+    {
+      "id": "review",
+      "purpose": "Найти доказанные дефекты/риски в зафиксированном результате, не исправляя его.",
+      "stages": [
+        {
+          "id": "planning",
+          "source_id": "GS-REV-01",
+          "handler": "produce",
+          "before": [
+            "review_criteria",
+            "review_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "inspection",
+          "source_id": "GS-REV-02",
+          "handler": "inspect",
+          "before": [
+            "verdict",
+            "result",
+            "product_findings"
+          ],
+          "after": []
+        },
+        {
+          "id": "self_inspection",
+          "source_id": "GS-REV-03",
+          "handler": "inspect",
+          "before": [
+            "decisions"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {}
+    },
+    {
+      "id": "design",
+      "purpose": "Спроектировать техническое решение/архитектуру/контракт без production реализации.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-DES-01",
+          "handler": "produce",
+          "before": [
+            "baseline",
+            "assumptions",
+            "decision_criteria",
+            "verification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "alternatives",
+          "source_id": "GS-DES-02",
+          "handler": "produce",
+          "before": [
+            "alternatives"
+          ],
+          "after": []
+        },
+        {
+          "id": "decision",
+          "source_id": "GS-DES-03",
+          "handler": "produce",
+          "before": [
+            "selected_approach",
+            "decisions"
+          ],
+          "after": []
+        },
+        {
+          "id": "detailed_design",
+          "source_id": "GS-DES-04",
+          "handler": "produce",
+          "before": [
+            "design",
+            "interfaces_contracts",
+            "impact_analysis"
+          ],
+          "after": []
+        },
+        {
+          "id": "design_verification",
+          "source_id": "GS-DES-05",
+          "handler": "check",
+          "before": [],
+          "after": [
+            "verdict"
+          ]
+        },
+        {
+          "id": "design_inspection",
+          "source_id": "GS-DES-06",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation",
+          "source_id": "GS-DES-07",
+          "handler": "revise",
+          "before": [
+            "design",
+            "interfaces_contracts"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_inspection",
+          "source_id": "GS-DES-08",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "design_verification": "DESIGN_CHECK"
+      }
+    },
+    {
+      "id": "analysis",
+      "purpose": "Доказательный аналитический вывод по заданным вопросам без изменения предмета исследования.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-ANA-01",
+          "handler": "produce",
+          "before": [
+            "source_plan",
+            "method"
+          ],
+          "after": []
+        },
+        {
+          "id": "evidence_collection",
+          "source_id": "GS-ANA-02",
+          "handler": "observe",
+          "before": [],
+          "after": [
+            "sources",
+            "facts",
+            "assumptions"
+          ]
+        },
+        {
+          "id": "reasoning",
+          "source_id": "GS-ANA-03",
+          "handler": "produce",
+          "before": [
+            "analysis",
+            "conclusions",
+            "recommendations"
+          ],
+          "after": []
+        },
+        {
+          "id": "challenge",
+          "source_id": "GS-ANA-04",
+          "handler": "produce",
+          "before": [
+            "alternative_explanations",
+            "counterevidence",
+            "limitations"
+          ],
+          "after": []
+        },
+        {
+          "id": "self_inspection",
+          "source_id": "GS-ANA-05",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "evidence_collection": "COLLECT"
+      }
+    },
+    {
+      "id": "profiling",
+      "purpose": "Измерить performance/resources характеристики и подтвердить выводы; постоянная оптимизация не входит.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-PRO-01",
+          "handler": "produce",
+          "before": [
+            "environment",
+            "workload",
+            "verification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "baseline_measurement",
+          "source_id": "GS-PRO-02",
+          "handler": "observe",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "experiment_planning",
+          "source_id": "GS-PRO-03",
+          "handler": "produce",
+          "before": [
+            "experiment_plan",
+            "instrumentation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "measurement",
+          "source_id": "GS-PRO-04",
+          "handler": "observe",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "analysis",
+          "source_id": "GS-PRO-05",
+          "handler": "produce",
+          "before": [
+            "analysis",
+            "alternative_explanations",
+            "recommendations",
+            "limitations",
+            "confirmation_plan",
+            "product_findings"
+          ],
+          "after": []
+        },
+        {
+          "id": "confirmation",
+          "source_id": "GS-PRO-06",
+          "handler": "check",
+          "before": [],
+          "after": [
+            "confirmation"
+          ]
+        },
+        {
+          "id": "self_inspection",
+          "source_id": "GS-PRO-07",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "baseline_measurement": "BASELINE",
+        "measurement": "MEASURE",
+        "confirmation": "CONFIRM"
+      }
+    },
+    {
+      "id": "environment_diagnostics",
+      "purpose": "Установить причину сбоя среды/tooling и дать воспроизводимую рекомендацию, не постоянное исправление.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-DIA-01",
+          "handler": "produce",
+          "before": [
+            "verification_plan"
+          ],
+          "after": [
+            "facts"
+          ]
+        },
+        {
+          "id": "reproduction",
+          "source_id": "GS-DIA-02",
+          "handler": "observe",
+          "before": [],
+          "after": [
+            "reproduction"
+          ]
+        },
+        {
+          "id": "hypothesis_planning",
+          "source_id": "GS-DIA-03",
+          "handler": "produce",
+          "before": [
+            "hypotheses",
+            "diagnostic_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "experiments",
+          "source_id": "GS-DIA-04",
+          "handler": "observe",
+          "before": [],
+          "after": [
+            "facts"
+          ]
+        },
+        {
+          "id": "root_cause_analysis",
+          "source_id": "GS-DIA-05",
+          "handler": "produce",
+          "before": [
+            "root_cause",
+            "recommendations",
+            "confirmation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "confirmation",
+          "source_id": "GS-DIA-06",
+          "handler": "check",
+          "before": [],
+          "after": [
+            "confirmation"
+          ]
+        },
+        {
+          "id": "self_inspection",
+          "source_id": "GS-DIA-07",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "reproduction": "REPRODUCE",
+        "experiments": "EXPERIMENT",
+        "confirmation": "CONFIRM"
+      }
+    },
+    {
+      "id": "environment_remediation",
+      "purpose": "Изменить среду/tooling и доказать достижение явно заданного desired state.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-ENV-01",
+          "handler": "produce",
+          "before": [
+            "scope",
+            "constraints",
+            "verification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "baseline",
+          "source_id": "GS-ENV-02",
+          "handler": "observe",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "change_planning",
+          "source_id": "GS-ENV-03",
+          "handler": "produce",
+          "before": [
+            "change_plan",
+            "rollback_plan",
+            "verification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "application",
+          "source_id": "GS-ENV-04",
+          "handler": "apply_plan",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "verification",
+          "source_id": "GS-ENV-05",
+          "handler": "check",
+          "before": [],
+          "after": [
+            "verdict"
+          ]
+        },
+        {
+          "id": "inspection",
+          "source_id": "GS-ENV-06",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        },
+        {
+          "id": "correction",
+          "source_id": "GS-ENV-07",
+          "handler": "apply_plan",
+          "before": [
+            "change_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "correction_inspection",
+          "source_id": "GS-ENV-08",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "baseline": "BASELINE",
+        "verification": "ENV_CHECK",
+        "correction_inspection": "ENV_CHECK"
+      }
+    },
+    {
+      "id": "documentation",
+      "purpose": "Создать/обновить документацию как основной deliverable.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-DOC-01",
+          "handler": "produce",
+          "before": [
+            "source_inventory",
+            "content_requirements",
+            "verification_plan",
+            "publication_target"
+          ],
+          "after": []
+        },
+        {
+          "id": "outline",
+          "source_id": "GS-DOC-02",
+          "handler": "produce",
+          "before": [
+            "outline"
+          ],
+          "after": []
+        },
+        {
+          "id": "drafting",
+          "source_id": "GS-DOC-03",
+          "handler": "produce",
+          "before": [
+            "content",
+            "examples_commands"
+          ],
+          "after": []
+        },
+        {
+          "id": "validation",
+          "source_id": "GS-DOC-04",
+          "handler": "check",
+          "before": [],
+          "after": [
+            "verdict"
+          ]
+        },
+        {
+          "id": "inspection",
+          "source_id": "GS-DOC-05",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation",
+          "source_id": "GS-DOC-06",
+          "handler": "revise",
+          "before": [
+            "content"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_inspection",
+          "source_id": "GS-DOC-07",
+          "handler": "inspect",
+          "before": [
+            "result"
+          ],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "validation": "DOC_CHECK",
+        "remediation": "DOC_CHECK"
+      }
+    },
+    {
+      "id": "task_planning",
+      "purpose": "Опубликовать полноценный contract одной будущей/пересматриваемой задачи.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-TPL-01",
+          "handler": "produce",
+          "before": [
+            "constraints",
+            "assumptions",
+            "deliverables"
+          ],
+          "after": []
+        },
+        {
+          "id": "classification",
+          "source_id": "GS-TPL-02",
+          "handler": "produce",
+          "before": [
+            "goal_classification"
+          ],
+          "after": []
+        },
+        {
+          "id": "requirements",
+          "source_id": "GS-TPL-03",
+          "handler": "produce",
+          "before": [
+            "planned_task"
+          ],
+          "after": []
+        },
+        {
+          "id": "acceptance_design",
+          "source_id": "GS-TPL-04",
+          "handler": "produce",
+          "before": [
+            "acceptance_design",
+            "planned_task"
+          ],
+          "after": []
+        },
+        {
+          "id": "work_planning",
+          "source_id": "GS-TPL-05",
+          "handler": "produce",
+          "before": [
+            "work_plan",
+            "planned_task"
+          ],
+          "after": []
+        },
+        {
+          "id": "verification_planning",
+          "source_id": "GS-TPL-06",
+          "handler": "produce",
+          "before": [
+            "verification_plan",
+            "planned_task"
+          ],
+          "after": []
+        },
+        {
+          "id": "task_inspection",
+          "source_id": "GS-TPL-07",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation",
+          "source_id": "GS-TPL-08",
+          "handler": "revise",
+          "before": [
+            "planned_task"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_inspection",
+          "source_id": "GS-TPL-09",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "publication",
+          "source_id": "GS-TPL-10",
+          "handler": "publish",
+          "before": [],
+          "after": []
+        }
+      ],
+      "method_schedule": {}
+    },
+    {
+      "id": "sprint_planning",
+      "purpose": "Опубликовать валидный sprint с tasks и same-sprint DAG единым согласованным результатом.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-SPL-01",
+          "handler": "produce",
+          "before": [
+            "constraints",
+            "assumptions"
+          ],
+          "after": []
+        },
+        {
+          "id": "decomposition",
+          "source_id": "GS-SPL-02",
+          "handler": "produce",
+          "before": [
+            "decomposition"
+          ],
+          "after": []
+        },
+        {
+          "id": "task_classification",
+          "source_id": "GS-SPL-03",
+          "handler": "produce",
+          "before": [
+            "goal_classification"
+          ],
+          "after": []
+        },
+        {
+          "id": "task_contracts",
+          "source_id": "GS-SPL-04",
+          "handler": "produce",
+          "before": [
+            "task_contracts"
+          ],
+          "after": []
+        },
+        {
+          "id": "dependency_design",
+          "source_id": "GS-SPL-05",
+          "handler": "produce",
+          "before": [
+            "dependency_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "execution_planning",
+          "source_id": "GS-SPL-06",
+          "handler": "produce",
+          "before": [
+            "execution_plan",
+            "shared_context_plan",
+            "shared_artifacts_plan",
+            "risks"
+          ],
+          "after": []
+        },
+        {
+          "id": "coverage_analysis",
+          "source_id": "GS-SPL-07",
+          "handler": "check",
+          "before": [
+            "planned_sprint"
+          ],
+          "after": []
+        },
+        {
+          "id": "sprint_inspection",
+          "source_id": "GS-SPL-08",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation",
+          "source_id": "GS-SPL-09",
+          "handler": "revise",
+          "before": [
+            "planned_sprint",
+            "task_contracts",
+            "dependency_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_inspection",
+          "source_id": "GS-SPL-10",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "publication",
+          "source_id": "GS-SPL-11",
+          "handler": "publish",
+          "before": [],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "coverage_analysis": "COVERAGE"
+      }
+    },
+    {
+      "id": "integration",
+      "purpose": "Объединить существующие результаты с target codebase и доказать integrated result без новой самостоятельной функциональности.",
+      "stages": [
+        {
+          "id": "framing",
+          "source_id": "GS-INT-01",
+          "handler": "produce",
+          "before": [
+            "constraints"
+          ],
+          "after": []
+        },
+        {
+          "id": "integration_planning",
+          "source_id": "GS-INT-02",
+          "handler": "produce",
+          "before": [
+            "integration_plan",
+            "verification_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "integration",
+          "source_id": "GS-INT-03",
+          "handler": "apply_plan",
+          "before": [],
+          "after": [
+            "conflict_resolutions"
+          ]
+        },
+        {
+          "id": "verification",
+          "source_id": "GS-INT-04",
+          "handler": "check",
+          "before": [],
+          "after": [
+            "verdict"
+          ]
+        },
+        {
+          "id": "inspection",
+          "source_id": "GS-INT-05",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation",
+          "source_id": "GS-INT-06",
+          "handler": "revise",
+          "before": [
+            "conflict_resolutions"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_inspection",
+          "source_id": "GS-INT-07",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "publication",
+          "source_id": "GS-INT-08",
+          "handler": "publish",
+          "before": [],
+          "after": []
+        }
+      ],
+      "method_schedule": {
+        "integration": "COMBINED",
+        "verification": "COMBINED",
+        "remediation": "COMBINED"
+      }
+    }
+  ],
+  "feedback_edges": [
+    {
+      "id": "FB-ANA-01",
+      "goal_type": "analysis",
+      "from_stage": "self_inspection",
+      "to_stage": "evidence_collection",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Недостаёт источника, наблюдения или релевантной выборки.",
+      "source_line": 9
+    },
+    {
+      "id": "FB-ANA-02",
+      "goal_type": "analysis",
+      "from_stage": "self_inspection",
+      "to_stage": "reasoning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Нужные факты уже есть, но заключение шире основания либо логически ошибочно.",
+      "source_line": 10
+    },
+    {
+      "id": "FB-ANA-03",
+      "goal_type": "analysis",
+      "from_stage": "self_inspection",
+      "to_stage": "challenge",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Не рассмотрено конкретное альтернативное объяснение или counterevidence.",
+      "source_line": 11
+    },
+    {
+      "id": "FB-DES-01",
+      "goal_type": "design",
+      "from_stage": "design_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Обнаружено противоречие, неописанный failure mode или неоднозначный contract.",
+      "source_line": 12
+    },
+    {
+      "id": "FB-DES-02",
+      "goal_type": "design",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправлена схема, но не все зависимые описания/примеры; требуется новая попытка.",
+      "source_line": 13
+    },
+    {
+      "id": "FB-DEV-01",
+      "goal_type": "development",
+      "from_stage": "test_inspection",
+      "to_stage": "test_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Осмотр нашёл дефект oracle или пропущенный сценарий теста.",
+      "source_line": 14
+    },
+    {
+      "id": "FB-DEV-02",
+      "goal_type": "development",
+      "from_stage": "test_remediation_inspection",
+      "to_stage": "test_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправление теста не устранило замечание либо создало новый дефект.",
+      "source_line": 15
+    },
+    {
+      "id": "FB-DEV-03",
+      "goal_type": "development",
+      "from_stage": "implementation_inspection",
+      "to_stage": "implementation_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Осмотр предъявленного кода нашёл недостаток реализации.",
+      "source_line": 16
+    },
+    {
+      "id": "FB-DEV-04",
+      "goal_type": "development",
+      "from_stage": "implementation_remediation_inspection",
+      "to_stage": "implementation_remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Первое исправление кода неполно; требуется новая попытка с новыми доказательствами.",
+      "source_line": 17
+    },
+    {
+      "id": "FB-DIA-01",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "reproduction",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Неверно воспроизведён исходный симптом.",
+      "source_line": 18
+    },
+    {
+      "id": "FB-DIA-02",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "hypothesis_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Не проверена существенная альтернативная причина.",
+      "source_line": 19
+    },
+    {
+      "id": "FB-DIA-03",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "experiments",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "План различения есть, фактического наблюдения недостаточно.",
+      "source_line": 20
+    },
+    {
+      "id": "FB-DIA-04",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "root_cause_analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Факты есть, причинный вывод или рекомендация неверны.",
+      "source_line": 21
+    },
+    {
+      "id": "FB-DIA-05",
+      "goal_type": "environment_diagnostics",
+      "from_stage": "self_inspection",
+      "to_stage": "confirmation",
+      "from_handler": "inspect",
+      "to_handler": "check",
+      "reason": "Не подтверждено устранение именно исходного симптома контролируемым опытом.",
+      "source_line": 22
+    },
+    {
+      "id": "FB-DOC-01",
+      "goal_type": "documentation",
+      "from_stage": "inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Найдена неточность, пропущенная предпосылка или непонятная инструкция.",
+      "source_line": 23
+    },
+    {
+      "id": "FB-DOC-02",
+      "goal_type": "documentation",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Предыдущее исправление оставило неоднозначность/сломало зависимый пример.",
+      "source_line": 24
+    },
+    {
+      "id": "FB-ENV-01",
+      "goal_type": "environment_remediation",
+      "from_stage": "inspection",
+      "to_stage": "correction",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Не достигнута часть состояния или найден побочный эффект.",
+      "source_line": 25
+    },
+    {
+      "id": "FB-ENV-02",
+      "goal_type": "environment_remediation",
+      "from_stage": "correction_inspection",
+      "to_stage": "correction",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Предыдущее исправление неполно; состояние надо скорректировать ещё раз.",
+      "source_line": 26
+    },
+    {
+      "id": "FB-INT-01",
+      "goal_type": "integration",
+      "from_stage": "inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Проверка смысла объединения обнаружила потерю source behavior.",
+      "source_line": 27
+    },
+    {
+      "id": "FB-INT-02",
+      "goal_type": "integration",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправлено не всё либо возник вторичный integration-specific дефект.",
+      "source_line": 28
+    },
+    {
+      "id": "FB-PRO-01",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "experiment_planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Неверно спроектированы контролируемые переменные или необходим другой эксперимент.",
+      "source_line": 29
+    },
+    {
+      "id": "FB-PRO-02",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "measurement",
+      "from_handler": "inspect",
+      "to_handler": "observe",
+      "reason": "Отсутствует пригодная серия на требуемом target/workload.",
+      "source_line": 30
+    },
+    {
+      "id": "FB-PRO-03",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Измерения пригодны, но неверно интерпретированы.",
+      "source_line": 31
+    },
+    {
+      "id": "FB-PRO-04",
+      "goal_type": "profiling",
+      "from_stage": "self_inspection",
+      "to_stage": "confirmation",
+      "from_handler": "inspect",
+      "to_handler": "check",
+      "reason": "Основному выводу не хватает предусмотренного контрольного подтверждения.",
+      "source_line": 32
+    },
+    {
+      "id": "FB-REV-01",
+      "goal_type": "review",
+      "from_stage": "self_inspection",
+      "to_stage": "inspection",
+      "from_handler": "inspect",
+      "to_handler": "inspect",
+      "reason": "Неверный, дублирующий или недоказанный finding либо неполный scope coverage.",
+      "source_line": 33
+    },
+    {
+      "id": "FB-SPL-01",
+      "goal_type": "sprint_planning",
+      "from_stage": "sprint_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Пробел scope, лишняя задача или неверная семантическая зависимость.",
+      "source_line": 34
+    },
+    {
+      "id": "FB-SPL-02",
+      "goal_type": "sprint_planning",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправленный план содержит оставшийся dangling reference или неполный дочерний contract.",
+      "source_line": 35
+    },
+    {
+      "id": "FB-TPL-01",
+      "goal_type": "task_planning",
+      "from_stage": "task_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Неполный или противоречивый contract создаваемой задачи.",
+      "source_line": 36
+    },
+    {
+      "id": "FB-TPL-02",
+      "goal_type": "task_planning",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправление contract оставило неверную ссылку/обязательное поле.",
+      "source_line": 37
+    },
+    {
+      "id": "FB-TST-01",
+      "goal_type": "test_development",
+      "from_stage": "test_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Дефект качества теста или фикстуры подтверждён осмотром.",
+      "source_line": 38
+    },
+    {
+      "id": "FB-TST-02",
+      "goal_type": "test_development",
+      "from_stage": "remediation_inspection",
+      "to_stage": "remediation",
+      "from_handler": "inspect",
+      "to_handler": "revise",
+      "reason": "Исправленный тест всё ещё зависит от порядка/среды или неправильно проверяет требование.",
+      "source_line": 39
+    },
+    {
+      "id": "FB-VER-01",
+      "goal_type": "verification",
+      "from_stage": "self_inspection",
+      "to_stage": "planning",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Программа не покрывает критерий или метод не способен его проверить.",
+      "source_line": 40
+    },
+    {
+      "id": "FB-VER-02",
+      "goal_type": "verification",
+      "from_stage": "self_inspection",
+      "to_stage": "execution",
+      "from_handler": "inspect",
+      "to_handler": "check",
+      "reason": "Нужное фактическое наблюдение отсутствует либо получено неверно.",
+      "source_line": 41
+    },
+    {
+      "id": "FB-VER-03",
+      "goal_type": "verification",
+      "from_stage": "self_inspection",
+      "to_stage": "analysis",
+      "from_handler": "inspect",
+      "to_handler": "produce",
+      "reason": "Наблюдения достаточны, но вывод или finding оформлены неверно.",
+      "source_line": 42
+    }
+  ],
+  "methods": {
+    "development": {
+      "baseline": "BASELINE",
+      "test_implementation": "TEST_RED",
+      "test_remediation": "TEST_RED",
+      "implementation": "TEST_GREEN",
+      "implementation_remediation": "TEST_GREEN",
+      "documentation": "DOC_CHECK"
+    },
+    "test_development": {
+      "baseline": "BASELINE",
+      "test_implementation": "TEST_GREEN",
+      "sensitivity_verification": "SENSITIVITY",
+      "remediation": "TEST_GREEN"
+    },
+    "verification": {
+      "execution": "VERIFY"
+    },
+    "review": {},
+    "design": {
+      "design_verification": "DESIGN_CHECK"
+    },
+    "analysis": {
+      "evidence_collection": "COLLECT"
+    },
+    "profiling": {
+      "baseline_measurement": "BASELINE",
+      "measurement": "MEASURE",
+      "confirmation": "CONFIRM"
+    },
+    "environment_diagnostics": {
+      "reproduction": "REPRODUCE",
+      "experiments": "EXPERIMENT",
+      "confirmation": "CONFIRM"
+    },
+    "environment_remediation": {
+      "baseline": "BASELINE",
+      "verification": "ENV_CHECK",
+      "correction_inspection": "ENV_CHECK"
+    },
+    "documentation": {
+      "validation": "DOC_CHECK",
+      "remediation": "DOC_CHECK"
+    },
+    "task_planning": {},
+    "sprint_planning": {
+      "coverage_analysis": "COVERAGE"
+    },
+    "integration": {
+      "integration": "COMBINED",
+      "verification": "COMBINED",
+      "remediation": "COMBINED"
+    }
+  },
+  "note": "Executable reference profiles use the existing runtime model. Real project methods and reviewer decisions are explicit inputs."
+}

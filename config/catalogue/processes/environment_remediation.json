@@ -1,0 +1,367 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "result"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "verification-post-verdict",
+        "kind": "section",
+        "phase": "post",
+        "section": "verification.verdict",
+        "stages": [
+          "verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "baseline"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "change_planning-input-constraints",
+        "kind": "section",
+        "phase": "pre",
+        "section": "constraints",
+        "stages": [
+          "change_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "application-input-change_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "change_plan",
+        "stages": [
+          "application"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "application-input-rollback_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "rollback_plan",
+        "stages": [
+          "application"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "verification"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "correction-input-rollback_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "rollback_plan",
+        "stages": [
+          "correction"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": [
+      {
+        "id": "verification.verdict",
+        "normalization": "strip",
+        "template": "Fill after obtaining the declared observations.",
+        "write_stages": [
+          "verification"
+        ]
+      }
+    ]
+  },
+  "goal_type": "environment_remediation",
+  "route": {
+    "entry": "framing",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "framing",
+      "instruction": "Определить разрешённый target и desired state. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "scope",
+        "constraints",
+        "verification_plan"
+      ],
+      "rework_targets": [
+        "framing",
+        "baseline",
+        "change_planning",
+        "application",
+        "verification",
+        "inspection",
+        "correction",
+        "correction_inspection"
+      ],
+      "sections": {
+        "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
+        "report": "Record the substantive result for this stage.",
+        "scope": "included codebases/subjects; excluded subjects; разрешённые deliverable paths/внешние targets; ограничения полномочий.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+      },
+      "transitions": {
+        "complete": "baseline"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "id": "baseline",
+      "instruction": "Снять исходное состояние до изменения. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "baseline",
+        "framing",
+        "change_planning",
+        "application",
+        "verification",
+        "inspection",
+        "correction",
+        "correction_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "change_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "change_planning",
+      "instruction": "Определить actions, verification и безопасное прерывание. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "change_plan",
+        "rollback_plan",
+        "verification_plan"
+      ],
+      "rework_targets": [
+        "change_planning",
+        "framing",
+        "baseline",
+        "application",
+        "verification",
+        "inspection",
+        "correction",
+        "correction_inspection"
+      ],
+      "sections": {
+        "change_plan": "desired-state obligations, exact ordered actions, prerequisites, privileges, observable receipts, replay/rollback policy, risks.",
+        "report": "Record the substantive result for this stage.",
+        "rollback_plan": "reversible steps exact undo+verification, irreversible effects явно и основание пользовательской санкции, interruption policy.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+      },
+      "transitions": {
+        "complete": "application"
+      }
+    },
+    {
+      "allowed_paths": [
+        "config/**",
+        "scripts/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "apply_plan",
+      "id": "application",
+      "instruction": "Применить подготовленные механические действия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "application",
+        "framing",
+        "baseline",
+        "change_planning",
+        "verification",
+        "inspection",
+        "correction",
+        "correction_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "verification"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "check",
+      "id": "verification",
+      "instruction": "Подтвердить desired state и отсутствие побочных нарушений. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "verification",
+        "framing",
+        "baseline",
+        "change_planning",
+        "application",
+        "inspection",
+        "correction",
+        "correction_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "inconclusive": "inspection",
+        "not_satisfied": "inspection",
+        "satisfied": "inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "inspection",
+      "instruction": "Read-only осмотреть достигнутое состояние. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "rework_targets": [
+        "inspection",
+        "correction",
+        "framing",
+        "baseline",
+        "change_planning",
+        "application",
+        "verification",
+        "correction_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "transitions": {
+        "changes_requested": "correction",
+        "clear": null
+      }
+    },
+    {
+      "allowed_paths": [
+        "config/**",
+        "scripts/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "apply_plan",
+      "id": "correction",
+      "instruction": "Исправить замечания по среде с новым exact action plan. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report",
+        "change_plan"
+      ],
+      "rework_targets": [
+        "correction",
+        "framing",
+        "baseline",
+        "change_planning",
+        "application",
+        "verification",
+        "inspection",
+        "correction_inspection"
+      ],
+      "sections": {
+        "change_plan": "desired-state obligations, exact ordered actions, prerequisites, privileges, observable receipts, replay/rollback policy, risks.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "correction_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "correction_inspection",
+      "instruction": "Проверить corrections read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "rework_targets": [
+        "correction_inspection",
+        "correction",
+        "framing",
+        "baseline",
+        "change_planning",
+        "application",
+        "verification",
+        "inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "transitions": {
+        "changes_requested": "correction",
+        "clear": null
+      }
+    }
+  ]
+}

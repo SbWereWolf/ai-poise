@@ -1,0 +1,19 @@
+{
+  "slice": "HARNESS-DDD-04",
+  "created_at": "2026-09-06T18:43:58+05:00",
+  "packaged_at": "2026-09-06T19:23:49+05:00",
+  "source_commit": "68bab90846b085792bf4d675e74f17c204bb0bf8",
+  "source_branch": "tasks/HARNESS-DDD-04",
+  "baseline_package": "harness-ddd-step03_2026-09-06T17-54-50+05-00",
+  "schema": "ddd-task-evidence-4",
+  "database_user_version": 5,
+  "new_empty_store_required": true,
+  "migration_performed": false,
+  "unique_tests_passed": 193,
+  "new_tests": 42,
+  "previous_demo_case_count_increase": 3,
+  "archive_smoke_repeated_passed": 42,
+  "negative_probes_detected": 5,
+  "external_harness_push_performed": false,
+  "complete_13_process_implementation": false
+}

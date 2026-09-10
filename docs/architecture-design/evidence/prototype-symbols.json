@@ -1,0 +1,212 @@
+[
+  {
+    "file": "harness/__main__.py",
+    "line": 12,
+    "declaration": "def parser():"
+  },
+  {
+    "file": "harness/__main__.py",
+    "line": 26,
+    "declaration": "def main() -> int:"
+  },
+  {
+    "file": "harness/artifacts.py",
+    "line": 8,
+    "declaration": "def inspect_paths(paths: list[str], roots: dict[str, Path], owners: dict[str,str]):"
+  },
+  {
+    "file": "harness/artifacts.py",
+    "line": 35,
+    "declaration": "def check_counts(records: list[dict], rules: list[dict]) -> None:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 8,
+    "declaration": "class HarnessError(Exception):"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 12,
+    "declaration": "def exact_keys(value: dict, keys: set[str], where: str) -> None:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 20,
+    "declaration": "def read_json(path: Path) -> dict:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 30,
+    "declaration": "def encoded(value: object) -> str:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 34,
+    "declaration": "def digest(value: object) -> str:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 38,
+    "declaration": "def file_digest(path: Path) -> str:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 43,
+    "declaration": "def descendant(root: Path, relative: str) -> Path:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 53,
+    "declaration": "def validate_method(method: dict, where: str) -> None:"
+  },
+  {
+    "file": "harness/common.py",
+    "line": 77,
+    "declaration": "def load_config(path: Path) -> tuple[Path, dict, dict]:"
+  },
+  {
+    "file": "harness/execution.py",
+    "line": 10,
+    "declaration": "def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float,"
+  },
+  {
+    "file": "harness/execution.py",
+    "line": 34,
+    "declaration": "def contains(path: Path, needle: str) -> bool:"
+  },
+  {
+    "file": "harness/execution.py",
+    "line": 46,
+    "declaration": "def preview(path: Path, chars: int) -> str:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 17,
+    "declaration": "class Harness:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 19,
+    "declaration": "def __init__(self, config_path: Path | str, session: str):"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 35,
+    "declaration": "def _identifier(value: str) -> str:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 40,
+    "declaration": "def _git(self, cwd: Path, *args: str, env: dict | None = None) -> str:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 51,
+    "declaration": "def _tree(self, worktree: Path) -> str:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 64,
+    "declaration": "def _changed(self, data: dict, tree: str) -> list[str]:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 68,
+    "declaration": "def _task(self) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 76,
+    "declaration": "def _stage(self, task: dict) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 79,
+    "declaration": "def _roots(self, task: dict) -> dict[str,Path]:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 90,
+    "declaration": "def _context(self, data: dict, prepare: bool) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 110,
+    "declaration": "def _validate_task(self, task: dict) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 137,
+    "declaration": "def bootstrap(self, task_file: Path | str | None = None, decision: str | None = None,"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 206,
+    "declaration": "def accept(self) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 220,
+    "declaration": "def _cleanup_runtime(self):"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 223,
+    "declaration": "def _select_checks(self, data: dict, changed: list[str]) -> list[dict]:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 242,
+    "declaration": "def _candidate_artifacts(self, data: dict, submitted: list[str], roots: dict[str,Path]):"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 258,
+    "declaration": "def verify(self) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 357,
+    "declaration": "def _publish(self, data: dict, publication: dict) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 400,
+    "declaration": "def cancel(self, reason: str) -> dict:"
+  },
+  {
+    "file": "harness/runtime.py",
+    "line": 411,
+    "declaration": "def show(self) -> dict:"
+  },
+  {
+    "file": "harness/storage.py",
+    "line": 12,
+    "declaration": "class Store:"
+  },
+  {
+    "file": "harness/storage.py",
+    "line": 14,
+    "declaration": "def __init__(self, database: Path, lock: Path, wait: float, poll: float):"
+  },
+  {
+    "file": "harness/storage.py",
+    "line": 39,
+    "declaration": "def transaction(self):"
+  },
+  {
+    "file": "harness/storage.py",
+    "line": 65,
+    "declaration": "def event(self, session: str, task: str | None, event: str, data: object) -> None:"
+  },
+  {
+    "file": "harness/storage.py",
+    "line": 70,
+    "declaration": "def current(self, session: str):"
+  },
+  {
+    "file": "harness/storage.py",
+    "line": 75,
+    "declaration": "def save(self, data: dict) -> None:"
+  }
+]

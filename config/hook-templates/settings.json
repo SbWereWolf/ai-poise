@@ -1,0 +1,37 @@
+{
+  "schema": "hook-settings-1",
+  "root": ".",
+  "project_config": "project.json",
+  "python": "${python}",
+  "source_root": "${source_root}",
+  "hooks_file": ".codex/hooks.json",
+  "definitions": "config/hook-definitions",
+  "state": "state/hook-control",
+  "lock": "state/hook-control.lock",
+  "database": "hook-state.sqlite",
+  "bindings": "bindings",
+  "launcher": "work.sh",
+  "binding_file": "binding.json",
+  "observations": "observations",
+  "response_file": "response.json",
+  "cwd_roots": [
+    "${workspace_parent}"
+  ],
+  "file_mode": 384,
+  "executable_mode": 448,
+  "lock_seconds": 3.0,
+  "lock_poll_seconds": 0.01,
+  "max_input_bytes": 1048576,
+  "output_chars": 5000,
+  "max_probes": 30,
+  "probe_files": {
+    "stdout": "stdout.txt",
+    "stderr": "stderr.txt",
+    "receipt": "receipt.json"
+  },
+  "exit_codes": {
+    "success": 0,
+    "incomplete": 1,
+    "rejected": 2
+  }
+}

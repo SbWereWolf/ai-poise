@@ -1,0 +1,155 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "verdict",
+      "result",
+      "product_findings"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "inspection-input-review_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "review_criteria",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-review_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "review_plan",
+        "stages": [
+          "inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-review_criteria",
+        "kind": "section",
+        "phase": "pre",
+        "section": "review_criteria",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-verdict",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verdict",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": []
+  },
+  "goal_type": "review",
+  "route": {
+    "entry": "planning",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "planning",
+      "instruction": "Определить scope, критерии и единицы осмотра. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "review_criteria",
+        "review_plan"
+      ],
+      "rework_targets": [
+        "planning",
+        "inspection",
+        "self_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "review_criteria": "id, inspected property, required scope, method, requirement refs при наличии; не обязательно исчерпывающий product spec.",
+        "review_plan": "revision/diff bounds, units, criteria allocation, inspection sequence, excluded scope+reason."
+      },
+      "transitions": {
+        "complete": "inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "inspection",
+      "instruction": "Read-only изучить target и оформить доказанные findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "verdict",
+        "result",
+        "product_findings"
+      ],
+      "rework_targets": [
+        "inspection",
+        "planning",
+        "self_inspection"
+      ],
+      "sections": {
+        "product_findings": "Record product_findings.",
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
+        "verdict": "по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи."
+      },
+      "transitions": {
+        "changes_requested": "self_inspection",
+        "clear": "self_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "self_inspection",
+      "instruction": "Проверить качество собственного review. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "decisions"
+      ],
+      "rework_targets": [
+        "self_inspection",
+        "inspection",
+        "planning"
+      ],
+      "sections": {
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "inspection",
+        "clear": null
+      }
+    }
+  ]
+}

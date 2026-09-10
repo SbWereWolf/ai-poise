@@ -1,0 +1,57 @@
+{
+  "schema": "task-blueprint-1",
+  "goal_type": "task_planning",
+  "parameters": {
+    "identity": "text",
+    "membership": "nullable_text",
+    "goal": "text",
+    "requirements": "strings",
+    "dod": "strings",
+    "methods": "list",
+    "artifact_requirements": "list",
+    "contract": "object",
+    "evidence": "object"
+  },
+  "task": {
+    "id": {
+      "$input": "identity"
+    },
+    "sprint_id": {
+      "$input": "membership"
+    },
+    "goal_type": "task_planning",
+    "goal": {
+      "$input": "goal"
+    },
+    "requirements": {
+      "$input": "requirements"
+    },
+    "definition_of_done": {
+      "$input": "dod"
+    },
+    "methods": {
+      "$input": "methods"
+    },
+    "checks": {
+      "framing": [],
+      "classification": [],
+      "requirements": [],
+      "acceptance_design": [],
+      "work_planning": [],
+      "verification_planning": [],
+      "task_inspection": [],
+      "remediation": [],
+      "remediation_inspection": [],
+      "publication": []
+    },
+    "artifact_requirements": {
+      "$input": "artifact_requirements"
+    },
+    "content_contract": {
+      "$input": "contract"
+    },
+    "evidence_plan": {
+      "$input": "evidence"
+    }
+  }
+}

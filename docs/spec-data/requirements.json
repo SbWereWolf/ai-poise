@@ -1,0 +1,1779 @@
+{
+  "created_at": "2026-09-06T10:07:45+05:00",
+  "requirements": [
+    {
+      "id": "HR-001",
+      "title": "Предмет и границы продукта",
+      "text": "Harness — отдельное CLI-приложение и кодовая база для одного пользователя. Приоритет: ChatGPT cloud с Linux execution, вторая среда: Codex в WSL/Linux. Work, нативные Windows/macOS, запуск/назначение моделей и оркестратор агентов вне объёма. Пользователь выбирает исполнителя. Harness планирует работу задач через зависимости, а не запускает агентов. Git, IDE MCP, shell и тестовые frameworks сохраняются; Harness объединяет механические действия и обрабатывает результаты, а не заменяет их.",
+      "review_findings": [
+        "R-03",
+        "R-30"
+      ],
+      "group": "01. Назначение и нормативная граница"
+    },
+    {
+      "id": "HR-002",
+      "title": "Главный результат и административная стоимость",
+      "text": "Цель — качественный конечный код/документация при минимуме токенов и времени на администрирование. Обязательная последовательность двух и более механических действий без нового инженерного решения является composite action. Любой инструмент Harness принимает коллекцию изменений/объектов одним декларативным пакетом; одиночное действие — пакет из одного элемента. Обычный этап использует bootstrap и verify с прямым содержательным payload; физическое stage-result представление создаёт инструмент, ручное редактирование файла не требуется. Дополнительные show/явные business actions нужны для содержательного выбора, не для bookkeeping каждого элемента. Отчёт показывает измеренный расход, не контрфактическую экономию; сообщения пользователя — отдельная метрика, не оценка tokens. CPU, RAM, диск и невостребованные parser views не KPI.",
+      "review_findings": [
+        "R-30"
+      ],
+      "group": "01. Назначение и нормативная граница"
+    },
+    {
+      "id": "HR-003",
+      "title": "Нормативность и ответственность",
+      "text": "ОБЯЗАН/ЗАПРЕЩЕНО — приёмочные нормы; РАЗРЕШЕНО — точно обозначенная ветвь, не отсутствующий default. Все численные параметры конфигурации поставляются явно; значения в тестовых fixtures не являются runtime defaults. Пользователь задаёт цель/проект и санкционирует отмены; агент классифицирует намерение, планирует, пишет результат, осматривает и интерпретирует evidence; kernel проверяет структуру, запускает точные команды, хранит состояния; runtime adapter подтверждает доступные capabilities и факты исполнения. Документ исправляет требования, но не является разрешением писать продукт. Неутверждённой остаётся редакция целиком, а не скрытые альтернативы внутри норм.",
+      "review_findings": [
+        "R-25",
+        "R-30"
+      ],
+      "group": "01. Назначение и нормативная граница"
+    },
+    {
+      "id": "HR-004",
+      "title": "Объём конкурентности",
+      "text": "Поддерживаются разные агенты на разных задачах одной codebase, включая один logical файл, в разных worktrees, и разные ad-hoc sessions в одном cwd. Пользователь исключает одновременную работу двух агентов над одной task и cancel/force-close во время verify. Эти гонки не создают отдельную функциональность scheduler. Binding/claims, короткий DB lock и безопасный recovery остаются обязательными. Совпадение путей не создаёт semantic dependency и не вызывает автоматический merge.",
+      "review_findings": [
+        "R-13",
+        "R-30"
+      ],
+      "group": "01. Назначение и нормативная граница"
+    },
+    {
+      "id": "HR-005",
+      "title": "Комплект и трассировка документации",
+      "text": "Все договорённости имеют нормативные IDs, документацию, независимые process matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний Harness.",
+      "review_findings": [
+        "R-01",
+        "R-07",
+        "R-29",
+        "R-30",
+        "S3-04"
+      ],
+      "group": "01. Назначение и нормативная граница"
+    },
+    {
+      "id": "HR-010",
+      "title": "Linux runtime и воспроизводимый дистрибутив",
+      "text": "Язык — CPython 3.13; другие minor не поддерживаются и автоматически не выбираются. Используется venv именно этого interpreter. Linux/POSIX, Git worktree, sqlite3 и flock на локальной файловой системе обязательны; Docker/Node/Redis/HTTP/MCP server не зависимости ядра. Выпуск ОБЯЗАН содержать release manifest с точными build/patch, версиями и hashes зависимостей, schemas, parser/adapter implementations, проверенных Git/SQLite builds, offline wheelhouse и tokenizer data. Команда установки работает --no-index --require-hashes по поставленному lock; переход к сети запрещён без выбранного online installation profile. Набор версий конкретного ещё не созданного выпуска не считается уже протестированным. До его приёмки release manifest и offline smoke обязательны.",
+      "review_findings": [
+        "R-03",
+        "R-27"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-011",
+      "title": "Первичная загрузка проекта",
+      "text": "Поддержанные входы: полный repository с каталогом .git; самостоятельный bare/.git object store с явно выбранным commit; Git bundle с проверенными prerequisites. Linked-worktree .git pointer без доступного common-dir, missing objects и незавершённый shallow graph для требуемого base отклоняются до начала задачи. Архив распаковывается в staging после проверки путей, типов и symlinks, затем проверяются refs/object closure и только потом публикуется checkout. Для submodules и LFS manifest явно задаёт disabled либо точную локальную object/materialization процедуру; missing required content блокирует без auto-fetch. Внешние ignored configs доставляются по allowlist отдельно с соблюдением secret policy; они не становятся Git impact автоматически.",
+      "review_findings": [
+        "R-19",
+        "R-27"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-012",
+      "title": "Матрица адаптеров и честная доступность",
+      "text": "У каждого runtime profile явно заданы CLI transport, session/cycle binding, tool inventory transport, hook surface, executor, IDE binding, remote Git transport, durable transport, token/time telemetry. Статус capability: observed-ready, observed-unavailable или unknown; required неизвестная/недоступная capability блокирует соответствующий этап до записи кода. ChatGPT: Linux CLI через доступный execution tool, generated scoped launcher при отсутствии hooks; model-visible integration вызывается только агентом через реально предоставленный connector, а не из Python по предположению. Codex WSL: explicit CLI/hooks adapter и scoped launcher с проверенным payload. Ни один профиль не обещает native ChatGPT hooks, сеть или Gmail attachments без smoke. Core actions и controlled command output работают через CLI в обеих средах; недоступные native hooks не эмулируются скрыто. Недоступность required push/IDE не превращается в успешный этап или автоматическую замену инструментом.",
+      "review_findings": [
+        "R-03",
+        "R-10"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-013",
+      "title": "Внешнее действие через агента",
+      "text": "Для model-only capability composite action создаёт pending external action: operation ID, неизменный package/commit digest, exact target, ожидаемый receipt и probe, replay policy. Один ответ содержит весь запрос действия. Агент выполняет его имеющимся tool и возвращает receipt в том же submission/continuation; kernel проверяет receipt/probe и продолжает pending operation. Слова агента «отправлено/запушено» не являются receipt. Если tool не принимает нужный attachment/path/remote, действие blocked с исполнимой инструкцией пользователю. Gmail — только backup/handoff transport, не DB; его доступность и ограничения проверяются фактически. Сохраняющий копию транспорт не заменяет обязательный push без scoped user waiver.",
+      "review_findings": [
+        "R-03",
+        "R-18"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-014",
+      "title": "Идентичность живого executor",
+      "text": "Bootstrap и каждый execution после reconnect получают handshake работающего runner/parser worker/IDE adapter: implementation digest, schema version, effective config digest, instance generation, start time, bound project/worktree. Hash файла на диске не заменяет handshake. Несовпадение с выбранным release/execution snapshot блокирует использование как новой версии; выдаётся точная инструкция restart и повторного probe. При разработке Harness рабочая копия изменения не подменяет установленный исполняющий release. Нельзя автоматически перезапускать неизвестный чужой процесс по PID.",
+      "review_findings": [
+        "R-24"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-015",
+      "title": "IDE и внешние ресурсы",
+      "text": "Project config задаёт требуемые semantic capabilities (поиск символа, rename, diagnostics, formatting и явно доступные остальные). Для каждого IDE вызова verified projectPath/root identity совпадает с worktree текущей работы; сервер, открытый на main/соседнем дереве, не используется. Capability inventory не гарантирует availability duplicate extraction/rename для любого языка: обязательны operation probe и контракт адаптера. БД тестов, Redis namespaces, порты, Docker project и другие внешние ресурсы перечислены с mode=isolated или serialized и exact namespace/identity. Isolated A не может чистить B; shared resources захватываются отдельным resource lock с timeout, не глобальным DB lock. Нет orchestration агентов; сериализуется только конфликтующий ресурс.",
+      "review_findings": [
+        "R-13"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-016",
+      "title": "Недостающая среда и исполнимая помощь",
+      "text": "Если required interpreter, tool, библиотека, external input, credential или endpoint недоступен, bootstrap/readiness возвращает blocked, конкретные missing facts и инструкцию установки/запуска/передачи архива для пользователя с exact commands, target и критериями проверки. Не требуется заново подтвердить наблюдаемую версию на каждом preflight. Только wizard candidate требует принятия как значения конфигурации. Local smoke не доказывает работу WSL пользователя или Git/Gmail/IDE; приёмка целевых adapter profiles выполняется отдельно и её результат явно записывается.",
+      "review_findings": [
+        "R-03",
+        "R-23",
+        "R-27"
+      ],
+      "group": "02. Среда, загрузка и возможности"
+    },
+    {
+      "id": "HR-020",
+      "title": "Конфигурация без неявных значений",
+      "text": "Все конфиги Harness находятся в его repository и создаются/редактируются инструментом через GoalConfig API одним пакетом желаемых изменений. Target codebases содержат собственные AGENTS, не machine configs Harness. Обязательное значение, unknown key, неоднозначный matcher или неразрешимая ссылка дают configuration_error до публикации. Запрещены hidden defaults/fallback, implicit inheritance, угадывание команд по AGENTS/cwd и broad suite «на всякий случай». Явно выбранный шаблон содержит принятые значения и фиксированную revision; missing в шаблоне и запросе остаётся ошибкой. Unknown-command parser — обязательный явный профиль. Отсутствующий auto-check mapping — invalid project config для выбранного класса; явный no_auto_check с причиной разрешён и не отключает task-registered tests. Конфиги разных goal types независимы. Имена классов и policies задаются configs, не ветвлением kernel.",
+      "review_findings": [
+        "R-23",
+        "R-30"
+      ],
+      "group": "03. Конфигурация и правила"
+    },
+    {
+      "id": "HR-021",
+      "title": "Начальный протокол без рекурсивных fallback",
+      "text": "Граница B0 — явный вызов установленного launcher с абсолютным путём bootstrap descriptor; путь не ищется от cwd и не берётся из origin/.harness по умолчанию. Descriptor и launcher являются частью поставки, содержат явные корень, config schema, encoding, emergency channel и mapping numeric exit outcomes. Синтаксис входа/структурные имена протокола и инварианты атомарности относятся к kernel contract, не настраиваемой business policy. До загрузки валидного descriptor невозможен обычный configured report: запуск обязан завершиться ненулевым исходом и диагностикой launcher/runtime, без рабочего режима и mutations. Это не fallback-профиль. После descriptor все тексты/лимиты/report layouts/exit mappings берутся из config. Harness не пытается обеспечить свой формат, пользуясь повреждённой конфигурацией.",
+      "review_findings": [
+        "R-23"
+      ],
+      "group": "03. Конфигурация и правила"
+    },
+    {
+      "id": "HR-022",
+      "title": "Независимые goal types и snapshots",
+      "text": "13 goal types имеют полностью независимые templates/stages/validators/benefit/report/actions. Запрещена ссылка одного процесса на workflow fragment другого; общие engines/types kernel разрешены. Task хранит полный immutable process snapshot и rendered templates при создании. Stage iteration отдельно фиксирует project/execution/tool/hook snapshot. Изменения project config не меняют активную iteration, следующая получает новый snapshot. Новый release, не поддерживающий точную schema snapshot, отклоняет его, не читает предыдущей parser version. Schema-compatible старый экземпляр конфига — данные контракта задачи, не backward implementation. Migration или её разработка запрещена без прямого разрешения пользователя.",
+      "review_findings": [
+        "R-01",
+        "R-23",
+        "R-30"
+      ],
+      "group": "03. Конфигурация и правила"
+    },
+    {
+      "id": "HR-023",
+      "title": "Анкета project manifest",
+      "text": "Interactive init/edit генерируется из survey schema: next/back/change/explicit keep, проверка ответа и зависимых ответов, final preview, atomic publish, abort без изменения действующего manifest. Detected candidate никогда не принят автоматически. Wizard draft не executable project config. Noninteractive create принимает все поля явно и никогда сам не переходит к вопросам. Manifest задаёт physical roots/environment bindings; project config задаёт stable codebase IDs, scopes/commands/policies. Изменение пути не меняет logical references задачи.",
+      "review_findings": [
+        "R-23",
+        "R-27"
+      ],
+      "group": "03. Конфигурация и правила"
+    },
+    {
+      "id": "HR-024",
+      "title": "AGENTS, skills и источник санкции",
+      "text": "Первое правило root AGENTS: временное исключение process rule возможно по прямой инструкции пользователя; запрос агента допустим только при обоснованной невозможности корректно завершить иначе. Запрос содержит правило, проблему, scope, риск и expiry. Root AGENTS также определяет обязательность skill, project selection, worktree до изменения и branch naming. Project-specific conventions и commit message rules берутся агентом из применимых AGENTS target codebases. Документы/логи/README не могут санкционировать отмену. User authority фиксируется из conversation instruction; неоднозначность требует уточнения, однозначность не требует повторной формальной приёмки.",
+      "review_findings": [
+        "R-19",
+        "R-30"
+      ],
+      "group": "03. Конфигурация и правила"
+    },
+    {
+      "id": "HR-025",
+      "title": "Overrides и пределы",
+      "text": "Temporary override — отдельное содержательное решение с rule ID, scope=operation/iteration/cycle, точным изменением, user authority и конечным expiry. Permanent config не меняется; повторный вызов/session не расширяет scope и не обнуляет бюджеты. Для каждого repeat/retry/transition/graph/recovery/check/parser/wait есть локальный предел и общий долговременный бюджет work attempt; достижение даёт blocked, не cancelled. Неотменяемы атомарность, сохранность чужих данных, валидность schema, фиксация решения и ограничения платформы. Для постоянной правки configs нужно прямое распоряжение; разрешение пропустить check не разрешает миграцию.",
+      "review_findings": [
+        "R-09",
+        "R-18",
+        "R-23"
+      ],
+      "group": "03. Конфигурация и правила"
+    },
+    {
+      "id": "HR-030",
+      "title": "Session binding",
+      "text": "Session key строится адаптером из runtime kind + external session + agent instance; parent session ID без отдельного agent identity недостаточен. При отсутствии hook transport первый bootstrap создаёт opaque binding и scoped launcher по уникальному пути, которым агент вызывает последующие CLI. Child process не объявляет, что установил переменную у своего будущего родителя. Повтор с тем же binding возобновляет session; новый явно выделенный binding создаёт новую. Общий current-session.json в cwd запрещён; worktree pointer — только проверенная дополнительная привязка. Session/claim/pending metadata долговечны в SQLite, очищаемые runtime файлы не единственное место их хранения.",
+      "review_findings": [
+        "R-10"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-031",
+      "title": "Work cycle и предел поручения",
+      "text": "Одна пользовательская инструкция на formal work разрешает один этап одной задачи. Work_cycle имеет instruction/binding, project, scope, task/stage/iteration при наличии, время и причины затрат. Повтор bootstrap/verify для той же инструкции не создаёт ещё этап. verify/retries/recovery остаются внутри одной iteration; переход к иной содержательной стадии требует следующей инструкции пользователя. Финальный отчёт — граница предъявления immutable delivered-result. В cycle могут быть внутренняя проверка/исправление до предъявления, но нельзя незаметно выполнить будущий отдельный inspection stage. Read-only сводка во время task не переключает formal work.",
+      "review_findings": [
+        "R-08",
+        "R-09",
+        "R-10"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-032",
+      "title": "Bootstrap одним пакетом",
+      "text": "Bootstrap получает выбранный project/config, необязательный task/sprint scope и explicit instruction binding/intent. Без scope существующая formal work возвращается, иначе ad-hoc. Task bootstrap/resume создаёт binding/claim, проверяет creation/prerequisites/worktree/capabilities и выдаёт текущие layers и прямой контракт пакетного результата, без обязательной ручной правки result file. Sprint bootstrap сразу вычисляет весь eligible set и blockers; выбор задачи агентом возвращает её capsule в том же start-вызове. Отдельные next/status/refresh не требуются. После binding task ID не требуется для verify/show/handoff/discard. Факт пользовательского сообщения учитывается в этом же входе при наличии configured источника, без отдельного call. Stale mutation не применяется и возвращает свежий контекст в том же ответе.",
+      "review_findings": [
+        "R-10",
+        "R-26"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-033",
+      "title": "Состояния и принятие",
+      "text": "Task: available, active, blocked, completed, cancelled; failed отсутствует. Содержательная iteration: active→verified→accepted; superseded/abandoned не удаляют результаты. Operation и execution_attempt — отдельные объекты: phase может ожидать agent reasoning, external receipt либо recovery и не является verified. Успешный итоговый verify даёт verified и STOP; accept-only принимает результат и не разрешает новый содержательный этап или публикацию. Accept+continue разрешает ровно один следующий содержательный этап. Publication — user-authorized mechanical gate, а не дополнительная iteration: accepted inspection+explicit publish выполняют gate в том же composite call, затем обычное closure без второго acceptance механики. При accept-only перед gate задача остаётся незавершённой с причиной publication_not_authorized. Последний accepted содержательный результат без pending publication закрывается автоматически. Неполученный ответ пользователя не считается acceptance.",
+      "review_findings": [
+        "R-09"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-034",
+      "title": "Rework, reopen и отмена",
+      "text": "Rework сохраняет feedback, предъявленный result и решения; новая iteration создаётся только для указанного этапа. Повтор неуспешной проверки и содержательное continuation после наблюдений остаются в той же iteration. Инвалидация вычисляется только по объявленным типизированным validity relations HR-095, никогда по всем refs подряд. Reopen completed task атомарно отзывает current benefit credit, переоценивает sprint/successor prerequisites, но не удаляет полученное. Старое evidence остаётся доказательством старого subject, а не нового. Cancel/reinstate/force-close — по authority пользователя; обычные limit/test/env failures означают blocked, не самостоятельную отмену. При cancel нет обычных DoD/tests; сохраняются решение, безопасная судьба WIP, dependencies/claims и обязательная доставка.",
+      "review_findings": [
+        "R-09"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-035",
+      "title": "Задача без спринта и ad-hoc",
+      "text": "Standalone formal task имеет sprint=None явно, собственный root/process и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, Git commit/push и reusable result в session-owned durable deliverable root вне runtime. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.",
+      "review_findings": [
+        "R-20"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-036",
+      "title": "Handoff и discard",
+      "text": "Начало другой formal task допускается только после завершения, successful handoff либо safe discard текущей. Handoff сохраняет process position, WIP/verified vector, sections/findings/decisions/evidence и обязательный backup, затем освобождает claim. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.",
+      "review_findings": [
+        "R-18",
+        "R-20"
+      ],
+      "group": "04. Session, этапы и пользовательский цикл"
+    },
+    {
+      "id": "HR-040",
+      "title": "Task/sprint в SQLite",
+      "text": "Canonical task/sprint structured state, весь текст секций/слоёв, findings/resolutions/decisions/evidence metadata/traceability/session/claims/metrics находятся в SQLite. У записей stable globally unique IDs, owner, schema и monotonic revision; timestamps с timezone. Content layers immutable после submission, current pointers обновляются transaction. Содержательная работа не остаётся только в log. Внешние ключи включаются и проверяются на КАЖДОМ connection до transaction; indices поддерживают owner/status/sprint/stage queries без чтения всех section bodies. Section applicability/empty/template/populated — состояние содержания, не доказательство его истинности.",
+      "review_findings": [
+        "R-16",
+        "R-25"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-041",
+      "title": "Внешний монопольный lock",
+      "text": "Все Harness business writers используют один внешний OS flock по canonical DB identity; alias пути к той же БД не создаёт второй lock. Lock на постоянном файле рядом с DB, существование файла не признак занятости. Процесс освобождает OS lock при exit/crash. Short SQLite transactions под lock, foreign key/check constraints и SQLite внутреннюю атомарность не отключать. Checks, IDE, backup copy больших файлов и сеть не удерживают глобальный writer lock. Продолжение повторно проверяет revisions. DB на общей сетевой/непроверенной lock filesystem не принимается. Timeout/wait/retry явно config; контенция разных task не означает баг.",
+      "review_findings": [
+        "R-13",
+        "R-16"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-042",
+      "title": "Artifacts и публикация",
+      "text": "Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно Harness codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.",
+      "review_findings": [
+        "R-16",
+        "R-19",
+        "R-28"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-043",
+      "title": "Sections, resolutions и содержательная история",
+      "text": "Task хранит все semantic layers, proposals, evidence и решения. ResolutionProposal содержит finding/ref, explanation, proposed result и запланированный/полученный метод доказательства, но не обязательный accepted/rejected. Отдельный ResolutionReviewDecision создаётся осмотром после доступности именно result/evidence этого proposal; отказ не стирает proposal. Артефактный индекс с bytes/digest/provenance, execution receipts и timestamps создаёт Harness; агент передаёт artifact_paths — только пути файлов, уже размещённых внутри разрешённых корней текущих runtime, task или sprint. Внутренний ID назначает Harness; purpose, role и requirement_refs от агента не требуются. Manual evidence подаётся по своему контракту. Подсчёт артефактов выполняется по явно заданным файловым признакам типа и границам количества; отсутствие надёжного проектного парсера не блокирует запуск первого рабочего среза. Evidence-view и traceability — generated projections, не редактируемые агентом индексы. Historical refs не становятся несуществующими при замене current результата. Сравнение template и поля содержательного результата не заменяют семантический осмотр.",
+      "review_findings": [
+        "R-08",
+        "R-25"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-044",
+      "title": "Sprint graph и доступность результата",
+      "text": "Зависимости — DAG только между tasks одного sprint. Eligibility требует accepted completion predecessor и успешного MaterializationContract на точном стартовом snapshot successor. Contract имеет явный kind: exact_history (ancestry/identity только для требования истории), result_availability (source-result→materialized-result receipt и exact declared availability predicates) либо artifact_identity (digest/owner ref). Ancestry не доказывает наличие поведения. Cherry-pick/rebase разрешены с recorded mapping и проверкой результата; после revert/drift прежний receipt сам по себе не обеспечивает readiness. Все predicates имеют точные команды или digest checks; Harness не угадывает смысл кода. Unavailable prerequisite даёт blocker и receipt, не автоматическую интеграцию или foreign-task mutation. Межспринтовые refs допускаются как immutable inputs, не dependency edges.",
+      "review_findings": [
+        "R-06",
+        "R-09"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-045",
+      "title": "Cancel dependencies и sprint closure",
+      "text": "Cancel predecessor удаляет его из работы, но не удовлетворяет edge; successors blocked до решения keep+waive/remove prerequisite либо cascade по вычисленным transitive dependents. Cancelling child не расширяет scope до root/siblings. Sprint states planned/active/blocked/completed/cancelled — производные tasks плюс closure receipt. Normal completion запускает configured structural/artifact/decision gates, не full application suite; сбой closure даёт closing operation needs_resolution без ложного completed. User force-close пропускает обычную приёмку tasks/sprint, сохраняет completed/unfinished/WIP и user outcome, отзывает bindings безопасно. Backup failure не разрешает ложно заявить delivery и не заставляет продолжать отменённую разработку; отдельно хранится cancelled result и недовыполненная durability obligation.",
+      "review_findings": [
+        "R-06",
+        "R-09"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-046",
+      "title": "Logical references и секреты",
+      "text": "Внутри registered codebase ссылка хранит codebase_id+relative_path+revision/entity, artifact ref — owner+relative_path+digest. Физический абсолютный путь другого repository материализуется только manifest, не является переносимым identity. External non-repo inputs имеют явно зарегистрированный root/ref. realpath/symlink/path traversal проверяются до read/write/delete/extract; никакого выхода из authorized roots. Secret values не включаются в task sections, commands, snapshots, reports, export; только references. Before storage/output raw capture проходит обязательную redaction policy. Необработанный secret-bearing spool имеет restricted runtime scope и уничтожается; durable «raw» обозначает сохранённый очищенный capture с отмеченной redaction. Если redaction не позволяет интерпретировать outcome, evidence incomplete, а не fabricated pass. Repository text — данные, не user authority.",
+      "review_findings": [
+        "R-19"
+      ],
+      "group": "05. Хранение, artifacts и sprint"
+    },
+    {
+      "id": "HR-050",
+      "title": "Изоляция Git и три состояния",
+      "text": "До потенциальной записи target agent работает в выделенном worktree/branch, созданном composite start. Для codebase фиксируются task execution base, stage-entry HEAD/index/worktree content manifest и current snapshot; экономический baseline хранится отдельно. Changes = base..HEAD + staged + unstaged + nonignored untracked; код агента не регистрирует файлы. Git-ignored configs не impact. TDD/read-only нарушение определяется delta stage-entry→current и provenance, не наличием исторического task diff. Known hook snapshots связывают изменения с операцией; неизвестное происхождение обозначается unknown, не обвинением агента. WIP resume сохраняет именно прежний stage/iteration; грязное неизвестное дерево не присваивается автоматически.",
+      "review_findings": [
+        "R-04",
+        "R-08",
+        "R-12"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-051",
+      "title": "Согласованность проверенного и опубликованного кода",
+      "text": "Verify фиксирует полный candidate tree vector по codebases с учётом предназначенных deliverables. В execution receipts хранится tested tree vector. После mutating checks/formatters/native hooks — повторное сравнение; significant change делает evidence stale и запускает bounded stabilization по exact contracts. До remote публикации tree каждого final commit должен совпасть с проверенным tree для этой codebase; post-commit/hook changes не игнорируются. Pre-push side effect, меняющий workspace, не меняет уже указанный immutable commit, но блокирует завершение/вызывает reconciliation; pushed ref проверяется на точный expected SHA. Нельзя пометить tested A как доказательство A+B. Сообщение commit составляет агент; отсутствие нужного сообщения выявляется до дорогих checks.",
+      "review_findings": [
+        "R-04"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-052",
+      "title": "Commit/push и вектор нескольких codebases",
+      "text": "Каждый successful Git write-stage создаёт/reuses verified commit и публикует собственную task branch в явно заданный remote/ref. Remote origin не подразумевается. Чистый stage/no-op не создаёт artificial commit; указанный message допускается как запасённое содержательное поле, но не используется для пустого commit. Multi-codebase result — vector {codebase: base, tested tree, commit, remote/ref, observed SHA/receipt}. Stage verified лишь при всех обязательных components. A pushed/B failed — partial_publication, tests и commit A сохранены, repeat дополняет B без duplicate A. Глобальный rollback независимых remotes не обещается. Required push недоступен — blocked, не local-only success без user waiver. Push private branch при продвижении main допустим, non-fast-forward той же remote branch — sync issue, не автоматически merge conflict.",
+      "review_findings": [
+        "R-04",
+        "R-17"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-053",
+      "title": "Интеграция и точная граница target ref",
+      "text": "Integration объединяет объявленные exact sources с target baseline в private worktree. Git operation создаёт conflict observations до агентских resolution proposals; при конфликте возвращается awaiting_agent в той же stage iteration, и continuation не повторяет начатый merge/cherry-pick. Interim private commit/push не меняют target ref. Target publication — механический gate после принятых verification/inspection, при отдельной однозначной publish authority. Accept-and-stop запрещает publication. Gate повторно проверяет tested tree, current evidence, expected target old SHA и выполняет exact FF update или доказанный no-op; создаёт receipt и closure без новой содержательной iteration/второго acceptance. Drift не исправляется force push и не выполняет незаявленный rebase. Source→integrated mapping хранится для materialization, но не заменяет проверку availability successor.",
+      "review_findings": [
+        "R-05",
+        "R-06",
+        "R-17"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-054",
+      "title": "Точный executable contract",
+      "text": "Executable method разделён на PlannedInvocation, BoundExecution и ExecutionReceipt. При планировании обязателен exact codebase/environment target, cwd, mode, полный argv/shell binary+command, explicit env/secret references и inheritance policy, stdin, declared input paths/IDs, resource requirements, expected/collection predicates, stage applicability, limits/retry/reuse policy и references нужных runner/parser profiles. Эти значения могут быть явными resolvable config refs; команда не выводится из AGENTS. Для будущего теста точный путь/команда уже определены, а observed input digest, worktree identity, live generation, фактические resource bindings и timestamps ещё НЕ требуются. Harness сам получает их при binding/readiness и сохраняет immutable BoundExecution. Missing будущий input допустим на planning phase по explicit deadline, но блокирует его execution. Exit, collection, raw hashes и duration появляются только в Receipt. Поддельные наблюдения от модели не принимаются как факты.",
+      "review_findings": [
+        "R-02",
+        "R-11",
+        "R-12"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-055",
+      "title": "Выбор проверок без знаний о проекте",
+      "text": "Verify сам объединяет task-registered commands applicable к current stage, project auto-checks по code/tests/fixtures и stage machine validators. Code/docs/fixtures classification для метрик отдельно; configs/dependencies/migrations/assets не добавляются в auto-impact. Никакой синтез команды, framework discovery и выбор full suite вместо missing mapping. Explicit no_auto_check не отменяет registered tests. Full verification допускается только по user authorization с exact full procedure; нормальный task/sprint/integration closure её не запускает. Auto-check applicability к TDD stage задаётся явно. Проверки могут иметь пустой список, заданный в stage contract; structural evidence checks тогда остаются.",
+      "review_findings": [
+        "R-11",
+        "R-12",
+        "R-30"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-056",
+      "title": "Execution identity, reuse и expected RED",
+      "text": "Execution key включает BoundExecution vector: codebase/worktree, tested trees, cwd/invocation/stdin, declared input/environment facts без secrets, bound resources, live runner generation/config и capture policy. Parser/predicate identities дополнительно определяют derived evidence validity. Дедупликация только при равном полном ключе и совместимых expectations. Expected RED требует запуска нужных collected test IDs и нужного assertion, не любого nonzero. Reuse PASS/FAIL receipts разрешён только при доказанной freshness и explicit reuse policy; unknown state даёт probe/readiness или bounded новый запуск по explicit policy. Повтор с тем же semantic payload и новым tree/environment создаёт новую execution_attempt, не новый semantic layer. Неизвестный незавершённый эффект сначала probe; identical receipt replay не выполняет side effect второй раз. Same known failed subject возвращает прежний результат, кроме заранее разрешённой bounded transient-retry policy с записанной причиной; от агента не нужен nonce или изменённый commit message.",
+      "review_findings": [
+        "R-11",
+        "R-12"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-057",
+      "title": "Candidate submission до precheck",
+      "text": "SemanticSubmission, OperationIntent и ExecutionAttempt имеют разную идентичность. Submission dedup: iteration+semantic_digest сохраняет ровно одну содержательную revision; изменённый payload создаёт следующую revision без overwrite. Это НЕ ключ replay проверок. Verify сначала валидирует submission/authority, формирует candidate projection и сохраняет валидную попытку, затем получает актуальные наблюдаемые binding/freshness facts и решает, что можно reuse. После H1→FAIL, правки до H2 и прежнего payload новый attempt проверяет H2 в той же active iteration; прежние слои не копируются. После known PASS H2 неизменный повтор возвращает receipt/report. После потери ACK operation продолжает только недостающие шаги, проверив receipts. Unknown running attempt не перезапускается вслепую. Изменение уже предъявленного verified/accepted предмета требует разрешённого rework, а не молчаливого переписывания его отчёта.",
+      "review_findings": [
+        "R-02",
+        "R-18"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-058",
+      "title": "Полный verify pipeline",
+      "text": "Verify — фазовый протокол одной iteration. PREPARE: submission/candidate/authority, required agent-before fields и exact method readiness. OBSERVE: bind current subject, run/reuse declared preparations/observations и сохранить факты. Если process требует решение по новым фактам, вернуть весь evidence/conflict context и awaiting_agent; не verified, не user acceptance, не новая task/iteration. CONTINUE: принять только declared agent-after-observation поля с refs на receipt/subject. CHECK: missing proposals/fields обнаружить до final expensive checks, затем выполнить недостающие exact predicates, сохранить evidence. SEAL: typed invalidation/stabilization, tree=commit equality, private publication receipts, durable detail set, Incidents, report, runtime cleanup. Только SEAL даёт verified/STOP. Ветви, не требующие post-observation reasoning, проходят без дополнительного LLM call. Число continuations/attempts bounded общим budget iteration, не сбрасывается новым вызовом.",
+      "review_findings": [
+        "R-02",
+        "R-04",
+        "R-14",
+        "R-25"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-059",
+      "title": "Что kernel может доказать",
+      "text": "Structural validators проверяют required typed fields, cardinality, applicability, references/digests, command predicates и наличие accepted/rejected inspection decisions. Не утверждают, что текст истинный, полезный, constraint содержательно соблюдён или scope осмотрен только из факта ссылок. Logical evidence хранит claim, fact refs, assumptions, проверяемое краткое inference, conclusion и reviewer verdict, не private chain of thought. Добавление символа к template меняет digest, но не заполняет типизированные пункты. При semantic rejection review record блокирует completion независимо от структурной полноты. Agent-evaluation/manual cases проверяют reasoning отдельно от deterministic kernel. Некомандный метод не создаёт ExecutionReceipt: агент предоставляет EvidenceProposal, Harness регистрирует evidence и отдельно структурный validation receipt. Решение reviewer принадлежит последующему осмотру. Proposal не включает придуманную коллекцию тестов, exit code или собственное accepted/rejected решение. Проверка существования фактов/источников не доказывает истинность аргумента.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "S3-01"
+      ],
+      "group": "06. Git, проверки и публикация"
+    },
+    {
+      "id": "HR-060",
+      "title": "Парсеры и неизменный capture",
+      "text": "Известная команда: один parser, modes sync primary/async materialize; неизвестная: явно configured generic profile. Оба читают один immutable sanitized capture. Все named views создаются независимо от использования. Capture outcome, predicate verdict, parser health независимы. Partial files не ready. Каждый view имеет representation ID, content digest, owner, lifetime policy, готовность; file name config-driven. Ошибка parser как баг — Incident независимо от восстановления; underlying test outcome не изменяется.",
+      "review_findings": [
+        "R-14",
+        "R-25"
+      ],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-061",
+      "title": "Чтение и ограничение envelope",
+      "text": "Чтение TEXT: UTF-8, представление содержит объявленные bytes/newlines; lines 1-based inclusive, bytes [start,end). Два диапазона вместе invalid. Split codepoint расширяется до boundaries с actual range и учётом envelope; long line выдаётся chunks, не reader refusal. Binary только явный binary profile. Первичный ответ сообщает totals, actual ranges, truncation и все ready/declared views. Готовая ссылка имеет immutable target, digest и гарантированный lifetime HR-096. Не выдавать native runtime path как ready после его удаления. Outcome/next-work/Incident presence входят в explicit budget; слишком маленький минимум — configuration error, не скрытый fallback.",
+      "review_findings": [
+        "R-23",
+        "R-26"
+      ],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-062",
+      "title": "Полный eligible set и дополнительные секции",
+      "text": "Bootstrap вычисляет полный eligible set за один запрос. При помещении inline выдаёт весь набор. При превышении configured response bound одновременно сохраняет полный immutable view с total rows/bytes и возвращает decision-useful первую порцию и blockers; show читает диапазон уже вычисленного результата, не вызывает новый next. Agent не обязан угадывать лимит. Для section каталога даются content_state (empty/template/populated/generated), size class и layer; token estimates не выводятся. Stage matrix определяет inline и on-demand sections явно. Optional historical layers не загружаются в каждый context. Exact sizes используются в подробном чтении, а не для навязывания модели экономии токенов.",
+      "review_findings": [
+        "R-26"
+      ],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-063",
+      "title": "Hooks и граница финализации",
+      "text": "Blocking hooks нужны для разрешений/обязательных evidence/invariants, остальные async с durable jobs и immutable inputs. Async не меняет workflow-critical state. Show ожидает pending materialization в пределах бюджета без polling LLM. Перед terminal report finalization barrier завершает обязательные views/jobs, публикует durable ResultSet со ВСЕМИ адресами возвращаемых views, pins и digest, продвигает evidence, собирает Incidents. Лишь после этого удаляются runtime-only copies/drafts и формируется ответ со stable refs/native durable paths. До SEAL при awaiting_agent временные ready refs действуют до окончания данной iteration и явно помечены. Независимые jobs после barrier имеют другой reporting cycle. Неполная materialization блокирует verified, но не стирает test outcome.",
+      "review_findings": [
+        "R-14",
+        "R-26"
+      ],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-064",
+      "title": "Минимальный отчёт и runtime cleanup",
+      "text": "Доклад содержит цель/результат, evidence/verdict, Git/delivery receipts, findings/waivers/risks и ВСЕ Harness Incidents текущего cycle, включая recovered; обычные tests/environment outcomes не выдаются за баги Harness. Report immutable в DB и адресует durable ResultSet, не удаляемый runtime. Для task/sprint result views принадлежат соответствующему owner; ad-hoc — durable session deliverable root вне runtime с явной retention. Cleanup удаляет временные копии после pins/publication, не target ready refs. Binding, usage/report pointers сохраняются. Native detail reads после verify допустимы без дополнительной formal work и не запускают commands. Runtime user message/report boundary фиксирует адаптер; неизвестные границы метрик partial.",
+      "review_findings": [
+        "R-14",
+        "R-20",
+        "R-21"
+      ],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-065",
+      "title": "Диагностирование собственного отказа",
+      "text": "Operational journal — append-only файлы на выделенном configured Harness journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, process sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.",
+      "review_findings": [
+        "R-18",
+        "R-28"
+      ],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-070",
+      "title": "Replay и неизвестный внешний исход",
+      "text": "Сначала сохраняется immutable OperationIntent; каждый внешний effect имеет effect ID, exact input snapshot, receipt/probe и bounded retry policy. Повтор submission не равен повтору external effect. Recovery при неизвестном исходе получает receipt/probe до нового запуска; non-idempotent unknown требует user decision. При известном окончании повтор возвращает результат; при changed subject после terminal failed attempt создаётся новый ExecutionAttempt в той же iteration, не новая копия semantic результата. Config/retry budgets не обнуляются session/call. Сохранённое negative evidence не теряется и не выдаётся за актуальный verdict иного дерева.",
+      "review_findings": [
+        "R-18"
+      ],
+      "group": "08. Восстановление и перенос"
+    },
+    {
+      "id": "HR-071",
+      "title": "Crash на границах и atomic receipts",
+      "text": "Bootstrap/verify/handoff/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Process/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.",
+      "review_findings": [
+        "R-02",
+        "R-16",
+        "R-18",
+        "R-24"
+      ],
+      "group": "08. Восстановление и перенос"
+    },
+    {
+      "id": "HR-072",
+      "title": "Два точных режима transfer",
+      "text": "Transfer сохраняет привычный комплект SQLite DB+owner files+integrity manifest. Whole-store restore разрешён только в пустой/эксклюзивно передаваемый store с exact expected generation; не заменяет живую расходящуюся БД. Owner-scoped handoff/export выбранных task переносит SQLite subset той же schema с immutable origin IDs, exact owner base revision, full task closure и readonly pinned sprint/prerequisite references. Destination под внешним lock применяет только owners, не изменившиеся от declared base; независимые изменения B сохраняются при импорте A. Никакого semantic merge одного owner, schema migration или last-writer-wins. Новые immutable events дедуплицируются по origin ID; derived sprint counts/eligibility пересчитываются. Изменение общей sprint topology требует отдельного owner revision match, не перезаписывается task package. Активная работа передаваемого owner прекращена; другие tasks могут работать.",
+      "review_findings": [
+        "R-15"
+      ],
+      "group": "08. Восстановление и перенос"
+    },
+    {
+      "id": "HR-073",
+      "title": "Согласованный snapshot DB и artifacts",
+      "text": "Перед export под коротким внешним lock фиксируются consistent SQLite snapshot поддержанным backup методом, owner revisions и pinned список immutable artifact digests. Длинное копирование выполняется после release lock; retention не удаляет pinned файлы. Manifest содержит exact schema/release/config identities, owner bases/results, file sizes/digests, closure refs и package digest. Package ready только после проверки полного набора. Import сначала валидирует schema/closure/digests и разрешённые реальные пути в staging, затем публикует файлы и одной DB transaction применяет records. Failure до transaction оставляет лишь очищаемые unreferenced artifacts, не полуприменённую задачу. Повтор receipt не применяет пакет второй раз.",
+      "review_findings": [
+        "R-15",
+        "R-16"
+      ],
+      "group": "08. Восстановление и перенос"
+    },
+    {
+      "id": "HR-074",
+      "title": "Git objects и внешний backup",
+      "text": "DB+files сохраняют business state, но для checkout нужны сами Git objects. Handoff предоставляет exact commit vector в проверенно доступном remote либо Git bundle с требуемой closure; одного SHA недостаточно. Ignored secret inputs передаются отдельным явным каналом и не попадают в общий backup. Gmail transport получает только разрешённый package или подтверждённые ссылки; upload/send/read receipt и limits определены adapter profile. Error backup не удаляет canonical state и не фальсифицирует delivery. Receipt, digest и source revisions сохраняются в task/sprint data. Никакой распределённой синхронизации SQLite через Gmail.",
+      "review_findings": [
+        "R-03",
+        "R-15",
+        "R-19",
+        "R-27"
+      ],
+      "group": "08. Восстановление и перенос"
+    },
+    {
+      "id": "HR-080",
+      "title": "Usage events и полнота затрат",
+      "text": "Usage event имеет globally unique source event ID, source/runtime/schema, session/agent/cycle, project/task/stage/iteration, interval, reported counters и semantics=delta/cumulative. Source total authoritative; input/output суммируются только по объявленной схеме без повторного cached/reasoning (это subsets при соответствующем source contract). Cumulative snapshots превращаются в delta один раз в пределах source generation; reset/gap помечается. Повтор/import одного ID не меняет расходы, conflicting payload даёт Incident. Unavailable/partial не ноль; estimates из символов не actual tokens. На каждом aggregate есть coverage (known/unknown cycles) и denominator policy; при неполных расходах efficiency=N/A. Известный расход можно показать отдельно как наблюдённую неполную сумму, но не выдавать отношение к нему за эффективность всей работы.",
+      "review_findings": [
+        "R-21"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-081",
+      "title": "Время, доклад и причинная атрибуция",
+      "text": "Work cycle интервалы начинаются фактическим user instruction/start событием адаптера и заканчиваются report-delivered/stop, включая reasoning, tools, tests и обязательное ожидание. User wait после доклада исключён. При отсутствии полного источника фиксируются наблюдаемые границы и completeness; точное время до bootstrap/после verify не выдумывается. Поздний usage/stop receipt дополняет тот же cycle идемпотентно. Active agent time — сумма непересекающихся интервалов по каждому agent; wall time — объединение интервалов. Handoff суммирует стоимость разных agents в одной task. Канонический словарь primary_cause задан только metrics-contract.json:primary_causes. Причина поздней переделки — delivered_rework; формулы ссылаются на идентификатор словаря, не распознают синонимы. У segment ровно одна primary cause. Несегментируемая смесь имеет явное значение mixed; точные доли не выдумываются. Неизвестная причина отклоняется до проводки, а не становится нулевой стоимостью.",
+      "review_findings": [
+        "R-08",
+        "R-21",
+        "S3-03"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-082",
+      "title": "Находки после предъявления",
+      "text": "Quality finding считается один раз по distinct defect ID против immutable delivered-result, если обнаружено в последующем work_cycle. Недостаток, найденный и устранённый до предъявления того же результата, — internal QA, не quality finding независимо от названия действия. Отдельный inspection stage на следующем подходе имеет право найти quality finding предыдущей implementation; слово self не исключает его. Post-completion — подмножество, не добавляется ещё раз в общий count. Неправильные/rejected/duplicate findings исключаются из active delivered quality с сохранением решений; waived остаётся обнаруженным дефектом с отдельным outcome, не repaired. User requirement change не finding. Remediation group связывает все findings и затраты цикла; нет искусственного per-finding деления.",
+      "review_findings": [
+        "R-08",
+        "R-21"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-083",
+      "title": "Accounting baseline и конечный diff",
+      "text": "Accounting baseline неизменен для lifetime task; execution/task/stage baseline различаются. Польза считается own final accepted baseline→result, не сумма правок/коммитов и не foreign changes rebase. Additions и removals учитываются раздельно и суммой. Полезные классы определяет goal_type (development=code+docs, tests исключены). Перемещение с тем же content digest в том же полезном классе даёт ноль content delta; cross-class transfer не автоматически создаёт новую пользу. Explicit origin identity map для move/rebase; ambiguous mapping означает incomplete measure, не догадку. Git diff flags не являются свободным выбором реализатора: применяется measurement profile HR-097. Integration не дублирует content benefit источников.",
+      "review_findings": [
+        "R-22"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-084",
+      "title": "Полезный payload и tokenizer",
+      "text": "Полезный payload измеряет объём результата, не реальную бизнес-ценность. Измерительный профиль явно фиксирует input projection, own-unit selection, UTF-8/line-ending/Unicode policy, line-diff tie-break, единицу токенизации, structured serialization, tokenizer identity+data digest и exclusions generated/raw/template. Для TEXT единица сравнения — полная логическая строка с её исходным terminator; bytes удалённых/добавленных строк, а не character edit distance. Tokens считаются по каждой полной удалённой/добавленной строке отдельно, включая terminator; не по склеенному diff с +/- headers. Выбор другой версии профиля не смешивается в aggregate. Предметные counters сохраняются для review/verification/environment, где payload не отражает ценность. Golden corpus с численными lines/bytes/tokens обязателен; тестовый tokenizer явно обозначен и не выдаётся за usage модели.",
+      "review_findings": [
+        "R-21",
+        "R-22"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-085",
+      "title": "Кредиты, reopen, cancel и календарь",
+      "text": "Benefit ledger хранит credit/reversal с unique task result revision и as-of. Accepted completion K1=100 даёт +100; reopen отзывает текущий provisional credit -100, WIP сохраняет last accepted history; completion K2=120 даёт +120, lifetime=120, не220. Cancel отзывает любой действующий credit и benefit=0, все расходы сохраняются как cancelled loss; только пользователь санкционирует cancel. Cost events начисляются по фактической дате, correction/reversal по дате решения, previous as-of отчёты воспроизводимы. Day/week используют одну явно указанную IANA timezone/ISO Monday boundary; интервалы времени делятся на границах суток, token event — по timestamp источника если более точного распределения нет. WIP cost ещё не credited benefit и не окончательный убыток. Отдельный failed outcome не вводится.",
+      "review_findings": [
+        "R-09",
+        "R-21",
+        "R-22"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-086",
+      "title": "Словарь формул и агрегация",
+      "text": "Обязательные метрики определены metrics-contract.json: exact source events/projection, единицы, сериализация/diff, cohorts, denominator, overlap policy и zero/unknown semantics. Total cost разделяется по одной primary cause на cycle; cancelled — исход задачи, не слагаемое поверх total; remediation groups не делятся произвольно. First-pass stage — первый предъявленный результат ключа task+stage+requirement-epoch: denominator только с первым user disposition в периоде, numerator accepted без defect rework до этого решения; requirement change цензурирует предыдущую epoch, не объявляет дефект. Amplification = сумма последовательных own useful accepted snapshots / конечный own useful delta, одинаковые классы и profile, numerator включает initial delta; denominator 0 даёт undefined, не infinity/0. Cost ledger начисляется в event time; benefit signed reversals/replacements не удваивают результат. Daily/weekly/all-work и by-goal-type считают суммы числителей/знаменателей, не средние ratios. Все golden примеры воспроизводимы из canonical bytes, без вычислений из форматированного stdout. rework_cost имеет машинный selector primary_cause=delivered_rework из канонического словаря. Повтор одного source+generation+event_id с теми же данными не добавляет проводку; повтор ID с изменёнными данными — конфликт, не last-writer-wins. Идентичное событие даёт одну стоимость в каждом срезе task/sprint/day/week/goal_type/all; эти срезы не складываются друг с другом. Расход времени хранится целыми микросекундами. Golden fixtures проверяют 12000 tokens/600000000 microseconds, replay, ошибочный cause и неполную телеметрию.",
+      "review_findings": [
+        "R-21",
+        "R-22",
+        "S3-03"
+      ],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-090",
+      "title": "Полные независимые process contracts",
+      "text": "Каждый из 13 типов имеет независимый полный process definition. Нормативные узлы разделены kind=content_stage и kind=mechanical_gate; сохранены 98 GS IDs, из них три publication gates не создают содержательную iteration. Для каждого stage указаны creation inputs, PREPARE agent fields, automatic OBSERVE/CHECK outputs, CONTINUE agent fields, final fields, read-only scope, transitions с guards и rework targets. Producer/phase каждого field однозначны, generated view не обязательный агентский ввод. Переходы ссылаются только на собственные объявленные nodes/closure; произвольный next не допустим. Publication выполняется после accepted inspection и explicit authority одним механическим действием. Разрешённый method kind должен иметь достижимого производителя evidence во всех заявленных ветвях. Для planning конечный draft валидируется не фактом наличия planned_task/task_contracts, а вложенными creation fields выбранного независимого goal_type; общие views и шаблоны не добавляют missing business values.",
+      "review_findings": [
+        "R-01",
+        "R-30",
+        "S3-01",
+        "S3-02"
+      ],
+      "group": "10. Процессы и приёмочная методика"
+    },
+    {
+      "id": "HR-091",
+      "title": "Секция как проверяемый контракт",
+      "text": "Section text/typed fields в SQLite. Для каждого field/schema path объявлены producer (user/config/agent/kernel/adapter/reviewer), earliest availability и required phase, empty/not_applicable policy. Содержательная applicability/plan — агентские данные, actual digests/versions/receipt — наблюдения Harness. Разрешённая будущая команда точна до создания файла, её observed digest только на execution. Manual evidence proposal не включает автоматические observations и не заменяет reviewer decision. Required-before валидирует только доступные на PREPARE поля; post-observation проверяется после фактов; обязательное final — перед verified. Все ранее принятые layers сохраняются, current view не создаёт второй источник.",
+      "review_findings": [
+        "R-01",
+        "R-25"
+      ],
+      "group": "10. Процессы и приёмочная методика"
+    },
+    {
+      "id": "HR-092",
+      "title": "Приёмочные уровни и запрет ложного доказательства",
+      "text": "Приёмка разделяет kernel K, adapter A, end-to-end E, agent evaluation V и live smoke M. Наличие refs не доказывает истинность вывода. Все product cases NOT_RUN до запуска продукта. Существующие isolated STG остаются contract tests; к ним обязательны stateful create→все content stages→authorized gates→completed для 13 типов и ветви finding/fix/reinspection, waiver, return earlier. Нельзя вставлять будущие stage inputs прямым SQL или preloaded completed layers. Fixtures, шаги, expected states и effect counts конкретны; сам прогон модели спецификации не PASS продукта. Документный checker валидирует graph targets, producers/phases, достижимость входов и точное равенство производных представлений, отдельно проверяется отрицательными мутациями. Сквозные planning fixtures обязаны содержать явные поэтапные значения каждого creation field дочерней задачи, а не контракт родителя или обещание будущего заполнения. Published child проходит собственный creation validator с типизированными полями и exact/deferred method obligations, затем bootstrap без подстановки недостающего business content. Неизвестный goal_type или отсутствующая обязательная applicability отклоняются. При зависимости отсутствие materialized predecessor допустимо только как declared blocker, не как недостающий контракт. Ordered events не допускают следующий content bootstrap без user_accept текущего verified результата и явного разрешения продолжать.",
+      "review_findings": [
+        "R-07",
+        "R-25",
+        "S3-02"
+      ],
+      "group": "10. Процессы и приёмочная методика"
+    },
+    {
+      "id": "HR-093",
+      "title": "Регрессии и live build",
+      "text": "F01–F14 исторического анализа связаны с конкретными REG cases, requirement IDs, session file/line locator и типом свидетельства (raw event либо объяснение агента). Включён F09: старый живой runner после обновления файла. Regression corpus в комплекте — компактные extracts/manifest/агрегаты, не весь 1.68-ГБ архив. Исторические документы неизменны и явно nonnormative. Review package проверяет разрешимость их относительных ссылок, hashes и полноту. Перед программной приёмкой replay fixtures строятся из этих локаторов; старый log не доказывает актуальный дефект.",
+      "review_findings": [
+        "R-24",
+        "R-29"
+      ],
+      "group": "10. Процессы и приёмочная методика"
+    },
+    {
+      "id": "GP-DEV",
+      "title": "Полный профиль development",
+      "text": "Независимый process development: Production-код/поведение приложения; тесты и документация — средства качества и сопутствующий результат. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Все обязательные stages accepted, applicable tests удовлетворяют final predicates, требования/DoD связаны с current accepted evidence, task-quality findings resolved/waived, docs obligation выполнена, весь Git vector проверен/опубликован. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-01",
+      "title": "development.baseline",
+      "text": "development.baseline (content_stage): Установить исходное поведение или обоснованную неприменимость. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: baseline, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-02",
+      "title": "development.solution_planning",
+      "text": "development.solution_planning (content_stage): Спланировать изменение компонентов, интерфейсов и документации. PREPARE: solution_plan, decisions, assumptions, documentation_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-03",
+      "title": "development.verification_planning",
+      "text": "development.verification_planning (content_stage): Спроектировать доказательства до реализации. PREPARE: verification_plan, test_registry. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-04",
+      "title": "development.test_implementation",
+      "text": "development.test_implementation (content_stage): Написать тесты/fixtures до production change. PREPARE: test_registry. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-05",
+      "title": "development.test_inspection",
+      "text": "development.test_inspection (content_stage): Read-only осмотр oracle, покрытия, чувствительности и fixtures. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-06",
+      "title": "development.test_remediation",
+      "text": "development.test_remediation (content_stage): Исправить зарегистрированные дефекты тестов. PREPARE: finding_resolutions, test_registry. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-07",
+      "title": "development.test_remediation_inspection",
+      "text": "development.test_remediation_inspection (content_stage): Проверить исправление тестов без правки target. PREPARE: inspection_coverage, inspection_verdict, findings, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-08",
+      "title": "development.implementation",
+      "text": "development.implementation (content_stage): Реализовать production change по принятым тестам. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-09",
+      "title": "development.implementation_inspection",
+      "text": "development.implementation_inspection (content_stage): Read-only осмотр корректности, сложности и соответствия. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-10",
+      "title": "development.implementation_remediation",
+      "text": "development.implementation_remediation (content_stage): Исправить находки реализации. PREPARE: finding_resolutions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-11",
+      "title": "development.implementation_remediation_inspection",
+      "text": "development.implementation_remediation_inspection (content_stage): Осмотреть каждое исправление read-only. PREPARE: inspection_coverage, findings, inspection_verdict, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DEV-12",
+      "title": "development.documentation",
+      "text": "development.documentation (content_stage): Выполнить прямо предусмотренную документацию. PREPARE: result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-TST",
+      "title": "Полный профиль test_development",
+      "text": "Независимый process test_development: Тесты и тестовые fixtures как самостоятельный конечный продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, commits/push подтверждены. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-01",
+      "title": "test_development.baseline",
+      "text": "test_development.baseline (content_stage): Установить существующее покрытие/известное поведение. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: baseline, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-02",
+      "title": "test_development.coverage_planning",
+      "text": "test_development.coverage_planning (content_stage): Связать поведение с будущими тестами. PREPARE: coverage_matrix. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-03",
+      "title": "test_development.test_planning",
+      "text": "test_development.test_planning (content_stage): Спроектировать oracle, fixtures, sensitivity и команды. PREPARE: verification_plan, test_registry, fixture_plan, sensitivity_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-04",
+      "title": "test_development.test_implementation",
+      "text": "test_development.test_implementation (content_stage): Написать только тестовый deliverable. PREPARE: test_registry. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-05",
+      "title": "test_development.sensitivity_verification",
+      "text": "test_development.sensitivity_verification (content_stage): Подтвердить различение правильного и неправильного поведения. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-06",
+      "title": "test_development.test_inspection",
+      "text": "test_development.test_inspection (content_stage): Осмотреть coverage/oracles/isolation/fixtures. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-07",
+      "title": "test_development.remediation",
+      "text": "test_development.remediation (content_stage): Исправить дефекты тестового результата. PREPARE: finding_resolutions, test_registry. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TST-08",
+      "title": "test_development.remediation_inspection",
+      "text": "test_development.remediation_inspection (content_stage): Проверить исправления read-only. PREPARE: inspection_coverage, findings, inspection_verdict, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-VER",
+      "title": "Полный профиль verification",
+      "text": "Независимый process verification: Доказать или опровергнуть соответствие зафиксированного результата требованиям; не исправлять продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Программа исполнена или user waivers, критерии имеют current evidence/verdict, task-quality objections устранены/waived, target unchanged, temporary probes cleaned. Product findings могут оставаться open и product verdict negative. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-VER-01",
+      "title": "verification.planning",
+      "text": "verification.planning (content_stage): Определить программу, критерии и точные способы доказательства. PREPARE: verification_criteria, verification_program, verification_methods, environment. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-VER-02",
+      "title": "verification.execution",
+      "text": "verification.execution: PREPARE принимает manual_evidence для методов по имеющимся фактам и проверяет их наличие до executable OBSERVE. OBSERVE исполняет только явно объявленные точные команды. Если план требует reasoning по новым receipts, возвращает awaiting_agent с полным контекстом; CONTINUE принимает observed_manual_evidence и не повторяет команды. CHECK регистрирует manual/observed proposals и command receipts как разные evidence, проверяет покрытие methods/subject и неизменность target. SEAL требует все обязательные proposals, но не придумывает reviewer verdict. Logical-only имеет 0 external invocations; отсутствующее доказательство блокирует verified. Подробный независимый контракт — process-matrices.json:verification и lifecycle-contracts.json:noncommand_evidence.",
+      "review_findings": [
+        "R-01",
+        "S3-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-VER-03",
+      "title": "verification.analysis",
+      "text": "verification.analysis (content_stage): Интерпретировать evidence и сформировать несоответствия. PREPARE: findings, verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-VER-04",
+      "title": "verification.self_inspection",
+      "text": "verification.self_inspection (content_stage): Осмотреть качество самой проверки. PREPARE: inspection_coverage, inspection_verdict, findings. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-REV",
+      "title": "Полный профиль review",
+      "text": "Независимый process review: Найти доказанные дефекты/риски в зафиксированном результате, не исправляя его. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Scope/criteria coverage и evidence полны, review quality accepted, target unchanged. Open subject findings не блокируют; unresolved task-quality defects блокируют. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-REV-01",
+      "title": "review.planning",
+      "text": "review.planning (content_stage): Определить scope, критерии и единицы осмотра. PREPARE: review_criteria, review_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-REV-02",
+      "title": "review.inspection",
+      "text": "review.inspection (content_stage): Read-only изучить target и оформить доказанные findings. PREPARE: inspection_coverage, findings, manual_evidence, verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-REV-03",
+      "title": "review.self_inspection",
+      "text": "review.self_inspection (content_stage): Проверить качество собственного review. PREPARE: inspection_verdict, decisions, findings. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-DES",
+      "title": "Полный профиль design",
+      "text": "Независимый process design: Спроектировать техническое решение/архитектуру/контракт без production реализации. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Контракт полного design, alternatives/decision зафиксированы, DoD/proofs current, все task-quality findings resolved/waived, allowed artifacts сохранены и Git receipt при необходимости. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-01",
+      "title": "design.framing",
+      "text": "design.framing (content_stage): Зафиксировать исходную архитектуру и критерии выбора. PREPARE: baseline, assumptions, decision_criteria, verification_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-02",
+      "title": "design.alternatives",
+      "text": "design.alternatives (content_stage): Сравнить допустимые решения. PREPARE: alternatives. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-03",
+      "title": "design.decision",
+      "text": "design.decision (content_stage): Выбрать решение и обосновать отказ от других. PREPARE: selected_approach, decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-04",
+      "title": "design.detailed_design",
+      "text": "design.detailed_design (content_stage): Описать конкретные contracts и failure modes. PREPARE: design, interfaces_contracts, impact_analysis. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-05",
+      "title": "design.design_verification",
+      "text": "design.design_verification (content_stage): Проверить design против требований. PREPARE: нет новых полей модели. CONTINUE: manual_evidence, verdict. Автоматические поля: traceability, artifacts, evidence. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-06",
+      "title": "design.design_inspection",
+      "text": "design.design_inspection (content_stage): Осмотреть consistency, неопределённости и лишнюю сложность. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-07",
+      "title": "design.remediation",
+      "text": "design.remediation (content_stage): Исправить design findings. PREPARE: design, interfaces_contracts, finding_resolutions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DES-08",
+      "title": "design.remediation_inspection",
+      "text": "design.remediation_inspection (content_stage): Проверить design corrections read-only. PREPARE: inspection_coverage, findings, inspection_verdict, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-ANA",
+      "title": "Полный профиль analysis",
+      "text": "Независимый process analysis: Доказательный аналитический вывод по заданным вопросам без изменения предмета исследования. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Все mandatory questions имеют обоснованный final conclusion, challenge/limitations выполнены, факты traced, task-quality objections resolved/waived, inputs не изменены, final report durable. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ANA-01",
+      "title": "analysis.framing",
+      "text": "analysis.framing (content_stage): Сформулировать вопросы и метод до сбора огромного массива. PREPARE: source_plan, method. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ANA-02",
+      "title": "analysis.evidence_collection",
+      "text": "analysis.evidence_collection (content_stage): Обработать данные инструментами, извлечь факты. PREPARE: нет новых полей модели. CONTINUE: sources, facts, assumptions. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ANA-03",
+      "title": "analysis.reasoning",
+      "text": "analysis.reasoning (content_stage): Сформировать проверяемые выводы. PREPARE: analysis, conclusions, recommendations. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ANA-04",
+      "title": "analysis.challenge",
+      "text": "analysis.challenge (content_stage): Проверить альтернативы и опровергающие данные. PREPARE: alternative_explanations, counterevidence, limitations. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ANA-05",
+      "title": "analysis.self_inspection",
+      "text": "analysis.self_inspection (content_stage): Осмотреть достоверность собственного анализа. PREPARE: inspection_coverage, findings, inspection_verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-PRO",
+      "title": "Полный профиль profiling",
+      "text": "Независимый process profiling: Измерить performance/resources характеристики и подтвердить выводы; постоянная оптимизация не входит. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Measurements/baseline/confirmation complete, target/environment traced, temporary instrumentation removed, выводы осмотрены; неудовлетворительная производительность продукта не мешает завершению profiling. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-01",
+      "title": "profiling.framing",
+      "text": "profiling.framing (content_stage): Спланировать исходное измерение и критерии воспроизводимости. PREPARE: environment, workload, verification_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-02",
+      "title": "profiling.baseline_measurement",
+      "text": "profiling.baseline_measurement (content_stage): Получить исходные measurements. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: baseline, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-03",
+      "title": "profiling.experiment_planning",
+      "text": "profiling.experiment_planning (content_stage): Спланировать различающие эксперименты после baseline. PREPARE: experiment_plan, instrumentation_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-04",
+      "title": "profiling.measurement",
+      "text": "profiling.measurement (content_stage): Выполнить эксперименты. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: measurements, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-05",
+      "title": "profiling.analysis",
+      "text": "profiling.analysis (content_stage): Отделить измерения от интерпретаций. PREPARE: analysis, findings, alternative_explanations, recommendations, limitations, confirmation_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-06",
+      "title": "profiling.confirmation",
+      "text": "profiling.confirmation (content_stage): Независимо/повторно подтвердить существенные выводы. PREPARE: нет новых полей модели. CONTINUE: confirmation. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-PRO-07",
+      "title": "profiling.self_inspection",
+      "text": "profiling.self_inspection (content_stage): Осмотреть качество измерений и выводов. PREPARE: inspection_coverage, findings, inspection_verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-DIA",
+      "title": "Полный профиль environment_diagnostics",
+      "text": "Независимый process environment_diagnostics: Установить причину сбоя среды/tooling и дать воспроизводимую рекомендацию, не постоянное исправление. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Причина доказана в границах DoD или разрешённый inconclusive verdict, required confirmation exists, рекомендация проверяема, temporary state restored, task-quality objections closed. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-01",
+      "title": "environment_diagnostics.framing",
+      "text": "environment_diagnostics.framing (content_stage): Определить симптом и необходимые факты среды. PREPARE: verification_plan. CONTINUE: facts. Автоматические поля: environment_snapshot, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-02",
+      "title": "environment_diagnostics.reproduction",
+      "text": "environment_diagnostics.reproduction (content_stage): Проверить исходный симптом. PREPARE: нет новых полей модели. CONTINUE: reproduction. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-03",
+      "title": "environment_diagnostics.hypothesis_planning",
+      "text": "environment_diagnostics.hypothesis_planning (content_stage): Составить проверяемые альтернативные причины. PREPARE: hypotheses, diagnostic_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-04",
+      "title": "environment_diagnostics.experiments",
+      "text": "environment_diagnostics.experiments (content_stage): Выполнить диагностические experiments. PREPARE: нет новых полей модели. CONTINUE: facts. Автоматические поля: experiments, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-05",
+      "title": "environment_diagnostics.root_cause_analysis",
+      "text": "environment_diagnostics.root_cause_analysis (content_stage): Обосновать причину и отвергнутые альтернативы. PREPARE: root_cause, recommendations, confirmation_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-06",
+      "title": "environment_diagnostics.confirmation",
+      "text": "environment_diagnostics.confirmation (content_stage): Проверить причинность контролируемым изменением. PREPARE: нет новых полей модели. CONTINUE: confirmation. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DIA-07",
+      "title": "environment_diagnostics.self_inspection",
+      "text": "environment_diagnostics.self_inspection (content_stage): Проверить диагноз и рекомендацию. PREPARE: inspection_coverage, findings, inspection_verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-ENV",
+      "title": "Полный профиль environment_remediation",
+      "text": "Независимый process environment_remediation: Изменить среду/tooling и доказать достижение явно заданного desired state. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Desired criteria proved, permanent required changes остаются, temporary effects removed, task-quality findings resolved/waived, exact action/verification evidence complete; Git commit обязателен только для Git deliverables. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-01",
+      "title": "environment_remediation.framing",
+      "text": "environment_remediation.framing (content_stage): Определить разрешённый target и desired state. PREPARE: scope, constraints, verification_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-02",
+      "title": "environment_remediation.baseline",
+      "text": "environment_remediation.baseline (content_stage): Снять исходное состояние до изменения. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: baseline, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-03",
+      "title": "environment_remediation.change_planning",
+      "text": "environment_remediation.change_planning (content_stage): Определить actions, verification и безопасное прерывание. PREPARE: change_plan, rollback_plan, verification_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-04",
+      "title": "environment_remediation.application",
+      "text": "environment_remediation.application (content_stage): Применить подготовленные механические действия. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: execution_results, observed_state, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-05",
+      "title": "environment_remediation.verification",
+      "text": "environment_remediation.verification (content_stage): Подтвердить desired state и отсутствие побочных нарушений. PREPARE: нет новых полей модели. CONTINUE: verdict. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-06",
+      "title": "environment_remediation.inspection",
+      "text": "environment_remediation.inspection (content_stage): Read-only осмотреть достигнутое состояние. PREPARE: inspection_coverage, findings, inspection_verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-07",
+      "title": "environment_remediation.correction",
+      "text": "environment_remediation.correction (content_stage): Исправить замечания по среде с новым exact action plan. PREPARE: change_plan, finding_resolutions. CONTINUE: не требуется. Автоматические поля: observed_state, artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-ENV-08",
+      "title": "environment_remediation.correction_inspection",
+      "text": "environment_remediation.correction_inspection (content_stage): Проверить corrections read-only. PREPARE: inspection_coverage, findings, inspection_verdict, result, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-DOC",
+      "title": "Полный профиль documentation",
+      "text": "Независимый process documentation: Создать/обновить документацию как основной deliverable. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Content requirements covered, required examples checked, sources traced, docs durable/published по target, inspection accepted и task-quality findings closed. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-01",
+      "title": "documentation.framing",
+      "text": "documentation.framing (content_stage): Определить аудиторию и источники истины. PREPARE: source_inventory, content_requirements, verification_plan, publication_target. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-02",
+      "title": "documentation.outline",
+      "text": "documentation.outline (content_stage): Спроектировать структуру по content requirements. PREPARE: outline. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-03",
+      "title": "documentation.drafting",
+      "text": "documentation.drafting (content_stage): Написать documentation deliverable. PREPARE: content, examples_commands. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-04",
+      "title": "documentation.validation",
+      "text": "documentation.validation (content_stage): Проверить примеры/ссылки и источники. PREPARE: нет новых полей модели. CONTINUE: verdict. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-05",
+      "title": "documentation.inspection",
+      "text": "documentation.inspection (content_stage): Read-only вычитать по audience и completeness. PREPARE: inspection_coverage, findings, inspection_verdict, result. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-06",
+      "title": "documentation.remediation",
+      "text": "documentation.remediation (content_stage): Исправить документацию по findings. PREPARE: content, finding_resolutions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-DOC-07",
+      "title": "documentation.remediation_inspection",
+      "text": "documentation.remediation_inspection (content_stage): Повторно вычитать corrections. PREPARE: inspection_coverage, findings, inspection_verdict, result, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-TPL",
+      "title": "Полный профиль task_planning",
+      "text": "Независимый process task_planning: Опубликовать полноценный contract одной будущей/пересматриваемой задачи. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Будущая task опубликована атомарно, валидна по собственному independent pack, references/methods/dependencies корректны; planning result inspection accepted. При revise предыдущие layers сохранены и invalidations рассчитаны. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision. Publication проверяет вложенный creation_payload каждого child его независимым goal_type contract; недостающие поля не создаёт. Exact methods разрешимы, future observation digests не требуются на creation. Post-publication bootstrap использует только опубликованные значения и явные dependency receipts.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30",
+        "S3-02"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-01",
+      "title": "task_planning.framing",
+      "text": "task_planning.framing (content_stage): Определить конечную цель планируемой task. PREPARE: constraints, assumptions, deliverables. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-02",
+      "title": "task_planning.classification",
+      "text": "task_planning.classification (content_stage): Выбрать один target goal_type по основному результату. PREPARE: goal_classification. CONTINUE: не требуется. Автоматические поля: planned_task, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-03",
+      "title": "task_planning.requirements",
+      "text": "task_planning.requirements (content_stage): Уточнить требования в draft target task. PREPARE: planned_task. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-04",
+      "title": "task_planning.acceptance_design",
+      "text": "task_planning.acceptance_design (content_stage): Спроектировать DoD и deliverables будущей task. PREPARE: acceptance_design, planned_task. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-05",
+      "title": "task_planning.work_planning",
+      "text": "task_planning.work_planning (content_stage): Заполнить process-specific planning inputs. PREPARE: work_plan, planned_task. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-06",
+      "title": "task_planning.verification_planning",
+      "text": "task_planning.verification_planning (content_stage): Зафиксировать способы доказательства будущей задачи. PREPARE: verification_plan, planned_task. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-07",
+      "title": "task_planning.task_inspection",
+      "text": "task_planning.task_inspection (content_stage): Read-only проверить draft contract. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-08",
+      "title": "task_planning.remediation",
+      "text": "task_planning.remediation (content_stage): Исправить draft по findings. PREPARE: planned_task, finding_resolutions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-09",
+      "title": "task_planning.remediation_inspection",
+      "text": "task_planning.remediation_inspection (content_stage): Осмотреть исправленный contract. PREPARE: inspection_coverage, findings, inspection_verdict, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-TPL-10",
+      "title": "task_planning.publication",
+      "text": "task_planning.publication (mechanical_gate): Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: result, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-SPL",
+      "title": "Полный профиль sprint_planning",
+      "text": "Независимый process sprint_planning: Опубликовать валидный sprint с tasks и same-sprint DAG единым согласованным результатом. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Sprint и все tasks опубликованы единым валидным set, no cross-sprint edges, methods/coverage complete, inspection accepted; execution не начинается автоматически. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision. Publication проверяет вложенный creation_payload каждого child его независимым goal_type contract; недостающие поля не создаёт. Exact methods разрешимы, future observation digests не требуются на creation. Post-publication bootstrap использует только опубликованные значения и явные dependency receipts.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30",
+        "S3-02"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-01",
+      "title": "sprint_planning.framing",
+      "text": "sprint_planning.framing (content_stage): Задать цель/границы/DoD sprint и основания. PREPARE: constraints, assumptions. CONTINUE: не требуется. Автоматические поля: planned_sprint, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-02",
+      "title": "sprint_planning.decomposition",
+      "text": "sprint_planning.decomposition (content_stage): Выделить самостоятельные конечные результаты. PREPARE: decomposition. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-03",
+      "title": "sprint_planning.task_classification",
+      "text": "sprint_planning.task_classification (content_stage): Классифицировать каждый candidate. PREPARE: goal_classification. CONTINUE: не требуется. Автоматические поля: task_contracts, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-04",
+      "title": "sprint_planning.task_contracts",
+      "text": "sprint_planning.task_contracts (content_stage): Заполнить все draft tasks. PREPARE: task_contracts. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-05",
+      "title": "sprint_planning.dependency_design",
+      "text": "sprint_planning.dependency_design (content_stage): Спроектировать semantic prerequisites и materialization. PREPARE: dependency_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-06",
+      "title": "sprint_planning.execution_planning",
+      "text": "sprint_planning.execution_planning (content_stage): Определить priorities и shared context/resources. PREPARE: execution_plan, shared_context_plan, shared_artifacts_plan, risks. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-07",
+      "title": "sprint_planning.coverage_analysis",
+      "text": "sprint_planning.coverage_analysis (content_stage): Проверить полноту пути от цели sprint к испытаниям. PREPARE: manual_evidence, planned_sprint. CONTINUE: не требуется. Автоматические поля: traceability, artifacts, evidence. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-08",
+      "title": "sprint_planning.sprint_inspection",
+      "text": "sprint_planning.sprint_inspection (content_stage): Read-only осмотреть весь план. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-09",
+      "title": "sprint_planning.remediation",
+      "text": "sprint_planning.remediation (content_stage): Исправить draft sprint без перезаписи выполненной истории. PREPARE: planned_sprint, task_contracts, dependency_plan, finding_resolutions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-10",
+      "title": "sprint_planning.remediation_inspection",
+      "text": "sprint_planning.remediation_inspection (content_stage): Осмотреть изменения плана. PREPARE: inspection_coverage, findings, inspection_verdict, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-SPL-11",
+      "title": "sprint_planning.publication",
+      "text": "sprint_planning.publication (mechanical_gate): Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: result, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GP-INT",
+      "title": "Полный профиль integration",
+      "text": "Независимый process integration: Объединить существующие результаты с target codebase и доказать integrated result без новой самостоятельной функциональности. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Нет unresolved merge entries/conflicts, requirements source preserved по evidence/inspection, target publication observed (FF/no-op явно), all components receipts, последний этап accepted. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
+      "review_findings": [
+        "R-01",
+        "R-25",
+        "R-30"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-01",
+      "title": "integration.framing",
+      "text": "integration.framing (content_stage): Зафиксировать source/target и нужные требования источников. PREPARE: constraints. CONTINUE: не требуется. Автоматические поля: baseline, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-02",
+      "title": "integration.integration_planning",
+      "text": "integration.integration_planning (content_stage): Задать стратегию и exact checks. PREPARE: integration_plan, verification_plan. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-03",
+      "title": "integration.integration",
+      "text": "integration.integration (content_stage): Выполнить объединение и решить semantic conflicts. PREPARE: нет новых полей модели. CONTINUE: conflict_resolutions. Автоматические поля: conflicts, artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-04",
+      "title": "integration.verification",
+      "text": "integration.verification (content_stage): Подтвердить совместный результат. PREPARE: нет новых полей модели. CONTINUE: verdict. Автоматические поля: evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-05",
+      "title": "integration.inspection",
+      "text": "integration.inspection (content_stage): Read-only проверить сохранность source intentions. PREPARE: inspection_coverage, findings, inspection_verdict. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-06",
+      "title": "integration.remediation",
+      "text": "integration.remediation (content_stage): Исправить дефекты объединения без новой функциональности. PREPARE: finding_resolutions, conflict_resolutions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability, resolution_bindings. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-07",
+      "title": "integration.remediation_inspection",
+      "text": "integration.remediation_inspection (content_stage): Осмотреть corrections. PREPARE: inspection_coverage, findings, inspection_verdict, resolution_review_decisions. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "GS-INT-08",
+      "title": "integration.publication",
+      "text": "integration.publication (mechanical_gate): Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. PREPARE: нет новых полей модели. CONTINUE: не требуется. Автоматические поля: result, evidence, artifacts, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.",
+      "review_findings": [
+        "R-01"
+      ],
+      "group": "11. Независимые профили целей"
+    },
+    {
+      "id": "HR-094",
+      "title": "Фазы результата и авторство данных",
+      "text": "Для каждой stage field_ownership перечисляет section/path, producer, phase и evidence dependencies; PREPARE, OBSERVE, CONTINUE, CHECK, SEAL не пользовательские стадии. Поле с двумя producers без явного разбиения paths invalid. Publication gate не имеет agent submission/self-check. Exact контракты и decision tables приведены в lifecycle-contracts.json и data-contracts. Изменённые semantic additions continuation связываются с observation receipt; сохранённый merge/effect не переисполняется. В verification.execution каждой logical_argument/inspection obligation назначены stage_id, evidence_phase=PREPARE или CONTINUE, поле submission и source_refs. Аргумент по уже доступным данным подаётся через manual_evidence на PREPARE. Аргумент по объявленным новым наблюдениям — через observed_manual_evidence на CONTINUE после соответствующих receipts. Пустой список допустим только когда для этой фазы нет обязательных некомандных методов; поле не опускается как default. Нет аргумента PREPARE — нет дорогих запусков; нет аргумента CONTINUE — нет SEAL. Logical-only не вызывает команды; command-only не вызывает лишний CONTINUE. Generated evidence индексирует оба канала; self_inspection принимает/отклоняет предложения. Новых stage/task не возникает.",
+      "review_findings": [
+        "S3-01"
+      ],
+      "group": "10. Процессы и приёмочная методика"
+    },
+    {
+      "id": "HR-095",
+      "title": "Типизированная актуальность связей",
+      "text": "Relations: provenance (историческое происхождение, не инвалидирует); subject_snapshot (evidence об exact immutable subject, не переносится на новый subject); requires_current (инвалидирующая зависимость от current selector/version); supersedes (меняет current pointer, не dependency edge); control_prerequisite (eligibility, не удаление результатов). Вычисление validity идёт по DAG requires_current, ограничено budget. Предыдущий review current только для своего subject; исправление с provenance старой версии не становится stale от этой provenance. Неизвестный relation kind/invalidating self-cycle отклоняется. Current report не может использовать review старого subject для нового.",
+      "review_findings": [],
+      "group": "10. Процессы и приёмочная методика"
+    },
+    {
+      "id": "HR-096",
+      "title": "Время жизни выдаваемых адресов",
+      "text": "Ready result reference означает bytes уже опубликованы и доступны до explicit expires_at/retention event, pin имеет приоритет. Terminal verify сохраняет все referenced views в durable owner ResultSet, возвращает его native path/logical ref/digest/availability, затем runtime удалён. Task/sprint evidence pinned до явной retention owner; ad-hoc deliverable сохраняется вне runtime до указанного config срока, показанного в ответе. Show после expiry возвращает expired+tombstone, не ready/dangling path и не иную content под старым ID. Native reading немедленно после verify гарантировано. Cleanup не завершает pins и не меняет contents.",
+      "review_findings": [],
+      "group": "07. Вывод, hooks и завершение цикла"
+    },
+    {
+      "id": "HR-097",
+      "title": "Числовые эталоны измерений",
+      "text": "metrics-contract.json и fixtures/metrics-golden.json задают все bytes, line boundaries, token units/IDs, serialization и ledger events. Fixture tokenizer ETALON-BPE-1 — фиксированный измерительный тестовый прибор с собственными ranks, не approximation model usage и не runtime fallback. Для выбранного production measurement tokenizer release содержит его точный digest и тот же corpus с собственными golden token IDs/counts. Числа tests не становятся defaults runtime. В этой документации эталонный профиль самодостаточен, его расчёт проверен независимо от Harness. Иные measurement profiles не подменяют эти значения.",
+      "review_findings": [],
+      "group": "09. Метрики результата и стоимости"
+    },
+    {
+      "id": "HR-098",
+      "title": "Декларативный пакет вместо ручного обслуживания",
+      "text": "Каждый Harness tool принимает множество однородных/связанных изменений одним логическим пакетом. Агент задаёт желаемое содержание, инструмент выполняет создание, форматирование, validation, регистрацию, сохранение и обновление проекций. Агенту запрещено напрямую изменять обслуживаемые config/task/sprint/runtime-файлы и SQLite. Общие pipelines не обходят доменные владельцы. Нативные IDE/patch tools исходников, тестов и документации целевой codebase сохраняются; Git остаётся источником их изменений.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-099",
+      "title": "Пакетный редактор goal-type конфигурации",
+      "text": "GoalConfig API поддерживает create/change самодостаточного process pack по устойчивым ID объектов. При change используется известный исходный snapshot и явные изменения; итоговый кандидат валидируется целиком, ссылки могут создаваться в том же пакете. При ошибке действующий конфиг не публикуется частично. Полный файл генерирует инструмент. Повтор возвращает результат существующей операции; active task/process snapshots не мигрируют. Отдельные generate/validate/publish вызовы не обязательны.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-100",
+      "title": "Явные шаблоны без скрытых defaults",
+      "text": "Стандартные конфиги и артефакты создаются из явно выбранного шаблона с revision/digest. Его выбор принимает содержимое шаблона; placeholders остаются незаполненными и блокируют необходимую публикацию. Отсутствующее required значение нельзя взять из fallback. Где шаблон бессмыслен, инструмент принимает готовое содержание и сам создаёт файл. Новые goal-type packs полностью материализуются и независимы от других packs.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-101",
+      "title": "Пакетная фабрика артефактов",
+      "text": "Для новых артефактов один пакет задаёт scope runtime/task/sprint, относительное имя/явное правило имени и template parameters или готовое содержание. Инструмент вычисляет разрешённый root, создаёт файлы, назначает ID и регистрирует фактические свойства. Уже существующий артефакт по-прежнему принимается только путём; смысловые декларации, hashes и timestamps от агента не требуются. Неизменные evidence не перезаписываются. Повтор не умножает артефакты.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-102",
+      "title": "Прямой результат этапа и пакетное чтение",
+      "text": "Verify принимает содержательный пакет непосредственно из tool payload/stdin; при необходимости сам создаёт техническое stage-result представление. Секции, методы, трассировка, findings/resolutions, доказательства и создание/регистрация артефактов могут поступить вместе. Кандидат проверяется с учётом всех новых данных. Show/read принимает коллекцию адресуемых объектов/диапазонов. Получение новых наблюдений по-прежнему может потребовать нового аргумента CONTINUE, но не механической серии register-вызовов.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-103",
+      "title": "Границы применения пакета",
+      "text": "Batch transport/UoW/reporting общий, но Config/Task/Sprint/Artifacts/Accounting сохраняют владельцев правил. Запрещён универсальный raw SQL/file editor. Лимиты явные; внутреннюю обработку порциями делает инструмент, не агент. Отказ не называется частичным успехом. Файлы/Git/SQLite не объявляются одной транзакцией; активируется только согласованный результат, внешние эффекты имеют receipt. Пакетность не разрешает самовольное изменение policy или полный suite.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-104",
+      "title": "Пользовательские сообщения — отдельная метрика",
+      "text": "user_messages_count считает различные сообщения пользователя, относящиеся к работе, независимо от доступности token usage. Учитываются поручения, продолжения, приёмка, замечания, уточнения, данные, разрешения и отмена. Несколько вложений одного сообщения не создают новые сообщения. Tool calls, system/assistant сообщения и автоматические повторы не входят. Нельзя преобразовывать этот счётчик в приблизительные токены или число дефектов.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-105",
+      "title": "Источник и дедупликация сообщений",
+      "text": "Событие сообщения поступает из явно configured runtime_event либо agent_reported через общий рабочий вход, без отдельного обязательного вызова. Один source-scoped message/turn key используется bootstrap/verify/CONTINUE и повторным импортом. Неизвестная история не оценивается по числу команд. Source/coverage/event-time provenance сохраняются; reported/partial/unavailable не выдаются за полный автоматический счётчик. Полный текст сообщений и вложения для подсчёта не требуются.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-106",
+      "title": "Атрибуция и отчёты сообщений",
+      "text": "Каждое сообщение имеет один основной work binding, который может быть разрешён после выбора task; связанные ссылки не добавляют события. Отчёты task/sprint/goal_type/project/day/week/all считают unique events и показывают остаток scope-only/unattributed. Затраты отменённой задачи сохраняются при нулевой пользе; handoff/reopen не сбрасывает счётчик. Периоды используют явную timezone и надёжное время источника либо обозначенное ограничение времени приёма. Неполные данные не превращаются в ноль.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
+    }
+  ],
+  "schema": "harness-doc-requirements/3",
+  "updated_at": "2026-09-06T19:39:04+05:00"
+}

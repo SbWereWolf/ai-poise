@@ -1,0 +1,162 @@
+{
+  "created_at": "2026-09-06T16:04:53+05:00",
+  "status": "DESIGN_NOT_IMPLEMENTED",
+  "deployment": "modular_monolith",
+  "modules": [
+    {
+      "id": "foundation",
+      "context": "shared",
+      "domain_dependencies": [],
+      "responsibility": "IDs, Version, OwnerRef, immutable boundary contracts, domain errors; без business defaults"
+    },
+    {
+      "id": "content",
+      "context": "work",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Слои секций, типизированные ссылки и общие способы хранения content; не root-CRUD"
+    },
+    {
+      "id": "processes",
+      "context": "work",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "ProcessDefinition, StageDefinition, RoutePolicy, условия переходов"
+    },
+    {
+      "id": "verification",
+      "context": "work",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Точные методы, obligations, evidence proposals, актуальность и gate assessment"
+    },
+    {
+      "id": "tasks",
+      "context": "work",
+      "domain_dependencies": [
+        "foundation",
+        "content",
+        "processes",
+        "verification"
+      ],
+      "responsibility": "Task aggregate и API изменения/чтения её результатов"
+    },
+    {
+      "id": "sprints",
+      "context": "work",
+      "domain_dependencies": [
+        "foundation",
+        "content",
+        "processes"
+      ],
+      "responsibility": "Sprint aggregate, membership, DAG и readiness/closure policies"
+    },
+    {
+      "id": "sessions",
+      "context": "execution",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Session/work cycle/current binding без автоматического scheduler"
+    },
+    {
+      "id": "workspaces",
+      "context": "execution",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Порты и значения worktree/baselines/observed tree/публикаций"
+    },
+    {
+      "id": "executions",
+      "context": "execution",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Точный запуск, raw receipt, фактическое состояние внешнего действия"
+    },
+    {
+      "id": "artifacts",
+      "context": "execution",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Path-only registry и snapshots runtime/task/sprint"
+    },
+    {
+      "id": "metrics",
+      "context": "accounting",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Usage, intervals, benefit credit/reversal и completeness"
+    },
+    {
+      "id": "operations",
+      "context": "application_support",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Повторяемые составные операции, steps, jobs; не lifecycle Task"
+    },
+    {
+      "id": "configuration",
+      "context": "support",
+      "domain_dependencies": [
+        "foundation"
+      ],
+      "responsibility": "Явно разрешённые immutable config/manifest contracts"
+    }
+  ],
+  "source_stage_count": 98,
+  "source_feedback_count": 34,
+  "rules": {
+    "goal_type_inheritance": false,
+    "automatic_migrations": false,
+    "shared_database": true,
+    "distributed_transactions": false,
+    "event_sourcing_required": false,
+    "artifact_input": "path_only",
+    "sections_storage": "sqlite_text",
+    "task_sprint_libraries_separate": true,
+    "agent_must_register_changed_files": false
+  },
+  "dependency_boundaries": {
+    "domain_forbidden_imports": [
+      "sqlite3",
+      "subprocess",
+      "infrastructure",
+      "interfaces",
+      "application",
+      "filesystem",
+      "runtime_sdk"
+    ],
+    "application_uses": "public module APIs and ports",
+    "infrastructure_implements": "module ports",
+    "interfaces_call": "application API",
+    "composition": "only location binding concrete adapters"
+  },
+  "root_ownership": {
+    "Task": "tasks",
+    "Sprint": "sprints",
+    "WorkSession": "sessions",
+    "ExecutionAttempt": "executions",
+    "ArtifactEntry": "artifacts",
+    "Operation": "operations"
+  },
+  "cross_context_transport": "in-process typed contracts; no mandatory broker",
+  "explicit_local_cross_root_operations": [
+    "BootstrapWork",
+    "ApplyUserDecision",
+    "PublishSprintPlan",
+    "CancelTask",
+    "CancelBranch",
+    "ForceCloseSprint",
+    "HandoffWork",
+    "DiscardWork"
+  ],
+  "cross_root_scope_rule": "Each use case declares affected roots; owner domain methods still validate each change. Operation metadata and read projections participate in the same short UoW. No network or filesystem effect is ACID with SQLite."
+}

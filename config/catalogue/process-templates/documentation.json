@@ -1,0 +1,416 @@
+{
+  "goal_type": "documentation",
+  "route": {
+    "entry": "framing",
+    "max_transitions": 120,
+    "max_stage_visits": 12
+  },
+  "content_contract": {
+    "sections": [
+      {
+        "id": "validation.verdict",
+        "template": "Fill after obtaining the declared observations.",
+        "normalization": "strip",
+        "write_stages": [
+          "validation"
+        ]
+      }
+    ],
+    "routes": [],
+    "requirements": [
+      {
+        "id": "validation-post-verdict",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "post",
+        "section": "validation.verdict",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "outline"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "outline-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "outline"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-outline",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "outline",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "drafting-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "drafting"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-content",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "content",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-examples_commands",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "examples_commands",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-source_inventory",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "source_inventory",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "validation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "validation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-content",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "content",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "inspection-input-content_requirements",
+        "kind": "section",
+        "stages": [
+          "inspection"
+        ],
+        "phase": "pre",
+        "section": "content_requirements",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "remediation"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation_inspection-input-content",
+        "kind": "section",
+        "stages": [
+          "remediation_inspection"
+        ],
+        "phase": "pre",
+        "section": "content",
+        "states": [
+          "populated"
+        ]
+      }
+    ]
+  },
+  "stages": [
+    {
+      "id": "framing",
+      "handler": "produce",
+      "instruction": "Определить аудиторию и источники истины. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "source_inventory": "source-of-truth refs с revision/digest, coverage content claims, конфликтующие/устаревшие источники.",
+        "content_requirements": "id, требуемая информация/пример/инструкция, source и DoD refs, required section.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "publication_target": "codebase/path или task artifact, формат и правила delivery; явная push/transport policy."
+      },
+      "required_sections": [
+        "report",
+        "source_inventory",
+        "content_requirements",
+        "verification_plan",
+        "publication_target"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "outline"
+      },
+      "rework_targets": [
+        "framing",
+        "outline",
+        "drafting",
+        "validation",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "outline",
+      "handler": "produce",
+      "instruction": "Спроектировать структуру по content requirements. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "outline": "section IDs, purpose, content_requirement refs, последовательность."
+      },
+      "required_sections": [
+        "report",
+        "outline"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "drafting"
+      },
+      "rework_targets": [
+        "outline",
+        "framing",
+        "drafting",
+        "validation",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "drafting",
+      "handler": "produce",
+      "instruction": "Написать documentation deliverable. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": false,
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "content": "final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB.",
+        "examples_commands": "document locator, exact executable method, sandbox/mutation bounds, expected outcome, evidence refs."
+      },
+      "required_sections": [
+        "report",
+        "content",
+        "examples_commands"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "validation"
+      },
+      "rework_targets": [
+        "drafting",
+        "framing",
+        "outline",
+        "validation",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "validation",
+      "handler": "check",
+      "instruction": "Проверить примеры/ссылки и источники. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "satisfied": "inspection",
+        "not_satisfied": "drafting",
+        "inconclusive": "drafting"
+      },
+      "rework_targets": [
+        "validation",
+        "framing",
+        "outline",
+        "drafting",
+        "inspection",
+        "remediation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "inspection",
+      "handler": "inspect",
+      "instruction": "Read-only вычитать по audience и completeness. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "inspection",
+        "remediation",
+        "framing",
+        "outline",
+        "drafting",
+        "validation",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation",
+      "handler": "revise",
+      "instruction": "Исправить документацию по findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": false,
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "content": "final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB."
+      },
+      "required_sections": [
+        "report",
+        "content"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "remediation_inspection"
+      },
+      "rework_targets": [
+        "remediation",
+        "framing",
+        "outline",
+        "drafting",
+        "validation",
+        "inspection",
+        "remediation_inspection"
+      ]
+    },
+    {
+      "id": "remediation_inspection",
+      "handler": "inspect",
+      "instruction": "Повторно вычитать corrections. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": null,
+        "changes_requested": "remediation"
+      },
+      "rework_targets": [
+        "remediation_inspection",
+        "remediation",
+        "framing",
+        "outline",
+        "drafting",
+        "validation",
+        "inspection"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "documentation"
+    ],
+    "sections": []
+  }
+}

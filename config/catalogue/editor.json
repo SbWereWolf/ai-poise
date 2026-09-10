@@ -1,0 +1,101 @@
+{
+  "schema": "goal-config-editor-1",
+  "root": "../..",
+  "database": "state/catalogue-editor.sqlite",
+  "lock": "state/catalogue-editor.lock",
+  "responses": "state/catalogue-responses",
+  "file_mode": 420,
+  "json_indent": 2,
+  "lock_seconds": 2.0,
+  "lock_poll_seconds": 0.01,
+  "max_changes": 2000,
+  "max_input_bytes": 1000000,
+  "output_chars": 2200,
+  "exit_codes": {
+    "success": 0,
+    "rejected": 2,
+    "pending": 3
+  },
+  "processes": {
+    "development": "config/catalogue/processes/development.json",
+    "test_development": "config/catalogue/processes/test_development.json",
+    "verification": "config/catalogue/processes/verification.json",
+    "review": "config/catalogue/processes/review.json",
+    "design": "config/catalogue/processes/design.json",
+    "analysis": "config/catalogue/processes/analysis.json",
+    "profiling": "config/catalogue/processes/profiling.json",
+    "environment_diagnostics": "config/catalogue/processes/environment_diagnostics.json",
+    "environment_remediation": "config/catalogue/processes/environment_remediation.json",
+    "documentation": "config/catalogue/processes/documentation.json",
+    "task_planning": "config/catalogue/processes/task_planning.json",
+    "sprint_planning": "config/catalogue/processes/sprint_planning.json",
+    "integration": "config/catalogue/processes/integration.json"
+  },
+  "templates": {
+    "development-v1": {
+      "path": "config/catalogue/process-templates/development.json",
+      "version": "1",
+      "digest": "da5b2cfb5259cab2fa7554b8351c67a736de9df63d3b585f77b4528a3c6d339e"
+    },
+    "test_development-v1": {
+      "path": "config/catalogue/process-templates/test_development.json",
+      "version": "1",
+      "digest": "8e112bce85abd37844af631db9db3a46260dc66c4304f6b229b80d48c6df8adf"
+    },
+    "verification-v1": {
+      "path": "config/catalogue/process-templates/verification.json",
+      "version": "1",
+      "digest": "a0f6965c42d4e5095152208d59c07d3a8a239f82e225f77787b0f27b9574855e"
+    },
+    "review-v1": {
+      "path": "config/catalogue/process-templates/review.json",
+      "version": "1",
+      "digest": "64c718deb217d13e950115a237d94129bf1f569ced85e8bbe7d7985a162221b9"
+    },
+    "design-v1": {
+      "path": "config/catalogue/process-templates/design.json",
+      "version": "1",
+      "digest": "e7d37b2dd05e3a4dec4e008fa4d5b698d2a9c899bd3ec04c0cd66f16d1874585"
+    },
+    "analysis-v1": {
+      "path": "config/catalogue/process-templates/analysis.json",
+      "version": "1",
+      "digest": "fbac9bf5e231d7f3b04cef7fbfa266bfb46cc3639b2401fa0f9fc2d5f96af9d6"
+    },
+    "profiling-v1": {
+      "path": "config/catalogue/process-templates/profiling.json",
+      "version": "1",
+      "digest": "f835ad6a2688ae238f18825f5f6f28e5c3bf06c820e13dd6cf4498ed4b512557"
+    },
+    "environment_diagnostics-v1": {
+      "path": "config/catalogue/process-templates/environment_diagnostics.json",
+      "version": "1",
+      "digest": "186ee11871713e0dc131b876592051326fe849e366ba304dae7797cec0ea589a"
+    },
+    "environment_remediation-v1": {
+      "path": "config/catalogue/process-templates/environment_remediation.json",
+      "version": "1",
+      "digest": "465233e7822c76e59fb698470c65be68d43bc1d2fbb77f4d952da641371f2038"
+    },
+    "documentation-v1": {
+      "path": "config/catalogue/process-templates/documentation.json",
+      "version": "1",
+      "digest": "b8ce45ea251d7af5b1e67d78a3a0d92101c35f0217f9b17b6395773c5df6bf24"
+    },
+    "task_planning-v1": {
+      "path": "config/catalogue/process-templates/task_planning.json",
+      "version": "1",
+      "digest": "7de83053403788ba55bbd17625a7481f504d8c408a18e5acb2ed32a5af573f96"
+    },
+    "sprint_planning-v1": {
+      "path": "config/catalogue/process-templates/sprint_planning.json",
+      "version": "1",
+      "digest": "c0837c583c26914beae73e68efce3043fe0658699f10096ebabb52a91097121f"
+    },
+    "integration-v1": {
+      "path": "config/catalogue/process-templates/integration.json",
+      "version": "1",
+      "digest": "a9fd220acb36def4bdc682315c200149c4042987dfd31c83d34ce4c1a2c8adc2"
+    }
+  }
+}

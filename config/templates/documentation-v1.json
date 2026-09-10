@@ -1,0 +1,113 @@
+{
+  "goal_type": "documentation",
+  "route": {
+    "entry": "draft",
+    "max_transitions": 24,
+    "max_stage_visits": 5
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": [
+    {
+      "id": "draft",
+      "handler": "produce",
+      "transitions": {
+        "complete": "editorial"
+      },
+      "rework_targets": [
+        "draft"
+      ],
+      "instruction": "Выполнить один этап draft, проверить результат, сделать доклад и остановиться.",
+      "read_only": false,
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "editorial",
+      "handler": "inspect",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "amend"
+      },
+      "rework_targets": [
+        "editorial",
+        "draft"
+      ],
+      "instruction": "Выполнить один этап editorial, проверить результат, сделать доклад и остановиться.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "amend",
+      "handler": "revise",
+      "transitions": {
+        "complete": "editorial_followup"
+      },
+      "rework_targets": [
+        "amend"
+      ],
+      "instruction": "Выполнить один этап amend, проверить результат, сделать доклад и остановиться.",
+      "read_only": false,
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "editorial_followup",
+      "handler": "inspect",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "amend"
+      },
+      "rework_targets": [
+        "editorial_followup",
+        "draft"
+      ],
+      "instruction": "Выполнить один этап editorial_followup, проверить результат, сделать доклад и остановиться.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "documentation"
+    ],
+    "sections": []
+  }
+}

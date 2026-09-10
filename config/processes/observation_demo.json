@@ -1,0 +1,63 @@
+{
+  "goal_type": "observation_demo",
+  "route": {
+    "entry": "measure",
+    "max_transitions": 12,
+    "max_stage_visits": 4
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": [
+    {
+      "id": "measure",
+      "instruction": "Получить наблюдение и при необходимости дополнить аргумент; затем verify.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "transitions": {
+        "complete": "audit"
+      },
+      "rework_targets": [
+        "measure"
+      ]
+    },
+    {
+      "id": "audit",
+      "instruction": "Осмотреть конкретную revision аргумента, не изменяя предмет.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "measure"
+      },
+      "rework_targets": [
+        "audit",
+        "measure"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [],
+    "sections": []
+  }
+}

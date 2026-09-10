@@ -1,0 +1,73 @@
+{
+  "id": "DOC-DEMO",
+  "sprint_id": null,
+  "goal_type": "documentation",
+  "goal": "Документировать вызов double и допустимые аргументы.",
+  "requirements": [
+    "Описать вход, результат и отрицательные значения"
+  ],
+  "definition_of_done": [
+    "Инструкция создана и осмотрена"
+  ],
+  "methods": [
+    {
+      "id": "DOC_CHECK",
+      "argv": [
+        "REPLACE_WITH_ABSOLUTE_PYTHON_EXECUTABLE",
+        "-B",
+        "-c",
+        "from pathlib import Path; assert Path('docs/guide.md').read_text().startswith('# Guide'); print('DOC_OK')"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "timeout_seconds": 10,
+      "expected_exit_code": 0,
+      "stdout_contains": [
+        "DOC_OK"
+      ],
+      "stderr_contains": []
+    }
+  ],
+  "checks": {
+    "draft": [
+      "DOC_CHECK"
+    ],
+    "editorial": [
+      "DOC_CHECK"
+    ],
+    "amend": [
+      "DOC_CHECK"
+    ],
+    "editorial_followup": [
+      "DOC_CHECK"
+    ]
+  },
+  "artifact_requirements": [],
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "evidence_plan": {
+    "draft": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "editorial": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "amend": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "editorial_followup": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  }
+}

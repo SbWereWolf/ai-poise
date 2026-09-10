@@ -1,0 +1,36 @@
+{
+  "schema": "goal-config-editor-1",
+  "root": "..",
+  "database": "state/config-editor.sqlite",
+  "lock": "state/config-editor.lock",
+  "responses": "state/config-responses",
+  "file_mode": 420,
+  "json_indent": 2,
+  "lock_seconds": 2.0,
+  "lock_poll_seconds": 0.01,
+  "max_changes": 2000,
+  "max_input_bytes": 1000000,
+  "output_chars": 2200,
+  "exit_codes": {
+    "success": 0,
+    "rejected": 2,
+    "pending": 3
+  },
+  "processes": {
+    "development": "config/processes/development.json",
+    "documentation": "config/processes/documentation.json",
+    "generated_notes": "config/processes/generated_notes.json"
+  },
+  "templates": {
+    "development-v1": {
+      "path": "config/templates/development-v1.json",
+      "version": "1",
+      "digest": "2680fb00c2575a5001beda95b40e51a77b229628c603c9a2235f0bccfef77165"
+    },
+    "documentation-v1": {
+      "path": "config/templates/documentation-v1.json",
+      "version": "1",
+      "digest": "6c35f4b539badb8ccdeb2c1bccaa3c950829d5a369f114f5104ae7bf06a287c6"
+    }
+  }
+}

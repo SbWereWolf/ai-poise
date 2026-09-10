@@ -1,0 +1,39 @@
+{
+  "timezone": "UTC",
+  "week_start": 0,
+  "max_events": 1000,
+  "max_files": 1000,
+  "max_blob_bytes": 1048576,
+  "time_mode": "tool_cycle",
+  "causes": [
+    "initial",
+    "internal_qa",
+    "delivered_rework",
+    "requirement_change",
+    "harness_incident"
+  ],
+  "sources": {
+    "test": "reported",
+    "codex": "observed"
+  },
+  "path_categories": {
+    "code": [
+      "src/**"
+    ],
+    "tests": [
+      "tests/**"
+    ],
+    "fixtures": [
+      "fixtures/**"
+    ],
+    "documentation": [
+      "docs/**",
+      "*.md"
+    ]
+  },
+  "tokenizer": {
+    "kind": "unavailable",
+    "identity": "not-configured",
+    "command": null
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "created_at": "2026-09-06T16:04:53+05:00",
+  "checked_at": "2026-09-06T16:21:23+05:00",
+  "status": "DOCUMENT_CONSISTENCY_ONLY",
+  "checks": [
+    {
+      "check": "Сохранены исходные Stage IDs и handler mapping",
+      "passed": true,
+      "details": {
+        "source": 98,
+        "target": 98,
+        "unique_target_ids": 98
+      }
+    },
+    {
+      "check": "Сохранены все goal types",
+      "passed": true,
+      "details": [
+        "analysis",
+        "design",
+        "development",
+        "documentation",
+        "environment_diagnostics",
+        "environment_remediation",
+        "integration",
+        "profiling",
+        "review",
+        "sprint_planning",
+        "task_planning",
+        "test_development",
+        "verification"
+      ]
+    },
+    {
+      "check": "Ровно семь семейств без direct SQL/transition в handler",
+      "passed": true,
+      "details": {
+        "produce": 43,
+        "observe": 8,
+        "inspect": 24,
+        "check": 9,
+        "revise": 9,
+        "apply_plan": 2,
+        "publish": 3
+      }
+    },
+    {
+      "check": "Сохранена исходная карта именованных feedback-переходов",
+      "passed": true,
+      "details": {
+        "count": 34,
+        "note": "Copied unchanged from original ZIP; not route execution"
+      }
+    },
+    {
+      "check": "Проектный граф доменных импортов разрешим и ацикличен",
+      "passed": true,
+      "details": {
+        "unknown": [],
+        "cycles": [],
+        "note": "Checks proposed metadata, not future Python imports"
+      }
+    },
+    {
+      "check": "Каждый handler ссылается на описанную библиотеку",
+      "passed": true,
+      "details": []
+    },
+    {
+      "check": "Логические таблицы уникальны, владельцы указаны, ссылки разрешимы",
+      "passed": true,
+      "details": {
+        "tables": 35,
+        "unresolved_table_refs": [],
+        "note": "Not SQL DDL validation; composite FK details remain implementation obligation"
+      }
+    },
+    {
+      "check": "Исходные архивы не изменены",
+      "passed": true,
+      "details": {
+        "archives": 3
+      }
+    },
+    {
+      "check": "Локальные Markdown-ссылки разрешимы",
+      "passed": true,
+      "details": {
+        "links": 31,
+        "missing": []
+      }
+    },
+    {
+      "check": "Документы содержат дату и время",
+      "passed": true,
+      "details": []
+    },
+    {
+      "check": "Новый комплект не содержит реализации или migration",
+      "passed": true,
+      "details": []
+    }
+  ],
+  "passed": 11,
+  "total": 11,
+  "product_tests_run": false,
+  "new_ddd_code_implemented": false
+}

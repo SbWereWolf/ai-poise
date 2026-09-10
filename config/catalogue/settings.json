@@ -1,0 +1,85 @@
+{
+  "schema": "process-catalogue-1",
+  "editor": "editor.json",
+  "task_templates": {
+    "development-v1": {
+      "path": "config/catalogue/task-templates/development.json",
+      "version": "1",
+      "digest": "8c544883eb6a825c90da50c39691c8469724d86dd0f70e4fd0c56c048b9194ce",
+      "goal_type": "development"
+    },
+    "test_development-v1": {
+      "path": "config/catalogue/task-templates/test_development.json",
+      "version": "1",
+      "digest": "68f85e2896cf0a6ffa712aba8124337ce8c24ccbfe96239525d5c2a138c02d9f",
+      "goal_type": "test_development"
+    },
+    "verification-v1": {
+      "path": "config/catalogue/task-templates/verification.json",
+      "version": "1",
+      "digest": "093098ca4d18c51149c62e2de69b7d83f33fd770a40beb2e3d994f8165af61b0",
+      "goal_type": "verification"
+    },
+    "review-v1": {
+      "path": "config/catalogue/task-templates/review.json",
+      "version": "1",
+      "digest": "b4b72461f7b8dda91028ae6dd1474aa9027bae65735fa6e34fbbf1356ddf44c7",
+      "goal_type": "review"
+    },
+    "design-v1": {
+      "path": "config/catalogue/task-templates/design.json",
+      "version": "1",
+      "digest": "00a24816d8110c78c4e183cc1cb451f38c9a0d5f3f30f37d828f67c635101b70",
+      "goal_type": "design"
+    },
+    "analysis-v1": {
+      "path": "config/catalogue/task-templates/analysis.json",
+      "version": "1",
+      "digest": "33b57fc9174e75842b6084b9d1475410bdd0b3d2d4a5d3072fc8a28f39cd7f0b",
+      "goal_type": "analysis"
+    },
+    "profiling-v1": {
+      "path": "config/catalogue/task-templates/profiling.json",
+      "version": "1",
+      "digest": "0f1140810daefd46641771667bac357ebb457410b54c5158bf8571bbf5bdbdb0",
+      "goal_type": "profiling"
+    },
+    "environment_diagnostics-v1": {
+      "path": "config/catalogue/task-templates/environment_diagnostics.json",
+      "version": "1",
+      "digest": "ae66e95b301c3642d498ff52c1dfff44218695c85ac0875d74b4a7bbf7218167",
+      "goal_type": "environment_diagnostics"
+    },
+    "environment_remediation-v1": {
+      "path": "config/catalogue/task-templates/environment_remediation.json",
+      "version": "1",
+      "digest": "564d4e3d53d653b8aa31ed3eff9ccda766f6de29c81b80aeeec9c851a52741b2",
+      "goal_type": "environment_remediation"
+    },
+    "documentation-v1": {
+      "path": "config/catalogue/task-templates/documentation.json",
+      "version": "1",
+      "digest": "39bbe76b0a368cb9bb187b14c1e043437fb5113ec48bbab93a50d11101de233e",
+      "goal_type": "documentation"
+    },
+    "task_planning-v1": {
+      "path": "config/catalogue/task-templates/task_planning.json",
+      "version": "1",
+      "digest": "36eb2515a621318cce8e37ee18f68941137ecf5a577075ade67439f8bf58ceef",
+      "goal_type": "task_planning"
+    },
+    "sprint_planning-v1": {
+      "path": "config/catalogue/task-templates/sprint_planning.json",
+      "version": "1",
+      "digest": "c373be94274fd998264484dc1dd79d24305aeab1ce6deb814977e6c367603568",
+      "goal_type": "sprint_planning"
+    },
+    "integration-v1": {
+      "path": "config/catalogue/task-templates/integration.json",
+      "version": "1",
+      "digest": "cfd8163b897c600ce3e87c59254f539103284b199c0caa56115db4af265a35cf",
+      "goal_type": "integration"
+    }
+  },
+  "max_items": 1000
+}

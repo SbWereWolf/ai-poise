@@ -1,0 +1,206 @@
+{
+  "goal_type": "development",
+  "route": {
+    "entry": "tests",
+    "max_transitions": 40,
+    "max_stage_visits": 6
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "stages": [
+    {
+      "id": "tests",
+      "handler": "produce",
+      "transitions": {
+        "complete": "test_review"
+      },
+      "rework_targets": [
+        "tests"
+      ],
+      "instruction": "Выполнить один этап tests, проверить результат, сделать доклад и остановиться.",
+      "read_only": false,
+      "allowed_paths": [
+        "tests/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "test_review",
+      "handler": "inspect",
+      "transitions": {
+        "clear": "implementation",
+        "changes_requested": "test_fix"
+      },
+      "rework_targets": [
+        "test_review",
+        "tests"
+      ],
+      "instruction": "Выполнить один этап test_review, проверить результат, сделать доклад и остановиться.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "test_fix",
+      "handler": "revise",
+      "transitions": {
+        "complete": "test_recheck"
+      },
+      "rework_targets": [
+        "test_fix"
+      ],
+      "instruction": "Выполнить один этап test_fix, проверить результат, сделать доклад и остановиться.",
+      "read_only": false,
+      "allowed_paths": [
+        "tests/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "test_recheck",
+      "handler": "inspect",
+      "transitions": {
+        "clear": "implementation",
+        "changes_requested": "test_fix"
+      },
+      "rework_targets": [
+        "test_recheck",
+        "tests"
+      ],
+      "instruction": "Выполнить один этап test_recheck, проверить результат, сделать доклад и остановиться.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "implementation",
+      "handler": "produce",
+      "transitions": {
+        "complete": "code_review"
+      },
+      "rework_targets": [
+        "implementation"
+      ],
+      "instruction": "Выполнить один этап implementation, проверить результат, сделать доклад и остановиться.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "code_review",
+      "handler": "inspect",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "code_fix"
+      },
+      "rework_targets": [
+        "code_review",
+        "implementation"
+      ],
+      "instruction": "Выполнить один этап code_review, проверить результат, сделать доклад и остановиться.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "code_fix",
+      "handler": "revise",
+      "transitions": {
+        "complete": "code_recheck"
+      },
+      "rework_targets": [
+        "code_fix"
+      ],
+      "instruction": "Выполнить один этап code_fix, проверить результат, сделать доклад и остановиться.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    },
+    {
+      "id": "code_recheck",
+      "handler": "inspect",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "code_fix"
+      },
+      "rework_targets": [
+        "code_recheck",
+        "implementation"
+      ],
+      "instruction": "Выполнить один этап code_recheck, проверить результат, сделать доклад и остановиться.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": []
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
+  }
+}

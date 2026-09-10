@@ -1,0 +1,609 @@
+{
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "verification_planning-input-solution_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
+        "stages": [
+          "verification_planning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_implementation-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "test_implementation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "test_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_inspection-input-test_registry",
+        "kind": "section",
+        "phase": "pre",
+        "section": "test_registry",
+        "stages": [
+          "test_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_remediation-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "test_remediation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "test_remediation_inspection-input-test_registry",
+        "kind": "section",
+        "phase": "pre",
+        "section": "test_registry",
+        "stages": [
+          "test_remediation_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation-input-solution_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
+        "stages": [
+          "implementation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "implementation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation-input-test_registry",
+        "kind": "section",
+        "phase": "pre",
+        "section": "test_registry",
+        "stages": [
+          "implementation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_inspection-input-solution_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
+        "stages": [
+          "implementation_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_remediation-input-solution_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "solution_plan",
+        "stages": [
+          "implementation_remediation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_remediation-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "implementation_remediation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_remediation-input-test_registry",
+        "kind": "section",
+        "phase": "pre",
+        "section": "test_registry",
+        "stages": [
+          "implementation_remediation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "documentation-input-documentation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "documentation_plan",
+        "stages": [
+          "documentation"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": []
+  },
+  "goal_type": "development",
+  "route": {
+    "entry": "baseline",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "id": "baseline",
+      "instruction": "Установить исходное поведение или обоснованную неприменимость. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "solution_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "solution_planning",
+      "instruction": "Спланировать изменение компонентов, интерфейсов и документации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "solution_plan",
+        "decisions",
+        "assumptions",
+        "documentation_plan"
+      ],
+      "rework_targets": [
+        "solution_planning",
+        "baseline",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "documentation_plan": "required/not_required с причиной; при required deliverables/paths, content requirements и exact validation methods/DoD refs.",
+        "report": "Record the substantive result for this stage.",
+        "solution_plan": "затрагиваемые компоненты; proposed change/contracts; риски; порядок реализации; решения и assumptions refs."
+      },
+      "transitions": {
+        "complete": "verification_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "verification_planning",
+      "instruction": "Спроектировать доказательства до реализации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "verification_plan",
+        "test_registry"
+      ],
+      "rework_targets": [
+        "verification_planning",
+        "baseline",
+        "solution_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+      },
+      "transitions": {
+        "complete": "test_implementation"
+      }
+    },
+    {
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "test_implementation",
+      "instruction": "Написать тесты/fixtures до production change. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "rework_targets": [
+        "test_implementation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution."
+      },
+      "transitions": {
+        "complete": "test_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "test_inspection",
+      "instruction": "Read-only осмотр oracle, покрытия, чувствительности и fixtures. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "test_inspection",
+        "test_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "test_remediation",
+        "clear": "implementation"
+      }
+    },
+    {
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "revise",
+      "id": "test_remediation",
+      "instruction": "Исправить зарегистрированные дефекты тестов. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "rework_targets": [
+        "test_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution."
+      },
+      "transitions": {
+        "complete": "test_remediation_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "test_remediation_inspection",
+      "instruction": "Проверить исправление тестов без правки target. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "test_remediation_inspection",
+        "test_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "test_remediation",
+        "clear": "implementation"
+      }
+    },
+    {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "implementation",
+      "instruction": "Реализовать production change по принятым тестам. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "implementation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "implementation_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "implementation_inspection",
+      "instruction": "Read-only осмотр корректности, сложности и соответствия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "implementation_inspection",
+        "implementation_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "implementation_remediation",
+        "clear": "documentation"
+      }
+    },
+    {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "revise",
+      "id": "implementation_remediation",
+      "instruction": "Исправить находки реализации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "implementation_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "implementation_remediation_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "implementation_remediation_inspection",
+      "instruction": "Осмотреть каждое исправление read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "implementation_remediation_inspection",
+        "implementation_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "documentation"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "changes_requested": "implementation_remediation",
+        "clear": "documentation"
+      }
+    },
+    {
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "documentation",
+      "instruction": "Выполнить прямо предусмотренную документацию. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "rework_targets": [
+        "documentation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "transitions": {
+        "complete": null
+      }
+    }
+  ]
+}

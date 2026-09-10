@@ -1,0 +1,2274 @@
+{
+  "created_at": "2026-09-06T16:04:53+05:00",
+  "status": "DESCRIPTIVE_MAPPING_NOT_EXECUTED",
+  "nodes": [
+    {
+      "goal_type": "analysis",
+      "stage": "framing",
+      "stage_id": "GS-ANA-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "analysis",
+      "stage": "evidence_collection",
+      "stage_id": "GS-ANA-02",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "analysis",
+      "stage": "reasoning",
+      "stage_id": "GS-ANA-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "analysis",
+      "stage": "challenge",
+      "stage_id": "GS-ANA-04",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "analysis",
+      "stage": "self_inspection",
+      "stage_id": "GS-ANA-05",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "framing",
+      "stage_id": "GS-DES-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "alternatives",
+      "stage_id": "GS-DES-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "decision",
+      "stage_id": "GS-DES-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "detailed_design",
+      "stage_id": "GS-DES-04",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "design_verification",
+      "stage_id": "GS-DES-05",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "design_inspection",
+      "stage_id": "GS-DES-06",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "remediation",
+      "stage_id": "GS-DES-07",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "design",
+      "stage": "remediation_inspection",
+      "stage_id": "GS-DES-08",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "baseline",
+      "stage_id": "GS-DEV-01",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "solution_planning",
+      "stage_id": "GS-DEV-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "verification_planning",
+      "stage_id": "GS-DEV-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "test_implementation",
+      "stage_id": "GS-DEV-04",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "test_inspection",
+      "stage_id": "GS-DEV-05",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "test_remediation",
+      "stage_id": "GS-DEV-06",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "test_remediation_inspection",
+      "stage_id": "GS-DEV-07",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "implementation",
+      "stage_id": "GS-DEV-08",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "implementation_inspection",
+      "stage_id": "GS-DEV-09",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "implementation_remediation",
+      "stage_id": "GS-DEV-10",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "implementation_remediation_inspection",
+      "stage_id": "GS-DEV-11",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "development",
+      "stage": "documentation",
+      "stage_id": "GS-DEV-12",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "framing",
+      "stage_id": "GS-DOC-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "outline",
+      "stage_id": "GS-DOC-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "drafting",
+      "stage_id": "GS-DOC-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "validation",
+      "stage_id": "GS-DOC-04",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "inspection",
+      "stage_id": "GS-DOC-05",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "remediation",
+      "stage_id": "GS-DOC-06",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "documentation",
+      "stage": "remediation_inspection",
+      "stage_id": "GS-DOC-07",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "framing",
+      "stage_id": "GS-DIA-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "reproduction",
+      "stage_id": "GS-DIA-02",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "hypothesis_planning",
+      "stage_id": "GS-DIA-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "experiments",
+      "stage_id": "GS-DIA-04",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "root_cause_analysis",
+      "stage_id": "GS-DIA-05",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "confirmation",
+      "stage_id": "GS-DIA-06",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_diagnostics",
+      "stage": "self_inspection",
+      "stage_id": "GS-DIA-07",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "framing",
+      "stage_id": "GS-ENV-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "baseline",
+      "stage_id": "GS-ENV-02",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "change_planning",
+      "stage_id": "GS-ENV-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "application",
+      "stage_id": "GS-ENV-04",
+      "kind": "substantive",
+      "handler": "apply_plan",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.apply_plan",
+      "libraries": [
+        "executions",
+        "workspaces",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Operation.record_step + Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "verification",
+      "stage_id": "GS-ENV-05",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "inspection",
+      "stage_id": "GS-ENV-06",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "correction",
+      "stage_id": "GS-ENV-07",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "apply_plan",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "environment_remediation",
+      "stage": "correction_inspection",
+      "stage_id": "GS-ENV-08",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "framing",
+      "stage_id": "GS-INT-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "integration_planning",
+      "stage_id": "GS-INT-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "integration",
+      "stage_id": "GS-INT-03",
+      "kind": "substantive",
+      "handler": "apply_plan",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.apply_plan",
+      "libraries": [
+        "executions",
+        "workspaces",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Operation.record_step + Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "verification",
+      "stage_id": "GS-INT-04",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "inspection",
+      "stage_id": "GS-INT-05",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "remediation",
+      "stage_id": "GS-INT-06",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "remediation_inspection",
+      "stage_id": "GS-INT-07",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "integration",
+      "stage": "publication",
+      "stage_id": "GS-INT-08",
+      "kind": "mechanical",
+      "handler": "publish",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.publish",
+      "libraries": [
+        "tasks",
+        "sprints",
+        "workspaces",
+        "operations"
+      ],
+      "owner_api": "Owner.publish through PublicationCoordinator",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "framing",
+      "stage_id": "GS-PRO-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "baseline_measurement",
+      "stage_id": "GS-PRO-02",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "experiment_planning",
+      "stage_id": "GS-PRO-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "measurement",
+      "stage_id": "GS-PRO-04",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "analysis",
+      "stage_id": "GS-PRO-05",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "confirmation",
+      "stage_id": "GS-PRO-06",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "profiling",
+      "stage": "self_inspection",
+      "stage_id": "GS-PRO-07",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "review",
+      "stage": "planning",
+      "stage_id": "GS-REV-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "review",
+      "stage": "inspection",
+      "stage_id": "GS-REV-02",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "review",
+      "stage": "self_inspection",
+      "stage_id": "GS-REV-03",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "framing",
+      "stage_id": "GS-SPL-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "decomposition",
+      "stage_id": "GS-SPL-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "task_classification",
+      "stage_id": "GS-SPL-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "task_contracts",
+      "stage_id": "GS-SPL-04",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "dependency_design",
+      "stage_id": "GS-SPL-05",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "execution_planning",
+      "stage_id": "GS-SPL-06",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "coverage_analysis",
+      "stage_id": "GS-SPL-07",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "sprint_inspection",
+      "stage_id": "GS-SPL-08",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "remediation",
+      "stage_id": "GS-SPL-09",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "remediation_inspection",
+      "stage_id": "GS-SPL-10",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "sprint_planning",
+      "stage": "publication",
+      "stage_id": "GS-SPL-11",
+      "kind": "mechanical",
+      "handler": "publish",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.publish",
+      "libraries": [
+        "tasks",
+        "sprints",
+        "workspaces",
+        "operations"
+      ],
+      "owner_api": "Owner.publish through PublicationCoordinator",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "framing",
+      "stage_id": "GS-TPL-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "classification",
+      "stage_id": "GS-TPL-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "requirements",
+      "stage_id": "GS-TPL-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "acceptance_design",
+      "stage_id": "GS-TPL-04",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "work_planning",
+      "stage_id": "GS-TPL-05",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "verification_planning",
+      "stage_id": "GS-TPL-06",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "task_inspection",
+      "stage_id": "GS-TPL-07",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "remediation",
+      "stage_id": "GS-TPL-08",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "remediation_inspection",
+      "stage_id": "GS-TPL-09",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "task_planning",
+      "stage": "publication",
+      "stage_id": "GS-TPL-10",
+      "kind": "mechanical",
+      "handler": "publish",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.publish",
+      "libraries": [
+        "tasks",
+        "sprints",
+        "workspaces",
+        "operations"
+      ],
+      "owner_api": "Owner.publish through PublicationCoordinator",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "baseline",
+      "stage_id": "GS-TST-01",
+      "kind": "substantive",
+      "handler": "observe",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.observe",
+      "libraries": [
+        "executions",
+        "artifacts",
+        "verification"
+      ],
+      "owner_api": "Task.attach_observations",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "coverage_planning",
+      "stage_id": "GS-TST-02",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "test_planning",
+      "stage_id": "GS-TST-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "test_implementation",
+      "stage_id": "GS-TST-04",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "sensitivity_verification",
+      "stage_id": "GS-TST-05",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "test_inspection",
+      "stage_id": "GS-TST-06",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "remediation",
+      "stage_id": "GS-TST-07",
+      "kind": "substantive",
+      "handler": "revise",
+      "body_backend": "produce",
+      "handler_location": "application.stage_handlers.revise",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification",
+        "executions"
+      ],
+      "owner_api": "Task.propose_resolution + Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "test_development",
+      "stage": "remediation_inspection",
+      "stage_id": "GS-TST-08",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "verification",
+      "stage": "planning",
+      "stage_id": "GS-VER-01",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "verification",
+      "stage": "execution",
+      "stage_id": "GS-VER-02",
+      "kind": "substantive",
+      "handler": "check",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.check",
+      "libraries": [
+        "verification",
+        "executions",
+        "artifacts"
+      ],
+      "owner_api": "Task.attach_observations + GateAssessment",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "verification",
+      "stage": "analysis",
+      "stage_id": "GS-VER-03",
+      "kind": "substantive",
+      "handler": "produce",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.produce",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.apply_submission",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    },
+    {
+      "goal_type": "verification",
+      "stage": "self_inspection",
+      "stage_id": "GS-VER-04",
+      "kind": "substantive",
+      "handler": "inspect",
+      "body_backend": "not_a_revision_wrapper",
+      "handler_location": "application.stage_handlers.inspect",
+      "libraries": [
+        "tasks",
+        "content",
+        "verification"
+      ],
+      "owner_api": "Task.record_inspection",
+      "runner_services": [
+        "sessions",
+        "operations",
+        "processes",
+        "tasks"
+      ],
+      "direct_sql_allowed": false,
+      "direct_next_stage_allowed": false
+    }
+  ]
+}

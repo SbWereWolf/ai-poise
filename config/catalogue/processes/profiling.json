@@ -1,0 +1,416 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "analysis",
+      "recommendations"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "confirmation-post-confirmation",
+        "kind": "section",
+        "phase": "post",
+        "section": "confirmation.confirmation",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_measurement-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "baseline_measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_measurement-input-workload",
+        "kind": "section",
+        "phase": "pre",
+        "section": "workload",
+        "stages": [
+          "baseline_measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "baseline_measurement-input-verification_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "verification_plan",
+        "stages": [
+          "baseline_measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement-input-experiment_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiment_plan",
+        "stages": [
+          "measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement-input-instrumentation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "instrumentation_plan",
+        "stages": [
+          "measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement-input-environment",
+        "kind": "section",
+        "phase": "pre",
+        "section": "environment",
+        "stages": [
+          "measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "measurement-input-workload",
+        "kind": "section",
+        "phase": "pre",
+        "section": "workload",
+        "stages": [
+          "measurement"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "analysis-input-experiment_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiment_plan",
+        "stages": [
+          "analysis"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-experiment_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "experiment_plan",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "confirmation-input-confirmation_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "confirmation_plan",
+        "stages": [
+          "confirmation"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-limitations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "limitations",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": [
+      {
+        "id": "confirmation.confirmation",
+        "normalization": "strip",
+        "template": "Fill after obtaining the declared observations.",
+        "write_stages": [
+          "confirmation"
+        ]
+      }
+    ]
+  },
+  "goal_type": "profiling",
+  "route": {
+    "entry": "framing",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "framing",
+      "instruction": "Спланировать исходное измерение и критерии воспроизводимости. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "environment",
+        "workload",
+        "verification_plan"
+      ],
+      "rework_targets": [
+        "framing",
+        "baseline_measurement",
+        "experiment_planning",
+        "measurement",
+        "analysis",
+        "confirmation",
+        "self_inspection"
+      ],
+      "sections": {
+        "environment": "relevant facts/readiness, versions/input generation, resource identities, no secret values; required facts и observation methods явно заданы.",
+        "report": "Record the substantive result for this stage.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "workload": "input/data digests, concurrency/cache/warmup/measurement schedule, exact generation/execution commands, resource namespaces."
+      },
+      "transitions": {
+        "complete": "baseline_measurement"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "id": "baseline_measurement",
+      "instruction": "Получить исходные measurements. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "baseline_measurement",
+        "framing",
+        "experiment_planning",
+        "measurement",
+        "analysis",
+        "confirmation",
+        "self_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "experiment_planning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "experiment_planning",
+      "instruction": "Спланировать различающие эксперименты после baseline. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "experiment_plan",
+        "instrumentation_plan"
+      ],
+      "rework_targets": [
+        "experiment_planning",
+        "framing",
+        "baseline_measurement",
+        "measurement",
+        "analysis",
+        "confirmation",
+        "self_inspection"
+      ],
+      "sections": {
+        "experiment_plan": "id, question/hypothesis, controlled/changed variables, exact actions/measurements, expected discriminatory information, order and limits.",
+        "instrumentation_plan": "tools/exact commands, temporary changes/allowed paths, before state, restoration/check commands, observer-effect risks.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "measurement"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "id": "measurement",
+      "instruction": "Выполнить эксперименты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "measurement",
+        "framing",
+        "baseline_measurement",
+        "experiment_planning",
+        "analysis",
+        "confirmation",
+        "self_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "analysis"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "analysis",
+      "instruction": "Отделить измерения от интерпретаций. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "analysis",
+        "alternative_explanations",
+        "recommendations",
+        "limitations",
+        "confirmation_plan",
+        "product_findings"
+      ],
+      "rework_targets": [
+        "analysis",
+        "framing",
+        "baseline_measurement",
+        "experiment_planning",
+        "measurement",
+        "confirmation",
+        "self_inspection"
+      ],
+      "sections": {
+        "alternative_explanations": "id, объяснение, supporting/counter facts, проверка различия с основным выводом и disposition.",
+        "analysis": "claims с fact/evidence refs, assumptions, inference summary, alternative explanations; охват questions/metrics.",
+        "confirmation_plan": "Claims to confirm; exact confirmation methods, input selectors, repetitions/limits, independent observation criterion. Формируется в analysis до confirmation execution.",
+        "limitations": "что не установлено, ограничения данных/метода, влияние на conclusions/DoD; explicit none с основанием.",
+        "product_findings": "Record product_findings.",
+        "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "confirmation"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "check",
+      "id": "confirmation",
+      "instruction": "Независимо/повторно подтвердить существенные выводы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "confirmation",
+        "framing",
+        "baseline_measurement",
+        "experiment_planning",
+        "measurement",
+        "analysis",
+        "self_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "inconclusive": "self_inspection",
+        "not_satisfied": "self_inspection",
+        "satisfied": "self_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "self_inspection",
+      "instruction": "Осмотреть качество измерений и выводов. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "rework_targets": [
+        "self_inspection",
+        "experiment_planning",
+        "measurement",
+        "analysis",
+        "confirmation",
+        "framing",
+        "baseline_measurement"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "transitions": {
+        "changes_requested": "experiment_planning",
+        "clear": null
+      }
+    }
+  ]
+}

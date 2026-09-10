@@ -1,0 +1,77 @@
+{
+  "id": "EVIDENCE-1",
+  "sprint_id": null,
+  "goal_type": "verification_demo",
+  "goal": "Получить наблюдение double(2) и обосновать его оценку.",
+  "requirements": [
+    "double(2) должно возвращать 4."
+  ],
+  "definition_of_done": [
+    "Наблюдение получено из выбранного дерева; аргумент осмотрен независимо от знака предметного результата."
+  ],
+  "methods": [
+    {
+      "id": "MEASURE",
+      "argv": [
+        "REPLACE_WITH_ABSOLUTE_PYTHON_EXECUTABLE",
+        "-B",
+        "-c",
+        "from app import double; print(\"VALUE=\" + str(double(2))); raise SystemExit(0 if double(2)==4 else 1)"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "timeout_seconds": 10,
+      "expected_exit_code": 0,
+      "stdout_contains": [
+        "VALUE=4"
+      ],
+      "stderr_contains": []
+    }
+  ],
+  "checks": {
+    "measure": [
+      "MEASURE"
+    ],
+    "audit": []
+  },
+  "artifact_requirements": [],
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  },
+  "evidence_plan": {
+    "measure": {
+      "subject_methods": {
+        "MEASURE": {
+          "exit_codes": [
+            0,
+            1
+          ],
+          "stdout_contains": [
+            "VALUE="
+          ],
+          "stderr_contains": []
+        }
+      },
+      "arguments": [
+        {
+          "id": "A",
+          "kind": "logical",
+          "phase": "continue",
+          "observation_methods": [
+            "MEASURE"
+          ]
+        }
+      ],
+      "review_arguments": []
+    },
+    "audit": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": [
+        "A"
+      ]
+    }
+  }
+}

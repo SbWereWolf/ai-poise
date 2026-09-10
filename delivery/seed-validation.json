@@ -1,0 +1,117 @@
+{
+  "status": "seeded",
+  "harness": {
+    "status": "planned",
+    "eligible": [
+      "0001"
+    ],
+    "blocked": [
+      {
+        "task": "0002",
+        "reasons": [
+          {
+            "predecessor": "0001",
+            "reason": "predecessor_incomplete"
+          }
+        ]
+      },
+      {
+        "task": "0003",
+        "reasons": [
+          {
+            "predecessor": "0002",
+            "reason": "predecessor_incomplete"
+          }
+        ]
+      }
+    ],
+    "active": [],
+    "resumable": [],
+    "sprint": "SPRINT-0001",
+    "goal": "Подготовить Harness к requirement-aware постановке задач и IDE-MCP-first работе AI-агентов.",
+    "revision": 2,
+    "tasks": [
+      {
+        "id": "0001",
+        "status": "available",
+        "goal": "Создать project-local Requirements DB Harness и интегрировать System → Application → Task traceability в постановку и публикацию задач.",
+        "goal_type": "development",
+        "stage": "baseline",
+        "iteration": 1,
+        "claimed_by": null,
+        "handoff_available": false,
+        "result_commit": null,
+        "worktree": null,
+        "pending": null
+      },
+      {
+        "id": "0002",
+        "status": "available",
+        "goal": "Добавить в обычный Harness preflight пакетное discovery доступных IDE MCP capabilities и передавать inventory агенту в bootstrap.",
+        "goal_type": "development",
+        "stage": "baseline",
+        "iteration": 1,
+        "claimed_by": null,
+        "handoff_available": false,
+        "result_commit": null,
+        "worktree": null,
+        "pending": null
+      },
+      {
+        "id": "0003",
+        "status": "available",
+        "goal": "Исследовать JetBrains MCP и закрепить каноническую политику его применения AI-агентами при работе с кодом.",
+        "goal_type": "documentation",
+        "stage": "framing",
+        "iteration": 1,
+        "claimed_by": null,
+        "handoff_available": false,
+        "result_commit": null,
+        "worktree": null,
+        "pending": null
+      }
+    ],
+    "counts": {
+      "available": 3,
+      "active": 0,
+      "verified": 0,
+      "accepted": 0,
+      "completed": 0,
+      "cancelled": 0
+    },
+    "errors": [],
+    "next_work": "Выбрать одну доступную задачу; выполнить один этап и доложить",
+    "active_task": null,
+    "start_revisions": {
+      "0001": null
+    },
+    "sprint_root": "/mnt/data/harness-wsl-reference-build/project-data/artifacts/sprints/SPRINT-0001",
+    "interaction": {
+      "user_messages_count": null,
+      "observed_messages_count": 0,
+      "coverage": "unavailable",
+      "source": {
+        "id": "chat-visible",
+        "mode": "agent_reported"
+      },
+      "reason_counts": {
+        "initial": 0,
+        "continue": 0,
+        "feedback": 0,
+        "requirement_change": 0,
+        "clarification": 0,
+        "authorization": 0,
+        "cancel": 0
+      },
+      "unclassified_messages": 0,
+      "task": null,
+      "goal_type": null,
+      "outcome": null,
+      "planned_content_stages_count": null,
+      "delivered_stages_count": 0,
+      "delivered_iterations_count": 0,
+      "delivery_observation": "tool_result_returned"
+    }
+  },
+  "requirements_bootstrap": "SPRINT-0001/requirements-bootstrap.json"
+}

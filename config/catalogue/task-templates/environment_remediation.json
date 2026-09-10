@@ -1,0 +1,61 @@
+{
+  "schema": "task-blueprint-1",
+  "goal_type": "environment_remediation",
+  "parameters": {
+    "identity": "text",
+    "membership": "nullable_text",
+    "goal": "text",
+    "requirements": "strings",
+    "dod": "strings",
+    "methods": "list",
+    "artifact_requirements": "list",
+    "contract": "object",
+    "evidence": "object"
+  },
+  "task": {
+    "id": {
+      "$input": "identity"
+    },
+    "sprint_id": {
+      "$input": "membership"
+    },
+    "goal_type": "environment_remediation",
+    "goal": {
+      "$input": "goal"
+    },
+    "requirements": {
+      "$input": "requirements"
+    },
+    "definition_of_done": {
+      "$input": "dod"
+    },
+    "methods": {
+      "$input": "methods"
+    },
+    "checks": {
+      "framing": [],
+      "baseline": [
+        "BASELINE"
+      ],
+      "change_planning": [],
+      "application": [],
+      "verification": [
+        "ENV_CHECK"
+      ],
+      "inspection": [],
+      "correction": [],
+      "correction_inspection": [
+        "ENV_CHECK"
+      ]
+    },
+    "artifact_requirements": {
+      "$input": "artifact_requirements"
+    },
+    "content_contract": {
+      "$input": "contract"
+    },
+    "evidence_plan": {
+      "$input": "evidence"
+    }
+  }
+}

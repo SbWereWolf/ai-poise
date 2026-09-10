@@ -1,0 +1,194 @@
+{
+  "id": "0001",
+  "sprint_id": "SPRINT-0001",
+  "goal_type": "development",
+  "goal": "Создать project-local Requirements DB Harness и интегрировать System → Application → Task traceability в постановку и публикацию задач.",
+  "requirements": [
+    "Добавить в project configuration Harness явный путь к отдельной Requirements DB проекта. Requirements DB хранится в project-data Harness вне обслуживаемой кодовой базы; путь не должен быть скрытым default и не должен выводиться из расположения Git repository.",
+    "Создать отдельную SQLite Requirements DB, не смешивая её таблицы с Task DB. Requirements DB владеет каноническими требованиями уровня Системы и приложений и графом связей между ними; требования конкретной задачи остаются данными Task.",
+    "Поддерживать состояния требований «актуальное», «будущее» и «устаревшее»: актуальные обязательны для текущих задач и проверок; будущие участвуют в анализе и постановке новых задач, но их текущее соблюдение не требуется; устаревшие исключаются из новых задач, coverage и проверок.",
+    "Поддерживать many-to-many происхождение между требованиями Системы и приложений: одно требование приложения может быть следствием нескольких системных требований, а одно системное требование может распределяться между несколькими требованиями одного или нескольких приложений.",
+    "Проверять coverage: каждое неустаревшее требование приложения должно иметь путь хотя бы к одному корневому системному требованию, а каждое неустаревшее системное требование должно быть распределено минимум на одно требование приложения.",
+    "При постановке задачи каждое требование Task должно быть связано с одним или несколькими требованиями приложения и через них иметь путь к одному или нескольким системным требованиям; одно Task requirement может являться следствием нескольких требований верхних уровней.",
+    "Если для Task requirement отсутствует необходимое Application или System requirement, постановщик должен предложить недостающие требования и показать пользователю полные тексты всей цепочки System → Application → Task до публикации задачи; внутренние IDs не заменяют развёрнутый текст при согласовании.",
+    "После согласования цепочки публикация Task должна сохранять immutable snapshot полных текстов, статусов и связей требований, использованных при постановке, чтобы последующие изменения Requirements DB не переписывали исторический смысл задачи.",
+    "Все изменения Requirements DB выполняются через доменный пакетный/декларативный API; ручное редактирование SQLite агентом запрещено. Должны существовать пакетные query API для получения цепочек, coverage и разрывов.",
+    "Загрузить поставленный bootstrap согласованных future requirements через штатный API после создания Requirements DB; bootstrap-файл после загрузки не является вторым каноническим источником истины.",
+    "Обновить русскоязычную документацию постановки задач и англоязычный skill. Если skill ссылается на каноническую документацию, ссылка должна вести на минимальный нормативный раздел, достаточный для конкретного operational rule."
+  ],
+  "definition_of_done": [
+    "Project config явно задаёт project-local Requirements DB; рабочая Requirements DB и Task DB физически и логически разделены и не требуют ручного SQL.",
+    "TDD и интеграционные проверки покрывают статусы, many-to-many связи, coverage, обнаружение разрывов, согласование полного текста цепочки и immutable Task snapshot.",
+    "Постановка/публикация Task блокируется при несогласованном разрыве цепочки и проходит после явного согласования недостающих System/Application/Task requirements.",
+    "Bootstrap future requirements импортирован через штатный API и читается из Requirements DB.",
+    "Русскоязычная документация и англоязычные skills обновлены; ссылки skills ведут на точные нормативные sections; результат прошёл self-inspection и reinspection."
+  ],
+  "methods": [
+    {
+      "id": "BASELINE",
+      "argv": [
+        "python3.13",
+        "-m",
+        "pytest",
+        "tests/projects",
+        "-q"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "timeout_seconds": 120,
+      "expected_exit_code": 0,
+      "stdout_contains": [],
+      "stderr_contains": []
+    }
+  ],
+  "checks": {
+    "baseline": [
+      "BASELINE"
+    ],
+    "solution_planning": [],
+    "verification_planning": [],
+    "test_implementation": [],
+    "test_inspection": [],
+    "test_remediation": [],
+    "test_remediation_inspection": [],
+    "implementation": [],
+    "implementation_inspection": [],
+    "implementation_remediation": [],
+    "implementation_remediation_inspection": [],
+    "documentation": []
+  },
+  "artifact_requirements": [],
+  "content_contract": {
+    "sections": [],
+    "routes": [
+      {
+        "id": "task-verification",
+        "requirements": [
+          "Добавить в project configuration Harness явный путь к отдельной Requirements DB проекта. Requirements DB хранится в project-data Harness вне обслуживаемой кодовой базы; путь не должен быть скрытым default и не должен выводиться из расположения Git repository.",
+          "Создать отдельную SQLite Requirements DB, не смешивая её таблицы с Task DB. Requirements DB владеет каноническими требованиями уровня Системы и приложений и графом связей между ними; требования конкретной задачи остаются данными Task.",
+          "Поддерживать состояния требований «актуальное», «будущее» и «устаревшее»: актуальные обязательны для текущих задач и проверок; будущие участвуют в анализе и постановке новых задач, но их текущее соблюдение не требуется; устаревшие исключаются из новых задач, coverage и проверок.",
+          "Поддерживать many-to-many происхождение между требованиями Системы и приложений: одно требование приложения может быть следствием нескольких системных требований, а одно системное требование может распределяться между несколькими требованиями одного или нескольких приложений.",
+          "Проверять coverage: каждое неустаревшее требование приложения должно иметь путь хотя бы к одному корневому системному требованию, а каждое неустаревшее системное требование должно быть распределено минимум на одно требование приложения.",
+          "При постановке задачи каждое требование Task должно быть связано с одним или несколькими требованиями приложения и через них иметь путь к одному или нескольким системным требованиям; одно Task requirement может являться следствием нескольких требований верхних уровней.",
+          "Если для Task requirement отсутствует необходимое Application или System requirement, постановщик должен предложить недостающие требования и показать пользователю полные тексты всей цепочки System → Application → Task до публикации задачи; внутренние IDs не заменяют развёрнутый текст при согласовании.",
+          "После согласования цепочки публикация Task должна сохранять immutable snapshot полных текстов, статусов и связей требований, использованных при постановке, чтобы последующие изменения Requirements DB не переписывали исторический смысл задачи.",
+          "Все изменения Requirements DB выполняются через доменный пакетный/декларативный API; ручное редактирование SQLite агентом запрещено. Должны существовать пакетные query API для получения цепочек, coverage и разрывов.",
+          "Загрузить поставленный bootstrap согласованных future requirements через штатный API после создания Requirements DB; bootstrap-файл после загрузки не является вторым каноническим источником истины.",
+          "Обновить русскоязычную документацию постановки задач и англоязычный skill. Если skill ссылается на каноническую документацию, ссылка должна вести на минимальный нормативный раздел, достаточный для конкретного operational rule."
+        ],
+        "points": [
+          {
+            "id": "red_method",
+            "kind": "method",
+            "fields": {},
+            "write_stages": [
+              "verification_planning"
+            ]
+          },
+          {
+            "id": "green_method",
+            "kind": "method",
+            "fields": {},
+            "write_stages": [
+              "verification_planning"
+            ]
+          }
+        ]
+      }
+    ],
+    "requirements": [
+      {
+        "id": "task-red-method-before-test-code",
+        "kind": "trace",
+        "route": "task-verification",
+        "point": "red_method",
+        "stages": [
+          "test_implementation"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      },
+      {
+        "id": "task-green-method-before-production-code",
+        "kind": "trace",
+        "route": "task-verification",
+        "point": "green_method",
+        "stages": [
+          "implementation"
+        ],
+        "phase": "pre",
+        "field_equals": {}
+      }
+    ]
+  },
+  "evidence_plan": {
+    "baseline": {
+      "subject_methods": {
+        "BASELINE": {
+          "exit_codes": [
+            0
+          ],
+          "stdout_contains": [],
+          "stderr_contains": []
+        }
+      },
+      "arguments": [],
+      "review_arguments": []
+    },
+    "solution_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "verification_planning": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_remediation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "test_remediation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_remediation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "implementation_remediation_inspection": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    },
+    "documentation": {
+      "subject_methods": {},
+      "arguments": [],
+      "review_arguments": []
+    }
+  }
+}

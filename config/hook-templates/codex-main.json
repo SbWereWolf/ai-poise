@@ -1,0 +1,75 @@
+{
+  "schema": "hook-definition-1",
+  "id": "harness-main",
+  "agent_id": "primary",
+  "message_source": "codex-hook-main",
+  "events": [
+    {
+      "event": "SessionStart",
+      "matcher": "startup|resume|compact|clear",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Bind Harness session"
+    },
+    {
+      "event": "UserPromptSubmit",
+      "matcher": "",
+      "timeout_seconds": 15,
+      "async": false,
+      "context_limit": 2000,
+      "status_message": "Record user turn"
+    },
+    {
+      "event": "Stop",
+      "matcher": "",
+      "timeout_seconds": 5,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Report Harness state"
+    },
+    {
+      "event": "SessionEnd",
+      "matcher": "other",
+      "timeout_seconds": 3,
+      "async": false,
+      "context_limit": null,
+      "status_message": "Record session end"
+    }
+  ],
+  "probes": [
+    {
+      "id": "python",
+      "kind": "command",
+      "required": true,
+      "argv": [
+        "${python}",
+        "-B",
+        "-c",
+        "import sys; print(\"ready\" if sys.version_info[:2] == (3,13) else \"unsupported\")"
+      ],
+      "cwd": "${workspace}",
+      "environment": {},
+      "timeout_seconds": 5,
+      "max_output_bytes": 65536,
+      "expected_exit_code": 0,
+      "stdout_contains": [
+        "ready"
+      ],
+      "stderr_contains": [],
+      "json_assertions": [],
+      "mcp": null,
+      "tool_ref": "CPython",
+      "project_bound": false,
+      "remediation": "Install CPython 3.13 and select its executable in the explicit settings."
+    }
+  ],
+  "gate_operations": [
+    "bootstrap",
+    "verify",
+    "artifacts"
+  ],
+  "context_template": "Use {launcher} with a single work JSON packet. Current state: {state}.",
+  "stop_template": "Current Harness state: {state}; no acceptance or transition was performed.",
+  "unknown_outcome_message": "Native hook failed; inspect the local operational record."
+}

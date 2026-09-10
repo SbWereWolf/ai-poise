@@ -1,0 +1,41 @@
+{
+  "schema": "goal-config-batch-1",
+  "request_id": "example-create-generated-notes-1",
+  "mode": "create",
+  "goal_type": "generated_notes",
+  "expected_revision": null,
+  "template": {
+    "id": "documentation-v1",
+    "version": "1",
+    "digest": "220110d64b32b5fb690024eda468c2db482dc3bcf32277d32b159951acf61223"
+  },
+  "changes": [
+    {
+      "op": "put_requirement",
+      "value": {
+        "id": "proof-required",
+        "kind": "section",
+        "stages": [
+          "draft"
+        ],
+        "phase": "pre",
+        "section": "proof_plan",
+        "states": [
+          "populated"
+        ]
+      }
+    },
+    {
+      "op": "put_section",
+      "value": {
+        "id": "proof_plan",
+        "template": "Опишите способ проверки документа.",
+        "normalization": "strip",
+        "write_stages": [
+          "draft",
+          "amend"
+        ]
+      }
+    }
+  ]
+}

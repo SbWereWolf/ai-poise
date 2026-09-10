@@ -1,0 +1,349 @@
+{
+  "benefit": {
+    "git_categories": [],
+    "sections": [
+      "analysis",
+      "conclusions",
+      "recommendations"
+    ]
+  },
+  "content_contract": {
+    "requirements": [
+      {
+        "id": "evidence_collection-post-sources",
+        "kind": "section",
+        "phase": "post",
+        "section": "evidence_collection.sources",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection-post-facts",
+        "kind": "section",
+        "phase": "post",
+        "section": "evidence_collection.facts",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection-post-assumptions",
+        "kind": "section",
+        "phase": "post",
+        "section": "evidence_collection.assumptions",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection-input-source_plan",
+        "kind": "section",
+        "phase": "pre",
+        "section": "source_plan",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "evidence_collection-input-method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "method",
+        "stages": [
+          "evidence_collection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "reasoning-input-method",
+        "kind": "section",
+        "phase": "pre",
+        "section": "method",
+        "stages": [
+          "reasoning"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "challenge-input-conclusions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "conclusions",
+        "stages": [
+          "challenge"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-conclusions",
+        "kind": "section",
+        "phase": "pre",
+        "section": "conclusions",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-analysis",
+        "kind": "section",
+        "phase": "pre",
+        "section": "analysis",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-alternative_explanations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "alternative_explanations",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-counterevidence",
+        "kind": "section",
+        "phase": "pre",
+        "section": "counterevidence",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "self_inspection-input-limitations",
+        "kind": "section",
+        "phase": "pre",
+        "section": "limitations",
+        "stages": [
+          "self_inspection"
+        ],
+        "states": [
+          "populated"
+        ]
+      }
+    ],
+    "routes": [],
+    "sections": [
+      {
+        "id": "evidence_collection.sources",
+        "normalization": "strip",
+        "template": "Fill after obtaining the declared observations.",
+        "write_stages": [
+          "evidence_collection"
+        ]
+      },
+      {
+        "id": "evidence_collection.facts",
+        "normalization": "strip",
+        "template": "Fill after obtaining the declared observations.",
+        "write_stages": [
+          "evidence_collection"
+        ]
+      },
+      {
+        "id": "evidence_collection.assumptions",
+        "normalization": "strip",
+        "template": "Fill after obtaining the declared observations.",
+        "write_stages": [
+          "evidence_collection"
+        ]
+      }
+    ]
+  },
+  "goal_type": "analysis",
+  "route": {
+    "entry": "framing",
+    "max_stage_visits": 12,
+    "max_transitions": 120
+  },
+  "stages": [
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "framing",
+      "instruction": "Сформулировать вопросы и метод до сбора огромного массива. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "source_plan",
+        "method"
+      ],
+      "rework_targets": [
+        "framing",
+        "evidence_collection",
+        "reasoning",
+        "challenge",
+        "self_inspection"
+      ],
+      "sections": {
+        "method": "аналитическая/измерительная процедура, inputs, steps, reproducible calculations/exact commands, assumptions, expected information; не private chain of thought.",
+        "report": "Record the substantive result for this stage.",
+        "source_plan": "required source classes, time window, sample/coverage policy, parsers/aggregation, exclusions, completeness criteria."
+      },
+      "transitions": {
+        "complete": "evidence_collection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "observe",
+      "id": "evidence_collection",
+      "instruction": "Обработать данные инструментами, извлечь факты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "evidence_collection",
+        "framing",
+        "reasoning",
+        "challenge",
+        "self_inspection"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "reasoning"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "reasoning",
+      "instruction": "Сформировать проверяемые выводы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "analysis",
+        "conclusions",
+        "recommendations"
+      ],
+      "rework_targets": [
+        "reasoning",
+        "framing",
+        "evidence_collection",
+        "challenge",
+        "self_inspection"
+      ],
+      "sections": {
+        "analysis": "claims с fact/evidence refs, assumptions, inference summary, alternative explanations; охват questions/metrics.",
+        "conclusions": "question/criterion refs, claim, facts+assumptions, inference summary, ограничения и verdict.",
+        "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "challenge"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "challenge",
+      "instruction": "Проверить альтернативы и опровергающие данные. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "alternative_explanations",
+        "counterevidence",
+        "limitations"
+      ],
+      "rework_targets": [
+        "challenge",
+        "framing",
+        "evidence_collection",
+        "reasoning",
+        "self_inspection"
+      ],
+      "sections": {
+        "alternative_explanations": "id, объяснение, supporting/counter facts, проверка различия с основным выводом и disposition.",
+        "counterevidence": "source/fact, какой claim оспаривает, disposition/изменение вывода; explicit search performed+none если не найдено.",
+        "limitations": "что не установлено, ограничения данных/метода, влияние на conclusions/DoD; explicit none с основанием.",
+        "report": "Record the substantive result for this stage."
+      },
+      "transitions": {
+        "complete": "self_inspection"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "id": "self_inspection",
+      "instruction": "Осмотреть достоверность собственного анализа. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report",
+        "result"
+      ],
+      "rework_targets": [
+        "self_inspection",
+        "evidence_collection",
+        "reasoning",
+        "challenge",
+        "framing"
+      ],
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
+      "transitions": {
+        "changes_requested": "evidence_collection",
+        "clear": null
+      }
+    }
+  ]
+}

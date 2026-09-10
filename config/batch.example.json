@@ -1,0 +1,36 @@
+{
+  "max_input_bytes": 1048576,
+  "max_items": 1000,
+  "max_artifact_bytes": 262144,
+  "file_mode": 384,
+  "artifact_lock": "artifact.lock",
+  "artifact_directories": {
+    "runtime": "generated",
+    "task": "artifacts",
+    "sprint": "artifacts"
+  },
+  "templates": {
+    "note": {
+      "version": "1",
+      "text": "# ${title}\n\n${body}\n",
+      "parameters": [
+        "title",
+        "body"
+      ]
+    }
+  },
+  "message_source": {
+    "id": "chat-visible",
+    "mode": "agent_reported"
+  },
+  "message_reasons": [
+    "initial",
+    "continue",
+    "feedback",
+    "requirement_change",
+    "clarification",
+    "authorization",
+    "cancel"
+  ],
+  "initial_read_lines": 50
+}

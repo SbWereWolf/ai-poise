@@ -1,0 +1,541 @@
+{
+  "schema": "harness-doc-lifecycle/3",
+  "created_at": "2026-09-06T10:07:45+05:00",
+  "requirements": [
+    "HR-033",
+    "HR-043",
+    "HR-044",
+    "HR-053",
+    "HR-054",
+    "HR-056",
+    "HR-057",
+    "HR-058",
+    "HR-094",
+    "HR-095",
+    "HR-096"
+  ],
+  "identity": [
+    {
+      "entity": "SemanticSubmission",
+      "identity": "iteration ID + semantic content digest",
+      "change_rule": "Одинаковое содержание даёт ту же revision/layer; изменение кода без изменения payload не создаёт revision. CONTINUE может добавить новые semantic поля и отдельную revision, не копируя прежние поля.",
+      "producer": "harness from agent content"
+    },
+    {
+      "entity": "OperationIntent",
+      "identity": "logical action + binding + iteration + effect scope",
+      "change_rule": "Фиксирует разрешённое действие и persisted steps. После known failure новая verification attempt не повторяет выполненные non-repeatable preparations. После новой user instruction/явного нового effect — новый intent.",
+      "producer": "harness"
+    },
+    {
+      "entity": "ExecutionAttempt",
+      "identity": "intent + phase + execution key + attempt sequence",
+      "change_rule": "Фактические H/ENV/inputs получают probe до replay decision; count растёт только при новом исполнении.",
+      "producer": "harness"
+    },
+    {
+      "entity": "EffectReceipt",
+      "identity": "effect ID + immutable effect inputs + observed outcome",
+      "change_rule": "Повтор при terminal receipt без изменения ожидаемого subject не создаёт второй effect. Receipt прежнего дерева сохраняется, но не используется как proof нового.",
+      "producer": "adapter verified by harness"
+    }
+  ],
+  "replay_decisions": [
+    {
+      "id": "RP-01",
+      "prior": "none",
+      "semantic": "valid new S",
+      "subject": "ready H1/ENV1",
+      "decision": "new attempt",
+      "layers_delta": 1,
+      "runs_delta": 1
+    },
+    {
+      "id": "RP-02",
+      "prior": "terminal failed",
+      "semantic": "same S",
+      "subject": "changed H1→H2, ready",
+      "decision": "new attempt, same iteration",
+      "layers_delta": 0,
+      "runs_delta": 1
+    },
+    {
+      "id": "RP-03",
+      "prior": "terminal environment blocked",
+      "semantic": "same S",
+      "subject": "same H1, observed ENV0→ENV1 ready",
+      "decision": "new attempt or first launch if previously never started",
+      "layers_delta": 0,
+      "runs_delta": 1
+    },
+    {
+      "id": "RP-04",
+      "prior": "terminal receipt",
+      "semantic": "same S",
+      "subject": "same known subject/freshness",
+      "decision": "receipt replay; no completed effect repeats",
+      "layers_delta": 0,
+      "runs_delta": 0
+    },
+    {
+      "id": "RP-05",
+      "prior": "failed transient",
+      "semantic": "same S",
+      "subject": "same subject, explicit retry permitted and budget available",
+      "decision": "bounded new attempt with retry cause",
+      "layers_delta": 0,
+      "runs_delta": 1
+    },
+    {
+      "id": "RP-06",
+      "prior": "running or unknown outcome",
+      "semantic": "same S",
+      "subject": "any",
+      "decision": "probe/receipt/recovery first; new effect forbidden until outcome resolved",
+      "layers_delta": 0,
+      "runs_delta": 0
+    },
+    {
+      "id": "RP-07",
+      "prior": "awaiting_agent after merge",
+      "semantic": "S + resolutions citing receipt",
+      "subject": "resolved tree H2",
+      "decision": "continue CHECK on H2; do not execute merge again",
+      "layers_delta": 1,
+      "runs_delta": "only unperformed declared final checks",
+      "merge_delta": 0
+    },
+    {
+      "id": "RP-08",
+      "prior": "PASS, commit/push receipt lost",
+      "semantic": "same S",
+      "subject": "same tree",
+      "decision": "probe exact remote/ref/SHA and complete local registration",
+      "layers_delta": 0,
+      "runs_delta": 0
+    },
+    {
+      "id": "RP-09",
+      "prior": "terminal, freshness unknown",
+      "semantic": "same S",
+      "subject": "unknown",
+      "decision": "readiness/probe; explicit new-run policy or blocked, never pretend current",
+      "layers_delta": 0,
+      "runs_delta": "policy and budget, not implicit"
+    },
+    {
+      "id": "RP-10",
+      "prior": "delivered verified/accepted",
+      "semantic": "same S",
+      "subject": "changed without a permitted active iteration",
+      "decision": "block silent replacement; request/consume actual user rework instruction",
+      "layers_delta": 0,
+      "runs_delta": 0
+    }
+  ],
+  "phases": [
+    {
+      "id": "PREPARE",
+      "inputs": "agent-before fields + creation/prior accepted inputs",
+      "outputs": "candidate revision; planned methods",
+      "may_return": "blocked on structural input; no future verdict required"
+    },
+    {
+      "id": "OBSERVE",
+      "inputs": "candidate, ready binding, exact planned observations",
+      "outputs": "BoundExecution, observed receipts/conflicts/measurements",
+      "may_return": "awaiting_agent with all facts if declared agent-after fields required"
+    },
+    {
+      "id": "CONTINUE",
+      "inputs": "agent-after fields with observation refs",
+      "outputs": "continuation submission revision",
+      "may_return": "schema/predicate error; does not relaunch observations"
+    },
+    {
+      "id": "CHECK",
+      "inputs": "candidate + actual receipts + proposals/interpretations",
+      "outputs": "final exact checks, resolution bindings, review applicable verdict",
+      "may_return": "failed/blocked with actual evidence; same iteration continues"
+    },
+    {
+      "id": "SEAL",
+      "inputs": "current final obligations and publication policy",
+      "outputs": "verified private commit/result, durable ResultSet, report",
+      "may_return": "verified_stop only after finalization; no next content stage"
+    }
+  ],
+  "method_contract": {
+    "PlannedInvocation": {
+      "producer": "agent with explicit config refs",
+      "phase_required": "before the method-design deadline; every already declared executable exact at creation",
+      "fields": [
+        "method_id",
+        "obligation_refs",
+        "codebase_or_environment_target",
+        "cwd",
+        "mode",
+        "argv_or_shell_binary_and_command",
+        "stdin_spec",
+        "environment_policy_and_secret_refs",
+        "declared_input_refs_or_future_paths",
+        "resource_requirements",
+        "runner_profile_ref",
+        "parser_profile_ref",
+        "expected_launch_collection_assertion_predicates",
+        "stage_applicability",
+        "timeout_and_attempt_limits",
+        "reuse_retry_policy"
+      ],
+      "forbidden_as_required": [
+        "future_file_observed_digest",
+        "live_runner_generation",
+        "actual_exit",
+        "actual_collection",
+        "actual_resource_receipt"
+      ]
+    },
+    "BoundExecution": {
+      "producer": "harness/adapter",
+      "phase_required": "immediately before execution",
+      "fields": [
+        "method_id",
+        "resolved_invocation",
+        "worktree_identity",
+        "subject_tree_vector",
+        "current_input_digests",
+        "environment_fingerprint",
+        "resource_bindings",
+        "runner_instance_generation",
+        "parser_definition_digest",
+        "execution_key"
+      ]
+    },
+    "ExecutionReceipt": {
+      "producer": "adapter verified by harness",
+      "phase_required": "after execution terminal/probe",
+      "fields": [
+        "attempt_id",
+        "bound_execution_id",
+        "exit_or_signal_or_timeout",
+        "observed_collection",
+        "parsed_predicates",
+        "start_end_observations",
+        "sanitized_capture_digest",
+        "artifact_refs"
+      ]
+    },
+    "ResolutionProposal": {
+      "producer": "agent",
+      "phase_required": "before resolution checks",
+      "fields": [
+        "proposal_id_assigned_by_harness",
+        "finding_ref",
+        "explanation",
+        "proposed_semantic_change",
+        "planned_method_refs",
+        "manual_evidence_refs_when_already_available"
+      ],
+      "not_required": [
+        "future_review_verdict",
+        "future_result_digest"
+      ]
+    },
+    "ResolutionBinding": {
+      "producer": "harness",
+      "phase_required": "after resulting tree/content and checks observed",
+      "fields": [
+        "proposal_ref",
+        "result_subject_ref",
+        "receipt_refs",
+        "validity"
+      ]
+    },
+    "ResolutionReviewDecision": {
+      "producer": "reviewer",
+      "phase_required": "subsequent inspection of bound result",
+      "fields": [
+        "proposal_ref",
+        "result_subject_ref",
+        "evidence_refs",
+        "accepted_or_rejected",
+        "rationale"
+      ]
+    }
+  },
+  "materialization": {
+    "contract_fields": [
+      "dependency_id",
+      "predecessor_accepted_result",
+      "kind",
+      "successor_subject_binding",
+      "exact_predicates",
+      "required_receipt_kind",
+      "freshness_policy",
+      "budgets"
+    ],
+    "kinds": [
+      {
+        "id": "exact_history",
+        "meaning": "Требование происхождения/идентичности истории, не поведения",
+        "predicate": "exact SHA identity/ancestry на стартовом revision",
+        "revert_behavior": "История остаётся. Такой kind не подходит требованию сохранённой функции."
+      },
+      {
+        "id": "result_availability",
+        "meaning": "Доступность требуемого результата/контракта",
+        "predicate": "accepted source→materialized mapping receipt + exact availability checks на subject successor",
+        "revert_behavior": "После revert/drift exact current predicates обязаны снова подтвердить результат; один ancestor/старый receipt недостаточен."
+      },
+      {
+        "id": "artifact_identity",
+        "meaning": "Доступен exact immutable artifact",
+        "predicate": "owner/schema/digest и bytes доступны",
+        "revert_behavior": "Изменение Git само по себе не меняет immutable artifact, но linkage to required revision остаётся явным."
+      }
+    ],
+    "mapping_receipt_fields": [
+      "source_result_id",
+      "source_revision",
+      "materialized_revision",
+      "method_merge_cherry_pick_rebase_or_artifact",
+      "subject_tree_digest",
+      "verification_receipts",
+      "source_requirement_links",
+      "created_by_operation"
+    ],
+    "rule": "Receipt не передаёт принятие source tests новому дереву; readiness не синтезирует команды и не выполняет merge с semantic conflict resolution."
+  },
+  "relations": [
+    {
+      "kind": "provenance",
+      "direction": "new result → old inputs/origins",
+      "invalidation": "none",
+      "rule": "Историческая ссылка сохраняется независимо от current pointer."
+    },
+    {
+      "kind": "subject_snapshot",
+      "direction": "evidence/review → exact immutable subject",
+      "invalidation": "applicability_only",
+      "rule": "Review D1 остаётся evidence о D1, но не satisfies review obligation D2."
+    },
+    {
+      "kind": "requires_current",
+      "direction": "consumer result → producer selector/version",
+      "invalidation": "propagate",
+      "rule": "Несовпадение selector version переоценивает consumer; только эти edges образуют bounded invalidation DAG."
+    },
+    {
+      "kind": "supersedes",
+      "direction": "new revision → previous revision",
+      "invalidation": "current_pointer_only",
+      "rule": "Меняет current projection и credit, не делает new зависимым от validity old."
+    },
+    {
+      "kind": "control_prerequisite",
+      "direction": "successor stage/task → prerequisite outcome",
+      "invalidation": "eligibility_only",
+      "rule": "Пересчитать readiness/blocker, не удалять успешно полученное содержимое."
+    }
+  ],
+  "reference_lifetime": {
+    "ready_fields": [
+      "result_set_id",
+      "owner_scope",
+      "owner_id",
+      "view_name",
+      "logical_ref",
+      "native_path_if_supported",
+      "media_type",
+      "byte_count",
+      "line_count_if_text",
+      "content_digest",
+      "state",
+      "retention_policy_id",
+      "expires_at_or_explicit_owner_event",
+      "pin_refs"
+    ],
+    "formal_owner": "task or sprint root; every view named in final report durable, not only raw",
+    "ad_hoc_owner": "durable session deliverables root explicitly configured outside runtime",
+    "temporary": "ready temporary continuation refs only until announced active iteration boundary; SEAL returns rebound durable refs",
+    "expiry": "Retention cannot precede report-access minimum configured explicitly; pinned evidence outlives ordinary result-view TTL. show returns expired tombstone after declared expiry, never new bytes with old digest.",
+    "order": [
+      "complete required materialization",
+      "validate all views",
+      "publish immutable owner ResultSet",
+      "persist manifest and pins",
+      "rewrite report refs to owner ResultSet",
+      "cleanup runtime copies",
+      "return final report"
+    ],
+    "forbidden": [
+      "dangling ready path after cleanup",
+      "native reader polling mandatory",
+      "regenerate different output under old ID",
+      "delete pinned evidence due runtime cleanup"
+    ]
+  },
+  "publication": {
+    "nodes": [
+      "integration.publication",
+      "task_planning.publication",
+      "sprint_planning.publication"
+    ],
+    "kind": "mechanical_gate",
+    "states": [
+      "pending_authorization",
+      "running",
+      "succeeded",
+      "blocked",
+      "needs_resolution"
+    ],
+    "instruction_table": [
+      {
+        "instruction": "принял, остановись",
+        "accept": true,
+        "publish": false,
+        "new_content_stage": false,
+        "expected": "accepted inspection; gate pending_authorization; target unchanged"
+      },
+      {
+        "instruction": "принял, публикуй",
+        "accept": true,
+        "publish": true,
+        "new_content_stage": false,
+        "expected": "one authorized gate in same composite call; receipt+closure; no second content iteration/acceptance"
+      },
+      {
+        "instruction": "публикуй previously accepted exact result",
+        "accept": "already recorded",
+        "publish": true,
+        "new_content_stage": false,
+        "expected": "gate once after guards; same candidate; no auto rebase or approval"
+      },
+      {
+        "instruction": "дальше",
+        "accept": "semantic interpretation from context",
+        "publish": "only if unambiguously authorizes the known next publication",
+        "new_content_stage": "only if next work is content and authorized",
+        "expected": "no inference from silence; ambiguity clarified"
+      }
+    ],
+    "partial_failure": "accepted subject remains; gate not succeeded until required receipts terminal; known effects not duplicated; task stays blocked/active, not failed/cancelled automatically",
+    "report": "operation result/cycle cost recorded; count of content-stage iterations unchanged; all Harness Incidents visible"
+  },
+  "noncommand_evidence": {
+    "scope": "verification independent process; exact routes embedded in its execution stage",
+    "method_fields": [
+      "id",
+      "kind",
+      "criterion_refs",
+      "obligation_refs",
+      "required",
+      "submission_stage",
+      "evidence_phase",
+      "source_refs",
+      "observation_method_refs"
+    ],
+    "kind_enum": [
+      "logical_argument",
+      "inspection"
+    ],
+    "proposal_fields": [
+      "proposal_id",
+      "method_ref",
+      "obligation_refs",
+      "subject_ref",
+      "claim",
+      "facts",
+      "assumptions",
+      "inference_summary",
+      "conclusion",
+      "source_refs"
+    ],
+    "continue_additional_fields": [
+      "observation_refs"
+    ],
+    "forbidden_proposal_fields": [
+      "exit_code",
+      "collected_tests",
+      "passed_tests",
+      "reviewer_verdict",
+      "accepted"
+    ],
+    "phase_routes": [
+      {
+        "kind": "logical_argument",
+        "phase": "PREPARE",
+        "field": "manual_evidence"
+      },
+      {
+        "kind": "logical_argument",
+        "phase": "CONTINUE",
+        "field": "observed_manual_evidence"
+      },
+      {
+        "kind": "inspection",
+        "phase": "PREPARE",
+        "field": "manual_evidence"
+      },
+      {
+        "kind": "inspection",
+        "phase": "CONTINUE",
+        "field": "observed_manual_evidence"
+      }
+    ],
+    "coverage": "Required means one present structurally valid proposal per method, not a statement that it will be written. PREPARE sources available at entry; CONTINUE source refs must be produced by exact declared OBSERVE methods. Unknown/cyclic source references fail before execution.",
+    "empty": "Input array explicit; empty is valid iff no mandatory method assigned to that phase. [] never waives an obligation. No command-only CONTINUE.",
+    "verdict_separation": "Harness structural validity != truth. Evidence registration is not execution. Independent subsequent self_inspection records accepted/rejected proposal decisions and task-quality findings, preserving all layers.",
+    "phases": "PREPARE missing argument blocks expensive OBSERVE. OBSERVE missing terminal receipt does not fabricate it. CONTINUE missing argument blocks SEAL; retry reuses receipts according to HR-057. Same content stage/iteration throughout.",
+    "source_content": "fact entries include statement+source_ref; assumptions explicit; inference_summary is a reviewable argument, never private chain of thought.",
+    "supported_paths": [
+      "command_only",
+      "logical_only_prepare",
+      "logical_only_missing",
+      "mixed_continue",
+      "mixed_continue_missing",
+      "inspection_prepare",
+      "logical_rejected_by_review"
+    ]
+  },
+  "planned_task_publication": {
+    "child_record_fields": [
+      "draft_id",
+      "goal_type",
+      "project_id",
+      "sprint_draft_id",
+      "creation_payload",
+      "verification_contract"
+    ],
+    "verification_contract_fields": [
+      "obligations",
+      "methods",
+      "deferred_methods"
+    ],
+    "agent_fields": "Все substantive child creation fields — явно переданный payload/update planner. Шаблон generator создаёт только пустую структуру и IDs; не заимствует goal/scope/applicability родителя.",
+    "full_replace_semantics": "Каждый explicit planned_task/task_contracts record — полное текущее содержимое draft данного ID; неоговорённого merge/default нет. Intermediate draft может быть неполным, final publication обязан пройти собственный child validator.",
+    "creation_validation": "goal_type обязан разрешиться к одному из 13 независимых профилей; creation_payload соответствует его creation_fields и полям его creation_field_contracts. Все declared obligation/method refs разрешимы. Exact command содержит PlannedInvocation до публикации; будущий file digest не требуется.",
+    "deferred_rule": "Объявленный executable никогда не deferred. Если метод ещё не определён содержательно, deferred_methods содержит отдельную obligation, allowed-kind/недопустимость execution, обязательный deadline из child process и rationale; до deadline execution запрещён. В текущих positive fixtures deferred_methods=[]; их проверки полностью определены.",
+    "inspection": "Parent inspection не заменяет child creation validator. Publication проверяет все children и graph одной операцией; неизвестный тип/пустая applicability отклоняются до любых published children.",
+    "bootstrap": "После publication каждый child валидируется без дополнения данных и bootstrap получает только входы первой стадии. Successor может быть blocked только известной dependency, до её materialization; missing contract не маскируется blocked status.",
+    "ownership": "published/verified flags, runtime IDs, observed SHA/receipt не предоставляются planner как истинные факты; выдаются publication/binding actions.",
+    "fixture_rule": "JSON будущего payload в fixture не является данными store. Только события public create/update/verify/publication вводят его. Bootstrap probe сам является будущим E2E assertion, не заявленным запуском продукта."
+  },
+  "artifact_paths": {
+    "input": "artifact_paths: list[path]; только путь; ID — результат Harness, не дополнительная обязанность агента",
+    "roots": [
+      "current runtime",
+      "current task",
+      "current sprint"
+    ],
+    "validation": [
+      "existing regular file",
+      "canonical path confined to one permitted root",
+      "unique canonical path, stable internal ID"
+    ],
+    "durability": "task/sprint файлы уже лежат у владельца; автоматически их не перекладывать. Runtime пути временные и не остаются ссылками итогового результата после cleanup.",
+    "counts": "Явные scope + path/type matcher + minimum + maximum; count unique registered existing files. Различные тест-кейсы в одном файле считает только точный проектный check/parser.",
+    "deferred": "Уточнение сложной семантики типов и результатов — по практике. Не является блокером первого исполняемого happy path."
+  },
+  "updated_at": "2026-09-06T14:30:44+05:00"
+}

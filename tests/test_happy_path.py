@@ -1,4 +1,5 @@
 from pathlib import Path
+from copy import deepcopy
 import json
 import pytest
 from conftest import write_json, git, fill, add_test
@@ -104,6 +105,25 @@ def test_unknown_method_rejected_at_creation(project):
     h = Harness(project['config_path'], 'S-A')
     with pytest.raises(HarnessError, match='K1'):
         h.bootstrap(task_file=project['task_path'])
+
+
+def test_invalid_trace_schedule_rejected_before_task_branch_or_worktree(project):
+    invalid=deepcopy(project['task'])
+    invalid['content_contract']={"sections":[],"routes":[
+        {"id":"delivery","requirements":invalid['requirements'],"points":[
+            {"id":"method","kind":"method","fields":{},"write_stages":["tests"]}]}],
+        "requirements":[
+            {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
+             "stages":["implementation"],"phase":"pre","field_equals":{}}]}
+    task_path=write_json(project['root']/'invalid-schedule-task.json',invalid)
+    h=Harness(project['config_path'],'S-A')
+    with pytest.raises(HarnessError) as error:
+        h.bootstrap(task_file=task_path)
+    assert all(value in str(error.value) for value in
+               ('method-too-late','delivery','method','tests','implementation'))
+    assert h.task_queries.record('T1') is None
+    assert not (project['root']/'state/worktrees/T1').exists()
+    assert git(project['app'],'branch','--list','tasks/T1')==''
 
 
 def test_config_missing_value_not_defaulted(project):

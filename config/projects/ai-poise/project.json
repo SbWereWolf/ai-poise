@@ -98,9 +98,9 @@
     "verify_attempts": 5
   },
   "paths": {
-    "database": "tasks.sqlite",
+    "database": "database/tasks.sqlite",
     "git_index": "snapshot.index",
-    "lock": "tasks.lock",
+    "lock": "database/tasks.lock",
     "response": "response.json",
     "runs": "runs",
     "runtime": ".runtime",

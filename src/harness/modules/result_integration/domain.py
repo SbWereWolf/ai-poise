@@ -80,12 +80,13 @@ class IntegrationRun:
     conflicts: tuple[str, ...]
     resolutions: tuple[dict, ...]
     merge: dict | None
+    failure: dict | None
     cleanup: dict
     history: tuple[dict, ...]
 
     @classmethod
     def new(cls, intent):
-        return cls(intent, "prepared", 0, None, None, (), (), None,
+        return cls(intent, "prepared", 0, None, None, (), (), None, None,
                    {"worktree": "pending", "branch": "pending"},
                    ({"status": "prepared"},))
 
@@ -96,12 +97,14 @@ class IntegrationRun:
         intent = IntegrationIntent.parse({**value["intent"], "resolutions": []})
         return cls(intent, value["status"], value["version"], value["target_before"],
                    value["target_after"], tuple(value["conflicts"]), tuple(value["resolutions"]),
-                   value["merge"], dict(value["cleanup"]), tuple(value["history"]))
+                   value["merge"], value["failure"], dict(value["cleanup"]), tuple(value["history"]))
 
-    def _step(self, status, event=None, **changes):
+    def _step(self, status, event=None, details=None, **changes):
         entry = {"status": status}
         if event is not None:
             entry["event"] = event
+        if details is not None:
+            entry["details"] = details
         return replace(self, status=status, version=self.version + 1,
                        history=self.history + (entry,), **changes)
 
@@ -135,14 +138,28 @@ class IntegrationRun:
         target = _commit(target_after, "integrated target")
         merge = {"receipt": receipt, "conflicts": list(self.conflicts),
                  "resolutions": list(self.resolutions)}
-        return self._step("cleanup_pending", "target_integrated", target_after=target, merge=merge)
+        return self._step("cleanup_pending", "target_integrated", target_after=target,
+                          merge=merge, failure=None)
+
+    def blocked(self, reason, receipt):
+        if self.status != "running":
+            raise DomainError("Only a running integration can record a merge failure")
+        failure = {"reason": _text(reason, "failure reason"), "receipt": receipt}
+        return self._step("blocked", "merge_blocked", details=failure, failure=failure)
+
+    def retry_blocked(self):
+        if self.status != "blocked" or not isinstance(self.failure, dict):
+            raise DomainError("No blocked integration can be retried")
+        return self._step("prepared", "merge_retry", failure=None)
 
     def cleanup_blocked(self, component, receipt):
         if self.status != "cleanup_pending" or component not in ("worktree", "branch"):
             raise DomainError("Cleanup blockage does not match the integration state")
         cleanup = dict(self.cleanup)
         cleanup[component] = "blocked"
-        return self._step("cleanup_pending", f"{component}_cleanup_blocked", cleanup=cleanup)
+        details = {"component": component, "receipt": receipt}
+        return self._step("cleanup_pending", f"{component}_cleanup_blocked",
+                          details=details, cleanup=cleanup)
 
     def worktree_removed(self):
         if self.status not in ("cleanup_pending", "integrated"):
@@ -173,6 +190,7 @@ class IntegrationRun:
             "conflicts": list(self.conflicts),
             "resolutions": list(self.resolutions),
             "merge": self.merge,
+            "failure": self.failure,
             "cleanup": self.cleanup,
             "history": list(self.history),
         }
@@ -187,10 +205,10 @@ class IntegrationRun:
             "target_after": self.target_after,
             "cleanup": self.cleanup,
             "merge": self.merge,
+            "failure": self.failure,
             "history": list(self.history),
             "replayed": replayed,
         }
         if self.status == "awaiting_resolution":
             value["conflicts"] = list(self.conflicts)
         return value
-

@@ -109,6 +109,11 @@ class RuntimeResultIntegration:
         raw = self._git(target, "diff", "--name-only", "--diff-filter=U", "-z")
         return sorted(path for path in raw.split("\0") if path)
 
+    def _unstaged_or_untracked(self, target):
+        unstaged = self._git(target, "diff", "--name-only", "-z")
+        untracked = self._git(target, "ls-files", "--others", "--exclude-standard", "-z")
+        return {path for path in (unstaged + "\0" + untracked).split("\0") if path}
+
     def _actor(self):
         return {
             **os.environ,
@@ -135,12 +140,18 @@ class RuntimeResultIntegration:
                 self._save(intent.task_id, waiting, run.version)
                 return waiting
             if receipt["actual_exit_code"] != 0:
-                raise HarnessError("Merge failed without a recoverable conflict state")
+                blocked = run.blocked("merge_failed_without_conflicts", receipt)
+                self._save(intent.task_id, blocked, run.version)
+                return blocked
         elif run.status == "awaiting_resolution":
             if self._git(target, "rev-parse", "HEAD") != run.target_before \
                     or self._optional_ref(target, "MERGE_HEAD") != source:
                 raise HarnessError("Pending conflict no longer belongs to this integration")
             continued = run.continue_with(intent.resolutions)
+            unexpected = self._unstaged_or_untracked(target) - set(run.conflicts)
+            if unexpected:
+                raise HarnessError("Conflict continuation contains unrelated target changes: "
+                                   + ", ".join(sorted(unexpected)))
             for item in continued.resolutions:
                 path = target / item["path"]
                 if not path.resolve().is_relative_to(target.resolve()):
@@ -183,6 +194,13 @@ class RuntimeResultIntegration:
         if self._run(target, "merge-base", "--is-ancestor", run.intent.expected_source_commit,
                      run.target_after)["actual_exit_code"] != 0:
             raise HarnessError("Integrated target does not contain the accepted source")
+        target_status = self._git(target, "status", "--porcelain")
+        if target_status:
+            blocked = run.cleanup_blocked(
+                "worktree", {"reason": "target_not_clean_after_integration", "status": target_status}
+            )
+            self._save(run.intent.task_id, blocked, run.version)
+            return blocked
         source = Path(record["worktree"])
         if run.cleanup["worktree"] != "removed":
             if source.exists():
@@ -220,7 +238,15 @@ class RuntimeResultIntegration:
             return run.result(replayed=True)
         if run.status in ("prepared", "running", "awaiting_resolution"):
             run = self._integrate(record, run, intent, target)
-        if run.status == "awaiting_resolution":
+        elif run.status == "blocked":
+            if (self._git(target, "rev-parse", "HEAD") != run.target_before
+                    or self._optional_ref(target, "MERGE_HEAD") is not None
+                    or self._git(target, "status", "--porcelain")):
+                return run.result()
+            retry = run.retry_blocked()
+            self._save(intent.task_id, retry, run.version)
+            run = self._integrate(record, retry, intent, target)
+        if run.status in ("awaiting_resolution", "blocked"):
             return run.result()
         run = self._cleanup(record, run, target)
         return run.result()

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from conftest import git
@@ -84,6 +82,31 @@ def test_stale_target_is_rejected_without_touching_source_or_target(project):
     assert git(project["app"], "branch", "--list", "tasks/T1")
 
 
+@pytest.mark.parametrize("invalid_state", ["unaccepted", "wrong_source", "dirty_source", "dirty_target", "wrong_branch"])
+def test_source_task_branch_commit_and_both_worktrees_are_validated_before_merge(project, invalid_state):
+    tools, source_worktree, source = prepare_completed_task(
+        project,
+        lambda tree: (tree / "src" / "feature.py").write_text("VALUE = 1\n"),
+        accept=invalid_state != "unaccepted",
+    )
+    payload = integration_input(project, source)
+    if invalid_state == "wrong_source":
+        payload["expected_source_commit"] = "f" * 40
+    elif invalid_state == "dirty_source":
+        (source_worktree / "untracked.txt").write_text("dirty\n")
+    elif invalid_state == "dirty_target":
+        (project["app"] / "untracked.txt").write_text("dirty\n")
+    elif invalid_state == "wrong_branch":
+        git(source_worktree, "branch", "-m", "unexpected-source")
+    target_before = git(project["app"], "rev-parse", "HEAD")
+
+    with pytest.raises(HarnessError):
+        tools.invoke(request("integrate", payload))
+
+    assert git(project["app"], "rev-parse", "HEAD") == target_before
+    assert source_worktree.exists()
+
+
 def test_cleanup_interruption_is_queryable_and_retry_only_finishes_cleanup(project):
     tools, source_worktree, source = prepare_completed_task(
         project, lambda tree: (tree / "src" / "feature.py").write_text("VALUE = 1\n")
@@ -98,6 +121,8 @@ def test_cleanup_interruption_is_queryable_and_retry_only_finishes_cleanup(proje
     assert git(project["app"], "merge-base", "--is-ancestor", source, "HEAD") == ""
     assert source_worktree.exists()
     assert pending["cleanup"]["worktree"] == "blocked"
+    pending_history = pending["history"]
+    assert pending_history[-1]["status"] == "cleanup_pending"
     git(project["app"], "worktree", "unlock", str(source_worktree))
 
     completed = tools.invoke(request("integrate", payload))
@@ -119,4 +144,7 @@ def test_cleanup_interruption_is_queryable_and_retry_only_finishes_cleanup(proje
     assert saved["source_commit"] == source
     assert saved["target_after"] == integrated_head
     assert saved["cleanup"] == {"worktree": "removed", "branch": "deleted"}
-
+    assert [entry["status"] for entry in saved["history"]][-2:] == ["cleanup_pending", "integrated"]
+    task = reader.task_queries.record("T1")
+    assert task["status"] == "completed"
+    assert task["result_commit"] == source

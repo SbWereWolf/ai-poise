@@ -13,7 +13,7 @@ def request(operation, inputs):
     return {"operation": operation, "input": inputs, "messages": []}
 
 
-def prepare_completed_task(project, change, *, task_id="T1"):
+def prepare_completed_task(project, change, *, task_id="T1", accept=True):
     cfg = deepcopy(project["cfg"])
     cfg["automatic_checks"] = []
     cfg["git"]["push_required"] = False
@@ -68,8 +68,9 @@ def prepare_completed_task(project, change, *, task_id="T1"):
     result["commit_message"] = "feat: accepted source result"
     verified = tools.invoke(request("verify", {"result": result, "artifacts": []}))
     assert verified["status"] == "verified"
-    completed = tools.invoke(request("accept", {}))
-    assert completed["status"] == "completed"
+    if accept:
+        completed = tools.invoke(request("accept", {}))
+        assert completed["status"] == "completed"
     return tools, source_worktree, verified["commit"]
 
 
@@ -82,4 +83,3 @@ def integration_input(project, source_commit, request_id="integrate-1", resoluti
         "authorization": "The user accepted the completed task result.",
         "resolutions": list(resolutions),
     }
-

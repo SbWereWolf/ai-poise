@@ -140,12 +140,26 @@ def test_whole_sprint_cancel_preserves_completed_and_cancels_unfinished(project)
         "mode": "single",
         "reason": "User already removed B",
     }))
+    cancelled_b_history = deepcopy(planner.runtime.task_queries.history("B"))
+    shared = planner.invoke(request("artifacts", {"items": [{
+        "scope": "sprint",
+        "path": "cancel-note.txt",
+        "source": {"kind": "text", "text": "preserve this Sprint artifact\n"},
+    }]}))
+    shared_path = Path(shared["artifact_paths"][0])
     worker_c = WorkTools(Harness(project["config_path"], "worker-C"))
     active_context = bootstrap(worker_c, "C")
     marker = Path(active_context["worktree"]) / "unfinished.txt"
     marker.write_text("do not delete\n")
     unstarted_worktree = planner.runtime.state / planner.runtime.paths["worktrees"] / "D"
     assert not unstarted_worktree.exists()
+
+    stored_hashes = {
+        name: planner.runtime.task_queries.record(name)["config_hash"] for name in "ABCD"
+    }
+    change_limit(project)
+    planner = WorkTools(Harness(project["config_path"], "planner"))
+    assert all(stored_hash != planner.runtime.config_hash for stored_hash in stored_hashes.values())
 
     overview = planner.invoke(request("sprint", {
         "action": "cancel",
@@ -160,9 +174,11 @@ def test_whole_sprint_cancel_preserves_completed_and_cancels_unfinished(project)
     assert records["A"]["last_report"] == completed_record["last_report"]
     assert records["A"]["last_report"]["commit"] == completed_report["commit"]
     assert records["B"]["status"] == "cancelled"
+    assert planner.runtime.task_queries.history("B") == cancelled_b_history
     assert records["C"]["status"] == records["D"]["status"] == "cancelled"
     assert records["C"]["claimed_by"] is None and records["D"]["claimed_by"] is None
     assert marker.read_text() == "do not delete\n"
+    assert shared_path.read_text() == "preserve this Sprint artifact\n"
     assert not unstarted_worktree.exists()
     assert sprint_plan(planner)["decisions"][-1] == {
         "kind": "sprint_cancel",

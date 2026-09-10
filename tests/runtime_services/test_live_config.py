@@ -33,16 +33,30 @@ def test_bound_task_lifecycle_ignores_whole_config_digest(project):
     context = bootstrap_task(original, project)
     add_test(context["worktree"])
     expected_position = context["task"], context["stage"], context["iteration"]
+    original_hash = original.runtime.task_queries.record("T1")["config_hash"]
 
     change_limit(project)
     current = WorkTools(Harness(project["config_path"], "same-session"))
-    shown = current.invoke(request("show", {"queries": [{"id": "state", "kind": "task"}]}))
-    state = shown["results"][0]["value"]
+    assert current.runtime.config_hash != original_hash
+    shown = current.invoke(request("show", {"queries": [
+        {"id": "state", "kind": "task"},
+        {
+            "id": "report",
+            "kind": "section",
+            "name": "report",
+            "stage": None,
+            "submission": None,
+            "range": None,
+        },
+    ]}))
+    state, report = (item["value"] for item in shown["results"])
     assert (state["task"], state["stage"], state["iteration"]) == expected_position
+    assert report["text"] == context["result_template"]["sections"]["report"]
 
     verified = verify_task(current, result(context, "Verified with the current project config"))
     assert verified["status"] == "verified"
     assert (verified["task"], verified["stage"], verified["iteration"]) == expected_position
+    assert current.runtime.task_queries.record("T1")["config_hash"] == original_hash
 
 
 def test_accept_and_rework_ignore_whole_config_digest(project):

@@ -1,0 +1,11 @@
+
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Local mutable data for the configured ai-poise project
+/projects/.project-setup.lock

@@ -261,7 +261,8 @@
     },
     {
       "allowed_paths": [
-        "docs/**"
+        "docs/**",
+        "*.md"
       ],
       "artifact_requirements": [],
       "handler": "produce",
@@ -353,7 +354,8 @@
     },
     {
       "allowed_paths": [
-        "docs/**"
+        "docs/**",
+        "*.md"
       ],
       "artifact_requirements": [],
       "handler": "revise",

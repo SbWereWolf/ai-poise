@@ -20,6 +20,16 @@ def overview(tools, sprint_statuses=None, standalone_task_statuses=None):
     return response["results"][0]["value"]
 
 
+def sprint_overview(tools, sprint_id):
+    response = tools.invoke(request("show", {"queries": [{
+        "id": "sprint",
+        "kind": "sprint",
+        "sprint_id": sprint_id,
+        "view": "current",
+    }]}))
+    return response["results"][0]["value"]
+
+
 def standalone(project, identifier, session):
     contract = task(project, identifier)
     contract["sprint_id"] = None
@@ -43,7 +53,7 @@ def complete_standalone(project, identifier, session):
     return tools
 
 
-def published_sprint(project, identifier, task_ids, edges=()):
+def drafted_sprint(project, identifier, task_ids, edges=()):
     tools = WorkTools(Harness(project["config_path"], f"planner-{identifier}"))
     contracts = []
     for task_id in task_ids:
@@ -58,6 +68,11 @@ def published_sprint(project, identifier, task_ids, edges=()):
         "template": {"id": "basic", "version": "1"},
         "changes": changes(contracts, edges),
     }))
+    return tools, drafted
+
+
+def published_sprint(project, identifier, task_ids, edges=()):
+    tools, drafted = drafted_sprint(project, identifier, task_ids, edges)
     tools.invoke(request("sprint", {
         "action": "publish",
         "sprint_id": None,
@@ -103,6 +118,7 @@ def test_work_overview_separates_sprint_members_and_orders_each_list(project):
     setup(project)
     published_sprint(project, "sprint-z", ["member-z"])
     published_sprint(project, "sprint-a", ["member-a"])
+    drafted_sprint(project, "draft-sprint", ["draft-member"])
     standalone(project, "standalone-z", "standalone-z-session")
     standalone(project, "standalone-a", "standalone-a-session")
     observer = WorkTools(Harness(project["config_path"], "overview-observer"))
@@ -111,6 +127,11 @@ def test_work_overview_separates_sprint_members_and_orders_each_list(project):
 
     assert [item["sprint"] for item in result["sprints"]] == ["sprint-a", "sprint-z"]
     assert [item["id"] for item in result["standalone_tasks"]] == ["standalone-a", "standalone-z"]
+    assert {item["goal"] for item in result["sprints"]} == {"Спринт проверки библиотек"}
+    assert {item["goal"] for item in result["standalone_tasks"]} == {
+        "Результат standalone-a",
+        "Результат standalone-z",
+    }
     assert {item["status"] for item in result["sprints"]} == {"planned"}
     assert {item["status"] for item in result["standalone_tasks"]} == {"active"}
     assert not {"member-a", "member-z"} & {item["id"] for item in result["standalone_tasks"]}
@@ -147,13 +168,13 @@ def test_work_overview_filters_lists_independently_with_null_and_empty(project):
 
 def test_work_overview_reuses_dependency_aware_blocked_sprint_overview(project):
     setup(project)
-    tools = published_sprint(
+    blocked_tools = published_sprint(
         project,
         "blocked-sprint",
         ["predecessor", "successor"],
         [{"predecessor": "predecessor", "successor": "successor", "kind": "completion"}],
     )
-    tools.invoke(request("sprint", {
+    blocked_tools.invoke(request("sprint", {
         "action": "cancel_tasks",
         "sprint_id": None,
         "request_id": "cancel-predecessor",
@@ -161,15 +182,49 @@ def test_work_overview_reuses_dependency_aware_blocked_sprint_overview(project):
         "mode": "single",
         "reason": "Exercise the dependency blocker",
     }))
-    expected = deepcopy(tools.runtime.sprint_tools.overview("blocked-sprint"))
+    blocked_expected = sprint_overview(blocked_tools, "blocked-sprint")
 
-    result = overview(tools, ["blocked"], [])
+    mixed_tools = published_sprint(
+        project,
+        "mixed-sprint",
+        ["mixed-predecessor", "mixed-successor", "active-member", "eligible-member"],
+        [{
+            "predecessor": "mixed-predecessor",
+            "successor": "mixed-successor",
+            "kind": "completion",
+        }],
+    )
+    mixed_tools.invoke(request("sprint", {
+        "action": "cancel_tasks",
+        "sprint_id": None,
+        "request_id": "cancel-mixed-predecessor",
+        "tasks": ["mixed-predecessor"],
+        "mode": "single",
+        "reason": "Keep one mixed dependency blocker",
+    }))
+    mixed_tools.invoke(request("bootstrap", {
+        "task": {"id": "active-member"},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    mixed_expected = sprint_overview(mixed_tools, "mixed-sprint")
 
-    assert result["sprints"] == [expected]
+    observer = WorkTools(Harness(project["config_path"], "dependency-overview-observer"))
+    result = overview(observer, ["active", "blocked"], [])
+
+    assert result["sprints"] == [blocked_expected, mixed_expected]
     assert result["standalone_tasks"] == []
-    assert expected["status"] == "blocked"
-    assert expected["eligible"] == []
-    assert expected["blocked"] == [{
+    assert blocked_expected["status"] == "blocked"
+    assert blocked_expected["eligible"] == []
+    assert blocked_expected["blocked"] == [{
         "task": "successor",
         "reasons": [{"predecessor": "predecessor", "reason": "cancelled_dependency"}],
+    }]
+    assert mixed_expected["status"] == "active"
+    assert mixed_expected["eligible"] == ["eligible-member"]
+    assert mixed_expected["active"] == ["active-member"]
+    assert mixed_expected["blocked"] == [{
+        "task": "mixed-successor",
+        "reasons": [{"predecessor": "mixed-predecessor", "reason": "cancelled_dependency"}],
     }]

@@ -9,11 +9,12 @@ def parse_request(value, config):
     shapes={'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
-            'cancel':{'reason'},'artifacts':{'items'},'sprint':None,'transfer':None}
+            'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
+            'sprint':None,'transfer':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
-    if op not in ('sprint','transfer'):exact(value['input'],shapes[op],f'{op} input')
+    if op not in ('sprint','transfer','integrate'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')
@@ -39,7 +40,7 @@ def parse_request(value, config):
             if not isinstance(query,dict) or not isinstance(query.get('id'),str) or not query['id'] or query['id'] in ids:
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
-            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'task':{'id','kind'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},
+            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')

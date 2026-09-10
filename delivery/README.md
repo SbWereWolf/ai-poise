@@ -1,13 +1,16 @@
-# Стартовый Sprint Harness
+# Исходные данные первоначального спринта
 
-Этот каталог содержит task contracts для материализации публичным API Harness. Файлы JSON — поставочные определения, а не альтернативное постоянное task storage.
+Здесь остались определения задач и требований, которые читает [seed-инструмент](../tools/seed_wsl_tasks.py). Его работу проверяет [тест поставки](../tests/delivery/test_wsl_seed.py).
 
-После окончательной настройки WSL-путей `tools/seed_wsl_tasks.py` создаёт project-local `tasks.sqlite` и один `SPRINT-0001`:
+| Файл | Назначение |
+|---|---|
+| `task-definitions/harness/0001.json` | Требования к Requirements DB и связям требований |
+| `task-definitions/harness/0002.json` | Обнаружение возможностей IDE MCP |
+| `task-definitions/harness/0003.json` | Исследование JetBrains MCP и правила работы агентов |
+| `requirements-bootstrap.json` | Исходные будущие требования для Requirements DB |
 
-- `0001` — Requirements DB + requirement traceability;
-- `0002` — IDE MCP discovery in preflight;
-- `0003` — JetBrains MCP research and agent policy.
+В проекте ai-poise эти задачи уже созданы в `SPRINT-0001`. Исходные JSON также сохранены в артефактах спринта. Рабочие задачи и их состояние читаются через Harness; редактирование файлов здесь не изменяет опубликованные задачи.
 
-Зависимости: `0001 → 0002 → 0003`, `kind=result`.
+Для текущего ai-poise повторный seed не требуется. Определения оставлены, чтобы сохранить существующий инструмент и его тест без изменения кода. После отдельной доработки этих зависимостей каталог можно удалить полностью.
 
-`requirements-bootstrap.json` содержит согласованные future требования первого bootstrap. После реализации `0001` они импортируются в project-local Requirements DB и bootstrap-файл не остаётся каноническим источником.
+Исторические отчёты поставки, её отдельный план и проверочная SQLite-база удалены. Рабочая база проекта — `projects/ai-poise/tasks.sqlite`; эталонная база не использовалась для её создания. Настройка и команды приведены в [инструкции локального проекта](../docs/project-setup.md#локальный-проект-ai-poise).

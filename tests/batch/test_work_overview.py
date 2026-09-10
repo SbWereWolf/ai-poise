@@ -182,8 +182,6 @@ def test_work_overview_reuses_dependency_aware_blocked_sprint_overview(project):
         "mode": "single",
         "reason": "Exercise the dependency blocker",
     }))
-    blocked_expected = sprint_overview(blocked_tools, "blocked-sprint")
-
     mixed_tools = published_sprint(
         project,
         "mixed-sprint",
@@ -208,9 +206,9 @@ def test_work_overview_reuses_dependency_aware_blocked_sprint_overview(project):
         "feedback": None,
         "rework_stage": None,
     }))
-    mixed_expected = sprint_overview(mixed_tools, "mixed-sprint")
-
     observer = WorkTools(Harness(project["config_path"], "dependency-overview-observer"))
+    blocked_expected = sprint_overview(observer, "blocked-sprint")
+    mixed_expected = sprint_overview(observer, "mixed-sprint")
     result = overview(observer, ["active", "blocked"], [])
 
     assert result["sprints"] == [blocked_expected, mixed_expected]

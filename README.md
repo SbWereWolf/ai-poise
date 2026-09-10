@@ -46,7 +46,7 @@ JSON
 |---|---|
 | `src/` | Реализация AI poise |
 | `config/` | Настройки инструментов, шаблоны и конфигурации процессов; рабочий проект — `config/projects/ai-poise/` |
-| `projects/ai-poise/` | Рабочие данные: `tasks.sqlite`, `.runtime/`, `task/`, `sprint/` и `worktrees/` |
+| `projects/ai-poise/` | Рабочие данные: Task DB и её резервные копии в `database/`, а также `.runtime/`, `task/`, `sprint/` и `worktrees/` |
 | `docs/` | Руководства и спецификации; организация документов ещё пересматривается |
 | `examples/` | Примеры API и входных данных |
 | `skills/` | Инструкции агентам по работе с AI poise и его разработке |

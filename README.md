@@ -1,46 +1,66 @@
-# Agent Harness — локальная WSL-поставка
+# Agent Harness
 
-Версия: **0.16.1**. Harness запускается как отдельное приложение. Его project configuration, Task DB, Requirements DB, process catalogue и task/sprint artifacts принадлежат проекту Harness и не размещаются в обслуживаемой кодовой базе.
+Harness — локальное приложение для работы AI-агентов над задачами и спринтами. Оно ведёт состояние задач, выдаёт инструкции текущего этапа, запускает заданные проверки и сохраняет результаты. Для изменений в коде используются отдельные рабочие деревья Git.
 
-## Что находится в комплекте
+Этот репозиторий называется **ai-poise**, команда приложения — **`harness`**. Проектная конфигурация задаёт процессы, проверки и расположение рабочих данных.
 
-- исходный код Harness и 13 reference process templates;
-- один WSL project template `wsl-harness`;
-- один Sprint `SPRINT-0001` с задачами `0001`–`0003`;
-- bootstrap согласованных future System/Application requirements;
-- seed-инструмент, создающий `tasks.sqlite` через публичный Sprint API без ручного SQL;
-- skills для обычной работы и разработки Harness;
-- русскоязычная инструкция локальной работы в WSL.
+## Запуск
 
-Полная инструкция: [Локальная поставка Harness для WSL](docs/wsl-local-delivery.md#архитектура-локальной-установки).
-
-## Минимальный запуск
+Требуется **Python 3.13** (`>=3.13,<3.14`). Команды ниже рассчитаны на существующую локальную установку ai-poise: окружение `.venv/` с установленным Harness и опубликованная конфигурация проекта уже должны быть подготовлены.
 
 ```bash
-export PYTHONPATH="$PWD/src"
-python -m harness project-init \
-  --settings "$PWD/config/project-setup.json" \
-  --template wsl-harness \
-  --destination projects/harness \
-  --request-id HARNESS-WSL-SETUP-1 \
-  --probe-repository yes
+cd /home/sbwerewolf/workdata/ai-poise
+.venv/bin/harness --help
 
-python tools/seed_wsl_tasks.py \
-  --harness-config "$PWD/projects/harness/project.json"
+export HARNESS_CONFIG="$PWD/config/projects/ai-poise/project.json"
+export HARNESS_SESSION="$(.venv/bin/python -c 'import uuid; print(uuid.uuid4())')"
 ```
 
-В анкете `paths.state` укажите отдельный project-data каталог Harness вне Git checkout обслуживаемой кодовой базы. Из него текущая версия размещает `tasks.sqlite`, task/sprint artifacts, runtime и worktrees по явно заданным путям project config. Task `0001` добавит отдельный конфигурируемый путь project-local `requirements.sqlite`.
+Сохраните значения переменных для следующих команд. При отдельных запусках оболочки передавайте тот же `HARNESS_SESSION` явно.
 
-## Первый Sprint
+Для подготовки нового проекта см. [настройку проекта](docs/project-setup.md), для этой установки — [локальные пути и команды](docs/project-setup.md#локальный-проект-ai-poise). Повторно создавать конфигурацию или запускать seed для уже настроенного ai-poise не требуется.
 
-- `0001` — Requirements DB + System → Application → Task traceability + immutable snapshot;
-- `0002` — IDE MCP capability discovery в обычном preflight/bootstrap;
-- `0003` — исследование JetBrains MCP и каноническая policy работы AI-агентов.
+## Работа с задачами
 
-Зависимости: `0001 → 0002 → 0003`, тип `result`.
+`bootstrap` начинает или возобновляет работу, `verify` проверяет результат текущего этапа. Это JSON-операции команды `harness work`.
 
-## Работа агента
+Минимальный пример чтения **без формальной задачи**, в новой сессии из предыдущего блока:
 
-Обычный агент читает [Harness workflow skill](skills/harness/SKILL.md). При изменении Harness используется [Harness development skill](skills/harness-development/SKILL.md) и `src/AGENTS.md`.
+```bash
+.venv/bin/harness work <<'JSON'
+{"operation":"bootstrap","input":{"task":null,"decision":null,"feedback":null,"rework_stage":null},"messages":[]}
+JSON
 
-Task SQLite: `user_version=12`. Project schema: `ddd-accounting-11`. Существующие stores автоматически не мигрируются.
+.venv/bin/harness work <<'JSON'
+{"operation":"verify","input":{"result":null,"artifacts":[]},"messages":[]}
+JSON
+```
+
+Ожидаемые статусы — `read_only` и `read_only_verified`. Последний означает завершение сессии чтения, а не проверку содержательных результатов.
+
+Для формальной задачи передайте её ID в `bootstrap`, работайте в выданном worktree и заполните полученный `result_template` для `verify`. После проверки этапа агент докладывает результат и останавливается. Принятие результата и переход дальше — отдельные действия. Форматы пакетов описаны в [API работы](docs/batch-work.md), выбор задач и зависимости — в [API спринтов](docs/sprints.md).
+
+## Структура проекта
+
+| Путь | Назначение |
+|---|---|
+| `src/` | Реализация Harness |
+| `config/` | Настройки инструментов, шаблоны и конфигурации процессов; рабочий проект — `config/projects/ai-poise/` |
+| `projects/ai-poise/` | Рабочие данные: `tasks.sqlite`, `.runtime/`, `task/`, `sprint/` и `worktrees/` |
+| `docs/` | Руководства и спецификации; организация документов ещё пересматривается |
+| `examples/` | Примеры API и входных данных |
+| `skills/` | Инструкции агентам по работе с Harness и его разработке |
+| `tests/` | Проверки приложения |
+| `tools/` | Вспомогательные команды разработки и настройки |
+| `delivery/` | Четыре исходных JSON, нужных seed-инструменту и его тесту; назначение описано в [README каталога](delivery/README.md) |
+
+В корне также находятся `pyproject.toml` с метаданными и требованиями Python, `requirements-dev.txt`, `.gitignore` и правила [AGENTS.md](AGENTS.md).
+
+Для этой установки конфигурация и рабочие данные разделены: `config/projects/ai-poise/` и `projects/ai-poise/`. Перенос навыков в `.agents/skills/` и отдельная Requirements DB пока запланированы; текущую работу они не обеспечивают.
+
+## Документация
+
+- [Настройка проекта](docs/project-setup.md) — публикация конфигурации и локальная установка.
+- [API работы](docs/batch-work.md) — bootstrap, результаты этапов и артефакты.
+- [Спринты](docs/sprints.md) — задачи, зависимости и принятие результатов.
+- [Правила агентов](AGENTS.md) — обязательный рабочий процесс и ссылки на навыки.

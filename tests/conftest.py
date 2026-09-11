@@ -141,6 +141,8 @@ def add_test(worktree):
 # the NEW explicit result object. It is not installed/exported by Poise and
 # it does not read or write an operational result file. This preserves old
 # behavioural assertions while changing their transport fixture.
+_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+sys.path.insert(0, str(_SOURCE_ROOT))
 from poise.runtime import Poise as Runtime
 from poise.modules.accounting.clock import ClockObservation
 from copy import deepcopy

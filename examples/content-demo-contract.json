@@ -155,6 +155,7 @@
         "route": "functional",
         "point": "product",
         "stages": [
+          "implementation",
           "code_review"
         ],
         "phase": "pre",

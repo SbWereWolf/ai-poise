@@ -14,7 +14,6 @@ from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
 from .application.evidence import EvidenceCommands
-from .modules.tasks.contracts import content_policy_from_metadata
 from .modules.content_requirements.domain import ArtifactFact
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
@@ -231,11 +230,12 @@ class Harness:
                     raise HarnessError('Existing task contract is immutable; bootstrap is not an editor')
                 if existing['status']=='available':return self.sprint_tools.start(existing['id'])
                 selected_process = existing['process']
+                process = selected_process
             else:
                 if contract.get('goal_type') not in self.processes:
                     raise HarnessError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
-            process = self._validate_task(contract, selected_process)
+                process = self._validate_task(contract, selected_process)
             if current and current['status'] not in ('completed','cancelled') and current['id'] != contract['id']:
                 raise HarnessError('Сначала прекратить/передать текущую задачу')
             existing = self.task_queries.record(contract['id'])

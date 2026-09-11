@@ -1,6 +1,6 @@
 """One pure creation contract for standalone and sprint-published tasks."""
 from copy import deepcopy
-from .contracts import stages_from_process, content_policy_from_metadata, evidence_plan_from_metadata
+from .contracts import stages_from_process, candidate_content_policy_from_metadata, evidence_plan_from_metadata
 from .domain import Task
 from ..verification.domain import CheckRegistry, exact_keys
 from ..goal_config.domain import GoalTypeDefinition
@@ -52,8 +52,8 @@ def validate_creation(contract, process, automatic_checks):
 
 def build_task(metadata, actor):
     stages=stages_from_process(metadata['process'])
-    policy=content_policy_from_metadata(metadata,{'goal':metadata['process']['content_contract'],
-                                                  'task':metadata['contract']['content_contract']})
+    policy=candidate_content_policy_from_metadata(metadata,{'goal':metadata['process']['content_contract'],
+                                                            'task':metadata['contract']['content_contract']})
     registry=CheckRegistry.from_task(metadata['contract']['methods'],metadata['contract']['checks'],tuple(s.stage_id for s in stages))
     args=(metadata['contract']['id'],stages,policy,registry,RouteDefinition.from_process(metadata['process']),evidence_plan_from_metadata(metadata,registry))
     if actor is None:return Task.planned(*args)

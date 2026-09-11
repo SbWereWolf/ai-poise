@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from ..modules.tasks.domain import Task, TaskState, TaskStatus
 from ..modules.workflow.domain import RouteDefinition
 from ..modules.tasks.ports import TaskUnitOfWork
-from ..modules.tasks.contracts import stages_from_process, content_policy_from_metadata, evidence_plan_from_metadata
+from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError

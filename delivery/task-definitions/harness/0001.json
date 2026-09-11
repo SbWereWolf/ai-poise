@@ -82,7 +82,8 @@
             "kind": "method",
             "fields": {},
             "write_stages": [
-              "verification_planning"
+              "verification_planning",
+              "test_implementation"
             ]
           },
           {
@@ -90,7 +91,8 @@
             "kind": "method",
             "fields": {},
             "write_stages": [
-              "verification_planning"
+              "verification_planning",
+              "implementation"
             ]
           }
         ]

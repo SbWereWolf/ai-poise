@@ -23,6 +23,10 @@ Submit the stage result and related sections/findings/evidence/artifacts in one 
 
 Use native coding/IDE tools for source changes. Harness owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. After a verified stage, report the result and stop unless the user has explicitly delegated multi-stage autonomous continuation.
 
+## Update live project configuration
+
+Do not hand-edit an installed project manifest, its process snapshots, or its state path. Use the bounded public command `python -m harness project-config --settings <project-setup-settings>` with one `project-config-update-1` packet. Supply the known full-project `expected_revision`, a distinct durable `receipt_path`, per-process revisions, and an explicit `probe_repository` value. Retry an interrupted operation with the exact same packet; do not choose a new request ID or overwrite managed files. Manifest or state-path changes require a quiescent project, while process updates affect future Task snapshots only. Read [Project setup → Update an existing project](../../../docs/configuration/project-setup.md#обновление-действующего-проекта) for the packet and relocation contract.
+
 ## Sprint work
 
 Bootstrap the sprint to get the eligible set instead of calculating dependencies manually. `verified` is not `completed`; predecessor completion follows the task's acceptance policy. Read [Sprint API → Work selection](../../../docs/workflows/sprints.md#выбор-работы-и-один-пакет-контекста) and [Sprint API → Dependency kinds](../../../docs/workflows/sprints.md#два-явных-вида-зависимостей).

@@ -1,6 +1,6 @@
 # Пакетная подготовка проекта и анкета
 
-Обновлено: **2026-09-11T16:34:08+05:00**.
+Обновлено: **2026-09-12T00:00:00+05:00**.
 
 ## Назначение
 
@@ -94,11 +94,10 @@ Invalid policy отклоняет загрузку конфигурации. О�
 explicit-ID creation существующих проектов, но automatic intent завершается явной ошибкой.
 
 Project templates и уже опубликованные project configs не получают `task_ids` автоматически.
-Этот срез не выбирает за пользователя числовой диапазон и не редактирует действующий managed
-config. Чтобы новый проект поддерживал automatic allocation, выбранный полный template должен
-уже содержать принятую policy; изменение существующего проекта требует отдельной штатной
-операции конфигурации, которой текущий `project` API не предоставляет. Ручная правка managed
-manifest не объявляется поддержанным обходом.
+Этот срез не выбирает за пользователя числовой диапазон. Чтобы проект поддерживал automatic
+allocation, выбранный полный template должен уже содержать принятую policy. `project-config`
+изменяет только существующие manifest fields и не добавляет отсутствующий `task_ids`; ручная
+правка managed manifest не является поддержанным обходом.
 
 Перед публикацией инструмент проверяет весь кандидат штатным `load_config`, в том числе
 каждый process через общий GoalTypeDefinition. Затем (при true) выполняются только локальные
@@ -106,6 +105,84 @@ Git-проверки: repository root, разрешимость base ref, имя
 Ни fetch/push, ни установка пакетов, ни изменение trust не выполняются. Наличие remote в
 конфиге отражено как `configured_not_contacted`: это НЕ доказательство credentials/network.
 При false явно возвращается `not_checked`; такую запись нельзя называть проверенной.
+
+## Обновление действующего проекта
+
+Один публичный пакет обновляет существующий project manifest и его process snapshots без
+удаления и повторного создания проекта:
+
+```bash
+python -m harness project-config --settings "$PWD/config/project-setup.json"
+```
+
+На stdin передаётся ровно один bounded JSON-объект `project-config-update-1`:
+
+```json
+{
+  "schema": "project-config-update-1",
+  "request_id": "ERP-CONFIG-2",
+  "config_path": "/absolute/harness/root/config/projects/erp-local/project.json",
+  "expected_revision": "known-project-revision",
+  "manifest_edits": [
+    {"path": ["git", "push_required"], "value": false}
+  ],
+  "process_updates": [
+    {"goal_type": "development", "expected_revision": "known-process-revision", "changes": []}
+  ],
+  "state_relocation": null,
+  "probe_repository": false,
+  "receipt_path": "operations/ERP-CONFIG-2.json"
+}
+```
+
+`config_path` выбирает существующий managed manifest внутри root из settings.
+`expected_revision` — digest полного действующего project manifest вместе со всеми process
+snapshots; операция принимает только revision, ранее зафиксированную setup/update receipt.
+Каждый process update дополнительно содержит digest выбранного process и декларативные
+`changes` контракта `GoalTypeDefinition`. Изменения одного process публикуются полным
+валидированным snapshot, а не правкой JSON-файла на месте.
+
+`manifest_edits` адресует существующие поля по логическому пути. Корни `project`, `schema`,
+`processes` и `paths` имеют отдельных владельцев и через generic edit не меняются. Весь
+manifest и все process snapshots проверяются общим `load_config` до публикации. Локальный
+Git probe выполняется только при `probe_repository=true`; сеть, fetch и push не входят в эту
+операцию.
+
+### Revision, receipt и восстановление
+
+`request_id`, содержимое запроса и `receipt_path` образуют неизменное намерение. Receipt
+располагается относительно root из setup settings и содержит прежнюю/новую project revision,
+readiness и итог операции. Точный повтор возвращает тот же результат с `replayed=true` и не
+создаёт вторую revision. Другой пакет с тем же receipt, неизвестная или устаревшая live
+revision и посторонняя правка managed файлов завершаются конфликтом без принятия этих данных.
+
+Перед внешними публикациями сохраняется pending receipt с digest каждого компонента до и
+после. После прерывания следует повторить тот же пакет: восстановление принимает только
+точную комбинацию известных before/after-компонентов, допубликовывает недостающую часть и
+создаёт один durable receipt. Неизвестный исход нельзя исправлять новым request ID, ручным
+overwrite или удалением проекта.
+
+### Активные задачи и перенос state
+
+Process update не переписывает process snapshot уже созданной Task: она продолжает работать
+по сохранённому определению, а новая revision применяется к будущим задачам. Manifest edit и
+перенос `paths.state` разрешены только у quiescent проекта без Task в незавершённом состоянии.
+Проверка quiescence и публикация защищены тем же state lock, который сериализует создание и
+claim Task.
+
+`state_relocation` содержит только `expected_source`, `destination` и `source_disposition`.
+Допустимы `retain` и `delete_after_publish`; source должен совпадать с действующим state root,
+существовать и не пересекаться с destination как равный, родительский или дочерний путь.
+Непустой либо неизвестный destination не перезаписывается. Сначала всё дерево копируется во
+временный соседний каталог, публикуется rename и сверяется с source, затем под одновременно
+удерживаемыми source/destination locks переключается manifest. Source удаляется только после
+успешного переключения при `delete_after_publish`; при `retain` он сохраняется. Повтор после
+прерывания распознаёт уже опубликованную точную копию, но не создаёт пустое replacement state
+из отсутствующего source.
+
+Успешный результат имеет `status=updated`, `changed`, `prior_revision`, `revision`,
+`config_path`, `readiness`, `receipt_path` и `replayed`; при переносе добавляется
+`state_relocation` с source, destination и фактическим disposition.
 
 ## Публикация и повтор
 
@@ -156,10 +233,10 @@ python examples/project_pilot.py \
 
 ## Границы
 
-Создание нового проекта, одна целевая codebase (граница текущего runtime), 13 reference
-процессов в поставленном шаблоне. Редактирование действующего project manifest, автоматическая
-миграция, multi-codebase, настройка живого IDE/Gmail и установка интерпретатора не включены.
-Уже работающие задачи не затрагиваются. Проектный wizard теперь реализован, но не является
+Создание и revision-aware обновление проекта, одна целевая codebase (граница текущего
+runtime), 13 reference-процессов в поставленном шаблоне. Автоматическая миграция активных
+Task, multi-codebase, настройка живого IDE/Gmail и установка интерпретатора не включены.
+Уже работающие задачи не изменяются. Project wizard и `project-config` не являются
 универсальным мастером установки всех внешних зависимостей.
 
 

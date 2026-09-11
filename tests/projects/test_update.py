@@ -1,3 +1,4 @@
+import ast
 import json
 import subprocess
 import sys
@@ -47,7 +48,8 @@ def process_change(process, instruction="Task 0033 uses the public project updat
 
 
 def update_request(config_path, revision, *, request_id="project-update-1",
-                   process_updates=None, manifest_edits=None, state_relocation=None):
+                   process_updates=None, manifest_edits=None, state_relocation=None,
+                   probe_repository=False):
     return {
         "schema": "project-config-update-1",
         "request_id": request_id,
@@ -56,7 +58,7 @@ def update_request(config_path, revision, *, request_id="project-update-1",
         "manifest_edits": [] if manifest_edits is None else manifest_edits,
         "process_updates": [] if process_updates is None else process_updates,
         "state_relocation": state_relocation,
-        "probe_repository": False,
+        "probe_repository": probe_repository,
         "receipt_path": "operations/project-update-1.json",
     }
 
@@ -119,6 +121,36 @@ def test_exact_retry_replays_and_conflicting_request_id_cannot_overwrite(project
     with pytest.raises(HarnessError, match="request|запрос"):
         api.apply(conflicting)
     assert project_revision(config_path) == first["revision"]
+
+
+def test_interrupted_process_publication_recovers_one_known_revision(project, monkeypatch):
+    import harness.infrastructure.project_config as infrastructure
+
+    settings, config_path, created = installed_project(project)
+    request = update_request(
+        config_path,
+        created["revision"],
+        process_updates=[process_change(read_process(config_path))],
+    )
+    original = infrastructure.atomic_write
+    process_name = Path(json.loads(config_path.read_text())["processes"]["development"]).name
+
+    def replace_then_interrupt(path, content, mode):
+        original(path, content, mode)
+        if path.name == process_name:
+            raise OSError("interrupted after process replacement")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(infrastructure, "atomic_write", replace_then_interrupt)
+        with pytest.raises(HarnessError, match="retry|повтор"):
+            update_tools(settings).apply(request)
+
+    recovered = update_tools(settings).apply(request)
+
+    assert recovered["replayed"] is True
+    assert recovered["revision"] == project_revision(config_path)
+    receipt = project["root"] / request["receipt_path"]
+    assert json.loads(receipt.read_text())["result"]["revision"] == recovered["revision"]
 
 
 @pytest.mark.parametrize("case", ["stale", "bad_process", "escape_receipt", "unknown_field"])
@@ -215,6 +247,28 @@ def test_manifest_change_is_rejected_while_task_work_is_active(project):
     assert json.loads(config_path.read_text())["git"]["push_required"] is True
 
 
+def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_request(project):
+    settings, config_path, created = installed_project(project)
+    before_process = read_process(config_path)
+    request = update_request(
+        config_path,
+        created["revision"],
+        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+        probe_repository=True,
+    )
+
+    result = update_tools(settings).apply(request)
+
+    _, config, processes = load_config(config_path)
+    assert config["git"]["push_required"] is False
+    assert processes["development"] == before_process
+    assert result["prior_revision"] == created["revision"]
+    assert result["revision"] == project_revision(config_path)
+    assert result["readiness"]["repository"] == "verified"
+    assert result["readiness"]["remote"] == "not_required"
+    assert Path(result["receipt_path"]).is_file()
+
+
 def relocation(config_path, destination, source_disposition="delete_after_publish"):
     root, config, _ = load_config(config_path)
     source = Path(config["paths"]["state"])
@@ -241,6 +295,37 @@ def test_state_relocation_preserves_nonempty_state_and_switches_config(project):
     assert (Path(move["destination"]) / "precious.txt").read_text() == "preserve me"
     assert not source.exists()
     assert Path(json.loads(config_path.read_text())["paths"]["state"]) == Path(move["destination"])
+
+
+def test_state_relocation_rejects_missing_source_without_empty_replacement(project):
+    settings, config_path, created = installed_project(project)
+    destination = project["root"].parent / "must-not-be-empty-state"
+    move = relocation(config_path, destination)
+    assert not Path(move["expected_source"]).exists()
+    request = update_request(config_path, created["revision"], state_relocation=move)
+
+    with pytest.raises(HarnessError, match="source|исход"):
+        update_tools(settings).apply(request)
+
+    assert not destination.exists()
+    assert project_revision(config_path) == created["revision"]
+
+
+def test_state_relocation_retain_mode_preserves_verified_source_and_destination(project):
+    settings, config_path, created = installed_project(project)
+    destination = project["root"].parent / "retained-state-copy"
+    move = relocation(config_path, destination, "retain")
+    source = Path(move["expected_source"])
+    source.mkdir(parents=True)
+    (source / "precious.txt").write_text("two verified copies")
+    request = update_request(config_path, created["revision"], state_relocation=move)
+
+    result = update_tools(settings).apply(request)
+
+    assert result["state_relocation"]["source_disposition"] == "retain"
+    assert (source / "precious.txt").read_text() == "two verified copies"
+    assert (destination / "precious.txt").read_text() == "two verified copies"
+    assert Path(json.loads(config_path.read_text())["paths"]["state"]) == destination
 
 
 def test_state_relocation_rejects_occupied_destination_and_active_work(project):
@@ -323,11 +408,58 @@ def test_project_config_cli_accepts_one_bounded_packet(project):
     assert json.loads(completed.stdout)["status"] == "updated"
 
 
+@pytest.mark.parametrize("case", ["oversized", "duplicate_key"])
+def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, case):
+    settings, config_path, created = installed_project(project)
+    request = update_request(config_path, created["revision"])
+    raw = json.dumps(request)
+    if case == "oversized":
+        settings_data = json.loads(settings.read_text())
+        settings_data["max_input_bytes"] = 10
+        write_json(settings, settings_data)
+    else:
+        raw = raw[:-1] + ',"schema":"other"}'
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "harness", "project-config", "--settings", str(settings)],
+        input=raw,
+        text=True,
+        capture_output=True,
+    )
+
+    assert completed.returncode == 2
+    assert json.loads(completed.stdout)["status"] == "rejected"
+    assert project_revision(config_path) == created["revision"]
+    assert not (project["root"] / request["receipt_path"]).exists()
+
+
 def test_project_update_application_boundary_depends_on_ports_not_io():
     root = Path(__file__).resolve().parents[2] / "src/harness"
-    path = root / "application/project_config.py"
-    text = path.read_text()
+    application = root / "application/project_config.py"
+    tree = ast.parse(application.read_text())
+    imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imports.append(node.module or "")
+    assert any("modules.projects.ports" in name for name in imports)
+    assert not any(
+        name.split(".")[0] in {"os", "pathlib", "sqlite3", "subprocess"}
+        or "infrastructure" in name
+        for name in imports
+    )
+    assert not any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "open"
+        for node in ast.walk(tree)
+    )
+    commands = [node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "ProjectConfigCommands"]
+    assert len(commands) == 1
+    public = [node.name for node in commands[0].body if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")]
+    assert public == ["apply"]
 
-    assert "modules.projects" in text
-    assert "infrastructure" not in text
-    assert not any(token in text for token in ("sqlite3", "subprocess", "os.rename", "Path("))
+    interface = (root / "interfaces/project_config.py").read_text()
+    composition = (root / "composition.py").read_text()
+    assert "project_config_tools" in interface and "project_config_tools" in composition
+    for adapter in (interface, composition):
+        assert not any(token in adapter for token in ("atomic_write", "write_text(", "sqlite3", "UPDATE ", "INSERT "))

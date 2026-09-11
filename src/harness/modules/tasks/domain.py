@@ -5,7 +5,7 @@ import hashlib
 import json
 from ..content.domain import SectionBook, SectionRule, SectionValue
 from ..foundation.errors import DomainError
-from ..workflow.domain import RouteDefinition, RouteProgress
+from ..workflow.domain import HandlerKind, RouteDefinition, RouteProgress
 from ..workflow.handlers import handler, HandlerResult
 from ..evidence.domain import EvidencePlan, EvidenceBook
 from ..inspection.domain import FeedbackBook
@@ -301,6 +301,8 @@ class Task:
         destination=self.stage.stage_id if target is None else target
         if destination not in self.route.node(self.stage.stage_id).rework_targets:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")
+        if self.route.node(destination).handler == HandlerKind.REVISE and not self.feedback.open_findings:
+            raise DomainError("Нельзя перейти к исправлению без открытых находок")
         progress=self.route.enter(self.progress,destination)
         return self._enter("user_failed_check_rework",feedback,actor,destination,progress)
 

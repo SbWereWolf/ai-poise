@@ -180,3 +180,18 @@ python tools/run_test_packages.py \
 явное решение `continue` и ID операции экспорта. Изменения Task, handoff и transfer проходят
 через `WorkTools`; пример не восстанавливает состояние ручным редактированием SQLite и не
 принимает следующий этап без пользовательского решения.
+
+Запуск для уже подготовленной verification-задачи:
+
+```bash
+export PYTHONPATH="$PWD/src"
+python examples/project_execution.py \
+  --config /absolute/generated-project/project.json \
+  --session CURRENT_SESSION \
+  --task-id PLANNED_VERIFICATION_TASK \
+  --user-decision continue \
+  --export-request-id EXECUTION-CHECKPOINT-1
+```
+
+Пути и идентификаторы в примере нужно заменить фактическими значениями существующей задачи;
+команда не создаёт задачу и не подменяет требуемое решение пользователя.

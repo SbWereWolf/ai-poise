@@ -43,6 +43,10 @@ def _sync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
+def _is_pending_name(name: str) -> bool:
+    return name.startswith(".") and name.endswith(".pending")
+
+
 class LocalTaskDatabaseBackups:
     def __init__(self, config_path: Path):
         root, config, _ = load_config(Path(config_path))
@@ -62,7 +66,7 @@ class LocalTaskDatabaseBackups:
         entries = []
         try:
             for path in self.directory.iterdir():
-                if path.is_symlink() or not path.is_file():
+                if _is_pending_name(path.name) or path.is_symlink() or not path.is_file():
                     continue
                 created_at = datetime.fromtimestamp(path.stat().st_ctime, timezone.utc).isoformat()
                 entries.append(BackupEntry(path.name, created_at))
@@ -95,10 +99,15 @@ class LocalTaskDatabaseBackups:
                     target.commit()
             _integrity(temporary)
             _sync_file(temporary)
-            os.link(temporary, destination)
-            temporary.unlink()
+            os.replace(temporary, destination)
             temporary = None
-            _sync_directory(self.directory)
+            try:
+                _sync_directory(self.directory)
+            except OSError as exc:
+                raise PoiseError(
+                    f"Backup was published as {name}, but directory sync failed; "
+                    f"run `poise backup list` and check SQLite integrity before retrying: {exc}"
+                ) from exc
             return BackupCopy(name, live_size, destination.stat().st_size)
         except PoiseError:
             raise
@@ -115,6 +124,8 @@ class LocalTaskDatabaseBackups:
         selected = self.directory / name
         temporary = None
         try:
+            if _is_pending_name(name):
+                raise PoiseError(f"Backup name belongs to an internal pending file: {name}")
             if self.directory.is_symlink() or not self.directory.is_dir():
                 raise PoiseError(
                     f"Backup is missing or not found because the backup directory is not a regular directory: {name}"
@@ -145,7 +156,13 @@ class LocalTaskDatabaseBackups:
             _sync_file(temporary)
             os.replace(temporary, self.database)
             temporary = None
-            _sync_directory(self.database.parent)
+            try:
+                _sync_directory(self.database.parent)
+            except OSError as exc:
+                raise PoiseError(
+                    f"Live Task DB was replaced from {name}, but directory sync failed; "
+                    f"keep writers stopped and run SQLite PRAGMA integrity_check before retrying: {exc}"
+                ) from exc
         except PoiseError:
             raise
         except (OSError, sqlite3.Error) as exc:

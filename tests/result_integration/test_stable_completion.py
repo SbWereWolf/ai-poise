@@ -146,7 +146,13 @@ def _show_integration(project, request_id: str = "integrate-1") -> dict:
     }]}))["results"][0]["value"]
 
 
-def _assert_terminal_contract(result: dict, source: str, repository: Path) -> None:
+def _assert_terminal_contract(
+    result: dict,
+    source: str,
+    repository: Path,
+    task_worktree: Path,
+    task_branch: str = "tasks/T1",
+) -> None:
     assert result["status"] == "integrated"
     assert result["accepted_commit"] == source
     assert result["integration_head"] == result["target_after"]
@@ -161,7 +167,23 @@ def _assert_terminal_contract(result: dict, source: str, repository: Path) -> No
         "temporary_backups": "removed",
     }
     assert git(repository, "merge-base", "--is-ancestor", source, result["target_after"]) == ""
-    assert not Path(result["integration_worktree"]).exists()
+    integration_worktree = Path(result["integration_worktree"])
+    integration_branch = result["integration_branch"]
+    integration_ref = (
+        integration_branch
+        if integration_branch.startswith("refs/heads/")
+        else f"refs/heads/{integration_branch}"
+    )
+    worktrees = subprocess.check_output(
+        ["git", "-C", str(repository), "worktree", "list", "--porcelain"],
+        text=True,
+    )
+    assert not task_worktree.exists()
+    assert not integration_worktree.exists()
+    assert f"worktree {task_worktree}\n" not in worktrees
+    assert f"worktree {integration_worktree}\n" not in worktrees
+    assert _optional_ref(repository, f"refs/heads/{task_branch}") is None
+    assert _optional_ref(repository, integration_ref) is None
     assert not Path(result["temporary_backup_directory"]).exists()
 
 
@@ -179,7 +201,7 @@ def test_happy_path_uses_child_worktree_runs_guard_and_preserves_dirty_main_chec
 
     result = tools.invoke(request("integrate", integration_input(project, source)))
 
-    _assert_terminal_contract(result, source, project["app"])
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert git(project["app"], "rev-parse", "refs/heads/main") == result["target_after"]
     assert git(project["app"], "show", f"{result['target_after']}:src/feature.py") == "VALUE = 1"
     assert _main_checkout_fingerprint(project["app"], old_target) == before
@@ -191,7 +213,7 @@ def test_happy_path_uses_child_worktree_runs_guard_and_preserves_dirty_main_chec
 
 
 def test_overlapping_main_checkout_wip_is_not_an_integration_precondition(project):
-    tools, _, source = prepare_completed_task(project, _source_change)
+    tools, source_worktree, source = prepare_completed_task(project, _source_change)
     old_target = git(project["app"], "rev-parse", "refs/heads/main")
     overlap = project["app"] / "src" / "feature.py"
     overlap.write_text("uncommitted operator bytes\n")
@@ -199,7 +221,7 @@ def test_overlapping_main_checkout_wip_is_not_an_integration_precondition(projec
 
     result = tools.invoke(request("integrate", integration_input(project, source)))
 
-    _assert_terminal_contract(result, source, project["app"])
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert _main_checkout_fingerprint(project["app"], old_target) == before
     assert overlap.read_bytes() == b"uncommitted operator bytes\n"
 
@@ -238,7 +260,7 @@ def test_conflict_is_resolved_only_in_persisted_child_worktree_then_checked(proj
         }],
     }))
 
-    _assert_terminal_contract(completed, source, project["app"])
+    _assert_terminal_contract(completed, source, project["app"], source_worktree)
     assert git(
         project["app"], "show", f"{completed['target_after']}:src/double.py"
     ) == "VALUE = 'resolved'"
@@ -251,7 +273,7 @@ def test_target_drift_rebuilds_and_rechecks_before_atomic_publication(
     project, monkeypatch, drift_count
 ):
     method = _guard_method()
-    tools, _, source = prepare_completed_task(
+    tools, source_worktree, source = prepare_completed_task(
         project,
         _source_change,
         methods=[method],
@@ -273,7 +295,7 @@ def test_target_drift_rebuilds_and_rechecks_before_atomic_publication(
 
     result = tools.invoke(request("integrate", integration_input(project, source)))
 
-    _assert_terminal_contract(result, source, project["app"])
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert len(injected) == drift_count
     assert result["publication"]["drift_retries"] == drift_count
     assert len(result["checks"]) == drift_count + 1
@@ -282,7 +304,7 @@ def test_target_drift_rebuilds_and_rechecks_before_atomic_publication(
 
 
 def test_crash_after_atomic_publication_reconciles_without_second_update(project, monkeypatch):
-    tools, _, source = prepare_completed_task(project, _source_change)
+    tools, source_worktree, source = prepare_completed_task(project, _source_change)
     payload = integration_input(project, source)
     original_run = RuntimeResultIntegration._run
     publication_calls = 0
@@ -309,7 +331,7 @@ def test_crash_after_atomic_publication_reconciles_without_second_update(project
     restarted = WorkTools(Poise(project["config_path"], "restarted-integrator"))
     result = restarted.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(result, source, project["app"])
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert result["target_after"] == published
     assert result["publication"]["recovered"] is True
     assert publication_calls == 1
@@ -318,7 +340,7 @@ def test_crash_after_atomic_publication_reconciles_without_second_update(project
 def test_crash_before_atomic_publication_retries_the_unperformed_compare_and_swap(
     project, monkeypatch
 ):
-    tools, _, source = prepare_completed_task(project, _source_change)
+    tools, source_worktree, source = prepare_completed_task(project, _source_change)
     payload = integration_input(project, source)
     original_run = RuntimeResultIntegration._run
     attempted = 0
@@ -343,7 +365,7 @@ def test_crash_before_atomic_publication_retries_the_unperformed_compare_and_swa
     restarted = WorkTools(Poise(project["config_path"], "restarted-before-publication"))
     result = restarted.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(result, source, project["app"])
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert attempted == 2
     assert performed == 1
 
@@ -462,7 +484,7 @@ def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state
     restarted = WorkTools(Poise(project["config_path"], f"cleanup-restart-{failure_mode}"))
     completed = restarted.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(completed, source, project["app"])
+    _assert_terminal_contract(completed, source, project["app"], source_worktree)
     assert not temporary_backup.exists()
     assert foreign.is_dir()
     assert git(foreign, "rev-parse", "HEAD") == foreign_before["head"]
@@ -477,14 +499,14 @@ def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state
 
 
 def test_terminal_no_op_is_proved_and_cleanup_is_replayable(project):
-    tools, _, source = prepare_completed_task(project, _source_change)
+    tools, source_worktree, source = prepare_completed_task(project, _source_change)
     old_target = git(project["app"], "rev-parse", "refs/heads/main")
     git(project["app"], "update-ref", "refs/heads/main", source, old_target)
     payload = integration_input(project, source)
 
     result = tools.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(result, source, project["app"])
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert result["publication"]["no_op"] is True
     assert result["publication"]["observed_target"] == source
     replay = tools.invoke(request("integrate", payload))

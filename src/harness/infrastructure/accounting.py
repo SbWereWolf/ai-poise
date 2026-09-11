@@ -56,7 +56,9 @@ class RuntimeAccounting:
         if self.policy.data['time_mode']=='tool_cycle':
             if after is not None and after['status']=='active' and operation=='bootstrap':
                 self.repo.start(self.h.session,after,self.call_started,self.turn_id)
-            if result['status'] in ('verified','cancelled','handed_off','handoff_complete','rejected') or operation in ('handoff','cancel','accept'):
+            if (result['status'] in ('verified','cancelled','handed_off','handoff_complete','rejected')
+                    or operation in ('handoff','cancel','accept')
+                    or (before is not None and after is None)):
                 self.repo.stop(self.h.session,self.clock())
         self.repo.touch(self.h.session,self.clock())
         self.reconcile()

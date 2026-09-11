@@ -223,6 +223,9 @@ class Harness:
             selected=self.task_queries.record(task['id'])
             if selected is None:raise HarnessError('Неизвестный task/sprint ID')
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
+            if selected['status']=='superseded':
+                self.store.bind(self.session,selected['id'])
+                return self._context(selected,False)
             task=deepcopy(selected['contract'])
         if task is not None:
             contract = deepcopy(task)
@@ -239,7 +242,7 @@ class Harness:
                     raise HarnessError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
             process = self._validate_task(contract, selected_process)
-            if current and current['status'] not in ('completed','cancelled') and current['id'] != contract['id']:
+            if current and current['status'] not in ('completed','cancelled','superseded') and current['id'] != contract['id']:
                 raise HarnessError('Сначала прекратить/передать текущую задачу')
             existing = self.task_queries.record(contract['id'])
             if existing is not None:
@@ -248,7 +251,7 @@ class Harness:
                     raise HarnessError('Задача уже связана с другой сессией')
                 if data['config_hash'] != self.config_hash:
                     raise HarnessError('Задача имеет другой контракт конфигурации')
-                if data['claimed_by'] is None and data['status'] not in ('completed','cancelled'):
+                if data['claimed_by'] is None and data['status'] not in ('completed','cancelled','superseded'):
                     self.handoff_tools.resume(data)
             else:
                 if contract['sprint_id'] is not None:
@@ -260,7 +263,7 @@ class Harness:
                 self.task_commands.create(contract['id'], self.session, metadata, execution)
             self.store.bind(self.session, contract['id'])
             current = self.store.current(self.session)
-        if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled')):
+        if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled','superseded')):
             sprint=self.sprint_tools.overview(None)
             if sprint is not None:return sprint
         if current is None:
@@ -642,7 +645,7 @@ class Harness:
 
     def show_evidence(self):
         data=self._task()
-        return {'status':'read_only','task':data['id'],**self.task_queries.evidence_view(data['id'])}
+        return self.task_queries.evidence_view(data['id'])
 
     def show_output(self,receipt_id,representation,requested):
         from .modules.work.domain import read_range

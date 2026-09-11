@@ -141,3 +141,22 @@ def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     w.invoke(request('cancel',{'reason':'User stops'},[message('turn-b','cancel')]))
     total=metrics(w)['totals']['active_seconds']
     assert 60<=total-base<61
+
+
+def test_tool_cycle_clamps_wall_clock_rollback_without_inventing_duration(project):
+    h,w,_=setup(project)
+    h.accounting.close_cycle()
+    now=['2026-09-12T10:00:00+00:00'];h.accounting.port.clock=lambda:now[0]
+    send(w)
+    now[0]='2026-09-12T09:59:59+00:00'
+    send(w)
+    now[0]='2026-09-12T09:59:58+00:00'
+    h.accounting.close_cycle()
+
+    cycles=[row for row in h.accounting.port.repo.snapshot()['cycles']
+            if row['started_at']=='2026-09-12T10:00:00+00:00']
+    assert len(cycles)==1
+    cycle=cycles[0];data=json.loads(cycle['data'])
+    assert cycle['ended_at']=='2026-09-12T10:00:00+00:00'
+    assert data['last_observed_at']=='2026-09-12T10:00:00+00:00'
+    assert data['seconds']==0

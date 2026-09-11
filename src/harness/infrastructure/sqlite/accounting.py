@@ -16,6 +16,11 @@ def timestamp(text):
     except (TypeError,ValueError) as exc:raise HarnessError('Accounting timestamp requires ISO datetime with timezone') from exc
 
 
+def _not_before(value, floor):
+    """Clamp a rolled-back wall clock without inventing positive elapsed time."""
+    return floor if timestamp(value)<timestamp(floor) else value
+
+
 def binding(task):
     if task is None:return {'task':None,'sprint':None,'goal_type':None,'stage':None,'iteration':None}
     return {'task':task['id'],'sprint':task['sprint_id'],'goal_type':task['contract']['goal_type'],
@@ -118,9 +123,9 @@ class SqliteAccounting:
                 d['turn_id']=turn_id
                 db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
             elif d['turn_id']!=turn_id:
-                at=d['last_observed_at'];elapsed=(timestamp(at)-timestamp(row['started_at'])).total_seconds()
-                if elapsed<0:raise HarnessError('Invalid observed interval')
-                d['seconds']=elapsed;d['closed_by']='next_user_turn_at_last_observation'
+                at=_not_before(d['last_observed_at'],row['started_at'])
+                elapsed=(timestamp(at)-timestamp(row['started_at'])).total_seconds()
+                d['last_observed_at']=at;d['seconds']=elapsed;d['closed_by']='next_user_turn_at_last_observation'
                 db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),row['id']))
 
     def touch(self,session,at):
@@ -128,7 +133,7 @@ class SqliteAccounting:
             row=db.execute('SELECT id,started_at,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if row is None:return
             d=json.loads(row['data'])
-            if timestamp(at)<timestamp(d['last_observed_at']):raise HarnessError('Clock moved backwards')
+            at=_not_before(at,d['last_observed_at'])
             d['last_observed_at']=at
             db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
 
@@ -136,9 +141,10 @@ class SqliteAccounting:
         with self.database.transaction() as db:
             r=db.execute('SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if r is None:return
+            d=json.loads(r['data'])
+            at=_not_before(_not_before(at,d['last_observed_at']),r['started_at'])
             elapsed=(timestamp(at)-timestamp(r['started_at'])).total_seconds()
-            if elapsed<0:raise HarnessError('Clock moved backwards; duration not invented')
-            d=json.loads(r['data']);d['seconds']=elapsed;d['closed_by']='tool_result_returned'
+            d['last_observed_at']=at;d['seconds']=elapsed;d['closed_by']='tool_result_returned'
             db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),r['id']))
 
     def snapshot(self):

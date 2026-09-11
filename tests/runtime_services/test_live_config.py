@@ -168,6 +168,10 @@ def test_current_automatic_check_mapping_applies_to_existing_task(project):
         "expected_exit_code": 0,
         "stdout_contains": ["current-config-check"],
         "stderr_contains": [],
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
     })
     original = WorkTools(Poise(project["config_path"], "live-check-session"))
     context = original.invoke(request("bootstrap", {

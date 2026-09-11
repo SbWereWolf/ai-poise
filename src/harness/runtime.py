@@ -14,7 +14,6 @@ from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
 from .application.evidence import EvidenceCommands
-from .modules.tasks.contracts import content_policy_from_metadata
 from .modules.content_requirements.domain import ArtifactFact
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
@@ -197,18 +196,67 @@ class Harness:
         validate_creation(task,process,self.cfg['automatic_checks'])
         return process
 
-    def prepare_task_execution(self, task_id, base_revision):
+    def _creation_base(self, base_revision=None):
         repository=Path(self.cfg['git']['repository']).resolve(strict=True)
-        branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
-        self._git(repository,'check-ref-format','--branch',branch)
         reference=self.cfg['git']['base_ref'] if base_revision is None else base_revision
-        base=self._git(repository,'rev-parse','--verify',reference+'^{commit}')
+        return self._git(repository,'rev-parse','--verify',reference+'^{commit}')
+
+    def _execution_reservation(self, task_id, base):
+        branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
         worktree=descendant(self.state,self.paths['worktrees'])/task_id
-        worktree.parent.mkdir(parents=True,exist_ok=True)
-        self.store.event(self.session,task_id,'bootstrap.worktree',{'branch':branch,'base':base,'path':str(worktree)})
-        self._git(repository,'worktree','add','-b',branch,str(worktree),base)
+        pending={'kind':'worktree_setup','worktree':str(worktree),'branch':branch,'base':base}
         return {'worktree':str(worktree),'branch':branch,'base':base,'attempts':0,
-                'publication':None,'pending':None,'entry_tree':self._tree(worktree),'last_report':None}
+                'publication':None,'pending':pending,'entry_tree':None,'last_report':None}
+
+    def _reconcile_task_worktree(self, data):
+        pending=data['pending']
+        if not isinstance(pending,dict) or pending.get('kind')!='worktree_setup':
+            return
+        expected={'kind':'worktree_setup','worktree':data['worktree'],
+                  'branch':data['branch'],'base':data['base']}
+        if pending!=expected:
+            raise HarnessError(f"Task {data['id']} worktree recovery facts conflict")
+        repository=Path(self.cfg['git']['repository']).resolve(strict=True)
+        worktree=Path(data['worktree'])
+        try:
+            self._git(repository,'check-ref-format','--branch',data['branch'])
+            if worktree.is_symlink() or (worktree.exists() and not worktree.is_dir()):
+                raise HarnessError(
+                    f"Task {data['id']} worktree recovery conflict; recorded path is not a directory"
+                )
+            if not worktree.exists():
+                worktree.parent.mkdir(parents=True,exist_ok=True)
+                self.store.event(self.session,data['id'],'bootstrap.worktree',
+                    {'branch':data['branch'],'base':data['base'],'path':str(worktree)})
+                try:
+                    branch_head=self._git(repository,'rev-parse','--verify',
+                                          f"refs/heads/{data['branch']}^{{commit}}")
+                except HarnessError:
+                    branch_head=None
+                if branch_head is None:
+                    self._git(repository,'worktree','add','-b',data['branch'],str(worktree),data['base'])
+                elif branch_head==data['base']:
+                    self._git(repository,'worktree','add',str(worktree),data['branch'])
+                else:
+                    raise HarnessError(
+                        f"Task {data['id']} worktree recovery conflict; recorded branch changed"
+                    )
+            branch=self._git(worktree,'symbolic-ref','--short','HEAD')
+            head=self._git(worktree,'rev-parse','HEAD')
+            changed=self._git(worktree,'status','--porcelain')
+            if branch!=data['branch'] or head!=data['base'] or changed:
+                raise HarnessError(
+                    f"Task {data['id']} worktree recovery conflict; recorded external state was changed"
+                )
+            tree=self._tree(worktree)
+        except HarnessError as exc:
+            if 'recovery conflict' in str(exc):
+                raise
+            raise HarnessError(
+                f"Task {data['id']} worktree setup remains recoverable; repeat the same creation request: {exc}"
+            ) from exc
+        with self.store.unit_of_work() as uow:
+            uow.execution.patch(data['id'],{'pending':None,'entry_tree':tree})
 
     def bootstrap(self, task: dict | None = None, decision: str | None = None,
                   feedback: str | None = None, rework_stage: str | None = None) -> dict:
@@ -217,6 +265,7 @@ class Harness:
         if task is not None and decision is not None:
             raise HarnessError('Выбор задачи и решение по текущему этапу — разные входы')
         current = self.store.current(self.session)
+        allocation_receipt = None
         if task is not None and isinstance(task,dict) and set(task)=={'id'}:
             self._identifier(task['id'])
             if self.sprint_tools.known(task['id']):
@@ -231,10 +280,10 @@ class Harness:
                 return self._context(selected,False)
             task=deepcopy(selected['contract'])
         if task is not None:
-            contract = deepcopy(task)
-            if not isinstance(contract.get('id'), str):
-                raise HarnessError('Задача требует id')
-            existing = self.task_queries.record(contract['id'])
+            intent = deepcopy(task)
+            automatic = isinstance(intent,dict) and set(intent)=={'request_id','task'}
+            contract = deepcopy(intent['task'] if automatic else intent)
+            existing = None if automatic or not isinstance(contract.get('id'),str) else self.task_queries.record(contract['id'])
             if existing is not None:
                 if contract != existing['contract']:
                     raise HarnessError('Existing task contract is immutable; bootstrap is not an editor')
@@ -244,10 +293,10 @@ class Harness:
                 if contract.get('goal_type') not in self.processes:
                     raise HarnessError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
-            process = self._validate_task(contract, selected_process)
-            if current and current['status'] not in ('completed','cancelled','superseded') and current['id'] != contract['id']:
-                raise HarnessError('Сначала прекратить/передать текущую задачу')
-            existing = self.task_queries.record(contract['id'])
+            if current and current['status'] not in ('completed','cancelled','superseded'):
+                same_automatic=(automatic and current.get('creation_request',{}).get('request_id')==intent.get('request_id'))
+                if not same_automatic and current['id'] != contract.get('id'):
+                    raise HarnessError('Сначала прекратить/передать текущую задачу')
             if existing is not None:
                 data = existing
                 if data['claimed_by'] not in (None, self.session):
@@ -256,15 +305,29 @@ class Harness:
                     raise HarnessError('Задача имеет другой контракт конфигурации')
                 if data['claimed_by'] is None and data['status'] not in ('completed','cancelled','superseded'):
                     self.handoff_tools.resume(data)
+                    data=self.task_queries.record(data['id'])
+                self._reconcile_task_worktree(data)
+                data=self.task_queries.record(data['id'])
             else:
-                if contract['sprint_id'] is not None:
+                if contract.get('sprint_id') is not None:
                     raise HarnessError('Sprint task must be published through the Sprint API first')
-                if self.sprint_tools.known(contract['id']):raise HarnessError('Task/sprint ID collision')
-                metadata = {'sprint_id':contract['sprint_id'], 'goal':contract['goal'],
-                            'contract':contract, 'process':process, 'config_hash':self.config_hash}
-                execution = self.prepare_task_execution(contract['id'],None)
-                self.task_commands.create(contract['id'], self.session, metadata, execution)
-            self.store.bind(self.session, contract['id'])
+                if not automatic and self.sprint_tools.known(contract['id']):raise HarnessError('Task/sprint ID collision')
+                base=self._creation_base()
+                allocation=self.task_commands.create(
+                    intent,self.session,selected_process,self.cfg['automatic_checks'],
+                    {'config_hash':self.config_hash},
+                    lambda task_id:self._execution_reservation(task_id,base),
+                    self.cfg.get('task_ids'))
+                allocation_receipt=allocation.receipt()
+                data=self.task_queries.record(allocation.task_id)
+                if data['config_hash']!=self.config_hash:
+                    raise HarnessError('Задача имеет другой контракт конфигурации')
+                if allocation.replayed and data['claimed_by'] not in (None,self.session):
+                    return {**self._context(data,data['status']=='active'),
+                            'allocation':allocation_receipt}
+                self._reconcile_task_worktree(data)
+                data=self.task_queries.record(allocation.task_id)
+            self.store.bind(self.session, data['id'])
             current = self.store.current(self.session)
         if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled','superseded')):
             sprint=self.sprint_tools.overview(None)
@@ -292,7 +355,8 @@ class Harness:
                     self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage)
                 data = self._task()
             self._cleanup_runtime()
-        return self._context(data, data['status']=='active')
+        result=self._context(data, data['status']=='active')
+        return result if allocation_receipt is None else {**result,'allocation':allocation_receipt}
 
     def accept(self) -> dict:
         data = self._task()
@@ -496,6 +560,8 @@ class Harness:
             data=self._task()
         publication = {'tree':tree,'payload_hash':payload_hash,'execution_key':execution_key,'checks':receipts,'artifacts':artifacts,
                        'attempt':attempt,'commit_message':payload['commit_message'],'changed':changed,'commit':None}
+        if action is not None and 'allocations' in action:
+            publication['allocations']=action['allocations']
         data['publication'] = publication; self.store.save(data)
         return self._publish(data, publication)
 
@@ -606,6 +672,7 @@ class Harness:
                   'attempt':publication['attempt'],'commit':sha,'verified_tree':tree,'checks':publication['checks'],
                   'artifacts':[{'id':r['id'],'path':r['path']} for r in permanent],
                   'replayed':False,'next_work':'доложить пользователю; следующий этап не начинать'}
+        if 'allocations' in publication:report['allocations']=publication['allocations']
         if self.result_views.incidents:report['incidents']=list(self.result_views.incidents)
         self.runner.verified(data['id'], self.session, publication['payload_hash'], report,
                                          self._artifact_facts(publication['artifacts']))

@@ -111,6 +111,15 @@ class TaskQueries:
             return [{"id":r["id"],"status":r["status"],"goal":json.loads(r["metadata"])["goal"]}
                     for r in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id")]
 
+    def standalone_summary(self) -> list[dict]:
+        with self.database.transaction() as db:
+            result=[]
+            for row in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id"):
+                metadata=json.loads(row["metadata"])
+                if metadata["sprint_id"] is None:
+                    result.append({"id":row["id"],"status":row["status"],"goal":metadata["goal"]})
+            return result
+
     def evidence_view(self, task_id):
         from .tasks import SqliteTaskRepository
         with self.database.transaction() as db:

@@ -22,7 +22,7 @@ def declarations():
                 {"id":"argument","kind":"record","fields":{"facts":[],"assumptions":[],"inference":[],"conclusion":[]},"write_stages":["review"]}]}],
         "requirements":[
             {"id":"A-source","kind":"trace","route":"A","point":"source","stages":["plan","tests","implement","review"],"phase":"pre","field_equals":{}},
-            {"id":"A-published","kind":"trace","route":"A","point":"source","stages":["review"],"phase":"pre","field_equals":{"state":"documented"}},
+            {"id":"A-published","kind":"trace","route":"A","point":"source","stages":["implement","review"],"phase":"pre","field_equals":{"state":"documented"}},
             {"id":"A-test","kind":"trace","route":"A","point":"test","stages":["tests","implement","review"],"phase":"pre","field_equals":{}},
             {"id":"A-verdict","kind":"trace","route":"A","point":"verdict","stages":["review"],"phase":"pre","field_equals":{}},
             {"id":"B-proof","kind":"trace","route":"B","point":"argument","stages":["review"],"phase":"pre","field_equals":{}},
@@ -199,3 +199,65 @@ def test_goal_coverage_can_require_same_minimum_checkpoint_for_each_route():
     p=policy(goal=d,task=task)
     s=apply(p,blank(),'plan',trace={'A':{'source':{'state':'planned','reference':'P1'}}})
     assert failed(p.evaluate('plan','pre',s,()))=={'source-for-each'}
+
+
+def trace_schedule(kind, write_stages, due_stages, *, rule_id="scheduled", field_equals=None):
+    fields = {"state": ["planned", "documented"]} if kind == "record" else {}
+    return {
+        "sections": [],
+        "routes": [{"id": "delivery", "requirements": ["R1"], "points": [
+            {"id": "value", "kind": kind, "fields": fields, "write_stages": write_stages},
+        ]}],
+        "requirements": [{"id": rule_id, "kind": "trace", "route": "delivery",
+            "point": "value", "stages": due_stages, "phase": "pre",
+            "field_equals": {} if field_equals is None else field_equals}],
+    }
+
+
+@pytest.mark.parametrize(("kind", "field_equals"), [
+    ("method", {}),
+    ("text", {}),
+    ("record", {"state": "documented"}),
+])
+def test_trace_schedule_rejects_value_or_predicate_without_writable_due_stage(kind, field_equals):
+    contract = trace_schedule(kind, ["plan"], ["tests", "review"],
+                              rule_id=f"{kind}-required", field_equals=field_equals)
+    with pytest.raises(DomainError) as caught:
+        policy(goal=empty(), task=contract)
+    message = str(caught.value)
+    for expected in (f"{kind}-required", "delivery", "value", "write_stages", "plan",
+                     "due", "tests", "review"):
+        assert expected in message
+
+
+def test_corrected_task_0017_pattern_is_due_while_writable_and_later():
+    stages = ("verification_planning", "test_implementation", "implementation")
+    contract = trace_schedule("method", ["verification_planning"], list(stages),
+                              rule_id="verification-before-write")
+    created = ContentPolicy.from_layers(empty(), contract, stages, ("R1",), ("RED",), ("report",))
+    assert created.requirements[0].stages == stages
+
+
+def test_another_writable_point_on_a_multi_point_route_does_not_satisfy_target_schedule():
+    contract = trace_schedule("method", ["plan"], ["tests", "review"], rule_id="method-required")
+    contract["routes"][0]["points"].insert(0, {
+        "id": "context", "kind": "text", "fields": {}, "write_stages": ["tests"],
+    })
+    with pytest.raises(DomainError) as caught:
+        policy(goal=empty(), task=contract)
+    assert "method-required" in str(caught.value) and "value" in str(caught.value)
+
+
+def test_stored_unschedulable_contract_is_readable_but_new_invalid_addition_is_rejected():
+    legacy = trace_schedule("method", ["plan"], ["tests", "review"], rule_id="legacy-required")
+    restored = ContentPolicy.restore_layers(
+        empty(), legacy, ("plan", "tests", "review"), ("R1",), ("RED",), ("report",))
+    assert restored.to_layers()["task"] == legacy
+    assert restored.extend(empty()) == restored
+
+    invalid = trace_schedule("text", ["plan"], ["review"], rule_id="new-required")
+    invalid["routes"][0]["id"] = "new-route"
+    invalid["requirements"][0]["route"] = "new-route"
+    with pytest.raises(DomainError) as caught:
+        restored.extend(invalid)
+    assert "new-required" in str(caught.value)

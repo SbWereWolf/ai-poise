@@ -4,6 +4,18 @@ from ..artifact_factory.domain import exact, relative
 from ..foundation.errors import DomainError
 
 
+SPRINT_OVERVIEW_STATUSES = frozenset({'planned','active','completed','cancelled','blocked'})
+STANDALONE_TASK_STATUSES = frozenset({'available','active','verified','accepted','completed','cancelled'})
+
+
+def status_filter(value, allowed, name):
+    if value is None:return
+    if not isinstance(value,list) or any(not isinstance(item,str) or item not in allowed for item in value):
+        raise DomainError(f'Unknown {name} status')
+    if len(value)!=len(set(value)):
+        raise DomainError(f'{name} statuses must be unique')
+
+
 def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'bootstrap':{'task','decision','feedback','rework_stage'},
@@ -40,13 +52,16 @@ def parse_request(value, config):
             if not isinstance(query,dict) or not isinstance(query.get('id'),str) or not query['id'] or query['id'] in ids:
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
-            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},
+            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')
             if not isinstance(kind,str) or kind not in shapes_q:
                 raise DomainError('Unknown batch query kind')
             exact(query,shapes_q[kind],'query')
+            if kind=='work_overview':
+                status_filter(query['sprint_statuses'],SPRINT_OVERVIEW_STATUSES,'sprint')
+                status_filter(query['standalone_task_statuses'],STANDALONE_TASK_STATUSES,'standalone task')
             if kind in ('section','tool_result') and query['range'] is not None:
                 r=query['range'];exact(r,{'unit','start','end'},'range')
                 if r['unit'] not in ('lines','bytes') or type(r['start']) is not int or type(r['end']) is not int:

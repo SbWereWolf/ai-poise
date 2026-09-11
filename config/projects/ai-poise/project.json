@@ -61,8 +61,8 @@
       "cancel"
     ],
     "message_source": {
-      "id": "chat-visible",
-      "mode": "agent_reported"
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
     },
     "templates": {
       "note": {

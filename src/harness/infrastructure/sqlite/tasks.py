@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from ...modules.tasks.domain import Task, TaskState, TaskStatus, StageSpec, Change
-from ...modules.tasks.contracts import stages_from_process, content_policy_from_metadata, evidence_plan_from_metadata
+from ...modules.tasks.contracts import stages_from_process, stored_content_policy_from_metadata, evidence_plan_from_metadata
 from ...modules.content.domain import ContentState, SectionValue
 from ...modules.verification.domain import CheckRegistry
 from ...modules.content_requirements.domain import ContentSnapshot, TraceValue
@@ -31,8 +31,36 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
+    def allocate(self, intent, policy, reserved_ids=()):
+        from ...modules.tasks.allocation import Allocation, creation_parts
+        request_id, task, request_digest = creation_parts(intent)
+        if request_id is None:
+            return Allocation(None, task['id'], None, False)
+        if policy is None:
+            raise HarnessError('task_ids allocation policy is required for automatic creation')
+        for row in self.db.execute("SELECT id,metadata FROM tasks ORDER BY id"):
+            creation = json.loads(row['metadata']).get('creation_request')
+            if creation is None or creation.get('request_id') != request_id:
+                continue
+            if creation.get('digest') != request_digest:
+                raise HarnessError('Creation request digest conflict; immutable intent changed')
+            return Allocation(request_id, row['id'], request_digest, True)
+        occupied = {row[0] for row in self.db.execute("SELECT id FROM tasks")}
+        occupied.update(row[0] for row in self.db.execute("SELECT id FROM sprints"))
+        occupied.update(reserved_ids)
+        for candidate in policy.candidates():
+            if candidate not in occupied:
+                return Allocation(request_id, candidate, request_digest, False)
+        raise HarnessError('Task ID allocation namespace is exhausted')
+
     def create(self, task: Task, metadata: dict) -> None:
         if self.exists(task.state.task_id):
+            row = self.db.execute("SELECT metadata FROM tasks WHERE id=?",(task.state.task_id,)).fetchone()
+            existing = json.loads(row[0])
+            if metadata.get('creation_request') is not None and existing.get('creation_request') == metadata['creation_request']:
+                if existing != metadata:
+                    raise HarnessError('Creation request belongs to a different immutable project context')
+                return
             raise HarnessError("Task ID already exists; publication cannot replace it")
         s = task.state
         self.db.execute("INSERT INTO tasks VALUES(?,?,?,?,?,?,NULL,?)",
@@ -56,7 +84,7 @@ class SqliteTaskRepository:
         items = [json.loads(r[0]) for r in self.db.execute("SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid",(task_id,))]
         registry = CheckRegistry.from_items(items,tuple(s['id'] for s in metadata['process']['stages']))
         metadata['contract']['methods']=[item['method'] for item in items]
-        policy = content_policy_from_metadata(metadata, json.loads(record[0]))
+        policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
         sections = self.db.execute("SELECT section_id,content,content_state FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY section_id ORDER BY submission_id DESC) AS n FROM section_layers WHERE task_id=?) WHERE n=1 ORDER BY section_id", (task_id,)).fetchall()
         trace = self.db.execute("SELECT route_id,point_id,data FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY route_id,point_id ORDER BY submission_id DESC) AS n FROM trace_point_layers WHERE task_id=?) WHERE n=1 ORDER BY route_id,point_id", (task_id,)).fetchall()
         snapshot = ContentSnapshot(tuple(SectionValue(s["section_id"],s["content"],ContentState(s["content_state"])) for s in sections),

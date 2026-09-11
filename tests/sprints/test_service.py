@@ -2,6 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 import sqlite3
 import pytest
+from conftest import write_json
 from harness.runtime import Harness
 from harness.application.work import WorkTools
 from harness.modules.foundation.errors import HarnessError
@@ -67,6 +68,37 @@ def test_publish_transaction_rolls_back_members_and_tasks(sprint):
         assert db.execute('SELECT count(*) FROM sprint_members').fetchone()[0]==0
         db.execute('DROP TRIGGER fail_member')
     assert set(publish(w,r['revision'])['eligible'])=={'A','B'}
+
+
+def test_invalid_trace_schedule_prevents_all_sprint_member_publication(project):
+    setup(project)
+    work=project['process']['stages'][0]
+    later=deepcopy(work);later.update(id='later',transitions={'complete':None},rework_targets=['later'])
+    work['transitions']={'complete':'later'}
+    project['process']['stages']=[work,later]
+    write_json(project['root']/'config/processes/development.json',project['process'])
+    h=Harness(project['config_path'],'planner');w=WorkTools(h)
+
+    valid=task(project,'A')
+    invalid=task(project,'B')
+    for candidate in (valid,invalid):
+        candidate['checks']['later']=[]
+        candidate['evidence_plan']['later']={'subject_methods':{},'arguments':[],'review_arguments':[]}
+    invalid['content_contract']={"sections":[],"routes":[
+        {"id":"delivery","requirements":invalid['requirements'],"points":[
+            {"id":"method","kind":"method","fields":{},"write_stages":["work"]}]}],
+        "requirements":[
+            {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
+             "stages":["later"],"phase":"pre","field_equals":{}}]}
+
+    planned=draft(w,[valid,invalid])
+    with pytest.raises(HarnessError) as error:
+        publish(w,planned['revision'])
+    assert all(value in str(error.value) for value in
+               ('method-too-late','delivery','method','work','later'))
+    assert h.task_queries.summary()==[]
+    assert not (h.state/h.paths['worktrees']).exists()
+    assert bootstrap(w,'S')['status']=='draft'
 
 
 def test_bootstrap_by_sprint_id_returns_ready_set_without_claim(sprint):

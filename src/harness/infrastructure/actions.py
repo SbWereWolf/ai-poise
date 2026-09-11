@@ -97,11 +97,13 @@ class RuntimePlanActions:
 
     def _summary(self,run):
         snap=run.to_dict();current=snap['current']
+        result={} if not snap['steps'] else snap['steps'][-1]['result']
         return {'status':snap['status'],'kind':run.plan.kind,'plan_digest':run.plan.digest,
                 'cursor':run.cursor,'steps':snap['steps'],
                 'conflicts':[] if current is None or 'conflicts' not in current else current['conflicts'],
                 'reason':None if current is None or 'reason' not in current else current['reason'],
-                'current':current}
+                'current':current,
+                **({'allocations':result['allocations']} if 'allocations' in result else {})}
 
     def apply(self,data,payload):
         self.validate(data,payload)
@@ -221,7 +223,7 @@ class RuntimePlanActions:
         if 'kind' in payload['stage_work']:
             from ..application.planning_publication import PlanningPublications
             service=PlanningPublications(h.store.unit_of_work,h.cfg['project'],h.processes,
-                h.cfg['automatic_checks'],h.cfg['sprint'],h.config_hash,h.cfg['batch']['max_items'])
+                h.cfg['automatic_checks'],h.cfg['sprint'],h.cfg.get('task_ids'),h.config_hash,h.cfg['batch']['max_items'])
             return self._summary(service.publish(data['id'],h.session,payload['stage_work']))
         wt=Path(data['worktree']);spec=Publication.parse(payload['stage_work'])
         candidate=h._git(wt,'rev-parse','HEAD')

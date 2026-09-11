@@ -114,14 +114,17 @@ class IntegrationRun:
         target = _commit(observation.get("target_before"), "observed target")
         if target != self.intent.expected_target_commit:
             raise DomainError("Observed target changed before integration")
-        return self._step("running", "merge_started", target_before=target)
+        preflight = observation.get("preflight")
+        merge = None if preflight is None else {"preflight": preflight}
+        return self._step("running", "merge_started", target_before=target, merge=merge)
 
     def await_resolution(self, conflicts, receipt):
         paths = tuple(sorted(conflicts))
         if self.status != "running" or not paths:
             raise DomainError("A running integration requires observed conflicts")
         return self._step("awaiting_resolution", "conflicts_observed", conflicts=paths,
-                          merge={"receipt": receipt, "conflicts": list(paths), "resolutions": []})
+                          merge={**(self.merge or {}), "receipt": receipt,
+                                 "conflicts": list(paths), "resolutions": []})
 
     def continue_with(self, resolutions):
         if self.status != "awaiting_resolution":

@@ -141,8 +141,6 @@ class Harness:
         task = self.store.current(self.session)
         if task is None:
             raise HarnessError('Нет текущей задачи; сначала bootstrap с явной задачей')
-        if task['config_hash'] != self.config_hash:
-            raise HarnessError('Конфигурация изменена во время задачи; этот срез не меняет её контракт автоматически')
         return task
 
     def _stage(self, task: dict) -> dict:
@@ -243,8 +241,6 @@ class Harness:
                 data = existing
                 if data['claimed_by'] not in (None, self.session):
                     raise HarnessError('Задача уже связана с другой сессией')
-                if data['config_hash'] != self.config_hash:
-                    raise HarnessError('Задача имеет другой контракт конфигурации')
                 if data['claimed_by'] is None and data['status'] not in ('completed','cancelled'):
                     self.handoff_tools.resume(data)
             else:

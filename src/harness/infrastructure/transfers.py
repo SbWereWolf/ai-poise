@@ -63,9 +63,6 @@ class RuntimeTransfers:
         h.result_views.finish()
         tables=self.repo.capture(selected,args['sprint_id'],h.cfg['project'],c['max_tasks'])
         task_ids=[r['id'] for r in tables['tasks']];sprint_ids=[r['id'] for r in tables['sprints']]
-        for row in tables['tasks']:
-            if json.loads(row['metadata'])['config_hash']!=h.config_hash:
-                raise HarnessError('Selected task has another project execution policy')
         directory=self._request_dir(args);stage=directory/'preparing'
         if stage.exists():shutil.rmtree(stage)
         stage.mkdir(parents=True)

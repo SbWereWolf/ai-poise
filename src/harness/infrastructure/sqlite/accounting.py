@@ -22,6 +22,11 @@ def binding(task):
             'stage':task['process']['stages'][task['stage_index']]['id'],'iteration':task['iteration']}
 
 
+def observed_at_or_floor(at, floor):
+    """Clamp a host wall-clock rollback without inventing active time."""
+    return floor if timestamp(at)<timestamp(floor) else at
+
+
 class SqliteAccounting:
     def __init__(self,database,project,policy):
         self.database,self.project,self.policy=database,project,policy
@@ -128,18 +133,21 @@ class SqliteAccounting:
             row=db.execute('SELECT id,started_at,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if row is None:return
             d=json.loads(row['data'])
-            if timestamp(at)<timestamp(d['last_observed_at']):raise HarnessError('Clock moved backwards')
-            d['last_observed_at']=at
+            if timestamp(d['last_observed_at'])<timestamp(row['started_at']):raise HarnessError('Invalid observed interval')
+            d['last_observed_at']=observed_at_or_floor(at,d['last_observed_at'])
             db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
 
     def stop(self,session,at):
         with self.database.transaction() as db:
             r=db.execute('SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if r is None:return
-            elapsed=(timestamp(at)-timestamp(r['started_at'])).total_seconds()
-            if elapsed<0:raise HarnessError('Clock moved backwards; duration not invented')
-            d=json.loads(r['data']);d['seconds']=elapsed;d['closed_by']='tool_result_returned'
-            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),r['id']))
+            d=json.loads(r['data'])
+            if timestamp(d['last_observed_at'])<timestamp(r['started_at']):raise HarnessError('Invalid observed interval')
+            ended_at=observed_at_or_floor(at,d['last_observed_at'])
+            d['last_observed_at']=ended_at
+            d['seconds']=(timestamp(ended_at)-timestamp(r['started_at'])).total_seconds()
+            d['closed_by']='tool_result_returned'
+            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(ended_at,encoded(d),r['id']))
 
     def snapshot(self):
         with self.database.transaction() as db:

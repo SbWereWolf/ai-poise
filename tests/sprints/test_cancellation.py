@@ -42,7 +42,10 @@ def test_standalone_cancel_ignores_config_digest_and_releases_claim(project):
     cancelled = current.invoke(request("cancel", {"reason": "User cancels this Task"}))
     record = current.runtime.task_queries.record("T1")
 
-    assert cancelled == {"status": "cancelled", "task": "T1", "worktree_preserved": True}
+    assert {
+        key: cancelled[key] for key in ("status", "task", "worktree_preserved")
+    } == {"status": "cancelled", "task": "T1", "worktree_preserved": True}
+    assert cancelled["interaction"]["outcome"] == "cancelled"
     assert record["status"] == "cancelled" and record["claimed_by"] is None
     assert record["last_report"] == before_report
     assert current.runtime.store.counts("T1") == before_counts

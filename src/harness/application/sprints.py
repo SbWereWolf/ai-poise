@@ -46,8 +46,8 @@ class SprintCommands:
                 'publish':{'action','sprint_id','request_id','expected_revision'},
                 'dependencies':{'action','sprint_id','request_id','expected_revision','items','reason'},
                 'cancel_tasks':{'action','sprint_id','request_id','tasks','mode','reason'},
-                'waive_dependencies':{'action','sprint_id','request_id','decisions'},
-                'force_close':{'action','sprint_id','request_id','reason'}}
+                'cancel':{'action','sprint_id','request_id','reason'},
+                'waive_dependencies':{'action','sprint_id','request_id','decisions'}}
         if not isinstance(packet,dict) or not isinstance(packet.get('action'),str) or packet['action'] not in shapes:
             raise DomainError('Unknown sprint action')
         exact_keys(packet,shapes[packet['action']],'sprint action');path_identifier(packet['request_id'])
@@ -100,18 +100,19 @@ class SprintCommands:
                     if not isinstance(packet['decisions'],list) or not packet['decisions']:
                         raise DomainError('A nonempty explicit decision batch is required')
                     s=s.waive(packet['decisions'])
-                elif action in ('cancel_tasks','force_close'):
-                    forced=action=='force_close'
+                elif action in ('cancel_tasks','cancel'):
+                    whole=action=='cancel'
                     if s.state not in ('draft','published'):raise DomainError('Sprint already cancelled')
-                    if not forced and s.state!='published':raise DomainError('Only published members may be cancelled')
-                    ids=[t['id'] for t in s.plan.data['tasks']] if forced else list(s.cancellation_scope(packet['tasks'],packet['mode']))
+                    if not whole and s.state!='published':raise DomainError('Only published members may be cancelled')
+                    requested=([t['id'] for t in s.plan.data['tasks']] if s.state=='published' else []) if whole else list(s.cancellation_scope(packet['tasks'],packet['mode']))
                     facts=u.sprints.facts(sid)
+                    ids=[tid for tid in requested if facts[tid]['status'] not in ('completed','cancelled')]
                     for tid in ids:
-                        if tid not in facts or facts[tid]['status'] in ('completed','cancelled'):continue
                         if facts[tid]['pending'] is not None:raise DomainError('External operation outcome must be resolved first')
-                        task=u.tasks.load(tid);change=task.cancel(self.actor,packet['reason'])
+                    for tid in ids:
+                        task=u.tasks.load(tid);change=task.cancel_from_sprint(packet['reason'])
                         u.tasks.save(change,task.state.version)
-                    s=s.record_cancellation(ids,packet['reason'],forced)
+                    s=s.cancel(ids,packet['reason']) if whole else s.record_task_cancellation(ids,packet['reason'])
                 record={**record,'actor':self.actor,'aggregate':s.to_dict()}
                 u.sprints.save(record,prior)
                 if action=='publish':u.sprints.publish_members(record)

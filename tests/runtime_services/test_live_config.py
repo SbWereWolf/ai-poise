@@ -38,24 +38,23 @@ def test_bound_task_lifecycle_ignores_whole_config_digest(project):
     change_limit(project)
     current = WorkTools(Harness(project["config_path"], "same-session"))
     assert current.runtime.config_hash != original_hash
-    shown = current.invoke(request("show", {"queries": [
-        {"id": "state", "kind": "task"},
-        {
-            "id": "report",
-            "kind": "section",
-            "name": "report",
-            "stage": None,
-            "submission": None,
-            "range": None,
-        },
-    ]}))
-    state, report = (item["value"] for item in shown["results"])
+    shown = current.invoke(request("show", {"queries": [{"id": "state", "kind": "task"}]}))
+    state = shown["results"][0]["value"]
     assert (state["task"], state["stage"], state["iteration"]) == expected_position
-    assert report["text"] == context["result_template"]["sections"]["report"]
 
-    verified = verify_task(current, result(context, "Verified with the current project config"))
+    report_text = "Verified with the current project config"
+    verified = verify_task(current, result(context, report_text))
     assert verified["status"] == "verified"
     assert (verified["task"], verified["stage"], verified["iteration"]) == expected_position
+    section = current.invoke(request("show", {"queries": [{
+        "id": "report",
+        "kind": "section",
+        "name": "report",
+        "stage": None,
+        "submission": None,
+        "range": None,
+    }]}))["results"][0]["value"]
+    assert section["text"] == report_text
     assert current.runtime.task_queries.record("T1")["config_hash"] == original_hash
 
 
@@ -69,8 +68,15 @@ def test_accept_and_rework_ignore_whole_config_digest(project):
     accepted = WorkTools(Harness(project["config_path"], "accepting-session"))
     accepted.invoke(request("accept", {}))
     record = accepted.runtime.task_queries.record("T1")
-    assert record["status"] == "active"
-    assert record["process"]["stages"][record["stage_index"]]["id"] == "test_review"
+    assert record["status"] == "accepted"
+    continued = accepted.invoke(request("bootstrap", {
+        "task": None,
+        "decision": "continue",
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert continued["status"] == "active"
+    assert continued["stage"] == "test_review"
 
     second_contract = deepcopy(project["task"])
     second_contract["id"] = "T2"

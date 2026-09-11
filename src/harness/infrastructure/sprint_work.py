@@ -73,7 +73,6 @@ class SprintWork:
             raise HarnessError('Сначала завершить/передать текущую задачу')
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise HarnessError('Task is not eligible: '+str(state['blocked']))
-        if record['config_hash']!=h.config_hash:raise HarnessError('Published task belongs to another execution configuration')
         execution=h.prepare_task_execution(task_id,None if state is None else state['start_revisions'][task_id])
         h.task_commands.start(task_id,h.session,execution)
         h.store.bind(h.session,task_id)

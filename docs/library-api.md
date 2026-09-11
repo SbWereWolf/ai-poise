@@ -53,7 +53,7 @@ Public CLI: `harness work` (stdin JSON) и `harness goal-config --settings ...`.
 
 Обновлено: **2026-09-06T22:58:21+05:00**.
 
-- `SprintPolicy.parse`, `SprintPlan.create/apply`, `Sprint.draft/revise/publish/waive/update_dependencies/cancellation_scope/record_cancellation/overview` — чистый домен.
+- `SprintPolicy.parse`, `SprintPlan.create/apply`, `Sprint.draft/revise/publish/waive/update_dependencies/cancellation_scope/record_task_cancellation/cancel/overview` — чистый домен.
 - `SprintCommands.apply(packet)` — draft/publish/graph/cancellation, единый UnitOfWork.
 - `SprintCommands.read/select` — адресные проекции, snapshots и session scope.
 - `validate_creation(contract, process, automatic_checks)` и `build_task(metadata, actor)` — общая проверка и сборка отдельной/планируемой Task, без I/O.
@@ -61,6 +61,8 @@ Public CLI: `harness work` (stdin JSON) и `harness goal-config --settings ...`.
 - `SqliteSprintRepository` — только свои таблицы, layers/receipts и составные FK. Публикация Task через TaskRepository.
 - `SprintWork` — инфраструктурный port adapter для Git-readiness и существующего runtime; не SQL-editor Task.
 - WorkTools принимает `operation: sprint`; `bootstrap` принимает ID зарегистрированной сущности; `show` читает несколько Sprint views. Остальные work methods сохраняются.
+
+Публичная cancellation-модель различает текущую standalone Task, выбранных незавершённых участников Sprint и Sprint целиком. Последний вариант одной UoW сохраняет completed/cancelled участников и durable work, отменяет остальные Task через их доменный API и освобождает claims; unresolved pending блокирует весь пакет до первой мутации.
 
 [Точные входы и границы](sprints.md). [Хранение](storage-step05.md). Кандидаты из переписки не превращены в новые обязательные правила без классификации пользователя.
 

@@ -208,10 +208,16 @@ class Sprint:
                     if nxt not in selected:selected.add(nxt);q.append(nxt)
         return tuple(sorted(selected))
 
-    def record_cancellation(self,ids,reason,forced):
+    def record_task_cancellation(self,ids,reason):
         if not isinstance(reason,str) or not reason.strip():raise DomainError('User instruction required')
-        return replace(self,revision=self.revision+1,state='cancelled' if forced else self.state,
-                       decisions=self.decisions+({'kind':'force_close' if forced else 'cancel_tasks','tasks':list(ids),'reason':reason},))
+        return replace(self,revision=self.revision+1,
+                       decisions=self.decisions+({'kind':'cancel_tasks','tasks':list(ids),'reason':reason},))
+
+    def cancel(self,ids,reason):
+        if self.state not in ('draft','published'):raise DomainError('Sprint already cancelled')
+        if not isinstance(reason,str) or not reason.strip():raise DomainError('User instruction required')
+        return replace(self,revision=self.revision+1,state='cancelled',
+                       decisions=self.decisions+({'kind':'sprint_cancel','tasks':list(ids),'reason':reason},))
 
     def overview(self,states,resumable):
         ids=[t['id'] for t in self.plan.data['tasks']]

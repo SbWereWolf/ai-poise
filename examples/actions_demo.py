@@ -33,6 +33,13 @@ def process(kind):
 
 def method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
+            'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
+            'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
+
+
+def external_method(mid,code):
+    return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
+            'source_under_test':{'kind':'external','reason':'The service-state command reads no repository source.'},
             'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 
@@ -93,8 +100,8 @@ def run(directory,scenario):
         service=directory/'service-state.txt'
         def plan(value):
             return {'kind':'commands','steps':[{'id':'service','probe_false_exit_codes':[1],
-              'apply':method('APPLY',f'from pathlib import Path; Path({str(service)!r}).write_text({value!r})'),
-              'probe':method('PROBE',f'from pathlib import Path; assert Path({str(service)!r}).read_text()=={value!r}')}]}
+              'apply':external_method('APPLY',f'from pathlib import Path; Path({str(service)!r}).write_text({value!r})'),
+              'probe':external_method('PROBE',f'from pathlib import Path; assert Path({str(service)!r}).read_text()=={value!r}')}]}
         applied=client.verify(submission(ctx,{'plan':plan('v1'),'phase':'prepare','resolutions':[],'finding_resolutions':[]}),[])
         assert applied['status']=='verified';reports.append(applied)
         ctx=client.bootstrap(None,decision='continue')

@@ -13,6 +13,7 @@ from conftest import WorkPoise as Poise
 from conftest import git
 from poise.application.work import WorkTools
 from poise.infrastructure.result_integration import RuntimeResultIntegration
+from poise.modules.foundation.errors import PoiseError
 
 from .helpers import integration_input, prepare_completed_task, request
 
@@ -59,6 +60,29 @@ def _dirty_main_checkout(root: Path) -> None:
     git(root, "add", "main-staged.txt")
     (root / "main-unstaged.txt").write_text("unstaged bytes\n")
     (root / "main-untracked.txt").write_text("untracked bytes\n")
+
+
+def _start_unresolved_main_operation(root: Path, operation: str) -> tuple[str, str]:
+    git(root, "switch", "-c", f"operator-{operation}")
+    (root / "src" / "double.py").write_text("VALUE = 'operator'\n")
+    git(root, "add", "src/double.py")
+    git(root, "commit", "-m", f"test: operator {operation} side")
+    operation_commit = git(root, "rev-parse", "HEAD")
+    git(root, "switch", "main")
+    (root / "src" / "double.py").write_text("VALUE = 'main'\n")
+    git(root, "add", "src/double.py")
+    git(root, "commit", "-m", f"test: main {operation} side")
+    pinned_target = git(root, "rev-parse", "refs/heads/main")
+    if operation == "merge":
+        argv = ["git", "-C", str(root), "merge", "--no-commit", operation_commit]
+        marker = "MERGE_HEAD"
+    else:
+        argv = ["git", "-C", str(root), "cherry-pick", operation_commit]
+        marker = "CHERRY_PICK_HEAD"
+    receipt = subprocess.run(argv, capture_output=True, text=True, check=False)
+    assert receipt.returncode == 1, receipt.stderr
+    assert _optional_ref(root, marker) is not None
+    return pinned_target, marker
 
 
 def _guard_method() -> dict:
@@ -227,6 +251,24 @@ def test_overlapping_main_checkout_wip_is_not_an_integration_precondition(projec
     _assert_terminal_contract(result, source, project["app"], source_worktree)
     assert _main_checkout_fingerprint(project["app"], old_target) == before
     assert overlap.read_bytes() == b"uncommitted operator bytes\n"
+
+
+@pytest.mark.parametrize("operation", ["merge", "cherry-pick"])
+def test_unresolved_main_checkout_operation_is_not_an_integration_precondition(
+    project, operation
+):
+    tools, source_worktree, source = prepare_completed_task(project, _source_change)
+    pinned_target, marker = _start_unresolved_main_operation(project["app"], operation)
+    payload = integration_input(project, source)
+    assert payload["expected_target_commit"] == pinned_target
+    marker_before = _optional_ref(project["app"], marker)
+    before = _main_checkout_fingerprint(project["app"], pinned_target)
+
+    result = tools.invoke(request("integrate", payload))
+
+    _assert_terminal_contract(result, source, project["app"], source_worktree)
+    assert _optional_ref(project["app"], marker) == marker_before
+    assert _main_checkout_fingerprint(project["app"], pinned_target) == before
 
 
 def test_conflict_is_resolved_only_in_owned_child_branch_workspace_then_checked(project):
@@ -615,3 +657,23 @@ def test_show_exposes_exact_persisted_integration_contract_during_conflict(proje
     assert shown["resolutions"] == []
     assert shown["checks"] == []
     assert shown["publication"] is None
+
+
+def test_persisted_intent_rejects_mutation_without_rewriting_accepted_commit(project):
+    tools, _, source = prepare_completed_task(project, _conflicting_source_change)
+    (project["app"] / "src" / "double.py").write_text("VALUE = 'target'\n")
+    git(project["app"], "add", "src/double.py")
+    git(project["app"], "commit", "-m", "feat: conflicting target")
+    payload = integration_input(project, source, request_id="immutable-intent")
+    waiting = tools.invoke(request("integrate", payload))
+    before = _show_integration(project, "immutable-intent")
+
+    with pytest.raises(PoiseError, match="intent is immutable"):
+        tools.invoke(request("integrate", {
+            **payload,
+            "authorization": "Changed authorization must not replace persisted intent.",
+        }))
+
+    shown = _show_integration(project, "immutable-intent")
+    assert shown == before
+    assert shown["accepted_commit"] == waiting["accepted_commit"] == source

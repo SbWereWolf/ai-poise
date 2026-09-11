@@ -60,7 +60,7 @@ class SprintWork:
         out['eligible']=ready;out['start_revisions']=bases
         if out['status'] not in ('draft','completed','cancelled') and not ready and not out['active']:out['status']='blocked'
         current=self.h.current_task()
-        out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled') else None
+        out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled') and current['sprint_id']==out['sprint'] else None
         out['sprint_root']=str(descendant(self.h.state,self.h.paths['sprints'])/out['sprint'])
         if out['status'] in ('completed','cancelled'):out['next_work']='Доложить результат; новой работы по спринту нет'
         elif not ready and not out['active'] and out['status']!='draft':out['next_work']='Разрешить указанные блокировки; задачи автоматически не выбирать'

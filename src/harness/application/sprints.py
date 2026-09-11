@@ -125,7 +125,7 @@ class SprintCommands:
         with self.uow() as u:return u.sprints.get(sprint_id) is not None
 
     def overview_ids(self):
-        with self.uow() as u:return u.sprints.ids(self.project,('published','cancelled'))
+        with self.uow() as u:return u.sprints.published_ids(self.project)
 
     def read(self,sprint_id,view):
         with self.uow() as u:

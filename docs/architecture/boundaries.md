@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-12T00:00:00+05:00**. Срез **HARNESS-DDD-04B**.
+Обновлено: **2026-09-12T00:00:00+05:00**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -33,7 +33,7 @@
 | Runtime/CLI adapter | Передать непосредственный payload и наблюдённый user event | Требовать заранее ручной JSON-файл или выдавать reported events за полный поток |
 | SQLite/filesystem adapters | Сохранить валидный кандидат, staging и receipt, согласованная активация | Бизнес-валидация истинности аргумента |
 
-Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги Harness остаются в Harness; generated project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация приложения — через нативные инструменты согласно правилам codebase. Полный контракт: [declarative-tools](declarative-tools.md).
+Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги AI poise остаются в AI poise; generated project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация приложения — через нативные инструменты согласно правилам codebase. Полный контракт: [declarative-tools](declarative-tools.md).
 
 ## DDD-04A — 2026-09-06T20:26:43+05:00
 
@@ -53,10 +53,16 @@ WorkTools — application facade, не новый агрегат. Task оста�
 Общий API не реализует 13 разных engines. DDD-04A editor и DDD-04B work entry остаются отдельными предметными сценариями. Конфигурационные шаблоны и артефакты имеют разные contracts; никакого универсального произвольного `write_file` для служебных данных.
 
 
-## DDD-05 — 2026-09-06T22:06:40+05:00
+## DDD-05 — 2026-09-11T16:25:00+05:00
 Sprint владеет планом/графом/решениями; Task владеет доступностью, началом и состоянием работы. Published Sprint создаёт Task через общий доменный builder и TaskRepository в одной UoW. Клиент не подменяет исходные шаблоны/таблицы рабочими JSON patch.
 
 `modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem. `infrastructure/sprint_work` выполняет только доступ к наблюдаемым Git-объектам и делегирует Task API. База сериализует короткие записи; проверки/commit/push параллельных worktrees не держат общий DB lock. Readiness графа не равна auto-merge: разные result revisions возвращаются как integration_required.
+
+Замена ошибочной незавершённой Task остаётся координацией этих владельцев, а не новым lifecycle writer. `SprintWork` до транзакции наблюдает pending/ownership/handoff и чистоту worktree. `SprintCommands` в короткой UoW повторно сверяет Sprint revision, Task version и снимок preflight, валидирует полный replacement через сохранённый process, вызывает `Sprint.replace_task` для графа/relation и `Task.supersede` для состояния источника. Инфраструктурный адаптер не присваивает lifecycle напрямую.
+
+Replay receipt проверяется до внешнего preflight. При новом intent весь Task/Sprint write-set — создание replacement, supersession источника, новый plan/layer, membership/dependencies, relation и receipt — фиксируется одной UoW; fault injection подтверждает общий rollback. Старый membership нужен для принадлежности исторического Task, но current facts фильтруются сохранённым Sprint plan. Contract/submissions/evidence/artifacts/handoff старой Task не переносятся и не переписываются.
+
+Relation хранится в Sprint decision snapshot и revision layers, а idempotency — в существующем `sprint_requests`; отдельная таблица или миграция схемы не понадобились. Чтение идёт через прежние Sprint/Task projections. Accounting лишь отображает `superseded` как terminal outcome и не становится владельцем Task state.
 
 ### Публичный обзор работ — 2026-09-11
 
@@ -89,14 +95,33 @@ RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands мен
 - `infrastructure/HookService`: composition с прежним WorkTools/InteractionStore; native hook не принимает и не завершает Task.
 - `HookRegistry`: собственные operational таблицы, без SQL к tasks/sprints.
 - `LocalProbeExecutor`/`StdioProbe`: реальные read-only наблюдения, не интерпретация пользовательского intent. Наличие inventory не выдаётся за успешный probe.
-- Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет скрыто приёмку Harness этапа.
+- Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет скрыто приёмку AI poise этапа.
+
+### session-scoped source resolution
+
+Доменный `BoundSourceRoute` выбирает только владельца source: installation, существующую
+целевую Task или текущую Task. Application `WorkTools.prepare_bound_source` координирует
+подготовку существующей Task через её публичные владельцы, не потребляя сообщение и не
+исполняя пакет. Infrastructure `HookService` проверяет зарегистрированный `Task worktree`,
+Git- и filesystem-границы, после чего запускает отдельный интерпретатор из выбранного source.
+
+`native binding` остаётся владельцем session/message provenance. Выбранный source и его
+проверочные факты не записываются в binding, Task DB или общую конфигурацию; поэтому две
+сессии могут конкурентно использовать разные worktrees без общей мутации. Installation
+interface только переносит результат выбранного дочернего `WorkTools` и не становится вторым
+исполнителем операции. Уточнено **2026-09-12**: все операции текущей Task, включая рабочие
+переходы, используют валидную текущую конфигурацию без общего `config_hash` gate, как
+предусмотрено задачей 0026. Task-owned snapshots сохраняются; хеш остаётся диагностическим
+provenance. Это не отменяет проверок binding, source, ownership и revisions.
 
 
 ## Accounting ownership — DDD-08
 
-Updated: 2026-09-07T02:34:02+05:00.
+Updated: 2026-09-12T00:25:00+05:00.
 
 Accounting owns raw usage, time cycles, benefit credits and explicit prior-result finding attribution, not Task/Sprint state. Domain is I/O-free; application uses the accounting port. SQLite mutations remain accounting-owned, external measurement executes outside the state lock. Task outcome precedes measuring benefit, never follows a fabricated metric. User-message ledger stays the source of message identity; no second counter duplicates it. Query projections may read other owners through existing query contracts.
+
+`Clock` is the accounting observation port. `Poise` and `RuntimeAccounting` require it at composition; production CLI, native hook and runtime adapters explicitly supply `SystemClock`, while tests supply deterministic adapters. The domain observation type carries audit UTC, a monotonic value and its comparison domain; filesystem and system-clock access remain infrastructure responsibilities. Accounting alone validates persisted clock continuity and stores measured/unmeasured cycle state. Query projection may combine audit start with a known monotonic duration for calendar allocation, but no layer derives elapsed time from wall-clock subtraction.
 
 No hidden numerical defaults, provider tariff assumptions or goal-name dispatch. Missing counters/instrument stay unavailable. Sources, causes, categories, selected sections, calendar and limits are explicit config.
 
@@ -172,20 +197,22 @@ Replay identity имеет project scope и не равен session binding: д�
 
 ## DDD-10 — интеграция принятого результата
 
-Обновлено: **2026-09-11T05:00:00+05:00**.
+Обновлено: **2026-09-11T16:55:00+05:00**.
 
 `ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и idempotent replay. Task остаётся единственным владельцем verified/accepted/completed lifecycle и содержательного результата: операция интеграции читает окончательный Task result, но не меняет его статус, секции или evidence. Sprint продолжает вычислять состояние из Task и не выполняет скрытый auto-merge.
 
 `ResultIntegrationCommands` — прикладная граница одного декларативного пакета. `RuntimeResultIntegration` реализует Git-наблюдения и эффекты, а сохранение выполняет через execution repository. WorkTools только маршрутизирует `integrate` и `show integration`; domain не импортирует filesystem, subprocess или SQLite.
 
-Intent до эффекта фиксирует task ID, request ID, source/target commits и пользовательскую authorization. Внешняя блокировка БД не удерживается во время Git. Между короткими сохранениями adapter повторно проверяет HEAD, MERGE_HEAD, conflict set, cleanliness и ancestry. Поэтому повтор либо продолжает известную фазу, либо возвращает сохранённый `blocked`; он не выполняет второй merge по догадке.
+Intent до эффекта фиксирует task ID, request ID, source/target commits и пользовательскую authorization. Preflight snapshot дополнительно сохраняет target HEAD, множество локальных путей и incoming delta от merge base. `RuntimeResultIntegration` отклоняет unresolved Git operation и пересечение этих множеств до первой мутации. Для разрешённого dirty target отдельный служебный index изолирует принимаемый source от пользовательских staged, unstaged и untracked изменений; основной index после commit синхронизируется только по incoming paths из нового `HEAD`, а не из worktree.
 
-До подтверждения, что target содержит source commit и остаётся чистым, source worktree и ветка не удаляются. Уборка монотонна: worktree removal предшествует безопасному branch deletion, каждый результат сохраняется, а interruption повторяет только недостающий шаг. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
+Внешняя блокировка БД не удерживается во время Git. Между короткими сохранениями adapter повторно проверяет HEAD, MERGE_HEAD, conflict set, сохранённый preflight и drift worktree относительно служебного index. Поэтому повтор либо продолжает известную фазу, либо возвращает сохранённый `blocked`; он не выполняет второй merge по догадке и не включает более поздние пользовательские байты.
+
+До подтверждения, что target содержит source commit, source worktree и ветка не удаляются; разрешённые непересекающиеся локальные изменения target не блокируют cleanup. Уборка монотонна: worktree removal предшествует безопасному branch deletion, каждый результат сохраняется, а interruption повторяет только недостающий шаг. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
 
 
 ## Проверка пилота — 2026-09-07T15:04:48+05:00
 
-В HARNESS-PILOT-02 не добавлены новые домены, таблицы или прикладной runner. Development-
+В POISE-PILOT-02 не добавлены новые домены, таблицы или прикладной runner. Development-
 супервизор использует существующий command executor. Пример continuation вызывает WorkTools,
 не пишет SQL/config и не присваивает lifecycle-поля. Контроль источников включает tools.
 Статус процесса и факт наличия XML отделены от содержательного итога проверок.

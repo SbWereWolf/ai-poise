@@ -7,22 +7,22 @@ from pathlib import Path
 
 import pytest
 
-from harness.common import digest, load_config
-from harness.modules.foundation.errors import HarnessError
-from harness.runtime import Harness
-from harness.application.work import WorkTools
-from tests.conftest import write_json
+from poise.common import digest, load_config
+from poise.modules.foundation.errors import PoiseError
+from poise.runtime import Poise
+from poise.application.work import WorkTools
+from tests.conftest import DeterministicClock, write_json
 from .helpers import setup_case
 
 
 def update_tools(settings_path):
     """Import inside a test call so the pre-implementation suite collects and runs RED."""
-    from harness.composition import project_config_tools
+    from poise.composition import project_config_tools
     return project_config_tools(settings_path)
 
 
 def installed_project(project):
-    from harness.composition import project_tools
+    from poise.composition import project_tools
     settings, _, create = setup_case(project)
     created = project_tools(settings).apply(create)
     return settings, Path(created["config_path"]), created
@@ -118,13 +118,13 @@ def test_exact_retry_replays_and_conflicting_request_id_cannot_overwrite(project
     assert replay["revision"] == first["revision"]
     conflicting = deepcopy(request)
     conflicting["process_updates"][0]["changes"][0]["set"]["instruction"] = "different"
-    with pytest.raises(HarnessError, match="request|запрос"):
+    with pytest.raises(PoiseError, match="request|запрос"):
         api.apply(conflicting)
     assert project_revision(config_path) == first["revision"]
 
 
 def test_interrupted_process_publication_recovers_one_known_revision(project, monkeypatch):
-    import harness.infrastructure.project_config as infrastructure
+    import poise.infrastructure.project_config as infrastructure
 
     settings, config_path, created = installed_project(project)
     request = update_request(
@@ -142,7 +142,7 @@ def test_interrupted_process_publication_recovers_one_known_revision(project, mo
 
     with monkeypatch.context() as patch:
         patch.setattr(infrastructure, "atomic_write", replace_then_interrupt)
-        with pytest.raises(HarnessError, match="retry|повтор"):
+        with pytest.raises(PoiseError, match="retry|повтор"):
             update_tools(settings).apply(request)
 
     recovered = update_tools(settings).apply(request)
@@ -173,7 +173,7 @@ def test_stale_or_invalid_candidate_never_partially_publishes(project, case):
     else:
         request["implicit_default"] = True
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         update_tools(settings).apply(request)
 
     assert config_path.read_bytes() == before_manifest
@@ -189,7 +189,7 @@ def test_external_file_change_is_not_adopted_as_a_known_revision(project):
     write_json(process_path, external)
     request = update_request(config_path, project_revision(config_path))
 
-    with pytest.raises(HarnessError, match="вне|external|known"):
+    with pytest.raises(PoiseError, match="вне|external|known"):
         update_tools(settings).apply(request)
 
     assert json.loads(process_path.read_text()) == external
@@ -197,7 +197,7 @@ def test_external_file_change_is_not_adopted_as_a_known_revision(project):
 
 def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(project):
     settings, config_path, created = installed_project(project)
-    active = WorkTools(Harness(config_path, "active-owner"))
+    active = WorkTools(Poise(config_path, "active-owner", DeterministicClock()))
     first = active.invoke({
         "operation": "bootstrap",
         "input": {"task": project["task"], "decision": None, "feedback": None, "rework_stage": None},
@@ -218,7 +218,7 @@ def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(pr
     })
     new_task = deepcopy(project["task"])
     new_task["id"] = "T2"
-    fresh = WorkTools(Harness(config_path, "new-owner")).invoke({
+    fresh = WorkTools(Poise(config_path, "new-owner", DeterministicClock())).invoke({
         "operation": "bootstrap",
         "input": {"task": new_task, "decision": None, "feedback": None, "rework_stage": None},
         "messages": [],
@@ -230,7 +230,7 @@ def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(pr
 
 def test_manifest_change_is_rejected_while_task_work_is_active(project):
     settings, config_path, created = installed_project(project)
-    WorkTools(Harness(config_path, "active-owner")).invoke({
+    WorkTools(Poise(config_path, "active-owner", DeterministicClock())).invoke({
         "operation": "bootstrap",
         "input": {"task": project["task"], "decision": None, "feedback": None, "rework_stage": None},
         "messages": [],
@@ -241,7 +241,7 @@ def test_manifest_change_is_rejected_while_task_work_is_active(project):
         manifest_edits=[{"path": ["git", "push_required"], "value": False}],
     )
 
-    with pytest.raises(HarnessError, match="active|актив"):
+    with pytest.raises(PoiseError, match="active|актив"):
         update_tools(settings).apply(request)
 
     assert json.loads(config_path.read_text())["git"]["push_required"] is True
@@ -304,7 +304,7 @@ def test_state_relocation_rejects_missing_source_without_empty_replacement(proje
     assert not Path(move["expected_source"]).exists()
     request = update_request(config_path, created["revision"], state_relocation=move)
 
-    with pytest.raises(HarnessError, match="source|исход"):
+    with pytest.raises(PoiseError, match="source|исход"):
         update_tools(settings).apply(request)
 
     assert not destination.exists()
@@ -335,12 +335,12 @@ def test_state_relocation_rejects_occupied_destination_and_active_work(project):
     (destination / "foreign.txt").write_text("do not replace")
     request = update_request(config_path, created["revision"], state_relocation=relocation(config_path, destination))
 
-    with pytest.raises(HarnessError, match="destination|назначения|пуст"):
+    with pytest.raises(PoiseError, match="destination|назначения|пуст"):
         update_tools(settings).apply(request)
     assert (destination / "foreign.txt").read_text() == "do not replace"
 
     empty_destination = project["root"].parent / "empty-relocation"
-    WorkTools(Harness(config_path, "active-owner")).invoke({
+    WorkTools(Poise(config_path, "active-owner", DeterministicClock())).invoke({
         "operation": "bootstrap",
         "input": {"task": project["task"], "decision": None, "feedback": None, "rework_stage": None},
         "messages": [],
@@ -352,14 +352,14 @@ def test_state_relocation_rejects_occupied_destination_and_active_work(project):
         state_relocation=relocation(config_path, empty_destination),
     )
     active_request["receipt_path"] = "operations/active-relocation.json"
-    with pytest.raises(HarnessError, match="active|quiescent|актив"):
+    with pytest.raises(PoiseError, match="active|quiescent|актив"):
         update_tools(settings).apply(active_request)
     assert not empty_destination.exists()
 
 
 @pytest.mark.parametrize("failure_point", ["copy", "publish", "switch", "cleanup"])
 def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, failure_point):
-    import harness.infrastructure.project_config as infrastructure
+    import poise.infrastructure.project_config as infrastructure
 
     settings, config_path, created = installed_project(project)
     move = relocation(config_path, project["root"].parent / f"relocated-{failure_point}")
@@ -382,7 +382,7 @@ def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, fa
 
     with monkeypatch.context() as patch:
         patch.setattr(infrastructure, seam, interrupt)
-        with pytest.raises(HarnessError, match="retry|повтор"):
+        with pytest.raises(PoiseError, match="retry|повтор"):
             update_tools(settings).apply(request)
 
     recovered = update_tools(settings).apply(request)
@@ -398,7 +398,7 @@ def test_project_config_cli_accepts_one_bounded_packet(project):
     request = update_request(config_path, created["revision"])
 
     completed = subprocess.run(
-        [sys.executable, "-m", "harness", "project-config", "--settings", str(settings)],
+        [sys.executable, "-m", "poise", "project-config", "--settings", str(settings)],
         input=json.dumps(request),
         text=True,
         capture_output=True,
@@ -435,7 +435,7 @@ def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, c
         raw = raw[:-1] + ',"schema":"other"}'
 
     completed = subprocess.run(
-        [sys.executable, "-m", "harness", "project-config", "--settings", str(settings)],
+        [sys.executable, "-m", "poise", "project-config", "--settings", str(settings)],
         input=raw,
         text=True,
         capture_output=True,
@@ -452,7 +452,7 @@ def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, c
 
 
 def test_project_update_application_boundary_depends_on_ports_not_io():
-    root = Path(__file__).resolve().parents[2] / "src/harness"
+    root = Path(__file__).resolve().parents[2] / "src/poise"
     application = root / "application/project_config.py"
     interface = root / "interfaces/project_config.py"
     composition = root / "composition.py"

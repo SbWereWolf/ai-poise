@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[2]/'src/harness'
+ROOT=Path(__file__).resolve().parents[2]/'src/poise'
 
 
 def test_new_applications_use_ports_not_io():
@@ -17,3 +17,39 @@ def test_native_hook_transport_changes_work_only_through_worktools():
     assert 'UPDATE tasks' not in source and 'INSERT INTO tasks' not in source
     assert 'task.accept' not in source and 'task.complete' not in source
     assert 'dangerously-bypass' not in source
+
+
+def test_bound_source_route_is_pure_and_preparation_stays_in_application_boundary():
+    domain=(ROOT/'modules/hook_transport/domain.py').read_text()
+    tree=ast.parse(domain)
+    imports=[]
+    for node in ast.walk(tree):
+        if isinstance(node,ast.Import):imports.extend(item.name for item in node.names)
+        elif isinstance(node,ast.ImportFrom):imports.append(node.module or '')
+    assert 'BoundSourceRoute' in domain
+    assert not any(name.split('.')[0] in {'os','pathlib','sqlite3','subprocess'} for name in imports)
+
+    application=(ROOT/'application/work.py').read_text()
+    transport=(ROOT/'infrastructure/hook_transport.py').read_text()
+    assert 'prepare_bound_source' in application
+    assert 'prepare_bound_source' in transport
+    assert 'UPDATE tasks' not in transport and 'INSERT INTO tasks' not in transport
+
+    transport_tree=ast.parse(transport)
+    hook_service=next(node for node in transport_tree.body if isinstance(node,ast.ClassDef) and node.name=='HookService')
+    bind=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='_bind')
+    work=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='work')
+    record=next(
+        node.value for node in ast.walk(bind)
+        if isinstance(node,ast.Assign)
+        and any(isinstance(target,ast.Name) and target.id=='record' for target in node.targets)
+        and isinstance(node.value,ast.Dict)
+    )
+    keys={key.value for key in record.keys if isinstance(key,ast.Constant)}
+    assert not keys.intersection({'task','task_id','worktree','selected_source'})
+    assert not any(
+        isinstance(node,ast.Call)
+        and isinstance(node.func,ast.Attribute)
+        and node.func.attr in {'bind','atomic_write'}
+        for node in ast.walk(work)
+    )

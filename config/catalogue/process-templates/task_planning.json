@@ -340,7 +340,7 @@
       "normalization": "strip",
       "sections": {
         "report": "Record the substantive result for this stage.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication."
       },
       "required_sections": [

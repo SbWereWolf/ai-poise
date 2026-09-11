@@ -3,9 +3,9 @@ import json
 from copy import deepcopy
 from pathlib import Path
 import pytest
-from harness.common import HarnessError, file_digest
-from harness.infrastructure.result_views import ResultViews
-from harness.modules.result_views.domain import OutputPolicy
+from poise.common import PoiseError, file_digest
+from poise.infrastructure.result_views import ResultViews
+from poise.modules.result_views.domain import OutputPolicy
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -45,7 +45,7 @@ def test_unknown_command_uses_explicit_profile_with_two_views(tmp_path):
 
 
 def test_materialization_and_primary_use_same_parser(tmp_path):
-    from harness.infrastructure.result_views import OutputParser
+    from poise.infrastructure.result_views import OutputParser
     r=receipt(tmp_path/'run');p=OutputPolicy.parse(config()).select(r['argv'])
     parser=OutputParser(p,config()['chunk_bytes'])
     primary=parser.render('primary',r,tmp_path/'run')
@@ -71,7 +71,7 @@ def test_raw_tamper_is_incident_not_false_command_failure(tmp_path):
 
 
 def test_worker_failure_is_recorded_and_does_not_rerun_command(tmp_path,monkeypatch):
-    import harness.infrastructure.result_views as module
+    import poise.infrastructure.result_views as module
     r=receipt(tmp_path/'run');s=ResultViews(config(),lambda *_:None)
     def fail(*a,**k):raise OSError('worker unavailable')
     monkeypatch.setattr(module.subprocess,'Popen',fail)
@@ -84,24 +84,24 @@ def test_worker_failure_is_recorded_and_does_not_rerun_command(tmp_path,monkeypa
 @pytest.mark.parametrize('key',['unknown','worker_timeout_seconds','chunk_bytes'])
 def test_config_missing_values_not_defaulted(key):
     c=config();c.pop(key)
-    with pytest.raises(HarnessError):OutputPolicy.parse(c)
+    with pytest.raises(PoiseError):OutputPolicy.parse(c)
 
 
 def test_path_escape_and_duplicate_filenames_rejected():
     for bad in ('../full.txt','extended.txt'):
         c=config();c['unknown']['files']['full']=bad
-        with pytest.raises(HarnessError):OutputPolicy.parse(c)
+        with pytest.raises(PoiseError):OutputPolicy.parse(c)
 
 
 def test_ambiguous_known_match_rejected():
     c=config();c['known'].append(deepcopy(c['known'][0]));c['known'][1]['id']='other'
     p=OutputPolicy.parse(c)
-    with pytest.raises(HarnessError):p.select(['python','-m','unittest'])
+    with pytest.raises(PoiseError):p.select(['python','-m','unittest'])
 
 
 def test_bad_regex_rejected_before_command_execution():
     c=config();c['known'][0]['selection_pattern']='['
-    with pytest.raises(HarnessError):OutputPolicy.parse(c)
+    with pytest.raises(PoiseError):OutputPolicy.parse(c)
 
 
 def test_two_calls_do_not_share_results(tmp_path):
@@ -114,7 +114,7 @@ def test_two_calls_do_not_share_results(tmp_path):
 
 
 def test_known_lines_profile_does_not_fall_back_to_other_selection(tmp_path):
-    from harness.infrastructure.result_views import OutputParser
+    from poise.infrastructure.result_views import OutputParser
     r=receipt(tmp_path/'run',out=b'unmatched output',err=b'other diagnostic')
     parser=OutputParser(OutputPolicy.parse(config()).select(r['argv']),config()['chunk_bytes'])
     assert parser.render('primary',r,tmp_path/'run')==''

@@ -6,9 +6,9 @@ import sqlite3
 from pathlib import Path
 import pytest
 from conftest import write_json, fill, add_test
-from conftest import Harness
-from harness.common import HarnessError
-from harness.modules.content_requirements.domain import ContentPolicy
+from conftest import Poise
+from poise.common import PoiseError
+from poise.modules.content_requirements.domain import ContentPolicy
 
 
 def empty():
@@ -22,7 +22,7 @@ def setup(project, goal, extra):
     write_json(project['config_path'],project['cfg'])
     write_json(project['root']/'config/processes/development.json',project['process'])
     write_json(project['task_path'],project['task'])
-    h=Harness(project['config_path'],'S1')
+    h=Poise(project['config_path'],'S1')
     return h,h.bootstrap(task_file=project['task_path'])
 
 
@@ -85,7 +85,7 @@ def test_task_requirement_cannot_replace_goal_minimum_and_invalid_batch_not_save
     h,b=setup(project,section_policy('tests'),empty()); fill(b)
     changed=section_policy('tests'); changed['requirements'][0]['states']=['empty']
     update(b,content_additions=changed)
-    with pytest.raises(HarnessError,match='замен'):
+    with pytest.raises(PoiseError,match='замен'):
         h.verify()
     assert h.show()['submission_count']==0
 
@@ -107,7 +107,7 @@ def test_full_trace_two_routes_future_document_then_methods_then_review(project)
                     'reasoning':{'proof':{'facts':'Multiplication verified','assumptions':'Integer n','inference':'n*2 doubles n','conclusion':'R1 fulfilled'}}})
     assert h.verify()['status']=='verified'
     assert h.accept()['status']=='completed'
-    h2=Harness(project['config_path'],'S1')
+    h2=Poise(project['config_path'],'S1')
     current=h2.task_queries.content('T1')
     assert current['trace']['functional']['method']=='GREEN'
     assert current['trace']['reasoning']['proof']['conclusion']=='R1 fulfilled'
@@ -167,7 +167,7 @@ def test_invalid_trace_schedule_in_active_additions_is_rejected_before_submissio
          "stages":["implementation"],"phase":"pre","field_equals":{}}]}
     update(b,content_additions=additions)
     before=h.task_queries.record('T1')['_version']
-    with pytest.raises(HarnessError) as error:
+    with pytest.raises(PoiseError) as error:
         h.verify()
     assert all(value in str(error.value) for value in
                ('late-method','late','method','tests','implementation'))
@@ -207,19 +207,19 @@ def test_domain_mark_verified_cannot_bypass_content_gates(project):
     assert h.verify()['status']=='content_requirements_failed'
     with h.store.unit_of_work() as uow:
         task=uow.tasks.load('T1')
-    with pytest.raises(HarnessError,match='содержим'):
+    with pytest.raises(PoiseError,match='содержим'):
         task.mark_verified('S1',task.state.submission_digest,())
 
 
 def test_old_version_two_store_is_rejected_without_migration(project):
-    from harness.infrastructure.sqlite.database import Database
+    from poise.infrastructure.sqlite.database import Database
     p=project['root']/'old.sqlite'
     with sqlite3.connect(p) as db:
         db.execute('CREATE TABLE precious(value TEXT)')
         db.execute("INSERT INTO precious VALUES('untouched')")
         db.execute('PRAGMA user_version=2')
     before=p.read_bytes()
-    with pytest.raises(HarnessError,match='миграц'):
+    with pytest.raises(PoiseError,match='миграц'):
         Database(p,project['root']/'old.lock',2,0.01)
     assert p.read_bytes()==before
 
@@ -250,8 +250,8 @@ def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_execute
 def test_cli_content_failure_is_business_failure_not_exit_zero(project):
     import os, subprocess, sys
     h,b=setup(project,section_policy('tests'),empty()); fill(b)
-    result=subprocess.run([sys.executable,'-m','harness','work'],input=json.dumps({'operation':'verify','input':{'result':b['result_template'],'artifacts':[]},'messages':[]}),capture_output=True,text=True,
-        env={**os.environ,'HARNESS_CONFIG':str(project['config_path']),'HARNESS_SESSION':'S1'},timeout=15)
+    result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'verify','input':{'result':b['result_template'],'artifacts':[]},'messages':[]}),capture_output=True,text=True,
+        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'S1'},timeout=15)
     assert result.returncode==1, result.stdout+result.stderr
     assert 'content_requirements_failed' in result.stdout
     assert h.show()['evidence_count']==0
@@ -276,7 +276,7 @@ def test_accepted_result_cannot_hide_unsatisfied_newly_registered_goal_requireme
     # The new minimum is explicitly saved even though its content is absent.
     update(b,content_additions=section_policy('tests'))
     r=h.verify(); assert r['status']=='content_requirements_failed'
-    with pytest.raises(HarnessError): h.accept()
+    with pytest.raises(PoiseError): h.accept()
     fresh=h.bootstrap()
     assert fresh['content_requirements']['due'][0]['id']=='rationale-required'
 

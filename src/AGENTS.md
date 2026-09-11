@@ -1,6 +1,6 @@
-# Harness source development
+# AI poise source development
 
-Updated: 2026-09-11T05:25:00+05:00.
+Updated: 2026-09-12T00:25:00+05:00.
 
 ## Declarative, reusable tools
 
@@ -26,13 +26,13 @@ Reuse the standard stage handlers and the common route runner across workflows. 
 
 Do not embed literals that determine the workflow, task format, acceptance conditions or observable result in application logic. Supply those choices through explicit configuration. Internal implementation constants may describe mechanisms, but must not silently select business behaviour.
 
-Harness must be configurable without editing its source code. Missing required configuration is an error: do not supply hidden defaults, fallback values or guessed settings.
+AI poise must be configurable without editing its source code. Missing required configuration is an error: do not supply hidden defaults, fallback values or guessed settings.
 
 Do not preserve backward compatibility merely to read earlier formats. Do not design or run data migrations without a direct user instruction; request permission when a migration is necessary.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 
-Keep all Harness configuration in the Harness codebase and select the project explicitly. Do not infer executable commands from a target application's prose instructions; register the exact invocation in the task or project configuration.
+Keep all AI poise configuration in the AI poise codebase and select the project explicitly. Do not infer executable commands from a target application's prose instructions; register the exact invocation in the task or project configuration.
 
 ## Development workflow
 

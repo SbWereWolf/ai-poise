@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[2]/'src/harness'
+ROOT=Path(__file__).resolve().parents[2]/'src/poise'
 
 
 def test_handoff_application_has_no_io_and_calls_task_owner():

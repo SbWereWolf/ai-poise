@@ -5,10 +5,10 @@ import json
 import shutil
 from pathlib import Path
 import pytest
-from harness.application.catalogue import CatalogueCommands
-from harness.composition import goal_config_tools
-from harness.infrastructure.catalogue import FileCatalogue
-from harness.common import HarnessError
+from poise.application.catalogue import CatalogueCommands
+from poise.composition import goal_config_tools
+from poise.infrastructure.catalogue import FileCatalogue
+from poise.common import PoiseError
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -40,7 +40,7 @@ def test_all_independent_packs_installed_in_one_batch_and_replay_preserved(tmp_p
 def test_invalid_late_request_cannot_publish_earlier_files(tmp_path,invalid):
     root,repo,tools,items=prepare(tmp_path)
     batch=items[:2];batch[1].update(invalid)
-    with pytest.raises(HarnessError):tools.install(batch)
+    with pytest.raises(PoiseError):tools.install(batch)
     assert not list((root/'config/catalogue/processes').glob('*.json'))
 
 
@@ -49,15 +49,15 @@ def test_late_invalid_graph_is_checked_before_any_publication(tmp_path):
     # Removing a referenced stage leaves the final candidate graph invalid.
     second=items[1];entry=repo.process_template(second['template'])['route']['entry']
     second['changes']=[{'op':'remove_stage','id':entry}]
-    with pytest.raises(HarnessError):tools.install(items[:2])
+    with pytest.raises(PoiseError):tools.install(items[:2])
     assert not list((root/'config/catalogue/processes').glob('*.json'))
 
 
 def test_bound_and_duplicate_goal_are_explicit_errors(tmp_path):
     root,repo,tools,items=prepare(tmp_path)
     small=CatalogueCommands(repo,tools.editor,1)
-    with pytest.raises(HarnessError):small.install(items[:2])
-    with pytest.raises(HarnessError):tools.install([items[0],items[0]])
+    with pytest.raises(PoiseError):small.install(items[:2])
+    with pytest.raises(PoiseError):tools.install([items[0],items[0]])
     assert not list((root/'config/catalogue/processes').glob('*.json'))
 
 
@@ -66,11 +66,11 @@ def test_task_template_tampering_is_not_accepted_as_declared_revision(tmp_path):
     key='review-v1';entry=repo.raw['task_templates'][key]
     source=root/entry['path'];data=json.loads(source.read_text());data['task']['goal_type']='development'
     source.write_text(json.dumps(data))
-    with pytest.raises(HarnessError):repo.task_blueprint({'id':key,'version':entry['version'],'digest':entry['digest']})
+    with pytest.raises(PoiseError):repo.task_blueprint({'id':key,'version':entry['version'],'digest':entry['digest']})
 
 
 def test_cli_installs_all_packs_from_stdin(tmp_path):
-    from harness.interfaces.catalogue import execute
+    from poise.interfaces.catalogue import execute
     root,repo,tools,items=prepare(tmp_path)
     body=json.dumps({'action':'install','items':items,'project_config':None}).encode()
     out=io.StringIO();code=execute(repo.path,io.BytesIO(body),out)
@@ -83,7 +83,7 @@ def test_real_cli_accepts_a_batch_without_task_store(tmp_path):
     import subprocess,sys,os
     root,repo,tools,items=prepare(tmp_path)
     packet={'action':'install','items':items,'project_config':None}
-    result=subprocess.run([sys.executable,'-m','harness','catalogue','--settings',str(repo.path)],
+    result=subprocess.run([sys.executable,'-m','poise','catalogue','--settings',str(repo.path)],
         input=json.dumps(packet),text=True,capture_output=True,env={**os.environ,'PYTHONPATH':str(ROOT/'src')},timeout=20)
     assert result.returncode==0,result.stderr+result.stdout
     assert json.loads(result.stdout)['status']=='installed'

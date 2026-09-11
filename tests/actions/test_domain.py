@@ -1,7 +1,7 @@
 from copy import deepcopy
 import pytest
-from harness.modules.foundation.errors import DomainError
-from harness.modules.actions.domain import PlanSpec, ActionRun, Publication
+from poise.modules.foundation.errors import DomainError
+from poise.modules.actions.domain import PlanSpec, ActionRun, Publication
 
 
 def merge_plan():
@@ -50,9 +50,9 @@ def test_publication_requires_authority_full_ref_and_commit():
 
 
 def test_publish_and_apply_handlers_cannot_self_certify_completion():
-    from harness.modules.workflow.handlers import handler
-    from harness.modules.workflow.domain import HandlerKind
-    from harness.modules.inspection.domain import FeedbackBook
+    from poise.modules.workflow.handlers import handler
+    from poise.modules.workflow.domain import HandlerKind
+    from poise.modules.inspection.domain import FeedbackBook
     work={'plan':merge_plan(),'phase':'prepare','resolutions':[],'finding_resolutions':[]}
     assert handler(HandlerKind.APPLY_PLAN).evaluate(work,FeedbackBook.empty(),'apply',1).outcome is None
     p={'target_ref':'refs/heads/main','expected_commit':'a'*40,'authorization':'user publish'}

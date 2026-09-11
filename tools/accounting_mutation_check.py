@@ -10,14 +10,14 @@ import subprocess
 import sys
 
 VARIANTS = (
-    ('double_count_details', 'src/harness/modules/accounting/domain.py',
+    ('double_count_details', 'src/poise/modules/accounting/domain.py',
      "return d['counters']",
      "return {**d['counters'], 'total_tokens': d['counters']['total_tokens'] + d['counters']['cached_input_tokens'] + d['counters']['reasoning_tokens']}",
      'tests/accounting/test_domain.py::test_details_are_subsets_not_extra_spend'),
-    ('tests_as_useful_code', 'src/harness/infrastructure/accounting_measurement.py',
+    ('tests_as_useful_code', 'src/poise/infrastructure/accounting_measurement.py',
      'useful=category in definition.git_categories', 'useful=True',
      'tests/accounting/test_paths.py::test_final_diff_credited_once_and_tests_excluded'),
-    ('charge_user_wait', 'src/harness/infrastructure/sqlite/accounting.py',
+    ('charge_user_wait', 'src/poise/infrastructure/sqlite/accounting.py',
      "elif d['turn_id']!=turn_id:", 'elif False:',
      'tests/accounting/test_extended.py::test_new_user_turn_does_not_charge_wait_after_failed_verify'),
 )
@@ -30,8 +30,8 @@ def main() -> int:
     parser.add_argument('--timeout', required=True, type=float)
     args = parser.parse_args()
     root, out = args.root.resolve(), args.output.resolve()
-    if args.timeout <= 0 or not (root/'src/harness').is_dir():
-        parser.error('Use a positive timeout and the Harness source root')
+    if args.timeout <= 0 or not (root/'src/poise').is_dir():
+        parser.error('Use a positive timeout and the Poise source root')
     out.mkdir(parents=True, exist_ok=False)
     results = []
     for name, filename, old, replacement, nodeid in VARIANTS:

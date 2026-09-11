@@ -5,7 +5,7 @@
       "internal_qa",
       "delivered_rework",
       "requirement_change",
-      "harness_incident"
+      "poise_incident"
     ],
     "max_blob_bytes": 1048576,
     "max_events": 1000,
@@ -221,6 +221,17 @@
         "tasks": [],
         "version": "1"
       }
+    }
+  },
+  "task_ids": {
+    "namespace": {
+      "minimum": 1,
+      "maximum": 9999
+    },
+    "width": 4,
+    "progression": {
+      "first": 1,
+      "step": 1
     }
   }
 }

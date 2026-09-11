@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from conftest import write_json, add_test
-from conftest import Harness
+from conftest import Poise
 from .helpers import inspect, finding, resolution, decision
 from .test_runner_paths import result
 
@@ -16,7 +16,7 @@ def test_test_remediation_reuses_handlers_with_red_contract(project):
     task=project['task']
     task['checks']={s['id']: (['RED'] if s['id'] in ('tests','test_fix') else ['GREEN'] if s['id'] in ('implementation','code_review','code_fix','code_recheck') else []) for s in proc['stages']}
     task['evidence_plan']={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in proc['stages']};write_json(project['task_path'],task)
-    h=Harness(project['config_path'],'S1');ctx=h.bootstrap(task_file=project['task_path'])
+    h=Poise(project['config_path'],'S1');ctx=h.bootstrap(task_file=project['task_path'])
     add_test(ctx['worktree']);result(ctx,{})
     assert h.verify()['checks'][0]['actual_exit_code']==1
     ctx=h.bootstrap(decision='continue');assert ctx['stage']=='test_review'

@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 from copy import deepcopy
 import pytest
-from harness.common import HarnessError
-from harness.infrastructure.runtime_adapter import RuntimeAdapter, CodexTranscript
-from harness.modules.runtime_adapter.domain import RuntimeIdentity, validate_inventory
+from poise.common import PoiseError
+from poise.infrastructure.runtime_adapter import RuntimeAdapter, CodexTranscript
+from poise.modules.runtime_adapter.domain import RuntimeIdentity, validate_inventory
 from batch.helpers import request
 from conftest import write_json
 
@@ -69,7 +69,7 @@ def test_truncation_or_changed_anchor_is_not_silent_reset(project,tmp_path):
     path=tmp_path/'log';path.write_bytes(logline('user_message'))
     source=CodexTranscript(settings(project,tmp_path));b=source.read(str(path),0,None,'c')
     path.write_bytes(logline('user_message','changed'))
-    with pytest.raises(HarnessError):source.read(str(path),0,b['cursor'],'c')
+    with pytest.raises(PoiseError):source.read(str(path),0,b['cursor'],'c')
 
 
 def test_unexpected_replica_response_item_is_not_double_counted(project,tmp_path):
@@ -79,15 +79,15 @@ def test_unexpected_replica_response_item_is_not_double_counted(project,tmp_path
 
 
 def test_no_capability_means_not_available():
-    with pytest.raises(HarnessError):validate_inventory([],['rename'])
+    with pytest.raises(PoiseError):validate_inventory([],['rename'])
     assert validate_inventory([],[])==[]
 
 
 def test_missing_required_capability_blocks_before_task_creation(project,tmp_path):
     cfg=settings(project,tmp_path);cfg['required_capabilities']=['rename']
-    with pytest.raises(HarnessError):RuntimeAdapter(cfg).invoke(packet(boot(project)))
-    from harness.runtime import Harness
-    assert Harness(project['config_path'],'check').task_queries.record('T1') is None
+    with pytest.raises(PoiseError):RuntimeAdapter(cfg).invoke(packet(boot(project)))
+    from conftest import WorkPoise as Poise
+    assert Poise(project['config_path'],'check').task_queries.record('T1') is None
 
 
 def test_generated_session_reuses_launch_request_but_separates_launches(project,tmp_path):
@@ -102,12 +102,12 @@ def test_generated_session_reuses_launch_request_but_separates_launches(project,
 def test_transcript_outside_explicit_roots_rejected(project,tmp_path):
     cfg=settings(project,tmp_path);cfg['transcript_roots']=[str(tmp_path/'allowed')]
     path=tmp_path/'outside';path.write_bytes(logline('user_message'))
-    with pytest.raises(HarnessError):CodexTranscript(cfg).read(str(path),0,None,'c')
+    with pytest.raises(PoiseError):CodexTranscript(cfg).read(str(path),0,None,'c')
 
 
 def test_unknown_transcript_source_cannot_be_labelled_agent_reported(project,tmp_path):
     path=tmp_path/'log';path.write_bytes(logline('user_message'))
-    with pytest.raises(HarnessError):RuntimeAdapter(settings(project,tmp_path)).invoke(packet(boot(project),transcript={'path':str(path),'initial_offset':0}))
+    with pytest.raises(PoiseError):RuntimeAdapter(settings(project,tmp_path)).invoke(packet(boot(project),transcript={'path':str(path),'initial_offset':0}))
 
 
 def test_scan_budget_does_not_drop_unread_messages(project,tmp_path):

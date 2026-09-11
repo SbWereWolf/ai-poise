@@ -14,9 +14,9 @@ import pytest
 
 from batch.helpers import request
 from conftest import write_json
-from harness.application.work import WorkTools
-from harness.common import HarnessError
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.common import PoiseError
+from conftest import WorkPoise as Poise
 
 
 def policy(*, minimum=1, maximum=9999, width=4, first=1, step=1):
@@ -74,7 +74,7 @@ def allocation_map(result):
 
 def test_public_creation_allocates_task_id(project):
     configure(project, policy())
-    tools = WorkTools(Harness(project["config_path"], "creator"))
+    tools = WorkTools(Poise(project["config_path"], "creator"))
 
     result = bootstrap(tools, automatic_intent(project, "create-first"))
 
@@ -92,7 +92,7 @@ def test_sequential_allocation_uses_configured_width_and_progression(project):
 
     allocated = []
     for index in range(3):
-        tools = WorkTools(Harness(project["config_path"], f"creator-{index}"))
+        tools = WorkTools(Poise(project["config_path"], f"creator-{index}"))
         allocated.append(
             bootstrap(tools, automatic_intent(project, f"sequence-{index}"))["task"]
         )
@@ -103,15 +103,15 @@ def test_sequential_allocation_uses_configured_width_and_progression(project):
 def test_occupied_configured_candidates_are_skipped(project):
     configure(project, policy(minimum=1, maximum=99, width=4, first=3, step=2))
     for index, identifier in enumerate(("0003", "0007")):
-        tools = WorkTools(Harness(project["config_path"], f"explicit-{index}"))
+        tools = WorkTools(Poise(project["config_path"], f"explicit-{index}"))
         assert bootstrap(tools, task_contract(project, identifier))["task"] == identifier
 
     first = bootstrap(
-        WorkTools(Harness(project["config_path"], "automatic-1")),
+        WorkTools(Poise(project["config_path"], "automatic-1")),
         automatic_intent(project, "occupied-1"),
     )
     second = bootstrap(
-        WorkTools(Harness(project["config_path"], "automatic-2")),
+        WorkTools(Poise(project["config_path"], "automatic-2")),
         automatic_intent(project, "occupied-2"),
     )
 
@@ -123,7 +123,7 @@ def test_concurrent_creation_allocates_unique_atomic_ids(project):
     ready = threading.Barrier(2)
 
     def create(index):
-        runtime = Harness(project["config_path"], f"parallel-{index}")
+        runtime = Poise(project["config_path"], f"parallel-{index}")
         ready.wait(timeout=5)
         return bootstrap(
             WorkTools(runtime), automatic_intent(project, f"parallel-request-{index}")
@@ -132,7 +132,7 @@ def test_concurrent_creation_allocates_unique_atomic_ids(project):
     with ThreadPoolExecutor(max_workers=2) as pool:
         allocated = list(pool.map(create, range(2)))
 
-    runtime = Harness(project["config_path"], "reader")
+    runtime = Poise(project["config_path"], "reader")
     assert sorted(allocated) == ["0001", "0002"]
     assert {row["id"] for row in runtime.task_queries.summary()} == set(allocated)
     with runtime.store.transaction() as db:
@@ -141,14 +141,14 @@ def test_concurrent_creation_allocates_unique_atomic_ids(project):
 
 def test_creation_request_replay_is_stable_and_does_not_consume_id(project):
     configure(project, policy(maximum=20))
-    owner_tools = WorkTools(Harness(project["config_path"], "replay-owner"))
+    owner_tools = WorkTools(Poise(project["config_path"], "replay-owner"))
     intent = automatic_intent(project, "stable-request")
 
     first = bootstrap(owner_tools, intent)
-    replay_tools = WorkTools(Harness(project["config_path"], "replay-reader"))
+    replay_tools = WorkTools(Poise(project["config_path"], "replay-reader"))
     replay = bootstrap(replay_tools, intent)
     next_result = bootstrap(
-        WorkTools(Harness(project["config_path"], "next-owner")),
+        WorkTools(Poise(project["config_path"], "next-owner")),
         automatic_intent(project, "next-request"),
     )
 
@@ -161,10 +161,10 @@ def test_creation_request_replay_is_stable_and_does_not_consume_id(project):
 
 def test_creation_request_digest_conflict_is_rejected_without_consumption(project):
     configure(project, policy(maximum=20))
-    tools = WorkTools(Harness(project["config_path"], "conflict-owner"))
+    tools = WorkTools(Poise(project["config_path"], "conflict-owner"))
     bootstrap(tools, automatic_intent(project, "conflicting-request"))
 
-    with pytest.raises(HarnessError, match="(?i)request|digest|conflict"):
+    with pytest.raises(PoiseError, match="(?i)request|digest|conflict"):
         bootstrap(
             tools,
             automatic_intent(
@@ -175,7 +175,7 @@ def test_creation_request_digest_conflict_is_rejected_without_consumption(projec
         )
 
     next_result = bootstrap(
-        WorkTools(Harness(project["config_path"], "after-conflict")),
+        WorkTools(Poise(project["config_path"], "after-conflict")),
         automatic_intent(project, "after-conflict"),
     )
     assert next_result["task"] == "0002"
@@ -185,13 +185,13 @@ def test_creation_request_digest_conflict_is_rejected_without_consumption(projec
 def test_missing_or_invalid_allocation_policy_fails_explicitly(project):
     configure(project)
     explicit = bootstrap(
-        WorkTools(Harness(project["config_path"], "explicit-without-policy")),
+        WorkTools(Poise(project["config_path"], "explicit-without-policy")),
         task_contract(project, "LEGACY"),
     )
     assert explicit["task"] == "LEGACY"
-    with pytest.raises(HarnessError, match="(?i)task_ids|allocation policy"):
+    with pytest.raises(PoiseError, match="(?i)task_ids|allocation policy"):
         bootstrap(
-            WorkTools(Harness(project["config_path"], "missing-policy")),
+            WorkTools(Poise(project["config_path"], "missing-policy")),
             automatic_intent(project, "missing-policy"),
         )
 
@@ -211,21 +211,21 @@ def test_missing_or_invalid_allocation_policy_fails_explicitly(project):
         cfg = deepcopy(project["cfg"])
         cfg["task_ids"] = value
         write_json(project["config_path"], cfg)
-        with pytest.raises(HarnessError, match="(?i)task_ids"):
-            Harness(project["config_path"], f"invalid-policy-{index}")
+        with pytest.raises(PoiseError, match="(?i)task_ids"):
+            Poise(project["config_path"], f"invalid-policy-{index}")
 
 
 def test_exhaustion_leaves_existing_tasks_unchanged(project):
     configure(project, policy(minimum=1, maximum=2, width=4))
     for index in range(2):
         bootstrap(
-            WorkTools(Harness(project["config_path"], f"fill-{index}")),
+            WorkTools(Poise(project["config_path"], f"fill-{index}")),
             automatic_intent(project, f"fill-request-{index}"),
         )
-    runtime = Harness(project["config_path"], "exhausted")
+    runtime = Poise(project["config_path"], "exhausted")
     before = deepcopy(runtime.task_queries.summary())
 
-    with pytest.raises(HarnessError, match="(?i)exhaust|namespace"):
+    with pytest.raises(PoiseError, match="(?i)exhaust|namespace"):
         bootstrap(
             WorkTools(runtime), automatic_intent(project, "exhausted-request")
         )
@@ -247,15 +247,15 @@ def test_allocated_identity_is_used_everywhere(project):
         },
     )
     process = subprocess.run(
-        [sys.executable, "-m", "harness", "work"],
+        [sys.executable, "-m", "poise", "work"],
         cwd=root,
         input=json.dumps(packet),
         text=True,
         capture_output=True,
         env={
             **os.environ,
-            "HARNESS_CONFIG": str(project["config_path"]),
-            "HARNESS_SESSION": "identity-owner",
+            "POISE_CONFIG": str(project["config_path"]),
+            "POISE_SESSION": "identity-owner",
             "PYTHONPATH": str(root / "src"),
         },
         timeout=20,
@@ -264,7 +264,7 @@ def test_allocated_identity_is_used_everywhere(project):
     view = json.loads(process.stdout)
     response_path = Path(view["response_path"])
     result = json.loads(response_path.read_text(encoding="utf-8"))
-    runtime = Harness(project["config_path"], "identity-reader")
+    runtime = Poise(project["config_path"], "identity-reader")
     record = runtime.task_queries.record("0001")
 
     assert result["task"] == record["id"] == record["contract"]["id"] == "0001"
@@ -289,7 +289,7 @@ def test_allocated_identity_is_used_everywhere(project):
 
 def test_worktree_failure_replays_same_reservation_and_recovers(project, monkeypatch):
     configure(project, policy())
-    runtime = Harness(project["config_path"], "recovery-owner")
+    runtime = Poise(project["config_path"], "recovery-owner")
     tools = WorkTools(runtime)
     real_git = runtime._git
     failed = False
@@ -299,12 +299,12 @@ def test_worktree_failure_replays_same_reservation_and_recovers(project, monkeyp
         result = real_git(cwd, *args, **kwargs)
         if not failed and args[:2] == ("worktree", "add"):
             failed = True
-            raise HarnessError("injected failure after git worktree add")
+            raise PoiseError("injected failure after git worktree add")
         return result
 
     monkeypatch.setattr(runtime, "_git", fail_after_worktree_add)
     intent = automatic_intent(project, "recoverable-request")
-    with pytest.raises(HarnessError, match="(?i)0001|recover|repeat"):
+    with pytest.raises(PoiseError, match="(?i)0001|recover|repeat"):
         bootstrap(tools, intent)
 
     record = runtime.task_queries.record("0001")
@@ -323,7 +323,7 @@ def test_worktree_failure_replays_same_reservation_and_recovers(project, monkeyp
 
 def test_worktree_recovery_rejects_and_preserves_conflicting_state(project, monkeypatch):
     configure(project, policy())
-    runtime = Harness(project["config_path"], "conflicting-recovery-owner")
+    runtime = Poise(project["config_path"], "conflicting-recovery-owner")
     tools = WorkTools(runtime)
     real_git = runtime._git
     failed = False
@@ -333,12 +333,12 @@ def test_worktree_recovery_rejects_and_preserves_conflicting_state(project, monk
         result = real_git(cwd, *args, **kwargs)
         if not failed and args[:2] == ("worktree", "add"):
             failed = True
-            raise HarnessError("injected failure after git worktree add")
+            raise PoiseError("injected failure after git worktree add")
         return result
 
     monkeypatch.setattr(runtime, "_git", fail_after_worktree_add)
     intent = automatic_intent(project, "conflicting-recovery-request")
-    with pytest.raises(HarnessError, match="(?i)0001|recover|repeat"):
+    with pytest.raises(PoiseError, match="(?i)0001|recover|repeat"):
         bootstrap(tools, intent)
 
     record = runtime.task_queries.record("0001")
@@ -349,7 +349,7 @@ def test_worktree_recovery_rejects_and_preserves_conflicting_state(project, monk
     unexpected.write_bytes(unexpected_bytes)
     monkeypatch.setattr(runtime, "_git", real_git)
 
-    with pytest.raises(HarnessError, match="(?i)conflict|changed|recover|worktree"):
+    with pytest.raises(PoiseError, match="(?i)conflict|changed|recover|worktree"):
         bootstrap(tools, intent)
 
     assert unexpected.read_bytes() == unexpected_bytes
@@ -421,7 +421,7 @@ def _planning_context(project):
             for stage in process["stages"]
         },
     )
-    runtime = Harness(project["config_path"], "planner")
+    runtime = Poise(project["config_path"], "planner")
     tools = WorkTools(runtime)
     return tools, bootstrap(tools, parent)
 
@@ -535,7 +535,7 @@ def test_sprint_publication_rewrites_request_aliases_to_allocated_ids(project):
     cfg["sprint"] = sprint_policy()
     cfg["automatic_checks"] = []
     write_json(project["config_path"], cfg)
-    tools = WorkTools(Harness(project["config_path"], "sprint-planner"))
+    tools = WorkTools(Poise(project["config_path"], "sprint-planner"))
     intents = [
         automatic_intent(project, "member-A", sprint_id="S"),
         automatic_intent(project, "member-B", sprint_id="S", goal="Dependent member"),
@@ -583,12 +583,12 @@ def test_sprint_publication_rewrites_request_aliases_to_allocated_ids(project):
 
 def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
     configure(project, policy())
-    runtime = Harness(project["config_path"], "legacy-owner")
+    runtime = Poise(project["config_path"], "legacy-owner")
     explicit = bootstrap(WorkTools(runtime), task_contract(project, "LEGACY"))
     with runtime.store.transaction() as db:
         before_version = db.execute("PRAGMA user_version").fetchone()[0]
 
-    reopened = Harness(project["config_path"], "legacy-reader")
+    reopened = Poise(project["config_path"], "legacy-reader")
     record = reopened.task_queries.record("LEGACY")
 
     assert explicit["task"] == record["id"] == "LEGACY"
@@ -643,20 +643,20 @@ def _direct_call_name(statement):
 def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
     root = Path(__file__).resolve().parents[2]
     domain_tree = ast.parse(
-        (root / "src/harness/modules/tasks/allocation.py").read_text(encoding="utf-8")
+        (root / "src/poise/modules/tasks/allocation.py").read_text(encoding="utf-8")
     )
     ports_tree = ast.parse(
-        (root / "src/harness/modules/tasks/ports.py").read_text(encoding="utf-8")
+        (root / "src/poise/modules/tasks/ports.py").read_text(encoding="utf-8")
     )
     commands_tree = ast.parse(
-        (root / "src/harness/application/tasks.py").read_text(encoding="utf-8")
+        (root / "src/poise/application/tasks.py").read_text(encoding="utf-8")
     )
     adapter_specs = (
-        ("src/harness/runtime.py", "Harness", "bootstrap"),
-        ("src/harness/application/catalogue.py", "CatalogueCommands", "tasks"),
-        ("src/harness/application/sprints.py", "SprintCommands", "apply"),
+        ("src/poise/runtime.py", "Poise", "bootstrap"),
+        ("src/poise/application/catalogue.py", "CatalogueCommands", "tasks"),
+        ("src/poise/application/sprints.py", "SprintCommands", "apply"),
         (
-            "src/harness/application/planning_publication.py",
+            "src/poise/application/planning_publication.py",
             "PlanningPublications",
             "publish",
         ),

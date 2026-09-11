@@ -1,10 +1,10 @@
 import copy
 import pytest
-from harness.modules.foundation.errors import DomainError
+from poise.modules.foundation.errors import DomainError
 from .helpers import process, task, verify, inspect, finding, resolution, decision, submit
 
 def route(cfg):
-    from harness.modules.workflow.domain import RouteDefinition
+    from poise.modules.workflow.domain import RouteDefinition
     return RouteDefinition.from_process(cfg)
 
 def test_graph_is_not_list_order():

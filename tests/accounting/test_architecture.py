@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[2]/'src/harness'
+ROOT=Path(__file__).resolve().parents[2]/'src/poise'
 
 def test_accounting_domain_has_no_io_and_no_goal_dispatch():
     path=ROOT/'modules/accounting/domain.py';source=path.read_text()

@@ -2,8 +2,8 @@
 import copy
 import pytest
 
-from harness.modules.evidence.domain import EvidencePlan, EvidenceBook
-from harness.modules.foundation.errors import DomainError
+from poise.modules.evidence.domain import EvidencePlan, EvidenceBook
+from poise.modules.foundation.errors import DomainError
 
 
 def plan(kind='logical', phase='continue'):

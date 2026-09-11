@@ -35,3 +35,25 @@ def test_noncommand_expectations_match_input():
         if b['id']=='logical_rejected_by_review':
             e=next(e for e in b['events'] if e['action']=='verify_prepare' and e.get('node')=='self_inspection')
             assert e['payload']['inspection_verdict']['verdict']=='rework_required'
+
+
+def test_live_config_and_all_cancellation_scopes_are_canonical():
+    docs=Path(__file__).resolve().parents[1]/'docs'
+    requirements=(docs/'governance/requirements.md').read_text()
+    goal_config=(docs/'configuration/goal-config.md').read_text()
+    sprints=(docs/'workflows/sprints.md').read_text()
+    batch=(docs/'workflows/batch-work.md').read_text()
+    library=(docs/'architecture/library-api.md').read_text()
+    combined='\n'.join((requirements,goal_config,sprints,batch,library))
+
+    assert 'Stage iteration отдельно фиксирует project/execution/tool/hook snapshot' not in requirements
+    assert 'Изменение **project execution config** по-прежнему останавливает текущую задачу' not in goal_config
+    assert '`force_close`' not in combined
+    assert '`cancel_tasks`' in sprints
+    assert '"action":"cancel"' in sprints
+    assert 'standalone Task' in batch
+    assert 'Sprint целиком' in library
+    assert 'отдельные worktree' in requirements
+    assert 'optimistic' in requirements
+    assert 'config_hash' in requirements
+    assert 'диагност' in requirements

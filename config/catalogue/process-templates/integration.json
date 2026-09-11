@@ -176,7 +176,7 @@
       "sections": {
         "report": "Record the substantive result for this stage.",
         "integration_plan": "explicit merge/rebase/cherry-pick strategy, order, private refs, conflicts policy, exact targeted checks и target publication predicate.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
       },
       "required_sections": [
         "report",
@@ -300,7 +300,7 @@
       "normalization": "strip",
       "sections": {
         "report": "Record the substantive result for this stage.",
-        "conflict_resolutions": "После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set Harness сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее."
+        "conflict_resolutions": "После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set AI poise сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее."
       },
       "required_sections": [
         "report",

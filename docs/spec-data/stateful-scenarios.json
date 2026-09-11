@@ -12016,7 +12016,7 @@
           "action": "verify_prepare",
           "node": "execution_planning",
           "payload": {
-            "execution_plan": "DRAFT1 затем DRAFT2 из dependency; модели/агенты пользователем, не scheduler Harness.",
+            "execution_plan": "DRAFT1 затем DRAFT2 из dependency; модели/агенты пользователем, не scheduler AI poise.",
             "shared_context_plan": "PR1 в sprint shared context, task links без копирования.",
             "shared_artifacts_plan": "Immutable input corpus как sprint artifact; task-local receipts в task roots.",
             "risks": "DRAFT2 публикуется валидной, но blocked DEP1 до accepted результата DRAFT1 и materialization receipt; готовая SHA не выдумывается.",

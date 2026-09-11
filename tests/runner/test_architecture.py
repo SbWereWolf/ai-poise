@@ -2,7 +2,7 @@
 import ast
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[2]/"src/harness"
+ROOT=Path(__file__).resolve().parents[2]/"src/poise"
 
 def test_workflow_and_inspection_are_pure():
     forbidden={"sqlite3","os","pathlib","subprocess","time","datetime","fcntl"}

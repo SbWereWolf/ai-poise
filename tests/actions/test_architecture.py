@@ -1,7 +1,7 @@
 import ast
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[2]/'src/harness'
+ROOT=Path(__file__).resolve().parents[2]/'src/poise'
 
 
 def test_plan_application_uses_ports_without_io_or_lifecycle_assignment():

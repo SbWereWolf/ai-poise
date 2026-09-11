@@ -34,7 +34,7 @@ def run(directory):
     settings=home/'hooks-settings.json'
     env={**os.environ,'PYTHONPATH':str(SOURCE/'src')}
     def cli(args,packet):
-        p=subprocess.run([sys.executable,'-B','-m','harness',*args],input=json.dumps(packet),
+        p=subprocess.run([sys.executable,'-B','-m','poise',*args],input=json.dumps(packet),
                          text=True,capture_output=True,env=env,timeout=45)
         if p.returncode:raise RuntimeError(p.stdout+p.stderr)
         obj=json.loads(p.stdout)
@@ -54,7 +54,7 @@ def run(directory):
         if p.returncode:raise RuntimeError(p.stderr)
         return json.loads(p.stdout)
     start=event('SessionStart')
-    from harness.infrastructure.hook_transport import HookService
+    from poise.infrastructure.hook_transport import HookService
     binding=HookService(settings).latest_binding('hook-demo','primary')
     def work(operation,inputs):
         p=subprocess.run([binding['launcher']],input=json.dumps({'operation':operation,'input':inputs,'messages':[]}),

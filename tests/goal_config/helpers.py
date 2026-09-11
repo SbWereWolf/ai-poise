@@ -22,7 +22,7 @@ def request(mode, goal, expected, changes, request_id="req-1", selection=None):
 
 
 def settings(root, definitions=None):
-    from harness.common import digest
+    from poise.common import digest
     (root/"templates").mkdir(parents=True, exist_ok=True)
     body=template()
     (root/"templates/writing.json").write_text(json.dumps(body), encoding="utf-8")

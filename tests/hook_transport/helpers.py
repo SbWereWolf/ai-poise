@@ -19,22 +19,26 @@ def definition():
             'message_source':'codex-hook-main',
             'events':[
                 {'event':'SessionStart','matcher':'startup|resume|compact|clear','timeout_seconds':15,
-                 'async':False,'context_limit':2000,'status_message':'Bind Harness session'},
+                 'async':False,'context_limit':2000,'status_message':'Bind Poise session'},
                 {'event':'UserPromptSubmit','matcher':'','timeout_seconds':15,'async':False,
                  'context_limit':2000,'status_message':'Record user turn'},
                 {'event':'Stop','matcher':'','timeout_seconds':5,'async':False,
-                 'context_limit':None,'status_message':'Report Harness state'},
+                 'context_limit':None,'status_message':'Report Poise state'},
                 {'event':'SessionEnd','matcher':'other','timeout_seconds':3,'async':False,
                  'context_limit':None,'status_message':'Record session end'}],
             'probes':[command_probe()], 'gate_operations':['bootstrap','verify','artifacts'],
             'context_template':'Use {launcher} with a single work JSON packet. Current state: {state}.',
-            'stop_template':'Current Harness state: {state}; no acceptance or transition was performed.',
+            'stop_template':'Current Poise state: {state}; no acceptance or transition was performed.',
             'unknown_outcome_message':'Native hook failed; inspect the local operational record.'}
 
 
 def settings(project,tmp_path):
     root=project['root']
     project['cfg']['batch']['message_source']={'id':'codex-hook-main','mode':'runtime_event'}
+    # Hook transport tests exercise message identity and process routing, not elapsed-time
+    # accounting. Reported mode keeps those process-boundary tests independent of host
+    # wall-clock adjustments while the accounting suite retains tool-cycle coverage.
+    project['cfg']['accounting']['time_mode']='reported'
     write_json(project['config_path'],project['cfg'])
     return write_json(root/'hook-settings.json',{
         'schema':'hook-settings-1','root':'.','project_config':'project.json',

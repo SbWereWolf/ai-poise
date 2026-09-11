@@ -4,9 +4,9 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 import pytest
-from harness.common import HarnessError
-from harness.modules.hook_transport.domain import HookDefinition
-from harness.infrastructure.hook_transport import HookService
+from poise.common import PoiseError
+from poise.modules.hook_transport.domain import HookDefinition
+from poise.infrastructure.hook_transport import HookService
 from batch.helpers import request
 from .helpers import settings,definition,install,event
 
@@ -21,17 +21,17 @@ def native(s,out,name='SessionStart',session='conversation',turn='turn1'):
 
 def test_definition_requires_explicit_fields():
     d=definition();d['events'][0].pop('timeout_seconds')
-    with pytest.raises(HarnessError):HookDefinition.parse(d)
+    with pytest.raises(PoiseError):HookDefinition.parse(d)
 
 
 def test_unsafe_async_state_binding_rejected():
     d=definition();d['events'][0]['async']=True
-    with pytest.raises(HarnessError):HookDefinition.parse(d)
+    with pytest.raises(PoiseError):HookDefinition.parse(d)
 
 
 def test_unsupported_events_no_silent_fallback():
     d=definition();d['events'][0]['event']='ImaginaryEvent'
-    with pytest.raises(HarnessError):HookDefinition.parse(d)
+    with pytest.raises(PoiseError):HookDefinition.parse(d)
 
 
 def test_install_preserves_foreign_hooks_and_trust_not_assumed(project,tmp_path):
@@ -53,19 +53,19 @@ def test_install_replay_and_edit_do_not_duplicate(project,tmp_path):
     edit=install(s,d,'edit',out['revision'])
     doc=json.loads(s.settings.hooks_file.read_text())
     assert len(doc['hooks']['SessionStart'])==1 and edit['revision']!=out['revision']
-    with pytest.raises(HarnessError):install(s,d,'install-1',out['revision'])
+    with pytest.raises(PoiseError):install(s,d,'install-1',out['revision'])
 
 
 def test_stale_config_rejected_without_changes(project,tmp_path):
     s=service(project,tmp_path);out=install(s)
     before=s.settings.hooks_file.read_bytes()
-    with pytest.raises(HarnessError):install(s,request_id='stale',revision='0'*64)
+    with pytest.raises(PoiseError):install(s,request_id='stale',revision='0'*64)
     assert s.settings.hooks_file.read_bytes()==before
 
 
 def test_invalid_plan_writes_no_hooks(project,tmp_path):
     s=service(project,tmp_path);d=definition();d['probes'][0].pop('cwd')
-    with pytest.raises(HarnessError):install(s,d)
+    with pytest.raises(PoiseError):install(s,d)
     assert not s.settings.hooks_file.exists()
 
 
@@ -102,7 +102,7 @@ def test_two_conversations_get_separate_bindings(project,tmp_path):
 
 def test_missing_turn_id_is_not_invented(project,tmp_path):
     s=service(project,tmp_path);out=install(s);e=event('UserPromptSubmit');e.pop('turn_id');e['cwd']=str(project['root'])
-    with pytest.raises(HarnessError):s.event(out['definition_path'],e)
+    with pytest.raises(PoiseError):s.event(out['definition_path'],e)
 
 
 def test_stop_does_not_accept_or_force_another_user_prompt(project,tmp_path):
@@ -129,17 +129,17 @@ def test_unavailable_required_probe_blocks_write_not_read_or_cancel(project,tmp_
 def test_work_packet_cannot_supply_second_source_messages(project,tmp_path):
     s=service(project,tmp_path);out=install(s);native(s,out);b=s.latest_binding('conversation','primary')
     from batch.helpers import message
-    with pytest.raises(HarnessError):s.work(b['binding_path'],request('show',{'queries':[]},[message()]))
+    with pytest.raises(PoiseError):s.work(b['binding_path'],request('show',{'queries':[]},[message()]))
 
 
 def test_parent_cwd_outside_configured_roots_is_rejected(project,tmp_path):
     s=service(project,tmp_path);out=install(s);e=event();e['cwd']='/other'
-    with pytest.raises(HarnessError):s.event(out['definition_path'],e)
+    with pytest.raises(PoiseError):s.event(out['definition_path'],e)
 
 
 def test_partial_install_resumes_after_file_replace(project,tmp_path,monkeypatch):
     s=service(project,tmp_path)
-    from harness.infrastructure import hook_transport as module
+    from poise.infrastructure import hook_transport as module
     original=module.atomic_write
     tripped=False
     def fail_after_replace(path,body,mode):
@@ -161,7 +161,7 @@ def test_external_managed_hook_edit_is_not_overwritten(project,tmp_path):
     raw=json.loads(s.settings.hooks_file.read_text())
     raw['hooks']['SessionStart'][0]['hooks'][0]['command']='echo user-edit'
     s.settings.hooks_file.write_text(json.dumps(raw))
-    with pytest.raises(HarnessError):install(s,request_id='edit',revision=s.revision())
+    with pytest.raises(PoiseError):install(s,request_id='edit',revision=s.revision())
     assert json.loads(s.settings.hooks_file.read_text())==raw
 
 
@@ -190,20 +190,20 @@ def test_current_ide_probe_uses_new_task_worktree(project,tmp_path):
 
 def test_small_output_setting_rejected_before_installation(project,tmp_path):
     path=settings(project,tmp_path);raw=json.loads(path.read_text());raw['output_chars']=1;path.write_text(json.dumps(raw))
-    with pytest.raises(HarnessError):HookService(path)
+    with pytest.raises(PoiseError):HookService(path)
     assert not (project['root']/'.codex/hooks.json').exists()
 
 
 def test_invalid_matcher_rejected_before_install(project,tmp_path):
     s=service(project,tmp_path);d=definition();d['events'][0]['matcher']='['
-    with pytest.raises(HarnessError):install(s,d)
+    with pytest.raises(PoiseError):install(s,d)
     assert not s.settings.hooks_file.exists()
 
 
 def test_user_event_without_prompt_is_not_counted(project,tmp_path):
     s=service(project,tmp_path);out=install(s);e=event('UserPromptSubmit')
     e['cwd']=str(project['root']);e.pop('prompt')
-    with pytest.raises(HarnessError):s.event(out['definition_path'],e)
+    with pytest.raises(PoiseError):s.event(out['definition_path'],e)
 
 
 def test_taskless_summary_not_blocked_by_missing_required_ide(project,tmp_path):

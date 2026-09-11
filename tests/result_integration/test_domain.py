@@ -1,7 +1,7 @@
 import pytest
 
-from harness.modules.foundation.errors import DomainError
-from harness.modules.result_integration.domain import IntegrationIntent, IntegrationRun
+from poise.modules.foundation.errors import DomainError
+from poise.modules.result_integration.domain import IntegrationIntent, IntegrationRun
 
 
 def intent():

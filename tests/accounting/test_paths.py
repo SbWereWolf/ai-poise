@@ -1,16 +1,16 @@
 from copy import deepcopy
 from pathlib import Path
 import pytest
-from conftest import write_json,git
-from harness.runtime import Harness
-from harness.application.work import WorkTools
-from harness.common import HarnessError
+from conftest import DeterministicClock,write_json,git
+from poise.runtime import Poise
+from poise.application.work import WorkTools
+from poise.common import PoiseError
 from tests.runner.helpers import stage
 from tests.batch.helpers import request
 from .test_domain import policy,sample
 
 
-def setup(project):
+def setup(project, clock=None):
     p={'goal_type':'development','benefit':{'git_categories':['code','documentation'],'sections':[]},
        'route':{'entry':'write','max_transitions':20,'max_stage_visits':10},
        'stages':[stage('write','produce',{'complete':None},False,['src/**','tests/**','docs/**'],['write'])],
@@ -20,7 +20,8 @@ def setup(project):
     write_json(project['root']/'config/processes/development.json',p)
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
-    h=Harness(project['config_path'],'A');w=WorkTools(h)
+    h=Poise(project['config_path'],'A',clock=DeterministicClock() if clock is None else clock)
+    w=WorkTools(h)
     out=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     return h,w,out
 
@@ -56,7 +57,7 @@ def test_usage_batch_dedup_conflict_and_atomicity(project):
     h,w,out=setup(project);send(w,[sample('x'),sample('y',sequence=2)]);send(w,[sample('x')])
     assert metrics(w)['totals']['model_tokens']==240
     bad=sample('x',inp=300)
-    with pytest.raises(HarnessError):send(w,[sample('new',sequence=3),bad])
+    with pytest.raises(PoiseError):send(w,[sample('new',sequence=3),bad])
     assert metrics(w)['totals']['model_tokens']==240
 
 

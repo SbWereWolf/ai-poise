@@ -5,9 +5,9 @@ if len(sys.argv) != 3:
 R=Path(sys.argv[1]).resolve()
 OUTPUT=Path(sys.argv[2]).resolve()
 checks=[]
-mutations=[('domain_io','src/harness/modules/tasks/domain.py','import sqlite3\n'),
-           ('lifecycle_bypass','src/harness/runtime.py','\ndef bypass(data):\n    data["status"]="completed"\n'),
-           ('sql_bypass','src/harness/runtime.py','\ndef bypass(db):\n    db.execute("UPDATE tasks SET status=\\\'completed\\\'")\n')]
+mutations=[('domain_io','src/poise/modules/tasks/domain.py','import sqlite3\n'),
+           ('lifecycle_bypass','src/poise/runtime.py','\ndef bypass(data):\n    data["status"]="completed"\n'),
+           ('sql_bypass','src/poise/runtime.py','\ndef bypass(db):\n    db.execute("UPDATE tasks SET status=\\\'completed\\\'")\n')]
 for name,file,addition in mutations:
  with tempfile.TemporaryDirectory() as folder:
   p=Path(folder)

@@ -5,12 +5,13 @@ import sqlite3
 import sys
 import pytest
 from conftest import write_json
-from harness.common import HarnessError
-from harness.runtime import Harness
-from harness.application.work import WorkTools
+from poise.common import PoiseError
+from poise.runtime import Poise
+from poise.application.work import WorkTools
+from poise.modules.accounting.clock import ClockObservation
 from tests.batch.helpers import request,message
 from .test_domain import sample
-from .test_paths import setup,send,metrics,finish
+from .test_paths import DeterministicClock,setup,send,metrics,finish
 
 
 def test_usage_transaction_rolls_back_all_new_events(project):
@@ -29,7 +30,7 @@ def test_exact_measurement_tokenizer_and_no_conversion_to_model_usage(project,tm
         'argv':[sys.executable,str(script)],'cwd':str(tmp_path),'environment':{},'timeout_seconds':5,'max_output_bytes':1024}}
     # New task/store is needed because the original measurement contract is immutable.
     project['cfg']['paths']['state']='tokenized-state';write_json(project['config_path'],project['cfg'])
-    h2=Harness(project['config_path'],'tok');t=deepcopy(project['task']);t['id']='TOKEN'
+    h2=Poise(project['config_path'],'tok',DeterministicClock());t=deepcopy(project['task']);t['id']='TOKEN'
     t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w2=WorkTools(h2);c=w2.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     finish(w2,c,Path(c['worktree']))
@@ -40,7 +41,7 @@ def test_exact_measurement_tokenizer_and_no_conversion_to_model_usage(project,tm
 def test_tokenizer_error_keeps_business_completion_and_known_byte_measure(project,tmp_path):
     h,w,c=setup(project)
     # Inject a failure at the measurement port, without changing the captured policy.
-    h.accounting.port.measurer.tokenize=lambda texts: (_ for _ in ()).throw(HarnessError('instrument unavailable'))
+    h.accounting.port.measurer.tokenize=lambda texts: (_ for _ in ()).throw(PoiseError('instrument unavailable'))
     finish(w,c,Path(c['worktree']))
     assert h.current_task()['status']=='completed'
     r=metrics(w)
@@ -55,13 +56,37 @@ def test_reported_intervals_split_dates_and_do_not_include_user_wait(project):
     project['cfg']['accounting']['time_mode']='reported';project['cfg']['paths']['state']='reported-state'
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['id']='TIME';t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
-    w=WorkTools(Harness(project['config_path'],'S'))
+    w=WorkTools(Poise(project['config_path'],'S',DeterministicClock()))
     w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     span={'source':'test','stream':'clock','event_id':'i1','started_at':'2026-09-06T23:59:00Z','ended_at':'2026-09-07T00:01:00Z'}
     send(w,intervals=[span]);send(w,intervals=[span])
     m=metrics(w,by=['day']);assert m['totals']['active_seconds']==120
     assert [g['active_seconds'] for g in m['groups']]==[60,60]
-    with pytest.raises(HarnessError):send(w,intervals=[{**span,'event_id':'overlap'}])
+    with pytest.raises(PoiseError):send(w,intervals=[{**span,'event_id':'overlap'}])
+
+
+def test_measured_tool_cycle_splits_days_and_clips_requested_period(project):
+    class Clock:
+        def __init__(self):
+            self.values=iter([
+                ClockObservation('2026-09-11T23:59:00+00:00',0,'calendar-boot'),
+                ClockObservation('2026-09-11T23:59:01+00:00',1_000_000_000,'calendar-boot'),
+                ClockObservation('2026-09-11T23:59:30+00:00',30_000_000_000,'calendar-boot'),
+                ClockObservation('2026-09-12T00:01:00+00:00',120_000_000_000,'calendar-boot'),
+                ClockObservation('2026-09-12T00:01:01+00:00',121_000_000_000,'calendar-boot'),
+                ClockObservation('2026-09-12T00:01:02+00:00',122_000_000_000,'calendar-boot'),
+            ])
+        def observe(self):return next(self.values)
+    h,w,c=setup(project,Clock())
+    w.invoke(request('cancel',{'reason':'calendar projection fixture'}))
+    base={'kind':'accounting','scope':{'kind':'all','id':None}}
+    result=w.invoke(request('show',{'queries':[
+        {'id':'days',**base,'group_by':['day'],'from':None,'to':None},
+        {'id':'period',**base,'group_by':[],'from':'2026-09-11T23:59:30+00:00','to':'2026-09-12T00:00:30+00:00'},
+    ]}))['results']
+    days=result[0]['value'];period=result[1]['value']
+    assert [g['active_seconds'] for g in days['groups']]==[60,60]
+    assert period['totals']['active_seconds']==60
 
 
 def test_two_parallel_agents_sum_time_but_union_elapsed(project):
@@ -69,7 +94,7 @@ def test_two_parallel_agents_sum_time_but_union_elapsed(project):
     write_json(project['config_path'],project['cfg'])
     for actor in ('A','B'):
         t=deepcopy(project['task']);t['id']='TIME'+actor;t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
-        tools=WorkTools(Harness(project['config_path'],actor))
+        tools=WorkTools(Poise(project['config_path'],actor,DeterministicClock()))
         tools.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
         send(tools,intervals=[{'source':'test','stream':actor,'event_id':'i','started_at':'2026-09-07T10:00:00Z','ended_at':'2026-09-07T11:00:00Z'}])
     r=metrics(tools);assert r['totals']['active_seconds']==7200
@@ -84,22 +109,22 @@ def test_task_sections_measure_only_selected_final_content(project):
     write_json(project['root']/'config/processes/development.json',p)
     project['cfg']['paths']['state']='sections-state';write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['id']='SECTION';t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
-    w=WorkTools(Harness(project['config_path'],'A'));c=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
+    w=WorkTools(Poise(project['config_path'],'A',DeterministicClock()));c=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     v=deepcopy(c['result_template']);v['sections']['report']='Итог\n';v['commit_message']='docs: result'
     w.invoke(request('verify',{'result':v,'artifacts':[]}));w.invoke(request('accept',{}))
     b=metrics(w)['totals']['benefit'];assert b['changed_lines']==1 and b['changed_bytes']==9
 
 
 def test_missing_policy_and_benefit_do_not_get_guessed(project):
-    from harness.modules.goal_config.domain import GoalTypeDefinition
+    from poise.modules.goal_config.domain import GoalTypeDefinition
     h,w,c=setup(project);p=json.loads((project['root']/'config/processes/development.json').read_text());del p['benefit']
-    with pytest.raises(HarnessError):GoalTypeDefinition.parse(p)
+    with pytest.raises(PoiseError):GoalTypeDefinition.parse(p)
     del project['cfg']['accounting'];write_json(project['config_path'],project['cfg'])
-    with pytest.raises(HarnessError):Harness(project['config_path'],'B')
+    with pytest.raises(PoiseError):Poise(project['config_path'],'B',DeterministicClock())
 
 
 def test_benefit_is_editable_in_same_declarative_config_batch(project):
-    from harness.modules.goal_config.domain import GoalTypeDefinition
+    from poise.modules.goal_config.domain import GoalTypeDefinition
     h,w,c=setup(project);p=json.loads((project['root']/'config/processes/development.json').read_text())
     r=GoalTypeDefinition.build('development',p,[{'op':'set_benefit','value':{'git_categories':[],'sections':['report']}}])
     assert r.data['benefit']['sections']==['report']
@@ -110,7 +135,7 @@ def test_metrics_survive_transfer_and_retry_without_double_counting(project,tmp_
     h,w,c=setup(project);send(w,[sample()],cause='initial')
     p=deepcopy(c['result_template']);p['sections']['report']='WIP';p['commit_message']='WIP: save'
     saved=export(w,handoff=handoff_args(p))
-    dst=destination(project,tmp_path/'receiver');other=WorkTools(Harness(dst['config_path'],'B'))
+    dst=destination(project,tmp_path/'receiver');other=WorkTools(Poise(dst['config_path'],'B',DeterministicClock()))
     restore(other,saved['package_path'],saved['package_digest']);pick(other,'T1')
     send(other,[sample()])
     assert metrics(other)['totals']['model_tokens']==120
@@ -130,33 +155,18 @@ def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     h,w,c=setup(project)
     # Close setup interval and use explicit test clock for a new work session.
     h.accounting.close_cycle()
-    now=['2026-09-07T10:00:00+00:00'];h.accounting.port.clock=lambda:now[0]
+    class MutableClock:
+        def __init__(self, value): self.value=value
+        def observe(self): return self.value
+    clock=MutableClock(ClockObservation('2026-09-07T10:00:00+00:00',0,'test-boot'))
+    h.accounting.port.clock=clock
     w.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None},[message('turn-a')]))
     p=deepcopy(c['result_template']);p['sections']['report']='Attempt';p['commit_message']='feat: measured'
     p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'timeout_seconds':5,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
-    now[0]='2026-09-07T10:01:00+00:00'
+    clock.value=ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot')
     assert w.invoke(request('verify',{'result':p,'artifacts':[]}))['status']=='checks_failed'
     base=metrics(w)['totals']['active_seconds'] or 0
-    now[0]='2026-09-07T20:00:00+00:00'
+    clock.value=ClockObservation('2026-09-07T20:00:00+00:00',36_000_000_000_000,'test-boot')
     w.invoke(request('cancel',{'reason':'User stops'},[message('turn-b','cancel')]))
     total=metrics(w)['totals']['active_seconds']
     assert 60<=total-base<61
-
-
-def test_tool_cycle_clamps_wall_clock_rollback_without_inventing_duration(project):
-    h,w,_=setup(project)
-    h.accounting.close_cycle()
-    now=['2026-09-12T10:00:00+00:00'];h.accounting.port.clock=lambda:now[0]
-    send(w)
-    now[0]='2026-09-12T09:59:59+00:00'
-    send(w)
-    now[0]='2026-09-12T09:59:58+00:00'
-    h.accounting.close_cycle()
-
-    cycles=[row for row in h.accounting.port.repo.snapshot()['cycles']
-            if row['started_at']=='2026-09-12T10:00:00+00:00']
-    assert len(cycles)==1
-    cycle=cycles[0];data=json.loads(cycle['data'])
-    assert cycle['ended_at']=='2026-09-12T10:00:00+00:00'
-    assert data['last_observed_at']=='2026-09-12T10:00:00+00:00'
-    assert data['seconds']==0

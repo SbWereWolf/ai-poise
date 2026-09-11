@@ -22,14 +22,14 @@ def run(directory):
     remote=subprocess.check_output(['git','-C',config['git']['repository'],'remote','get-url',config['git']['remote']],text=True).strip()
     subprocess.run(['git','clone','--branch','main',remote,str(repository)],check=True,capture_output=True)
     subprocess.run(['git','-C',str(repository),'remote','rename','origin',config['git']['remote']],check=True,capture_output=True)
-    target_home=target/'harness';target_home.mkdir()
+    target_home=target/'poise';target_home.mkdir()
     for rel in config['processes'].values():
         path=target_home/rel;path.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/rel,path)
     target_config=deepcopy(config);target_config['git']['repository']=str(repository)
     save(target_home/'project.json',target_config)
     def client(home,session):
         return WorkClient({**os.environ,'PYTHONPATH':str(SOURCE/'src'),
-             'HARNESS_CONFIG':str(home/'project.json'),'HARNESS_SESSION':session},30)
+             'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':session},30)
     a=client(source,'source-agent');b=client(target_home,'receiving-agent')
     task=json.loads((source/'task.json').read_text())
     current=a.invoke('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})

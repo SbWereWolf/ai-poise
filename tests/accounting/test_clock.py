@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 import subprocess
 import sys
@@ -56,7 +56,7 @@ def test_harness_clock_boundary_is_explicit_and_runtime_has_no_wall_fallback():
     first = clock.observe()
     second = clock.observe()
     assert isinstance(first, ClockObservation)
-    assert datetime.fromisoformat(first.audit_utc).astimezone(timezone.utc).utcoffset().total_seconds() == 0
+    assert datetime.fromisoformat(first.audit_utc).utcoffset() == timedelta(0)
     assert first.comparison_domain
     assert second.comparison_domain == first.comparison_domain
     assert second.monotonic_ns >= first.monotonic_ns

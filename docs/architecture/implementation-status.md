@@ -1,6 +1,6 @@
 # Статус реализации
 
-Обновлено: **2026-09-11T16:55:00+05:00**.
+Обновлено: **2026-09-11T23:25:02Z**.
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
@@ -40,15 +40,27 @@ legacy row и архитектурные границы. Исполняемые 
 поскольку numeric policy является отдельным выбором проекта. Поэтому проекты без `task_ids`
 продолжают работать только с explicit IDs и получают явную ошибку на automatic intent.
 
-## DDD-10 result integration — 2026-09-11T16:55:00+05:00
+## DDD-10 result integration — 2026-09-11T23:25:02Z
 
-DDD-10 result integration поддерживает dirty target при непересекающихся локальных staged,
-unstaged и untracked путях. Preflight блокирует точные и parent/descendant пересечения и
-незавершённые Git operations до мутации; отдельный index сохраняет пользовательские байты и
-классификацию, а post-preflight drift не попадает в merge commit. Публичные conflict, retry,
-idempotent replay и cleanup остаются в одном `integrate` API. Сфокусированный test-набор:
-23 проверки result integration; системный дефект выбора source root проверки относится к
-отдельной задаче 0037 и не объявляется исправленным этой поставкой.
+Публичный `integrate` реализует локальный lifecycle принятого результата одним декларативным
+пакетом. Неизменяемый accepted commit синхронизируется с текущим target только в owned child
+integration worktree; конфликты сохраняются для агентского разрешения там же, а проверки
+выполняются на mutable integration head. Перед compare-and-swap публикацией target читается
+повторно; drift перестраивает candidate и повторяет checks. Crash до или после публикации,
+неудачный candidate, cleanup failure и terminal replay продолжаются из persisted phase.
+
+Основной checkout, его staged/unstaged/untracked bytes, unresolved merge/cherry-pick и чужие
+worktrees не являются precondition или integration surface. После подтверждённой публикации
+удаляются оба owned worktree, обе owned ветки и task/integration-scoped temporary directory.
+Удаление веток проверяет ancestry относительно текущего target и использует compare-and-delete,
+не checkout `HEAD`; descendant target допускается, переписанная история сохраняет recovery
+state. Operator, deliverable и unfinished-recovery backups вне scoped directory сохраняются.
+
+Профильный зарегистрированный набор `tests/result_integration` содержит 25 проверок и прошёл
+GREEN в task 0040. Он покрывает happy/conflict paths, repeated target drift, crash до/после
+publication, persisted failure/check/cleanup receipts, terminal no-op, cleanup replay и
+main-checkout/foreign-state fingerprints. Это не сертификация push, remote publication,
+multi-codebase integration или recovery после внешнего удаления owned Git-объектов.
 
 
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00

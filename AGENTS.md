@@ -22,7 +22,7 @@ Before changing code, use a dedicated Git worktree. For Harness, use `tasks/<tas
 
 One session works on one task. Complete the requested stage, verify it, report the result and stop until the next user instruction. Before changing tasks, finish, hand off or safely discard the current work. A read-only query about another task does not switch ownership.
 
-Use `harness project` or `harness project-init` with an explicitly selected template to prepare a new project; do not hand-edit its managed configuration. See [project setup](docs/project-setup.md).
+Use `harness project` or `harness project-init` with an explicitly selected template to prepare a new project; do not hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their working files or database directly. Native coding tools remain appropriate for source code, tests and target documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not grant ongoing authorization. Report implemented and tested capabilities separately from planned ones.
 
@@ -30,7 +30,7 @@ Count observed user messages without inventing missing messages or token usage. 
 
 ## Shared agent policy
 
-The canonical policy is [Development rules](docs/development-rules.md#общие-правила-агентов). Keep this English projection and its Russian source consistent in the same change.
+The canonical policy is [Development rules](docs/governance/development-rules.md#общие-правила-агентов). Keep this English projection and its Russian source consistent in the same change.
 
 - Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`, `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation with behaviour, configuration or workflow changes.
@@ -49,7 +49,7 @@ The canonical policy is [Development rules](docs/development-rules.md#общие
 
 ## Mandatory bootstrap and verification
 
-Follow [Start and finish](docs/development-rules.md#начало-и-завершение-работы) and the [batch API](docs/batch-work.md#verify).
+Follow [Start and finish](docs/governance/development-rules.md#начало-и-завершение-работы) and the [batch API](docs/workflows/batch-work.md#verify).
 
 Before substantive project work, explicitly select the working project configuration and session identity, then invoke `bootstrap` through Harness's public work API. Only prerequisite inspection needed to locate/configure that entry point precedes it. Consume the returned task/stage, capabilities and result template; do not invent task IDs, state or a worktree. Resume through the same API.
 
@@ -65,7 +65,7 @@ If configuration, runtime or a required operation is unavailable, report the con
 
 If the native hook has not supplied a launcher, complete hook discovery/trust and diagnose its execution before task work. Direct `/home/sbwerewolf/workdata/ai-poise/.venv/bin/harness work` with explicit `HARNESS_CONFIG` and a preserved operator `HARNESS_SESSION` is available for installation diagnostics only; it does not establish a native binding or prove event delivery. Keep `messages=[]` in those diagnostic packets too. The installation contract and recovery steps are in the local project documentation below.
 
-Read [Local ai-poise commands](docs/project-setup.md#локальный-проект-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [Harness workflow](skills/harness/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
+Read [Local ai-poise commands](docs/configuration/project-setup.md#локальный-проект-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [Harness workflow](skills/harness/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
 
 This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`, `task/`, `sprint/`, `worktrees/`, and `database/`. The live Task DB is `database/tasks.sqlite`, its lock is `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for the old root-level database paths. This is the user's explicit local placement decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`, separate from mutable data.
 

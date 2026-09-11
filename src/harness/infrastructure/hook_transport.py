@@ -214,7 +214,7 @@ class HookService:
     def event(self,definition_path,event):
         definition,native,binding=self._bind(definition_path,event)
         h=Harness(self.settings.project_config,binding['session_id']);task=h.current_task()
-        active=task if task is not None and task['status'] not in ('completed','cancelled') else None
+        active=task if task is not None and task['status'] not in ('completed','cancelled','superseded') else None
         message=None
         if native['event']=='UserPromptSubmit':
             message={'conversation_id':native['session_id'],'message_id':native['turn_id'],
@@ -249,12 +249,13 @@ class HookService:
         # It performs no target implementation. Failures retain the created context for recovery.
         if req['operation']=='bootstrap':result=WorkTools(h).invoke(req)
         if gated:
-            task=h.current_task();workspace=h.cfg['git']['repository'] if task is None else task['worktree']
+            task=h.current_task()
+            active_task=task is not None and task['status'] not in ('completed','cancelled','superseded')
+            workspace=task['worktree'] if active_task else h.cfg['git']['repository']
             checks=self.probes(record['definition_path'],workspace)
-            active_task=task is not None and task['status'] not in ('completed','cancelled')
             if not checks['ready'] and not (req['operation']=='bootstrap' and not active_task):
                 h.interactions.record(h.interactions.prepare(req['messages']),h.session,
-                    task if task is not None and task['status'] not in ('completed','cancelled') else None)
+                    task if task is not None and task['status'] not in ('completed','cancelled','superseded') else None)
                 return {'status':'capabilities_unavailable','capability_checks':checks,
                         'context':result if result is not None else h.show(),
                         'interaction':h.interactions.summary(task)}

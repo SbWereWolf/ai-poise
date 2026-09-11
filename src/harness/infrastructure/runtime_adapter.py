@@ -115,7 +115,7 @@ class RuntimeAdapter:
         except HarnessError:
             current=h.current_task()
             h.interactions.record(h.interactions.prepare(work['messages']),session,
-                current if current is not None and current['status'] not in ('completed','cancelled') else None)
+                current if current is not None and current['status'] not in ('completed','cancelled','superseded') else None)
             if source is not None:registry.save_cursor(session,path,cursor,source['cursor'])
             raise
         h.store.event(session,None,'adapter.bound',{'adapter':self.settings['adapter_id'],'capabilities':inventory})

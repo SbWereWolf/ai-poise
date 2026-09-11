@@ -187,7 +187,8 @@ class Harness:
                 'runtime_root': str(self.runtime), 'task_root': str(task_root),
                 'sprint_root': None if sprint_root is None else str(sprint_root),
                 'result_template': payload,
-                'agents_files': [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
+                'agents_files': [] if data['worktree'] is None else
+                    [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
 
     def _validate_task(self, task: dict, process: dict) -> dict:
@@ -272,6 +273,11 @@ class Harness:
             selected=self.task_queries.record(task['id'])
             if selected is None:raise HarnessError('Неизвестный task/sprint ID')
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
+            if selected['status']=='superseded':
+                if current and current['status'] not in ('completed','cancelled','superseded') and current['id']!=selected['id']:
+                    raise HarnessError('Сначала прекратить/передать текущую задачу')
+                self.store.bind(self.session,selected['id'])
+                return self._context(selected,False)
             task=deepcopy(selected['contract'])
         if task is not None:
             intent = deepcopy(task)
@@ -287,7 +293,7 @@ class Harness:
                 if contract.get('goal_type') not in self.processes:
                     raise HarnessError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
-            if current and current['status'] not in ('completed','cancelled'):
+            if current and current['status'] not in ('completed','cancelled','superseded'):
                 same_automatic=(automatic and current.get('creation_request',{}).get('request_id')==intent.get('request_id'))
                 if not same_automatic and current['id'] != contract.get('id'):
                     raise HarnessError('Сначала прекратить/передать текущую задачу')
@@ -297,7 +303,7 @@ class Harness:
                     raise HarnessError('Задача уже связана с другой сессией')
                 if data['config_hash'] != self.config_hash:
                     raise HarnessError('Задача имеет другой контракт конфигурации')
-                if data['claimed_by'] is None and data['status'] not in ('completed','cancelled'):
+                if data['claimed_by'] is None and data['status'] not in ('completed','cancelled','superseded'):
                     self.handoff_tools.resume(data)
                     data=self.task_queries.record(data['id'])
                 self._reconcile_task_worktree(data)
@@ -323,7 +329,7 @@ class Harness:
                 data=self.task_queries.record(allocation.task_id)
             self.store.bind(self.session, data['id'])
             current = self.store.current(self.session)
-        if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled')):
+        if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled','superseded')):
             sprint=self.sprint_tools.overview(None)
             if sprint is not None:return sprint
         if current is None:
@@ -725,7 +731,7 @@ class Harness:
 
     def show_evidence(self):
         data=self._task()
-        return {'status':'read_only','task':data['id'],**self.task_queries.evidence_view(data['id'])}
+        return self.task_queries.evidence_view(data['id'])
 
     def show_output(self,receipt_id,representation,requested):
         from .modules.work.domain import read_range

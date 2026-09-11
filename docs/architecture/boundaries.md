@@ -53,10 +53,16 @@ WorkTools — application facade, не новый агрегат. Task оста�
 Общий API не реализует 13 разных engines. DDD-04A editor и DDD-04B work entry остаются отдельными предметными сценариями. Конфигурационные шаблоны и артефакты имеют разные contracts; никакого универсального произвольного `write_file` для служебных данных.
 
 
-## DDD-05 — 2026-09-06T22:06:40+05:00
+## DDD-05 — 2026-09-11T16:25:00+05:00
 Sprint владеет планом/графом/решениями; Task владеет доступностью, началом и состоянием работы. Published Sprint создаёт Task через общий доменный builder и TaskRepository в одной UoW. Клиент не подменяет исходные шаблоны/таблицы рабочими JSON patch.
 
 `modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem. `infrastructure/sprint_work` выполняет только доступ к наблюдаемым Git-объектам и делегирует Task API. База сериализует короткие записи; проверки/commit/push параллельных worktrees не держат общий DB lock. Readiness графа не равна auto-merge: разные result revisions возвращаются как integration_required.
+
+Замена ошибочной незавершённой Task остаётся координацией этих владельцев, а не новым lifecycle writer. `SprintWork` до транзакции наблюдает pending/ownership/handoff и чистоту worktree. `SprintCommands` в короткой UoW повторно сверяет Sprint revision, Task version и снимок preflight, валидирует полный replacement через сохранённый process, вызывает `Sprint.replace_task` для графа/relation и `Task.supersede` для состояния источника. Инфраструктурный адаптер не присваивает lifecycle напрямую.
+
+Replay receipt проверяется до внешнего preflight. При новом intent весь Task/Sprint write-set — создание replacement, supersession источника, новый plan/layer, membership/dependencies, relation и receipt — фиксируется одной UoW; fault injection подтверждает общий rollback. Старый membership нужен для принадлежности исторического Task, но current facts фильтруются сохранённым Sprint plan. Contract/submissions/evidence/artifacts/handoff старой Task не переносятся и не переписываются.
+
+Relation хранится в Sprint decision snapshot и revision layers, а idempotency — в существующем `sprint_requests`; отдельная таблица или миграция схемы не понадобились. Чтение идёт через прежние Sprint/Task projections. Accounting лишь отображает `superseded` как terminal outcome и не становится владельцем Task state.
 
 ### Публичный обзор работ — 2026-09-11
 

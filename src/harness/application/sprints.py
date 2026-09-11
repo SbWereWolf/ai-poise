@@ -38,7 +38,9 @@ class SprintCommands:
         resumable=tuple(i for i,f in facts.items() if f['claimed_by'] is None and f['handoff_available']
                         and f['status'] in ('active','verified','accepted'))
         status=s.overview({i:f['status'] for i,f in facts.items()},resumable)
+        replacements=[{k:v for k,v in d.items() if k!='kind'} for d in s.decisions if d.get('kind')=='task_replacement']
         return {**status,'resumable':list(resumable),'sprint':sid,'goal':s.plan.data['goal'],'revision':s.revision,
+            'replacements':replacements,
             'tasks':[{'id':i,**v} for i,v in facts.items()],
             'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('available','active','verified','accepted','completed','cancelled')},
             'errors':self._errors(record) if s.state=='draft' else [],
@@ -46,21 +48,44 @@ class SprintCommands:
                         'Выбрать одну доступную задачу; выполнить один этап и доложить',
             'active_task':None}
 
-    def apply(self,packet):
+    @staticmethod
+    def _action(packet):
         shapes={'draft':{'action','sprint_id','request_id','expected_revision','template','changes'},
                 'publish':{'action','sprint_id','request_id','expected_revision'},
                 'dependencies':{'action','sprint_id','request_id','expected_revision','items','reason'},
                 'cancel_tasks':{'action','sprint_id','request_id','tasks','mode','reason'},
                 'waive_dependencies':{'action','sprint_id','request_id','decisions'},
-                'force_close':{'action','sprint_id','request_id','reason'}}
+                'force_close':{'action','sprint_id','request_id','reason'},
+                'replace_task':{'action','sprint_id','request_id','expected_revision','source_task','replacement','reason','authorization'}}
         if not isinstance(packet,dict) or not isinstance(packet.get('action'),str) or packet['action'] not in shapes:
             raise DomainError('Unknown sprint action')
         exact_keys(packet,shapes[packet['action']],'sprint action');path_identifier(packet['request_id'])
+        return packet['action']
+
+    def replacement_snapshot(self,packet):
+        if self._action(packet)!='replace_task':raise DomainError('Replacement snapshot requires replace_task')
+        identity=fingerprint(packet)
+        with self.uow() as u:
+            sid=packet['sprint_id'] if packet['sprint_id'] is not None else u.sprints.scope(self.actor)
+            path_identifier(sid);record=u.sprints.get(sid)
+            if record is None or record['project']!=self.project:raise DomainError('Unknown Sprint in this project')
+            old=u.sprints.receipt(sid,packet['request_id'],identity)
+            if old is not None:return {'receipt':old,'sprint':sid}
+            if type(packet['expected_revision']) is not int or packet['expected_revision']!=record['aggregate']['revision']:
+                raise VersionConflict('Replacement revision changed')
+            facts=u.sprints.facts(sid);source=packet['source_task'];path_identifier(source)
+            if source not in facts:raise DomainError('Source Task is not a current Sprint member')
+            task=u.tasks.load(source)
+            return {'receipt':None,'sprint':sid,'fact':facts[source],'task_version':task.state.version,
+                    'handoff':u.handoffs.latest(source)}
+
+    def apply(self,packet,preflight=None):
+        action=self._action(packet)
         identity=fingerprint(packet)
         with self.uow() as u:
             sid=packet['sprint_id'] if packet['sprint_id'] is not None else u.sprints.scope(self.actor)
             path_identifier(sid)
-            record=u.sprints.get(sid);action=packet['action']
+            record=u.sprints.get(sid)
             allocations=[]
             if record is not None and record['project']!=self.project:raise DomainError('Sprint belongs to another project')
             old=u.sprints.receipt(sid,packet['request_id'],identity)
@@ -109,6 +134,26 @@ class SprintCommands:
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Dependency revision changed')
                     s=s.update_dependencies(packet['items'],{i:f['status'] for i,f in u.sprints.facts(sid).items()},packet['reason'])
+                elif action=='replace_task':
+                    if preflight is None:raise DomainError('Replacement requires external safety preflight')
+                    if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
+                        raise VersionConflict('Replacement revision changed')
+                    facts=u.sprints.facts(sid);source=packet['source_task'];candidate=packet['replacement']
+                    if source not in facts:raise DomainError('Source Task is not a current Sprint member')
+                    source_task=u.tasks.load(source)
+                    if source_task.state.version!=preflight['task_version'] or facts[source]!=preflight['fact'] or u.handoffs.latest(source)!=preflight['handoff']:
+                        raise VersionConflict('Source Task changed after replacement preflight')
+                    kind=candidate.get('goal_type') if isinstance(candidate,dict) else None
+                    if not isinstance(kind,str) or kind not in record['processes']:raise DomainError('Unknown goal_type')
+                    validate_creation(candidate,record['processes'][kind],record['automatic_checks'])
+                    target=candidate['id']
+                    if u.tasks.exists(target) or u.sprints.get(target) is not None:raise DomainError('Replacement Task ID collision')
+                    s=s.replace_task(source,candidate,{i:f['status'] for i,f in facts.items()},packet['reason'],
+                                     packet['authorization'],preflight['safety'])
+                    metadata={'contract':deepcopy(candidate),'process':deepcopy(record['processes'][kind]),
+                              'sprint_id':sid,'goal':candidate['goal'],'config_hash':record['execution_hash']}
+                    u.tasks.create(build_task(metadata,None),metadata)
+                    u.tasks.save(source_task.supersede(self.actor,packet['reason']),source_task.state.version)
                 elif action=='waive_dependencies':
                     if not isinstance(packet['decisions'],list) or not packet['decisions']:
                         raise DomainError('A nonempty explicit decision batch is required')
@@ -129,6 +174,9 @@ class SprintCommands:
                 u.sprints.save(record,prior)
                 if action=='publish':u.sprints.publish_members(record)
                 elif action=='dependencies':u.sprints.replace_dependencies(record)
+                elif action=='replace_task':
+                    u.sprints.add_replacement_member(record,packet['replacement']['id'])
+                    if preflight['fact']['claimed_by']==self.actor:u.handoffs.unbind(self.actor,packet['source_task'])
             u.sprints.bind(self.actor,sid)
             result=self._describe(u,record)
             if allocations:result={**result,'allocations':allocations}

@@ -128,4 +128,4 @@ class TaskQueries:
             if locations is not None:
                 from .transfer_records import relocate_receipt
                 result=relocate_receipt(result,json.loads(locations['data']))
-            return result
+            return {'status':'read_only','task':task_id,**result}

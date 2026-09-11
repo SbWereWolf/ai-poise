@@ -27,4 +27,11 @@ class GitRepositoryTree:
         if result.returncode:
             error = result.stderr.decode(errors="replace")[-self.preview_chars:]
             raise PoiseError(f"Git tree preflight: {error}")
-        return frozenset(path.decode() for path in result.stdout.split(b"\0") if path)
+        entries = tuple(
+            path.decode() for path in result.stdout.split(b"\0") if path
+        )
+        return frozenset(
+            path
+            for path in paths
+            if path in entries or any(entry.startswith(path + "/") for entry in entries)
+        )

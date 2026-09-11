@@ -1,6 +1,5 @@
 from __future__ import annotations
 from copy import deepcopy
-import fnmatch
 import json
 import os
 import re
@@ -15,6 +14,7 @@ from .composition import task_tools
 from .application.runner import StageRunner
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
+from .modules.foundation.paths import matches_allowed_path
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
 
@@ -392,7 +392,11 @@ class Poise:
         ids = list(data['contract']['checks'][stage_id])
         automatic = set()
         for mapping in self.cfg['automatic_checks']:
-            if any(fnmatch.fnmatchcase(path,pattern) for path in changed for pattern in mapping['paths']):
+            if any(
+                matches_allowed_path(path, pattern)
+                for path in changed
+                for pattern in mapping['paths']
+            ):
                 ids.extend(mapping['by_stage'][stage_id])
                 automatic.update(mapping['by_stage'][stage_id])
         methods = {m['id']:m for m in data['contract']['methods']}
@@ -480,7 +484,10 @@ class Poise:
         changed = self._changed(data, tree)
         if stage['read_only'] and changed:
             raise PoiseError(f'read-only этап изменил репозиторий: {changed}')
-        outside = [p for p in changed if not any(fnmatch.fnmatchcase(p,pattern) for pattern in stage['allowed_paths'])]
+        outside = [
+            path for path in changed
+            if not any(matches_allowed_path(path, pattern) for pattern in stage['allowed_paths'])
+        ]
         if outside: raise PoiseError(f'Изменения вне разрешённой области этапа: {outside}')
         if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
             raise PoiseError('Сообщение коммита не соответствует правилу проекта')
@@ -499,7 +506,10 @@ class Poise:
                 return self._action_incomplete(data,payload,action)
             tree=self._tree(worktree)
             changed=self._changed(data,tree)
-            outside=[p for p in changed if not any(fnmatch.fnmatchcase(p,pattern) for pattern in stage['allowed_paths'])]
+            outside = [
+                path for path in changed
+                if not any(matches_allowed_path(path, pattern) for pattern in stage['allowed_paths'])
+            ]
             if outside:raise PoiseError(f'Plan changed files outside its declared stage scope: {outside}')
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()

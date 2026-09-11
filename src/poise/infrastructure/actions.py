@@ -223,7 +223,8 @@ class RuntimePlanActions:
         if 'kind' in payload['stage_work']:
             from ..application.planning_publication import PlanningPublications
             service=PlanningPublications(h.store.unit_of_work,h.cfg['project'],h.processes,
-                h.cfg['automatic_checks'],h.cfg['sprint'],h.cfg.get('task_ids'),h.config_hash,h.cfg['batch']['max_items'])
+                h.cfg['automatic_checks'],h.cfg['sprint'],h.cfg.get('task_ids'),h.config_hash,
+                h.cfg['batch']['max_items'],h.task_commands.prepare_creation,h._creation_base)
             return self._summary(service.publish(data['id'],h.session,payload['stage_work']))
         wt=Path(data['worktree']);spec=Publication.parse(payload['stage_work'])
         candidate=h._git(wt,'rev-parse','HEAD')

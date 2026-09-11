@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import fnmatch
 from pathlib import PurePosixPath
 
 from ..foundation.errors import DomainError
+from ..foundation.paths import matches_allowed_path
 from ..verification.domain import exact_keys
 from ..workflow.domain import RouteDefinition
 
@@ -13,6 +13,16 @@ from ..workflow.domain import RouteDefinition
 PYTEST_POSITIONAL_PATHS_V1 = {
     "runner": "pytest",
     "parser": "positional-paths",
+    "version": 1,
+}
+UNITTEST_DISCOVER_START_DIRECTORY_V1 = {
+    "runner": "unittest",
+    "parser": "discover-start-directory",
+    "version": 1,
+}
+PYTHON_INLINE_NO_PATH_ARGUMENTS_V1 = {
+    "runner": "python",
+    "parser": "inline-no-path-arguments",
     "version": 1,
 }
 
@@ -26,6 +36,19 @@ def _path(value, method_id):
     if parsed.is_absolute() or value in (".", "..") or ".." in parsed.parts or str(parsed) != value:
         raise DomainError(
             f"method {method_id}: invalid repository path {value!r}; исправьте path и повторите запрос"
+        )
+    return value
+
+
+def _method_cwd(value, method_id):
+    if not isinstance(value, str) or not value or "\\" in value or "\x00" in value:
+        raise DomainError(
+            f"method {method_id}: invalid cwd {value!r}; исправьте cwd и повторите запрос"
+        )
+    parsed = PurePosixPath(value)
+    if parsed.is_absolute() or ".." in parsed.parts or str(parsed) != value:
+        raise DomainError(
+            f"method {method_id}: invalid cwd {value!r}; исправьте cwd и повторите запрос"
         )
     return value
 
@@ -63,6 +86,56 @@ def _pytest_references(method, method_id):
     return tuple(references)
 
 
+def _unittest_discover_references(method, method_id):
+    argv = method["argv"]
+    module = next(
+        (
+            index
+            for index in range(len(argv) - 2)
+            if argv[index:index + 3] == ["-m", "unittest", "discover"]
+        ),
+        None,
+    )
+    if module is None:
+        raise DomainError(
+            f"method {method_id}: reference profile unittest does not match argv; "
+            "исправьте reference_profile"
+        )
+    arguments = argv[module + 3:]
+    starts = [
+        arguments[index + 1]
+        for index, argument in enumerate(arguments[:-1])
+        if argument in ("-s", "--start-directory")
+    ]
+    if len(starts) != 1:
+        raise DomainError(
+            f"method {method_id}: unittest discover requires one start directory; "
+            "исправьте argv или reference_profile"
+        )
+    return (_path(starts[0], method_id),)
+
+
+def _python_inline_references(method, method_id):
+    argv = method["argv"]
+    if "-c" not in argv:
+        inline = None
+    else:
+        inline = argv.index("-c")
+    if inline is None or inline + 2 != len(argv):
+        raise DomainError(
+            f"method {method_id}: inline Python reference profile requires no path arguments; "
+            "исправьте reference_profile"
+        )
+    return ()
+
+
+REFERENCE_PROFILES = {
+    tuple(PYTEST_POSITIONAL_PATHS_V1.values()): _pytest_references,
+    tuple(UNITTEST_DISCOVER_START_DIRECTORY_V1.values()): _unittest_discover_references,
+    tuple(PYTHON_INLINE_NO_PATH_ARGUMENTS_V1.values()): _python_inline_references,
+}
+
+
 @dataclass(frozen=True)
 class FutureOutput:
     path: str
@@ -79,6 +152,7 @@ class MethodInputs:
     @classmethod
     def parse(cls, raw, method):
         method_id = method["id"]
+        _method_cwd(method["cwd"], method_id)
         exact_keys(
             raw,
             {"method_id", "repository_inputs", "future_outputs", "reference_profile"},
@@ -108,11 +182,14 @@ class MethodInputs:
             raise DomainError(f"method {method_id}: {kind} for {conflict}; исправьте declaration")
         profile = raw["reference_profile"]
         exact_keys(profile, {"runner", "parser", "version"}, f"reference profile for {method_id}")
-        if profile != PYTEST_POSITIONAL_PATHS_V1:
+        profile_key = (profile["runner"], profile["parser"], profile["version"])
+        parser = REFERENCE_PROFILES.get(profile_key)
+        if parser is None:
             raise DomainError(
-                f"method {method_id}: unsupported reference_profile {profile!r}; укажите versioned pytest profile"
+                f"method {method_id}: unsupported reference_profile {profile!r}; "
+                "укажите поддержанный versioned profile"
             )
-        references = _pytest_references(method, method_id)
+        references = parser(method, method_id)
         if set(references) != set(combined) or len(references) != len(combined):
             missing = sorted(set(references) - set(combined))
             extra = sorted(set(combined) - set(references))
@@ -156,7 +233,10 @@ class CreationPreflight:
                         f"method {inputs.method_id}: path {output.path} has unknown producer {output.producer_stage}; "
                         "укажите существующий producer_stage"
                     )
-                if not any(fnmatch.fnmatchcase(output.path, pattern) for pattern in stages[output.producer_stage]["allowed_paths"]):
+                if not any(
+                    matches_allowed_path(output.path, pattern)
+                    for pattern in stages[output.producer_stage]["allowed_paths"]
+                ):
                     raise DomainError(
                         f"method {inputs.method_id}: path {output.path} is outside allowed_paths of producer "
                         f"{output.producer_stage}; исправьте allowed_paths или declaration"

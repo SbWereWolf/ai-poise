@@ -20,7 +20,7 @@ def test_native_source_resolution_is_canonical_and_cross_referenced():
         "без fallback",
         "config_hash",
         "cancel_tasks",
-        "force_close",
+        "cancel",
         "конкурент",
     ):
         assert term in runtime

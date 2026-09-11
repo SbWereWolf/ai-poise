@@ -3,12 +3,12 @@ import sqlite3
 from pathlib import Path
 import pytest
 from conftest import add_test, fill
-from conftest import Harness
-from harness.common import HarnessError
+from conftest import Poise
+from poise.common import PoiseError
 
 
 def bootstrap(project):
-    h = Harness(project["config_path"], "S1")
+    h = Poise(project["config_path"], "S1")
     return h, h.bootstrap(task_file=project["task_path"])
 
 
@@ -55,8 +55,8 @@ def test_A_B_A_are_distinct_submissions_and_latest_is_A(project):
 def test_section_lookup_cannot_cross_task_or_stage(project):
     h,b=bootstrap(project); add_test(b["worktree"]); fill(b); h.verify()
     row=h.task_queries.section("T1","tests","report",None)
-    with pytest.raises(HarnessError): h.task_queries.section("OTHER","tests","report",row["submission"])
-    with pytest.raises(HarnessError): h.task_queries.section("T1","test_review","report",row["submission"])
+    with pytest.raises(PoiseError): h.task_queries.section("OTHER","tests","report",row["submission"])
+    with pytest.raises(PoiseError): h.task_queries.section("T1","test_review","report",row["submission"])
 
 
 def test_failed_batch_is_atomic_and_foreign_keys_enabled(project):
@@ -83,8 +83,8 @@ def test_old_store_is_rejected_without_migration(project):
         db.execute("INSERT INTO precious VALUES('do not alter')")
         db.execute("PRAGMA user_version=1")
     before=path.read_bytes()
-    with pytest.raises(HarnessError, match="миграц"):
-        Harness(project["config_path"],"S1")
+    with pytest.raises(PoiseError, match="миграц"):
+        Poise(project["config_path"],"S1")
     assert path.read_bytes() == before
 
 
@@ -93,7 +93,7 @@ def test_repositories_reject_stale_version(project):
     with h.store.unit_of_work() as uow:
         stale=uow.tasks.load("T1")
     h.task_commands.submit("T1","S1",{"sections":{"report":"fresh"},"artifact_paths":[],"commit_message":"x", "content_additions": {"sections":[],"routes":[],"requirements":[]}, "trace": {}, "method_additions": [], "stage_work": {}, "evidence_work": {"phase":"prepare","arguments":[],"decisions":[]}})
-    with pytest.raises(HarnessError,match="верси"):
+    with pytest.raises(PoiseError,match="верси"):
         with h.store.unit_of_work() as uow:
             uow.tasks.save(stale.cancel("S1","cancel"), stale.state.version)
     assert h.show()["status"] == "active"
@@ -111,7 +111,7 @@ def test_verified_report_replay_cannot_substitute_another_tree(project):
     h,b=bootstrap(project); add_test(b["worktree"]); fill(b); report=h.verify()
     with h.store.unit_of_work() as uow:
         digest=uow.tasks.load("T1").state.submission_digest
-    with pytest.raises(HarnessError,match="доклад|receipt"):
+    with pytest.raises(PoiseError,match="доклад|receipt"):
         h.task_commands.mark_verified("T1","S1",digest,{**report,"verified_tree":"unverified-tree"}, ())
     assert h.store.current("S1")["last_report"] == report
 
@@ -119,7 +119,7 @@ def test_verified_report_replay_cannot_substitute_another_tree(project):
 def test_execution_save_cannot_silently_ignore_lifecycle_tampering(project):
     h,_=bootstrap(project)
     data=h.store.current("S1"); data["status"]="completed"
-    with pytest.raises(HarnessError,match="lifecycle|Task"):
+    with pytest.raises(PoiseError,match="lifecycle|Task"):
         h.store.save(data)
     assert h.show()["status"] == "active"
 
@@ -157,8 +157,8 @@ def test_section_foreign_key_rejects_unknown_owner(project):
 def test_cli_reads_section_without_repeating_task_id(project):
     import os, subprocess, sys
     h,b=bootstrap(project); add_test(b['worktree']); fill(b,'addressed section'); h.verify()
-    result=subprocess.run([sys.executable,'-m','harness','work'],input=json.dumps({'operation':'show','input':{'queries':[{'id':'report','kind':'section','name':'report','stage':None,'submission':None,'range':None}]},'messages':[]}),
-                          env={**os.environ,'HARNESS_CONFIG':str(project['config_path']), 'HARNESS_SESSION':'S1'},
+    result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'show','input':{'queries':[{'id':'report','kind':'section','name':'report','stage':None,'submission':None,'range':None}]},'messages':[]}),
+                          env={**os.environ,'POISE_CONFIG':str(project['config_path']), 'POISE_SESSION':'S1'},
                           capture_output=True,text=True,timeout=15)
     assert result.returncode == 0, result.stderr
     assert 'addressed section' in result.stdout

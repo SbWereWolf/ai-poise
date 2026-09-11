@@ -18,14 +18,14 @@ class RuntimeClient:
     def __init__(self,settings,transcript,agent):
         self.settings,self.transcript,self.agent=settings,transcript,agent
         self.calls=[]
-        self.environment={k:v for k,v in os.environ.items() if k not in ('HARNESS_SESSION','HARNESS_CONFIG')}
+        self.environment={k:v for k,v in os.environ.items() if k not in ('POISE_SESSION','POISE_CONFIG')}
         self.environment['PYTHONPATH']=str(SOURCE/'src')
 
     def invoke(self,operation,inputs):
         packet={'identity':{'kind':'external','session_id':'runtime-demo','agent_id':self.agent},
                 'capabilities':[], 'transcript':{'path':str(self.transcript),'initial_offset':0},
                 'work':{'operation':operation,'input':inputs,'messages':[]}}
-        proc=subprocess.run([sys.executable,'-B','-m','harness','runtime','--settings',str(self.settings)],
+        proc=subprocess.run([sys.executable,'-B','-m','poise','runtime','--settings',str(self.settings)],
                 input=json.dumps(packet),text=True,capture_output=True,env=self.environment,timeout=30)
         if proc.returncode:raise RuntimeError(proc.stdout+proc.stderr)
         brief=json.loads(proc.stdout)

@@ -1,6 +1,6 @@
 {
   "schema": "hook-definition-1",
-  "id": "harness-main",
+  "id": "poise-main",
   "agent_id": "primary",
   "message_source": "codex-hook-main",
   "events": [
@@ -10,7 +10,7 @@
       "timeout_seconds": 15,
       "async": false,
       "context_limit": 2000,
-      "status_message": "Bind Harness session"
+      "status_message": "Bind AI poise session"
     },
     {
       "event": "UserPromptSubmit",
@@ -26,7 +26,7 @@
       "timeout_seconds": 5,
       "async": false,
       "context_limit": null,
-      "status_message": "Report Harness state"
+      "status_message": "Report AI poise state"
     },
     {
       "event": "SessionEnd",
@@ -70,6 +70,6 @@
     "artifacts"
   ],
   "context_template": "Use {launcher} with a single work JSON packet. Current state: {state}.",
-  "stop_template": "Current Harness state: {state}; no acceptance or transition was performed.",
+  "stop_template": "Current AI poise state: {state}; no acceptance or transition was performed.",
   "unknown_outcome_message": "Native hook failed; inspect the local operational record."
 }

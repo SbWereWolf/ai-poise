@@ -10,9 +10,9 @@
 ## Один прямой вызов
 ```bash
 export PYTHONPATH="$PWD/src"
-python -m harness goal-config --settings config/goal-editor.json < examples/goal_config_create.json
+python -m poise goal-config --settings config/goal-editor.json < examples/goal_config_create.json
 ```
-Это готовый пример create `generated_notes`. Вход JSON можно передать прямо через stdin в том же tool call; предварительно создавать/редактировать request-файл не требуется. `HARNESS_CONFIG` и `HARNESS_SESSION` для конфигурирования не нужны: Task store не открывается и task не создаётся. В API: `goal_config_tools(settings_path).apply_batch(request)`.
+Это готовый пример create `generated_notes`. Вход JSON можно передать прямо через stdin в том же tool call; предварительно создавать/редактировать request-файл не требуется. `POISE_CONFIG` и `POISE_SESSION` для конфигурирования не нужны: Task store не открывается и task не создаётся. В API: `goal_config_tools(settings_path).apply_batch(request)`.
 
 `--settings` — явный installation-конфиг редактора. Он задаёт root, разрешённые target paths, шаблоны, лимиты, форматирование, права создаваемого файла и выходные коды. Нет автопоиска settings по cwd, неявного шаблона или имени `origin`.
 
@@ -67,7 +67,7 @@ SQLite не объявляется атомарной транзакцией fil
 Редактор создаёт только заранее разрешённый target текущего registry. Произвольное добавление проектов/путей и интерактивный installation wizard не включены в этот срез. Явные значения `config/goal-editor.json` — поставляемая конфигурация примера, не literals домена и не универсальные числа для всех установок.
 
 ## Активные задачи
-Задача хранит свой process snapshot. Редактирование process-файла не меняет этот snapshot и не блокирует его исполнение только из-за digest соседних process definitions. Новая задача получает новый pack. Изменение **project execution config** по-прежнему останавливает текущую задачу, а не молча принимает новую среду. Новый формат project `ddd-goal-config-5`, Task DB `user_version=6`; старый store отвергается без миграции. Editor DB имеет отдельный `user_version=1`.
+Задача хранит свой process snapshot. Редактирование process-файла не меняет этот snapshot и не блокирует его исполнение только из-за digest соседних process definitions. Новая задача получает новый pack. Изменение валидного **project execution config** не перезапускает и не инвалидирует текущую задачу: следующие операции используют текущую конфигурацию вместе с сохранёнными неизменными Task contracts и exact methods. Новый формат project `ddd-goal-config-5`, Task DB `user_version=6`; старый store отвергается без миграции. Editor DB имеет отдельный `user_version=1`.
 
 ## Что ещё не реализовано
 Прямой batch результата Task, ArtifactFactory и message events — DDD-04B. Sprint API — DDD-05. Все 13 нормативных packs, внешние hooks/MCP/Gmail и полная экономика не объявляются готовыми. Данный срез редактирует все поля **реально исполняемого** process-формата; он не материализует весь прежний нормативный каталог автоматически.

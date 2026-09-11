@@ -3,14 +3,14 @@ requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-harness-happy-path"
+name = "ai-poise"
 version = "0.16.1"
 description = "Real-source verification, portable pilot checkpoints and retained test diagnostics"
 requires-python = ">=3.13,<3.14"
 dependencies = []
 
 [project.scripts]
-harness = "harness.__main__:main"
+poise = "poise.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

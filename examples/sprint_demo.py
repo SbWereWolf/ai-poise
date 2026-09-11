@@ -44,7 +44,7 @@ def run(directory):
         save(home/f'config/processes/{kind}.json',process(kind))
         cfg['processes'][kind]=f'config/processes/{kind}.json'
     save(home/'project.json',cfg)
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'HARNESS_CONFIG':str(home/'project.json'),'HARNESS_SESSION':'sprint-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'sprint-demo'}
     client=WorkClient(env,30)
     a=task('A','development','from src.double import double; assert double(2)==4')
     b=task('B','documentation','from src.double import double; assert double(0)==0')

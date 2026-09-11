@@ -1,9 +1,9 @@
-from harness.modules.evidence.domain import EvidencePlan
+from poise.modules.evidence.domain import EvidencePlan
 import copy
-from harness.modules.tasks.domain import Task, StageSpec
-from harness.modules.content.domain import SectionRule
-from harness.modules.content_requirements.domain import ContentPolicy
-from harness.modules.verification.domain import CheckRegistry
+from poise.modules.tasks.domain import Task, StageSpec
+from poise.modules.content.domain import SectionRule
+from poise.modules.content_requirements.domain import ContentPolicy
+from poise.modules.verification.domain import CheckRegistry
 
 EMPTY = {"sections": [], "routes": [], "requirements": []}
 
@@ -22,7 +22,7 @@ def stage(name,handler,transitions,readonly,paths,rework):
       "required_sections":["report"], "artifact_requirements":[]}
 
 def task(cfg=None):
-    from harness.modules.workflow.domain import RouteDefinition
+    from poise.modules.workflow.domain import RouteDefinition
     cfg=process() if cfg is None else cfg
     stages=tuple(StageSpec(s["id"],(SectionRule("report","Заполнить.","strip",True),)) for s in cfg["stages"])
     ids=tuple(s.stage_id for s in stages)

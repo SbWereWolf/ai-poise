@@ -1,19 +1,19 @@
-from harness.modules.evidence.domain import EvidencePlan
+from poise.modules.evidence.domain import EvidencePlan
 import pytest
-from harness.modules.content.domain import SectionRule
-from harness.modules.tasks.domain import Task, StageSpec
-from harness.modules.foundation.errors import DomainError
+from poise.modules.content.domain import SectionRule
+from poise.modules.tasks.domain import Task, StageSpec
+from poise.modules.foundation.errors import DomainError
 
 
 def new_task(task_id, stages, actor):
-    from harness.modules.content_requirements.domain import ContentPolicy
-    from harness.modules.verification.domain import CheckRegistry
+    from poise.modules.content_requirements.domain import ContentPolicy
+    from poise.modules.verification.domain import CheckRegistry
     empty = {"sections": [], "routes": [], "requirements": []}
     ids = tuple(s.stage_id for s in stages)
     policy = ContentPolicy.from_layers(empty, empty, ids, (), (),
                                       tuple(sorted({r.name for s in stages for r in s.rules})))
     registry = CheckRegistry.from_task([], {s.stage_id: [] for s in stages}, ids)
-    from harness.modules.workflow.domain import RouteDefinition
+    from poise.modules.workflow.domain import RouteDefinition
     cfg={"route":{"entry":ids[0] if ids else "absent","max_transitions":40,"max_stage_visits":8},
          "stages":[{"id":sid,"handler":"produce","transitions":{"complete":ids[i+1] if i+1<len(ids) else None},
                     "rework_targets":[sid],"read_only":False,"allowed_paths":[]} for i,sid in enumerate(ids)]}

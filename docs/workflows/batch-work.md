@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-11T06:55:21+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
+Обновлено: **2026-09-11T16:25:00+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -13,9 +13,12 @@
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
+| sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
+
+`cancel` в этом API отменяет текущую standalone Task, сохраняет её историю, результаты и worktree, освобождает claim и записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
 
@@ -95,11 +98,36 @@ Content pre-gate может отклонить уже сохранённый к�
 
 Код изменён при прежнем payload: создаётся новое исполнение checks, не повторный содержательный слой. Неизменный verified пакет: возвращается прежний результат, удалённые runtime-файлы не создаются заново. Новый содержательный результат после доклада требует явного rework.
 
+### Явный rework после `checks_failed`
+
+`checks_failed` оставляет Task с submitted результатом активной и сохраняет неизменяемый batch receipts. Следующий пользовательский ход может явно вернуть ту же Task на разрешённый этап через существующий `bootstrap`:
+
+```json
+{
+  "operation": "bootstrap",
+  "input": {
+    "task": null,
+    "decision": "rework",
+    "feedback": "Исправить причину неуспешной проверки.",
+    "rework_stage": "test_remediation"
+  },
+  "messages": []
+}
+```
+
+Такой переход допустим только для текущих stage, iteration, submission digest, Git tree и execution key. Сохранённый batch должен содержать хотя бы один неуспешный guard; все receipts должны иметь известный неотрицательный exit code, не быть timeout и оставаться интерпретируемыми, а их `stdout`/`stderr` — существовать с сохранёнными digest. `pending` должен быть null. Поэтому отсутствующий batch или batch без неуспешного guard, прерванный/неизвестный исход, удалённый либо изменённый output и evidence другого stage, iteration, submission, tree или запуска не дают права на rework.
+
+`feedback` обязателен и сохраняется в истории. `rework_stage` должен входить в `rework_targets` текущего этапа; null означает сам текущий этап. Цель с обработчиком `revise` допустима только при наличии открытых findings: иначе Task отклоняет переход до изменения route, lifecycle или execution state, потому что такому этапу нечего исправлять. Task применяет обычный `Route.enter`, поэтому `max_transitions`, `max_stage_visits` и `allowed_paths` целевого этапа продолжают действовать. Проверка `pending`, доменный переход Task и очистка execution state согласованы в одном UoW: отказ предшествует любому изменению lifecycle или execution.
+
+Успех сохраняет Task ID, worktree, branch, task/process contracts, прежние submissions, историю и failed receipts. Создаётся новый visit целевого этапа с его iteration, записываются feedback и событие `user_failed_check_rework`, а заброшенное retry-состояние очищается: `attempts=0`, `publication=null`, `pending=null`, `entry_tree` становится текущим деревом. Операция не отменяет и не пересоздаёт Task и не является SQL-восстановлением или обходом конфигурационного hash. Для verified/accepted/completed результатов действует прежний rework предъявленного результата; этот путь относится именно к активному submitted этапу с точным failed batch.
+
 ## Интеграция принятого результата
 
 `integrate` — одна публичная операция для локальной интеграции окончательно принятой Task и последующей уборки. Она доступна только когда Task имеет статус `completed` и сохранённый итоговый commit. Операция использует `git.repository` и локальную ветку `git.base_ref` выбранной конфигурации; эта ветка должна быть checkout текущего repository worktree.
 
-Исходный task worktree и target worktree должны быть чистыми, записанная task-ветка должна указывать на `expected_source_commit`, а текущий target HEAD — точно совпадать с `expected_target_commit`. Проверки выполняются до первого Git-эффекта. `authorization` хранит явное пользовательское основание и используется как сообщение merge commit, поэтому обязано соответствовать `git.commit_pattern`.
+Исходный task worktree должен быть чистым, записанная task-ветка должна указывать на `expected_source_commit`, а текущий target HEAD — точно совпадать с `expected_target_commit`. Локальные staged, unstaged и untracked изменения target допустимы, только если каждый их путь не пересекается с incoming delta между merge base и `expected_source_commit`; совпадение, родительский или дочерний путь считаются пересечением. Незавершённые merge, cherry-pick, revert, rebase и unmerged index блокируют интеграцию с указанием наблюдаемого состояния и действия восстановления. Проверки HEAD, локальных путей, incoming paths и неоднозначного Git-состояния выполняются до первого Git-эффекта. `authorization` хранит явное пользовательское основание и используется как сообщение merge commit, поэтому обязано соответствовать `git.commit_pattern`.
+
+Безопасная интеграция использует отдельный служебный index. Поэтому непересекающиеся локальные файлы target и их staged/unstaged классификация не попадают в merge commit и сохраняются побайтно; AI poise не выполняет для них stash, reset, clean, stage, commit или delete. После успешного commit основной index синхронизируется по incoming paths из зафиксированного `HEAD`, а не из текущих файлов worktree. Если incoming path изменился после preflight, продолжение до commit отклоняется с точными путями и предложением восстановить pending merge либо прервать его.
 
 ```json
 {
@@ -116,10 +144,10 @@ Content pre-gate может отклонить уже сохранённый к�
 }
 ```
 
-Команда выполняется через уже выбранные `HARNESS_CONFIG` и `HARNESS_SESSION`:
+Команда выполняется через уже выбранные `POISE_CONFIG` и `POISE_SESSION`:
 
 ```bash
-harness work <<'JSON'
+poise work <<'JSON'
 {"operation":"integrate","input":{"request_id":"integrate-0016-1","task_id":"0016","expected_source_commit":"0123456789abcdef0123456789abcdef01234567","expected_target_commit":"89abcdef0123456789abcdef0123456789abcdef","authorization":"Integrate accepted task 0016","resolutions":[]},"messages":[]}
 JSON
 ```
@@ -130,7 +158,7 @@ JSON
 
 - `integrated`: target содержит source commit, task worktree удалён, локальная task-ветка удалена через безопасный `git branch -d`; повтор возвращает сохранённый результат с `replayed: true`;
 - `awaiting_resolution`: Git оставлен в точном conflict state, source worktree и ветка сохранены; исправьте только перечисленные файлы обычным редактором и повторите тот же пакет, заменив `resolutions` на один объект для каждого conflict path;
-- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD/MERGE_HEAD/cleanliness не изменились;
+- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD, MERGE_HEAD, служебный index и сохранённый preflight подтверждают принадлежность этой интеграции;
 - `cleanup_pending`: target уже содержит source, но уборка заблокирована. Source не удаляется вслепую; после устранения причины тот же пакет продолжает только уборку.
 
 Пример продолжения конфликта — все остальные поля исходного intent остаются прежними:
@@ -144,7 +172,7 @@ JSON
 ]
 ```
 
-Операция сама выполняет Git staging, commit, worktree removal и branch deletion. Пользователю не требуется запоминать служебные Git-команды. Посторонние unstaged/untracked изменения target блокируют продолжение и уборку; force-delete не используется.
+Операция сама выполняет Git staging incoming paths, commit, worktree removal и branch deletion. Пользователю не требуется управлять служебным index. При конфликте повтор допускает только сохранённые до preflight локальные пути и объявленные conflict paths; новое постороннее изменение или изменение другого incoming path требует отдельного восстановления. Непересекающиеся локальные изменения не блокируют последующую уборку source; если Git не смог безопасно продолжить, source worktree и ветка сохраняются, успех не записывается. Force-delete не используется.
 
 Состояние и полная история переходов читаются пакетным query после перезапуска процесса:
 
@@ -217,13 +245,17 @@ Query не поддерживает pagination и не обещает один c
 Событие сохраняется даже если последующий verify не прошёл: это фактический расход взаимодействия. Поэтому отказ Task не откатывает ledger. Первичное связывание сообщения с task неизменно; read/retry не переносит расход на другую task. Подготовительное ad-hoc-событие может получить первый task binding в последующем bootstrap.
 
 ## Выдача
-`work` возвращает валидный JSON, не обрезанный посреди объекта. Лимит включает весь ответ. Действующий Task response сохраняется под её root; краткий ответ содержит ссылку на полное содержание. Слишком маленький output budget отклоняется до создания worktree. Exit 0 — получен штатный результат, в том числе `awaiting_continuation`; exit 1 — проверки/обязательства ещё не выполнены; exit 2 — неправильный вход/конфигурация. Это не вывод о наличии бага Harness по любому non-zero.
+`work` возвращает валидный JSON, не обрезанный посреди объекта. Лимит включает весь ответ. Действующий Task response сохраняется под её root; краткий ответ содержит ссылку на полное содержание. Слишком маленький output budget отклоняется до создания worktree. Exit 0 — получен штатный результат, в том числе `awaiting_continuation`; exit 1 — проверки/обязательства ещё не выполнены; exit 2 — неправильный вход/конфигурация. Это не вывод о наличии бага AI poise по любому non-zero.
 
 Обычный read-only taskless verify принимает result=null/artifacts=[] и очищает runtime. Taskless создание постоянного deliverable не реализовано этим срезом; formal task нужна для durable task-result.
 
 
 ## Sprint в DDD-05
-Обновлено: **2026-09-06T22:58:21+05:00**. Новый `operation: sprint` и пакетное чтение `kind: sprint` описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+Обновлено: **2026-09-11T16:25:00+05:00**. `operation: sprint` принимает actions `draft`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+
+`replace_task` требует `sprint_id`, `request_id`, `expected_revision`, `source_task`, полный `replacement`, `reason` и `authorization`. Успешный receipt содержит новую revision, `replacements` с old/new relation и safety facts, а также актуальные `tasks`, `eligible` и `blocked`. Идентичный replay возвращает тот же receipt без повторного preflight/мутации; конфликтующий intent с тем же `request_id` отклоняется.
+
+Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и view `current`, `plan` либо `history` показывает текущий граф, сохранённый process/plan snapshot и revision layers; при отсутствии другой активной Task адресный bootstrap старого ID возвращает terminal read-only context `superseded`, после чего `show` с `kind: evidence` читает его прежнее evidence. Старые submissions, artifacts и handoff receipts остаются у прежнего Task owner.
 
 ## DDD-06: внешние планы в том же пакете
 `stage_work` обработчика apply_plan принимает plan, phase, resolutions и finding_resolutions. Publish принимает target_ref, expected_commit и authorization. `awaiting_action_continuation` возвращает template для CONTINUE; `action_failed/action_blocked` возвращают nonzero business outcome, а не фиктивный PASS. Подробности: [Actions](actions.md).
@@ -234,7 +266,7 @@ Query не поддерживает pagination и не обещает один c
 
 Обновлено: **2026-09-07T00:07:53+05:00**. `handoff` в общем work packet принимает request_id/reason/result/commit_message/artifact_paths. Только paths для готовых файлов. Resume — обычный bootstrap существующей задачи другим actor. `show.queries` принимает kind=tool_result с receipt_id/representation/range; доступ ограничен текущей задачей.
 
-`harness runtime --settings <file>` добавляет внешний envelope identity/capabilities/transcript/work, автоматически устанавливает внутреннюю session и передаёт work в тот же прикладной API. Никаких отдельных record-message или set-session вызовов. Полное описание в [runtime](../configuration/runtime-services.md) и [handoff](local-handoff.md).
+`poise runtime --settings <file>` добавляет внешний envelope identity/capabilities/transcript/work, автоматически устанавливает внутреннюю session и передаёт work в тот же прикладной API. Никаких отдельных record-message или set-session вызовов. Полное описание в [runtime](../configuration/runtime-services.md) и [handoff](local-handoff.md).
 
 
 ## Transfer — DDD-07B (2026-09-07T00:50:18+05:00)

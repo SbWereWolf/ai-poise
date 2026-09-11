@@ -1,6 +1,6 @@
 # Статус реализации
 
-Обновлено: **2026-09-11T06:55:21+05:00**.
+Обновлено: **2026-09-11T16:55:00+05:00**.
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
@@ -40,8 +40,18 @@ legacy row и архитектурные границы. Исполняемые 
 поскольку numeric policy является отдельным выбором проекта. Поэтому проекты без `task_ids`
 продолжают работать только с explicit IDs и получают явную ошибку на automatic intent.
 
+## DDD-10 result integration — 2026-09-11T16:55:00+05:00
 
-# HARNESS-PILOT-01 — 2026-09-07T14:15:55+05:00
+DDD-10 result integration поддерживает dirty target при непересекающихся локальных staged,
+unstaged и untracked путях. Preflight блокирует точные и parent/descendant пересечения и
+незавершённые Git operations до мутации; отдельный index сохраняет пользовательские байты и
+классификацию, а post-preflight drift не попадает в merge commit. Публичные conflict, retry,
+idempotent replay и cleanup остаются в одном `integrate` API. Сфокусированный test-набор:
+23 проверки result integration; системный дефект выбора source root проверки относится к
+отдельной задаче 0037 и не объявляется исправленным этой поставкой.
+
+
+# POISE-PILOT-01 — 2026-09-07T14:15:55+05:00
 
 Реализованы `project`/`project-init`: batch creation, явные templates, back/change/keep/abort,
 публикация цельного проекта, 13 независимых process snapshots, локальные Git readiness checks.
@@ -50,11 +60,11 @@ legacy row и архитектурные границы. Исполняемые 
 нового multi-codebase engine, установки интерпретатора или live IDE/remote сертификации.
 
 
-## HARNESS-PILOT-02 — 2026-09-07T15:04:48+05:00
+## POISE-PILOT-02 — 2026-09-07T15:04:48+05:00
 
 Исправлен существующий developer runner: сохранность всех failed/incomplete workspace,
 terminal JUnit как условие успеха, запрет пустой выдачи, общая bounded execution, явная
-retention успешных пакетов. Это не новый runtime Harness.
+retention успешных пакетов. Это не новый runtime AI poise.
 
 Добавлен пример продолжения реального planning-пилота на один execution stage с export
 через Task/Transfer. Протоколы/схема БД не менялись; код domain/runtime остаётся прежним.
@@ -64,4 +74,4 @@ retention успешных пакетов. Это не новый runtime Harnes
 
 ## Автономный пилот — 2026-09-09T01-11-02+05-00
 
-Завершены analysis и self_inspection прежней HARNESS-SELF-VERIFY-02. Итог completed принят агентом по ограниченному делегированию пользователя. Checkpoints трёх состояний сохранены отдельно; последний реально импортирован и прочитан в третьем store. Продуктовый код не изменён, 719 исходных тестов не объявляются заново выполненными. Следующая работа — выбранный реальный проект/native runtime; входы не предоставлены.
+Завершены analysis и self_inspection прежней POISE-SELF-VERIFY-02. Итог completed принят агентом по ограниченному делегированию пользователя. Checkpoints трёх состояний сохранены отдельно; последний реально импортирован и прочитан в третьем store. Продуктовый код не изменён, 719 исходных тестов не объявляются заново выполненными. Следующая работа — выбранный реальный проект/native runtime; входы не предоставлены.

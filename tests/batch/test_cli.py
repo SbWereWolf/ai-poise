@@ -6,8 +6,8 @@ from .helpers import configure,request,message
 
 def call(project,packet):
     raw=packet if isinstance(packet,str) else json.dumps(packet)
-    return subprocess.run([sys.executable,'-m','harness','work'],input=raw,text=True,capture_output=True,
-        env={**os.environ,'HARNESS_CONFIG':str(project['config_path']),'HARNESS_SESSION':'CLI-BATCH'},timeout=15)
+    return subprocess.run([sys.executable,'-m','poise','work'],input=raw,text=True,capture_output=True,
+        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'CLI-BATCH'},timeout=15)
 
 
 def test_cli_unknown_duplicate_nan_and_size_reject_before_task(project):
@@ -32,7 +32,7 @@ def test_cli_bounded_json_full_receipt_not_truncated_json(project):
 
 def test_cli_no_file_input_compatibility(project):
     configure(project)
-    old=subprocess.run([sys.executable,'-m','harness','verify'],input='{}',text=True,capture_output=True,timeout=15)
+    old=subprocess.run([sys.executable,'-m','poise','verify'],input='{}',text=True,capture_output=True,timeout=15)
     assert old.returncode==2
 
 

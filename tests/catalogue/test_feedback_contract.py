@@ -1,8 +1,8 @@
 """A return to collection/reasoning must be able to propose an actual repair."""
 import pytest
-from harness.modules.inspection.domain import FeedbackBook
-from harness.modules.workflow.handlers import ProduceHandler,ObserveHandler,CheckHandler,InspectHandler
-from harness.modules.foundation.errors import HarnessError
+from poise.modules.inspection.domain import FeedbackBook
+from poise.modules.workflow.handlers import ProduceHandler,ObserveHandler,CheckHandler,InspectHandler
+from poise.modules.foundation.errors import PoiseError
 
 
 def book():
@@ -35,6 +35,6 @@ def test_review_again_can_correct_its_report_without_modifying_product():
 
 
 def test_inspection_cannot_find_and_propose_fix_for_the_same_new_finding():
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         InspectHandler().evaluate({'coverage':'Check','findings':[{'id':'F','subject':'x','description':'x','evidence':'x'}],
             'resolution_decisions':[],'resolutions':[proposal()]},FeedbackBook.empty(),'audit',1)

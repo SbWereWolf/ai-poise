@@ -1,4 +1,4 @@
-"""Example driver: one JSON stdin call; never edits a Harness result file."""
+"""Example driver: one JSON stdin call; never edits a Poise result file."""
 import json
 import subprocess
 import sys
@@ -13,7 +13,7 @@ class WorkClient:
     def invoke(self,operation,inputs,expected_exit=0,messages=(),telemetry=None):
         packet={'operation':operation,'input':inputs,'messages':list(messages)}
         if telemetry is not None:packet['telemetry']=telemetry
-        r=subprocess.run([sys.executable,'-m','harness','work'],input=json.dumps(packet),
+        r=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps(packet),
             env=self.environment,text=True,capture_output=True,timeout=self.timeout)
         if r.returncode!=expected_exit:raise RuntimeError(r.stdout+r.stderr)
         view=json.loads(r.stdout)

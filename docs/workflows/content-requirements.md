@@ -64,9 +64,9 @@ Task владеет ContentPolicy, ContentSnapshot и CheckRegistry. Чиста�
 }
 ```
 
-`content_additions` позволяет зарегистрировать секции, цепочки и дополнительные обязательства. `trace` — изменения точек вида `{route: {point: value}}`; для осмысленной очистки разрешён null. Snapshot и declared contract получаются самим Harness. Агент не передаёт status/version/task_id/Git diff/hashes.
+`content_additions` позволяет зарегистрировать секции, цепочки и дополнительные обязательства. `trace` — изменения точек вида `{route: {point: value}}`; для осмысленной очистки разрешён null. Snapshot и declared contract получаются самим AI poise. Агент не передаёт status/version/task_id/Git diff/hashes.
 
-`method_additions`: список `{method: <точный метод>, stages: [<этапы исполнения>]}`. Поля метода: id, argv, cwd, environment, timeout_seconds, expected_exit_code, stdout_contains, stderr_contains. Метод имеет неизменное определение; другой способ/ожидание получает новый ID. Такой метод сразу включается в checks указанных этапов. Пустое расписание допускается явно, например для метода, который нужен только automatic mapping; Harness не угадывает его назначение.
+`method_additions`: список `{method: <точный метод>, stages: [<этапы исполнения>]}`. Поля метода: id, argv, cwd, environment, timeout_seconds, expected_exit_code, stdout_contains, stderr_contains. Метод имеет неизменное определение; другой способ/ожидание получает новый ID. Такой метод сразу включается в checks указанных этапов. Пустое расписание допускается явно, например для метода, который нужен только automatic mapping; AI poise не угадывает его назначение.
 
 ## Последовательность verify
 
@@ -78,7 +78,7 @@ Task владеет ContentPolicy, ContentSnapshot и CheckRegistry. Чиста�
 6. Перед публикацией перепроверить текущие path observations и gates. Task.mark_verified также проверяет оба набора требований.
 7. Сохранить результат, очистить runtime, дать доклад. Отдельное принятие/continue по новой инструкции пользователя.
 
-Повтор того же payload не создаёт второй содержательный слой. Изменённый код может проверяться повторно, даже если payload прежний. Для content failure CLI возвращает exit 1 (штатный отказ требований), а не exit 0 и не Harness Incident. Cancel обходит обязательность содержимого и не запускает проверки.
+Повтор того же payload не создаёт второй содержательный слой. Изменённый код может проверяться повторно, даже если payload прежний. Для content failure CLI возвращает exit 1 (штатный отказ требований), а не exit 0 и не AI poise Incident. Cancel обходит обязательность содержимого и не запускает проверки.
 
 ## Артефакты
 

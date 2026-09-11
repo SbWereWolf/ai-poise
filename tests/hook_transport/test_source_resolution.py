@@ -11,8 +11,8 @@ import pytest
 
 from batch.helpers import request
 from conftest import add_test, git, write_json
-from harness.application.work import WorkTools
-from harness.infrastructure.hook_transport import HookService
+from poise.application.work import WorkTools
+from poise.infrastructure.hook_transport import HookService
 from hook_transport.helpers import definition, event, install, settings
 from sprints.helpers import (
     draft,
@@ -23,11 +23,11 @@ from sprints.helpers import (
 )
 
 
-SOURCE = Path(__file__).resolve().parents[2] / "src" / "harness"
+SOURCE = Path(__file__).resolve().parents[2] / "src" / "poise"
 
 
 def _instrumented_project_source(project):
-    target = project["app"] / "src" / "harness"
+    target = project["app"] / "src" / "poise"
     shutil.copytree(SOURCE, target)
     (target / "source_sentinel.txt").write_text("installation\n", encoding="utf-8")
     transport = target / "interfaces" / "hook_transport.py"
@@ -79,8 +79,8 @@ def _instrumented_project_source(project):
                     item.body = [*probe, *item.body]
     assert instrumented == 1
     application.write_text(ast.unparse(ast.fix_missing_locations(tree)) + "\n", encoding="utf-8")
-    git(project["app"], "add", "src/harness")
-    git(project["app"], "commit", "-m", "Add instrumented Harness source")
+    git(project["app"], "add", "src/poise")
+    git(project["app"], "commit", "-m", "Add instrumented Poise source")
     return target.parent
 
 
@@ -151,9 +151,9 @@ def _work_invocations(project):
 
 
 def _commit_source_probe(worktree, sentinel):
-    package = Path(worktree) / "src" / "harness"
+    package = Path(worktree) / "src" / "poise"
     (package / "source_sentinel.txt").write_text(sentinel + "\n", encoding="utf-8")
-    git(Path(worktree), "add", "src/harness/source_sentinel.txt")
+    git(Path(worktree), "add", "src/poise/source_sentinel.txt")
     git(Path(worktree), "commit", "-m", f"Set {sentinel} source sentinel")
     return package
 
@@ -213,7 +213,7 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
 
     started, context = _call(launcher, _bootstrap({"id": "T1"}))
     assert started.returncode == 0, started.stdout + started.stderr
-    task_source = Path(context["worktree"]) / "src" / "harness"
+    task_source = Path(context["worktree"]) / "src" / "poise"
     assert Path(context["loaded_source"]) == task_source
     assert context["session"] == binding["session_id"]
     assert context["interaction"]["observed_messages_count"] == 1
@@ -221,7 +221,7 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
         "id": "codex-hook-main",
         "mode": "runtime_event",
     }
-    assert task_source != installation / "harness"
+    assert task_source != installation / "poise"
     assert _work_invocations(project) == [
         {"source": str(task_source), "operation": "bootstrap"}
     ]
@@ -235,7 +235,7 @@ def test_assigned_session_continuation_loads_current_task_source_in_each_resumab
     launcher, binding = _launcher(service, installed, "continuation-" + state)
     started, context = _call(launcher, _bootstrap(project["task"]))
     assert started.returncode == 0, started.stdout + started.stderr
-    task_source = Path(context["worktree"]) / "src" / "harness"
+    task_source = Path(context["worktree"]) / "src" / "poise"
 
     if state in {"verified", "accepted"}:
         add_test(context["worktree"])
@@ -266,7 +266,7 @@ def test_taskless_and_new_task_creation_use_configured_installation_source(proje
     read, summary = _call(launcher, _bootstrap(None))
     assert read.returncode == 0, read.stdout + read.stderr
     assert summary["status"] == "read_only"
-    assert Path(summary["loaded_source"]) == installation / "harness"
+    assert Path(summary["loaded_source"]) == installation / "poise"
 
     contract = deepcopy(project["task"])
     del contract["id"]
@@ -281,7 +281,7 @@ def test_taskless_and_new_task_creation_use_configured_installation_source(proje
         "task_id": "0001",
         "replayed": False,
     }
-    assert Path(context["loaded_source"]) == installation / "harness"
+    assert Path(context["loaded_source"]) == installation / "poise"
 
 
 @pytest.mark.parametrize(
@@ -306,8 +306,8 @@ def test_invalid_registered_task_source_is_rejected_without_fallback(project, tm
     if damage == "missing_worktree":
         shutil.rmtree(worktree)
     elif damage == "escaped_symlink":
-        package = worktree / "src" / "harness"
-        outside = tmp_path / "unregistered-harness"
+        package = worktree / "src" / "poise"
+        outside = tmp_path / "unregistered-poise"
         shutil.move(package, outside)
         package.symlink_to(outside, target_is_directory=True)
     elif damage == "intermediate_symlink":
@@ -323,13 +323,13 @@ def test_invalid_registered_task_source_is_rejected_without_fallback(project, tm
         git(worktree, "init", "-b", "tasks/T1")
         git(worktree, "config", "user.name", "Fixture")
         git(worktree, "config", "user.email", "fixture@example.invalid")
-        shutil.copytree(installation / "harness", worktree / "src" / "harness")
+        shutil.copytree(installation / "poise", worktree / "src" / "poise")
         git(worktree, "add", ".")
         git(worktree, "commit", "-m", "Create unrelated repository")
     elif damage == "missing_package":
-        shutil.rmtree(worktree / "src" / "harness")
+        shutil.rmtree(worktree / "src" / "poise")
     else:
-        _remove_work_method(worktree / "src" / "harness")
+        _remove_work_method(worktree / "src" / "poise")
 
     attempted, payload = _call(launcher, _bootstrap(None))
     assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
@@ -340,19 +340,19 @@ def test_invalid_registered_task_source_is_rejected_without_fallback(project, tm
         "intermediate_symlink": ("source", "worktree", "symlink", "escape"),
         "wrong_branch": ("source", "worktree", "git", "branch"),
         "wrong_git_root": ("source", "worktree", "git", "repository", "root"),
-        "missing_package": ("source", "worktree", "harness", "package", "missing"),
+        "missing_package": ("source", "worktree", "poise", "package", "missing"),
         "missing_work_method": ("source", "hookservice", "work", "entrypoint", "structure"),
     }
     assert any(word in payload["reason"].lower() for word in reason_terms[damage])
-    assert payload.get("loaded_source") != str(installation / "harness")
+    assert payload.get("loaded_source") != str(installation / "poise")
 
 
 def test_existing_task_rejects_an_unregistered_lookalike_worktree(project, tmp_path):
     service, installed, installation = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "unregistered-task")
     runtime = service.bound_runtime(binding["binding_path"])
-    lookalike = runtime.state / runtime.paths["worktrees"] / "GHOST" / "src" / "harness"
-    shutil.copytree(installation / "harness", lookalike)
+    lookalike = runtime.state / runtime.paths["worktrees"] / "GHOST" / "src" / "poise"
+    shutil.copytree(installation / "poise", lookalike)
 
     attempted, payload = _call(launcher, _bootstrap({"id": "GHOST"}))
 
@@ -372,8 +372,8 @@ def test_two_bindings_load_different_task_sources_without_shared_mutation(projec
     first_a, context_a = _call(launcher_a, _bootstrap(project["task"]))
     first_b, context_b = _call(launcher_b, _bootstrap(task_b))
     assert first_a.returncode == first_b.returncode == 0
-    expected_a = Path(context_a["worktree"]) / "src" / "harness"
-    expected_b = Path(context_b["worktree"]) / "src" / "harness"
+    expected_a = Path(context_a["worktree"]) / "src" / "poise"
+    expected_b = Path(context_b["worktree"]) / "src" / "poise"
     assert expected_a != expected_b
     _commit_source_probe(context_a["worktree"], "task-T1")
     _commit_source_probe(context_b["worktree"], "task-T2")
@@ -400,8 +400,8 @@ def test_two_bindings_load_different_task_sources_without_shared_mutation(projec
     assert Path(result_b["loaded_source"]) == expected_b
     assert result_a["source_sentinel"] == "task-T1"
     assert result_b["source_sentinel"] == "task-T2"
-    assert Path(result_a["loaded_source"]) != installation / "harness"
-    assert Path(result_b["loaded_source"]) != installation / "harness"
+    assert Path(result_a["loaded_source"]) != installation / "poise"
+    assert Path(result_b["loaded_source"]) != installation / "poise"
     assert {str(path): _digest(path) for path in protected} == before
 
 
@@ -412,7 +412,7 @@ def test_child_revalidates_bound_source_facts_after_parent_selection(project, tm
     started, context = _call(launcher, _bootstrap(project["task"]))
     assert started.returncode == 0, started.stdout + started.stderr
     worktree = Path(context["worktree"])
-    package = worktree / "src" / "harness"
+    package = worktree / "src" / "poise"
     statements = {
         "binding": "Path(args.binding).write_text('{}', encoding='utf-8')",
         "source": "(Path(__file__).resolve().parents[1] / '__main__.py').unlink()",
@@ -423,7 +423,7 @@ def test_child_revalidates_bound_source_facts_after_parent_selection(project, tm
         ),
     }
     _inject_before_work(package, statements[mutation])
-    git(worktree, "add", "src/harness/interfaces/hook_transport.py")
+    git(worktree, "add", "src/poise/interfaces/hook_transport.py")
     git(worktree, "commit", "-m", f"Inject {mutation} TOCTOU fixture")
 
     attempted, payload = _call(launcher, _bootstrap(None))
@@ -431,7 +431,7 @@ def test_child_revalidates_bound_source_facts_after_parent_selection(project, tm
     assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
     assert payload["status"] == "rejected"
     assert any(word in payload["reason"].lower() for word in ("binding", "source", "worktree", "branch"))
-    assert payload.get("loaded_source") != str(installation / "harness")
+    assert payload.get("loaded_source") != str(installation / "poise")
 
 
 def test_read_only_and_task_cancel_recover_after_configuration_change(project, tmp_path):
@@ -449,7 +449,7 @@ def test_read_only_and_task_cancel_recover_after_configuration_change(project, t
     )
     assert shown.returncode == 0, shown.stdout + shown.stderr
     assert view["status"] == "read_only"
-    assert Path(view["loaded_source"]) == installation / "harness"
+    assert Path(view["loaded_source"]) == installation / "poise"
 
     cancelled, result = _call(
         launcher,
@@ -457,10 +457,10 @@ def test_read_only_and_task_cancel_recover_after_configuration_change(project, t
     )
     assert cancelled.returncode == 0, cancelled.stdout + cancelled.stderr
     assert result["status"] == "cancelled"
-    assert Path(result["loaded_source"]) == installation / "harness"
+    assert Path(result["loaded_source"]) == installation / "poise"
 
 
-@pytest.mark.parametrize("action", ["cancel_tasks", "force_close"])
+@pytest.mark.parametrize("action", ["cancel_tasks", "cancel"])
 def test_sprint_cancellation_remains_independent_of_live_configuration_hash(project, tmp_path, action):
     sprint_setup(project)
     service, installed, installation = _service(project, tmp_path)
@@ -488,4 +488,4 @@ def test_sprint_cancellation_remains_independent_of_live_configuration_hash(proj
         assert result["tasks"][0]["status"] == "cancelled"
     else:
         assert result["status"] == "cancelled"
-    assert Path(result["loaded_source"]) == installation / "harness"
+    assert Path(result["loaded_source"]) == installation / "poise"

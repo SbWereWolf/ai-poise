@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_goal_definition_and_application_are_free_of_io():
-    root=Path(__file__).resolve().parents[2]/"src/harness"
+    root=Path(__file__).resolve().parents[2]/"src/poise"
     files=list((root/"modules/goal_config").glob("*.py"))+[root/"application/goal_config.py"]
     assert files and all(p.exists() for p in files)
     for p in files:
@@ -13,6 +13,6 @@ def test_goal_definition_and_application_are_free_of_io():
 
 
 def test_runtime_and_editor_share_one_process_validator():
-    root=Path(__file__).resolve().parents[2]/"src/harness"
+    root=Path(__file__).resolve().parents[2]/"src/poise"
     assert "GoalTypeDefinition" in (root/"common.py").read_text()
     assert "GoalTypeDefinition" in (root/"application/goal_config.py").read_text()

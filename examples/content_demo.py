@@ -26,7 +26,7 @@ def run(directory: Path) -> dict:
     task = json.loads(task_path.read_text())
     task['content_contract'] = fixture['task_content']
     save(task_path, task)
-    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'HARNESS_CONFIG': str(home / 'project.json'), 'HARNESS_SESSION': 'content-demo'}
+    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'content-demo'}
     calls = []
     client = WorkClient(env, 30)
     calls = client.calls

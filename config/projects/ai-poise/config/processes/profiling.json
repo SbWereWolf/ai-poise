@@ -222,7 +222,7 @@
       "sections": {
         "environment": "relevant facts/readiness, versions/input generation, resource identities, no secret values; required facts и observation methods явно заданы.",
         "report": "Record the substantive result for this stage.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "workload": "input/data digests, concurrency/cache/warmup/measurement schedule, exact generation/execution commands, resource namespaces."
       },
       "transitions": {

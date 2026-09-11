@@ -90,7 +90,7 @@ Sprint владеет целью и требованиями спринта, с�
 | `evaluate_progress(task_facts, readiness_facts)` | Вычисляет весь eligible set и blockers | Не выбирает модель/агента и не запускает задачи |
 | `assess_closure(task_facts, sprint_evidence)` | Проверяет целостность и условия закрытия | Не включает full product test без санкции |
 | `complete(closure_assessment)` | Фиксирует нормальный результат | Не маскирует незавершённые задачи |
-| `force_close(decision, work_dispositions)` | Закрывает по санкции с учётом WIP и отменённых участников | Не затрагивает посторонний спринт |
+| `cancel(task_ids, reason)` | Отменяет Sprint и возвращает незавершённых участников для Task-owned transitions | Не переписывает completed/cancelled и не затрагивает посторонний Sprint |
 
 Домен Sprint не вызывает TaskRepository и не выполняет цикл `task.cancel()` самостоятельно. Координатор получает от Sprint список разрешённых действий по членам и применяет команды Task через их API. Все такие действия остаются в области выбранного спринта.
 

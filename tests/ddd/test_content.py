@@ -1,6 +1,6 @@
 import pytest
-from harness.modules.content.domain import SectionRule, SectionBook
-from harness.modules.foundation.errors import DomainError
+from poise.modules.content.domain import SectionRule, SectionBook
+from poise.modules.foundation.errors import DomainError
 
 
 def rule(name="report", required=True, normalization="strip"):
@@ -51,11 +51,11 @@ def test_invalid_normalization_or_duplicate_rule_has_no_fallback():
 
 def test_missing_normalization_in_process_is_not_defaulted(project):
     import json
-    from conftest import Harness
-    from harness.common import HarnessError
+    from conftest import Poise
+    from poise.common import PoiseError
     path=project["root"]/"config/processes/development.json"
     process=json.loads(path.read_text())
     del process["stages"][0]["normalization"]
     path.write_text(json.dumps(process))
-    with pytest.raises(HarnessError,match="normalization"):
-        Harness(project["config_path"],"s")
+    with pytest.raises(PoiseError,match="normalization"):
+        Poise(project["config_path"],"s")

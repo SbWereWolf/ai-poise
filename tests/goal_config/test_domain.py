@@ -1,7 +1,7 @@
 import copy
 import pytest
 from tests.goal_config.helpers import template, additions
-from harness.modules.goal_config.domain import GoalTypeDefinition, BatchValidationError
+from poise.modules.goal_config.domain import GoalTypeDefinition, BatchValidationError
 
 
 def test_template_create_is_full_and_independent():

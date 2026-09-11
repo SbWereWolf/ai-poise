@@ -1,6 +1,6 @@
 {
   "created_at": "2026-09-06T10:07:45+05:00",
-  "note": "Нормативные самостоятельные process definitions документации; не исполняемые конфиги или код Harness.",
+  "note": "Нормативные самостоятельные process definitions документации; не исполняемые конфиги или код AI poise.",
   "profiles": [
     {
       "id": "development",
@@ -16,26 +16,26 @@
         "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
         "baseline": "applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён.",
         "solution_plan": "затрагиваемые компоненты; proposed change/contracts; риски; порядок реализации; решения и assumptions refs.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution.",
         "documentation_plan": "required/not_required с причиной; при required deliverables/paths, content requirements и exact validation methods/DoD refs.",
         "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "baseline_plan": "Creation input: explicit applicability+reason, target identity, exact declared baseline invocation или documented observation method. Не требует будущих execution digests; mandatory для запуска baseline stage.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -106,7 +106,7 @@
           "field_ownership": [
             {
               "field": "baseline",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -116,7 +116,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -126,7 +126,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -136,7 +136,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -323,7 +323,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -333,7 +333,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -343,7 +343,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -511,7 +511,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -521,7 +521,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -531,7 +531,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -677,7 +677,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -687,7 +687,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -697,7 +697,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -874,7 +874,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -884,7 +884,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -894,7 +894,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1063,7 +1063,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1073,7 +1073,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1083,7 +1083,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1093,7 +1093,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1286,7 +1286,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1296,7 +1296,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1306,7 +1306,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1451,7 +1451,7 @@
           "field_ownership": [
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1461,7 +1461,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1471,7 +1471,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1645,7 +1645,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1655,7 +1655,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1665,7 +1665,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1828,7 +1828,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1838,7 +1838,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1848,7 +1848,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -1858,7 +1858,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2048,7 +2048,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2058,7 +2058,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2068,7 +2068,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2230,7 +2230,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2240,7 +2240,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2250,7 +2250,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2349,7 +2349,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -2465,19 +2465,19 @@
         "definition_of_done": "список id, requirement_refs, measurable criterion, expected deliverable, verification_obligation_refs; хотя бы один критерий.",
         "baseline": "applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён.",
         "coverage_matrix": "requirement→scenario→case→oracle→method, обязательность и причина explicit exclusion.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution.",
         "fixture_plan": "required/not_applicable+reason; при required id,purpose,consumers,input invariants,создание/cleanup,метод validation.",
         "sensitivity_plan": "case_id, negative-control/known-bad revision/mutation method, exact commands/expected detectable error, clean target restoration; not_applicable только с обоснованием и inspection verdict.",
         "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
@@ -2485,7 +2485,7 @@
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "baseline_plan": "Creation input: explicit applicability+reason, target identity, exact declared baseline invocation или documented observation method. Не требует будущих execution digests; mandatory для запуска baseline stage.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -2555,7 +2555,7 @@
           "field_ownership": [
             {
               "field": "baseline",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2565,7 +2565,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2575,7 +2575,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2585,7 +2585,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2724,7 +2724,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2734,7 +2734,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2744,7 +2744,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2922,7 +2922,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2932,7 +2932,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -2942,7 +2942,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3090,7 +3090,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3100,7 +3100,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3110,7 +3110,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3236,7 +3236,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3246,7 +3246,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3256,7 +3256,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3422,7 +3422,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3432,7 +3432,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3442,7 +3442,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3607,7 +3607,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3617,7 +3617,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3627,7 +3627,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3637,7 +3637,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3821,7 +3821,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3831,7 +3831,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3841,7 +3841,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -3949,7 +3949,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -3989,16 +3989,16 @@
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Список EvidenceProposal для назначенных PREPARE logical_argument/inspection методов. Обязательные id, method_ref, obligation_refs, subject_ref, claim, facts с source_ref, assumptions, inference_summary, conclusion, source_refs. Пустой список явно разрешён только при отсутствии таких обязанностей; reviewer verdict и execution observations не поля агента.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "observed_manual_evidence": "Список EvidenceProposal для CONTINUE по новым observation_receipts. Все поля manual_evidence плюс непустые observation_refs. Источники должны реально появиться в OBSERVE; это не новая задача или слой чужого command output.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -4123,7 +4123,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4133,7 +4133,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4143,7 +4143,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4294,7 +4294,7 @@
             },
             {
               "field": "execution_results",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4304,7 +4304,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4314,7 +4314,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4324,7 +4324,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4526,7 +4526,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4536,7 +4536,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4546,7 +4546,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4628,7 +4628,7 @@
             "evidence",
             "traceability"
           ],
-          "automatic_checks": "Target и осматриваемый результат не меняются; review decisions фиксируются отдельно; task-quality objection даёт rework. По каждому некомандному proposal record осмотра указывает accepted/rejected и основание; это не автоматическое принятие Harness по ссылкам. Rejected proposal создаёт task-quality objection и блокирует completion. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов.",
+          "automatic_checks": "Target и осматриваемый результат не меняются; review decisions фиксируются отдельно; task-quality objection даёт rework. По каждому некомандному proposal record осмотра указывает accepted/rejected и основание; это не автоматическое принятие AI poise по ссылкам. Rejected proposal создаёт task-quality objection и блокирует completion. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов.",
           "evidence": "полнота/непротиворечивость методики и вывода.",
           "changes": "task-data",
           "generated": [
@@ -4723,7 +4723,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4733,7 +4733,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4743,7 +4743,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -4854,7 +4854,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -4975,17 +4975,17 @@
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "constraints": "Явные ограничения review scope; absent не заменяется значениями другого process pack.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -5082,7 +5082,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5092,7 +5092,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5102,7 +5102,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5295,7 +5295,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5305,7 +5305,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5315,7 +5315,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5497,7 +5497,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5507,7 +5507,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5517,7 +5517,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5616,7 +5616,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -5650,24 +5650,24 @@
         "design": "components/responsibilities, данные, состояния/переходы, interfaces, errors/failures, concurrency/security/observability applicability, requirement mapping; каждый неприменимый блок явно помечен с причиной.",
         "interfaces_contracts": "applicability; API/CLI/data contract, inputs/outputs/errors, side effects, invariants, versioned target references, schema validators.",
         "impact_analysis": "affected/unchanged codebases/components/contracts; prerequisites/risks; downstream requirements, не самостоятельная реализация.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "verdict": "по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "baseline_plan": "Creation input: explicit applicability+reason, target identity, exact declared baseline invocation или documented observation method. Не требует будущих execution digests; mandatory для запуска baseline stage.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -5795,7 +5795,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5805,7 +5805,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5815,7 +5815,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5969,7 +5969,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5979,7 +5979,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -5989,7 +5989,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6145,7 +6145,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6155,7 +6155,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6165,7 +6165,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6341,7 +6341,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6351,7 +6351,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6361,7 +6361,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6503,7 +6503,7 @@
           "field_ownership": [
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -6513,7 +6513,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -6523,7 +6523,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -6723,7 +6723,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6733,7 +6733,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6743,7 +6743,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6925,7 +6925,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6935,7 +6935,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6945,7 +6945,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -6955,7 +6955,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7151,7 +7151,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7161,7 +7161,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7171,7 +7171,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7279,7 +7279,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -7316,21 +7316,21 @@
         "limitations": "что не установлено, ограничения данных/метода, влияние на conclusions/DoD; explicit none с основанием.",
         "conclusions": "question/criterion refs, claim, facts+assumptions, inference summary, ограничения и verdict.",
         "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -7433,7 +7433,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7443,7 +7443,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7453,7 +7453,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7590,7 +7590,7 @@
           "field_ownership": [
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -7600,7 +7600,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -7610,7 +7610,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -7816,7 +7816,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7826,7 +7826,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -7836,7 +7836,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8012,7 +8012,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8022,7 +8022,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8032,7 +8032,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8232,7 +8232,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8242,7 +8242,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8252,7 +8252,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8366,7 +8366,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -8405,22 +8405,22 @@
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
         "confirmation": "critical claim/root_cause/finding refs, independent/repeat procedure, exact command либо reasoned method, actual evidence и verdict.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "confirmation_plan": "Claims to confirm; exact confirmation methods, input selectors, repetitions/limits, independent observation criterion. Формируется в analysis до confirmation execution.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -8537,7 +8537,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8547,7 +8547,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8557,7 +8557,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8699,7 +8699,7 @@
           "field_ownership": [
             {
               "field": "baseline",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8709,7 +8709,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8719,7 +8719,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8729,7 +8729,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8887,7 +8887,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8897,7 +8897,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -8907,7 +8907,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9045,7 +9045,7 @@
           "field_ownership": [
             {
               "field": "measurements",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9055,7 +9055,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9065,7 +9065,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9075,7 +9075,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9292,7 +9292,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9302,7 +9302,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9312,7 +9312,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9464,7 +9464,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -9474,7 +9474,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -9484,7 +9484,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -9693,7 +9693,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9703,7 +9703,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9713,7 +9713,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9835,7 +9835,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -9873,23 +9873,23 @@
         "root_cause": "cause statement, symptoms/facts/experiments links, rejected alternatives, confirmation refs, limitations; inconclusive только если разрешён DoD задачи.",
         "confirmation": "critical claim/root_cause/finding refs, independent/repeat procedure, exact command либо reasoned method, actual evidence и verdict.",
         "recommendations": "предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
         "confirmation_plan": "Root cause refs, точный controlled confirmation method, expected distinguishing observations, restore operation/probe и limits. Формируется root_cause_analysis.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -9985,7 +9985,7 @@
             },
             {
               "field": "environment_snapshot",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -9995,7 +9995,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10005,7 +10005,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10015,7 +10015,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10166,7 +10166,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10176,7 +10176,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10186,7 +10186,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10354,7 +10354,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10364,7 +10364,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10374,7 +10374,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10514,7 +10514,7 @@
           "field_ownership": [
             {
               "field": "experiments",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10524,7 +10524,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10534,7 +10534,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10544,7 +10544,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10732,7 +10732,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10742,7 +10742,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10752,7 +10752,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -10894,7 +10894,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10904,7 +10904,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -10914,7 +10914,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -11113,7 +11113,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11123,7 +11123,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11133,7 +11133,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11261,7 +11261,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -11294,7 +11294,7 @@
         "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
         "change_plan": "desired-state obligations, exact ordered actions, prerequisites, privileges, observable receipts, replay/rollback policy, risks.",
         "rollback_plan": "reversible steps exact undo+verification, irreversible effects явно и основание пользовательской санкции, interruption policy.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "execution_results": "generated immutable receipts: method,target,key,status,expected/actual,evidence/output refs; unknown отдельно от failed.",
         "observed_state": "generated after facts, desired criteria comparisons, persistent changes/temporary residue, evidence refs.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
@@ -11303,16 +11303,16 @@
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -11426,7 +11426,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11436,7 +11436,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11446,7 +11446,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11584,7 +11584,7 @@
           "field_ownership": [
             {
               "field": "baseline",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11594,7 +11594,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11604,7 +11604,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11614,7 +11614,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11783,7 +11783,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11793,7 +11793,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11803,7 +11803,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11943,7 +11943,7 @@
           "field_ownership": [
             {
               "field": "execution_results",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11953,7 +11953,7 @@
             },
             {
               "field": "observed_state",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11963,7 +11963,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11973,7 +11973,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -11983,7 +11983,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12119,7 +12119,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -12129,7 +12129,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -12139,7 +12139,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -12341,7 +12341,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12351,7 +12351,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12361,7 +12361,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12535,7 +12535,7 @@
             },
             {
               "field": "observed_state",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12545,7 +12545,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12555,7 +12555,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12565,7 +12565,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12575,7 +12575,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12785,7 +12785,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12795,7 +12795,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12805,7 +12805,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -12888,7 +12888,7 @@
       "baseline": "Baseline обязателен; без него environment mutation запрещена.",
       "completion": "Desired criteria proved, permanent required changes остаются, temporary effects removed, task-quality findings resolved/waived, exact action/verification evidence complete; Git commit обязателен только для Git deliverables. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.",
       "benefit": "Основное — desired-state criteria achieved; final concise result text supplemental; не считать весь installed software payload созданным агентом.",
-      "extra": "User-executed instruction фиксируется как external action и последующий наблюдаемый state receipt, не как будто command исполнил Harness.",
+      "extra": "User-executed instruction фиксируется как external action и последующий наблюдаемый state receipt, не как будто command исполнил AI poise.",
       "creation_fields": [
         "goal",
         "scope",
@@ -12916,7 +12916,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -12947,26 +12947,26 @@
         "outline": "section IDs, purpose, content_requirement refs, последовательность.",
         "content": "final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB.",
         "examples_commands": "document locator, exact executable method, sandbox/mutation bounds, expected outcome, evidence refs.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "publication_target": "codebase/path или task artifact, формат и правила delivery; явная push/transport policy.",
         "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
         "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "verdict": "по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -13098,7 +13098,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13108,7 +13108,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13118,7 +13118,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13268,7 +13268,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13278,7 +13278,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13288,7 +13288,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13445,7 +13445,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13455,7 +13455,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13465,7 +13465,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13600,7 +13600,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -13610,7 +13610,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -13620,7 +13620,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -13820,7 +13820,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13830,7 +13830,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -13840,7 +13840,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14010,7 +14010,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14020,7 +14020,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14030,7 +14030,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14040,7 +14040,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14245,7 +14245,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14255,7 +14255,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14265,7 +14265,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14374,7 +14374,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -14406,24 +14406,24 @@
         "deliverables": "id, type, owner/path, expected content/schema, acceptance method и requirement refs.",
         "work_plan": "ordered work items и dependencies; outcome каждого; required inputs; scope/риски; без копирования mechanical lifecycle steps.",
         "acceptance_design": "target requirements→DoD→deliverables/obligations/methods, applicability и разрешённые поздние design steps.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "planned_task": "полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication.",
         "risks": "id, condition, impact, mitigation/контроль, owner decision; explicit none допускается.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -14535,7 +14535,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14545,7 +14545,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14555,7 +14555,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14705,7 +14705,7 @@
             },
             {
               "field": "planned_task",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14715,7 +14715,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14725,7 +14725,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14735,7 +14735,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14880,7 +14880,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14890,7 +14890,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -14900,7 +14900,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15052,7 +15052,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15062,7 +15062,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15072,7 +15072,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15230,7 +15230,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15240,7 +15240,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15250,7 +15250,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15408,7 +15408,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15418,7 +15418,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15428,7 +15428,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15599,7 +15599,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15609,7 +15609,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15619,7 +15619,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15784,7 +15784,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15794,7 +15794,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15804,7 +15804,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -15814,7 +15814,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16001,7 +16001,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16011,7 +16011,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16021,7 +16021,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16163,7 +16163,7 @@
           "field_ownership": [
             {
               "field": "result",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -16174,7 +16174,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -16185,7 +16185,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -16196,7 +16196,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -16283,7 +16283,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -16327,16 +16327,16 @@
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -16443,7 +16443,7 @@
             },
             {
               "field": "planned_sprint",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16453,7 +16453,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16463,7 +16463,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16473,7 +16473,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16626,7 +16626,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16636,7 +16636,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16646,7 +16646,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16791,7 +16791,7 @@
             },
             {
               "field": "task_contracts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16801,7 +16801,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16811,7 +16811,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16821,7 +16821,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16971,7 +16971,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16981,7 +16981,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -16991,7 +16991,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17136,7 +17136,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17146,7 +17146,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17156,7 +17156,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17337,7 +17337,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17347,7 +17347,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17357,7 +17357,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17529,7 +17529,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17539,7 +17539,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17549,7 +17549,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17733,7 +17733,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17743,7 +17743,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17753,7 +17753,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17947,7 +17947,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17957,7 +17957,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17967,7 +17967,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -17977,7 +17977,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18175,7 +18175,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18185,7 +18185,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18195,7 +18195,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18344,7 +18344,7 @@
           "field_ownership": [
             {
               "field": "result",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -18355,7 +18355,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -18366,7 +18366,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -18377,7 +18377,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -18466,7 +18466,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -18495,26 +18495,26 @@
         "integration_sources": "список exact source commits и result/task refs, required delivered requirements, preserve/rewrite policy.",
         "baseline": "applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён.",
         "integration_plan": "explicit merge/rebase/cherry-pick strategy, order, private refs, conflicts policy, exact targeted checks и target publication predicate.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен.",
         "conflicts": "generated conflict ID, file/object, base/ours/theirs refs, source obligations; conflict не defect finding.",
-        "conflict_resolutions": "После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set Harness сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее.",
+        "conflict_resolutions": "После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set AI poise сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее.",
         "constraints": "список id, predicate/statement, source, область и способ проверки; explicit empty с причиной.",
-        "artifacts": "Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
+        "artifacts": "Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations.",
         "evidence": "Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс.",
         "verdict": "по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи.",
         "inspection_coverage": "subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict.",
         "findings": "id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict.",
         "inspection_verdict": "accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат.",
-        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
+        "finding_resolutions": "ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts.",
         "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "user_feedback": "instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента.",
         "traceability": "Generated view типизированных relations HR-095; historical provenance не распространяет stale.",
         "handoff": "current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated.",
         "manual_evidence": "Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests.",
         "resolution_bindings": "Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes.",
         "resolution_review_decisions": "Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое.",
-        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
+        "artifact_paths": "Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются."
       },
       "stages": [
         {
@@ -18599,7 +18599,7 @@
             },
             {
               "field": "baseline",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18609,7 +18609,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18619,7 +18619,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18629,7 +18629,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18787,7 +18787,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18797,7 +18797,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18807,7 +18807,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -18941,7 +18941,7 @@
           "field_ownership": [
             {
               "field": "conflicts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -18951,7 +18951,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -18961,7 +18961,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -18971,7 +18971,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -19116,7 +19116,7 @@
           "field_ownership": [
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -19126,7 +19126,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -19136,7 +19136,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "OBSERVE",
               "required": "before_seal",
               "basis": [
@@ -19319,7 +19319,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19329,7 +19329,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19339,7 +19339,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19504,7 +19504,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19514,7 +19514,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19524,7 +19524,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19534,7 +19534,7 @@
             },
             {
               "field": "resolution_bindings",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19723,7 +19723,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19733,7 +19733,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19743,7 +19743,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_seal",
               "basis": [
@@ -19884,7 +19884,7 @@
           "field_ownership": [
             {
               "field": "result",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -19895,7 +19895,7 @@
             },
             {
               "field": "evidence",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -19906,7 +19906,7 @@
             },
             {
               "field": "artifacts",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -19917,7 +19917,7 @@
             },
             {
               "field": "traceability",
-              "producer": "harness",
+              "producer": "poise",
               "phase": "CHECK",
               "required": "before_gate_success",
               "basis": [
@@ -20003,7 +20003,7 @@
         },
         "binding_output": {
           "field": "resolution_bindings",
-          "producer": "harness",
+          "producer": "poise",
           "phase": "CHECK",
           "when": "proposal exists and resulting subject observed"
         },
@@ -20018,6 +20018,6 @@
       }
     }
   ],
-  "schema": "harness-doc-processes/3",
+  "schema": "poise-doc-processes/3",
   "updated_at": "2026-09-06T14:30:44+05:00"
 }

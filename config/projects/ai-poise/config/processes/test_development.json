@@ -226,8 +226,8 @@
         "fixture_plan": "required/not_applicable+reason; при required id,purpose,consumers,input invariants,создание/cleanup,метод validation.",
         "report": "Record the substantive result for this stage.",
         "sensitivity_plan": "case_id, negative-control/known-bad revision/mutation method, exact commands/expected detectable error, clean target restoration; not_applicable только с обоснованием и inspection verdict.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution.",
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
       },
       "transitions": {
         "complete": "test_implementation"
@@ -260,7 +260,7 @@
       ],
       "sections": {
         "report": "Record the substantive result for this stage.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution."
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
       },
       "transitions": {
         "complete": "sensitivity_verification"
@@ -352,7 +352,7 @@
       ],
       "sections": {
         "report": "Record the substantive result for this stage.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution."
+        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
       },
       "transitions": {
         "complete": "remediation_inspection"

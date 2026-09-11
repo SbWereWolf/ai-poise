@@ -14,12 +14,13 @@ import shutil
 import subprocess
 import sys
 from demo import create, save, git, SOURCE
-from harness.runtime import Harness
-from harness.application.work import WorkTools
-from harness.application.catalogue import CatalogueCommands
-from harness.infrastructure.catalogue import FileCatalogue
-from harness.composition import goal_config_tools
-from harness.common import load_config
+from poise.runtime import Poise
+from poise.infrastructure.clock import SystemClock
+from poise.application.work import WorkTools
+from poise.application.catalogue import CatalogueCommands
+from poise.infrastructure.catalogue import FileCatalogue
+from poise.composition import goal_config_tools
+from poise.common import load_config
 
 
 EMPTY={'sections':[],'routes':[],'requirements':[]}
@@ -173,7 +174,7 @@ def run(directory,goal,scenario,feedback_edge=None):
                 {'kind':'sections','values':{'plan':'Review CHILD-A first; CHILD-B then uses the accepted review context.'}},
                 {'kind':'upsert_tasks','tasks':children},
                 {'kind':'dependencies','items':[{'predecessor':'CHILD-A','successor':'CHILD-B','kind':'completion'}]}]}
-    h=Harness(home/'project.json','CATALOGUE-AGENT');tool=WorkTools(h);calls=[]
+    h=Poise(home/'project.json','CATALOGUE-AGENT',SystemClock());tool=WorkTools(h);calls=[]
     def invoke(op,args):
         out=tool.invoke({'operation':op,'input':args,'messages':[]})
         calls.append({'operation':op,'status':out['status'],'stage':out.get('stage')})
@@ -204,7 +205,7 @@ def run(directory,goal,scenario,feedback_edge=None):
         sid=ctx['stage'];stage=next(s for s in process['stages'] if s['id']==sid);kind=stage['handler']
         counts[sid]=counts.get(sid,0)+1;wt=Path(ctx['worktree']);before=git(wt,'rev-parse','HEAD^{tree}')
         current=ctx['workflow']['feedback'];pending=current['pending_resolutions'];open_findings=current['open_findings']
-        # Source-code/fixture editing is scenario work, not Harness bookkeeping.
+        # Source-code/fixture editing is scenario work, not Poise bookkeeping.
         if goal in ('development','test_development') and sid in ('test_implementation','test_remediation','remediation'):
             (wt/'tests').mkdir(exist_ok=True)
             (wt/'tests/__init__.py').write_text('')

@@ -5,7 +5,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
 from demo import create,SOURCE
 from work_client import WorkClient
 
@@ -15,14 +15,15 @@ def main():
     home=create(a.directory)
     cfg=json.loads((home/'project.json').read_text())
     task=json.loads((home/'task.json').read_text())
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'HARNESS_CONFIG':str(home/'project.json'),'HARNESS_SESSION':'accounting-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'accounting-demo'}
     client=WorkClient(env,30);seq=0
+    usage_epoch=datetime(2026,9,12,tzinfo=timezone.utc)
     def msg(mid):return {'conversation_id':'demo','message_id':mid,'occurred_at':datetime.now(timezone.utc).isoformat(),'reason':None,'subject':None}
     def usage():
         nonlocal seq
         seq+=1
         return {'usage':[{'source':'test','stream':'demo-stream','event_id':str(seq),'sequence':seq,'mode':'delta',
-            'occurred_at':datetime.now(timezone.utc).isoformat(),'counters':{'input_tokens':1000,'output_tokens':200,'total_tokens':1200,'cached_input_tokens':300,'reasoning_tokens':50}}],
+            'occurred_at':(usage_epoch+timedelta(seconds=seq)).isoformat(),'counters':{'input_tokens':1000,'output_tokens':200,'total_tokens':1200,'cached_input_tokens':300,'reasoning_tokens':50}}],
             'intervals':[],'cause':'initial','finding_targets':[]}
     reports=[]
     for i,sid in enumerate(('tests','test_review','implementation','code_review')):

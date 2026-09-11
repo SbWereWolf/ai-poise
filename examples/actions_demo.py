@@ -63,7 +63,7 @@ def run(directory,scenario):
           'checks':{name:(['CHECK'] if kind=='integration' and name!='publish' else []) for name in names},
           'artifact_requirements':[],'content_contract':{'sections':[],'routes':[],'requirements':[]},
           'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in names}}
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'HARNESS_CONFIG':str(home/'project.json'),'HARNESS_SESSION':'actions-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'actions-demo'}
     client=WorkClient(env,30);ctx=client.bootstrap(task);reports=[]
     clean={'coverage':'Осмотрены изменения и доказательства. Решение задано fixture.','findings':[],'resolution_decisions':[]}
     if kind=='integration':
@@ -73,7 +73,7 @@ def run(directory,scenario):
         assert result['status']=='awaiting_action_continuation'
         assert result['action']['conflicts']==['src/double.py']
         assert git(app,'ls-remote','backup','refs/heads/main').split()[0]==base
-        # Simulates the agent's native source editor, not a Harness-data edit.
+        # Simulates the agent's native source editor, not a Poise-data edit.
         Path(ctx['worktree'],'src/double.py').write_text('def double(n):\n    return n * 2\n')
         value=result['context']['result_template']
         value['stage_work']['resolutions']=[{'path':'src/double.py','reason':'Оба источника требуют удвоения; сохраняется общее поведение.'}]
@@ -103,7 +103,7 @@ def run(directory,scenario):
         assert reviewed['stage_outcome']=='changes_requested';reports.append(reviewed)
         ctx=client.bootstrap(None,decision='continue')
         corrected=client.verify(submission(ctx,{'plan':plan('v2'),'phase':'prepare','resolutions':[],
-          'finding_resolutions':[{'id':'ER1','finding_id':'E1','description':'Применён v2.','evidence':'Фактический probe выполняет Harness.'}]}),[])
+          'finding_resolutions':[{'id':'ER1','finding_id':'E1','description':'Применён v2.','evidence':'Фактический probe выполняет Poise.'}]}),[])
         assert corrected['status']=='verified' and service.read_text()=='v2';reports.append(corrected)
         ctx=client.bootstrap(None,decision='continue')
         follow=client.verify(submission(ctx,{**clean,'resolution_decisions':[{'resolution_id':'ER1','decision':'accepted',

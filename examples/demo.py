@@ -33,7 +33,7 @@ def create(directory: Path):
     subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
     git(app, 'remote', 'add', 'backup', str(remote))
     git(app, 'push', 'backup', 'main')
-    home = directory / 'harness'
+    home = directory / 'poise'
     home.mkdir()
     stages = []
     for sid, ro, paths in [('tests', False, ['tests/**']), ('test_review', True, []), ('implementation', False, ['src/**']), ('code_review', True, [])]:
@@ -58,7 +58,7 @@ def create(directory: Path):
 
 def run_demo(directory: Path) -> dict:
     home = create(directory)
-    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'HARNESS_CONFIG': str(home / 'project.json'), 'HARNESS_SESSION': 'demo-agent'}
+    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'demo-agent'}
     calls = []
     client = WorkClient(env, 30)
     calls = client.calls

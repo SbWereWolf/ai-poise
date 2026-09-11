@@ -163,8 +163,10 @@ class FileProjectConfigUpdate:
             raise HarnessError("State source is missing; empty replacement refused")
         return source, destination, disposition, already_switched
 
-    def _relocate(self, config_path, live_config, candidate_config, move):
-        source, destination, disposition, _ = self._relocation_state(config_path, live_config, move)
+    def _relocate(self, config_path, live_config, candidate_config, move, locks):
+        source, destination, disposition, already_switched = self._relocation_state(
+            config_path, live_config, move
+        )
         staging = destination.parent / f".{destination.name}.project-update"
         if not destination.exists():
             if staging.exists():
@@ -173,6 +175,13 @@ class FileProjectConfigUpdate:
             publish_state_tree(staging, destination)
         if source.exists() and not same_tree(source, destination):
             raise HarnessError("Relocated state verification failed")
+        if not already_switched:
+            destination_lock = descendant(destination, candidate_config["paths"]["lock"])
+            locks.enter_context(exclusive_lock(
+                destination_lock,
+                self.settings.raw["lock_seconds"],
+                self.settings.raw["lock_poll_seconds"],
+            ))
         candidate_config["paths"]["state"] = str(destination)
         switch_project_config(config_path, encoded(candidate_config, self.settings.raw["json_indent"]), self.settings.raw["file_mode"])
         if disposition == "delete_after_publish" and source.exists():
@@ -251,7 +260,7 @@ class FileProjectConfigUpdate:
                 relocation = None
                 if request["state_relocation"] is not None:
                     relocation = self._relocate(
-                        config_path, live_config, candidate_config, request["state_relocation"]
+                        config_path, live_config, candidate_config, request["state_relocation"], locks
                     )
                 elif candidate_config != live_config:
                     atomic_write(config_path, encoded(candidate_config, settings.raw["json_indent"]), settings.raw["file_mode"])

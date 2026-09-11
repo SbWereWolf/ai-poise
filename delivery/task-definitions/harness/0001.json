@@ -82,8 +82,7 @@
             "kind": "method",
             "fields": {},
             "write_stages": [
-              "verification_planning",
-              "test_implementation"
+              "verification_planning"
             ]
           },
           {
@@ -91,8 +90,7 @@
             "kind": "method",
             "fields": {},
             "write_stages": [
-              "verification_planning",
-              "implementation"
+              "verification_planning"
             ]
           }
         ]
@@ -105,6 +103,7 @@
         "route": "task-verification",
         "point": "red_method",
         "stages": [
+          "verification_planning",
           "test_implementation"
         ],
         "phase": "pre",
@@ -116,6 +115,7 @@
         "route": "task-verification",
         "point": "green_method",
         "stages": [
+          "verification_planning",
           "implementation"
         ],
         "phase": "pre",

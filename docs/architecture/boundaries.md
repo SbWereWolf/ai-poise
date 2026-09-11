@@ -91,6 +91,21 @@ RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands мен
 - `LocalProbeExecutor`/`StdioProbe`: реальные read-only наблюдения, не интерпретация пользовательского intent. Наличие inventory не выдаётся за успешный probe.
 - Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет скрыто приёмку Harness этапа.
 
+### session-scoped source resolution
+
+Доменный `BoundSourceRoute` выбирает только владельца source: installation, существующую
+целевую Task или текущую Task. Application `WorkTools.prepare_bound_source` координирует
+подготовку существующей Task через её публичные владельцы, не потребляя сообщение и не
+исполняя пакет. Infrastructure `HookService` проверяет зарегистрированный `Task worktree`,
+Git- и filesystem-границы, после чего запускает отдельный интерпретатор из выбранного source.
+
+`native binding` остаётся владельцем session/message provenance. Выбранный source и его
+проверочные факты не записываются в binding, Task DB или общую конфигурацию; поэтому две
+сессии могут конкурентно использовать разные worktrees без общей мутации. Installation
+interface только переносит результат выбранного дочернего `WorkTools` и не становится вторым
+исполнителем операции. Read-only projections и cancellation используют текущую Task без
+`config_hash` gate; рабочие переходы сохраняют прежнюю проверку конфигурационного контракта.
+
 
 ## Accounting ownership — DDD-08
 

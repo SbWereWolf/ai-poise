@@ -35,6 +35,10 @@ def definition():
 def settings(project,tmp_path):
     root=project['root']
     project['cfg']['batch']['message_source']={'id':'codex-hook-main','mode':'runtime_event'}
+    # Hook transport tests exercise message identity and process routing, not elapsed-time
+    # accounting. Reported mode keeps those process-boundary tests independent of host
+    # wall-clock adjustments while the accounting suite retains tool-cycle coverage.
+    project['cfg']['accounting']['time_mode']='reported'
     write_json(project['config_path'],project['cfg'])
     return write_json(root/'hook-settings.json',{
         'schema':'hook-settings-1','root':'.','project_config':'project.json',

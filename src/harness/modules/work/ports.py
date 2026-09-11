@@ -18,6 +18,7 @@ class WorkResourcesPort(Protocol):
 
 class TaskOverviewPort(Protocol):
     def standalone_summary(self)->list[dict]: ...
+    def record(self,task_id:str)->dict|None: ...
 
 
 class WorkRuntime(Protocol):

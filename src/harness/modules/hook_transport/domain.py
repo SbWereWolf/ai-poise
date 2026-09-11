@@ -9,6 +9,27 @@ from ..foundation.errors import HarnessError
 
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
+INSTALLATION_OPERATIONS={'show','cancel','sprint'}
+
+
+@dataclass(frozen=True)
+class BoundSourceRoute:
+    """Pure decision about which immutable source boundary owns one work packet."""
+    source: str
+    task_id: str | None
+
+    @classmethod
+    def decide(cls,operation,task_input,current_task,target_task):
+        if operation in INSTALLATION_OPERATIONS:
+            return cls('installation',None)
+        if operation=='bootstrap':
+            if target_task is not None:
+                return cls('target_task',target_task['id'])
+            if task_input is not None:
+                return cls('installation',None)
+        if current_task is not None and current_task['status'] not in ('completed','cancelled'):
+            return cls('current_task',current_task['id'])
+        return cls('installation',None)
 
 
 @dataclass(frozen=True)

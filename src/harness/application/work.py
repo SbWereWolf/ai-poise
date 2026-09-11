@@ -1,6 +1,7 @@
 """One declarative entry. Delegates facts/content/files to their owners."""
 from copy import deepcopy
 from ..modules.work.domain import parse_request,read_range
+from ..modules.hook_transport.domain import BoundSourceRoute
 from ..modules.foundation.errors import HarnessError
 from ..modules.work.ports import WorkRuntime
 
@@ -11,6 +12,25 @@ class WorkTools:
         self.interactions=runtime.interactions
         self.resources=runtime.work_resources
         self.task_queries=runtime.task_queries
+
+    def prepare_bound_source(self,request):
+        """Prepare an existing selected Task without consuming its native message."""
+        h=self.runtime
+        task_input=request['input']['task'] if request['operation']=='bootstrap' else None
+        target=None
+        if isinstance(task_input,dict):
+            task_id=task_input.get('id')
+            if isinstance(task_id,str):target=self.task_queries.record(task_id)
+        current=h.current_task()
+        route=BoundSourceRoute.decide(request['operation'],task_input,current,target)
+        if route.source=='target_task':
+            h.bootstrap(**request['input'])
+            current=h.current_task()
+            if current is None or current['id']!=route.task_id:
+                raise HarnessError('Existing Task preparation did not bind the requested Task')
+            return route,current
+        if route.source=='current_task':return route,current
+        return route,None
 
     def invoke(self,packet):
         h=self.runtime

@@ -50,6 +50,30 @@ MCP stdio: initialize → exact negotiated protocol version → initialized → 
 
 Generated launcher связан с неизменяемым definition. Изменённые settings не подхватываются молча существующей binding; нужен явный новый запуск. Не переключать источник сообщений в конфиге уже работающей задачи без отдельного решения: project execution contract защищён предыдущими срезами.
 
+### Разрешение source root для native launcher
+
+`native binding` и источник событий `codex-hook-main` остаются единственными владельцами
+идентичности сессии и пользовательских сообщений. Выбор реализации Harness выполняется
+отдельно для каждого пакета как `session-scoped` решение и не создаёт новую сессию.
+
+Для taskless bootstrap и создания новой Task используется настроенный `installation source`.
+Bootstrap существующей зарегистрированной Task сначала связывает её через публичные API
+владельцев, не вызывая installation `WorkTools`, а затем исполняет исходный пакет из Harness
+source внутри её `Task worktree`. Продолжение уже назначенной Task использует тот же маршрут.
+Параллельные bindings могут выбирать разные worktrees конкурентно: launcher, binding и общая
+конфигурация проекта не переписываются.
+
+Перед дочерним исполнением и повторно внутри него проверяются зарегистрированный worktree,
+ветка, общий Git repository, отсутствие symlink-компонентов, package и entrypoints
+`harness.__main__` и `HookService.work`, а также digest binding. Изменившийся, отсутствующий,
+вышедший за разрешённую границу или незарегистрированный кандидат отклоняется **без fallback**
+на installation source. Дочерний процесс получает только проверенный source через собственный
+`PYTHONPATH`; внутренние факты маршрута удаляются из окружения до вызова `WorkTools`.
+
+Проверка `config_hash` по-прежнему защищает рабочие переходы, но не блокирует read-only
+восстановление и явную отмену. После изменения конфигурации остаются доступны отмена Task и
+операции Sprint `cancel_tasks` и `force_close`.
+
 ## Данные
 Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.
 

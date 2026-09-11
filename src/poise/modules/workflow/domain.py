@@ -1,0 +1,183 @@
+"""Pure explicit route graph. No goal-type names, I/O or implicit next stage."""
+from __future__ import annotations
+from dataclasses import dataclass
+from enum import StrEnum
+from ..foundation.errors import DomainError
+
+
+class HandlerKind(StrEnum):
+    PRODUCE = "produce"
+    INSPECT = "inspect"
+    REVISE = "revise"
+    OBSERVE = "observe"
+    CHECK = "check"
+    APPLY_PLAN = "apply_plan"
+    PUBLISH = "publish"
+
+
+# Protocol vocabulary of the implemented handler families, not process policy.
+OUTCOMES = {
+    HandlerKind.APPLY_PLAN: frozenset({"complete"}),
+    HandlerKind.PUBLISH: frozenset({"complete"}),
+    HandlerKind.PRODUCE: frozenset({"complete"}),
+    HandlerKind.INSPECT: frozenset({"clear", "changes_requested"}),
+    HandlerKind.REVISE: frozenset({"complete"}),
+    HandlerKind.OBSERVE: frozenset({"complete"}),
+    HandlerKind.CHECK: frozenset({"satisfied", "not_satisfied", "inconclusive"}),
+}
+
+
+def exact(value, keys, where):
+    if not isinstance(value, dict) or set(value) != set(keys):
+        raise DomainError(f"{where}: требуется точный набор полей {sorted(keys)}")
+
+
+def text(value, where):
+    if not isinstance(value, str) or not value.strip():
+        raise DomainError(f"{where}: требуется непустая строка")
+    return value
+
+
+@dataclass(frozen=True)
+class RouteNode:
+    stage_id: str
+    handler: HandlerKind
+    transitions: tuple[tuple[str, str | None], ...]
+    rework_targets: tuple[str, ...]
+    read_only: bool
+
+    def target(self, outcome: str) -> str | None:
+        choices = dict(self.transitions)
+        if outcome not in choices:
+            raise DomainError(f"Этап {self.stage_id} не принимает outcome {outcome}")
+        return choices[outcome]
+
+
+@dataclass(frozen=True)
+class RouteDefinition:
+    entry: str
+    nodes: tuple[RouteNode, ...]
+    max_transitions: int
+    max_stage_visits: int
+
+    def __post_init__(self):
+        if not self.nodes or len({n.stage_id for n in self.nodes}) != len(self.nodes):
+            raise DomainError("Маршрут требует уникальные непустые узлы")
+        names = {n.stage_id for n in self.nodes}
+        if self.entry not in names:
+            raise DomainError("Неизвестная входная точка маршрута")
+        for number in (self.max_transitions, self.max_stage_visits):
+            if type(number) is not int or number <= 0:
+                raise DomainError("Лимиты переходов и посещений должны быть положительными целыми")
+        for target in (n for n in self.nodes if n.handler == HandlerKind.PUBLISH):
+            if target.stage_id == self.entry or not target.read_only:
+                raise DomainError("publish requires a read-only stage after inspection")
+            predecessors = [(n, outcome) for n in self.nodes for outcome, dest in n.transitions if dest == target.stage_id]
+            if not predecessors or any(n.handler != HandlerKind.INSPECT or outcome != "clear" for n, outcome in predecessors):
+                raise DomainError("publish can follow only a clear, user-accepted inspection")
+            if any(target.stage_id in n.rework_targets for n in self.nodes):
+                raise DomainError("Rework must not bypass the inspection before publish")
+        for node in self.nodes:
+            text(node.stage_id, "stage id")
+            if set(dict(node.transitions)) != OUTCOMES[node.handler]:
+                raise DomainError(f"{node.stage_id}: неверный набор outcomes обработчика")
+            if len(dict(node.transitions)) != len(node.transitions):
+                raise DomainError("Повтор outcome")
+            if type(node.read_only) is not bool:
+                raise DomainError("read_only должен быть явным bool")
+            if node.handler == HandlerKind.INSPECT and not node.read_only:
+                raise DomainError("inspect обязан оставлять предмет read-only")
+            if len(set(node.rework_targets)) != len(node.rework_targets):
+                raise DomainError("Повтор цели rework")
+            if any(t not in names for t in node.rework_targets):
+                raise DomainError("Неизвестная цель пользовательского rework")
+            for _, target in node.transitions:
+                if target is not None and target not in names:
+                    raise DomainError(f"Неизвестный следующий этап {target}")
+            if node.handler == HandlerKind.INSPECT and node.target("changes_requested") is None:
+                raise DomainError("Внутренний inspect с находками должен иметь явный маршрут исправления")
+            if node.handler == HandlerKind.REVISE:
+                target = node.target("complete")
+                if target is None or self.node(target).handler != HandlerKind.INSPECT:
+                    raise DomainError("После revise требуется явный inspect исправления")
+        # Bounded traversal: each vertex is processed once. No invented DSL.
+        reached, pending = set(), [self.entry]
+        while pending:
+            current = pending.pop()
+            if current in reached:
+                continue
+            reached.add(current)
+            pending.extend(t for _, t in self.node(current).transitions if t is not None)
+        if reached != names:
+            raise DomainError(f"Недостижимые этапы: {sorted(names - reached)}")
+        terminal = {n.stage_id for n in self.nodes if any(t is None for _, t in n.transitions)}
+        can_finish = set(terminal)
+        for _ in self.nodes:
+            can_finish.update(n.stage_id for n in self.nodes if any(t in can_finish for _, t in n.transitions))
+        if can_finish != names:
+            raise DomainError("Из каждого этапа должен существовать путь завершения")
+
+    @classmethod
+    def from_process(cls, process: dict) -> RouteDefinition:
+        try:
+            cfg = process["route"]
+            exact(cfg, {"entry", "max_transitions", "max_stage_visits"}, "route")
+            nodes = []
+            for stage in process["stages"]:
+                kind = HandlerKind(stage["handler"])
+                transitions = stage["transitions"]
+                if not isinstance(transitions, dict) or any(t is not None and not isinstance(t, str) for t in transitions.values()):
+                    raise DomainError("transitions: требуется outcome → stage ID/null")
+                if not isinstance(stage["rework_targets"], list) or any(not isinstance(t, str) for t in stage["rework_targets"]):
+                    raise DomainError("rework_targets: требуется явный список ID")
+                if kind == HandlerKind.INSPECT and stage["allowed_paths"]:
+                    raise DomainError("inspect не разрешает изменения target paths")
+                nodes.append(RouteNode(stage["id"], kind, tuple(transitions.items()),
+                                       tuple(stage["rework_targets"]), stage["read_only"]))
+            return cls(cfg["entry"], tuple(nodes), cfg["max_transitions"], cfg["max_stage_visits"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DomainError(f"Неполный/неверный маршрут: {exc}") from exc
+
+    def node(self, stage_id: str) -> RouteNode:
+        for node in self.nodes:
+            if node.stage_id == stage_id:
+                return node
+        raise DomainError(f"Этап не объявлен: {stage_id}")
+
+    def index(self, stage_id: str) -> int:
+        return tuple(n.stage_id for n in self.nodes).index(self.node(stage_id).stage_id)
+
+    def enter(self, progress: RouteProgress, target: str) -> RouteProgress:
+        self.node(target)
+        visits = dict(progress.visits)
+        if progress.transitions >= self.max_transitions:
+            raise DomainError("Лимит route.max_transitions достигнут; требуется решение пользователя")
+        if visits[target] >= self.max_stage_visits:
+            raise DomainError(f"Лимит route.max_stage_visits достигнут для {target}; требуется решение пользователя")
+        visits[target] += 1
+        return RouteProgress(tuple(visits.items()), progress.transitions + 1, None, None)
+
+
+@dataclass(frozen=True)
+class RouteProgress:
+    visits: tuple[tuple[str, int], ...]
+    transitions: int
+    outcome: str | None
+    stage_work: str | None
+
+    @classmethod
+    def initial(cls, route: RouteDefinition):
+        return cls(tuple((n.stage_id, 1 if n.stage_id == route.entry else 0) for n in route.nodes), 0, None, None)
+
+    def to_dict(self):
+        return {"visits":dict(self.visits), "transitions":self.transitions,
+                "outcome":self.outcome, "stage_work":self.stage_work}
+
+    @classmethod
+    def from_dict(cls, value):
+        exact(value, {"visits", "transitions", "outcome", "stage_work"}, "route progress")
+        if not isinstance(value["visits"], dict) or any(type(v) is not int or v < 0 for v in value["visits"].values()):
+            raise DomainError("Неверные счётчики посещений")
+        if type(value["transitions"]) is not int or value["transitions"] < 0:
+            raise DomainError("Неверный счётчик переходов")
+        return cls(tuple(value["visits"].items()),value["transitions"],value["outcome"],value["stage_work"])

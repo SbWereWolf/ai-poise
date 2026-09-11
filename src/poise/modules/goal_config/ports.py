@@ -1,0 +1,17 @@
+"""Editor ports; filesystem and SQLite are infrastructure choices."""
+from typing import Protocol, ContextManager
+
+
+class ConfigEdit(Protocol):
+    def replay(self, request_id: str, request_digest: str) -> dict | None: ...
+    def current(self) -> dict | None: ...
+    def publish(self, request: dict, request_digest: str, source_revision: str | None,
+                candidate: dict, template: dict | None) -> dict: ...
+
+
+class GoalConfigRepository(Protocol):
+    def edit(self, goal_type: str) -> ContextManager[ConfigEdit]: ...
+
+
+class ProcessTemplates(Protocol):
+    def resolve(self, selection: dict) -> dict: ...

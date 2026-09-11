@@ -1,0 +1,6 @@
+from typing import Protocol
+
+
+class TransferPort(Protocol):
+    def export(self, request: dict) -> dict: ...
+    def restore(self, request: dict) -> dict: ...

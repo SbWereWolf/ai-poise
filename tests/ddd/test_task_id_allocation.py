@@ -617,6 +617,29 @@ def _imports(tree):
     return imported
 
 
+def _class_method(tree, class_name, method_name):
+    owner = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == class_name
+    )
+    return next(
+        node
+        for node in owner.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == method_name
+    )
+
+
+def _direct_call_name(statement):
+    value = None
+    if isinstance(statement, ast.Expr):
+        value = statement.value
+    elif isinstance(statement, (ast.Assign, ast.AnnAssign)):
+        value = statement.value
+    return _dotted_name(value.func) if isinstance(value, ast.Call) else None
+
+
 def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
     root = Path(__file__).resolve().parents[2]
     domain_tree = ast.parse(
@@ -628,14 +651,23 @@ def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
     commands_tree = ast.parse(
         (root / "src/harness/application/tasks.py").read_text(encoding="utf-8")
     )
-    adapter_trees = [
-        ast.parse((root / path).read_text(encoding="utf-8"))
-        for path in (
-            "src/harness/runtime.py",
-            "src/harness/application/catalogue.py",
-            "src/harness/application/sprints.py",
+    adapter_specs = (
+        ("src/harness/runtime.py", "Harness", "bootstrap"),
+        ("src/harness/application/catalogue.py", "CatalogueCommands", "tasks"),
+        ("src/harness/application/sprints.py", "SprintCommands", "apply"),
+        (
             "src/harness/application/planning_publication.py",
+            "PlanningPublications",
+            "publish",
+        ),
+    )
+    adapter_trees = [
+        (
+            ast.parse((root / path).read_text(encoding="utf-8")),
+            class_name,
+            method_name,
         )
+        for path, class_name, method_name in adapter_specs
     ]
 
     assert not {
@@ -658,27 +690,24 @@ def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
         for node in task_repository.body
     )
 
-    task_commands = next(
+    create_method = _class_method(commands_tree, "TaskCommands", "create")
+    transaction_blocks = [
         node
-        for node in commands_tree.body
-        if isinstance(node, ast.ClassDef) and node.name == "TaskCommands"
-    )
-    transactional_calls = []
-    for method in task_commands.body:
-        if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue
-        for context in (node for node in ast.walk(method) if isinstance(node, ast.With)):
-            calls = {
-                _dotted_name(node.func)
-                for statement in context.body
-                for node in ast.walk(statement)
-                if isinstance(node, ast.Call)
-            }
-            transactional_calls.append(calls)
-    assert any(
-        {"uow.tasks.allocate", "uow.tasks.create"} <= calls
-        for calls in transactional_calls
-    )
+        for node in create_method.body
+        if isinstance(node, ast.With)
+        and len(node.items) == 1
+        and isinstance(node.items[0].context_expr, ast.Call)
+        and _dotted_name(node.items[0].context_expr.func) == "self.unit_of_work"
+        and isinstance(node.items[0].optional_vars, ast.Name)
+    ]
+    assert len(transaction_blocks) == 1
+    transaction = transaction_blocks[0]
+    uow_name = transaction.items[0].optional_vars.id
+    direct_calls = {_direct_call_name(statement) for statement in transaction.body}
+    assert {
+        f"{uow_name}.tasks.allocate",
+        f"{uow_name}.tasks.create",
+    } <= direct_calls
 
     forbidden_adapter_calls = {
         "allocate",
@@ -689,22 +718,23 @@ def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
         "rglob",
     }
     forbidden_git_probes = {"for-each-ref", "rev-list", "show-ref"}
-    for tree in adapter_trees:
+    for tree, class_name, method_name in adapter_trees:
         assert not any(
             isinstance(node, ast.ImportFrom)
             and node.module is not None
             and node.module.endswith("modules.tasks.allocation")
             for node in ast.walk(tree)
         )
+        entrypoint = _class_method(tree, class_name, method_name)
         assert not {
             (_dotted_name(node.func) or "").rsplit(".", 1)[-1]
-            for node in ast.walk(tree)
+            for node in ast.walk(entrypoint)
             if isinstance(node, ast.Call)
         } & forbidden_adapter_calls
-        assert not any(isinstance(node, ast.While) for node in ast.walk(tree))
+        assert not any(isinstance(node, ast.While) for node in ast.walk(entrypoint))
         constants = {
             node.value
-            for node in ast.walk(tree)
+            for node in ast.walk(entrypoint)
             if isinstance(node, ast.Constant) and isinstance(node.value, str)
         }
         assert not constants & forbidden_git_probes

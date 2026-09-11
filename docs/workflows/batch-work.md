@@ -18,6 +18,8 @@
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
+`cancel` в этом API отменяет текущую standalone Task, сохраняет её историю, результаты и worktree, освобождает claim и записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
+
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
 
 ## Автоматическое создание Task
@@ -249,7 +251,7 @@ Query не поддерживает pagination и не обещает один c
 
 
 ## Sprint в DDD-05
-Обновлено: **2026-09-11T16:25:00+05:00**. `operation: sprint` принимает actions `draft`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `waive_dependencies` и `force_close`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+Обновлено: **2026-09-11T16:25:00+05:00**. `operation: sprint` принимает actions `draft`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
 
 `replace_task` требует `sprint_id`, `request_id`, `expected_revision`, `source_task`, полный `replacement`, `reason` и `authorization`. Успешный receipt содержит новую revision, `replacements` с old/new relation и safety facts, а также актуальные `tasks`, `eligible` и `blocked`. Идентичный replay возвращает тот же receipt без повторного preflight/мутации; конфликтующий intent с тем же `request_id` отклоняется.
 

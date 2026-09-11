@@ -1,9 +1,10 @@
+from copy import deepcopy
 from pathlib import Path
 import subprocess
 
 import pytest
 
-from conftest import git
+from conftest import git, write_json
 from poise.application.work import WorkTools
 from poise.infrastructure.result_integration import RuntimeResultIntegration
 from poise.modules.foundation.errors import PoiseError
@@ -83,6 +84,26 @@ def test_completed_result_is_integrated_and_source_worktree_and_branch_are_remov
     replay = tools.invoke(request("integrate", integration_input(project, source)))
     assert replay["status"] == "integrated" and replay["replayed"] is True
     assert replay["target_after"] == result["target_after"]
+
+
+def test_completed_result_integration_uses_live_config_without_digest_gate(project):
+    _, source_worktree, source = prepare_completed_task(
+        project, lambda tree: (tree / "src" / "feature.py").write_text("VALUE = 1\n")
+    )
+    original = Poise(project["config_path"], "worker")
+    stored_hash = original.task_queries.record("T1")["config_hash"]
+    config = deepcopy(project["cfg"])
+    config["automatic_checks"] = []
+    config["git"]["push_required"] = False
+    config["limits"]["preview_chars"] += 1
+    write_json(project["config_path"], config)
+    current = WorkTools(Poise(project["config_path"], "worker"))
+
+    assert current.runtime.config_hash != stored_hash
+    result = current.invoke(request("integrate", integration_input(project, source)))
+
+    assert result["status"] == "integrated"
+    assert not source_worktree.exists()
 
 
 def test_conflict_is_persisted_and_same_operation_continues_after_resolution(project):

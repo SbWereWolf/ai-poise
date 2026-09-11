@@ -143,8 +143,6 @@ class Poise:
         task = self.store.current(self.session)
         if task is None:
             raise PoiseError('Нет текущей задачи; сначала bootstrap с явной задачей')
-        if task['config_hash'] != self.config_hash:
-            raise PoiseError('Конфигурация изменена во время задачи; этот срез не меняет её контракт автоматически')
         return task
 
     def _stage(self, task: dict) -> dict:
@@ -301,8 +299,6 @@ class Poise:
                 data = existing
                 if data['claimed_by'] not in (None, self.session):
                     raise PoiseError('Задача уже связана с другой сессией')
-                if data['config_hash'] != self.config_hash:
-                    raise PoiseError('Задача имеет другой контракт конфигурации')
                 if data['claimed_by'] is None and data['status'] not in ('completed','cancelled','superseded'):
                     self.handoff_tools.resume(data)
                     data=self.task_queries.record(data['id'])
@@ -320,8 +316,6 @@ class Poise:
                     self.cfg.get('task_ids'))
                 allocation_receipt=allocation.receipt()
                 data=self.task_queries.record(allocation.task_id)
-                if data['config_hash']!=self.config_hash:
-                    raise PoiseError('Задача имеет другой контракт конфигурации')
                 if allocation.replayed and data['claimed_by'] not in (None,self.session):
                     return {**self._context(data,data['status']=='active'),
                             'allocation':allocation_receipt}

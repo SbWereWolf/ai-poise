@@ -153,10 +153,10 @@ def test_two_sessions_different_tasks_same_database(sprint):
     assert bootstrap(w,'S')['active_task']=='A'
 
 
-def test_forced_close_skips_unfinished_gates_and_preserves_files(sprint):
+def test_sprint_cancel_skips_unfinished_gates_and_preserves_files(sprint):
     p,h,w=sprint;r=draft(w,[task(p)]);publish(w,r['revision']);ctx=bootstrap(w,'A')
     path=Path(ctx['worktree'])/'src/double.py';path.write_text('unfinished user work\n')
-    o=w.invoke(request('sprint',{'action':'force_close','sprint_id':None,'request_id':'close-S','reason':'Пользователь прекращает спринт'}))
+    o=w.invoke(request('sprint',{'action':'cancel','sprint_id':None,'request_id':'close-S','reason':'Пользователь прекращает спринт'}))
     assert o['status']=='cancelled' and path.read_text()=='unfinished user work\n'
     assert h.task_queries.record('A')['status']=='cancelled'
 
@@ -243,9 +243,9 @@ def test_published_task_uses_process_snapshot_after_file_edit(sprint):
     assert bootstrap(new,'A')['instruction']!=changed['stages'][0]['instruction']
 
 
-def test_force_close_draft_without_publishing_incomplete_tasks(sprint):
+def test_cancel_draft_without_publishing_incomplete_tasks(sprint):
     p,h,w=sprint;r=draft(w,[{'id':'A','sprint_id':'S'}]);assert r['errors']
-    o=w.invoke(request('sprint',{'action':'force_close','sprint_id':None,'request_id':'close-draft','reason':'Пользователь отменил планирование'}))
+    o=w.invoke(request('sprint',{'action':'cancel','sprint_id':None,'request_id':'close-draft','reason':'Пользователь отменил планирование'}))
     assert o['status']=='cancelled' and h.task_queries.summary()==[]
 
 

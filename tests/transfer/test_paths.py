@@ -101,6 +101,25 @@ def test_repeated_export_returns_same_package(project):
     assert second['package_path']==first['package_path']
 
 
+def test_export_ignores_task_config_digest(project):
+    from conftest import write_json
+
+    h,source,context,payload=prepared(project)
+    source.invoke(request('handoff',handoff_args(payload)))
+    saved_worktree=context['worktree']
+    saved_contract=deepcopy(h.task_queries.record('T1')['contract'])
+
+    project['cfg']['limits']['output_chars']+=1
+    write_json(project['config_path'],project['cfg'])
+    current=WorkTools(Poise(project['config_path'],'source'))
+    package=export(current,ids=['T1'],request_id='export-after-config-change')
+
+    assert package['status']=='exported'
+    assert Path(package['package_path']).is_file()
+    assert current.runtime.task_queries.record('T1')['contract']==saved_contract
+    assert current.runtime.task_queries.record('T1')['worktree']==saved_worktree
+
+
 def test_package_contains_only_selected_owners_and_no_active_sessions(project):
     h,a,c,payload=prepared(project);export(a,handoff=handoff_args(payload))
     other=deepcopy(project['task']);other['id']='PRIVATE'

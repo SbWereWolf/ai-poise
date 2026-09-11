@@ -2,6 +2,7 @@
 import json
 from datetime import datetime, timezone
 from ...modules.foundation.errors import PoiseError, VersionConflict
+from ...modules.tasks.allocation import creation_alias
 from .tasks import encode
 
 
@@ -71,10 +72,7 @@ class SqliteSprintRepository:
     def facts(self,sprint_id):
         record=self.get(sprint_id)
         if record is None:return {}
-        current={
-            t['request_id'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t['id']
-            for t in record['aggregate']['plan']['tasks']
-        }
+        current={creation_alias(t) for t in record['aggregate']['plan']['tasks']}
         rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
             "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available "
             'FROM sprint_members m JOIN tasks t ON t.id=m.task_id '

@@ -141,3 +141,28 @@ def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     w.invoke(request('cancel',{'reason':'User stops'},[message('turn-b','cancel')]))
     total=metrics(w)['totals']['active_seconds']
     assert 60<=total-base<61
+
+
+def test_tool_cycle_clamps_host_clock_rollback_without_aborting_work(project):
+    h,w,c=setup(project)
+    h.accounting.close_cycle()
+    observed='2030-01-01T10:00:00+00:00'
+    h.accounting.port.clock=lambda:observed
+    send(w)
+
+    resumed=Poise(project['config_path'],'A')
+    resumed.accounting.port.clock=lambda:'2030-01-01T09:00:00+00:00'
+    resumed_work=WorkTools(resumed)
+    send(resumed_work)
+    resumed_work.invoke(request('cancel',{'reason':'Fixture complete'}))
+
+    with resumed.store.transaction() as db:
+        row=db.execute(
+            "SELECT started_at,ended_at,data FROM accounting_cycles "
+            "WHERE session_id='A' ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+    data=json.loads(row['data'])
+    assert row['started_at']==observed
+    assert row['ended_at']==observed
+    assert data['last_observed_at']==observed
+    assert data['seconds']==0

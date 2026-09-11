@@ -108,7 +108,6 @@ class SprintWork:
             raise PoiseError('Сначала завершить/передать текущую задачу')
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise PoiseError('Task is not eligible: '+str(state['blocked']))
-        if record['config_hash']!=h.config_hash:raise PoiseError('Published task belongs to another execution configuration')
         base=h._creation_base(None if state is None else state['start_revisions'][task_id])
         execution=h._execution_reservation(task_id,base)
         h.task_commands.start(task_id,h.session,execution)

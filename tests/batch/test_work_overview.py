@@ -142,7 +142,7 @@ def test_work_overview_filters_lists_independently_with_null_and_empty(project):
     published_sprint(project, "planned-sprint", ["planned-member"])
     cancelled_sprint = published_sprint(project, "cancelled-sprint", ["cancelled-member"])
     cancelled_sprint.invoke(request("sprint", {
-        "action": "force_close",
+        "action": "cancel",
         "sprint_id": None,
         "request_id": "cancel-cancelled-sprint",
         "reason": "Cancelled by the test scenario",

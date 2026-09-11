@@ -9,6 +9,8 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
 
 Прежние слои планирования хранятся в SQLite. Публикация не переписывает уже существующий task ID. Published process snapshots не заменяются от редактирования файлов процесса. В этом срезе полный опубликованный план не переписывается; изменять зависимости можно только для ещё не начатых successors.
 
+Изменение валидной project configuration не инвалидирует и не перезапускает уже созданные задачи. Каждая операция использует текущую конфигурацию проекта вместе с неизменными Task-owned process/contract/method snapshots. Сохранённый `config_hash` остаётся диагностическим provenance и не является lifecycle gate. Параллельные задачи изолируются отдельными worktree, Task ownership, optimistic revisions и короткими resource-scoped locks; общий конфиг на iteration не замораживается.
+
 ## Конфигурация
 `project.schema = ddd-actions-8`; обязательное поле `sprint` описывает:
 - `max_tasks`, `max_dependencies`: явные пределы;
@@ -119,14 +121,18 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
 | `dependencies` | request_id, expected_revision, items, reason |
 | `replace_task` | request_id, expected_revision, source_task, полный replacement, reason, authorization |
 | `cancel_tasks` | request_id, tasks (список ID), mode (`single`/`cascade`), reason |
+| `cancel` | request_id, reason |
 | `waive_dependencies` | request_id, decisions (predecessor, successor, reason) |
-| `force_close` | request_id, reason |
 
 Изменение prerequisites уже начатого successor отклоняется. Cancel одного узла не закрывает siblings/root; cascade вычисляется по его потомкам. У cancelled predecessor незавершённый successor остаётся blocked до пользовательского waiver либо отмены ветки. Waiver и исходное ребро остаются в business data, исправление не имитируется.
 
-`cancel_tasks` завершает **незавершённых** выбранных участников; уже completed/cancelled не переписываются. `force_close` также сохраняет принятые результаты, отменяет незавершённых и обходит обычные content/evidence gates. Неполный draft можно force-close без создания Task. Worktree-файлы не удаляются и не выдаются за проверенный WIP commit.
+`cancel_tasks` отменяет **незавершённых** выбранных участников через Task domain; уже completed/cancelled не переписываются. `cancel` отменяет Sprint целиком: у published Sprint отменяет всех незавершённых участников, сохраняет completed/cancelled, результаты, историю, артефакты и worktree; у draft меняет состояние Sprint без создания Task. Worktree-файлы не удаляются и не выдаются за проверенный WIP commit.
 
-Владение всё ещё проверяется Task: срез не крадёт чужую активную session и не отменяет во время pending внешней операции. Восстановление брошенного ownership относится к DDD-07. Семантическую санкцию пользователя интерпретирует агент; непустая reason сохраняет это решение, но не является криптографическим удостоверением.
+```json
+{"operation":"sprint","input":{"action":"cancel","sprint_id":"S-1","request_id":"cancel-sprint-1","reason":"Пользователь отменил Sprint"},"messages":[]}
+```
+
+Отмена standalone Task выполняется её владельцем через `operation: cancel`. Явная Sprint-команда является полномочием Sprint над собственными участниками и может отменить активную Task, освободив claim, но не может затронуть задачу другого Sprint. Перед пакетной отменой все выбранные участники проверяются на pending внешние операции; найденный pending отклоняет весь пакет без частичного эффекта. Семантическую санкцию пользователя интерпретирует агент; непустая reason сохраняет это решение, но не является криптографическим удостоверением.
 
 ## Заменить ошибочную незавершённую Task
 
@@ -202,7 +208,7 @@ Sprint progress — согласованная проекция из membership 
 
 ### Реестр опубликованных Sprint
 
-Публичный `show` query `kind: work_overview` перечисляет только опубликованные Sprint. Живой draft исключён. Отменённый Sprint остаётся в реестре, если наличие `sprint_members` подтверждает его предшествующую публикацию; draft, закрытый через `force_close` до публикации, участников не создаёт и в реестр не попадает. Порядок стабилен по `sprint` ID.
+Публичный `show` query `kind: work_overview` перечисляет только опубликованные Sprint. Живой draft исключён. Отменённый Sprint остаётся в реестре, если наличие `sprint_members` подтверждает его предшествующую публикацию; draft, отменённый через `cancel` до публикации, участников не создаёт и в реестр не попадает. Порядок стабилен по `sprint` ID.
 
 Каждый элемент — обычная owner-проекция `SprintWork.overview`, а не сокращённая реконструкция из строк БД. Поэтому сохраняются `goal`, `tasks`, `counts`, `eligible`, `active`, `blocked` с причинами зависимостей, `resumable`, `start_revisions`, `active_task` и остальные поля текущего Sprint overview. `active_task` заполняется только когда незавершённая текущая Task вызывающей session принадлежит именно этому Sprint; standalone Task или участник другого Sprint не переносится в чужой DTO.
 

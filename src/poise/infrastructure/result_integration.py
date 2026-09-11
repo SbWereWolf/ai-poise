@@ -85,8 +85,6 @@ class RuntimeResultIntegration:
     def _validate_new(self, record, intent, target, source):
         if record["status"] != "completed":
             raise PoiseError("Only a completed accepted task result can be integrated")
-        if record["config_hash"] != self.h.config_hash:
-            raise PoiseError("Task result belongs to another execution configuration")
         report = record["last_report"]
         if not isinstance(report, dict) or report.get("commit") != intent.expected_source_commit:
             raise PoiseError("Expected source commit does not match the completed task result")

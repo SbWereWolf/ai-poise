@@ -104,7 +104,7 @@ Project config задаёт требуемые semantic capabilities (поиск
 
 ### HR-022. Независимые goal types и snapshots
 
-13 goal types имеют полностью независимые templates/stages/validators/benefit/report/actions. Запрещена ссылка одного процесса на workflow fragment другого; общие engines/types kernel разрешены. Task хранит полный immutable process snapshot и rendered templates при создании. Stage iteration отдельно фиксирует project/execution/tool/hook snapshot. Изменения project config не меняют активную iteration, следующая получает новый snapshot. Новый release, не поддерживающий точную schema snapshot, отклоняет его, не читает предыдущей parser version. Schema-compatible старый экземпляр конфига — данные контракта задачи, не backward implementation. Migration или её разработка запрещена без прямого разрешения пользователя.
+13 goal types имеют полностью независимые templates/stages/validators/benefit/report/actions. Запрещена ссылка одного процесса на workflow fragment другого; общие engines/types kernel разрешены. Task хранит полный immutable process snapshot и rendered templates при создании. Project/execution/tool/hook configuration не замораживается на stage iteration: каждая операция использует текущую валидную конфигурацию, не заменяя Task-owned process/content/method contracts. Новый release, не поддерживающий точную schema сохранённого Task contract, отклоняет его, не читает предыдущей parser version. Schema-compatible сохранённый контракт задачи — domain data, не backward implementation. Migration или её разработка запрещена без прямого разрешения пользователя.
 
 <a id="HR-023"></a>
 
@@ -186,6 +186,8 @@ Canonical task/sprint structured state, весь текст секций/сло�
 
 ### HR-042. Artifacts и публикация
 
+Валидная текущая project configuration является live operational input, а не lifecycle identity задачи. Изменение общего конфига не инвалидирует, не перезапускает и не пересоздаёт существующие Task. Их process/content/method contracts остаются неизменными, а сохранённый `config_hash` используется только как диагностический provenance и не блокирует операции. Одновременную работу обеспечивают отдельные worktree, Task ownership, optimistic revisions и короткие resource-scoped locks; общий конфиг на iteration не замораживается.
+
 Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно AI poise codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.
 
 <a id="HR-043"></a>
@@ -204,7 +206,7 @@ Task хранит все semantic layers, proposals, evidence и решения.
 
 ### HR-045. Cancel dependencies и sprint closure
 
-Cancel predecessor удаляет его из работы, но не удовлетворяет edge; successors blocked до решения keep+waive/remove prerequisite либо cascade по вычисленным transitive dependents. Cancelling child не расширяет scope до root/siblings. Sprint states planned/active/blocked/completed/cancelled — производные tasks плюс closure receipt. Normal completion запускает configured structural/artifact/decision gates, не full application suite; сбой closure даёт closing operation needs_resolution без ложного completed. User force-close пропускает обычную приёмку tasks/sprint, сохраняет completed/unfinished/WIP и user outcome, отзывает bindings безопасно. Backup failure не разрешает ложно заявить delivery и не заставляет продолжать отменённую разработку; отдельно хранится cancelled result и недовыполненная durability obligation.
+Cancel predecessor удаляет его из работы, но не удовлетворяет edge; successors blocked до решения keep+waive/remove prerequisite либо cascade по вычисленным transitive dependents. Cancelling child не расширяет scope до root/siblings. Sprint states planned/active/blocked/completed/cancelled — производные tasks плюс closure receipt. Normal completion запускает configured structural/artifact/decision gates, не full application suite; сбой closure даёт closing operation needs_resolution без ложного completed. Явная отмена Sprint является отдельным публичным действием: draft отменяется без публикации Task, published Sprint одной транзакцией отменяет всех незавершённых участников через Task domain, освобождает их claims и сохраняет completed/cancelled, результаты, историю, артефакты и worktree. Pending внешняя операция блокирует весь пакет до разрешения исхода. Backup failure не разрешает ложно заявить delivery и не заставляет продолжать отменённую разработку; отдельно хранится cancelled result и недовыполненная durability obligation.
 
 <a id="HR-046"></a>
 

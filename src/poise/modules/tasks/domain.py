@@ -421,6 +421,14 @@ class Task:
             return self._unchanged()
         return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)
 
+    def cancel_from_sprint(self, reason: str) -> Change:
+        """Apply explicit Sprint authority without impersonating the Task claimant."""
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Нужна инструкция пользователя об отмене")
+        if self.state.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+            return self._unchanged()
+        return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)
+
     def supersede(self, actor: str, reason: str) -> Change:
         self._owned(actor)
         if not isinstance(reason, str) or not reason.strip():

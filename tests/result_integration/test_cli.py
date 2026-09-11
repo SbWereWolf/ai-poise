@@ -36,6 +36,8 @@ def test_work_cli_exposes_one_result_integration_operation(project):
 
     assert result.returncode == 0, result.stdout + result.stderr
     response = json.loads(result.stdout)
+    if "response_path" in response:
+        response = json.loads(Path(response["response_path"]).read_text())
     assert response["status"] == "integrated"
     assert response["task"] == "T1"
     assert response["source_commit"] == source

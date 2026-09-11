@@ -404,6 +404,45 @@ def test_failed_candidate_guard_persists_receipt_and_prevents_publication_and_cl
     assert saved["publication"] is result["publication"] is None
 
 
+def test_merge_failure_is_persisted_and_same_intent_retries_owned_candidate(
+    project, monkeypatch
+):
+    tools, source_worktree, source = prepare_completed_task(project, _source_change)
+    payload = integration_input(project, source)
+    target_before = payload["expected_target_commit"]
+    original_run = RuntimeResultIntegration._run
+    failed = False
+
+    def fail_first_owned_merge(self, cwd, *args, env=None):
+        nonlocal failed
+        if args[0] == "merge" and "integration" in str(cwd) and not failed:
+            failed = True
+            return {
+                "argv": ["git", "-C", str(cwd), *args],
+                "actual_exit_code": 128,
+                "stdout": "",
+                "stderr": "injected owned merge failure",
+            }
+        return original_run(self, cwd, *args, env=env)
+
+    monkeypatch.setattr(RuntimeResultIntegration, "_run", fail_first_owned_merge)
+
+    blocked = tools.invoke(request("integrate", payload))
+
+    assert blocked["status"] == "blocked"
+    assert blocked["phase"] == "candidate_failed"
+    assert blocked["failure"]["reason"] == "merge_failed_without_conflicts"
+    assert "injected owned merge failure" in blocked["failure"]["receipt"]["stderr"]
+    assert git(project["app"], "rev-parse", "refs/heads/main") == target_before
+    assert source_worktree.exists()
+    assert Path(blocked["integration_worktree"]).is_dir()
+    assert _show_integration(project)["failure"] == blocked["failure"]
+
+    completed = tools.invoke(request("integrate", payload))
+
+    _assert_terminal_contract(completed, source, project["app"], source_worktree)
+
+
 @pytest.mark.parametrize("failure_mode", ["before", "after"])
 def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state(
     project, monkeypatch, failure_mode

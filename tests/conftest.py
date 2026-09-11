@@ -8,6 +8,12 @@ from pathlib import Path
 import pytest
 
 
+# The repository test command executes the sources from this exact worktree.
+_TASK_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+if str(_TASK_SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_TASK_SOURCE_ROOT))
+
+
 def write_json(path: Path, value: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

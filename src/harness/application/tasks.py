@@ -141,6 +141,9 @@ class TaskCommands:
             raise DomainError("Failed-check rework требует точные tree и execution key")
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
+            execution,_=uow.execution.load(task_id)
+            if execution["pending"] is not None:
+                raise DomainError("Неизвестен исход прерванной проверки; failed-check rework запрещён")
             change=task.rework_failed(actor,feedback,entry_tree,execution_key,target)
             uow.tasks.save(change,task.state.version)
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})

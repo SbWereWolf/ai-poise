@@ -31,6 +31,22 @@ class AccountingQueries:
         def in_period(at):return (start is None or at>=start) and (end is None or at<end)
         def emit(kind,b,at,payload):
             if include(b) and in_period(at):facts.append({'kind':kind,'binding':b,'at':at,'data':payload})
+        def emit_interval(b,a,z,payload,with_bounds):
+            if start is not None:a=max(a,start)
+            if end is not None:z=min(z,end)
+            if a>z or (a==z and payload['seconds']):return
+            if a==z and in_period(a):
+                facts.append({'kind':'time','binding':b,'at':a,'data':{**payload,'seconds':0}})
+            if a==z:return
+            # Split at actual local midnights (DST days need not have 24 hours).
+            while a<z:
+                next_date=a.astimezone(self.zone).date()+timedelta(days=1)
+                midnight=datetime.combine(next_date,time(),self.zone).astimezone(timezone.utc)
+                until=min(z,midnight)
+                bounds={'start':a,'end':until} if with_bounds else {}
+                facts.append({'kind':'time','binding':b,'at':a,
+                              'data':{**payload,'seconds':(until-a).total_seconds(),**bounds}})
+                a=until
         for row in data['usage']:
             d=json.loads(row['data'])
             if d['sample']['mode']!='baseline':emit('usage',d['binding'],timestamp(row['occurred_at']),d)
@@ -41,27 +57,22 @@ class AccountingQueries:
             if row['ended_at'] is None:open_cycles.append(row['id']);continue
             if d['kind']=='tool_cycle':
                 timing=d.get('timing')
-                if timing is not None and timing.get('version')==2:
-                    if timing.get('status')!='measured' or timing.get('elapsed_microseconds') is None:
+                if isinstance(timing,dict) and timing.get('version')==2:
+                    elapsed=timing.get('elapsed_microseconds')
+                    if timing.get('status')!='measured' or type(elapsed) is not int or elapsed<0:
                         unmeasured_cycles+=1;continue
-                    seconds=timing['elapsed_microseconds']/1_000_000
-                elif isinstance(d.get('seconds'),(int,float)) and not isinstance(d.get('seconds'),bool):
+                    seconds=elapsed/1_000_000
+                    a=timestamp(row['started_at']);z=a+timedelta(microseconds=elapsed)
+                    emit_interval(b,a,z,{**d,'seconds':seconds},False)
+                    continue
+                elif timing is None and isinstance(d.get('seconds'),(int,float)) and not isinstance(d.get('seconds'),bool):
                     seconds=d['seconds']
                 else:
                     unmeasured_cycles+=1;continue
                 emit('time',b,timestamp(row['started_at']),{**d,'seconds':seconds})
                 continue
             a=timestamp(row['started_at']);z=timestamp(row['ended_at'])
-            if start is not None:a=max(a,start)
-            if end is not None:z=min(z,end)
-            if a>=z:continue
-            # Split at actual local midnights (DST days need not have 24 hours).
-            while a<z:
-                next_date=a.astimezone(self.zone).date()+timedelta(days=1)
-                midnight=datetime.combine(next_date,time(),self.zone).astimezone(timezone.utc)
-                until=min(z,midnight)
-                facts.append({'kind':'time','binding':b,'at':a,'data':{**d,'seconds':(until-a).total_seconds(),'start':a,'end':until}})
-                a=until
+            emit_interval(b,a,z,{**d,'seconds':(z-a).total_seconds()},True)
         missing_message_dates=0
         for row in data['messages']:
             d=json.loads(row['data']);b={k:row[v] for k,v in (('task','task_id'),('sprint','sprint_id'),('goal_type','goal_type'),('stage','stage'),('iteration','iteration'))}

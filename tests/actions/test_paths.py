@@ -2,7 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 import pytest
 from conftest import git
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.common import HarnessError
 from .helpers import setup,verify,result,advance,call,resolve,inspect,method
 

@@ -128,6 +128,8 @@ class SqliteAccounting:
             db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',
                        (observation.audit_utc,encoded(data),row['id']))
             return 'Open accounting cycle cannot be compared safely; retry the operation'
+        if timing['last_monotonic_ns']<timing['started_monotonic_ns']:
+            return 'Persisted monotonic clock state is backwards; accounting state was not changed'
         if observation.monotonic_ns<timing['last_monotonic_ns']:
             return 'Monotonic clock moved backwards; accounting state was not changed'
         timing['last_monotonic_ns']=observation.monotonic_ns;data['last_observed_at']=observation.audit_utc

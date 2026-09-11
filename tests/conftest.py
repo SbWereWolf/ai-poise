@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import pytest
 
@@ -139,16 +140,42 @@ def add_test(worktree):
 # it does not read or write an operational result file. This preserves old
 # behavioural assertions while changing their transport fixture.
 from harness.runtime import Harness as Runtime
+from harness.modules.accounting.clock import ClockObservation
 from copy import deepcopy
 _SCENARIO_DRAFTS={}
 
+
+class DeterministicClock:
+    _audit=datetime(2026,9,7,tzinfo=timezone.utc)
+    _monotonic_ns=0
+
+    @classmethod
+    def reset(cls):
+        cls._audit=datetime(2026,9,7,tzinfo=timezone.utc);cls._monotonic_ns=0
+
+    def observe(self):
+        cls=type(self)
+        value=ClockObservation(cls._audit.isoformat(),cls._monotonic_ns,'test-suite-boot')
+        cls._audit+=timedelta(seconds=1);cls._monotonic_ns+=1_000_000_000
+        return value
+
+
+class WorkHarness(Runtime):
+    """Modern work API wired to an explicit deterministic test clock."""
+    def __init__(self,config_path,session,clock=None):
+        super().__init__(config_path,session,DeterministicClock() if clock is None else clock)
+
 @pytest.fixture(autouse=True)
 def clear_scenario_clients():
+    DeterministicClock.reset()
     _SCENARIO_DRAFTS.clear()
     yield
     _SCENARIO_DRAFTS.clear()
 
 class Harness(Runtime):
+    def __init__(self,config_path,session,clock=None):
+        super().__init__(config_path,session,DeterministicClock() if clock is None else clock)
+
     def _remember(self,context):
         key=(str(self.config_path),self.session)
         candidate=context.get('result_template')

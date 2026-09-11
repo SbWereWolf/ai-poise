@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import pytest
 from conftest import write_json
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from harness.common import HarnessError
 

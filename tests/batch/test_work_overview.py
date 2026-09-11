@@ -4,7 +4,7 @@ import pytest
 
 from harness.application.work import WorkTools
 from harness.common import HarnessError
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from sprints.helpers import changes, setup, task
 
 from .helpers import request

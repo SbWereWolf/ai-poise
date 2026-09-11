@@ -1,5 +1,5 @@
 from harness.application.work import WorkTools
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from batch.helpers import request,message,bootstrap
 
 

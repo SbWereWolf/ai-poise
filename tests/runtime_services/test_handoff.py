@@ -2,7 +2,7 @@ from pathlib import Path
 from copy import deepcopy
 import pytest
 from harness.common import HarnessError
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from harness.application.handoff import HandoffCommands
 from batch.helpers import bootstrap,result,request,verify,message

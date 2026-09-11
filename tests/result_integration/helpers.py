@@ -4,7 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from harness.application.work import WorkTools
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 
 from conftest import git, write_json
 

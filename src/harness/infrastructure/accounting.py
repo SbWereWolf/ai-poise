@@ -6,17 +6,16 @@ from ..common import HarnessError
 from .sqlite.accounting import SqliteAccounting,timestamp
 from .accounting_measurement import PayloadMeasurer,zero_measure
 from .accounting_queries import AccountingQueries
-from .clock import SystemClock
 
 
 class RuntimeAccounting:
-    def __init__(self,h,clock=None):
+    def __init__(self,h,clock):
         self.h=h;self.policy=MetricPolicy.parse(h.cfg['accounting'])
         try:ZoneInfo(self.policy.data['timezone'])
         except ZoneInfoNotFoundError as exc:raise HarnessError('Unknown accounting timezone') from exc
         self.repo=SqliteAccounting(h.store.database,h.cfg['project'],self.policy)
         self.measurer=PayloadMeasurer(h)
-        self.clock=SystemClock() if clock is None else clock
+        self.clock=clock
         self.call_started=None;self.telemetry=None;self.turn_id=None
 
     def _observe(self):

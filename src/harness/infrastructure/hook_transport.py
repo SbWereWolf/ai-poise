@@ -206,14 +206,16 @@ class HookService:
         return stored,message
 
     def bound_runtime(self,binding_path):
+        from .clock import SystemClock
         record,_=self._record(binding_path)
-        return Harness(self.settings.project_config,record['session_id'])
+        return Harness(self.settings.project_config,record['session_id'],SystemClock())
 
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
     def event(self,definition_path,event):
+        from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
-        h=Harness(self.settings.project_config,binding['session_id']);task=h.current_task()
+        h=Harness(self.settings.project_config,binding['session_id'],SystemClock());task=h.current_task()
         active=task if task is not None and task['status'] not in ('completed','cancelled') else None
         message=None
         if native['event']=='UserPromptSubmit':
@@ -234,8 +236,9 @@ class HookService:
             self.settings.raw['max_probes']).run(d.data['probes'],workspace)
 
     def work(self,binding_path,packet):
+        from .clock import SystemClock
         record,message=self._record(binding_path)
-        h=Harness(self.settings.project_config,record['session_id']);self.runtime=h
+        h=Harness(self.settings.project_config,record['session_id'],SystemClock());self.runtime=h
         from ..modules.work.domain import parse_request
         req=parse_request(packet,h.cfg['batch'])
         if req['messages']:raise HarnessError('Hooked work derives messages from UserPromptSubmit; do not supply a second source')

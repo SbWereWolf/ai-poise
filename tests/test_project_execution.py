@@ -9,7 +9,7 @@ import pytest
 
 from harness.application.work import WorkTools
 from harness.composition import project_tools
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from examples.project_execution import continue_execution
 from examples.project_pilot import run as plan_real_source
 from tests.conftest import git

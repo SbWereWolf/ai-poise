@@ -62,6 +62,17 @@ def test_harness_clock_boundary_is_explicit_and_runtime_has_no_wall_fallback():
     assert second.monotonic_ns >= first.monotonic_ns
 
 
+def test_system_clock_rejects_missing_stable_boot_identity(monkeypatch):
+    from harness.infrastructure import clock as clock_module
+
+    def missing(*args, **kwargs):
+        raise OSError("boot identity unavailable")
+
+    monkeypatch.setattr(clock_module.Path, "read_text", missing)
+    with pytest.raises(HarnessError, match="boot identity.*readable"):
+        clock_module.SystemClock()
+
+
 def test_tool_cycle_uses_monotonic_duration_and_preserves_backwards_audit_utc(project):
     clock = FakeClock([
         observation("2026-09-11T10:00:00+00:00", 1_000_000_000),
@@ -103,6 +114,29 @@ def test_same_domain_backwards_monotonic_value_is_rejected_without_clamping(proj
     assert data["timing"]["started_monotonic_ns"] == 2_000_000_000
     assert data["timing"]["last_monotonic_ns"] == 2_000_000_000
     assert data["timing"]["elapsed_microseconds"] is None
+
+
+def test_malformed_persisted_monotonic_order_is_rejected_without_mutation(project):
+    clock = FakeClock([
+        observation("2026-09-11T10:00:00+00:00", 1_000),
+        observation("2026-09-11T10:00:01+00:00", 2_000),
+    ])
+    h, _, _ = setup(project, clock)
+    row, data = cycle(h)
+    data["timing"]["started_monotonic_ns"] = 10_000
+    data["timing"]["last_monotonic_ns"] = 5_000
+    with h.store.transaction() as db:
+        db.execute("UPDATE accounting_cycles SET data=? WHERE id=?", (json.dumps(data), row["id"]))
+
+    with pytest.raises(HarnessError, match="Persisted monotonic clock state is backwards"):
+        h.accounting.port.repo.stop(
+            h.session,
+            observation("2026-09-11T10:00:02+00:00", 6_000),
+        )
+
+    unchanged_row, unchanged_data = cycle(h)
+    assert unchanged_row["ended_at"] is None
+    assert unchanged_data == data
 
 
 @pytest.mark.parametrize("legacy", [False, True], ids=["other-boot", "legacy-open"])

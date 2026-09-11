@@ -4,7 +4,7 @@ import json
 import subprocess
 from conftest import write_json
 from batch.helpers import request
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 
 

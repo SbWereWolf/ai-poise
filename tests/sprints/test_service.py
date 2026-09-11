@@ -2,7 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 import sqlite3
 import pytest
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from harness.modules.foundation.errors import HarnessError
 from batch.helpers import request

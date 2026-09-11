@@ -79,7 +79,8 @@ def main():
             return 2
     try:
         from .interfaces.work import execute
-        h=Harness(Path(os.environ['HARNESS_CONFIG']),os.environ['HARNESS_SESSION'])
+        from .infrastructure.clock import SystemClock
+        h=Harness(Path(os.environ['HARNESS_CONFIG']),os.environ['HARNESS_SESSION'],SystemClock())
         return execute(h,sys.stdin.buffer,sys.stdout)
     except HarnessError as exc:
         print(str(exc),file=sys.stderr)

@@ -22,7 +22,7 @@ from .execution import run_command, contains, preview
 
 class Harness:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
-    def __init__(self, config_path: Path | str, session: str, clock=None):
+    def __init__(self, config_path: Path | str, session: str, clock):
         self.config_path = Path(config_path).resolve()
         self.root, self.cfg, self.processes = load_config(self.config_path)
         self.session = self._identifier(session)

@@ -7,7 +7,7 @@ import zipfile
 import pytest
 from conftest import add_test,git
 from batch.helpers import bootstrap,result,verify,request,message
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from harness.common import HarnessError
 from .helpers import enabled,destination,export,restore,pick,handoff_args

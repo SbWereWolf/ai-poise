@@ -5,7 +5,7 @@ import sqlite3
 import zipfile
 import pytest
 from harness.common import HarnessError,file_digest
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from .helpers import destination,restore,export,handoff_args
 from .test_paths import prepared

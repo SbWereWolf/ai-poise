@@ -89,6 +89,7 @@ class RuntimeAdapter:
         self.settings=validate_settings(settings)
 
     def invoke(self,packet):
+        from .clock import SystemClock
         exact_keys(packet,{'identity','capabilities','transcript','work'},'runtime packet')
         cfgpath=Path(self.settings['project_config']).resolve()
         root,cfg,_=load_config(cfgpath)
@@ -98,7 +99,7 @@ class RuntimeAdapter:
         db=Database(descendant(state,cfg['paths']['database']),descendant(state,cfg['paths']['lock']),
                     cfg['limits']['lock_seconds'],cfg['limits']['lock_poll_seconds'])
         registry=RuntimeRegistry(db);session=registry.bind(identity,inventory)
-        h=Harness(cfgpath,session);self.runtime=h;work=deepcopy(packet['work'])
+        h=Harness(cfgpath,session,SystemClock());self.runtime=h;work=deepcopy(packet['work'])
         from ..modules.work.domain import parse_request
         parse_request(work,cfg['batch'])
         source=None;cursor=None;path=None

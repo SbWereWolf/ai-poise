@@ -3,7 +3,7 @@ import pytest
 from conftest import git
 from harness.application.work import WorkTools
 from harness.modules.foundation.errors import HarnessError
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 
 from .helpers import integration_input, prepare_completed_task, request
 

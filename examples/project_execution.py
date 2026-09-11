@@ -15,13 +15,14 @@ import subprocess
 
 from harness.application.work import WorkTools
 from harness.runtime import Harness
+from harness.infrastructure.clock import SystemClock
 
 
 def continue_execution(*, config_path: Path, session: str, task_id: str,
                        user_decision: str, export_request_id: str) -> dict:
     if user_decision != 'continue':
         raise ValueError('Explicit user decision continue is required for this example')
-    h = Harness(config_path, session)
+    h = Harness(config_path, session, SystemClock())
     record = h.task_queries.record(task_id)
     if record is None or record['contract']['goal_type'] != 'verification':
         raise ValueError('The example requires the previously planned verification task')

@@ -2,7 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 import pytest
 from conftest import add_test,write_json
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from harness.common import HarnessError
 from .helpers import configure,bootstrap,result,verify,request,message,text_artifact

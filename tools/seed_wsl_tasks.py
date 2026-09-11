@@ -10,6 +10,7 @@ from pathlib import Path
 
 from harness.application.work import WorkTools
 from harness.runtime import Harness
+from harness.infrastructure.clock import SystemClock
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +24,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--harness-config",required=True,type=Path)
     args=p.parse_args()
-    h=Harness(args.harness_config.resolve(),"wsl-seed-harness")
+    h=Harness(args.harness_config.resolve(),"wsl-seed-harness",SystemClock())
     tools=WorkTools(h)
     tasks=[load(ROOT/"delivery"/"task-definitions"/"harness"/f"{tid}.json") for tid in ("0001","0002","0003")]
     dependencies=[

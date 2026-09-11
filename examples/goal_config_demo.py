@@ -10,6 +10,7 @@ from pathlib import Path
 from demo import create, save, SOURCE
 from harness.common import digest
 from harness.runtime import Harness
+from harness.infrastructure.clock import SystemClock
 from harness.application.work import WorkTools
 from copy import deepcopy
 
@@ -43,7 +44,7 @@ def run(directory: Path):
     updated=call(edit); replay=call(edit)
     assert replay['replayed'] and updated['revision']==replay['revision']
     assert json.loads(source.read_text())==template
-    h=Harness(home/'project.json','demo-agent'); context=h.bootstrap(json.loads((home/'task.json').read_text())); reports=[]; tools=WorkTools(h)
+    h=Harness(home/'project.json','demo-agent',SystemClock()); context=h.bootstrap(json.loads((home/'task.json').read_text())); reports=[]; tools=WorkTools(h)
     blocked=False
     for i,sid in enumerate(['tests','test_review','implementation','code_review']):
         if i: context=h.bootstrap(decision='continue')

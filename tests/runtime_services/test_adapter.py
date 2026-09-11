@@ -86,7 +86,7 @@ def test_no_capability_means_not_available():
 def test_missing_required_capability_blocks_before_task_creation(project,tmp_path):
     cfg=settings(project,tmp_path);cfg['required_capabilities']=['rename']
     with pytest.raises(HarnessError):RuntimeAdapter(cfg).invoke(packet(boot(project)))
-    from harness.runtime import Harness
+    from conftest import WorkHarness as Harness
     assert Harness(project['config_path'],'check').task_queries.record('T1') is None
 
 

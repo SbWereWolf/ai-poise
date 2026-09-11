@@ -15,6 +15,7 @@ import subprocess
 import sys
 from demo import create, save, git, SOURCE
 from harness.runtime import Harness
+from harness.infrastructure.clock import SystemClock
 from harness.application.work import WorkTools
 from harness.application.catalogue import CatalogueCommands
 from harness.infrastructure.catalogue import FileCatalogue
@@ -173,7 +174,7 @@ def run(directory,goal,scenario,feedback_edge=None):
                 {'kind':'sections','values':{'plan':'Review CHILD-A first; CHILD-B then uses the accepted review context.'}},
                 {'kind':'upsert_tasks','tasks':children},
                 {'kind':'dependencies','items':[{'predecessor':'CHILD-A','successor':'CHILD-B','kind':'completion'}]}]}
-    h=Harness(home/'project.json','CATALOGUE-AGENT');tool=WorkTools(h);calls=[]
+    h=Harness(home/'project.json','CATALOGUE-AGENT',SystemClock());tool=WorkTools(h);calls=[]
     def invoke(op,args):
         out=tool.invoke({'operation':op,'input':args,'messages':[]})
         calls.append({'operation':op,'status':out['status'],'stage':out.get('stage')})

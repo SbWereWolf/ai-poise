@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from harness.composition import project_tools
 from harness.common import HarnessError,load_config,digest
-from harness.runtime import Harness
+from conftest import WorkHarness as Harness
 from harness.application.work import WorkTools
 from tests.conftest import git,write_json
 from .helpers import setup_case

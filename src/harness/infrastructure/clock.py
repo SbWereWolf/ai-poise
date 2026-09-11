@@ -1,23 +1,28 @@
-"""Production clock adapter with a conservative cross-process comparison domain."""
+"""Production clock adapter with an explicit system-boot comparison domain."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
 import time
-from uuid import uuid4
 
+from ..common import HarnessError
 from ..modules.accounting.clock import ClockObservation
-
-
-_PROCESS_DOMAIN = f'process:{uuid4()}'
 
 
 def _comparison_domain() -> str:
     try:
         boot_id = Path('/proc/sys/kernel/random/boot_id').read_text(encoding='ascii').strip()
-    except OSError:
-        return _PROCESS_DOMAIN
-    return f'linux-boot:{boot_id}' if boot_id else _PROCESS_DOMAIN
+    except OSError as exc:
+        raise HarnessError(
+            'Stable system boot identity is unavailable; ensure '
+            '/proc/sys/kernel/random/boot_id is readable'
+        ) from exc
+    if not boot_id:
+        raise HarnessError(
+            'Stable system boot identity is unavailable; ensure '
+            '/proc/sys/kernel/random/boot_id is nonempty'
+        )
+    return f'linux-boot:{boot_id}'
 
 
 class SystemClock:

@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 import pytest
-from conftest import write_json,git
+from conftest import DeterministicClock,write_json,git
 from harness.runtime import Harness
 from harness.application.work import WorkTools
 from harness.common import HarnessError
@@ -20,7 +20,7 @@ def setup(project, clock=None):
     write_json(project['root']/'config/processes/development.json',p)
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
-    h=Harness(project['config_path'],'A') if clock is None else Harness(project['config_path'],'A',clock=clock)
+    h=Harness(project['config_path'],'A',clock=DeterministicClock() if clock is None else clock)
     w=WorkTools(h)
     out=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     return h,w,out

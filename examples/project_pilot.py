@@ -18,6 +18,7 @@ from harness.infrastructure.catalogue import FileCatalogue
 from harness.application.catalogue import CatalogueCommands
 from harness.application.work import WorkTools
 from harness.runtime import Harness
+from harness.infrastructure.clock import SystemClock
 
 
 def run(root,repository,base_ref,destination,task_id,timeout):
@@ -53,7 +54,7 @@ def run(root,repository,base_ref,destination,task_id,timeout):
         'VERIFY':{'exit_codes':[0],'stdout_contains':['passed'],'stderr_contains':[]}}
     task=commands.tasks([{'template':{'id':'verification-v1','version':selected_task['version'],'digest':selected_task['digest']},
                            'parameters':parameters}],processes,cfg['automatic_checks'])['tasks'][0]
-    h=Harness(setup_result['config_path'],task_id);work=WorkTools(h)
+    h=Harness(setup_result['config_path'],task_id,SystemClock());work=WorkTools(h)
     def call(op,args):return work.invoke({'operation':op,'input':args,'messages':[]})
     context=call('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})
     before=subprocess.check_output(['git','-C',context['worktree'],'rev-parse','HEAD'],text=True).strip()

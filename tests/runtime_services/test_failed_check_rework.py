@@ -31,20 +31,23 @@ def _stage(stage_id, allowed_paths):
     }
 
 
-def _scenario(project, *, passing_continuation=False):
+def _scenario(project, *, passing_continuation=False, historical_observation=False):
     configure(project)
+    project["cfg"]["accounting"]["time_mode"] = "reported"
     stages = [
         _stage("implementation", ["src/**"]),
         _stage("test_remediation", ["tests/**"]),
     ]
     stages[0]["transitions"] = {"complete": "test_remediation"}
-    if passing_continuation:
+    if passing_continuation or historical_observation:
         stages[0]["handler"] = "check"
         stages[0]["transitions"] = {
             "satisfied": "test_remediation",
             "not_satisfied": "test_remediation",
             "inconclusive": "test_remediation",
         }
+    if historical_observation:
+        stages[1]["rework_targets"].append("implementation")
     process = {
         "route": {
             "entry": "implementation",
@@ -84,7 +87,13 @@ def _scenario(project, *, passing_continuation=False):
                     "stdout_contains": [],
                     "stderr_contains": [],
                 }
-            } if passing_continuation else {},
+            } if passing_continuation else ({
+                "CHECK": {
+                    "exit_codes": [1],
+                    "stdout_contains": [],
+                    "stderr_contains": [],
+                }
+            } if historical_observation else {}),
             "arguments": [{
                 "id": "CONTINUE",
                 "kind": "logical",
@@ -130,6 +139,9 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     tools, context = _scenario(project)
     worktree = context["worktree"]
     worktrees_before = set(Path(worktree).parent.iterdir())
+    immutable_before = tools.runtime.current_task()
+    contract_before = deepcopy(immutable_before["contract"])
+    process_before = deepcopy(immutable_before["process"])
     _fail_current_stage(tools, context)
     before = _show(tools)
     observations = _show(tools, "evidence")["observations"]
@@ -147,6 +159,11 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     assert after["evidence_count"] == before["evidence_count"] == 1
     assert _show(tools, "evidence")["observations"] == observations
     current = tools.runtime.current_task()
+    assert current["contract"] == contract_before
+    assert current["process"] == process_before
+    assert after["workflow"]["transitions"] == before["workflow"]["transitions"] + 1
+    assert after["workflow"]["visits"]["implementation"] == before["workflow"]["visits"]["implementation"]
+    assert after["workflow"]["visits"]["test_remediation"] == before["workflow"]["visits"]["test_remediation"] + 1
     assert current["pending"] is None
     assert current["publication"] is None
     assert any(
@@ -227,6 +244,39 @@ def test_active_rework_rejects_a_failed_batch_for_an_old_submission(project):
         tools.runtime.session,
         result(context, "new unverified submission"),
     )
+    before = _show(tools)
+
+    with pytest.raises(HarnessError):
+        _rework(tools)
+
+    assert _show(tools) == before
+
+
+def test_active_rework_rejects_a_persisted_batch_from_an_old_iteration(project):
+    tools, context = _scenario(project, historical_observation=True)
+    verified = verify(tools, result(context, "record an implementation observation"))
+    assert verified["status"] == "verified"
+    assert _show(tools)["workflow"]["outcome"] == "not_satisfied"
+    historical = _show(tools, "evidence")["observations"]
+    assert historical[0]["stage"] == "implementation"
+    assert historical[0]["iteration"] == 1
+
+    remediation = tools.invoke(request("bootstrap", {
+        "task": None,
+        "decision": "continue",
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert verify(tools, result(remediation, "complete the first remediation"))["status"] == "verified"
+    current = tools.invoke(request("bootstrap", {
+        "task": None,
+        "decision": "rework",
+        "feedback": "Return to implementation for another iteration.",
+        "rework_stage": "implementation",
+    }))
+    assert current["stage"] == "implementation"
+    assert current["iteration"] == 2
+    assert _show(tools, "evidence")["observations"] == historical
     before = _show(tools)
 
     with pytest.raises(HarnessError):

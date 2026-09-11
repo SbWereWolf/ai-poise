@@ -12,11 +12,9 @@ AI poise — локальное приложение для работы AI-аг
 cd /home/sbwerewolf/workdata/ai-poise
 .venv/bin/harness --help
 
-export HARNESS_CONFIG="$PWD/config/projects/ai-poise/project.json"
-export HARNESS_SESSION="$(.venv/bin/python -c 'import uuid; print(uuid.uuid4())')"
 ```
 
-Сохраните значения переменных для следующих команд. При отдельных запусках оболочки передавайте тот же `HARNESS_SESSION` явно.
+Текущая установка работает только через источник `runtime_event`: хуки Codex передают агенту путь к сессионному `work.sh`. Агент вызывает его через Bash; launcher выбирает конфигурацию и сессию. Если путь не получен, сначала нужно проверить обнаружение, разрешение и исполнение хуков. Самостоятельная генерация сессии и ручная регистрация сообщений не заменяют подключение.
 
 Для подготовки нового проекта см. [настройку проекта](docs/configuration/project-setup.md), для этой установки — [локальные пути и команды](docs/configuration/project-setup.md#локальный-проект-ai-poise). Повторно создавать конфигурацию или запускать seed для уже настроенного ai-poise не требуется.
 
@@ -24,14 +22,14 @@ export HARNESS_SESSION="$(.venv/bin/python -c 'import uuid; print(uuid.uuid4())'
 
 `bootstrap` начинает или возобновляет работу, `verify` проверяет результат текущего этапа. Это JSON-операции команды `harness work`.
 
-Минимальный пример чтения **без формальной задачи**, в новой сессии из предыдущего блока:
+Минимальный пример чтения **без формальной задачи**. Задайте `AI_POISE_WORK` точным путём из нативного hook-контекста; не копируйте launcher другой сессии:
 
 ```bash
-.venv/bin/harness work <<'JSON'
+bash "${AI_POISE_WORK:?Set the launcher path supplied by the native hook}" <<'JSON'
 {"operation":"bootstrap","input":{"task":null,"decision":null,"feedback":null,"rework_stage":null},"messages":[]}
 JSON
 
-.venv/bin/harness work <<'JSON'
+bash "${AI_POISE_WORK:?Set the launcher path supplied by the native hook}" <<'JSON'
 {"operation":"verify","input":{"result":null,"artifacts":[]},"messages":[]}
 JSON
 ```

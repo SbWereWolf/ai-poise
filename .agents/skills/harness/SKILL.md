@@ -9,7 +9,7 @@ Use the explicitly selected project configuration. Each project owns its Task DB
 
 For WSL project selection and storage layout, read only [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Local installation → Mutable storage paths](../../../docs/configuration/wsl-local-delivery.md#пути-project-local-storage).
 
-For this local ai-poise installation, use [the concrete CLI and configuration](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise). `bootstrap` and `verify` are operations of `.venv/bin/harness work`, not separate skills. Preserve `HARNESS_SESSION` across calls. The user explicitly authorized state inside this repository.
+For this local ai-poise installation, use [the concrete launcher and configuration](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise). `bootstrap` and `verify` are operations of Harness `work`, not separate skills. For ordinary work invoke the session-scoped `work.sh` supplied by the native hook explicitly through Bash, keep `messages=[]`, and reuse the same launcher across calls. Direct `.venv/bin/harness work` with an operator-provided `HARNESS_SESSION` is diagnostic only and does not establish native event delivery. The user explicitly authorized state inside this repository.
 
 ## Start or resume work
 

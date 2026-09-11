@@ -46,6 +46,7 @@ def prepare_completed_task(project, change, *, task_id="T1", accept=True):
         "requirements": ["The source commit is preserved until integration."],
         "definition_of_done": ["The completed result can be integrated."],
         "methods": [],
+        "method_inputs": [],
         "artifact_requirements": [],
         "checks": {"implementation": []},
         "evidence_plan": {

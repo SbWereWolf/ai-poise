@@ -31,7 +31,7 @@ def test_exact_measurement_tokenizer_and_no_conversion_to_model_usage(project,tm
     # New task/store is needed because the original measurement contract is immutable.
     project['cfg']['paths']['state']='tokenized-state';write_json(project['config_path'],project['cfg'])
     h2=Poise(project['config_path'],'tok',DeterministicClock());t=deepcopy(project['task']);t['id']='TOKEN'
-    t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+    t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w2=WorkTools(h2);c=w2.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     finish(w2,c,Path(c['worktree']))
     r=metrics(w2);assert r['totals']['benefit']['changed_tokens']==len('    return n + 1\n    return n * 2\nDocument\n')
@@ -55,7 +55,7 @@ def test_reported_intervals_split_dates_and_do_not_include_user_wait(project):
     # Select the reported mode explicitly in a fresh instance/store.
     project['cfg']['accounting']['time_mode']='reported';project['cfg']['paths']['state']='reported-state'
     write_json(project['config_path'],project['cfg'])
-    t=deepcopy(project['task']);t['id']='TIME';t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+    t=deepcopy(project['task']);t['id']='TIME';t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w=WorkTools(Poise(project['config_path'],'S',DeterministicClock()))
     w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     span={'source':'test','stream':'clock','event_id':'i1','started_at':'2026-09-06T23:59:00Z','ended_at':'2026-09-07T00:01:00Z'}
@@ -93,7 +93,7 @@ def test_two_parallel_agents_sum_time_but_union_elapsed(project):
     h,w,c=setup(project);project['cfg']['accounting']['time_mode']='reported';project['cfg']['paths']['state']='parallel-state'
     write_json(project['config_path'],project['cfg'])
     for actor in ('A','B'):
-        t=deepcopy(project['task']);t['id']='TIME'+actor;t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+        t=deepcopy(project['task']);t['id']='TIME'+actor;t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
         tools=WorkTools(Poise(project['config_path'],actor,DeterministicClock()))
         tools.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
         send(tools,intervals=[{'source':'test','stream':actor,'event_id':'i','started_at':'2026-09-07T10:00:00Z','ended_at':'2026-09-07T11:00:00Z'}])
@@ -108,7 +108,7 @@ def test_task_sections_measure_only_selected_final_content(project):
     p['benefit']={'git_categories':[],'sections':['report']}
     write_json(project['root']/'config/processes/development.json',p)
     project['cfg']['paths']['state']='sections-state';write_json(project['config_path'],project['cfg'])
-    t=deepcopy(project['task']);t['id']='SECTION';t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+    t=deepcopy(project['task']);t['id']='SECTION';t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w=WorkTools(Poise(project['config_path'],'A',DeterministicClock()));c=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     v=deepcopy(c['result_template']);v['sections']['report']='Итог\n';v['commit_message']='docs: result'
     w.invoke(request('verify',{'result':v,'artifacts':[]}));w.invoke(request('accept',{}))

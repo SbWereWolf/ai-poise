@@ -28,7 +28,7 @@ def test_draft_hidden_and_publication_all_tasks_without_worktrees(sprint):
 
 
 def test_incomplete_child_saved_for_feedback_not_published(sprint):
-    p,h,w=sprint;t=task(p);del t['methods']
+    p,h,w=sprint;t=task(p);del t['methods'];del t['method_inputs']
     r=draft(w,[t]);assert r['errors']
     with pytest.raises(PoiseError):publish(w,r['revision'])
     assert h.task_queries.summary()==[]

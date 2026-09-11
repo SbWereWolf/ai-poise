@@ -47,7 +47,10 @@ def run(root,repository,base_ref,destination,task_id,timeout):
                         'The exact setup test command works from the real Poise worktree.'],
         'dod':['Preserve the project receipt, exact test procedure and real readiness test output.',
                'Stop after the verified planning stage; do not invent user acceptance.'],
-        'methods':[invocation],'artifact_requirements':[],
+        'methods':[invocation],
+        'method_inputs':[{'method_id':'VERIFY','repository_inputs':['tests/projects'],'future_outputs':[],
+            'reference_profile':{'runner':'pytest','parser':'positional-paths','version':1}}],
+        'artifact_requirements':[],
         'contract':{'sections':[],'routes':[],'requirements':[]},
         'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in processes['verification']['stages']}}
     parameters['evidence']['execution']['subject_methods']={

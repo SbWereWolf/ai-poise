@@ -90,6 +90,16 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
     }
     task = deepcopy(project["task"])
     task["methods"] = [method]
+    task["method_inputs"] = [{
+        "method_id": "CHECK",
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
+    }]
     task["checks"] = {
         "implementation": ["CHECK"],
         "test_remediation": [],

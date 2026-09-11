@@ -90,6 +90,17 @@ def _methods(goal,home):
     raise ValueError('Unknown reference scenario')
 
 
+def _method_inputs(goal, methods):
+    unittest_ids={'development':{'TEST_RED','TEST_GREEN'},'test_development':{'TEST_GREEN'}}.get(goal,set())
+    return [{'method_id':m['id'],
+             'repository_inputs':[],
+             'future_outputs':[{'path':'tests','producer_stage':'test_implementation'}] if m['id'] in unittest_ids else [],
+             'reference_profile':{'runner':'unittest','parser':'discover-start-directory','version':1}
+                 if m['id'] in unittest_ids else
+                 {'runner':'python','parser':'inline-no-path-arguments','version':1}}
+            for m in methods]
+
+
 def _evidence(process,methods):
     ids={m['id']:m for m in methods};out={}
     checkers=[]
@@ -124,7 +135,8 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
     vals={'identity':task_id,'membership':membership,'goal':f'Reference {goal}: create and verify its declared result.',
           'requirements':['The declared reference result is supported by current observations.'],
           'dod':['The route finishes with retained evidence and reviewed result; no unrelated repository edits.'],
-          'methods':methods,'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
+          'methods':methods,'method_inputs':_method_inputs(goal,methods),
+          'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
           'contract':deepcopy(EMPTY),'evidence':evidence}
     return commands.tasks([{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
                              'parameters':vals}],processes,[])['tasks'][0]

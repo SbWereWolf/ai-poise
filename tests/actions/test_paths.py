@@ -130,7 +130,7 @@ def test_noop_integration_publishes_no_artificial_commits(project):
     plan={'kind':'git_merge','base_commit':base,'sources':[{'commit':base,'checkpoint_message':'No checkpoint needed'}]}
     # Source fixture starts with a broken app; use a separately declared no-test task.
     task=deepcopy(h.current_task()['contract']);call(h,'cancel',{'reason':'no-op fixture'})
-    task['id']='NOOP';task['methods']=[];task['checks']={s:[] for s in task['checks']}
+    task['id']='NOOP';task['methods']=[];task['method_inputs']=[];task['checks']={s:[] for s in task['checks']}
     from .helpers import start
     ctx=start(h,task)
     out=verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))

@@ -28,6 +28,18 @@
       "stderr_contains": []
     }
   ],
+  "method_inputs": [
+    {
+      "method_id": "MEASURE",
+      "repository_inputs": [],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "python",
+        "parser": "inline-no-path-arguments",
+        "version": 1
+      }
+    }
+  ],
   "checks": {
     "measure": [
       "MEASURE"

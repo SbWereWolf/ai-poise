@@ -158,7 +158,8 @@ def test_cli_reads_section_without_repeating_task_id(project):
     import os, subprocess, sys
     h,b=bootstrap(project); add_test(b['worktree']); fill(b,'addressed section'); h.verify()
     result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'show','input':{'queries':[{'id':'report','kind':'section','name':'report','stage':None,'submission':None,'range':None}]},'messages':[]}),
-                          env={**os.environ,'POISE_CONFIG':str(project['config_path']), 'POISE_SESSION':'S1'},
+                          env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
+                               'POISE_CONFIG':str(project['config_path']), 'POISE_SESSION':'S1'},
                           capture_output=True,text=True,timeout=15)
     assert result.returncode == 0, result.stderr
     assert 'addressed section' in result.stdout

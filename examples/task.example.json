@@ -61,6 +61,38 @@
       ]
     }
   ],
+  "method_inputs": [
+    {
+      "method_id": "RED",
+      "repository_inputs": [],
+      "future_outputs": [
+        {
+          "path": "tests",
+          "producer_stage": "tests"
+        }
+      ],
+      "reference_profile": {
+        "runner": "unittest",
+        "parser": "discover-start-directory",
+        "version": 1
+      }
+    },
+    {
+      "method_id": "GREEN",
+      "repository_inputs": [],
+      "future_outputs": [
+        {
+          "path": "tests",
+          "producer_stage": "tests"
+        }
+      ],
+      "reference_profile": {
+        "runner": "unittest",
+        "parser": "discover-start-directory",
+        "version": 1
+      }
+    }
+  ],
   "checks": {
     "tests": [
       "RED"

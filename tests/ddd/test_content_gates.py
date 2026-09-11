@@ -251,7 +251,8 @@ def test_cli_content_failure_is_business_failure_not_exit_zero(project):
     import os, subprocess, sys
     h,b=setup(project,section_policy('tests'),empty()); fill(b)
     result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'verify','input':{'result':b['result_template'],'artifacts':[]},'messages':[]}),capture_output=True,text=True,
-        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'S1'},timeout=15)
+        env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
+             'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'S1'},timeout=15)
     assert result.returncode==1, result.stdout+result.stderr
     assert 'content_requirements_failed' in result.stdout
     assert h.show()['evidence_count']==0

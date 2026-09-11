@@ -19,6 +19,45 @@ from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
 
 
+def resolve_source_under_test(
+    method: dict,
+    *,
+    worktree: Path,
+    cwd: Path,
+    environment: dict[str, str],
+) -> dict:
+    """Resolve an explicit verification source contract against this task worktree."""
+    source = method.get('source_under_test')
+    if source is None:
+        raise PoiseError(
+            'Нельзя выполнить проверку: для provenance исходников требуется source_under_test'
+        )
+    if source['kind'] == 'external':
+        return deepcopy(source)
+    root = worktree.resolve()
+    facts = []
+    for binding in source['bindings']:
+        resolved = (root / binding['path']).resolve()
+        if not resolved.is_relative_to(root) or not resolved.is_dir():
+            raise PoiseError(
+                f"Не удалось подтвердить repository source provenance: {binding['path']}"
+            )
+        fact = {**binding, 'resolved_path': str(resolved)}
+        if binding['kind'] == 'cwd':
+            if resolved != cwd.resolve():
+                raise PoiseError(
+                    'Source provenance не подтверждена: cwd binding не совпадает с cwd команды'
+                )
+        else:
+            if binding['name'] in environment:
+                raise PoiseError(
+                    f"Source provenance конфликтует с environment: {binding['name']}"
+                )
+            environment[binding['name']] = str(resolved)
+        facts.append(fact)
+    return {'kind': 'repository', 'bindings': facts}
+
+
 class Poise:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
     def __init__(self, config_path: Path | str, session: str, clock):
@@ -500,7 +539,7 @@ class Poise:
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         checks = self._select_checks(data, changed)
-        invocations = self._invocations(checks, worktree)
+        invocations = self._invocations(checks, worktree, require_source=True)
         execution_key = digest({'stage':stage['id'],'iteration':data['iteration'],'tree':tree,
                                 'invocations':invocations})
         # Env values participate only in the digest; they are not persisted in receipts.
@@ -588,7 +627,7 @@ class Poise:
         return {'status':status,'task':data['id'],'stage':self._stage(data)['id'],
                 'action':action,'context':context,'next_work':'Resolve the reported action state; do not repeat external effects manually.'}
 
-    def _invocations(self, checks, worktree):
+    def _invocations(self, checks, worktree, *, require_source=False):
         invocations=[]
         for method in checks:
             self.result_views.policy.select(method['argv'])
@@ -601,7 +640,18 @@ class Poise:
                     raise PoiseError(f'Требуемая переменная среды отсутствует: {name}')
                 env[name]=os.environ[name]
             env.update(method['environment'])
-            invocations.append({'method':method,'cwd':str(cwd),'environment':env})
+            invocation={'method':method,'cwd':str(cwd),'environment':env}
+            if require_source:
+                provenance=resolve_source_under_test(
+                    method, worktree=worktree, cwd=cwd, environment=env
+                )
+                invocation['source_provenance']=provenance
+                invocation['provenance_digest']=digest(provenance)
+                invocation['expectation_digest']=digest({
+                    key:method[key]
+                    for key in ('expected_exit_code','stdout_contains','stderr_contains')
+                })
+            invocations.append(invocation)
         return invocations
 
     def _intact_receipts(self, receipts):
@@ -637,6 +687,8 @@ class Poise:
                      'passed':passed,'tree':tree,'stdout_digest':file_digest(Path(result['stdout'])),
                      'stderr_digest':file_digest(Path(result['stderr'])),
                      'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
+            for field in ('expectation_digest','provenance_digest','source_provenance'):
+                receipt[field]=invocation[field]
             presentation=self.result_views.capture(receipt,run_dir)
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)

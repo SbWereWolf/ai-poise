@@ -40,6 +40,7 @@ def run(root,repository,base_ref,destination,task_id,timeout):
     selected_task=catalogue.raw['task_templates']['verification-v1']
     invocation={'id':'VERIFY','argv':[sys.executable,'-m','pytest','tests/projects','-q'],
         'cwd':'.','environment':{'PYTHONPATH':'src'},'timeout_seconds':timeout,
+        'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
         'expected_exit_code':0,'stdout_contains':['passed'],'stderr_contains':[]}
     parameters={'identity':task_id,'membership':None,
         'goal':'Plan the verification of declarative project setup on the real Poise revision.',
@@ -66,7 +67,9 @@ def run(root,repository,base_ref,destination,task_id,timeout):
        'verification_methods':json.dumps(invocation,ensure_ascii=False),
        'environment':json.dumps({'interpreter':sys.executable,'repository':str(repository),'revision':before,
                                  'worktree':context['worktree'],'network':'not required; push disabled explicitly'},ensure_ascii=False)}
-    readiness={**invocation,'id':'PLANNING_READINESS'}
+    readiness={**invocation,'id':'PLANNING_READINESS',
+        'argv':[sys.executable,'-m','pytest',
+                'tests/projects/test_reference.py::test_installed_reference_template_builds_all_thirteen_processes','-q']}
     result['method_additions']=[{'method':readiness,'stages':['planning']}]
     artifact={'scope':'task','path':'setup-receipt.json','source':{'kind':'text','text':json.dumps(setup_result,ensure_ascii=False,indent=2)}}
     report=call('verify',{'result':result,'artifacts':[artifact]})

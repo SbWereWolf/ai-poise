@@ -162,7 +162,7 @@ def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     h.accounting.port.clock=clock
     w.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None},[message('turn-a')]))
     p=deepcopy(c['result_template']);p['sections']['report']='Attempt';p['commit_message']='feat: measured'
-    p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'timeout_seconds':5,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
+    p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'source_under_test':{'kind':'external','reason':'The diagnostic command reads no repository source.'},'timeout_seconds':5,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
     clock.value=ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot')
     assert w.invoke(request('verify',{'result':p,'artifacts':[]}))['status']=='checks_failed'
     base=metrics(w)['totals']['active_seconds'] or 0

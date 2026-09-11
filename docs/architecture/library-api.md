@@ -146,6 +146,16 @@ Batch work получил optional `telemetry`, а batch show — kind `accounti
 CLI `project` принимает один JSON stdin. CLI `project-init` получает ответы через bounded
 questionnaire и применяет один тот же пакет при publish. Обе операции не изменяют Task/Sprint.
 
+## Verification source provenance — task 0037
+
+`CheckRegistry.from_task/extend` требует у нового метода `source_under_test`, проверяет форму
+repository/external provenance и отклоняет semantic duplicates и конфликтующие ожидания до
+I/O. `resolve_source_under_test(method, worktree, cwd, environment)` — runtime API разрешения
+binding внутри текущего worktree. Результат запуска включает `source_provenance`,
+`provenance_digest` и `expectation_digest`; replay identity учитывает эти значения. Старые
+сохранённые определения читаются без обратной миграции, но новые и расширяющие методы обязаны
+передавать контракт явно.
+
 
 ## POISE-PILOT-02: граница вспомогательных инструментов — 2026-09-07T15:04:48+05:00
 

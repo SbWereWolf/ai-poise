@@ -10,7 +10,7 @@ from tests.batch.helpers import request
 from .test_domain import policy,sample
 
 
-def setup(project):
+def setup(project, clock=None):
     p={'goal_type':'development','benefit':{'git_categories':['code','documentation'],'sections':[]},
        'route':{'entry':'write','max_transitions':20,'max_stage_visits':10},
        'stages':[stage('write','produce',{'complete':None},False,['src/**','tests/**','docs/**'],['write'])],
@@ -20,7 +20,8 @@ def setup(project):
     write_json(project['root']/'config/processes/development.json',p)
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['methods']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
-    h=Harness(project['config_path'],'A');w=WorkTools(h)
+    h=Harness(project['config_path'],'A') if clock is None else Harness(project['config_path'],'A',clock=clock)
+    w=WorkTools(h)
     out=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     return h,w,out
 

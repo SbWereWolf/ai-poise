@@ -14,6 +14,7 @@
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
+| integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
@@ -33,6 +34,65 @@
 Content pre-gate может отклонить уже сохранённый кандидат после генерации файлов. Это ожидаемая неполнота работы, не фиктивная атомарность файловой системы и БД. Файлы принадлежат правильному владельцу, не считаются verified evidence сами по себе; одинаковый повтор использует те же файлы. Сломанный payload/недопустимый исходный путь отбрасывается до генерации.
 
 Код изменён при прежнем payload: создаётся новое исполнение checks, не повторный содержательный слой. Неизменный verified пакет: возвращается прежний результат, удалённые runtime-файлы не создаются заново. Новый содержательный результат после доклада требует явного rework.
+
+## Интеграция принятого результата
+
+`integrate` — одна публичная операция для локальной интеграции окончательно принятой Task и последующей уборки. Она доступна только когда Task имеет статус `completed` и сохранённый итоговый commit. Операция использует `git.repository` и локальную ветку `git.base_ref` выбранной конфигурации; эта ветка должна быть checkout текущего repository worktree.
+
+Исходный task worktree и target worktree должны быть чистыми, записанная task-ветка должна указывать на `expected_source_commit`, а текущий target HEAD — точно совпадать с `expected_target_commit`. Проверки выполняются до первого Git-эффекта. `authorization` хранит явное пользовательское основание и используется как сообщение merge commit, поэтому обязано соответствовать `git.commit_pattern`.
+
+```json
+{
+  "operation": "integrate",
+  "input": {
+    "request_id": "integrate-0016-1",
+    "task_id": "0016",
+    "expected_source_commit": "0123456789abcdef0123456789abcdef01234567",
+    "expected_target_commit": "89abcdef0123456789abcdef0123456789abcdef",
+    "authorization": "Integrate accepted task 0016",
+    "resolutions": []
+  },
+  "messages": []
+}
+```
+
+Команда выполняется через уже выбранные `HARNESS_CONFIG` и `HARNESS_SESSION`:
+
+```bash
+harness work <<'JSON'
+{"operation":"integrate","input":{"request_id":"integrate-0016-1","task_id":"0016","expected_source_commit":"0123456789abcdef0123456789abcdef01234567","expected_target_commit":"89abcdef0123456789abcdef0123456789abcdef","authorization":"Integrate accepted task 0016","resolutions":[]},"messages":[]}
+JSON
+```
+
+Точные commit IDs берутся из проверенного результата Task и наблюдаемого target HEAD; примерные SHA выше нельзя копировать как фактические значения. Одинаковый пакет повторяется безопасно. После `integrated` допускается также передать выданный `target_after` как наблюдаемый `expected_target_commit`: это terminal replay, а не новая интеграция. Другие изменения intent с тем же `request_id` отклоняются.
+
+Статусы и восстановление:
+
+- `integrated`: target содержит source commit, task worktree удалён, локальная task-ветка удалена через безопасный `git branch -d`; повтор возвращает сохранённый результат с `replayed: true`;
+- `awaiting_resolution`: Git оставлен в точном conflict state, source worktree и ветка сохранены; исправьте только перечисленные файлы обычным редактором и повторите тот же пакет, заменив `resolutions` на один объект для каждого conflict path;
+- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD/MERGE_HEAD/cleanliness не изменились;
+- `cleanup_pending`: target уже содержит source, но уборка заблокирована. Source не удаляется вслепую; после устранения причины тот же пакет продолжает только уборку.
+
+Пример продолжения конфликта — все остальные поля исходного intent остаются прежними:
+
+```json
+"resolutions": [
+  {
+    "path": "src/example.py",
+    "resolution": "Сохранено принятое поведение source и совместимый target API."
+  }
+]
+```
+
+Операция сама выполняет Git staging, commit, worktree removal и branch deletion. Пользователю не требуется запоминать служебные Git-команды. Посторонние unstaged/untracked изменения target блокируют продолжение и уборку; force-delete не используется.
+
+Состояние и полная история переходов читаются пакетным query после перезапуска процесса:
+
+```json
+{"operation":"show","input":{"queries":[{"id":"result","kind":"integration","task_id":"0016","request_id":"integrate-0016-1"}]},"messages":[]}
+```
+
+Ответ сохраняет `source_commit`, `target_before`, `target_after`, merge/failure receipts, conflict resolutions, поэтапный `cleanup` и `history`. Task/Sprint history и прежний проверенный результат не переписываются.
 
 ## Создание файлов
 ```json

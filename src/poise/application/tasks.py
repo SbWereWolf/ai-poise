@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from ..modules.tasks.domain import Task, TaskState, TaskStatus
 from ..modules.workflow.domain import RouteDefinition
-from ..modules.tasks.ports import TaskUnitOfWork
+from ..modules.tasks.ports import RepositoryTreeReader, TaskUnitOfWork
 from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
@@ -80,14 +80,23 @@ class SubmissionReceipt:
 
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
-    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork]):
+    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader):
         self.unit_of_work = unit_of_work
+        self.repository_tree = repository_tree
 
     def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
-               base_metadata: dict, execution, policy):
-        from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
+               base_metadata: dict, execution, policy, base_revision):
+        from ..modules.tasks.allocation import TaskIdPolicy, creation_parts, creation_alias, materialize_contract
+        from ..modules.tasks.definition import validate_creation
+        from ..modules.tasks.creation_preflight import CreationPreflight
         request_id, _, _ = creation_parts(intent)
         parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
+        candidate, _ = materialize_contract(intent, creation_alias(intent))
+        metadata = validate_creation(candidate, process, automatic_checks)
+        preflight = CreationPreflight.parse(metadata['contract'], process)
+        if self.repository_tree is None or not isinstance(base_revision,str) or not base_revision:
+            raise DomainError('Task creation requires an explicit repository tree preflight')
+        preflight.validate_base(self.repository_tree.existing_paths(base_revision,preflight.repository_inputs))
         with self.unit_of_work() as uow:
             allocation = uow.tasks.allocate(intent, parsed_policy)
             task, metadata, _ = _creation_values(

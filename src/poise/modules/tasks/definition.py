@@ -16,8 +16,13 @@ def path_identifier(value):
 
 
 def validate_creation(contract, process, automatic_checks):
+    if isinstance(contract,dict) and 'method_inputs' not in contract:
+        method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
+        raise DomainError(
+            f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
+        )
     exact_keys(contract,{'id','sprint_id','goal_type','goal','requirements','definition_of_done',
-        'methods','checks','artifact_requirements','content_contract','evidence_plan'},'task')
+        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan'},'task')
     path_identifier(contract['id'])
     if contract['sprint_id'] is not None:path_identifier(contract['sprint_id'])
     GoalTypeDefinition.parse(process)
@@ -31,6 +36,8 @@ def validate_creation(contract, process, automatic_checks):
             raise DomainError(f'{field}: требуются непустые уникальные строки')
     stages=tuple(s['id'] for s in process['stages'])
     registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages)
+    from .creation_preflight import CreationPreflight
+    CreationPreflight.parse(contract,process)
     for entry in automatic_checks:
         for stage in stages:
             if stage not in entry['by_stage']:

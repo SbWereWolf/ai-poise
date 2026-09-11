@@ -112,6 +112,19 @@ def project(tmp_path, monkeypatch):
         'requirements': ['double(n) возвращает n*2'],
         'definition_of_done': ['Регрессионный тест RED до исправления и GREEN после.'],
         'methods': methods, 'artifact_requirements': [],
+        'method_inputs': [
+            {
+                'method_id': method['id'],
+                'repository_inputs': [],
+                'future_outputs': [{'path': 'tests', 'producer_stage': 'tests'}],
+                'reference_profile': {
+                    'runner': 'unittest',
+                    'parser': 'discover-start-directory',
+                    'version': 1,
+                },
+            }
+            for method in methods
+        ],
         'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']},
      "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     task['evidence_plan'] = {s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}

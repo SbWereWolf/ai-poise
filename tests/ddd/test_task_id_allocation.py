@@ -411,6 +411,7 @@ def _planning_context(project):
     parent.update(
         goal_type="planning",
         methods=[],
+        method_inputs=[],
         checks={stage["id"]: [] for stage in process["stages"]},
         evidence_plan={
             stage["id"]: {

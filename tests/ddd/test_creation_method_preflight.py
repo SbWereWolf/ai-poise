@@ -173,6 +173,20 @@ def test_legacy_documentation_task_with_missing_pytest_path_is_rejected_before_a
         tokens=("CHECK", "method_inputs"),
     )
 
+    escaped_process = _linear_process(project)
+    escaped_tools = WorkTools(Poise(project["config_path"], "escaped-cwd-red"))
+    escaped = _task(
+        project,
+        escaped_process,
+        method_inputs=_inputs(future=((MISSING_TEST, "producer"),)),
+    )
+    escaped["methods"][0]["cwd"] = "../outside"
+    _assert_rejected(
+        escaped_tools,
+        _intent(escaped, "escaped-method-cwd"),
+        tokens=("CHECK", "../outside", "cwd"),
+    )
+
 
 def test_existing_baseline_input_and_explicit_empty_future_are_accepted(project):
     process = _linear_process(project)

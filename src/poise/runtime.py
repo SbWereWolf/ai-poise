@@ -35,7 +35,11 @@ class Poise:
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
                            limits['lock_seconds'], limits['lock_poll_seconds'])
-        self.task_commands, self.task_queries = task_tools(self.store)
+        from .infrastructure.repository_tree import GitRepositoryTree
+        repository_tree = GitRepositoryTree(
+            self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
+        )
+        self.task_commands, self.task_queries = task_tools(self.store, repository_tree)
         self.runner = StageRunner(self.task_commands)
         self.evidence_commands = EvidenceCommands(self.store.unit_of_work)
         from .infrastructure.sqlite.interactions import InteractionStore
@@ -319,7 +323,7 @@ class Poise:
                     intent,self.session,selected_process,self.cfg['automatic_checks'],
                     {'config_hash':self.config_hash},
                     lambda task_id:self._execution_reservation(task_id,base),
-                    self.cfg.get('task_ids'))
+                    self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
                 data=self.task_queries.record(allocation.task_id)
                 if allocation.replayed and data['claimed_by'] not in (None,self.session):

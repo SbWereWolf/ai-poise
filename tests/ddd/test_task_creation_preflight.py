@@ -10,6 +10,8 @@ assert _spec is not None and _spec.loader is not None
 _contract = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_contract)
 
-test_legacy_documentation_task_with_missing_pytest_path_is_rejected_before_allocation = (
-    _contract.test_legacy_documentation_task_with_missing_pytest_path_is_rejected_before_allocation
-)
+globals().update({
+    name: value
+    for name, value in vars(_contract).items()
+    if name.startswith("test_") and callable(value)
+})

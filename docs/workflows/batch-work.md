@@ -96,6 +96,29 @@ Content pre-gate может отклонить уже сохранённый к�
 
 Код изменён при прежнем payload: создаётся новое исполнение checks, не повторный содержательный слой. Неизменный verified пакет: возвращается прежний результат, удалённые runtime-файлы не создаются заново. Новый содержательный результат после доклада требует явного rework.
 
+### Явный rework после `checks_failed`
+
+`checks_failed` оставляет Task с submitted результатом активной и сохраняет неизменяемый batch receipts. Следующий пользовательский ход может явно вернуть ту же Task на разрешённый этап через существующий `bootstrap`:
+
+```json
+{
+  "operation": "bootstrap",
+  "input": {
+    "task": null,
+    "decision": "rework",
+    "feedback": "Исправить причину неуспешной проверки.",
+    "rework_stage": "test_remediation"
+  },
+  "messages": []
+}
+```
+
+Такой переход допустим только для текущих stage, iteration, submission digest, Git tree и execution key. Сохранённый batch должен содержать хотя бы один неуспешный guard; все receipts должны иметь известный неотрицательный exit code, не быть timeout и оставаться интерпретируемыми, а их `stdout`/`stderr` — существовать с сохранёнными digest. `pending` должен быть null. Поэтому отсутствующий batch или batch без неуспешного guard, прерванный/неизвестный исход, удалённый либо изменённый output и evidence другого stage, iteration, submission, tree или запуска не дают права на rework.
+
+`feedback` обязателен и сохраняется в истории. `rework_stage` должен входить в `rework_targets` текущего этапа; null означает сам текущий этап. Цель с обработчиком `revise` допустима только при наличии открытых findings: иначе Task отклоняет переход до изменения route, lifecycle или execution state, потому что такому этапу нечего исправлять. Task применяет обычный `Route.enter`, поэтому `max_transitions`, `max_stage_visits` и `allowed_paths` целевого этапа продолжают действовать. Проверка `pending`, доменный переход Task и очистка execution state согласованы в одном UoW: отказ предшествует любому изменению lifecycle или execution.
+
+Успех сохраняет Task ID, worktree, branch, task/process contracts, прежние submissions, историю и failed receipts. Создаётся новый visit целевого этапа с его iteration, записываются feedback и событие `user_failed_check_rework`, а заброшенное retry-состояние очищается: `attempts=0`, `publication=null`, `pending=null`, `entry_tree` становится текущим деревом. Операция не отменяет и не пересоздаёт Task и не является SQL-восстановлением или обходом конфигурационного hash. Для verified/accepted/completed результатов действует прежний rework предъявленного результата; этот путь относится именно к активному submitted этапу с точным failed batch.
+
 ## Интеграция принятого результата
 
 `integrate` — одна публичная операция для локальной интеграции окончательно принятой Task и последующей уборки. Она доступна только когда Task имеет статус `completed` и сохранённый итоговый commit. Операция использует `git.repository` и локальную ветку `git.base_ref` выбранной конфигурации; эта ветка должна быть checkout текущего repository worktree.

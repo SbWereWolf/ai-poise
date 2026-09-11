@@ -34,4 +34,22 @@ def test_bound_source_route_is_pure_and_preparation_stays_in_application_boundar
     assert 'prepare_bound_source' in application
     assert 'prepare_bound_source' in transport
     assert 'UPDATE tasks' not in transport and 'INSERT INTO tasks' not in transport
-    assert "'selected_source'" not in transport and '"selected_source"' not in transport
+
+    transport_tree=ast.parse(transport)
+    hook_service=next(node for node in transport_tree.body if isinstance(node,ast.ClassDef) and node.name=='HookService')
+    bind=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='_bind')
+    work=next(node for node in hook_service.body if isinstance(node,ast.FunctionDef) and node.name=='work')
+    record=next(
+        node.value for node in ast.walk(bind)
+        if isinstance(node,ast.Assign)
+        and any(isinstance(target,ast.Name) and target.id=='record' for target in node.targets)
+        and isinstance(node.value,ast.Dict)
+    )
+    keys={key.value for key in record.keys if isinstance(key,ast.Constant)}
+    assert not keys.intersection({'task','task_id','worktree','selected_source'})
+    assert not any(
+        isinstance(node,ast.Call)
+        and isinstance(node.func,ast.Attribute)
+        and node.func.attr in {'bind','atomic_write'}
+        for node in ast.walk(work)
+    )

@@ -120,16 +120,19 @@ def test_start_by_id_runs_pinned_process_and_blocks_successor(sprint):
     assert bootstrap(w,'B')['task']=='B'
 
 
-def test_result_dependency_starts_from_predecessor_tree(sprint):
+def test_result_dependency_starts_from_configured_base(sprint):
     p,h,w=sprint
     a=task(p,'A',command='from src.double import double; assert double(2)==4')
-    b=task(p,'B','documentation',command='from src.double import double; assert double(2)==4')
+    b=task(p,'B','documentation',command='from src.double import double; assert double(2)==3')
     r=draft(w,[a,b],[{'predecessor':'A','successor':'B','kind':'result'}]);publish(w,r['revision'])
     c=bootstrap(w,'A');(Path(c['worktree'])/'src/double.py').write_text('def double(n):\n    return n*2\n')
-    verify(w,c);w.invoke(request('accept',{}))
-    c=bootstrap(w,'B');assert 'n*2' in (Path(c['worktree'])/'src/double.py').read_text()
-    assert 'n + 1' in (p['app']/'src/double.py').read_text()
-    (Path(c['worktree'])/'docs').mkdir();(Path(c['worktree'])/'docs/guide.md').write_text('Use double(2) to obtain 4.\n')
+    predecessor_commit=verify(w,c)['commit'];w.invoke(request('accept',{}))
+    overview=bootstrap(w,'S')
+    assert overview['result_provenance']=={
+        'B':[{'predecessor':'A','result_commit':predecessor_commit}]
+    }
+    c=bootstrap(w,'B');assert 'n + 1' in (Path(c['worktree'])/'src/double.py').read_text()
+    (Path(c['worktree'])/'docs').mkdir();(Path(c['worktree'])/'docs/guide.md').write_text('Use double(2) to obtain 3.\n')
     assert verify(w,c)['status']=='verified'
     assert w.invoke(request('accept',{}))['sprint']['status']=='completed'
 
@@ -191,17 +194,20 @@ def test_duplicate_task_id_other_sprint_cannot_partially_publish(sprint):
     assert len(h.task_queries.summary())==1
 
 
-def test_two_different_result_revisions_require_explicit_integration(sprint):
+def test_two_different_result_revisions_are_reported_as_provenance(sprint):
     p,h,w=sprint;r=draft(w,[task(p,'A'),task(p,'B'),task(p,'C')],[
         {'predecessor':'A','successor':'C','kind':'result'},{'predecessor':'B','successor':'C','kind':'result'}]);publish(w,r['revision'])
+    commits=[]
     for name,value in [('A','2'),('B','3')]:
         c=bootstrap(w,name);(Path(c['worktree'])/'src/double.py').write_text(f'def double(n):\n    return n*{value}\n')
-        verify(w,c);w.invoke(request('accept',{}))
+        commits.append(verify(w,c)['commit']);w.invoke(request('accept',{}))
     out=bootstrap(w,'S')
-    assert out['eligible']==[] and out['status']=='blocked'
-    assert out['blocked'][0]['reasons'][0]['reason']=='integration_required'
-    with pytest.raises(PoiseError):bootstrap(w,'C')
-    assert not (h.state/h.paths['worktrees']/'C').exists()
+    assert out['eligible']==['C']
+    assert out['result_provenance']=={'C':[
+        {'predecessor':'A','result_commit':commits[0]},
+        {'predecessor':'B','result_commit':commits[1]},
+    ]}
+    assert bootstrap(w,'C')['task']=='C'
 
 
 def test_sprint_artifact_creation_without_task_or_worktree(sprint):

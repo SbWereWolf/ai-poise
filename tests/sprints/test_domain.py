@@ -86,3 +86,86 @@ def test_published_plan_is_not_silently_rewritten():
 def test_section_minimum_uses_sectionbook():
     value,p=plan([{'id':'A','sprint_id':'S'}]);value=value.apply([{'kind':'sections','values':{'plan':'  Заполнить план.  '}}],p)
     assert value.content_errors(p)
+
+
+def test_replace_task_redirects_dependencies_waivers_and_revision():
+    value,p=plan([{'id':x,'sprint_id':'S'} for x in ('PRE','BAD','POST')])
+    value=value.apply([{'kind':'dependencies','items':[
+        {'predecessor':'PRE','successor':'BAD','kind':'completion'},
+        {'predecessor':'BAD','successor':'POST','kind':'result'},
+    ]}],p)
+    sprint=Sprint.draft(value,p).publish().waive([
+        {'predecessor':'BAD','successor':'POST','reason':'Разрешено продолжить'},
+    ])
+    prior=sprint.revision
+
+    replaced=sprint.replace_task(
+        'BAD',
+        {'id':'BAD-2','sprint_id':'S'},
+        {'PRE':'available','BAD':'available','POST':'available'},
+        'Исправить контракт',
+        'Пользователь разрешил замену',
+        {'kind':'available'},
+    )
+
+    assert replaced.revision==prior+1
+    assert [t['id'] for t in replaced.plan.data['tasks']]==['BAD-2','POST','PRE']
+    assert replaced.plan.data['dependencies']==[
+        {'predecessor':'BAD-2','successor':'POST','kind':'result'},
+        {'predecessor':'PRE','successor':'BAD-2','kind':'completion'},
+    ]
+    assert replaced.waivers==(
+        {'predecessor':'BAD-2','successor':'POST','reason':'Разрешено продолжить'},
+    )
+    decision=replaced.decisions[-1]
+    assert decision['source']=='BAD' and decision['replacement']=='BAD-2'
+    assert decision['from_revision']==prior and decision['to_revision']==prior+1
+
+
+def test_replace_task_rejects_started_successor():
+    value,p=plan([{'id':x,'sprint_id':'S'} for x in ('BAD','POST')])
+    value=value.apply([{'kind':'dependencies','items':[
+        {'predecessor':'BAD','successor':'POST','kind':'completion'},
+    ]}],p)
+    sprint=Sprint.draft(value,p).publish()
+    with pytest.raises(HarnessError,match='started|prerequisite|начат'):
+        sprint.replace_task(
+            'BAD',
+            {'id':'BAD-2','sprint_id':'S'},
+            {'BAD':'available','POST':'active'},
+            'Исправить контракт',
+            'Пользователь разрешил замену',
+            {'kind':'available'},
+        )
+
+
+@pytest.mark.parametrize(('edges','max_dependencies'),[
+    ([{'predecessor':'BAD','successor':'BAD','kind':'completion'}],3000),
+    ([
+        {'predecessor':'BAD','successor':'POST','kind':'completion'},
+        {'predecessor':'POST','successor':'BAD','kind':'result'},
+    ],3000),
+    ([
+        {'predecessor':'BAD','successor':'POST','kind':'completion'},
+        {'predecessor':'BAD','successor':'POST','kind':'result'},
+    ],3000),
+    ([
+        {'predecessor':'PRE','successor':'BAD','kind':'completion'},
+        {'predecessor':'BAD','successor':'POST','kind':'result'},
+    ],1),
+])
+def test_replace_task_revalidates_corrupt_final_graph(edges,max_dependencies):
+    value,p=plan([{'id':x,'sprint_id':'S'} for x in ('PRE','BAD','POST')])
+    corrupt=SprintPlan({**value.data,'dependencies':edges})
+    if max_dependencies != p.data['max_dependencies']:
+        raw=deepcopy(p.data);raw['max_dependencies']=max_dependencies;p=SprintPolicy.parse(raw)
+    sprint=Sprint(corrupt,p,2,'published',(),())
+    with pytest.raises(HarnessError):
+        sprint.replace_task(
+            'BAD',
+            {'id':'BAD-2','sprint_id':'S'},
+            {'PRE':'available','BAD':'available','POST':'available'},
+            'Исправить контракт',
+            'Пользователь разрешил замену',
+            {'kind':'available'},
+        )

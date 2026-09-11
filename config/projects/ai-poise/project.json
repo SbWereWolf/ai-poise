@@ -61,8 +61,8 @@
       "cancel"
     ],
     "message_source": {
-      "id": "chat-visible",
-      "mode": "agent_reported"
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
     },
     "templates": {
       "note": {
@@ -98,9 +98,9 @@
     "verify_attempts": 5
   },
   "paths": {
-    "database": "tasks.sqlite",
+    "database": "database/tasks.sqlite",
     "git_index": "snapshot.index",
-    "lock": "tasks.lock",
+    "lock": "database/tasks.lock",
     "response": "response.json",
     "runs": "runs",
     "runtime": ".runtime",

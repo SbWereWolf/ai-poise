@@ -9,18 +9,50 @@ class SprintWork:
     def __init__(self,runtime):
         self.h=runtime
         self.commands=SprintCommands(runtime.store.unit_of_work,runtime.cfg['project'],runtime.session,
-            runtime.cfg['sprint'],runtime.processes,runtime.cfg['automatic_checks'],runtime.config_hash)
+            runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.processes,
+            runtime.cfg['automatic_checks'],runtime.config_hash)
 
     def known(self,sprint_id):return self.commands.known(sprint_id)
 
     def apply(self,packet):
-        result=self.commands.apply(packet)
+        preflight=None
+        if isinstance(packet,dict) and packet.get('action')=='replace_task':
+            snapshot=self.commands.replacement_snapshot(packet)
+            if snapshot['receipt'] is not None:return snapshot['receipt']
+            fact=snapshot['fact'];status=fact['status']
+            if fact['pending'] is not None:
+                raise HarnessError('Task has a pending external outcome; resolve the pending operation before replacement')
+            if status in ('completed','cancelled','superseded'):
+                raise HarnessError('Only an unfinished Task can be superseded')
+            if status=='available':
+                if fact['claimed_by'] is not None or fact['worktree'] is not None:
+                    raise HarnessError('Available Task has ambiguous WIP; preserve it through handoff before replacement')
+                safety={'kind':'available'}
+            elif fact['claimed_by'] is not None:
+                if fact['claimed_by']!=self.h.session:
+                    raise HarnessError('Task is owned by another session; ask that owner to handoff before replacement')
+                if fact['worktree'] is None:
+                    raise HarnessError('Owned Task has ambiguous WIP; create a handoff before replacement')
+                worktree=Path(fact['worktree'])
+                if self.h._git(worktree,'status','--porcelain','--untracked-files=all'):
+                    raise HarnessError('Task worktree is dirty; preserve WIP through handoff before replacement')
+                safety={'kind':'caller_owned_clean','worktree':str(worktree),
+                        'tree':self.h._git(worktree,'rev-parse','HEAD^{tree}')}
+            else:
+                handoff=snapshot['handoff']
+                if handoff is None or handoff['state']!='released':
+                    raise HarnessError('Unowned Task has ambiguous WIP; preserve it through an explicit handoff before replacement')
+                safety={'kind':'released_handoff','handoff_request':handoff['request_id']}
+            preflight={**snapshot,'safety':safety}
+        result=self.commands.apply(packet,preflight)
         # Receipt proves application exactly once; current context may have advanced.
-        return self.overview(result['sprint'])
+        if isinstance(packet,dict) and packet.get('action')=='replace_task':return result
+        overview=self.overview(result['sprint'])
+        return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {})}
 
     def select(self,sprint_id):
         current=self.h.current_task()
-        if current is None or current['status'] in ('completed','cancelled') or current['sprint_id']==sprint_id:
+        if current is None or current['status'] in ('completed','cancelled','superseded') or current['sprint_id']==sprint_id:
             self.commands.select(sprint_id)
         return self.overview(sprint_id)
 
@@ -29,6 +61,9 @@ class SprintWork:
         result=self.commands.read(sprint_id,view)
         if result is None:raise HarnessError('No selected sprint')
         return result
+
+    def overviews(self):
+        return [self.overview(sprint_id) for sprint_id in self.commands.overview_ids()]
 
     def overview(self,sprint_id):
         out=self.commands.read(sprint_id,'current')
@@ -57,7 +92,7 @@ class SprintWork:
         out['eligible']=ready;out['start_revisions']=bases
         if out['status'] not in ('draft','completed','cancelled') and not ready and not out['active']:out['status']='blocked'
         current=self.h.current_task()
-        out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled') else None
+        out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled','superseded') and current['sprint_id']==out['sprint'] else None
         out['sprint_root']=str(descendant(self.h.state,self.h.paths['sprints'])/out['sprint'])
         if out['status'] in ('completed','cancelled'):out['next_work']='Доложить результат; новой работы по спринту нет'
         elif not ready and not out['active'] and out['status']!='draft':out['next_work']='Разрешить указанные блокировки; задачи автоматически не выбирать'
@@ -69,12 +104,14 @@ class SprintWork:
         sid=record['sprint_id']
         if sid is not None and not self.known(sid):raise HarnessError('Task is not a published sprint member')
         current=h.current_task()
-        if current is not None and current['status'] not in ('completed','cancelled') and current['id']!=task_id:
+        if current is not None and current['status'] not in ('completed','cancelled','superseded') and current['id']!=task_id:
             raise HarnessError('Сначала завершить/передать текущую задачу')
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise HarnessError('Task is not eligible: '+str(state['blocked']))
-        execution=h.prepare_task_execution(task_id,None if state is None else state['start_revisions'][task_id])
+        base=h._creation_base(None if state is None else state['start_revisions'][task_id])
+        execution=h._execution_reservation(task_id,base)
         h.task_commands.start(task_id,h.session,execution)
+        h._reconcile_task_worktree(h.task_queries.record(task_id))
         h.store.bind(h.session,task_id)
         if sid is not None:self.commands.select(sid)
         return h._context(h._task(),True)

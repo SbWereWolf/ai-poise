@@ -1,4 +1,6 @@
 """Task/UoW/SQLite and the real git/command happy path with content gates."""
+from copy import deepcopy
+from dataclasses import replace
 import json
 import sqlite3
 from pathlib import Path
@@ -6,6 +8,7 @@ import pytest
 from conftest import write_json, fill, add_test
 from conftest import Harness
 from harness.common import HarnessError
+from harness.modules.content_requirements.domain import ContentPolicy
 
 
 def empty():
@@ -44,7 +47,7 @@ def trace_policy(project):
         "requirements":[
           {"id":"product-now","kind":"trace","route":"functional","point":"product","stages":["tests","test_review","implementation","code_review"],"phase":"pre","field_equals":{}},
           {"id":"method-now","kind":"trace","route":"functional","point":"method","stages":["tests","implementation","code_review"],"phase":"pre","field_equals":{}},
-          {"id":"published-later","kind":"trace","route":"functional","point":"product","stages":["code_review"],"phase":"pre","field_equals":{"state":"documented"}},
+          {"id":"published-later","kind":"trace","route":"functional","point":"product","stages":["implementation","code_review"],"phase":"pre","field_equals":{"state":"documented"}},
           {"id":"verdict-later","kind":"trace","route":"functional","point":"verdict","stages":["code_review"],"phase":"pre","field_equals":{"result":"satisfied"}},
           {"id":"reason-later","kind":"trace","route":"reasoning","point":"proof","stages":["code_review"],"phase":"pre","field_equals":{}}]}
 
@@ -153,6 +156,50 @@ def test_new_content_and_trace_are_atomic_with_submission(project):
         assert db.execute('SELECT COUNT(*) FROM content_contracts').fetchone()[0]==1
         assert db.execute('SELECT COUNT(*) FROM trace_point_layers').fetchone()[0]==0
         assert db.execute('PRAGMA foreign_key_check').fetchall()==[]
+
+
+def test_invalid_trace_schedule_in_active_additions_is_rejected_before_submission(project):
+    h,b=setup(project,empty(),empty()); add_test(b['worktree']); fill(b)
+    route={"id":"late","requirements":project['task']['requirements'],"points":[
+        {"id":"method","kind":"method","fields":{},"write_stages":["tests"]}]}
+    additions={"sections":[],"routes":[route],"requirements":[
+        {"id":"late-method","kind":"trace","route":"late","point":"method",
+         "stages":["implementation"],"phase":"pre","field_equals":{}}]}
+    update(b,content_additions=additions)
+    before=h.task_queries.record('T1')['_version']
+    with pytest.raises(HarnessError) as error:
+        h.verify()
+    assert all(value in str(error.value) for value in
+               ('late-method','late','method','tests','implementation'))
+    assert h.task_queries.record('T1')['_version']==before
+    assert h.show()['submission_count']==0
+    with h.store.transaction() as db:
+        assert db.execute('SELECT COUNT(*) FROM content_contracts WHERE task_id=?',('T1',)).fetchone()[0]==1
+
+
+def test_repository_rehydrates_historical_invalid_schedule_without_rewriting_it(project):
+    h,_=setup(project,empty(),empty())
+    source=h._task();contract=deepcopy(source['contract']);contract['id']='LEGACY'
+    legacy={"sections":[],"routes":[
+        {"id":"delivery","requirements":contract['requirements'],"points":[
+            {"id":"method","kind":"method","fields":{},"write_stages":["tests"]}]}],
+        "requirements":[
+            {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
+             "stages":["implementation"],"phase":"pre","field_equals":{}}]}
+    contract['content_contract']=legacy
+    stages=tuple(s['id'] for s in source['process']['stages'])
+    policy=ContentPolicy.restore_layers(source['process']['content_contract'],legacy,stages,
+        tuple(contract['requirements']),tuple(m['id'] for m in contract['methods']),
+        tuple(sorted({name for stage in source['process']['stages'] for name in stage['sections']})))
+    with h.store.unit_of_work() as uow:
+        original=uow.tasks.load('T1')
+        historical=replace(original,state=replace(original.state,task_id='LEGACY'),content_policy=policy)
+        uow.tasks.create(historical,{'contract':contract,'process':deepcopy(source['process']),
+            'sprint_id':None,'goal':contract['goal'],'config_hash':source['config_hash']})
+    with h.store.unit_of_work() as uow:
+        restored=uow.tasks.load('LEGACY')
+    assert restored.content_policy.to_layers()['task']==legacy
+    assert restored.state.version==historical.state.version
 
 
 def test_domain_mark_verified_cannot_bypass_content_gates(project):

@@ -1,0 +1,60 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "async": false,
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m harness hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/160032a4df71fc8b26f4d6903a2007b7238c560d9505f6fb40f5586312161959.json",
+            "statusMessage": "Record session end",
+            "timeout": 3,
+            "type": "command"
+          }
+        ],
+        "matcher": "other"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "additionalContextLimit": 2000,
+            "async": false,
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m harness hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/160032a4df71fc8b26f4d6903a2007b7238c560d9505f6fb40f5586312161959.json",
+            "statusMessage": "Bind Harness session",
+            "timeout": 15,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|compact|clear"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "async": false,
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m harness hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/160032a4df71fc8b26f4d6903a2007b7238c560d9505f6fb40f5586312161959.json",
+            "statusMessage": "Report Harness state",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "additionalContextLimit": 2000,
+            "async": false,
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m harness hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/160032a4df71fc8b26f4d6903a2007b7238c560d9505f6fb40f5586312161959.json",
+            "statusMessage": "Record user turn",
+            "timeout": 15,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -13,11 +13,21 @@ def stages_from_process(process: dict) -> tuple[StageSpec, ...]:
         raise DomainError(f"Неполный/неверный контракт этапов: {exc}") from exc
 
 
-def content_policy_from_metadata(metadata: dict, layers: dict):
+def candidate_content_policy_from_metadata(metadata: dict, layers: dict):
     from ..content_requirements.domain import ContentPolicy
     process = metadata["process"]
     contract = metadata["contract"]
     return ContentPolicy.from_layers(
+        layers["goal"], layers["task"], tuple(s["id"] for s in process["stages"]),
+        tuple(contract["requirements"]), tuple(m["id"] for m in contract["methods"]),
+        tuple(sorted({name for stage in process["stages"] for name in stage["sections"]})))
+
+
+def stored_content_policy_from_metadata(metadata: dict, layers: dict):
+    from ..content_requirements.domain import ContentPolicy
+    process = metadata["process"]
+    contract = metadata["contract"]
+    return ContentPolicy.restore_layers(
         layers["goal"], layers["task"], tuple(s["id"] for s in process["stages"]),
         tuple(contract["requirements"]), tuple(m["id"] for m in contract["methods"]),
         tuple(sorted({name for stage in process["stages"] for name in stage["sections"]})))

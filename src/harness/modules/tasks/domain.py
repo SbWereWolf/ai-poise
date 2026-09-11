@@ -5,7 +5,7 @@ import hashlib
 import json
 from ..content.domain import SectionBook, SectionRule, SectionValue
 from ..foundation.errors import DomainError
-from ..workflow.domain import RouteDefinition, RouteProgress
+from ..workflow.domain import HandlerKind, RouteDefinition, RouteProgress
 from ..workflow.handlers import handler, HandlerResult
 from ..evidence.domain import EvidencePlan, EvidenceBook
 from ..inspection.domain import FeedbackBook
@@ -20,6 +20,7 @@ class TaskStatus(StrEnum):
     ACCEPTED = "accepted"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    SUPERSEDED = "superseded"
 
 
 def identifier(value: str) -> None:
@@ -136,7 +137,7 @@ class Task:
         if (not 0 <= self.state.stage_index < len(self.stages) or
                 self.state.iteration < 1 or self.state.version < 0):
             raise DomainError("Нарушена позиция задачи")
-        if self.state.status in (TaskStatus.AVAILABLE, TaskStatus.COMPLETED, TaskStatus.CANCELLED) and self.state.claimed_by is not None:
+        if self.state.status in (TaskStatus.AVAILABLE, TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.SUPERSEDED) and self.state.claimed_by is not None:
             raise DomainError("Завершённая задача не может оставаться занятой")
 
     @classmethod
@@ -287,6 +288,25 @@ class Task:
         progress = self.route.enter(self.progress, destination)
         return self._enter("user_rework", feedback, actor, destination, progress)
 
+    def rework_failed(self, actor: str, feedback: str, tree: str, execution_key: str,
+                      target: str | None = None) -> Change:
+        self._owned(actor)
+        if not isinstance(feedback,str) or not feedback.strip():
+            raise DomainError("Для rework требуется замечание пользователя")
+        if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
+            raise DomainError("Failed-check rework относится к активному submitted этапу")
+        batch=self.evidence_book.failed_batch(
+            self.stage.stage_id,self.state.iteration,self.state.submission_digest,tree,execution_key)
+        if batch is None:
+            raise DomainError("Нет точного известного failed check batch текущего результата")
+        destination=self.stage.stage_id if target is None else target
+        if destination not in self.route.node(self.stage.stage_id).rework_targets:
+            raise DomainError("Возврат на этот этап не разрешён конфигурацией")
+        if self.route.node(destination).handler == HandlerKind.REVISE and not self.feedback.open_findings:
+            raise DomainError("Нельзя перейти к исправлению без открытых находок")
+        progress=self.route.enter(self.progress,destination)
+        return self._enter("user_failed_check_rework",feedback,actor,destination,progress)
+
     def restart_action(self, actor, feedback, target):
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.route.node(self.stage.stage_id).handler.value not in ('apply_plan','publish'):
@@ -335,7 +355,8 @@ class Task:
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
             raise DomainError("Наблюдения принадлежат активному submitted этапу")
-        book = self.evidence_book.record_batch(self.stage.stage_id,self.state.iteration,tree,execution_key,receipts)
+        book = self.evidence_book.record_submission_batch(
+            self.stage.stage_id,self.state.iteration,tree,execution_key,self.state.submission_digest,receipts)
         if book == self.evidence_book:
             return self._unchanged()
         change = self._change('observations_recorded',None,None)
@@ -394,6 +415,8 @@ class Task:
         self._owned(actor)
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("Нужна инструкция пользователя об отмене")
+        if self.state.status == TaskStatus.SUPERSEDED:
+            raise DomainError("A superseded Task is immutable")
         if self.state.status == TaskStatus.CANCELLED:
             return self._unchanged()
         return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)
@@ -405,3 +428,16 @@ class Task:
         if self.state.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
             return self._unchanged()
         return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)
+
+    def supersede(self, actor: str, reason: str) -> Change:
+        self._owned(actor)
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Task replacement reason is required")
+        if self.state.status not in (
+            TaskStatus.AVAILABLE,
+            TaskStatus.ACTIVE,
+            TaskStatus.VERIFIED,
+            TaskStatus.ACCEPTED,
+        ):
+            raise DomainError("Only an unfinished Task can be superseded")
+        return self._change("superseded", reason, None, status=TaskStatus.SUPERSEDED, claimed_by=None)

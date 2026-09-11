@@ -10,6 +10,7 @@ class WorkTools:
         self.runtime=runtime
         self.interactions=runtime.interactions
         self.resources=runtime.work_resources
+        self.task_queries=runtime.task_queries
 
     def invoke(self,packet):
         h=self.runtime
@@ -20,7 +21,7 @@ class WorkTools:
         # Count all received user messages during current work, independently
         # of the requested tool or the supplied reason. Completed work is not
         # charged for an unrelated later query.
-        bound_before = before if before is not None and before['status'] not in ('completed','cancelled') else None
+        bound_before = before if before is not None and before['status'] not in ('completed','cancelled','superseded') else None
         self.interactions.record(events,h.session,bound_before)
         telemetry=h.accounting.prepare(req['telemetry']) if 'telemetry' in req else None
         h.accounting.begin(op,bound_before,telemetry,events[-1].identity if events else None)
@@ -34,6 +35,7 @@ class WorkTools:
             elif op=='verify':out=self._verify(args)
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()
+            elif op=='integrate':out=h.integration_tools.apply(args)
             elif op=='cancel':out=h.cancel(args['reason'])
             elif op=='artifacts':
                 task=h.current_task()
@@ -47,12 +49,12 @@ class WorkTools:
             else:raise HarnessError('Unreachable work operation')
         except Exception:
             after=h.current_task()
-            self.interactions.record(events,h.session,after if after is not None and after['status'] not in ('completed','cancelled') else bound_before)
+            self.interactions.record(events,h.session,after if after is not None and after['status'] not in ('completed','cancelled','superseded') else bound_before)
             if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,after)
             h.accounting.finish(op,before,after,{'status':'rejected'})
             raise
         current=h.current_task()
-        self.interactions.record(events,h.session,current if current is not None and current['status'] not in ('completed','cancelled') else bound_before)
+        self.interactions.record(events,h.session,current if current is not None and current['status'] not in ('completed','cancelled','superseded') else bound_before)
         self.interactions.delivered(current,out)
         if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,current)
         h.accounting.finish(op,before,current,out)
@@ -96,7 +98,13 @@ class WorkTools:
             if kind=='accounting':value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
             elif kind=='tool_result':value=h.show_output(query['receipt_id'],query['representation'],query['range'])
             elif kind=='sprint':value=h.sprint_tools.query(query['sprint_id'],query['view'])
+            elif kind=='work_overview':
+                sprint_statuses=query['sprint_statuses'];task_statuses=query['standalone_task_statuses']
+                sprints=h.sprint_tools.overviews();standalone=h.task_queries.standalone_summary()
+                value={'sprints':sprints if sprint_statuses is None else [x for x in sprints if x['status'] in sprint_statuses],
+                       'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
             elif kind=='task':value=h.show()
+            elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])
             elif kind=='messages':value=self.interactions.summary(h.current_task())
             elif kind=='content':value=h.show_content()
             elif kind=='evidence':value=h.show_evidence()

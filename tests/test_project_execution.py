@@ -19,7 +19,7 @@ def snapshot_source(tmp_path):
     source = Path(__file__).resolve().parents[1]
     repo = tmp_path / 'actual-source'
     repo.mkdir()
-    for folder in ('src', 'tests', 'config', 'examples', 'tools', 'skills'):
+    for folder in ('src', 'tests', 'config', 'examples', 'tools', '.agents'):
         shutil.copytree(source / folder, repo / folder,
                         ignore=shutil.ignore_patterns('__pycache__', '.pytest_cache'))
     for filename in ('pyproject.toml', '.gitignore', 'AGENTS.md'):

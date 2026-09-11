@@ -39,11 +39,11 @@ def test_noncommand_expectations_match_input():
 
 def test_live_config_and_all_cancellation_scopes_are_canonical():
     docs=Path(__file__).resolve().parents[1]/'docs'
-    requirements=(docs/'requirements.md').read_text()
-    goal_config=(docs/'goal-config.md').read_text()
-    sprints=(docs/'sprints.md').read_text()
-    batch=(docs/'batch-work.md').read_text()
-    library=(docs/'library-api.md').read_text()
+    requirements=(docs/'governance/requirements.md').read_text()
+    goal_config=(docs/'configuration/goal-config.md').read_text()
+    sprints=(docs/'workflows/sprints.md').read_text()
+    batch=(docs/'workflows/batch-work.md').read_text()
+    library=(docs/'architecture/library-api.md').read_text()
     combined='\n'.join((requirements,goal_config,sprints,batch,library))
 
     assert 'Stage iteration отдельно фиксирует project/execution/tool/hook snapshot' not in requirements

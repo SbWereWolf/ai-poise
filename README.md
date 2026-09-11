@@ -12,33 +12,31 @@ AI poise — локальное приложение для работы AI-аг
 cd /home/sbwerewolf/workdata/ai-poise
 .venv/bin/harness --help
 
-export HARNESS_CONFIG="$PWD/config/projects/ai-poise/project.json"
-export HARNESS_SESSION="$(.venv/bin/python -c 'import uuid; print(uuid.uuid4())')"
 ```
 
-Сохраните значения переменных для следующих команд. При отдельных запусках оболочки передавайте тот же `HARNESS_SESSION` явно.
+Текущая установка работает только через источник `runtime_event`: хуки Codex передают агенту путь к сессионному `work.sh`. Агент вызывает его через Bash; launcher выбирает конфигурацию и сессию. Если путь не получен, сначала нужно проверить обнаружение, разрешение и исполнение хуков. Самостоятельная генерация сессии и ручная регистрация сообщений не заменяют подключение.
 
-Для подготовки нового проекта см. [настройку проекта](docs/project-setup.md), для этой установки — [локальные пути и команды](docs/project-setup.md#локальный-проект-ai-poise). Повторно создавать конфигурацию или запускать seed для уже настроенного ai-poise не требуется.
+Для подготовки нового проекта см. [настройку проекта](docs/configuration/project-setup.md), для этой установки — [локальные пути и команды](docs/configuration/project-setup.md#локальный-проект-ai-poise). Повторно создавать конфигурацию или запускать seed для уже настроенного ai-poise не требуется.
 
 ## Работа с задачами
 
 `bootstrap` начинает или возобновляет работу, `verify` проверяет результат текущего этапа. Это JSON-операции команды `harness work`.
 
-Минимальный пример чтения **без формальной задачи**, в новой сессии из предыдущего блока:
+Минимальный пример чтения **без формальной задачи**. Задайте `AI_POISE_WORK` точным путём из нативного hook-контекста; не копируйте launcher другой сессии:
 
 ```bash
-.venv/bin/harness work <<'JSON'
+bash "${AI_POISE_WORK:?Set the launcher path supplied by the native hook}" <<'JSON'
 {"operation":"bootstrap","input":{"task":null,"decision":null,"feedback":null,"rework_stage":null},"messages":[]}
 JSON
 
-.venv/bin/harness work <<'JSON'
+bash "${AI_POISE_WORK:?Set the launcher path supplied by the native hook}" <<'JSON'
 {"operation":"verify","input":{"result":null,"artifacts":[]},"messages":[]}
 JSON
 ```
 
 Ожидаемые статусы — `read_only` и `read_only_verified`. Последний означает завершение сессии чтения, а не проверку содержательных результатов.
 
-Для формальной задачи передайте её ID в `bootstrap`, работайте в выданном worktree и заполните полученный `result_template` для `verify`. После проверки этапа агент докладывает результат и останавливается. Принятие результата и переход дальше — отдельные действия. Форматы пакетов описаны в [API работы](docs/batch-work.md), выбор задач и зависимости — в [API спринтов](docs/sprints.md).
+Для формальной задачи передайте её ID в `bootstrap`, работайте в выданном worktree и заполните полученный `result_template` для `verify`. После проверки этапа агент докладывает результат и останавливается. Принятие результата и переход дальше — отдельные действия. Форматы пакетов описаны в [API работы](docs/workflows/batch-work.md), выбор задач и зависимости — в [API спринтов](docs/workflows/sprints.md).
 
 ## Структура проекта
 
@@ -46,7 +44,7 @@ JSON
 |---|---|
 | `src/` | Реализация AI poise |
 | `config/` | Настройки инструментов, шаблоны и конфигурации процессов; рабочий проект — `config/projects/ai-poise/` |
-| `projects/ai-poise/` | Рабочие данные: `tasks.sqlite`, `.runtime/`, `task/`, `sprint/` и `worktrees/` |
+| `projects/ai-poise/` | Рабочие данные: Task DB и её резервные копии в `database/`, а также `.runtime/`, `task/`, `sprint/` и `worktrees/` |
 | `docs/` | Руководства и спецификации; организация документов ещё пересматривается |
 | `examples/` | Примеры API и входных данных |
 | `skills/` | Инструкции агентам по работе с AI poise и его разработке |
@@ -56,11 +54,11 @@ JSON
 
 В корне также находятся `pyproject.toml` с метаданными и требованиями Python, `requirements-dev.txt`, `.gitignore` и правила [AGENTS.md](AGENTS.md).
 
-Для этой установки конфигурация и рабочие данные разделены: `config/projects/ai-poise/` и `projects/ai-poise/`. Перенос навыков в `.agents/skills/` и отдельная Requirements DB пока запланированы; текущую работу они не обеспечивают.
+Для этой установки конфигурация и рабочие данные разделены: `config/projects/ai-poise/` и `projects/ai-poise/`. Навыки проекта находятся в `.agents/skills/`; отдельная Requirements DB пока запланирована и текущую работу не обеспечивает.
 
 ## Документация
 
-- [Настройка проекта](docs/project-setup.md) — публикация конфигурации и локальная установка.
-- [API работы](docs/batch-work.md) — bootstrap, результаты этапов и артефакты.
-- [Спринты](docs/sprints.md) — задачи, зависимости и принятие результатов.
+- [Настройка проекта](docs/configuration/project-setup.md) — публикация конфигурации и локальная установка.
+- [API работы](docs/workflows/batch-work.md) — bootstrap, результаты этапов и артефакты.
+- [Спринты](docs/workflows/sprints.md) — задачи, зависимости и принятие результатов.
 - [Правила агентов](AGENTS.md) — обязательный рабочий процесс и ссылки на навыки.

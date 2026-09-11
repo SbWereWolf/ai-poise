@@ -16,13 +16,13 @@ Deliver the working path rather than delaying it for speculative combinations of
 
 ## Start and finish work
 
-Work from this Harness repository and explicitly select the configured project. Target codebases have their own applicable `AGENTS.md` files; read those before working on them. Use the [Harness skill](skills/harness/SKILL.md) for task work and the [development skill](skills/harness-development/SKILL.md) when changing Harness itself. The [source rules](src/AGENTS.md) govern its implementation.
+Work from this Harness repository and explicitly select the configured project. Target codebases have their own applicable `AGENTS.md` files; read those before working on them. Use the [Harness skill](.agents/skills/harness/SKILL.md) for task work and the [development skill](.agents/skills/harness-development/SKILL.md) when changing Harness itself. The [source rules](src/AGENTS.md) govern its implementation.
 
 Before changing code, use a dedicated Git worktree. For Harness, use `tasks/<task-id>`; target applications use their configured branch rule. Do not require a worktree for a read-only summary. Git supplies changed files; the agent does not register them manually.
 
 One session works on one task. Complete the requested stage, verify it, report the result and stop until the next user instruction. Before changing tasks, finish, hand off or safely discard the current work. A read-only query about another task does not switch ownership.
 
-Use `harness project` or `harness project-init` with an explicitly selected template to prepare a new project; do not hand-edit its managed configuration. See [project setup](docs/project-setup.md).
+Use `harness project` or `harness project-init` with an explicitly selected template to prepare a new project; do not hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their working files or database directly. Native coding tools remain appropriate for source code, tests and target documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not grant ongoing authorization. Report implemented and tested capabilities separately from planned ones.
 
@@ -30,7 +30,7 @@ Count observed user messages without inventing missing messages or token usage. 
 
 ## Shared agent policy
 
-The canonical policy is [Development rules](docs/development-rules.md#общие-правила-агентов). Keep this English projection and its Russian source consistent in the same change.
+The canonical policy is [Development rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2). Keep this English projection and its Russian source consistent in the same change.
 
 - Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`, `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation with behaviour, configuration or workflow changes.
@@ -49,7 +49,7 @@ The canonical policy is [Development rules](docs/development-rules.md#общие
 
 ## Mandatory bootstrap and verification
 
-Follow [Start and finish](docs/development-rules.md#начало-и-завершение-работы) and the [batch API](docs/batch-work.md#verify).
+Follow [Start and finish](docs/governance/development-rules.md#%D0%BD%D0%B0%D1%87%D0%B0%D0%BB%D0%BE-%D0%B8-%D0%B7%D0%B0%D0%B2%D0%B5%D1%80%D1%88%D0%B5%D0%BD%D0%B8%D0%B5-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%8B) and the [batch API](docs/workflows/batch-work.md#verify).
 
 Before substantive project work, explicitly select the working project configuration and session identity, then invoke `bootstrap` through Harness's public work API. Only prerequisite inspection needed to locate/configure that entry point precedes it. Consume the returned task/stage, capabilities and result template; do not invent task IDs, state or a worktree. Resume through the same API.
 
@@ -61,10 +61,12 @@ If configuration, runtime or a required operation is unavailable, report the con
 
 ## Executable entry point for this installation
 
-`bootstrap` and `verify` are JSON operations of Harness's existing `work` CLI, not standalone skills, shell commands or MCP tools. The executable is `/home/sbwerewolf/workdata/ai-poise/.venv/bin/harness` (equivalent to `.venv/bin/python -m harness`). Use `HARNESS_CONFIG=/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json` and one explicit `HARNESS_SESSION` identity per session. Preserve that identity across separate shell/tool calls; shell exports are not assumed to persist between calls.
+`bootstrap` and `verify` are JSON operations of Harness's existing `work` CLI, not standalone skills, shell commands or MCP tools. This installation uses only the `codex-hook-main` message source with `mode=runtime_event`. Invoke the session-scoped `work.sh` supplied by the native hook explicitly through Bash, with the work packet on stdin and `messages=[]`. The launcher selects `/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json` and the native session binding; use the same launcher across calls. Never report or replay user messages manually, generate a substitute session, or silently switch to another message source.
 
-Read [Local ai-poise commands](docs/project-setup.md#локальный-проект-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [Harness workflow](skills/harness/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
+If the native hook has not supplied a launcher, complete hook discovery/trust and diagnose its execution before task work. Direct `/home/sbwerewolf/workdata/ai-poise/.venv/bin/harness work` with explicit `HARNESS_CONFIG` and a preserved operator `HARNESS_SESSION` is available for installation diagnostics only; it does not establish a native binding or prove event delivery. Keep `messages=[]` in those diagnostic packets too. The installation contract and recovery steps are in the local project documentation below.
 
-This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`, `task/`, `sprint/`, `worktrees/` and `tasks.sqlite`. This is the user's explicit local placement decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`, separate from mutable data.
+Read [Local ai-poise commands](docs/configuration/project-setup.md#%D0%BB%D0%BE%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are discovered from the [Harness workflow](.agents/skills/harness/SKILL.md) project skill. Do not search for nonexistent skills named `bootstrap` or `verify`.
+
+This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`, `task/`, `sprint/`, `worktrees/`, and `database/`. The live Task DB is `database/tasks.sqlite`, its lock is `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for the old root-level database paths. This is the user's explicit local placement decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`, separate from mutable data.
 
 The initial manifest has `push_required=false`, base ref `master`, and repository readiness `not_checked` because no initial commit existed at setup. Taskless bootstrap/verify do not establish Git/worktree readiness. Before repository-changing task work, verify that the configured base resolves to a commit and contains the required sources. A baseline commit needed to execute the assigned task is authorized by the task workflow; include only the approved project files and preserve unrelated changes.

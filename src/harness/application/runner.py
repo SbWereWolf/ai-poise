@@ -21,6 +21,9 @@ class StageRunner:
     def rework(self, task_id, actor, feedback, entry_tree, target):
         return self.tasks.rework(task_id, actor, feedback, entry_tree, target)
 
+    def rework_failed(self, task_id, actor, feedback, entry_tree, execution_key, target):
+        return self.tasks.rework_failed(task_id,actor,feedback,entry_tree,execution_key,target)
+
     def record_observations(self, task_id, actor, tree, execution_key, receipts):
         return self.tasks.record_observations(task_id,actor,tree,execution_key,receipts)
 

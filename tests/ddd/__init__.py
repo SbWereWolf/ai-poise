@@ -1,1 +1,1 @@
-"""DDD test package."""
+"""Core domain test package."""

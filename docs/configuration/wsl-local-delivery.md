@@ -82,7 +82,7 @@ printf '%s\n' '{"operation":"bootstrap","input":{"task":{"id":"SPRINT-0001"},"de
 
 ## Skills для агента
 
-Для обычной работы: [Harness task workflow](../../skills/harness/SKILL.md#harness-task-workflow). Для изменения Harness: [Harness development](../../skills/harness-development/SKILL.md#harness-development).
+Для обычной работы: [Harness task workflow](../../.agents/skills/harness/SKILL.md#harness-task-workflow). Для изменения Harness: [Harness development](../../.agents/skills/harness-development/SKILL.md#harness-development).
 
 Skill, который опирается на нормативную документацию, должен ссылаться на минимальный конкретный section, достаточный для данного operational rule.
 

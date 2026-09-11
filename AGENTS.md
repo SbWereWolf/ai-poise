@@ -16,7 +16,7 @@ Deliver the working path rather than delaying it for speculative combinations of
 
 ## Start and finish work
 
-Work from this Harness repository and explicitly select the configured project. Target codebases have their own applicable `AGENTS.md` files; read those before working on them. Use the [Harness skill](skills/harness/SKILL.md) for task work and the [development skill](skills/harness-development/SKILL.md) when changing Harness itself. The [source rules](src/AGENTS.md) govern its implementation.
+Work from this Harness repository and explicitly select the configured project. Target codebases have their own applicable `AGENTS.md` files; read those before working on them. Use the [Harness skill](.agents/skills/harness/SKILL.md) for task work and the [development skill](.agents/skills/harness-development/SKILL.md) when changing Harness itself. The [source rules](src/AGENTS.md) govern its implementation.
 
 Before changing code, use a dedicated Git worktree. For Harness, use `tasks/<task-id>`; target applications use their configured branch rule. Do not require a worktree for a read-only summary. Git supplies changed files; the agent does not register them manually.
 
@@ -63,7 +63,7 @@ If configuration, runtime or a required operation is unavailable, report the con
 
 `bootstrap` and `verify` are JSON operations of Harness's existing `work` CLI, not standalone skills, shell commands or MCP tools. The executable is `/home/sbwerewolf/workdata/ai-poise/.venv/bin/harness` (equivalent to `.venv/bin/python -m harness`). Use `HARNESS_CONFIG=/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json` and one explicit `HARNESS_SESSION` identity per session. Preserve that identity across separate shell/tool calls; shell exports are not assumed to persist between calls.
 
-Read [Local ai-poise commands](docs/configuration/project-setup.md#локальный-проект-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [Harness workflow](skills/harness/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
+Read [Local ai-poise commands](docs/configuration/project-setup.md#локальный-проект-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are discovered from the [Harness workflow](.agents/skills/harness/SKILL.md) project skill. Do not search for nonexistent skills named `bootstrap` or `verify`.
 
 This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`, `task/`, `sprint/`, `worktrees/`, and `database/`. The live Task DB is `database/tasks.sqlite`, its lock is `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for the old root-level database paths. This is the user's explicit local placement decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`, separate from mutable data.
 

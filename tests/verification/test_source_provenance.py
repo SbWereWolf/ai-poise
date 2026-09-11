@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import importlib
+import json
 from pathlib import Path
 import sys
 
@@ -417,3 +419,34 @@ def test_unrelated_nonzero_exit_does_not_satisfy_red(project):
     assert result["status"] == "checks_failed"
     assert result["checks"][0]["actual_exit_code"] == 1
     assert result["checks"][0]["passed"] is False
+
+
+def test_example_task_methods_declare_source_provenance(tmp_path, monkeypatch):
+    root = Path(__file__).resolve().parents[2]
+
+    def assert_declared(methods: list[dict]) -> None:
+        assert methods
+        for selected in methods:
+            assert "source_under_test" in selected, selected["id"]
+
+    for name in (
+        "documentation-task.example.json",
+        "evidence-task.example.json",
+        "task.example.json",
+    ):
+        example = json.loads((root / "examples" / name).read_text(encoding="utf-8"))
+        assert_declared(example["methods"])
+
+    monkeypatch.syspath_prepend(str(root / "examples"))
+    demo = importlib.import_module("demo")
+    home = demo.create(tmp_path / "generated-demo")
+    generated = json.loads((home / "task.json").read_text(encoding="utf-8"))
+    assert_declared(generated["methods"])
+
+    actions_demo = importlib.import_module("actions_demo")
+    assert_declared([actions_demo.method("CHECK", "print('checked')")])
+
+    sprint_demo = importlib.import_module("sprint_demo")
+    assert_declared(
+        sprint_demo.task("CHECK", "development", "print('checked')")["methods"]
+    )

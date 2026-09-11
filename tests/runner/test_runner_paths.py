@@ -25,6 +25,7 @@ def setup_project(project, goal):
     probe = ("from src.double import double; assert double(2)==4; print('CHECK_OK')" if goal=="development"
              else "from pathlib import Path; text=Path('docs/guide.md').read_text(); assert text.startswith('# Guide'); print('CHECK_OK')")
     contract["methods"]=[{"id":"TARGETED","argv":[sys.executable,"-B","-c",probe],"cwd":".","environment":{},
+      "source_under_test":{"kind":"repository","bindings":[{"kind":"cwd","path":"."}]},
       "timeout_seconds":10,"expected_exit_code":0,"stdout_contains":["CHECK_OK"],"stderr_contains":[]}]
     contract["checks"]={s["id"]:["TARGETED"] for s in proc["stages"]}
     contract["evidence_plan"]={s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in proc["stages"]}

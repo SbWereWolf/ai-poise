@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Срез **HARNESS-DDD-04B**.
+Обновлено: **2026-09-11T05:57:22+05:00**. Срез **HARNESS-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -57,6 +57,12 @@ WorkTools — application facade, не новый агрегат. Task оста�
 Sprint владеет планом/графом/решениями; Task владеет доступностью, началом и состоянием работы. Published Sprint создаёт Task через общий доменный builder и TaskRepository в одной UoW. Клиент не подменяет исходные шаблоны/таблицы рабочими JSON patch.
 
 `modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem. `infrastructure/sprint_work` выполняет только доступ к наблюдаемым Git-объектам и делегирует Task API. База сериализует короткие записи; проверки/commit/push параллельных worktrees не держат общий DB lock. Readiness графа не равна auto-merge: разные result revisions возвращаются как integration_required.
+
+### Публичный обзор работ — 2026-09-11
+
+`WorkTools` композиционно строит `work_overview` через два узких read-порта: Sprint предоставляет идентификаторы опубликованного реестра и полные dependency-aware overview, Task предоставляет summary только самостоятельных задач. Application-слой проверяет разные словари статусов, применяет независимые фильтры к готовым owner-проекциям и собирает транспортный объект `{"sprints": ..., "standalone_tasks": ...}`.
+
+Этот query не становится новым владельцем lifecycle, membership или readiness. Sprint по-прежнему определяет факт публикации, состояние графа, `eligible`/`blocked` и доступность result objects; Task определяет принадлежность и lifecycle standalone Task. SQLite-адаптеры реализуют параметризованные project-scoped reads, но клиент не получает SQL-интерфейс. Последовательное чтение двух read-models не объявляется единым cross-domain snapshot. Публичный пакет и ограничения результата описаны в [batch work](batch-work.md#обзор-опубликованных-спринтов-и-самостоятельных-задач), семантика Sprint — в [Sprint API](sprints.md#реестр-опубликованных-sprint).
 
 ## DDD-06: внешние планы
 Владелец плана — Actions: PlanSpec/ActionRun/Publication. Task остаётся единственным владельцем verified/accepted и переходов. Application PlanCommands связывает их коротким UoW; Git/command адаптер не выполняет SQL. Репозиторий actions сохраняет run+event, а не весь Task обходным путём.

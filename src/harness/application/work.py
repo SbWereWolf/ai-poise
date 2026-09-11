@@ -10,6 +10,7 @@ class WorkTools:
         self.runtime=runtime
         self.interactions=runtime.interactions
         self.resources=runtime.work_resources
+        self.task_queries=runtime.task_queries
 
     def invoke(self,packet):
         h=self.runtime
@@ -34,6 +35,7 @@ class WorkTools:
             elif op=='verify':out=self._verify(args)
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()
+            elif op=='integrate':out=h.integration_tools.apply(args)
             elif op=='cancel':out=h.cancel(args['reason'])
             elif op=='artifacts':
                 task=h.current_task()
@@ -102,6 +104,7 @@ class WorkTools:
                 value={'sprints':sprints if sprint_statuses is None else [x for x in sprints if x['status'] in sprint_statuses],
                        'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
             elif kind=='task':value=h.show()
+            elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])
             elif kind=='messages':value=self.interactions.summary(h.current_task())
             elif kind=='content':value=h.show_content()
             elif kind=='evidence':value=h.show_evidence()

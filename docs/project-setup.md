@@ -145,7 +145,9 @@ python examples/project_pilot.py \
 | Рабочая конфигурация | `config/projects/ai-poise/project.json` |
 | Конфигурации процессов | `config/projects/ai-poise/config/processes/` |
 | Результат публикации | `config/projects/ai-poise/setup-receipt.json` |
-| Task DB | `projects/ai-poise/tasks.sqlite` |
+| Task DB | `projects/ai-poise/database/tasks.sqlite` |
+| Блокировка Task DB | `projects/ai-poise/database/tasks.lock` |
+| Резервные копии Task DB | `projects/ai-poise/database/backups/` |
 | Временные данные сессий | `projects/ai-poise/.runtime/` |
 | Задачи и их артефакты | `projects/ai-poise/task/` |
 | Спринты и их артефакты | `projects/ai-poise/sprint/` |
@@ -153,7 +155,7 @@ python examples/project_pilot.py \
 | Локальный Python 3.13 | `projects/ai-poise/.python/` |
 | Окружение с установленным Harness | `.venv/` |
 
-Пользователь явно потребовал рабочие данные внутри проекта. Здесь используется `projects/ai-poise/`, исключённый из Git, вместо размещения вне обслуживаемой кодовой базы. Это уточнение конкретной установки. Временные данные сессии удаляются при завершении; пустые корневые папки задач и спринтов ещё не означают создание задач или спринта.
+Пользователь явно потребовал рабочие данные внутри проекта. Здесь используется `projects/ai-poise/`, исключённый из Git, вместо размещения вне обслуживаемой кодовой базы. Task DB, её lock и резервные копии изолированы в `projects/ai-poise/database/`; совместимых файлов или ссылок на них в корне `projects/ai-poise/` нет. Это уточнение конкретной установки. Временные данные сессии удаляются при завершении; пустые корневые папки задач и спринтов ещё не означают создание задач или спринта.
 
 `bootstrap` и `verify` — значения поля `operation` публичной команды `work`. Отдельных команд оболочки или скиллов с такими именами нет. Существующий навык — `skills/harness/SKILL.md`, его агент читает по ссылке из корневых правил. Автоматическое обнаружение навыка будет настроено отдельным согласованным переносом в `.agents/skills/`.
 

@@ -96,9 +96,11 @@ class TaskQueries:
         if rowmap is not None:
             from .transfer_records import relocate_receipt
             execution=relocate_receipt(execution,json.loads(rowmap['data']))
+        report = execution["last_report"]
         return {**metadata, **execution, "id":row["id"],
                 "status":row["status"],"stage_index":row["stage_index"],"iteration":row["iteration"],
-                "claimed_by":row["claimed_by"],"_version":row["version"],"_execution_version":row["execution_version"]}
+                "claimed_by":row["claimed_by"],"result_commit":None if report is None else report["commit"],
+                "_version":row["version"],"_execution_version":row["execution_version"]}
 
     def history(self, task_id: str) -> list[dict]:
         with self.database.transaction() as db:

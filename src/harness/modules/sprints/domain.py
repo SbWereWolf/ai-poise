@@ -5,6 +5,7 @@ from collections import deque
 from ..content.domain import SectionRule, SectionBook
 from ..verification.domain import exact_keys
 from ..tasks.definition import path_identifier
+from ..tasks.allocation import creation_alias
 from ..foundation.errors import DomainError
 
 
@@ -77,7 +78,7 @@ class SprintPlan:
             if not isinstance(v,dict) or any(not isinstance(k,str) or not k or not isinstance(s,str) for k,s in v.items()):
                 raise DomainError('sections requires named text values')
             result['sections'].update(v)
-        tasks={t['id']:t for t in result['tasks']}
+        tasks={creation_alias(t):t for t in result['tasks']}
         remove=by_kind['remove_tasks']['ids'] if 'remove_tasks' in by_kind else []
         additions=by_kind['upsert_tasks']['tasks'] if 'upsert_tasks' in by_kind else []
         if not isinstance(remove,list) or any(not isinstance(x,str) for x in remove) or len(remove)!=len(set(remove)):
@@ -85,13 +86,12 @@ class SprintPlan:
         if not isinstance(additions,list):raise DomainError('upsert_tasks requires task objects')
         ids=[]
         for t in additions:
-            if not isinstance(t,dict) or 'id' not in t:raise DomainError('Every draft task needs an ID')
-            ids.append(path_identifier(t['id']))
+            ids.append(path_identifier(creation_alias(t)))
         if len(ids)!=len(set(ids)) or set(ids)&set(remove):raise DomainError('Conflicting task mutations in batch')
         for i in remove:
             if i not in tasks:raise DomainError(f'Unknown removed draft task {i}')
             del tasks[i]
-        for t in additions:tasks[t['id']]=deepcopy(t)
+        for t in additions:tasks[creation_alias(t)]=deepcopy(t)
         result['tasks']=[tasks[i] for i in sorted(tasks)]
         if 'dependencies' in by_kind:
             v=by_kind['dependencies']['items']
@@ -106,10 +106,11 @@ class SprintPlan:
         return SprintPlan(result)
 
     def graph_errors(self, policy):
-        errors=[];ids={t['id'] for t in self.data['tasks']};edges=self.data['dependencies']
+        errors=[];ids={creation_alias(t) for t in self.data['tasks']};edges=self.data['dependencies']
         for t in self.data['tasks']:
-            if t.get('sprint_id')!=self.data['id']:
-                errors.append(f"Task {t['id']} belongs to a different sprint or has no explicit membership")
+            body=t['task'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t
+            if body.get('sprint_id')!=self.data['id']:
+                errors.append(f"Task {creation_alias(t)} belongs to a different sprint or has no explicit membership")
         seen=set();adj={i:[] for i in ids};indegree=dict.fromkeys(ids,0)
         for e in edges:
             a,b=e['predecessor'],e['successor']
@@ -194,7 +195,7 @@ class Sprint:
             decisions=self.decisions+({'kind':'dependencies_changed','reason':reason},))
 
     def cancellation_scope(self,ids,mode):
-        known={t['id'] for t in self.plan.data['tasks']}
+        known={creation_alias(t) for t in self.plan.data['tasks']}
         if not isinstance(ids,list) or not ids or any(not isinstance(i,str) for i in ids) or len(set(ids))!=len(ids) or set(ids)-known:
             raise DomainError('Cancellation requires unique task members of this sprint')
         if mode not in ('single','cascade'):raise DomainError('Explicit cancellation mode required')
@@ -214,7 +215,7 @@ class Sprint:
                        decisions=self.decisions+({'kind':'force_close' if forced else 'cancel_tasks','tasks':list(ids),'reason':reason},))
 
     def overview(self,states,resumable):
-        ids=[t['id'] for t in self.plan.data['tasks']]
+        ids=[creation_alias(t) for t in self.plan.data['tasks']]
         if self.state=='draft':return {'status':'draft','eligible':[],'blocked':[],'active':[]}
         if self.state=='cancelled':return {'status':'cancelled','eligible':[],'blocked':[],'active':[]}
         if set(ids)!=set(states):raise DomainError('Sprint membership and task states disagree')

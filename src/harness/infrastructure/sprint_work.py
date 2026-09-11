@@ -9,14 +9,16 @@ class SprintWork:
     def __init__(self,runtime):
         self.h=runtime
         self.commands=SprintCommands(runtime.store.unit_of_work,runtime.cfg['project'],runtime.session,
-            runtime.cfg['sprint'],runtime.processes,runtime.cfg['automatic_checks'],runtime.config_hash)
+            runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.processes,
+            runtime.cfg['automatic_checks'],runtime.config_hash)
 
     def known(self,sprint_id):return self.commands.known(sprint_id)
 
     def apply(self,packet):
         result=self.commands.apply(packet)
         # Receipt proves application exactly once; current context may have advanced.
-        return self.overview(result['sprint'])
+        overview=self.overview(result['sprint'])
+        return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {})}
 
     def select(self,sprint_id):
         current=self.h.current_task()
@@ -74,8 +76,10 @@ class SprintWork:
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise HarnessError('Task is not eligible: '+str(state['blocked']))
         if record['config_hash']!=h.config_hash:raise HarnessError('Published task belongs to another execution configuration')
-        execution=h.prepare_task_execution(task_id,None if state is None else state['start_revisions'][task_id])
+        base=h._creation_base(None if state is None else state['start_revisions'][task_id])
+        execution=h._execution_reservation(task_id,base)
         h.task_commands.start(task_id,h.session,execution)
+        h._reconcile_task_worktree(h.task_queries.record(task_id))
         h.store.bind(h.session,task_id)
         if sid is not None:self.commands.select(sid)
         return h._context(h._task(),True)

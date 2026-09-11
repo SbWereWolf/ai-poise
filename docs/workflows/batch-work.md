@@ -125,7 +125,9 @@ Content pre-gate может отклонить уже сохранённый к�
 
 `integrate` — одна публичная операция для локальной интеграции окончательно принятой Task и последующей уборки. Она доступна только когда Task имеет статус `completed` и сохранённый итоговый commit. Операция использует `git.repository` и локальную ветку `git.base_ref` выбранной конфигурации; эта ветка должна быть checkout текущего repository worktree.
 
-Исходный task worktree и target worktree должны быть чистыми, записанная task-ветка должна указывать на `expected_source_commit`, а текущий target HEAD — точно совпадать с `expected_target_commit`. Проверки выполняются до первого Git-эффекта. `authorization` хранит явное пользовательское основание и используется как сообщение merge commit, поэтому обязано соответствовать `git.commit_pattern`.
+Исходный task worktree должен быть чистым, записанная task-ветка должна указывать на `expected_source_commit`, а текущий target HEAD — точно совпадать с `expected_target_commit`. Локальные staged, unstaged и untracked изменения target допустимы, только если каждый их путь не пересекается с incoming delta между merge base и `expected_source_commit`; совпадение, родительский или дочерний путь считаются пересечением. Незавершённые merge, cherry-pick, revert, rebase и unmerged index блокируют интеграцию с указанием наблюдаемого состояния и действия восстановления. Проверки HEAD, локальных путей, incoming paths и неоднозначного Git-состояния выполняются до первого Git-эффекта. `authorization` хранит явное пользовательское основание и используется как сообщение merge commit, поэтому обязано соответствовать `git.commit_pattern`.
+
+Безопасная интеграция использует отдельный служебный index. Поэтому непересекающиеся локальные файлы target и их staged/unstaged классификация не попадают в merge commit и сохраняются побайтно; AI poise не выполняет для них stash, reset, clean, stage, commit или delete. После успешного commit основной index синхронизируется по incoming paths из зафиксированного `HEAD`, а не из текущих файлов worktree. Если incoming path изменился после preflight, продолжение до commit отклоняется с точными путями и предложением восстановить pending merge либо прервать его.
 
 ```json
 {
@@ -142,10 +144,10 @@ Content pre-gate может отклонить уже сохранённый к�
 }
 ```
 
-Команда выполняется через уже выбранные `HARNESS_CONFIG` и `HARNESS_SESSION`:
+Команда выполняется через уже выбранные `POISE_CONFIG` и `POISE_SESSION`:
 
 ```bash
-harness work <<'JSON'
+poise work <<'JSON'
 {"operation":"integrate","input":{"request_id":"integrate-0016-1","task_id":"0016","expected_source_commit":"0123456789abcdef0123456789abcdef01234567","expected_target_commit":"89abcdef0123456789abcdef0123456789abcdef","authorization":"Integrate accepted task 0016","resolutions":[]},"messages":[]}
 JSON
 ```
@@ -156,7 +158,7 @@ JSON
 
 - `integrated`: target содержит source commit, task worktree удалён, локальная task-ветка удалена через безопасный `git branch -d`; повтор возвращает сохранённый результат с `replayed: true`;
 - `awaiting_resolution`: Git оставлен в точном conflict state, source worktree и ветка сохранены; исправьте только перечисленные файлы обычным редактором и повторите тот же пакет, заменив `resolutions` на один объект для каждого conflict path;
-- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD/MERGE_HEAD/cleanliness не изменились;
+- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD, MERGE_HEAD, служебный index и сохранённый preflight подтверждают принадлежность этой интеграции;
 - `cleanup_pending`: target уже содержит source, но уборка заблокирована. Source не удаляется вслепую; после устранения причины тот же пакет продолжает только уборку.
 
 Пример продолжения конфликта — все остальные поля исходного intent остаются прежними:
@@ -170,7 +172,7 @@ JSON
 ]
 ```
 
-Операция сама выполняет Git staging, commit, worktree removal и branch deletion. Пользователю не требуется запоминать служебные Git-команды. Посторонние unstaged/untracked изменения target блокируют продолжение и уборку; force-delete не используется.
+Операция сама выполняет Git staging incoming paths, commit, worktree removal и branch deletion. Пользователю не требуется управлять служебным index. При конфликте повтор допускает только сохранённые до preflight локальные пути и объявленные conflict paths; новое постороннее изменение или изменение другого incoming path требует отдельного восстановления. Непересекающиеся локальные изменения не блокируют последующую уборку source; если Git не смог безопасно продолжить, source worktree и ветка сохраняются, успех не записывается. Force-delete не используется.
 
 Состояние и полная история переходов читаются пакетным query после перезапуска процесса:
 
@@ -243,7 +245,7 @@ Query не поддерживает pagination и не обещает один c
 Событие сохраняется даже если последующий verify не прошёл: это фактический расход взаимодействия. Поэтому отказ Task не откатывает ledger. Первичное связывание сообщения с task неизменно; read/retry не переносит расход на другую task. Подготовительное ad-hoc-событие может получить первый task binding в последующем bootstrap.
 
 ## Выдача
-`work` возвращает валидный JSON, не обрезанный посреди объекта. Лимит включает весь ответ. Действующий Task response сохраняется под её root; краткий ответ содержит ссылку на полное содержание. Слишком маленький output budget отклоняется до создания worktree. Exit 0 — получен штатный результат, в том числе `awaiting_continuation`; exit 1 — проверки/обязательства ещё не выполнены; exit 2 — неправильный вход/конфигурация. Это не вывод о наличии бага Harness по любому non-zero.
+`work` возвращает валидный JSON, не обрезанный посреди объекта. Лимит включает весь ответ. Действующий Task response сохраняется под её root; краткий ответ содержит ссылку на полное содержание. Слишком маленький output budget отклоняется до создания worktree. Exit 0 — получен штатный результат, в том числе `awaiting_continuation`; exit 1 — проверки/обязательства ещё не выполнены; exit 2 — неправильный вход/конфигурация. Это не вывод о наличии бага AI poise по любому non-zero.
 
 Обычный read-only taskless verify принимает result=null/artifacts=[] и очищает runtime. Taskless создание постоянного deliverable не реализовано этим срезом; formal task нужна для durable task-result.
 
@@ -264,7 +266,7 @@ Query не поддерживает pagination и не обещает один c
 
 Обновлено: **2026-09-07T00:07:53+05:00**. `handoff` в общем work packet принимает request_id/reason/result/commit_message/artifact_paths. Только paths для готовых файлов. Resume — обычный bootstrap существующей задачи другим actor. `show.queries` принимает kind=tool_result с receipt_id/representation/range; доступ ограничен текущей задачей.
 
-`harness runtime --settings <file>` добавляет внешний envelope identity/capabilities/transcript/work, автоматически устанавливает внутреннюю session и передаёт work в тот же прикладной API. Никаких отдельных record-message или set-session вызовов. Полное описание в [runtime](../configuration/runtime-services.md) и [handoff](local-handoff.md).
+`poise runtime --settings <file>` добавляет внешний envelope identity/capabilities/transcript/work, автоматически устанавливает внутреннюю session и передаёт work в тот же прикладной API. Никаких отдельных record-message или set-session вызовов. Полное описание в [runtime](../configuration/runtime-services.md) и [handoff](local-handoff.md).
 
 
 ## Transfer — DDD-07B (2026-09-07T00:50:18+05:00)

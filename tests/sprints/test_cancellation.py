@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.application.work import WorkTools
-from harness.modules.foundation.errors import HarnessError
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.modules.foundation.errors import PoiseError
+from poise.runtime import Poise
 from batch.helpers import bootstrap as bootstrap_task, request, result, verify as verify_task
 from conftest import add_test, write_json
 from sprints.helpers import bootstrap, draft, publish, setup, task, verify
@@ -30,7 +30,7 @@ def sprint_plan(tools, sprint_id="S"):
 
 
 def test_standalone_cancel_ignores_config_digest_and_releases_claim(project):
-    original = WorkTools(Harness(project["config_path"], "owner"))
+    original = WorkTools(Poise(project["config_path"], "owner"))
     context = bootstrap_task(original, project)
     add_test(context["worktree"])
     verified = verify_task(original, result(context, "Keep this verified result"))
@@ -38,7 +38,7 @@ def test_standalone_cancel_ignores_config_digest_and_releases_claim(project):
     before_report = deepcopy(original.runtime.task_queries.record("T1")["last_report"])
 
     change_limit(project)
-    current = WorkTools(Harness(project["config_path"], "owner"))
+    current = WorkTools(Poise(project["config_path"], "owner"))
     cancelled = current.invoke(request("cancel", {"reason": "User cancels this Task"}))
     record = current.runtime.task_queries.record("T1")
 
@@ -59,16 +59,16 @@ def test_standalone_cancel_ignores_config_digest_and_releases_claim(project):
 
 def test_selected_sprint_cancel_uses_task_domain_and_is_atomic(project):
     setup(project)
-    planner = WorkTools(Harness(project["config_path"], "planner"))
+    planner = WorkTools(Poise(project["config_path"], "planner"))
     planned = draft(planner, [task(project, "A"), task(project, "B")])
     publish(planner, planned["revision"])
-    worker = WorkTools(Harness(project["config_path"], "worker-A"))
+    worker = WorkTools(Poise(project["config_path"], "worker-A"))
     context = bootstrap(worker, "A")
     marker = Path(context["worktree"]) / "unfinished.txt"
     marker.write_text("owned WIP\n")
 
     change_limit(project)
-    current = WorkTools(Harness(project["config_path"], "planner"))
+    current = WorkTools(Poise(project["config_path"], "planner"))
     overview = current.invoke(request("sprint", {
         "action": "cancel_tasks",
         "sprint_id": "S",
@@ -96,18 +96,18 @@ def test_selected_sprint_cancel_uses_task_domain_and_is_atomic(project):
 
 def test_selected_sprint_cancel_rejects_pending_batch_without_partial_effect(project):
     setup(project)
-    planner = WorkTools(Harness(project["config_path"], "planner"))
+    planner = WorkTools(Poise(project["config_path"], "planner"))
     planned = draft(planner, [task(project, "A"), task(project, "B")])
     publish(planner, planned["revision"])
-    worker_a = WorkTools(Harness(project["config_path"], "worker-A"))
+    worker_a = WorkTools(Poise(project["config_path"], "worker-A"))
     bootstrap(worker_a, "A")
-    worker_b = WorkTools(Harness(project["config_path"], "worker-B"))
+    worker_b = WorkTools(Poise(project["config_path"], "worker-B"))
     bootstrap(worker_b, "B")
     pending = worker_b.runtime.current_task()
     pending["pending"] = "checks"
     worker_b.runtime.store.save(pending)
 
-    with pytest.raises(HarnessError, match="External operation outcome"):
+    with pytest.raises(PoiseError, match="External operation outcome"):
         planner.invoke(request("sprint", {
             "action": "cancel_tasks",
             "sprint_id": "S",
@@ -125,11 +125,11 @@ def test_selected_sprint_cancel_rejects_pending_batch_without_partial_effect(pro
 
 def test_whole_sprint_cancel_preserves_completed_and_cancels_unfinished(project):
     setup(project)
-    planner = WorkTools(Harness(project["config_path"], "planner"))
+    planner = WorkTools(Poise(project["config_path"], "planner"))
     planned = draft(planner, [task(project, name) for name in "ABCD"])
     publish(planner, planned["revision"])
 
-    worker_a = WorkTools(Harness(project["config_path"], "worker-A"))
+    worker_a = WorkTools(Poise(project["config_path"], "worker-A"))
     completed_context = bootstrap(worker_a, "A")
     completed_report = verify(worker_a, completed_context)
     worker_a.invoke(request("accept", {}))
@@ -150,7 +150,7 @@ def test_whole_sprint_cancel_preserves_completed_and_cancels_unfinished(project)
         "source": {"kind": "text", "text": "preserve this Sprint artifact\n"},
     }]}))
     shared_path = Path(shared["artifact_paths"][0])
-    worker_c = WorkTools(Harness(project["config_path"], "worker-C"))
+    worker_c = WorkTools(Poise(project["config_path"], "worker-C"))
     active_context = bootstrap(worker_c, "C")
     marker = Path(active_context["worktree"]) / "unfinished.txt"
     marker.write_text("do not delete\n")
@@ -161,7 +161,7 @@ def test_whole_sprint_cancel_preserves_completed_and_cancels_unfinished(project)
         name: planner.runtime.task_queries.record(name)["config_hash"] for name in "ABCD"
     }
     change_limit(project)
-    planner = WorkTools(Harness(project["config_path"], "planner"))
+    planner = WorkTools(Poise(project["config_path"], "planner"))
     assert all(stored_hash != planner.runtime.config_hash for stored_hash in stored_hashes.values())
 
     overview = planner.invoke(request("sprint", {
@@ -197,7 +197,7 @@ def test_whole_sprint_cancel_preserves_completed_and_cancels_unfinished(project)
 
 def test_draft_sprint_cancel_does_not_publish_tasks(project):
     setup(project)
-    planner = WorkTools(Harness(project["config_path"], "planner"))
+    planner = WorkTools(Poise(project["config_path"], "planner"))
     drafted = draft(planner, [{"id": "A", "sprint_id": "S"}])
     assert drafted["errors"]
 
@@ -219,10 +219,10 @@ def test_draft_sprint_cancel_does_not_publish_tasks(project):
 
 def test_force_close_is_not_a_public_action(project):
     setup(project)
-    planner = WorkTools(Harness(project["config_path"], "planner"))
+    planner = WorkTools(Poise(project["config_path"], "planner"))
     draft(planner, [task(project, "A")])
 
-    with pytest.raises(HarnessError, match="Unknown sprint action"):
+    with pytest.raises(PoiseError, match="Unknown sprint action"):
         planner.invoke(request("sprint", {
             "action": "force_close",
             "sprint_id": "S",

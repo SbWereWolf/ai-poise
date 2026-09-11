@@ -10,14 +10,14 @@ output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
 
 checks=[
- ('stale_revision','src/harness/application/goal_config.py','if source_revision!=request["expected_revision"]:','if False:', 'tests/goal_config/test_service.py::test_stale_revision_and_reused_request_are_rejected'),
- ('conflicting_patch','src/harness/modules/goal_config/domain.py','if prior and ("*" in prior or "*" in fields or fields & prior):','if False:', 'tests/goal_config/test_domain.py::test_overlapping_intents_have_no_last_writer_wins'),
- ('wrong_pending_target','src/harness/infrastructure/goal_config.py','if json.loads(row["receipt"])["config_path"] != str(self.target):','if False:', 'tests/goal_config/test_service.py::test_pending_publication_cannot_be_redirected_by_new_settings'),
- ('snapshot_invalidated','src/harness/runtime.py','self.config_hash = digest(self.cfg)',"self.config_hash = digest({'config': self.cfg, 'processes': self.processes})",'tests/goal_config/test_runtime.py::test_existing_task_keeps_snapshot_and_new_task_gets_new_pack'),
+ ('stale_revision','src/poise/application/goal_config.py','if source_revision!=request["expected_revision"]:','if False:', 'tests/goal_config/test_service.py::test_stale_revision_and_reused_request_are_rejected'),
+ ('conflicting_patch','src/poise/modules/goal_config/domain.py','if prior and ("*" in prior or "*" in fields or fields & prior):','if False:', 'tests/goal_config/test_domain.py::test_overlapping_intents_have_no_last_writer_wins'),
+ ('wrong_pending_target','src/poise/infrastructure/goal_config.py','if json.loads(row["receipt"])["config_path"] != str(self.target):','if False:', 'tests/goal_config/test_service.py::test_pending_publication_cannot_be_redirected_by_new_settings'),
+ ('snapshot_invalidated','src/poise/runtime.py','self.config_hash = digest(self.cfg)',"self.config_hash = digest({'config': self.cfg, 'processes': self.processes})",'tests/goal_config/test_runtime.py::test_existing_task_keeps_snapshot_and_new_task_gets_new_pack'),
 ]
 results=[]
 for name,file,old,new,node in checks:
- with tempfile.TemporaryDirectory(prefix='harness04a-mutation-') as d:
+ with tempfile.TemporaryDirectory(prefix='poise04a-mutation-') as d:
   p=Path(d)
   for dir in ('src','tests'): shutil.copytree(root/dir,p/dir,ignore=shutil.ignore_patterns('__pycache__'))
   shutil.copy2(root/'pyproject.toml',p/'pyproject.toml')

@@ -1,7 +1,7 @@
 from copy import deepcopy
 import pytest
-from harness.modules.foundation.errors import HarnessError
-from harness.modules.sprints.domain import SprintPolicy, SprintPlan, Sprint
+from poise.modules.foundation.errors import PoiseError
+from poise.modules.sprints.domain import SprintPolicy, SprintPlan, Sprint
 from .helpers import policy,changes
 
 
@@ -19,8 +19,8 @@ def test_explicit_template_creates_independent_draft():
 
 
 def test_unknown_template_or_missing_required_policy_no_default():
-    with pytest.raises(HarnessError):SprintPolicy.parse({})
-    with pytest.raises(HarnessError):SprintPlan.create('S',{'id':'other','version':'1'},SprintPolicy.parse(policy()))
+    with pytest.raises(PoiseError):SprintPolicy.parse({})
+    with pytest.raises(PoiseError):SprintPlan.create('S',{'id':'other','version':'1'},SprintPolicy.parse(policy()))
 
 
 def test_atomic_batch_final_graph_not_item_order():
@@ -43,7 +43,7 @@ def test_graph_failures_have_explicit_diagnostics(edges):
 
 def test_duplicate_task_batch_not_last_writer_wins():
     value,p=plan()
-    with pytest.raises(HarnessError):value.apply([{'kind':'upsert_tasks','tasks':[{'id':'A'},{'id':'A'}]}],p)
+    with pytest.raises(PoiseError):value.apply([{'kind':'upsert_tasks','tasks':[{'id':'A'},{'id':'A'}]}],p)
 
 
 def test_cross_sprint_contract_rejected():
@@ -80,7 +80,7 @@ def test_completed_projection_and_cascade_scope():
 
 def test_published_plan_is_not_silently_rewritten():
     value,p=plan([{'id':'A','sprint_id':'S'}]);s=Sprint.draft(value,p).publish()
-    with pytest.raises(HarnessError):s.revise(value)
+    with pytest.raises(PoiseError):s.revise(value)
 
 
 def test_section_minimum_uses_sectionbook():
@@ -128,7 +128,7 @@ def test_replace_task_rejects_started_successor():
         {'predecessor':'BAD','successor':'POST','kind':'completion'},
     ]}],p)
     sprint=Sprint.draft(value,p).publish()
-    with pytest.raises(HarnessError,match='started|prerequisite|начат'):
+    with pytest.raises(PoiseError,match='started|prerequisite|начат'):
         sprint.replace_task(
             'BAD',
             {'id':'BAD-2','sprint_id':'S'},
@@ -160,7 +160,7 @@ def test_replace_task_revalidates_corrupt_final_graph(edges,max_dependencies):
     if max_dependencies != p.data['max_dependencies']:
         raw=deepcopy(p.data);raw['max_dependencies']=max_dependencies;p=SprintPolicy.parse(raw)
     sprint=Sprint(corrupt,p,2,'published',(),())
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         sprint.replace_task(
             'BAD',
             {'id':'BAD-2','sprint_id':'S'},

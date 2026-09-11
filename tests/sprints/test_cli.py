@@ -9,8 +9,8 @@ from batch.helpers import request
 
 
 def call(project,packet,session='sprint-cli'):
-    r=subprocess.run([sys.executable,'-m','harness','work'],input=json.dumps(packet),capture_output=True,text=True,
-        env={**os.environ,'HARNESS_CONFIG':str(project['config_path']),'HARNESS_SESSION':session},timeout=20)
+    r=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps(packet),capture_output=True,text=True,
+        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':session},timeout=20)
     view=json.loads(r.stdout)
     return r,json.loads(Path(view['response_path']).read_text()) if 'response_path' in view else view
 

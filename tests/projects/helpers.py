@@ -1,7 +1,7 @@
 import json
 from copy import deepcopy
 from pathlib import Path
-from harness.common import digest
+from poise.common import digest
 from tests.conftest import write_json
 
 

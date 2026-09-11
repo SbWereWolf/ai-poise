@@ -3,7 +3,7 @@
 Обновлено: **2026-09-07T00:07:53+05:00**. Работает Linux/CPython 3.13 CLI. Описанные автоматические операции реализованы; живой Codex, JetBrains, ChatGPT connector и Gmail не выдаются за протестированные подключения.
 
 ## Один существующий API, два транспорта
-`harness work` сохранён для явно связанной сессии через HARNESS_CONFIG/HARNESS_SESSION. Новый `harness runtime --settings <path>` принимает один JSON из stdin и определяет внутреннюю сессию сам. Затем он вызывает тот же `WorkTools.invoke`, не второй Task API. Идентификатор проекта берётся из явно выбранного project config, не угадывается по cwd.
+`poise work` сохранён для явно связанной сессии через POISE_CONFIG/POISE_SESSION. Новый `poise runtime --settings <path>` принимает один JSON из stdin и определяет внутреннюю сессию сам. Затем он вызывает тот же `WorkTools.invoke`, не второй Task API. Идентификатор проекта берётся из явно выбранного project config, не угадывается по cwd.
 
 ```json
 {
@@ -24,7 +24,7 @@ Settings имеет точные поля:
 ```json
 {
   "schema":"runtime-adapter-1",
-  "project_config":"/absolute/harness/project.json",
+  "project_config":"/absolute/poise/project.json",
   "adapter_id":"codex-local",
   "transcript_roots":["/absolute/rollouts"],
   "max_scan_bytes":1048576,
@@ -43,7 +43,7 @@ Settings имеет точные поля:
 ## Наблюдаемые пользовательские сообщения из локального JSONL
 Опциональный transcript содержит только `path` и явный `initial_offset` в байтах на границе записи. Project batch.message_source обязан точно совпадать с `{"id":adapter_id,"mode":"runtime_event"}`. Одновременно подавать reported messages и тот же transcript нельзя.
 
-Поддержан наблюдавшийся формат Codex: `type=event_msg`, `payload.type=user_message`, строковое `payload.message`. Счётчик не читает дублирующий response_item/user как второе сообщение. Текст пользовательского сообщения не копируется в Harness DB/journal; сохраняются идентичность, timestamp и привязка через существующий InteractionLedger. Причина остаётся неизвестной, пока нет отдельного содержательного источника.
+Поддержан наблюдавшийся формат Codex: `type=event_msg`, `payload.type=user_message`, строковое `payload.message`. Счётчик не читает дублирующий response_item/user как второе сообщение. Текст пользовательского сообщения не копируется в AI poise DB/journal; сохраняются идентичность, timestamp и привязка через существующий InteractionLedger. Причина остаётся неизвестной, пока нет отдельного содержательного источника.
 
 Парсер потоковый. Он читает только завершённые строки до explicit byte/event limits. Незавершённый хвост не потребляется. Следующий вызов продолжает курсор; достижения лимита не приводят к потере непрочитанного остатка. Текущий batch всегда имеет coverage=partial: даже достижение EOF не доказывает, что доступен весь разговор.
 

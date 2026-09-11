@@ -4,8 +4,8 @@ import json
 import subprocess
 from conftest import write_json
 from batch.helpers import request
-from harness.runtime import Harness
-from harness.application.work import WorkTools
+from poise.runtime import Poise
+from poise.application.work import WorkTools
 
 
 def settings():
@@ -27,7 +27,7 @@ def destination(project,root):
     subprocess.run(['git','clone',str(project['remote']),str(repo)],check=True,capture_output=True)
     subprocess.run(['git','-C',str(repo),'checkout','main'],check=True,capture_output=True)
     subprocess.run(['git','-C',str(repo),'remote','rename','origin','backup'],check=True,capture_output=True)
-    home=root/'harness';home.mkdir()
+    home=root/'poise';home.mkdir()
     cfg=deepcopy(project['cfg']);cfg['git']['repository']=str(repo)
     for name,rel in cfg['processes'].items():
         original=project['root']/rel

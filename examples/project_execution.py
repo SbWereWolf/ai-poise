@@ -1,4 +1,4 @@
-"""Continue the planned real-Harness pilot for ONE execution stage, then export.
+"""Continue the planned real-Poise pilot for ONE execution stage, then export.
 
 This is an application-specific example, not another route engine. It invokes
 Project/Task/Transfer through the existing public tools and never edits their
@@ -13,15 +13,15 @@ import json
 from pathlib import Path
 import subprocess
 
-from harness.application.work import WorkTools
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.runtime import Poise
 
 
 def continue_execution(*, config_path: Path, session: str, task_id: str,
                        user_decision: str, export_request_id: str) -> dict:
     if user_decision != 'continue':
         raise ValueError('Explicit user decision continue is required for this example')
-    h = Harness(config_path, session)
+    h = Poise(config_path, session)
     record = h.task_queries.record(task_id)
     if record is None or record['contract']['goal_type'] != 'verification':
         raise ValueError('The example requires the previously planned verification task')
@@ -52,8 +52,8 @@ def continue_execution(*, config_path: Path, session: str, task_id: str,
     before = git('rev-parse', 'HEAD')
     result = deepcopy(context['result_template'])
     result['sections']['report'] = (
-        'Execute the accepted exact verification methods against the pinned Harness source. '
-        'The Harness supplies command observations; this submission does not claim an outcome '
+        'Execute the accepted exact verification methods against the pinned Poise source. '
+        'The Poise supplies command observations; this submission does not claim an outcome '
         'before execution. Stop after execution: interpretation and inspection are later stages.')
     report = call('verify', {'result': result, 'artifacts': []})
     if report['status'] != 'verified':

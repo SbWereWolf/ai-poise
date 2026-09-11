@@ -2,7 +2,7 @@ import ast
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2] / "src/harness"
+ROOT = Path(__file__).resolve().parents[2] / "src/poise"
 
 
 def test_domain_has_no_io_imports_or_calls():

@@ -1,9 +1,9 @@
 """Contract tests: stage gates are data, not goal_type branches."""
 from copy import deepcopy
 import pytest
-from harness.modules.content.domain import SectionValue, ContentState
-from harness.modules.content_requirements.domain import ContentPolicy, ContentSnapshot, ArtifactFact
-from harness.modules.foundation.errors import DomainError
+from poise.modules.content.domain import SectionValue, ContentState
+from poise.modules.content_requirements.domain import ContentPolicy, ContentSnapshot, ArtifactFact
+from poise.modules.foundation.errors import DomainError
 
 
 def empty():

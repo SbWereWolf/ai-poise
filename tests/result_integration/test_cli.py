@@ -20,15 +20,15 @@ def test_work_cli_exposes_one_result_integration_operation(project):
     }
     source_root = Path(__file__).resolve().parents[2] / "src"
     result = subprocess.run(
-        [sys.executable, "-m", "harness", "work"],
+        [sys.executable, "-m", "poise", "work"],
         input=json.dumps(packet),
         capture_output=True,
         text=True,
         cwd=project["app"],
         env={
             **os.environ,
-            "HARNESS_CONFIG": str(project["config_path"]),
-            "HARNESS_SESSION": "cli-integrator",
+            "POISE_CONFIG": str(project["config_path"]),
+            "POISE_SESSION": "cli-integrator",
             "PYTHONPATH": str(source_root),
         },
         timeout=30,

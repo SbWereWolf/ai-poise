@@ -25,9 +25,9 @@ def test_language_scope_ignores_unicode_anchor_but_keeps_visible_link_text():
 
 def test_transfer_domain_and_application_do_not_own_io():
     for name in ('modules/transfers/domain.py','application/transfers.py'):
-        path=ROOT/'src/harness'/name
+        path=ROOT/'src/poise'/name
         source=path.read_text()
         for node in ast.walk(ast.parse(source)):
             imports=[x.name for x in node.names] if isinstance(node,ast.Import) else [node.module or ''] if isinstance(node,ast.ImportFrom) else []
             assert not any(x.split('.')[0] in {'os','pathlib','sqlite3','subprocess','zipfile'} or 'infrastructure' in x for x in imports)
-    assert "op=='transfer'" in (ROOT/'src/harness/application/work.py').read_text()
+    assert "op=='transfer'" in (ROOT/'src/poise/application/work.py').read_text()

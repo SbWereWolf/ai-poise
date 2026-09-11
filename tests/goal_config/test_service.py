@@ -3,9 +3,9 @@ import json
 import sqlite3
 from pathlib import Path
 import pytest
-from harness.common import digest
-from harness.modules.foundation.errors import HarnessError
-from harness.composition import goal_config_tools
+from poise.common import digest
+from poise.modules.foundation.errors import PoiseError
+from poise.composition import goal_config_tools
 from tests.goal_config.helpers import template, additions, request, settings
 
 
@@ -28,7 +28,7 @@ def test_invalid_batch_does_not_publish_half_the_changes(tmp_path):
     path, selection=settings(tmp_path); api=goal_config_tools(path)
     one=api.apply_batch(request("create","writing",None,[],selection=selection))
     target=Path(one["config_path"]); before=target.read_bytes()
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         api.apply_batch(request("update","writing",one["revision"],additions()+[{"op":"patch_stage","id":"draft","set":{"transitions":{"complete":"MISSING"}}}],"bad"))
     assert target.read_bytes()==before
 
@@ -36,9 +36,9 @@ def test_invalid_batch_does_not_publish_half_the_changes(tmp_path):
 def test_stale_revision_and_reused_request_are_rejected(tmp_path):
     path, selection=settings(tmp_path); api=goal_config_tools(path)
     one=api.apply_batch(request("create","writing",None,[],selection=selection))
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         api.apply_batch(request("update","writing","0"*64,additions(),"update"))
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         api.apply_batch(request("update","writing",one["revision"],additions(),"req-1"))
 
 
@@ -69,34 +69,34 @@ def test_noop_is_not_an_extra_content_revision(tmp_path):
 def test_explicit_inputs_no_defaults_no_template_guessing(tmp_path, edit):
     path, selection=settings(tmp_path)
     raw=request("create","writing",None,[],selection=selection); edit(raw)
-    with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(raw)
+    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
     assert not (tmp_path/"config/processes/writing.json").exists()
 
 
 def test_missing_setting_and_oversized_batch_are_errors(tmp_path):
     path, selection=settings(tmp_path)
     cfg=json.loads(path.read_text()); del cfg["max_changes"]; path.write_text(json.dumps(cfg))
-    with pytest.raises(HarnessError): goal_config_tools(path)
+    with pytest.raises(PoiseError): goal_config_tools(path)
     path, selection=settings(tmp_path); cfg=json.loads(path.read_text()); cfg["max_changes"]=1; path.write_text(json.dumps(cfg))
-    with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(request("create","writing",None,additions(),selection=selection))
+    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,additions(),selection=selection))
 
 
 def test_full_template_digest_is_checked_at_execution(tmp_path):
     path, selection=settings(tmp_path)
     (tmp_path/"templates/writing.json").write_text("{}")
-    with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
+    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
 
 
 def test_symlink_cannot_write_outside_config_root(tmp_path):
     path, selection=settings(tmp_path)
     external=tmp_path.parent/(tmp_path.name+"-foreign.json"); external.write_text("untouched")
     target=tmp_path/"config/processes/writing.json"; target.parent.mkdir(parents=True); target.symlink_to(external)
-    with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
+    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
     assert external.read_text()=="untouched"
 
 
 def test_atomic_file_failure_can_resume_without_duplicate_revision(tmp_path, monkeypatch):
-    import harness.infrastructure.goal_config as infra
+    import poise.infrastructure.goal_config as infra
     path, selection=settings(tmp_path); api=goal_config_tools(path)
     original=infra.atomic_write
     def fail(path, content, mode):
@@ -105,7 +105,7 @@ def test_atomic_file_failure_can_resume_without_duplicate_revision(tmp_path, mon
     raw=request("create","writing",None,[],selection=selection)
     with monkeypatch.context() as m:
         m.setattr(infra,"atomic_write",fail)
-        with pytest.raises(HarnessError,match="pending|публикац"):
+        with pytest.raises(PoiseError,match="pending|публикац"):
             api.apply_batch(raw)
     assert not (tmp_path/"config/processes/writing.json").exists()
     out=goal_config_tools(path).apply_batch(raw)
@@ -126,7 +126,7 @@ def test_many_related_changes_are_one_operation(tmp_path):
 
 
 def test_lost_receipt_after_atomic_replace_recovers_known_candidate(tmp_path, monkeypatch):
-    import harness.infrastructure.goal_config as infra
+    import poise.infrastructure.goal_config as infra
     path, selection=settings(tmp_path); raw=request('create','writing',None,[],selection=selection)
     original=infra.atomic_write
     def replace_then_interrupt(path,content,mode):
@@ -134,7 +134,7 @@ def test_lost_receipt_after_atomic_replace_recovers_known_candidate(tmp_path, mo
         raise OSError('crash simulation after file replacement')
     with monkeypatch.context() as m:
         m.setattr(infra,'atomic_write',replace_then_interrupt)
-        with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(raw)
+        with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
     target=tmp_path/'config/processes/writing.json'
     before=target.read_bytes()
     result=goal_config_tools(path).apply_batch(raw)
@@ -148,7 +148,7 @@ def test_direct_external_file_change_is_not_silently_adopted(tmp_path):
     first=api.apply_batch(request('create','writing',None,[],selection=selection))
     file=Path(first['config_path']); data=json.loads(file.read_text()); data['stages'][0]['instruction']='external change'
     file.write_text(json.dumps(data))
-    with pytest.raises(HarnessError,match='вне редактора'):
+    with pytest.raises(PoiseError,match='вне редактора'):
         api.apply_batch(request('update','writing',digest(data),[], 'external'))
     assert json.loads(file.read_text())==data
 
@@ -158,20 +158,20 @@ def test_incompatible_editor_store_is_not_migrated(tmp_path):
     dbpath=tmp_path/'state/config-editor.sqlite'; dbpath.parent.mkdir()
     with sqlite3.connect(dbpath) as db: db.execute('PRAGMA user_version=999')
     before=dbpath.read_bytes()
-    with pytest.raises(HarnessError,match='миграци'):
+    with pytest.raises(PoiseError,match='миграци'):
         goal_config_tools(path).apply_batch(request('create','writing',None,[],selection=selection))
     assert dbpath.read_bytes()==before
 
 
 def test_pending_publication_cannot_be_redirected_by_new_settings(tmp_path, monkeypatch):
-    import harness.infrastructure.goal_config as infra
+    import poise.infrastructure.goal_config as infra
     path,selection=settings(tmp_path); raw=request('create','writing',None,[],selection=selection)
     with monkeypatch.context() as m:
         def fail(*args): raise OSError('interrupted write')
         m.setattr(infra,'atomic_write',fail)
-        with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(raw)
+        with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
     cfg=json.loads(path.read_text()); cfg['processes']['writing']='config/processes/elsewhere.json';path.write_text(json.dumps(cfg))
-    with pytest.raises(HarnessError): goal_config_tools(path).apply_batch(raw)
+    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(raw)
     assert not (tmp_path/'config/processes/elsewhere.json').exists()
 
 

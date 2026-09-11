@@ -19,8 +19,8 @@ import shutil
 import sys
 import xml.etree.ElementTree as ET
 
-from harness.common import HarnessError
-from harness.execution import run_command
+from poise.common import PoiseError
+from poise.execution import run_command
 
 
 def fingerprint(root: Path) -> dict[str, str]:
@@ -93,7 +93,7 @@ def run_package(*, root: Path, output: Path, module: Path, index: int,
         execution = run_command(command, root,
                                 {**os.environ, 'PYTHONPATH': str(root / 'src')},
                                 timeout, log, stderr)
-    except HarnessError as exc:
+    except PoiseError as exc:
         execution_error = str(exc)
         execution = {'actual_exit_code': None, 'timed_out': False,
                      'duration_seconds': None, 'stdout': str(log), 'stderr': str(stderr)}

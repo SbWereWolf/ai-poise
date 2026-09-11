@@ -9,7 +9,7 @@ def spec(mode='ok'):
     p.update(kind='mcp_stdio',argv=[sys.executable,'-B',str(Path(__file__).with_name('mcp_fixture.py')),mode],
         stdout_contains=[],project_bound=True,
         json_assertions=[{'path':['structuredContent','project'],'equals':'${workspace}'}],
-        mcp={'protocol_version':'2025-11-25','client_info':{'name':'harness-probe','version':'1'},
+        mcp={'protocol_version':'2025-11-25','client_info':{'name':'poise-probe','version':'1'},
              'required_tools':['read_project','rename_refactoring'],
              'call':{'name':'read_project','arguments':{'projectPath':'${workspace}'},'read_only':True},
              'max_messages':20,'max_pages':4,'max_message_bytes':32768,'shutdown_seconds':0.5})

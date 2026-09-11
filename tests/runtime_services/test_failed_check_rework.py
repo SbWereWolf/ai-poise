@@ -5,9 +5,9 @@ import sys
 import pytest
 
 from conftest import write_json
-from harness.application.work import WorkTools
-from harness.common import HarnessError
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.common import PoiseError
+from poise.runtime import Poise
 
 from batch.helpers import bootstrap, configure, request, result, verify
 
@@ -141,7 +141,7 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
     }
     project["task"] = task
     session = f"FAILED-CHECK-REWORK-{project['root'].parent.name}"
-    tools = WorkTools(Harness(project["config_path"], session))
+    tools = WorkTools(Poise(project["config_path"], session))
     return tools, bootstrap(tools, project)
 
 
@@ -177,7 +177,7 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     before = _show(tools)
     observations = _show(tools, "evidence")["observations"]
 
-    with pytest.raises(HarnessError, match="открыт|finding|исправ"):
+    with pytest.raises(PoiseError, match="открыт|finding|исправ"):
         _rework(tools, "closed_finding_remediation")
 
     assert _show(tools) == before
@@ -221,7 +221,7 @@ def test_checks_failed_rework_does_not_bypass_target_allowed_paths(project):
     recovered = _rework(tools)
     Path(recovered["worktree"], "src", "forbidden.py").write_text("forbidden = True\n", encoding="utf-8")
 
-    with pytest.raises(HarnessError, match="вне разрешённой области"):
+    with pytest.raises(PoiseError, match="вне разрешённой области"):
         verify(tools, result(recovered, "must remain inside the remediation scope"))
 
 
@@ -229,7 +229,7 @@ def test_active_rework_rejects_without_a_failed_batch(project):
     tools, _ = _scenario(project)
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -242,7 +242,7 @@ def test_active_rework_rejects_a_passed_batch_awaiting_evidence(project):
     assert pending["checks"][0]["passed"] is True
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -254,7 +254,7 @@ def test_active_rework_rejects_a_failed_batch_for_an_old_tree(project):
     Path(context["worktree"], "src", "double.py").write_text("def double(n):\n    return n + 2\n", encoding="utf-8")
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -266,7 +266,7 @@ def test_active_rework_rejects_a_failed_batch_for_an_old_execution(project, monk
     monkeypatch.setenv("LANG", "C")
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -282,7 +282,7 @@ def test_active_rework_rejects_a_failed_batch_for_an_old_submission(project):
     )
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -308,7 +308,7 @@ def test_active_rework_rejects_a_persisted_batch_from_an_old_stage(project):
     assert _show(tools, "evidence")["observations"] == historical
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -341,7 +341,7 @@ def test_active_rework_rejects_a_persisted_batch_from_an_old_iteration(project):
     assert _show(tools, "evidence")["observations"] == historical
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -354,7 +354,7 @@ def test_active_rework_rejects_an_unknown_pending_check_outcome(project):
     tools.runtime.store.save(current)
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -366,7 +366,7 @@ def test_active_rework_rejects_a_failed_batch_with_missing_output(project):
     Path(failed["checks"][0]["stdout"]).unlink()
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools)
 
     assert _show(tools) == before
@@ -377,7 +377,7 @@ def test_active_rework_rejects_an_undeclared_target(project):
     _fail_current_stage(tools, context)
     before = _show(tools)
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         _rework(tools, "implementation_review")
 
     assert _show(tools) == before

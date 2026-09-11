@@ -1,7 +1,7 @@
 import pytest
-from harness.infrastructure.usage_events import response_usage
-from harness.modules.accounting.domain import MetricPolicy,UsageSample,usage_contribution
-from harness.common import HarnessError
+from poise.infrastructure.usage_events import response_usage
+from poise.modules.accounting.domain import MetricPolicy,UsageSample,usage_contribution
+from poise.common import PoiseError
 from .test_domain import policy
 
 
@@ -17,4 +17,4 @@ def test_absent_optional_details_unknown_and_absent_total_rejected():
     e=convert({'input_tokens':0,'output_tokens':0,'total_tokens':0})
     assert e['counters']['cached_input_tokens'] is None
     assert e['counters']['reasoning_tokens'] is None
-    with pytest.raises(HarnessError):convert({'input_tokens':1,'output_tokens':2})
+    with pytest.raises(PoiseError):convert({'input_tokens':1,'output_tokens':2})

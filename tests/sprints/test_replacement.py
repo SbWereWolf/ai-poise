@@ -5,9 +5,9 @@ import sqlite3
 import pytest
 
 from conftest import write_json
-from harness.application.work import WorkTools
-from harness.modules.foundation.errors import HarnessError
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.modules.foundation.errors import PoiseError
+from poise.runtime import Poise
 from batch.helpers import request
 from transfer.helpers import destination, export, restore
 from .helpers import bootstrap, draft, publish, setup, task, verify
@@ -20,7 +20,7 @@ AUTHORIZATION = "Пользователь поручил заменить нез
 @pytest.fixture
 def sprint(project):
     setup(project)
-    runtime = Harness(project["config_path"], "planner")
+    runtime = Poise(project["config_path"], "planner")
     return project, runtime, WorkTools(runtime)
 
 
@@ -147,7 +147,7 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     assert runtime.task_queries.record("BAD-2")["status"] == "available"
     assert runtime.task_queries.record("BAD-2")["worktree"] is None
 
-    reader = WorkTools(Harness(project["config_path"], "old-task-reader"))
+    reader = WorkTools(Poise(project["config_path"], "old-task-reader"))
     old = bootstrap(reader, "BAD")
     assert old["status"] == "superseded" and old["result_template"] is None
     shown = reader.invoke(request("show", {"queries": [{"id": "old", "kind": "evidence"}]}))
@@ -198,22 +198,22 @@ def test_replacement_rejects_invalid_candidates_without_mutation(sprint):
     current = published_graph(sprint)
     before = sprint_view(tools, "plan")
 
-    with pytest.raises(HarnessError, match="revision|Revision"):
+    with pytest.raises(PoiseError, match="revision|Revision"):
         replace(tools, current["revision"] - 1, replacement(project), request_id="stale")
     collision = replacement(project, "PRE")
-    with pytest.raises(HarnessError, match="ID|exists|collision"):
+    with pytest.raises(PoiseError, match="ID|exists|collision"):
         replace(tools, current["revision"], collision, request_id="collision")
     wrong_sprint = replacement(project)
     wrong_sprint["sprint_id"] = "OTHER"
-    with pytest.raises(HarnessError, match="Sprint|sprint"):
+    with pytest.raises(PoiseError, match="Sprint|sprint"):
         replace(tools, current["revision"], wrong_sprint, request_id="wrong-sprint")
     invalid_method = replacement(project)
     invalid_method["checks"]["work"] = ["MISSING"]
-    with pytest.raises(HarnessError, match="MISSING|method"):
+    with pytest.raises(PoiseError, match="MISSING|method"):
         replace(tools, current["revision"], invalid_method, request_id="invalid-method")
     incomplete = replacement(project)
     del incomplete["definition_of_done"]
-    with pytest.raises(HarnessError, match="task|field|keys|набор полей"):
+    with pytest.raises(PoiseError, match="task|field|keys|набор полей"):
         replace(tools, current["revision"], incomplete, request_id="incomplete-contract")
 
     assert sprint_view(tools, "plan") == before
@@ -230,7 +230,7 @@ def test_replacement_uses_published_process_snapshot_after_live_config_changes(s
     live_process["stages"][0]["rework_targets"] = ["changed-work"]
     live_process["route"]["entry"] = "changed-work"
     write_json(project["root"] / "config/processes/development.json", live_process)
-    fresh_runtime = Harness(project["config_path"], "fresh-planner")
+    fresh_runtime = Poise(project["config_path"], "fresh-planner")
     fresh_tools = WorkTools(fresh_runtime)
 
     outcome = replace(
@@ -265,7 +265,7 @@ def test_replacement_rejects_started_successor_without_graph_change(sprint):
     )
     bootstrap(tools, "POST")
     before = sprint_view(tools, "plan")
-    with pytest.raises(HarnessError, match="started|prerequisite|начат"):
+    with pytest.raises(PoiseError, match="started|prerequisite|начат"):
         replace(tools, waived["revision"], replacement(project))
     assert sprint_view(tools, "plan") == before
     assert runtime.task_queries.record("BAD-2") is None
@@ -293,7 +293,7 @@ def test_replacement_rejects_dirty_foreign_and_pending_work_with_recovery(sprint
     context = bootstrap(tools, "BAD")
     Path(context["worktree"], "src/double.py").write_text("dirty replacement candidate\n")
     with pytest.raises(
-        HarnessError,
+        PoiseError,
         match=r"(?i)(?=.*(?:dirty|WIP|измен))(?=.*(?:handoff|передач))",
     ):
         replace(tools, current["revision"], replacement(project), request_id="dirty")
@@ -305,10 +305,10 @@ def test_replacement_rejects_dirty_foreign_and_pending_work_with_recovery(sprint
 def test_replacement_rejects_foreign_owner_and_pending_operation(sprint):
     project, runtime, tools = sprint
     current = published_graph(sprint)
-    other = WorkTools(Harness(project["config_path"], "worker"))
+    other = WorkTools(Poise(project["config_path"], "worker"))
     bootstrap(other, "BAD")
     with pytest.raises(
-        HarnessError,
+        PoiseError,
         match=r"(?i)(?=.*(?:owner|owned|session|владел))(?=.*(?:handoff|передач))",
     ):
         replace(
@@ -322,7 +322,7 @@ def test_replacement_rejects_foreign_owner_and_pending_operation(sprint):
     data["pending"] = "checks"
     other.runtime.store.save(data)
     with pytest.raises(
-        HarnessError,
+        PoiseError,
         match=r"(?i)(?=.*(?:pending|ожида))(?=.*(?:outcome|resolve|заверш|устран))",
     ):
         replace(
@@ -360,7 +360,7 @@ def test_replacement_rejects_terminal_source_tasks(sprint, terminal):
         )
         revision = cancelled["revision"]
 
-    with pytest.raises(HarnessError, match="unfinished|completed|cancelled|заверш|отмен"):
+    with pytest.raises(PoiseError, match="unfinished|completed|cancelled|заверш|отмен"):
         replace(
             tools,
             revision,
@@ -443,7 +443,7 @@ def test_replacement_request_replay_is_original_and_conflict_rejected(sprint):
     assert len([item for item in runtime.task_queries.summary() if item["id"] == "BAD-2"]) == 1
 
     changed = replacement(project, command='print("different")')
-    with pytest.raises(HarnessError, match="request|intent|ID"):
+    with pytest.raises(PoiseError, match="request|intent|ID"):
         replace(tools, current["revision"], changed)
 
 
@@ -481,7 +481,7 @@ def test_replaced_sprint_transfer_round_trip_preserves_relation_and_tasks(sprint
     outcome = replace(tools, current["revision"], replacement(project))
     saved = export(tools, sprint="S", request_id="export-replaced")
     target = destination(project, tmp_path / "destination")
-    receiver = WorkTools(Harness(target["config_path"], "receiver"))
+    receiver = WorkTools(Poise(target["config_path"], "receiver"))
 
     receipt = restore(receiver, saved["package_path"], saved["package_digest"])
 

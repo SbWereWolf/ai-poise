@@ -35,6 +35,10 @@ Bootstrap the sprint to get the eligible set instead of calculating dependencies
 
 Treat configured inventory and actually probed capability as different facts. Use only capabilities reported for the current project/worktree. For the current probe semantics, read [Runtime hooks → Capability checks](../../../docs/configuration/runtime-hooks.md#проверки-capabilities).
 
+## Task DB backups
+
+Discover the public backup surface with `poise backup help`. Use `poise backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config PROJECT_JSON BACKUP_NAME`; do not substitute manual filesystem copies or database replacement. Create and restore require an exclusive operator window in which no agent or process writes the Task DB. Read the exact storage, integrity and recovery contract in [Task DB backups](../../../docs/task-db-backups.md).
+
 ## Handoff and transfer
 
 For another agent in the same store, use one `handoff` package; never manually commit/copy/release task state. Read [Local handoff → Package](../../../docs/workflows/local-handoff.md#пакет).

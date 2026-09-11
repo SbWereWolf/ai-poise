@@ -55,3 +55,28 @@ Harness автоматически и не независимый человек
 отправкой в Gmail или долговечным удалённым резервным хранилищем.
 Код версии 0.15.1, project schema ddd-accounting-11, SQLite 12 не менялся; миграций нет.
 Отчёты и план обновлены; нового code commit нет. Предыдущий Git bundle и история не заменены.
+
+
+# Task 0028 — automatic Task ID allocation
+
+Обновлено: 2026-09-11T06:55:21+05:00.
+
+Зарегистрированная команда
+`PYTHONPATH=src PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m pytest -q tests/ddd/test_task_id_allocation.py --tb=short`
+на итоговой реализации прошла: **16 passed**. Набор покрывает public creation, configured
+progression/width, occupied IDs, concurrent uniqueness, project-wide replay/conflict,
+missing/invalid/exhausted policy, downstream identity, worktree recovery и conflict
+preservation, reviewed publication/rollback, Sprint aliases, schema-12 explicit rows и DDD
+ownership.
+
+После remediation смежный набор
+`tests/batch/test_work_tools.py tests/sprints/test_service.py tests/catalogue/test_publication.py tests/projects/test_reference.py`
+прошёл: **61 passed**. Отдельный real-route probe подтвердил одинаковый результат для
+automatic-first и explicit-first (`A -> 0002`) и резервирование нового Sprint `0001`
+(`member -> 0002`). `compileall` и `git diff --check` прошли.
+
+На более раннем implementation tree тот же смежный набор дал **60 passed, 1 failed**:
+`test_message_after_cancel_retained` остановился в прежнем accounting-коде с
+`Clock moved backwards; duration not invented` после реального обратного движения wall clock.
+Этот результат сохранён как диагностика и не выдавался за PASS; изменённые Task allocation
+файлы accounting clock не затрагивали. Полная repository regression в этой задаче не запускалась.

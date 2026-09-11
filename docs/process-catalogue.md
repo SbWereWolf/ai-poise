@@ -1,6 +1,6 @@
 # Каталог независимых процессов — DDD-09
 
-Обновлено: **2026-09-07T07:34:23+05:00**.
+Обновлено: **2026-09-11T06:55:21+05:00**.
 
 ## Что поставлено
 
@@ -98,7 +98,10 @@ produce/observe/check могут принять `stage_work={"resolutions":[...]
 
 Task planning публикует через stage_work:
 `{"kind":"tasks","section":"planned_task","authorization":"<явная инструкция>"}`.
-В сохранённой секции — список полных standalone task contracts.
+В сохранённой секции — список полных standalone creation intents. Для нового Task штатная
+форма — `{request_id, task без id}`; поддержанный explicit contract остаётся допустимым.
+Publication возвращает `allocations`, а зависимости Sprint до публикации используют
+`request_id` automatic-ребёнка как alias и после allocation сохраняются с фактическими IDs.
 
 Sprint planning:
 `{"kind":"sprint","section":"planned_sprint","authorization":"<явная инструкция>"}`.
@@ -107,7 +110,9 @@ Sprint planning:
 В публикации нельзя заменить draft новым inline-объектом. Читается уже сохранённая секция,
 не разрешённая для записи в этом этапе, после принятого осмотра согласно графу.
 Каждый ребёнок валидируется собственным выбранным process contract. Task/Sprint IDs не
-должны пересекаться. Все дочерние строки, граф и receipt публикации записываются одним UoW.
+должны пересекаться. Explicit IDs полного пакета и новый Sprint ID резервируются до первой
+automatic allocation, поэтому порядок детей не определяет коллизию. Все дочерние строки,
+граф, allocation receipts и receipt публикации записываются одним UoW.
 Нет worktrees у ещё не начатых детей. Обычный bootstrap опубликованной standalone task
 подготавливает её работу так же, как для опубликованного участника спринта.
 

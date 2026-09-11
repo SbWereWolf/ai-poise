@@ -121,6 +121,27 @@ readiness probes и публикует новый каталог. Это не un
 и выбранного шаблона явные. Этапы или имена целей не встроены в код project tool.
 
 
+## Task identity allocation — 2026-09-11T06:55:21+05:00
+
+`modules/tasks/allocation` владеет чистой моделью numeric namespace, display width,
+progression, creation intent и request digest. `TaskCommands` координирует allocation,
+creation validation, Task aggregate и execution reservation в одной короткой UoW.
+`TaskRepository.allocate` — единственная граница, которая сопоставляет policy с уже занятыми
+Task/Sprint IDs; runtime, planning и Sprint adapters не вычисляют номер и не пробуют Git/paths.
+
+Пакетные application services передают владельцу полный набор зарезервированных explicit IDs,
+поскольку только они знают ещё не опубликованный состав Task/Sprint intent. Это не второй
+allocator: они не обходят candidates и не повторяют запросы с увеличенным номером. SQLite
+adapter сериализует allocation и insert прежним внешним lock; отдельный sequence/counter и
+новый lifecycle writer не вводятся.
+
+Git и filesystem начинаются после durable `worktree_setup` reservation. Runtime adapter может
+только сверить сохранённые task ID, branch, base и worktree и завершить совпавшее состояние;
+он не выбирает другой ID, не удаляет конфликтующее внешнее состояние и не выполняет reset.
+Replay identity имеет project scope и не равен session binding: другая сессия может получить
+тот же allocation receipt, но не крадёт существующий claim.
+
+
 ## DDD-10 — интеграция принятого результата
 
 Обновлено: **2026-09-11T05:00:00+05:00**.

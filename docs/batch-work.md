@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
+Обновлено: **2026-09-11T06:55:21+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -9,7 +9,7 @@
 
 | operation | Обязательные поля input | Эффект |
 |---|---|---|
-| bootstrap | task, decision, feedback, rework_stage | Полный объект task при первом выборе, затем null; связывание и единый контекст |
+| bootstrap | task, decision, feedback, rework_stage | Для создания — intent с `request_id` и полным task без `id`; для выбора существующей работы — объект только с `id`; затем null |
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
@@ -18,6 +18,66 @@
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
+
+## Автоматическое создание Task
+
+Новый Task создаётся одним `bootstrap`-пакетом. Вызывающая сторона задаёт устойчивый
+`request_id` и полный creation contract без поля `id`; она не читает список файлов, веток или
+задач, не вычисляет максимум и не повторяет попытки с самостоятельно увеличенным номером.
+
+```json
+{
+  "operation": "bootstrap",
+  "input": {
+    "task": {
+      "request_id": "customer-import-creation-1",
+      "task": {
+        "sprint_id": null,
+        "goal_type": "development",
+        "goal": "Добавить импорт клиентов.",
+        "requirements": ["Импорт использует проверенный формат."],
+        "definition_of_done": ["Целевые проверки проходят."],
+        "methods": [],
+        "checks": {},
+        "artifact_requirements": [],
+        "content_contract": {"sections": [], "routes": [], "requirements": []},
+        "evidence_plan": {}
+      }
+    },
+    "decision": null,
+    "feedback": null,
+    "rework_stage": null
+  },
+  "messages": []
+}
+```
+
+Это точная форма envelope и creation intent, но вложенные `methods`, `checks`,
+`content_contract` и `evidence_plan` должны быть полным контрактом выбранного `goal_type`;
+пустые значения примера не объявляются универсально исполнимой задачей. Успешный ответ
+содержит фактический `task`, task/worktree roots с тем же ID и квитанцию; persisted branch
+формируется из этого ID по `git.branch_template`:
+
+```json
+{"allocation":{"request_id":"customer-import-creation-1","task_id":"0029","replayed":false}}
+```
+
+`request_id` уникален в проекте и неизменно связан с нормализованным creation intent.
+Точный повтор из другой сессии возвращает тот же `task_id` с `replayed: true`, не расходует
+следующий номер и не перехватывает активный claim. Тот же `request_id` с изменённым intent
+отклоняется как digest conflict.
+
+Номер выбирает `TaskRepository` внутри той же UoW, которая создаёт Task и durable reservation
+рабочего дерева. Занятые Task/Sprint IDs и explicit IDs полного публикуемого пакета пропускаются;
+порядок automatic и explicit элементов не меняет результат. Поддержанный прежний контракт с
+явным `id` остаётся допустимым, но агент при обычном создании нового Task использует automatic
+intent и никогда не выбирает номер сам.
+
+После ошибки подготовки worktree Task и allocation остаются сохранены с
+`pending.kind = worktree_setup`. Точный повтор того же intent сверяет branch, base, worktree и
+чистоту: совпавшее частичное состояние завершается, неизвестное изменённое состояние
+отклоняется и сохраняется без reset/удаления. Missing/invalid `task_ids` и исчерпанный namespace
+дают явную ошибку; скрытого диапазона или fallback к caller-side нумерации нет.
 
 ## Verify
 

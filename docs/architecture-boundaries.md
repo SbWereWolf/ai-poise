@@ -94,9 +94,11 @@ RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands мен
 
 ## Accounting ownership — DDD-08
 
-Updated: 2026-09-07T02:34:02+05:00.
+Updated: 2026-09-12T00:25:00+05:00.
 
 Accounting owns raw usage, time cycles, benefit credits and explicit prior-result finding attribution, not Task/Sprint state. Domain is I/O-free; application uses the accounting port. SQLite mutations remain accounting-owned, external measurement executes outside the state lock. Task outcome precedes measuring benefit, never follows a fabricated metric. User-message ledger stays the source of message identity; no second counter duplicates it. Query projections may read other owners through existing query contracts.
+
+`Clock` is the accounting observation port. `Harness` and `RuntimeAccounting` require it at composition; production CLI, native hook and runtime adapters explicitly supply `SystemClock`, while tests supply deterministic adapters. The domain observation type carries audit UTC, a monotonic value and its comparison domain; filesystem and system-clock access remain infrastructure responsibilities. Accounting alone validates persisted clock continuity and stores measured/unmeasured cycle state. Query projection may combine audit start with a known monotonic duration for calendar allocation, but no layer derives elapsed time from wall-clock subtraction.
 
 No hidden numerical defaults, provider tariff assumptions or goal-name dispatch. Missing counters/instrument stay unavailable. Sources, causes, categories, selected sections, calendar and limits are explicit config.
 

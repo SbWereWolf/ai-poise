@@ -1,6 +1,6 @@
 # Harness source development
 
-Updated: 2026-09-07T00:25:38+05:00.
+Updated: 2026-09-12T00:25:00+05:00.
 
 ## Declarative, reusable tools
 
@@ -17,6 +17,8 @@ Apply domain-driven design throughout the codebase, not just to stage handlers. 
 Document and respect the responsibility boundaries of libraries and data owners. Change Task, Sprint, content, evidence, configuration and artifact state only through their owning APIs. CLI adapters, runners and hooks must not bypass those APIs with direct lifecycle assignments or table updates.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.
+
+Measure accounting duration and ordering only from comparable monotonic observations supplied through the required `Clock` port. Keep UTC for audit and calendar projection. Production composition roots explicitly provide `SystemClock`; tests provide a deterministic `FakeClock`. A missing stable boot identity, a comparison-domain change, or backwards monotonic state must fail or remain explicitly unmeasured according to the accounting contract; never clamp wall time or add a hidden fallback.
 
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type defines its own process; it does not require a new execution engine.
 

@@ -99,6 +99,7 @@ class LocalTaskDatabaseBackups:
                     target.commit()
             _integrity(temporary)
             _sync_file(temporary)
+            backup_size = temporary.stat().st_size
             os.replace(temporary, destination)
             temporary = None
             try:
@@ -108,7 +109,7 @@ class LocalTaskDatabaseBackups:
                     f"Backup was published as {name}, but directory sync failed; "
                     f"run `poise backup list` and check SQLite integrity before retrying: {exc}"
                 ) from exc
-            return BackupCopy(name, live_size, destination.stat().st_size)
+            return BackupCopy(name, live_size, backup_size)
         except PoiseError:
             raise
         except (OSError, sqlite3.Error) as exc:

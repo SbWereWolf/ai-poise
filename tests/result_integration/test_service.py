@@ -149,7 +149,7 @@ def test_source_task_branch_commit_and_both_worktrees_are_validated_before_merge
     elif invalid_state == "dirty_source":
         (source_worktree / "untracked.txt").write_text("dirty\n")
     elif invalid_state == "dirty_target":
-        (project["app"] / "untracked.txt").write_text("dirty\n")
+        (project["app"] / "src" / "feature.py").write_text("dirty\n")
     elif invalid_state == "wrong_branch":
         git(source_worktree, "branch", "-m", "unexpected-source")
     target_before = git(project["app"], "rev-parse", "HEAD")

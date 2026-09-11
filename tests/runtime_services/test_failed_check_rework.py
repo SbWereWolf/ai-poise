@@ -31,7 +31,8 @@ def _stage(stage_id, allowed_paths):
     }
 
 
-def _scenario(project, *, passing_continuation=False, historical_observation=False):
+def _scenario(project, *, passing_continuation=False, historical_observation=False,
+              closed_revise_target=False):
     configure(project)
     project["cfg"]["accounting"]["time_mode"] = "reported"
     stages = [
@@ -39,6 +40,20 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         _stage("test_remediation", ["tests/**"]),
     ]
     stages[0]["transitions"] = {"complete": "test_remediation"}
+    if closed_revise_target:
+        closed = _stage("closed_finding_remediation", ["tests/**"])
+        closed["handler"] = "revise"
+        closed["transitions"] = {"complete": "closed_finding_inspection"}
+        inspection = _stage("closed_finding_inspection", [])
+        inspection["handler"] = "inspect"
+        inspection["read_only"] = True
+        inspection["transitions"] = {
+            "changes_requested": "closed_finding_remediation",
+            "clear": None,
+        }
+        stages.extend((closed, inspection))
+        stages[1]["transitions"] = {"complete": "closed_finding_remediation"}
+        stages[0]["rework_targets"].append("closed_finding_remediation")
     if passing_continuation or historical_observation:
         stages[0]["handler"] = "check"
         stages[0]["transitions"] = {
@@ -78,6 +93,10 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
     task["checks"] = {
         "implementation": ["CHECK"],
         "test_remediation": [],
+        **({
+            "closed_finding_remediation": [],
+            "closed_finding_inspection": [],
+        } if closed_revise_target else {}),
     }
     task["evidence_plan"] = {
         "implementation": {
@@ -107,6 +126,18 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
             "arguments": [],
             "review_arguments": [],
         },
+        **({
+            "closed_finding_remediation": {
+                "subject_methods": {},
+                "arguments": [],
+                "review_arguments": [],
+            },
+            "closed_finding_inspection": {
+                "subject_methods": {},
+                "arguments": [],
+                "review_arguments": [],
+            },
+        } if closed_revise_target else {}),
     }
     project["task"] = task
     session = f"FAILED-CHECK-REWORK-{project['root'].parent.name}"
@@ -136,7 +167,7 @@ def _rework(tools, target="test_remediation"):
 
 
 def test_failed_check_can_rework_to_declared_stage_without_recreating_task(project):
-    tools, context = _scenario(project)
+    tools, context = _scenario(project, closed_revise_target=True)
     worktree = context["worktree"]
     worktrees_before = set(Path(worktree).parent.iterdir())
     immutable_before = tools.runtime.current_task()
@@ -145,6 +176,11 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     _fail_current_stage(tools, context)
     before = _show(tools)
     observations = _show(tools, "evidence")["observations"]
+
+    with pytest.raises(HarnessError, match="открыт|finding|исправ"):
+        _rework(tools, "closed_finding_remediation")
+
+    assert _show(tools) == before
 
     recovered = _rework(tools)
 

@@ -138,7 +138,10 @@ def add_test(worktree):
 # the NEW explicit result object. It is not installed/exported by Harness and
 # it does not read or write an operational result file. This preserves old
 # behavioural assertions while changing their transport fixture.
-from harness.runtime import Harness as Runtime
+try:
+    from poise.runtime import Poise as Runtime
+except ImportError:
+    from harness.runtime import Harness as Runtime
 from copy import deepcopy
 _SCENARIO_DRAFTS={}
 

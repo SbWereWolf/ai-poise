@@ -8,8 +8,8 @@ build/
 dist/
 **/.python/
 **/.runtime/
-**/.sprint/
-**/.task/
+**/sprint/
+**/task/
 
 # Local mutable data for the configured ai-poise project
 /projects/.project-setup.lock

@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
+Обновлено: **2026-09-11T16:25:00+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -13,6 +13,7 @@
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
+| sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
@@ -137,7 +138,11 @@ Section query явно содержит name/stage/submission/range. Null stage/
 
 
 ## Sprint в DDD-05
-Обновлено: **2026-09-06T22:58:21+05:00**. Новый `operation: sprint` и пакетное чтение `kind: sprint` описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+Обновлено: **2026-09-11T16:25:00+05:00**. `operation: sprint` принимает actions `draft`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `waive_dependencies` и `force_close`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+
+`replace_task` требует `sprint_id`, `request_id`, `expected_revision`, `source_task`, полный `replacement`, `reason` и `authorization`. Успешный receipt содержит новую revision, `replacements` с old/new relation и safety facts, а также актуальные `tasks`, `eligible` и `blocked`. Идентичный replay возвращает тот же receipt без повторного preflight/мутации; конфликтующий intent с тем же `request_id` отклоняется.
+
+Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и view `current`, `plan` либо `history` показывает текущий граф, сохранённый process/plan snapshot и revision layers; при отсутствии другой активной Task адресный bootstrap старого ID возвращает terminal read-only context `superseded`, после чего `show` с `kind: evidence` читает его прежнее evidence. Старые submissions, artifacts и handoff receipts остаются у прежнего Task owner.
 
 ## DDD-06: внешние планы в том же пакете
 `stage_work` обработчика apply_plan принимает plan, phase, resolutions и finding_resolutions. Publish принимает target_ref, expected_commit и authorization. `awaiting_action_continuation` возвращает template для CONTINUE; `action_failed/action_blocked` возвращают nonzero business outcome, а не фиктивный PASS. Подробности: [Actions](actions.md).

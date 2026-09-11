@@ -252,6 +252,32 @@ def test_active_rework_rejects_a_failed_batch_for_an_old_submission(project):
     assert _show(tools) == before
 
 
+def test_active_rework_rejects_a_persisted_batch_from_an_old_stage(project):
+    tools, context = _scenario(project, historical_observation=True)
+    verified = verify(tools, result(context, "record an implementation observation"))
+    assert verified["status"] == "verified"
+    assert _show(tools)["workflow"]["outcome"] == "not_satisfied"
+    historical = _show(tools, "evidence")["observations"]
+    assert historical[0]["stage"] == "implementation"
+    assert historical[0]["iteration"] == 1
+
+    current = tools.invoke(request("bootstrap", {
+        "task": None,
+        "decision": "continue",
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert current["stage"] == "test_remediation"
+    assert current["iteration"] == 1
+    assert _show(tools, "evidence")["observations"] == historical
+    before = _show(tools)
+
+    with pytest.raises(HarnessError):
+        _rework(tools)
+
+    assert _show(tools) == before
+
+
 def test_active_rework_rejects_a_persisted_batch_from_an_old_iteration(project):
     tools, context = _scenario(project, historical_observation=True)
     verified = verify(tools, result(context, "record an implementation observation"))

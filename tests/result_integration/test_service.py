@@ -225,10 +225,10 @@ def test_disjoint_dirty_target_preserves_index_worktree_and_commit(project):
     ("scenario", "reported_paths"),
     [
         ("tracked", ("src/double.py",)),
-        ("untracked", ("collision.txt",)),
-        ("local_file_parent", ("collision", "collision/child.txt")),
-        ("local_descendant", ("collision", "collision/child.txt")),
-        ("rename_source", ("src/double.py", "src/renamed.py")),
+        ("untracked", ("src/collision.txt",)),
+        ("local_file_parent", ("src/collision", "src/collision/child.txt")),
+        ("local_descendant", ("src/collision", "src/collision/child.txt")),
+        ("rename_source", ("src/double.py",)),
         ("delete_source", ("src/double.py",)),
     ],
 )
@@ -239,12 +239,12 @@ def test_overlapping_dirty_target_paths_are_rejected_before_mutation(
         if scenario == "tracked":
             (tree / "src" / "double.py").write_text("SOURCE = 1\n")
         elif scenario == "untracked":
-            (tree / "collision.txt").write_text("source\n")
+            (tree / "src" / "collision.txt").write_text("source\n")
         elif scenario == "local_file_parent":
-            (tree / "collision").mkdir()
-            (tree / "collision" / "child.txt").write_text("source\n")
+            (tree / "src" / "collision").mkdir()
+            (tree / "src" / "collision" / "child.txt").write_text("source\n")
         elif scenario == "local_descendant":
-            (tree / "collision").write_text("source\n")
+            (tree / "src" / "collision").write_text("source\n")
         elif scenario == "rename_source":
             (tree / "src" / "double.py").rename(tree / "src" / "renamed.py")
         elif scenario == "delete_source":
@@ -256,15 +256,17 @@ def test_overlapping_dirty_target_paths_are_rejected_before_mutation(
         (project["app"] / "src" / "double.py").write_text("local tracked bytes\n")
         git(project["app"], "add", "src/double.py")
     elif scenario == "untracked":
-        local_paths = ("collision.txt",)
-        (project["app"] / "collision.txt").write_text("local untracked bytes\n")
+        local_paths = ("src/collision.txt",)
+        (project["app"] / "src" / "collision.txt").write_text("local untracked bytes\n")
     elif scenario == "local_file_parent":
-        local_paths = ("collision",)
-        (project["app"] / "collision").write_text("local parent bytes\n")
+        local_paths = ("src/collision",)
+        (project["app"] / "src" / "collision").write_text("local parent bytes\n")
     else:
-        local_paths = ("collision/child.txt",)
-        (project["app"] / "collision").mkdir()
-        (project["app"] / "collision" / "child.txt").write_text("local child bytes\n")
+        local_paths = ("src/collision/child.txt",)
+        (project["app"] / "src" / "collision").mkdir()
+        (project["app"] / "src" / "collision" / "child.txt").write_text(
+            "local child bytes\n"
+        )
     before_head = git(project["app"], "rev-parse", "HEAD")
     before_index = _index_bytes(project["app"])
     before_local = _local_snapshot(project["app"], local_paths)
@@ -284,13 +286,41 @@ def test_overlapping_dirty_target_paths_are_rejected_before_mutation(
     _assert_no_integration_record(tools)
 
 
-def test_unresolved_target_operation_is_rejected_before_mutation(project):
+@pytest.mark.parametrize(
+    ("operation", "marker", "recovery"),
+    [
+        ("merge", "MERGE_HEAD", "git merge --abort"),
+        ("cherry-pick", "CHERRY_PICK_HEAD", "git cherry-pick --abort"),
+    ],
+)
+def test_unresolved_target_operation_is_rejected_before_mutation(
+    project, operation, marker, recovery
+):
+    operation_commit = None
+    if operation == "cherry-pick":
+        git(project["app"], "switch", "-c", "pending-operation")
+        (project["app"] / "src" / "double.py").write_text("operation side\n")
+        git(project["app"], "add", "src/double.py")
+        git(project["app"], "commit", "-m", "test: pending cherry-pick source")
+        operation_commit = git(project["app"], "rev-parse", "HEAD")
+        git(project["app"], "switch", "main")
     tools, source_worktree, source = prepare_completed_task(
         project, lambda tree: (tree / "src" / "feature.py").write_text("VALUE = 1\n")
     )
-    git(project["app"], "merge", "--no-ff", "--no-commit", source)
+    if operation == "merge":
+        git(project["app"], "merge", "--no-ff", "--no-commit", source)
+    else:
+        (project["app"] / "src" / "double.py").write_text("target side\n")
+        git(project["app"], "add", "src/double.py")
+        git(project["app"], "commit", "-m", "test: conflicting cherry-pick target")
+        receipt = subprocess.run(
+            ["git", "-C", str(project["app"]), "cherry-pick", operation_commit],
+            capture_output=True,
+            text=True,
+        )
+        assert receipt.returncode == 1, receipt.stdout + receipt.stderr
     before_head = git(project["app"], "rev-parse", "HEAD")
-    before_merge_head = git(project["app"], "rev-parse", "MERGE_HEAD")
+    before_operation_head = git(project["app"], "rev-parse", marker)
     before_index = _index_bytes(project["app"])
     before_status = _git_bytes(project["app"], "status", "--porcelain=v2", "-z")
 
@@ -298,10 +328,10 @@ def test_unresolved_target_operation_is_rejected_before_mutation(project):
         tools.invoke(request("integrate", integration_input(project, source)))
 
     message = str(failure.value)
-    assert "MERGE_HEAD" in message
-    assert "git merge --abort" in message
+    assert marker in message
+    assert recovery in message
     assert git(project["app"], "rev-parse", "HEAD") == before_head
-    assert git(project["app"], "rev-parse", "MERGE_HEAD") == before_merge_head
+    assert git(project["app"], "rev-parse", marker) == before_operation_head
     assert _index_bytes(project["app"]) == before_index
     assert _git_bytes(project["app"], "status", "--porcelain=v2", "-z") == before_status
     assert source_worktree.exists()

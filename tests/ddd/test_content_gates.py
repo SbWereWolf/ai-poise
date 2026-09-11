@@ -234,6 +234,7 @@ def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_execute
     additions={'sections':[],'routes':[route],'requirements':[
         {'id':'method-required','kind':'trace','route':'new-test','point':'method','stages':['tests'],'phase':'pre','field_equals':{}}]}
     method={'id':'ADDED','argv':[sys.executable,'-c',"print('executed-new-method')"],'cwd':'.','environment':{},
+            'source_under_test':{'kind':'external','reason':'The registration probe reads no repository source.'},
             'timeout_seconds':5,'expected_exit_code':0,'stdout_contains':['executed-new-method'],'stderr_contains':[]}
     update(b,content_additions=additions,trace={'new-test':{'method':'ADDED'}},
            method_additions=[{'method':method,'stages':['tests','code_review']}])
@@ -262,6 +263,7 @@ def test_method_registration_rolls_back_with_failed_content_batch(project):
     import sys
     h,b=setup(project,empty(),empty()); fill(b)
     method={'id':'NEW','argv':[sys.executable,'-c','print(1)'],'cwd':'.','environment':{},'timeout_seconds':3,
+            'source_under_test':{'kind':'external','reason':'The rollback probe reads no repository source.'},
             'expected_exit_code':0,'stdout_contains':['1'],'stderr_contains':[]}
     update(b,method_additions=[{'method':method,'stages':['tests']}])
     with h.store.transaction() as db:

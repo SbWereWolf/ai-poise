@@ -100,9 +100,11 @@ def project(tmp_path, monkeypatch):
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     methods = [
         {'id': 'RED', 'argv': argv, 'cwd': '.', 'environment': {},
+         'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
          'timeout_seconds': 10, 'expected_exit_code': 1,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']},
         {'id': 'GREEN', 'argv': argv, 'cwd': '.', 'environment': {},
+         'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
          'timeout_seconds': 10, 'expected_exit_code': 0,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'Ran 1 test', 'OK']},
     ]
@@ -155,6 +157,8 @@ def add_test(worktree):
 # the NEW explicit result object. It is not installed/exported by Poise and
 # it does not read or write an operational result file. This preserves old
 # behavioural assertions while changing their transport fixture.
+_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+sys.path.insert(0, str(_SOURCE_ROOT))
 from poise.runtime import Poise as Runtime
 from poise.modules.accounting.clock import ClockObservation
 from copy import deepcopy

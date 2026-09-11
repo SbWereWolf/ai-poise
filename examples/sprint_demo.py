@@ -30,6 +30,7 @@ def task(tid,kind,command):
     return {'id':tid,'sprint_id':'SPRINT','goal_type':kind,'goal':f'Создать результат {tid}',
        'requirements':[f'R-{tid}'],'definition_of_done':[f'Результат {tid} проверен'],
        'methods':[{'id':'CHECK','argv':[sys.executable,'-B','-c',command],'cwd':'.','environment':{},
+                   'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
                    'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}],
        'method_inputs':[{'method_id':'CHECK','repository_inputs':[],'future_outputs':[],
                         'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}],
@@ -88,7 +89,8 @@ def run(directory):
                 value['stage_work']={'resolutions':[{'id':'R1','finding_id':'F1','description':'Общий расчёт n*2',
                     'evidence':'Проверяется zero case зарегистрированной командой.'}]}
                 value['method_additions']=[{'method':{'id':'ZERO','argv':[sys.executable,'-B','-c','from src.double import double; assert double(0)==0'],
-                    'cwd':'.','environment':{},'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},
+                    'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
+                    'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},
                     'stages':['amend','confirm']}]
             out=client.verify(value,[]);assert out['status']=='verified'
             reports.append({'task':tid,'stage':name,'commit':out['commit']})

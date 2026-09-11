@@ -17,3 +17,11 @@ def project_tools(settings_path):
     from .application.projects import ProjectCommands
     from .infrastructure.projects import ProjectSettings, FileProjectSetup
     return ProjectCommands(FileProjectSetup(ProjectSettings(settings_path)))
+
+
+def project_config_tools(settings_path):
+    from .application.project_config import ProjectConfigCommands
+    from .infrastructure.project_config import FileProjectConfigUpdate
+    from .infrastructure.projects import ProjectSettings
+    settings = ProjectSettings(settings_path)
+    return ProjectConfigCommands(FileProjectConfigUpdate(settings), settings.raw['max_edits'])

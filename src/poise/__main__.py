@@ -12,6 +12,8 @@ def parser():
     sub=p.add_subparsers(dest='command',required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
     project.add_argument('--settings',type=Path,required=True)
+    project_config=sub.add_parser('project-config',help='Update one existing configured project')
+    project_config.add_argument('--settings',type=Path,required=True)
     wizard=sub.add_parser('project-init',help='Interactive project questionnaire: set/keep/back/abort')
     wizard.add_argument('--settings',type=Path,required=True)
     for name in ('template','destination','request-id'):
@@ -35,6 +37,15 @@ def parser():
     bound=sub.add_parser('hook-work',help='One work packet using a generated session binding')
     bound.add_argument('--settings',type=Path,required=True)
     bound.add_argument('--binding',type=Path,required=True)
+    backup=sub.add_parser('backup',help='Task DB backup list, create, restore and help')
+    actions=backup.add_subparsers(dest='backup_action',required=True)
+    actions.add_parser('help',help='Show backup commands and the exclusive-operator requirement')
+    for name in ('list','create'):
+        command=actions.add_parser(name)
+        command.add_argument('--config',type=Path,required=True)
+    restore=actions.add_parser('restore')
+    restore.add_argument('--config',type=Path,required=True)
+    restore.add_argument('backup_name')
     return p
 
 
@@ -42,6 +53,9 @@ def main():
     args=parser().parse_args()
     if args.command=='project':
         from .interfaces.projects import execute
+        return execute(args.settings,sys.stdin.buffer,sys.stdout)
+    if args.command=='project-config':
+        from .interfaces.project_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)
     if args.command=='project-init':
         from .interfaces.projects import interactive
@@ -73,6 +87,14 @@ def main():
     if args.command=='runtime':
         from .interfaces.runtime_adapter import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout,sys.stderr)
+    if args.command=='backup':
+        from .interfaces.backups import execute
+        return execute(
+            args.backup_action,
+            getattr(args,'config',None),
+            getattr(args,'backup_name',None),
+            sys.stdout,
+        )
     for name in ('POISE_CONFIG','POISE_SESSION'):
         if name not in os.environ or not os.environ[name]:
             print(f'Не задан {name}: выберите конфигурацию проекта и сессию.',file=sys.stderr)

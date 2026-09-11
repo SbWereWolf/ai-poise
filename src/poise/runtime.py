@@ -19,6 +19,45 @@ from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
 
 
+def resolve_source_under_test(
+    method: dict,
+    *,
+    worktree: Path,
+    cwd: Path,
+    environment: dict[str, str],
+) -> dict:
+    """Resolve an explicit verification source contract against this task worktree."""
+    source = method.get('source_under_test')
+    if source is None:
+        raise PoiseError(
+            'Нельзя выполнить проверку: для provenance исходников требуется source_under_test'
+        )
+    if source['kind'] == 'external':
+        return deepcopy(source)
+    root = worktree.resolve()
+    facts = []
+    for binding in source['bindings']:
+        resolved = (root / binding['path']).resolve()
+        if not resolved.is_relative_to(root) or not resolved.is_dir():
+            raise PoiseError(
+                f"Не удалось подтвердить repository source provenance: {binding['path']}"
+            )
+        fact = {**binding, 'resolved_path': str(resolved)}
+        if binding['kind'] == 'cwd':
+            if resolved != cwd.resolve():
+                raise PoiseError(
+                    'Source provenance не подтверждена: cwd binding не совпадает с cwd команды'
+                )
+        else:
+            if binding['name'] in environment:
+                raise PoiseError(
+                    f"Source provenance конфликтует с environment: {binding['name']}"
+                )
+            environment[binding['name']] = str(resolved)
+        facts.append(fact)
+    return {'kind': 'repository', 'bindings': facts}
+
+
 class Poise:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
     def __init__(self, config_path: Path | str, session: str, clock):
@@ -144,12 +183,6 @@ class Poise:
         return [s for s in result.split('\0') if s]
 
     def _task(self) -> dict:
-        task = self._current_task_required()
-        if task['config_hash'] != self.config_hash:
-            raise PoiseError('Конфигурация изменена во время задачи; этот срез не меняет её контракт автоматически')
-        return task
-
-    def _current_task_required(self) -> dict:
         task = self.store.current(self.session)
         if task is None:
             raise PoiseError('Нет текущей задачи; сначала bootstrap с явной задачей')
@@ -360,7 +393,7 @@ class Poise:
                         raise PoiseError('Неизвестен исход прерванной проверки; rework запрещён')
                     worktree=Path(data['worktree'])
                     checks=self._select_checks(data,self._changed(data,entry_tree))
-                    invocations=self._invocations(checks,worktree)
+                    invocations=self._invocations(checks,worktree,require_source=True)
                     execution_key=digest({'stage':self._stage(data)['id'],'iteration':data['iteration'],
                                           'tree':entry_tree,'invocations':invocations})
                     batch=self.task_commands.failed_observation_batch(data['id'],entry_tree,execution_key)
@@ -514,7 +547,7 @@ class Poise:
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         checks = self._select_checks(data, changed)
-        invocations = self._invocations(checks, worktree)
+        invocations = self._invocations(checks, worktree, require_source=True)
         execution_key = digest({'stage':stage['id'],'iteration':data['iteration'],'tree':tree,
                                 'invocations':invocations})
         # Env values participate only in the digest; they are not persisted in receipts.
@@ -602,7 +635,7 @@ class Poise:
         return {'status':status,'task':data['id'],'stage':self._stage(data)['id'],
                 'action':action,'context':context,'next_work':'Resolve the reported action state; do not repeat external effects manually.'}
 
-    def _invocations(self, checks, worktree):
+    def _invocations(self, checks, worktree, *, require_source=False):
         invocations=[]
         for method in checks:
             self.result_views.policy.select(method['argv'])
@@ -615,7 +648,18 @@ class Poise:
                     raise PoiseError(f'Требуемая переменная среды отсутствует: {name}')
                 env[name]=os.environ[name]
             env.update(method['environment'])
-            invocations.append({'method':method,'cwd':str(cwd),'environment':env})
+            invocation={'method':method,'cwd':str(cwd),'environment':env}
+            if require_source:
+                provenance=resolve_source_under_test(
+                    method, worktree=worktree, cwd=cwd, environment=env
+                )
+                invocation['source_provenance']=provenance
+                invocation['provenance_digest']=digest(provenance)
+                invocation['expectation_digest']=digest({
+                    key:method[key]
+                    for key in ('expected_exit_code','stdout_contains','stderr_contains')
+                })
+            invocations.append(invocation)
         return invocations
 
     def _intact_receipts(self, receipts):
@@ -651,6 +695,8 @@ class Poise:
                      'passed':passed,'tree':tree,'stdout_digest':file_digest(Path(result['stdout'])),
                      'stderr_digest':file_digest(Path(result['stderr'])),
                      'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
+            for field in ('expectation_digest','provenance_digest','source_provenance'):
+                receipt[field]=invocation[field]
             presentation=self.result_views.capture(receipt,run_dir)
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
@@ -712,7 +758,7 @@ class Poise:
 
     def cancel(self, reason: str) -> dict:
         if not isinstance(reason,str) or not reason.strip(): raise PoiseError('Нужна инструкция пользователя об отмене')
-        data = self._current_task_required()
+        data = self._task()
         if data['pending'] is not None: raise PoiseError('Сначала установить исход незавершённой операции')
         self.task_commands.cancel(data['id'], self.session, reason)
         self.store.event(self.session,data['id'],'task.cancelled',{'reason':reason,'worktree_preserved':True})
@@ -730,26 +776,26 @@ class Poise:
                 'history':self.task_queries.history(data['id']), 'workflow':self.runner.context(data['id']), 'token_usage':'unavailable'}
 
     def show_section(self, name: str, stage: str | None, submission: int | None) -> dict:
-        data = self._current_task_required()
+        data = self._task()
         stage_id = self._stage(data)['id'] if stage is None else stage
         return {'status':'read_only', **self.task_queries.section(data['id'],stage_id,name,submission)}
 
     def show_content(self) -> dict:
-        data = self._current_task_required()
+        data = self._task()
         return {'status':'read_only','task':data['id'],'stage':self._stage(data)['id'],
                 'iteration':data['iteration'], **self.task_queries.content(data['id'])}
 
     def show_trace(self, route: str, point: str, submission: int | None) -> dict:
-        data = self._current_task_required()
+        data = self._task()
         return {'status':'read_only', **self.task_queries.trace_point(data['id'],route,point,submission)}
 
     def show_evidence(self):
-        data=self._current_task_required()
+        data=self._task()
         return {'status':'read_only','task':data['id'],**self.task_queries.evidence_view(data['id'])}
 
     def show_output(self,receipt_id,representation,requested):
         from .modules.work.domain import read_range
-        data=self._current_task_required()
+        data=self._task()
         records=self.evidence_commands.list_for(data['id'])
         receipt=next((x for x in records if x['id']==receipt_id),None)
         if receipt is None or 'presentation' not in receipt:

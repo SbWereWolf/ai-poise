@@ -50,7 +50,7 @@ def create(directory: Path):
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     methods = []
     for sid, code, needles in [('RED', 1, ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']), ('GREEN', 0, ['test_double', 'Ran 1 test', 'OK'])]:
-        methods.append({'id': sid, 'argv': argv, 'cwd': '.', 'environment': {'LANG': 'C.UTF-8'}, 'timeout_seconds': 10, 'expected_exit_code': code, 'stdout_contains': [], 'stderr_contains': needles})
+        methods.append({'id': sid, 'argv': argv, 'cwd': '.', 'environment': {'LANG': 'C.UTF-8'}, 'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]}, 'timeout_seconds': 10, 'expected_exit_code': code, 'stdout_contains': [], 'stderr_contains': needles})
     task = {'id': 'DEMO-1', 'sprint_id': None, 'goal_type': 'development', 'goal': 'Исправить double(2), получить 4.', 'requirements': ['double(n) возвращает n*2'], 'definition_of_done': ['Регрессионный тест RED до правки, GREEN после.'], 'methods': methods, 'method_inputs': [{'method_id': method['id'], 'repository_inputs': [], 'future_outputs': [{'path': 'tests', 'producer_stage': 'tests'}], 'reference_profile': {'runner': 'unittest', 'parser': 'discover-start-directory', 'version': 1}} for method in methods], 'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']}, 'artifact_requirements': [{'scope': 'task', 'pattern': 'artifacts/result.md', 'minimum': 1, 'maximum': 1}], 'content_contract': {'sections': [], 'routes': [], 'requirements': []}}
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in stages}
     save(home / 'task.json', task)

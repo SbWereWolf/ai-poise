@@ -164,6 +164,10 @@ def test_current_automatic_check_mapping_applies_to_existing_task(project):
         "argv": [sys.executable, "-B", "-c", "print('current-config-check')"],
         "cwd": ".",
         "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
         "timeout_seconds": 10,
         "expected_exit_code": 0,
         "stdout_contains": ["current-config-check"],

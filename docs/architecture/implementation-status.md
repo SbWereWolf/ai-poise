@@ -1,6 +1,20 @@
 # Статус реализации
 
-Обновлено: **2026-09-11T16:55:00+05:00**.
+Обновлено: **2026-09-12T00:00:00+05:00**.
+
+## Verification source provenance — task 0037
+
+Новые методы требуют явный `source_under_test`: repository bindings разрешаются внутри
+текущего task worktree, external methods содержат причину. До subprocess проверяются
+отсутствующие/выходящие пути, коллизии окружения, semantic duplicates, конфликтующие
+ожидания и несвязанный RED. Receipt и replay identity содержат `provenance_digest` и
+`expectation_digest`. Сохранённые прежние методы не переписываются миграцией; строгий
+контракт действует при создании и расширении реестра.
+
+Изменение устраняет класс ошибки подтверждённого incident 0035, где один method прошёл над
+неподтверждённым источником, а task-owned regression в том же запуске сообщил 7 failures.
+Ограничение: external provenance подтверждает декларацию отсутствия repository source, но
+не fingerprint внешнего сервиса; такие доказательства требуют собственных наблюдений.
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
@@ -36,9 +50,25 @@ matching/conflicting worktree recovery, reviewed publication, rollback, Sprint a
 legacy row и архитектурные границы. Исполняемые сценарии находятся в
 [`tests/ddd/test_task_id_allocation.py`](../../tests/ddd/test_task_id_allocation.py).
 
-Ограничение поставки: этот task не меняет действующие project manifests и reference templates,
-поскольку numeric policy является отдельным выбором проекта. Поэтому проекты без `task_ids`
-продолжают работать только с explicit IDs и получают явную ошибку на automatic intent.
+Проекты без `task_ids` продолжают работать только с explicit IDs и получают явную ошибку на
+automatic intent. `project-config` изменяет существующие manifest fields, но не добавляет
+отсутствующую numeric policy; автоматического выбора диапазона по-прежнему нет.
+
+
+## BUG-CONFIG-001 — 2026-09-12
+
+Реализованы `ProjectConfigCommands` и bounded CLI `project-config` для изменения действующего
+project manifest/process snapshots. Полный кандидат проходит прежние project/process
+validators; известная общая revision и revision каждого изменяемого process проверяются до
+публикации. Durable receipt обеспечивает idempotent replay, pending receipt — продолжение
+точно известной частичной публикации после interruption.
+
+Process updates не меняют snapshots существующих Task. Manifest update и безопасный перенос
+state требуют quiescent проекта и сериализуются с Task creation/claim через state locks.
+Relocation проверяет source/destination, сохраняет всё дерево, поддерживает `retain` и
+`delete_after_publish`, удерживает locks обоих state roots до receipt и не допускает пустой
+замены. Проверяемый контракт покрыт 24 сценариями `tests/projects/test_update.py`; это число
+относится к профильному набору BUG-CONFIG-001, а не к полной регрессии репозитория.
 
 ## DDD-10 result integration — 2026-09-11T16:55:00+05:00
 
@@ -56,8 +86,9 @@ idempotent replay и cleanup остаются в одном `integrate` API. С�
 Реализованы `project`/`project-init`: batch creation, явные templates, back/change/keep/abort,
 публикация цельного проекта, 13 независимых process snapshots, локальные Git readiness checks.
 Рабочий конфиг загружается обычным runtime; real-source pilot остаётся verified без autoaccept.
-Исторический результат пилота не заменяет текущий запуск тестов. Нет updates существующих project manifests,
-нового multi-codebase engine, установки интерпретатора или live IDE/remote сертификации.
+Исторический результат пилота не заменяет текущий запуск тестов. Revision-aware updates
+существующих project manifests поставлены отдельным `project-config`; нового multi-codebase
+engine, установки интерпретатора или live IDE/remote сертификации нет.
 
 
 ## POISE-PILOT-02 — 2026-09-07T15:04:48+05:00

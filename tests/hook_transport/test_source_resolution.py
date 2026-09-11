@@ -227,9 +227,10 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
     ]
 
 
+@pytest.mark.parametrize("config_changed", [False, True])
 @pytest.mark.parametrize("state", ["active", "verified", "accepted"])
 def test_assigned_session_continuation_loads_current_task_source_in_each_resumable_state(
-    project, tmp_path, state
+    project, tmp_path, state, config_changed
 ):
     service, installed, _ = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "continuation-" + state)
@@ -247,11 +248,19 @@ def test_assigned_session_continuation_loads_current_task_source_in_each_resumab
         assert accepted_call.returncode == 0, accepted_call.stdout + accepted_call.stderr
         assert report["status"] == "accepted"
 
+    if config_changed:
+        config = json.loads(Path(project["config_path"]).read_text(encoding="utf-8"))
+        config["limits"]["preview_chars"] += 1
+        write_json(project["config_path"], config)
+
     continued, current = _call(launcher, _bootstrap(None))
     assert continued.returncode == 0, continued.stdout + continued.stderr
     assert current["status"] == state
     assert Path(current["loaded_source"]) == task_source
     assert current["session"] == binding["session_id"]
+    assert (current["task"], current["stage"], current["iteration"]) == (
+        context["task"], context["stage"], context["iteration"]
+    )
 
 
 def test_taskless_and_new_task_creation_use_configured_installation_source(project, tmp_path):

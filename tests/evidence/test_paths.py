@@ -23,6 +23,7 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     counter=project['root']/'calls.txt'
     code=f"from pathlib import Path; p=Path({str(counter)!r}); p.write_text(p.read_text()+'x' if p.exists() else 'x'); print('observed=3'); raise SystemExit({1 if negative else 0})"
     m={'id':'M','argv':[sys.executable,'-B','-c',code], 'cwd':'.','environment':{},'timeout_seconds':5,
+       'source_under_test':{'kind':'external','reason':'The observer records generated evidence and reads no repository source.'},
        'expected_exit_code':0,'stdout_contains':['observed=3'],'stderr_contains':[]}
     task=project['task']; task.update(goal_type='verification_demo', methods=[m],
        method_inputs=[{'method_id':'M','repository_inputs':[],'future_outputs':[],

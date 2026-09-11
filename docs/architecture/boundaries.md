@@ -1,12 +1,12 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-11T05:57:22+05:00**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-09-12T00:00:00+05:00**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
 | Task | кандидатный результат, доказательства, transition, приёмка и rework | SQL/Git/команды |
 | workflow/handlers | produce/inspect/revise/observe/check | goal-type branching, присваивание lifecycle |
-| verification/CheckRegistry | точные команды, ID и расписание | изобретение команд |
+| verification/CheckRegistry | точные команды, ID, расписание, `source_under_test` и семантические конфликты | изобретение команд или разрешение filesystem paths |
 | evidence | план, immutable observations/arguments/decisions, механическая достаточность | I/O, оценка истинности вместо агента |
 | application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
 | SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
@@ -15,6 +15,12 @@
 `EvidenceBook` используется композиционно; это не BaseTask и не отдельный движок каждого goal type. Runner делегирует чистым handler/domain, не держит lock во время subprocess. Generic observe/check отличаются способом интерпретации заданных наблюдений, не названием цели.
 
 Правила происхождения, аргумента и осмотра остаются раздельными. `passed` — исход predicate, `interpretable` — распознанность наблюдения, `accepted/rejected` — последующий смысловой осмотр. Их нельзя сворачивать в один status.
+
+`CheckRegistry` владеет чистым контрактом provenance и сравнением методов. Runtime владеет
+разрешением repository-relative binding против текущего task worktree, проверкой границ и
+формированием digest/receipt. Execution adapter получает уже связанный cwd/environment и не
+угадывает язык, layout проекта или источник импорта. Evidence хранит наблюдение и provenance,
+но не исправляет неверный method после запуска.
 
 Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw capture синхронный, адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы EvidenceBook.
 
@@ -109,8 +115,10 @@ Git- и filesystem-границы, после чего запускает отд
 проверочные факты не записываются в binding, Task DB или общую конфигурацию; поэтому две
 сессии могут конкурентно использовать разные worktrees без общей мутации. Installation
 interface только переносит результат выбранного дочернего `WorkTools` и не становится вторым
-исполнителем операции. Read-only projections и cancellation используют текущую Task без
-`config_hash` gate; рабочие переходы сохраняют прежнюю проверку конфигурационного контракта.
+исполнителем операции. Уточнено **2026-09-12**: все операции текущей Task, включая рабочие
+переходы, используют валидную текущую конфигурацию без общего `config_hash` gate, как
+предусмотрено задачей 0026. Task-owned snapshots сохраняются; хеш остаётся диагностическим
+provenance. Это не отменяет проверок binding, source, ownership и revisions.
 
 
 ## Accounting ownership — DDD-08
@@ -148,6 +156,28 @@ process-files публикуются через инструментарий. В
 readiness probes и публикует новый каталог. Это не universal file editor и не новый Task API.
 Общая механика atomic_write и exclusive_lock переиспользована; все business значения settings
 и выбранного шаблона явные. Этапы или имена целей не встроены в код project tool.
+
+
+## Live project configuration boundary — 2026-09-12
+
+`ProjectConfigCommands` — единственный application route для revision-aware изменения
+действующего проекта. Он проверяет форму bounded-пакета и зависит от
+`ProjectConfigUpdatePort`; filesystem, SQL и subprocess в application layer не входят.
+`FileProjectConfigUpdate` владеет сборкой полного кандидата, общей `load_config` validation,
+публикацией, component digests, pending/durable receipts и recovery. CLI и composition только
+передают пакет этому route и не редактируют managed файлы самостоятельно.
+
+`GoalTypeDefinition` остаётся владельцем process candidate. Project updater координирует
+несколько независимых process snapshots, но не вводит второй редактор их внутренней модели.
+Generic manifest edits не могут менять `project`, `schema`, `processes` или `paths`:
+перемещение state принадлежит отдельному relocation protocol.
+
+Task остаётся владельцем process snapshot и lifecycle. Обновление живого process не меняет
+уже созданную Task. Manifest/state mutation требует quiescence; project setup lock и lock
+исходного state удерживаются от проверки до durable receipt, а при relocation до переключения
+manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
+проверкой активной работы и публикацией. Перенос не удаляет source до подтверждённой копии и
+переключения manifest; overlapping roots и отсутствующий source отклоняются.
 
 
 ## Task identity allocation — 2026-09-11T06:55:21+05:00

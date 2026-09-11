@@ -124,6 +124,9 @@ class SprintCommands:
     def known(self,sprint_id):
         with self.uow() as u:return u.sprints.get(sprint_id) is not None
 
+    def overview_ids(self):
+        with self.uow() as u:return u.sprints.published_ids(self.project)
+
     def read(self,sprint_id,view):
         with self.uow() as u:
             sid=sprint_id if sprint_id is not None else u.sprints.scope(self.actor)

@@ -56,6 +56,9 @@ class Harness:
         from .application.transfers import TransferCommands
         from .infrastructure.transfers import RuntimeTransfers
         self.transfer_tools=TransferCommands(RuntimeTransfers(self),self.cfg['runtime_services']['transfer'])
+        from .application.result_integration import ResultIntegrationCommands
+        from .infrastructure.result_integration import RuntimeResultIntegration
+        self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
 
     def _result_event(self,event,payload):
         current=self.current_task()

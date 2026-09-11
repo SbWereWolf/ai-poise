@@ -96,9 +96,11 @@ class TaskQueries:
         if rowmap is not None:
             from .transfer_records import relocate_receipt
             execution=relocate_receipt(execution,json.loads(rowmap['data']))
+        report = execution["last_report"]
         return {**metadata, **execution, "id":row["id"],
                 "status":row["status"],"stage_index":row["stage_index"],"iteration":row["iteration"],
-                "claimed_by":row["claimed_by"],"_version":row["version"],"_execution_version":row["execution_version"]}
+                "claimed_by":row["claimed_by"],"result_commit":None if report is None else report["commit"],
+                "_version":row["version"],"_execution_version":row["execution_version"]}
 
     def history(self, task_id: str) -> list[dict]:
         with self.database.transaction() as db:
@@ -108,6 +110,15 @@ class TaskQueries:
         with self.database.transaction() as db:
             return [{"id":r["id"],"status":r["status"],"goal":json.loads(r["metadata"])["goal"]}
                     for r in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id")]
+
+    def standalone_summary(self) -> list[dict]:
+        with self.database.transaction() as db:
+            result=[]
+            for row in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id"):
+                metadata=json.loads(row["metadata"])
+                if metadata["sprint_id"] is None:
+                    result.append({"id":row["id"],"status":row["status"],"goal":metadata["goal"]})
+            return result
 
     def evidence_view(self, task_id):
         from .tasks import SqliteTaskRepository

@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
+Обновлено: **2026-09-11T05:57:22+05:00**. Контракт реализованного API, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -111,7 +111,7 @@ JSON
 Текст и шаблоны UTF-8 реализованы. Готовые бинарные файлы поддерживаются прежней path-only регистрацией; binary генератор/семантическая классификация не добавлены. Требование количества считает уникальные файлы по scope/pattern, не test-cases внутри файла.
 
 ## Пакетное чтение
-Каждый query имеет собственный `id`. Поддержаны `task`, `messages`, `content`, `evidence`, `section`, `trace`.
+Каждый query имеет собственный `id`. Поддержаны `task`, `messages`, `content`, `evidence`, `section`, `trace`, `sprint`, `work_overview` и другие явно описанные ниже виды.
 ```json
 {"operation":"show","input":{"queries":[{"id":"state","kind":"task"},{"id":"report","kind":"section","name":"report","stage":null,"submission":null,"range":{"unit":"lines","start":1,"end":10}},{"id":"cost","kind":"messages"}]},"messages":[]}
 ```
@@ -119,6 +119,32 @@ JSON
 Section query явно содержит name/stage/submission/range. Null stage/submission означает текущую проекцию; null range — явно настроенный initial_read_lines. Строки — 1-based inclusive; байты — 0-based half-open по UTF-8. Границы не разрезают символы; такой byte-запрос отклоняется с предложением использовать строки. Конец диапазона ограничивается реальным концом данных. В ответе total_lines/total_bytes, returned_lines/returned_bytes. Пустая секция — пустой текст и [0,0].
 
 Это единый запрос чтения, но не обещание одного SQL snapshot всех разных read-models. Одна задача одновременно не изменяется несколькими агентами по принятой модели оркестрации.
+
+### Обзор опубликованных спринтов и самостоятельных задач
+
+`work_overview` возвращает две независимые проекции через публичный `show`, без доступа клиента к SQLite или managed-файлам:
+
+```json
+{"operation":"show","input":{"queries":[{"id":"all-work","kind":"work_overview","sprint_statuses":null,"standalone_task_statuses":null}]},"messages":[]}
+```
+
+У пустого проекта значение этого query имеет точную форму:
+
+```json
+{"sprints":[],"standalone_tasks":[]}
+```
+
+`sprints` содержит полные DTO опубликованных Sprint в том же формате, что `kind: sprint`, `view: current`; `standalone_tasks` содержит объекты точной формы `{"id":"...","status":"...","goal":"..."}` только для Task с `sprint_id: null`. Участники Sprint во второй список не попадают. Каждый список упорядочен по своему ID по возрастанию.
+
+Фильтры обязательны как поля query и действуют независимо после построения владельцами своих проекций:
+
+- `null` — вернуть все элементы соответствующего списка;
+- `[]` — вернуть пустой соответствующий список;
+- непустой список — оставить статусы из явно переданного уникального набора.
+
+Допустимые статусы Sprint: `planned`, `active`, `completed`, `cancelled`, `blocked`. Допустимые статусы standalone Task: `available`, `active`, `verified`, `accepted`, `completed`, `cancelled`. Неизвестный статус, повтор статуса, отсутствующее или лишнее поле отклоняют весь пакет.
+
+Query не поддерживает pagination и не обещает один cross-domain SQL snapshot: Sprint и Task читаются через разные owner read-models. Входные коллекции ограничены настроенным `batch.max_items`. Полный результат сохраняется в task receipt; когда он не помещается в `limits.output_chars`, CLI возвращает ограниченный JSON с `response_path` и `details: "full_result"`, а не обрезанный список.
 
 ## Пользовательское сообщение
 ```json

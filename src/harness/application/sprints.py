@@ -7,7 +7,7 @@ from ..modules.sprints.domain import SprintPolicy, SprintPlan, Sprint
 from ..modules.tasks.definition import path_identifier
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import HarnessError, DomainError, VersionConflict
-from .tasks import (create_planned_in_uow, creation_intent_alias,
+from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
                     rewrite_task_plan, validate_creation_intent)
 
 
@@ -92,12 +92,15 @@ class SprintCommands:
                     errors=self._errors(record)
                     if errors:raise DomainError('; '.join(errors))
                     s=s.publish()
+                    reservations=creation_batch_reservations(
+                        s.plan.data['tasks'],(s.plan.data['id'],)
+                    )
                     created={}
                     for intent in s.plan.data['tasks']:
                         body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
                         allocation,contract=create_planned_in_uow(
                             u,intent,record['processes'][body['goal_type']],record['automatic_checks'],
-                            {'config_hash':record['execution_hash']},self.task_id_policy)
+                            {'config_hash':record['execution_hash']},self.task_id_policy,reservations)
                         alias=allocation.request_id if allocation.request_id is not None else contract['id']
                         created[alias]=contract
                         if allocation.receipt() is not None:allocations.append(allocation.receipt())

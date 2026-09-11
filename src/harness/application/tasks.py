@@ -22,16 +22,27 @@ def _creation_values(intent, allocation, actor, process, automatic_checks, base_
     return build_task(metadata, actor), metadata, contract
 
 
-def create_planned_in_uow(uow, intent, process, automatic_checks, base_metadata, policy):
+def create_planned_in_uow(uow, intent, process, automatic_checks, base_metadata, policy,
+                          reserved_ids=()):
     from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
     request_id, _, _ = creation_parts(intent)
     parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
-    allocation = uow.tasks.allocate(intent, parsed_policy)
+    allocation = uow.tasks.allocate(intent, parsed_policy, reserved_ids)
     task, metadata, contract = _creation_values(
         intent, allocation, None, process, automatic_checks, base_metadata
     )
     uow.tasks.create(task, metadata)
     return allocation, contract
+
+
+def creation_batch_reservations(intents, additional=()):
+    from ..modules.tasks.allocation import creation_parts
+    reserved = set(additional)
+    for intent in intents:
+        request_id, task, _ = creation_parts(intent)
+        if request_id is None:
+            reserved.add(task['id'])
+    return frozenset(reserved)
 
 
 def rewrite_task_plan(plan, contracts_by_alias):

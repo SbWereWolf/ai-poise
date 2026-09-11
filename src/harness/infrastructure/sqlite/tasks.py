@@ -31,7 +31,7 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
-    def allocate(self, intent, policy):
+    def allocate(self, intent, policy, reserved_ids=()):
         from ...modules.tasks.allocation import Allocation, creation_parts
         request_id, task, request_digest = creation_parts(intent)
         if request_id is None:
@@ -47,6 +47,7 @@ class SqliteTaskRepository:
             return Allocation(request_id, row['id'], request_digest, True)
         occupied = {row[0] for row in self.db.execute("SELECT id FROM tasks")}
         occupied.update(row[0] for row in self.db.execute("SELECT id FROM sprints"))
+        occupied.update(reserved_ids)
         for candidate in policy.candidates():
             if candidate not in occupied:
                 return Allocation(request_id, candidate, request_digest, False)

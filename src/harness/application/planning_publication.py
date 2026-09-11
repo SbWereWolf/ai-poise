@@ -6,7 +6,7 @@ from ..modules.actions.domain import ActionRun,PlanSpec
 from ..modules.sprints.domain import Sprint,SprintPlan,SprintPolicy
 from ..modules.foundation.errors import DomainError
 from ..modules.verification.domain import exact_keys
-from .tasks import (create_planned_in_uow, creation_intent_alias,
+from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
                     rewrite_task_plan, validate_creation_intent)
 
 
@@ -64,11 +64,14 @@ class PlanningPublications:
                 alias=creation_intent_alias(intent)
                 if alias in aliases:raise DomainError('Duplicate child creation identity')
                 aliases.add(alias);candidates.append((intent,goal))
+            reservations=creation_batch_reservations(
+                contracts, () if sprint is None else (sprint.plan.data['id'],)
+            )
             prepared={};ids=set();allocations=[]
             for intent,goal in candidates:
                 allocation,contract=create_planned_in_uow(
                     u,intent,self.processes[goal],self.automatic_checks,
-                    {'config_hash':self.execution_hash},self.task_id_policy)
+                    {'config_hash':self.execution_hash},self.task_id_policy,reservations)
                 ident=contract['id']
                 if ident in ids:
                     raise DomainError('Child identity collides with existing work')

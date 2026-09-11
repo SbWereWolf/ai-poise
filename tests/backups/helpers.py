@@ -63,13 +63,18 @@ def expected_backup_name(database: Path) -> str:
 
 
 def backup_commands(project: dict):
+    import pytest
+
+    local_package = (ROOT / "src/poise").resolve()
     try:
+        import poise
         from poise.application.backups import BackupCommands
         from poise.infrastructure.backups import LocalTaskDatabaseBackups
     except ModuleNotFoundError as exc:
-        import pytest
-
         pytest.fail(f"public backup service is absent: {exc}")
+    origin = Path(poise.__file__).resolve().parent
+    if local_package.is_dir() and origin != local_package:
+        pytest.fail(f"poise resolved outside task worktree: {origin}")
     port = LocalTaskDatabaseBackups(project["config_path"])
     return BackupCommands(port, clock=lambda: FIXED_NOW)
 

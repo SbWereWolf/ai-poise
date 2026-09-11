@@ -138,10 +138,14 @@ def add_test(worktree):
 # the NEW explicit result object. It is not installed/exported by Harness and
 # it does not read or write an operational result file. This preserves old
 # behavioural assertions while changing their transport fixture.
-try:
+_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+sys.path.insert(0, str(_SOURCE_ROOT))
+if (_SOURCE_ROOT / "poise").is_dir():
     from poise.runtime import Poise as Runtime
-except ImportError:
+elif (_SOURCE_ROOT / "harness").is_dir():
     from harness.runtime import Harness as Runtime
+else:
+    raise RuntimeError(f"No local runtime package under {_SOURCE_ROOT}")
 from copy import deepcopy
 _SCENARIO_DRAFTS={}
 

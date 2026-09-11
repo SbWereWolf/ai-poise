@@ -47,6 +47,7 @@ def test_create_uses_configured_database_and_reports_verified_sizes(project):
     for sentinel in (task_sentinel, sprint_sentinel):
         sentinel.parent.mkdir(parents=True)
         sentinel.write_text("unchanged", encoding="utf-8")
+    entries_before = {path.name for path in database.parent.iterdir()}
 
     result = backup_commands(project).create()
     backup = backup_directory(project) / result["name"]
@@ -61,6 +62,7 @@ def test_create_uses_configured_database_and_reports_verified_sizes(project):
     assert marker(backup) == "live-marker"
     assert task_sentinel.read_text(encoding="utf-8") == "unchanged"
     assert sprint_sentinel.read_text(encoding="utf-8") == "unchanged"
+    assert {path.name for path in database.parent.iterdir()} == entries_before | {"backups"}
     assert sorted(path.name for path in backup_directory(project).iterdir()) == [result["name"]]
 
 

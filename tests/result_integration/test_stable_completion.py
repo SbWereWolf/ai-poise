@@ -66,6 +66,8 @@ def _guard_method() -> dict:
             (
                 "import pathlib,subprocess;"
                 "print('cwd='+str(pathlib.Path.cwd()));"
+                "print('branch='+subprocess.check_output("
+                "['git','symbolic-ref','--short','HEAD'],text=True).strip());"
                 "print('head='+subprocess.check_output("
                 "['git','rev-parse','HEAD'],text=True).strip())"
             ),
@@ -74,7 +76,7 @@ def _guard_method() -> dict:
         "environment": {},
         "timeout_seconds": 10,
         "expected_exit_code": 0,
-        "stdout_contains": ["cwd=", "head="],
+        "stdout_contains": ["cwd=", "branch=", "head="],
         "stderr_contains": [],
     }
 
@@ -187,7 +189,7 @@ def _assert_terminal_contract(
     assert not Path(result["temporary_backup_directory"]).exists()
 
 
-def test_happy_path_uses_child_worktree_runs_guard_and_preserves_dirty_main_checkout(project):
+def test_happy_path_uses_child_branch_workspace_and_preserves_dirty_main_checkout(project):
     method = _guard_method()
     tools, source_worktree, source = prepare_completed_task(
         project,
@@ -209,6 +211,7 @@ def test_happy_path_uses_child_worktree_runs_guard_and_preserves_dirty_main_chec
     assert [item["method"] for item in result["checks"]] == [method["id"]]
     output = Path(result["checks"][0]["stdout"]).read_text()
     assert f"cwd={result['integration_worktree']}" in output
+    assert f"branch={result['integration_branch']}" in output
     assert f"head={result['integration_head']}" in output
 
 
@@ -226,7 +229,7 @@ def test_overlapping_main_checkout_wip_is_not_an_integration_precondition(projec
     assert overlap.read_bytes() == b"uncommitted operator bytes\n"
 
 
-def test_conflict_is_resolved_only_in_persisted_child_worktree_then_checked(project):
+def test_conflict_is_resolved_only_in_owned_child_branch_workspace_then_checked(project):
     method = _guard_method()
     tools, source_worktree, source = prepare_completed_task(
         project,
@@ -248,6 +251,9 @@ def test_conflict_is_resolved_only_in_persisted_child_worktree_then_checked(proj
     assert waiting["observed_target"] == target_before
     assert waiting["conflicts"] == ["src/double.py"]
     assert integration_worktree.is_dir()
+    assert git(integration_worktree, "symbolic-ref", "--short", "HEAD") == waiting[
+        "integration_branch"
+    ]
     assert _optional_ref(integration_worktree, "MERGE_HEAD") == source
     assert _optional_ref(project["app"], "MERGE_HEAD") is None
     (integration_worktree / "src" / "double.py").write_text("VALUE = 'resolved'\n")
@@ -413,10 +419,15 @@ def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state
         ),
         "bytes": (foreign / "foreign.txt").read_bytes(),
     }
+    configured_runtime = (
+        project["root"]
+        / project["cfg"]["paths"]["state"]
+        / project["cfg"]["paths"]["runtime"]
+    )
     protected_backups = {
-        "operator": project["root"] / "runtime" / "operator-backups" / "keep.bundle",
-        "deliverable": project["root"] / "runtime" / "deliverables" / "keep.bundle",
-        "unfinished-recovery": project["root"] / "runtime" / "recovery" / "keep.bundle",
+        "operator": configured_runtime / "operator-backups" / "keep.bundle",
+        "deliverable": configured_runtime / "deliverables" / "keep.bundle",
+        "unfinished-recovery": configured_runtime / "recovery" / "keep.bundle",
     }
     for kind, backup in protected_backups.items():
         backup.parent.mkdir(parents=True, exist_ok=True)
@@ -476,7 +487,7 @@ def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state
         "temporary_backups": "removed",
     }
     temporary_directory = Path(saved["temporary_backup_directory"])
-    assert temporary_directory.is_relative_to(project["root"] / "runtime")
+    assert temporary_directory.is_relative_to(configured_runtime)
     temporary_directory.mkdir(parents=True, exist_ok=True)
     temporary_backup = temporary_directory / "owned-retry.bundle"
     temporary_backup.write_bytes(b"task-scoped temporary backup\n")

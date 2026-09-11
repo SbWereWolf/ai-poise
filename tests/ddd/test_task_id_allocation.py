@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import ast
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import threading
 
 import pytest
@@ -12,7 +16,6 @@ from batch.helpers import request
 from conftest import write_json
 from harness.application.work import WorkTools
 from harness.common import HarnessError
-from harness.infrastructure.sqlite.database import SCHEMA_VERSION
 from harness.runtime import Harness
 
 
@@ -138,11 +141,12 @@ def test_concurrent_creation_allocates_unique_atomic_ids(project):
 
 def test_creation_request_replay_is_stable_and_does_not_consume_id(project):
     configure(project, policy(maximum=20))
-    tools = WorkTools(Harness(project["config_path"], "replay-owner"))
+    owner_tools = WorkTools(Harness(project["config_path"], "replay-owner"))
     intent = automatic_intent(project, "stable-request")
 
-    first = bootstrap(tools, intent)
-    replay = bootstrap(tools, intent)
+    first = bootstrap(owner_tools, intent)
+    replay_tools = WorkTools(Harness(project["config_path"], "replay-reader"))
+    replay = bootstrap(replay_tools, intent)
     next_result = bootstrap(
         WorkTools(Harness(project["config_path"], "next-owner")),
         automatic_intent(project, "next-request"),
@@ -150,6 +154,8 @@ def test_creation_request_replay_is_stable_and_does_not_consume_id(project):
 
     assert first["task"] == replay["task"] == "0001"
     assert replay["allocation"]["replayed"] is True
+    assert replay_tools.runtime.current_task() is None
+    assert owner_tools.runtime.task_queries.record("0001")["claimed_by"] == "replay-owner"
     assert next_result["task"] == "0002"
 
 
@@ -230,15 +236,54 @@ def test_exhaustion_leaves_existing_tasks_unchanged(project):
 
 def test_allocated_identity_is_used_everywhere(project):
     configure(project, policy())
-    tools = WorkTools(Harness(project["config_path"], "identity-owner"))
-    result = bootstrap(tools, automatic_intent(project, "identity-request"))
-    record = tools.runtime.task_queries.record("0001")
+    root = Path(__file__).resolve().parents[2]
+    packet = request(
+        "bootstrap",
+        {
+            "task": automatic_intent(project, "identity-request"),
+            "decision": None,
+            "feedback": None,
+            "rework_stage": None,
+        },
+    )
+    process = subprocess.run(
+        [sys.executable, "-m", "harness", "work"],
+        cwd=root,
+        input=json.dumps(packet),
+        text=True,
+        capture_output=True,
+        env={
+            **os.environ,
+            "HARNESS_CONFIG": str(project["config_path"]),
+            "HARNESS_SESSION": "identity-owner",
+            "PYTHONPATH": str(root / "src"),
+        },
+        timeout=20,
+    )
+    assert process.returncode == 0, process.stdout + process.stderr
+    view = json.loads(process.stdout)
+    response_path = Path(view["response_path"])
+    result = json.loads(response_path.read_text(encoding="utf-8"))
+    runtime = Harness(project["config_path"], "identity-reader")
+    record = runtime.task_queries.record("0001")
 
     assert result["task"] == record["id"] == record["contract"]["id"] == "0001"
     assert Path(result["worktree"]).name == "0001"
     assert Path(result["task_root"]).name == "0001"
     assert record["branch"] == "tasks/0001"
     assert result["allocation"]["task_id"] == "0001"
+    assert Path(result["runtime_root"]).name == "identity-owner"
+    assert response_path.is_file()
+    assert response_path.is_relative_to(Path(result["task_root"]) / "runs")
+    with runtime.store.transaction() as db:
+        journal_task_ids = {
+            row[0]
+            for row in db.execute(
+                "SELECT task_id FROM journal WHERE session_id=?", ("identity-owner",)
+            ).fetchall()
+            if row[0] is not None
+        }
+    assert journal_task_ids == {"0001"}
     assert "EXPLICIT" not in json.dumps(result, ensure_ascii=False)
 
 
@@ -273,6 +318,46 @@ def test_worktree_failure_replays_same_reservation_and_recovers(project, monkeyp
     assert recovered["task"] == "0001"
     assert recovered["allocation"]["replayed"] is True
     assert Path(recovered["worktree"]).is_dir()
+    assert [row["id"] for row in runtime.task_queries.summary()] == ["0001"]
+
+
+def test_worktree_recovery_rejects_and_preserves_conflicting_state(project, monkeypatch):
+    configure(project, policy())
+    runtime = Harness(project["config_path"], "conflicting-recovery-owner")
+    tools = WorkTools(runtime)
+    real_git = runtime._git
+    failed = False
+
+    def fail_after_worktree_add(cwd, *args, **kwargs):
+        nonlocal failed
+        result = real_git(cwd, *args, **kwargs)
+        if not failed and args[:2] == ("worktree", "add"):
+            failed = True
+            raise HarnessError("injected failure after git worktree add")
+        return result
+
+    monkeypatch.setattr(runtime, "_git", fail_after_worktree_add)
+    intent = automatic_intent(project, "conflicting-recovery-request")
+    with pytest.raises(HarnessError, match="(?i)0001|recover|repeat"):
+        bootstrap(tools, intent)
+
+    record = runtime.task_queries.record("0001")
+    worktree = Path(record["worktree"])
+    branch_before = real_git(worktree, "rev-parse", "HEAD")
+    unexpected = worktree / "unexpected-user-state.txt"
+    unexpected_bytes = b"must survive rejected recovery\n"
+    unexpected.write_bytes(unexpected_bytes)
+    monkeypatch.setattr(runtime, "_git", real_git)
+
+    with pytest.raises(HarnessError, match="(?i)conflict|changed|recover|worktree"):
+        bootstrap(tools, intent)
+
+    assert unexpected.read_bytes() == unexpected_bytes
+    assert real_git(worktree, "rev-parse", "HEAD") == branch_before
+    assert runtime.task_queries.record("0001")["branch"] == "tasks/0001"
+    with runtime.store.unit_of_work() as uow:
+        execution, _ = uow.execution.load("0001")
+    assert execution["pending"]["kind"] == "worktree_setup"
     assert [row["id"] for row in runtime.task_queries.summary()] == ["0001"]
 
 
@@ -507,30 +592,120 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
     record = reopened.task_queries.record("LEGACY")
 
     assert explicit["task"] == record["id"] == "LEGACY"
-    assert before_version == SCHEMA_VERSION
+    assert before_version == 12
     with reopened.store.transaction() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == before_version
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 12
     assert "creation_request" not in record
+
+
+def _dotted_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _dotted_name(node.value)
+        return node.attr if prefix is None else f"{prefix}.{node.attr}"
+    return None
+
+
+def _imports(tree):
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module)
+    return imported
 
 
 def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
     root = Path(__file__).resolve().parents[2]
-    domain = root / "src/harness/modules/tasks/allocation.py"
-    ports = (root / "src/harness/modules/tasks/ports.py").read_text(encoding="utf-8")
-    commands = (root / "src/harness/application/tasks.py").read_text(encoding="utf-8")
-    adapters = "\n".join(
-        (root / path).read_text(encoding="utf-8")
+    domain_tree = ast.parse(
+        (root / "src/harness/modules/tasks/allocation.py").read_text(encoding="utf-8")
+    )
+    ports_tree = ast.parse(
+        (root / "src/harness/modules/tasks/ports.py").read_text(encoding="utf-8")
+    )
+    commands_tree = ast.parse(
+        (root / "src/harness/application/tasks.py").read_text(encoding="utf-8")
+    )
+    adapter_trees = [
+        ast.parse((root / path).read_text(encoding="utf-8"))
         for path in (
             "src/harness/runtime.py",
             "src/harness/application/catalogue.py",
             "src/harness/application/sprints.py",
             "src/harness/application/planning_publication.py",
         )
+    ]
+
+    assert not {
+        name.split(".")[0] for name in _imports(domain_tree)
+    } & {"sqlite3", "subprocess", "pathlib", "os"}
+    assert not {
+        _dotted_name(node.func)
+        for node in ast.walk(domain_tree)
+        if isinstance(node, ast.Call)
+    } & {"open", "glob.glob", "os.listdir", "subprocess.run"}
+
+    task_repository = next(
+        node
+        for node in ports_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "TaskRepository"
+    )
+    assert any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == "allocate"
+        for node in task_repository.body
     )
 
-    text = domain.read_text(encoding="utf-8")
-    assert all(name not in text for name in ("sqlite3", "subprocess", "pathlib", "os."))
-    assert "allocate" in ports
-    assert "unit_of_work" in commands and "allocation" in commands.lower()
-    assert "glob(" not in adapters and "iterdir(" not in adapters
-    assert "git branch" not in adapters.lower()
+    task_commands = next(
+        node
+        for node in commands_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "TaskCommands"
+    )
+    transactional_calls = []
+    for method in task_commands.body:
+        if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for context in (node for node in ast.walk(method) if isinstance(node, ast.With)):
+            calls = {
+                _dotted_name(node.func)
+                for statement in context.body
+                for node in ast.walk(statement)
+                if isinstance(node, ast.Call)
+            }
+            transactional_calls.append(calls)
+    assert any(
+        {"uow.tasks.allocate", "uow.tasks.create"} <= calls
+        for calls in transactional_calls
+    )
+
+    forbidden_adapter_calls = {
+        "allocate",
+        "glob",
+        "iterdir",
+        "listdir",
+        "max",
+        "rglob",
+    }
+    forbidden_git_probes = {"for-each-ref", "rev-list", "show-ref"}
+    for tree in adapter_trees:
+        assert not any(
+            isinstance(node, ast.ImportFrom)
+            and node.module is not None
+            and node.module.endswith("modules.tasks.allocation")
+            for node in ast.walk(tree)
+        )
+        assert not {
+            (_dotted_name(node.func) or "").rsplit(".", 1)[-1]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+        } & forbidden_adapter_calls
+        assert not any(isinstance(node, ast.While) for node in ast.walk(tree))
+        constants = {
+            node.value
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        assert not constants & forbidden_git_probes
+        assert not {"branch", "--list"} <= constants

@@ -30,6 +30,9 @@ class SprintWork:
         if result is None:raise HarnessError('No selected sprint')
         return result
 
+    def overviews(self):
+        return [self.overview(sprint_id) for sprint_id in self.commands.overview_ids()]
+
     def overview(self,sprint_id):
         out=self.commands.read(sprint_id,'current')
         if out is None:return None

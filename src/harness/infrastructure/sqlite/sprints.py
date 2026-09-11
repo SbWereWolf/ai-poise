@@ -79,6 +79,13 @@ class SqliteSprintRepository:
                 'pending':None if exe is None else exe['pending']}
         return result
 
+    def ids(self,project,states):
+        if not states:return []
+        placeholders=','.join('?' for _ in states)
+        return [row['id'] for row in self.db.execute(
+            f'SELECT id FROM sprints WHERE project=? AND state IN ({placeholders}) ORDER BY id',
+            (project,*states))]
+
     def history(self,sprint_id):
         return [{'revision':r[0],'data':json.loads(r[1]),'at':r[2]} for r in self.db.execute(
             'SELECT revision,data,at FROM sprint_layers WHERE sprint_id=? ORDER BY revision',(sprint_id,))]

@@ -224,7 +224,9 @@ class RuntimeResultIntegration:
             self._save(run.intent.task_id, waiting, run.version)
             return waiting
         if receipt["actual_exit_code"] != 0:
-            raise PoiseError(f"Integration merge failed: {receipt['stderr']}")
+            failed = run.candidate_failed("merge_failed_without_conflicts", receipt)
+            self._save(run.intent.task_id, failed, run.version)
+            return failed
         commit = self._run(workspace, "commit", "-m", run.intent.authorization,
                            env=self._actor())
         if commit["actual_exit_code"] != 0:
@@ -407,6 +409,10 @@ class RuntimeResultIntegration:
             return run.result(replayed=True)
         if run.phase == "checks_failed":
             return run.result()
+        if run.phase == "candidate_failed":
+            retried = run.retry_candidate()
+            self._save(intent.task_id, retried, run.version)
+            run = retried
         if run.phase == "awaiting_resolution":
             if not intent.resolutions:
                 return run.result()

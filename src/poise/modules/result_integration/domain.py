@@ -221,6 +221,33 @@ class IntegrationRun:
             failure=None,
         )
 
+    def candidate_failed(self, reason, receipt):
+        if self.phase != "preparing_candidate":
+            raise DomainError("Only a running candidate can record a failure")
+        failure = {
+            "reason": _text(reason, "candidate failure reason"),
+            "receipt": receipt,
+        }
+        return self._step(
+            "blocked",
+            "candidate_failed",
+            "candidate_failed",
+            details=failure,
+            failure=failure,
+        )
+
+    def retry_candidate(self):
+        if self.phase != "candidate_failed":
+            raise DomainError("Only a failed candidate can be retried")
+        return self._step(
+            "running",
+            "preparing_candidate",
+            "candidate_retry_started",
+            conflicts=(),
+            resolutions=(),
+            failure=None,
+        )
+
     def checks_recorded(self, receipts):
         if self.phase != "candidate_ready":
             raise DomainError("Checks require a ready integration candidate")
@@ -290,12 +317,16 @@ class IntegrationRun:
         )
 
     def cleanup_completed(self, component, outcome):
-        if self.phase != "cleanup_pending" or component not in self.cleanup:
+        if component not in self.cleanup:
             raise DomainError("Cleanup step does not match the integration state")
         if outcome not in ("removed", "deleted"):
             raise DomainError("Cleanup outcome is invalid")
-        if self.cleanup[component] == outcome:
+        if self.cleanup[component] == outcome and self.phase in (
+            "cleanup_pending", "integrated"
+        ):
             return self
+        if self.phase != "cleanup_pending":
+            raise DomainError("Cleanup step does not match the integration state")
         cleanup = dict(self.cleanup)
         cleanup[component] = outcome
         terminal = cleanup == {

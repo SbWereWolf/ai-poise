@@ -128,7 +128,25 @@ def _advance_ref_with_same_tree(root: Path, parent: str, message: str) -> str:
     return commit
 
 
-def _assert_terminal_contract(result: dict, source: str) -> None:
+def _is_target_publication(args: tuple[str, ...]) -> bool:
+    return (
+        len(args) == 4
+        and args[0] == "update-ref"
+        and args[1] == "refs/heads/main"
+    )
+
+
+def _show_integration(project, request_id: str = "integrate-1") -> dict:
+    reader = WorkTools(Poise(project["config_path"], f"reader-{request_id}"))
+    return reader.invoke(request("show", {"queries": [{
+        "id": "integration",
+        "kind": "integration",
+        "task_id": "T1",
+        "request_id": request_id,
+    }]}))["results"][0]["value"]
+
+
+def _assert_terminal_contract(result: dict, source: str, repository: Path) -> None:
     assert result["status"] == "integrated"
     assert result["accepted_commit"] == source
     assert result["integration_head"] == result["target_after"]
@@ -142,6 +160,7 @@ def _assert_terminal_contract(result: dict, source: str) -> None:
         "integration_branch": "deleted",
         "temporary_backups": "removed",
     }
+    assert git(repository, "merge-base", "--is-ancestor", source, result["target_after"]) == ""
     assert not Path(result["integration_worktree"]).exists()
     assert not Path(result["temporary_backup_directory"]).exists()
 
@@ -160,8 +179,9 @@ def test_happy_path_uses_child_worktree_runs_guard_and_preserves_dirty_main_chec
 
     result = tools.invoke(request("integrate", integration_input(project, source)))
 
-    _assert_terminal_contract(result, source)
+    _assert_terminal_contract(result, source, project["app"])
     assert git(project["app"], "rev-parse", "refs/heads/main") == result["target_after"]
+    assert git(project["app"], "show", f"{result['target_after']}:src/feature.py") == "VALUE = 1"
     assert _main_checkout_fingerprint(project["app"], old_target) == before
     assert not source_worktree.exists()
     assert [item["method"] for item in result["checks"]] == [method["id"]]
@@ -179,7 +199,7 @@ def test_overlapping_main_checkout_wip_is_not_an_integration_precondition(projec
 
     result = tools.invoke(request("integrate", integration_input(project, source)))
 
-    _assert_terminal_contract(result, source)
+    _assert_terminal_contract(result, source, project["app"])
     assert _main_checkout_fingerprint(project["app"], old_target) == before
     assert overlap.read_bytes() == b"uncommitted operator bytes\n"
 
@@ -218,7 +238,10 @@ def test_conflict_is_resolved_only_in_persisted_child_worktree_then_checked(proj
         }],
     }))
 
-    _assert_terminal_contract(completed, source)
+    _assert_terminal_contract(completed, source, project["app"])
+    assert git(
+        project["app"], "show", f"{completed['target_after']}:src/double.py"
+    ) == "VALUE = 'resolved'"
     assert completed["checks"][0]["passed"] is True
     assert not source_worktree.exists()
 
@@ -238,7 +261,8 @@ def test_target_drift_rebuilds_and_rechecks_before_atomic_publication(
     injected: list[str] = []
 
     def drift_before_compare_and_swap(self, cwd, *args, env=None):
-        if args and args[0] == "update-ref" and len(injected) < drift_count:
+        if _is_target_publication(args) and len(injected) < drift_count:
+            assert args[3] == git(project["app"], "rev-parse", "refs/heads/main")
             current = git(project["app"], "rev-parse", "refs/heads/main")
             injected.append(_advance_ref_with_same_tree(
                 project["app"], current, f"test: target drift {len(injected) + 1}"
@@ -249,7 +273,7 @@ def test_target_drift_rebuilds_and_rechecks_before_atomic_publication(
 
     result = tools.invoke(request("integrate", integration_input(project, source)))
 
-    _assert_terminal_contract(result, source)
+    _assert_terminal_contract(result, source, project["app"])
     assert len(injected) == drift_count
     assert result["publication"]["drift_retries"] == drift_count
     assert len(result["checks"]) == drift_count + 1
@@ -266,8 +290,10 @@ def test_crash_after_atomic_publication_reconciles_without_second_update(project
 
     def crash_after_update_ref(self, cwd, *args, env=None):
         nonlocal publication_calls, crashed
+        if _is_target_publication(args):
+            assert args[3] == git(project["app"], "rev-parse", "refs/heads/main")
         receipt = original_run(self, cwd, *args, env=env)
-        if args and args[0] == "update-ref":
+        if _is_target_publication(args):
             publication_calls += 1
             if not crashed and receipt["actual_exit_code"] == 0:
                 crashed = True
@@ -283,7 +309,7 @@ def test_crash_after_atomic_publication_reconciles_without_second_update(project
     restarted = WorkTools(Poise(project["config_path"], "restarted-integrator"))
     result = restarted.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(result, source)
+    _assert_terminal_contract(result, source, project["app"])
     assert result["target_after"] == published
     assert result["publication"]["recovered"] is True
     assert publication_calls == 1
@@ -300,7 +326,8 @@ def test_crash_before_atomic_publication_retries_the_unperformed_compare_and_swa
 
     def crash_before_first_update_ref(self, cwd, *args, env=None):
         nonlocal attempted, performed
-        if args and args[0] == "update-ref":
+        if _is_target_publication(args):
+            assert args[3] == git(project["app"], "rev-parse", "refs/heads/main")
             attempted += 1
             if attempted == 1:
                 raise RuntimeError("injected crash before publication")
@@ -316,7 +343,7 @@ def test_crash_before_atomic_publication_retries_the_unperformed_compare_and_swa
     restarted = WorkTools(Poise(project["config_path"], "restarted-before-publication"))
     result = restarted.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(result, source)
+    _assert_terminal_contract(result, source, project["app"])
     assert attempted == 2
     assert performed == 1
 
@@ -342,6 +369,11 @@ def test_failed_candidate_guard_persists_receipt_and_prevents_publication_and_cl
     assert result["checks"][-1]["passed"] is False
     assert Path(result["checks"][-1]["stdout"]).is_file()
     assert git(project["app"], "rev-parse", "refs/heads/main") == payload["expected_target_commit"]
+    saved = _show_integration(project)
+    assert saved["phase"] == result["phase"] == "checks_failed"
+    assert saved["integration_head"] == result["integration_head"]
+    assert saved["checks"] == result["checks"]
+    assert saved["publication"] is result["publication"] is None
 
 
 @pytest.mark.parametrize("failure_mode", ["before", "after"])
@@ -359,9 +391,14 @@ def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state
         ),
         "bytes": (foreign / "foreign.txt").read_bytes(),
     }
-    operator_backup = project["root"] / "state" / "runtime" / "operator-backups" / "keep.bundle"
-    operator_backup.parent.mkdir(parents=True, exist_ok=True)
-    operator_backup.write_bytes(b"operator backup\n")
+    protected_backups = {
+        "operator": project["root"] / "runtime" / "operator-backups" / "keep.bundle",
+        "deliverable": project["root"] / "runtime" / "deliverables" / "keep.bundle",
+        "unfinished-recovery": project["root"] / "runtime" / "recovery" / "keep.bundle",
+    }
+    for kind, backup in protected_backups.items():
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        backup.write_bytes(f"{kind} backup\n".encode())
     original_run = RuntimeResultIntegration._run
     failed = False
 
@@ -407,16 +444,34 @@ def test_cleanup_retry_finishes_only_owned_resources_and_preserves_foreign_state
         with pytest.raises(RuntimeError, match="after owned cleanup"):
             tools.invoke(request("integrate", payload))
 
-    completed = tools.invoke(request("integrate", payload))
+    saved = _show_integration(project)
+    assert saved["publication"]["status"] == "confirmed"
+    assert saved["cleanup"] != {
+        "task_worktree": "removed",
+        "integration_worktree": "removed",
+        "task_branch": "deleted",
+        "integration_branch": "deleted",
+        "temporary_backups": "removed",
+    }
+    temporary_directory = Path(saved["temporary_backup_directory"])
+    assert temporary_directory.is_relative_to(project["root"] / "runtime")
+    temporary_directory.mkdir(parents=True, exist_ok=True)
+    temporary_backup = temporary_directory / "owned-retry.bundle"
+    temporary_backup.write_bytes(b"task-scoped temporary backup\n")
 
-    _assert_terminal_contract(completed, source)
+    restarted = WorkTools(Poise(project["config_path"], f"cleanup-restart-{failure_mode}"))
+    completed = restarted.invoke(request("integrate", payload))
+
+    _assert_terminal_contract(completed, source, project["app"])
+    assert not temporary_backup.exists()
     assert foreign.is_dir()
     assert git(foreign, "rev-parse", "HEAD") == foreign_before["head"]
     assert subprocess.check_output(
         ["git", "-C", str(foreign), "status", "--porcelain=v2", "-z"]
     ) == foreign_before["status"]
     assert (foreign / "foreign.txt").read_bytes() == foreign_before["bytes"]
-    assert operator_backup.read_bytes() == b"operator backup\n"
+    for kind, backup in protected_backups.items():
+        assert backup.read_bytes() == f"{kind} backup\n".encode()
     if failure_mode == "after":
         assert cleanup_effects == 1
 
@@ -429,7 +484,7 @@ def test_terminal_no_op_is_proved_and_cleanup_is_replayable(project):
 
     result = tools.invoke(request("integrate", payload))
 
-    _assert_terminal_contract(result, source)
+    _assert_terminal_contract(result, source, project["app"])
     assert result["publication"]["no_op"] is True
     assert result["publication"]["observed_target"] == source
     replay = tools.invoke(request("integrate", payload))
@@ -446,13 +501,7 @@ def test_show_exposes_exact_persisted_integration_contract_during_conflict(proje
     payload = integration_input(project, source, request_id="persisted-contract")
     waiting = tools.invoke(request("integrate", payload))
 
-    reader = WorkTools(Poise(project["config_path"], "integration-reader"))
-    shown = reader.invoke(request("show", {"queries": [{
-        "id": "integration",
-        "kind": "integration",
-        "task_id": "T1",
-        "request_id": "persisted-contract",
-    }]}))["results"][0]["value"]
+    shown = _show_integration(project, "persisted-contract")
 
     for key in (
         "accepted_commit",
@@ -471,5 +520,26 @@ def test_show_exposes_exact_persisted_integration_contract_during_conflict(proje
     ):
         assert key in shown
     assert shown["status"] == waiting["status"] == "awaiting_resolution"
+    for key in (
+        "accepted_commit",
+        "integration_branch",
+        "integration_worktree",
+        "phase",
+        "observed_target",
+        "integration_head",
+        "conflicts",
+        "resolutions",
+        "checks",
+        "publication",
+        "temporary_backups",
+        "cleanup",
+        "history",
+    ):
+        assert shown[key] == waiting[key]
     assert shown["accepted_commit"] == source
-    assert shown["integration_worktree"] == waiting["integration_worktree"]
+    assert shown["phase"] == "awaiting_resolution"
+    assert shown["observed_target"] == payload["expected_target_commit"]
+    assert shown["conflicts"] == ["src/double.py"]
+    assert shown["resolutions"] == []
+    assert shown["checks"] == []
+    assert shown["publication"] is None

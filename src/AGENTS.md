@@ -38,4 +38,4 @@ Keep all Harness configuration in the Harness codebase and select the project ex
 
 Use a dedicated Git worktree and the repository branch-naming rule before modifying code. Do not complicate read-only inspection with worktree creation.
 
-Follow the [TDD rules](../docs/development-rules.md), [library boundaries](../docs/architecture-boundaries.md) and [declarative tool contract](../docs/declarative-tools.md). Write and inspect tests before implementation, verify the completed path, review fixes, and update tool, code and storage documentation with a timestamp.
+Follow the [TDD rules](../docs/governance/development-rules.md), [library boundaries](../docs/architecture/boundaries.md) and [declarative tool contract](../docs/architecture/declarative-tools.md). Write and inspect tests before implementation, verify the completed path, review fixes, and update tool, code and storage documentation with a timestamp.

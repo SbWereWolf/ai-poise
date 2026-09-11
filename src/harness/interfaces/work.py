@@ -19,8 +19,8 @@ def execute(runtime,stream,output):
         root=h.runtime if current is None else descendant(h.state,h.paths['tasks'])/current['id']
         if request['operation']=='bootstrap' and request['input']['task'] is not None:
             task=request['input']['task']
-            if 'id' not in task:raise HarnessError('task.id is required')
-            root=descendant(h.state,h.paths['tasks'])/h._identifier(task['id'])
+            if 'id' in task:
+                root=descendant(h.state,h.paths['tasks'])/h._identifier(task['id'])
         predicted=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
         minimal={'status':'content_requirements_failed','response_path':str(predicted)}
         if len(json.dumps(minimal,ensure_ascii=False,separators=(',',':'))+'\n')>h.cfg['limits']['output_chars']:

@@ -1,0 +1,75 @@
+{
+  "agent_id": "primary",
+  "context_template": "Use Bash to invoke {launcher} with one work JSON packet on stdin and messages=[]. Native hooks are the only user-message source; do not manually report or replay user messages. Current state: {state}.",
+  "events": [
+    {
+      "async": false,
+      "context_limit": 2000,
+      "event": "SessionStart",
+      "matcher": "startup|resume|compact|clear",
+      "status_message": "Bind Harness session",
+      "timeout_seconds": 15
+    },
+    {
+      "async": false,
+      "context_limit": 2000,
+      "event": "UserPromptSubmit",
+      "matcher": "",
+      "status_message": "Record user turn",
+      "timeout_seconds": 15
+    },
+    {
+      "async": false,
+      "context_limit": null,
+      "event": "Stop",
+      "matcher": "",
+      "status_message": "Report Harness state",
+      "timeout_seconds": 5
+    },
+    {
+      "async": false,
+      "context_limit": null,
+      "event": "SessionEnd",
+      "matcher": "other",
+      "status_message": "Record session end",
+      "timeout_seconds": 3
+    }
+  ],
+  "gate_operations": [
+    "bootstrap",
+    "verify",
+    "artifacts"
+  ],
+  "id": "harness-main",
+  "message_source": "codex-hook-main",
+  "probes": [
+    {
+      "argv": [
+        "/home/sbwerewolf/workdata/ai-poise/.venv/bin/python",
+        "-B",
+        "-c",
+        "import sys; print(\"ready\" if sys.version_info[:2] == (3,13) else \"unsupported\")"
+      ],
+      "cwd": "${workspace}",
+      "environment": {},
+      "expected_exit_code": 0,
+      "id": "python",
+      "json_assertions": [],
+      "kind": "command",
+      "max_output_bytes": 65536,
+      "mcp": null,
+      "project_bound": false,
+      "remediation": "Install CPython 3.13 and select its executable in the explicit settings.",
+      "required": true,
+      "stderr_contains": [],
+      "stdout_contains": [
+        "ready"
+      ],
+      "timeout_seconds": 5,
+      "tool_ref": "CPython"
+    }
+  ],
+  "schema": "hook-definition-1",
+  "stop_template": "Current Harness state: {state}; no acceptance or transition was performed.",
+  "unknown_outcome_message": "Native hook failed; inspect the local operational record."
+}

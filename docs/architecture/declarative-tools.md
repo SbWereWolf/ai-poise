@@ -96,3 +96,18 @@
 `python -m poise work` реализует direct packet для task bootstrap/verify/CONTINUE, генерируемых артефактов и batch show. Шаблон результата возвращается объектом; агент не пишет/редактирует operational result JSON. `artifacts`-операция сама регистрирует пути, а verify может одновременно принять созданные файлы и все семантические изменения. Одинаковый файл не требует hash/ID от агента.
 
 `messages` входит в тот же пакет. Поля привязки вычисляет инструмент. Coverage partial/unavailable: автоматического захвата всех сообщений ChatGPT пока нет. Границы и точная грамматика: [batch-work](../workflows/batch-work.md). Прежние формулировки будущего времени описывают общий целевой контракт; для фактической реализации используется [статус](implementation-status.md).
+
+## Поставленное обновление живой project configuration
+
+Обновлено: **2026-09-12**.
+
+`python -m poise project-config --settings <project-setup-settings>` принимает один
+`project-config-update-1` и через `ProjectConfigCommands` публикует валидированный полный
+кандидат действующего project manifest/process snapshots. Это отдельный сценарий от
+`GoalConfigCommands`: внутренние process changes по-прежнему строит `GoalTypeDefinition`, а
+project route координирует общую revision, несколько файлов, readiness и durable recovery.
+
+Операция не является generic file editor: structural roots имеют отдельных владельцев,
+state переносится только явным relocation protocol, активные Task сохраняют собственные
+snapshots. Точная грамматика, CLI, receipt/retry и ограничения relocation описаны в
+[подготовке проекта](../configuration/project-setup.md#обновление-действующего-проекта).

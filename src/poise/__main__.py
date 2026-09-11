@@ -12,6 +12,8 @@ def parser():
     sub=p.add_subparsers(dest='command',required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
     project.add_argument('--settings',type=Path,required=True)
+    project_config=sub.add_parser('project-config',help='Update one existing configured project')
+    project_config.add_argument('--settings',type=Path,required=True)
     wizard=sub.add_parser('project-init',help='Interactive project questionnaire: set/keep/back/abort')
     wizard.add_argument('--settings',type=Path,required=True)
     for name in ('template','destination','request-id'):
@@ -42,6 +44,9 @@ def main():
     args=parser().parse_args()
     if args.command=='project':
         from .interfaces.projects import execute
+        return execute(args.settings,sys.stdin.buffer,sys.stdout)
+    if args.command=='project-config':
+        from .interfaces.project_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)
     if args.command=='project-init':
         from .interfaces.projects import interactive

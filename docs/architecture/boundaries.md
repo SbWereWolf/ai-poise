@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-11T05:57:22+05:00**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-09-12T00:00:00+05:00**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -156,6 +156,28 @@ process-files публикуются через инструментарий. В
 readiness probes и публикует новый каталог. Это не universal file editor и не новый Task API.
 Общая механика atomic_write и exclusive_lock переиспользована; все business значения settings
 и выбранного шаблона явные. Этапы или имена целей не встроены в код project tool.
+
+
+## Live project configuration boundary — 2026-09-12
+
+`ProjectConfigCommands` — единственный application route для revision-aware изменения
+действующего проекта. Он проверяет форму bounded-пакета и зависит от
+`ProjectConfigUpdatePort`; filesystem, SQL и subprocess в application layer не входят.
+`FileProjectConfigUpdate` владеет сборкой полного кандидата, общей `load_config` validation,
+публикацией, component digests, pending/durable receipts и recovery. CLI и composition только
+передают пакет этому route и не редактируют managed файлы самостоятельно.
+
+`GoalTypeDefinition` остаётся владельцем process candidate. Project updater координирует
+несколько независимых process snapshots, но не вводит второй редактор их внутренней модели.
+Generic manifest edits не могут менять `project`, `schema`, `processes` или `paths`:
+перемещение state принадлежит отдельному relocation protocol.
+
+Task остаётся владельцем process snapshot и lifecycle. Обновление живого process не меняет
+уже созданную Task. Manifest/state mutation требует quiescence; project setup lock и lock
+исходного state удерживаются от проверки до durable receipt, а при relocation до переключения
+manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
+проверкой активной работы и публикацией. Перенос не удаляет source до подтверждённой копии и
+переключения manifest; overlapping roots и отсутствующий source отклоняются.
 
 
 ## Task identity allocation — 2026-09-11T06:55:21+05:00

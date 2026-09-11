@@ -411,7 +411,21 @@ def test_project_config_cli_accepts_one_bounded_packet(project):
 @pytest.mark.parametrize("case", ["oversized", "duplicate_key"])
 def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, case):
     settings, config_path, created = installed_project(project)
-    request = update_request(config_path, created["revision"])
+    _, config, _ = load_config(config_path)
+    process_path = config_path.parent / config["processes"]["development"]
+    state_move = relocation(config_path, project["root"].parent / f"rejected-{case}-state")
+    source = Path(state_move["expected_source"])
+    source.mkdir(parents=True)
+    (source / "precious.txt").write_text("must remain at source")
+    before_manifest = config_path.read_bytes()
+    before_process = process_path.read_bytes()
+    request = update_request(
+        config_path,
+        created["revision"],
+        process_updates=[process_change(read_process(config_path))],
+        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+        state_relocation=state_move,
+    )
     raw = json.dumps(request)
     if case == "oversized":
         settings_data = json.loads(settings.read_text())
@@ -429,37 +443,81 @@ def test_project_config_cli_rejects_bad_bounded_input_before_mutation(project, c
 
     assert completed.returncode == 2
     assert json.loads(completed.stdout)["status"] == "rejected"
+    assert config_path.read_bytes() == before_manifest
+    assert process_path.read_bytes() == before_process
     assert project_revision(config_path) == created["revision"]
+    assert (source / "precious.txt").read_text() == "must remain at source"
+    assert not Path(state_move["destination"]).exists()
     assert not (project["root"] / request["receipt_path"]).exists()
 
 
 def test_project_update_application_boundary_depends_on_ports_not_io():
     root = Path(__file__).resolve().parents[2] / "src/harness"
     application = root / "application/project_config.py"
-    tree = ast.parse(application.read_text())
-    imports = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imports.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            imports.append(node.module or "")
-    assert any("modules.projects.ports" in name for name in imports)
-    assert not any(
-        name.split(".")[0] in {"os", "pathlib", "sqlite3", "subprocess"}
-        or "infrastructure" in name
-        for name in imports
-    )
-    assert not any(
-        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "open"
-        for node in ast.walk(tree)
-    )
-    commands = [node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "ProjectConfigCommands"]
+    interface = root / "interfaces/project_config.py"
+    composition = root / "composition.py"
+
+    def import_targets(tree):
+        targets = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                targets.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                targets.extend(
+                    ".".join(part for part in (node.module, alias.name) if part)
+                    for alias in node.names
+                )
+        return targets
+
+    def assert_no_direct_io(tree):
+        forbidden_roots = {
+            "builtins", "io", "os", "pathlib", "shutil", "sqlite3", "subprocess", "tempfile",
+        }
+        forbidden_imports = {"atomic_write", "open", "write_text", "write_bytes"}
+        assert not any(
+            target.split(".")[0] in forbidden_roots or target.rsplit(".", 1)[-1] in forbidden_imports
+            for target in import_targets(tree)
+        )
+        calls = [node.func for node in ast.walk(tree) if isinstance(node, ast.Call)]
+        assert not any(isinstance(call, ast.Name) and call.id in {"open", "atomic_write"} for call in calls)
+        assert not any(
+            isinstance(call, ast.Attribute)
+            and call.attr in {"write_text", "write_bytes", "replace", "rename", "execute", "executemany"}
+            for call in calls
+        )
+
+    application_tree = ast.parse(application.read_text())
+    application_imports = import_targets(application_tree)
+    assert any("modules.projects.ports" in name for name in application_imports)
+    assert not any("infrastructure" in name for name in application_imports)
+    assert_no_direct_io(application_tree)
+    commands = [
+        node for node in application_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ProjectConfigCommands"
+    ]
     assert len(commands) == 1
     public = [node.name for node in commands[0].body if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")]
     assert public == ["apply"]
 
-    interface = (root / "interfaces/project_config.py").read_text()
-    composition = (root / "composition.py").read_text()
-    assert "project_config_tools" in interface and "project_config_tools" in composition
-    for adapter in (interface, composition):
-        assert not any(token in adapter for token in ("atomic_write", "write_text(", "sqlite3", "UPDATE ", "INSERT "))
+    interface_tree = ast.parse(interface.read_text())
+    assert any(target.endswith("composition.project_config_tools") for target in import_targets(interface_tree))
+    assert any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "project_config_tools"
+        for node in ast.walk(interface_tree)
+    )
+    assert_no_direct_io(interface_tree)
+
+    composition_tree = ast.parse(composition.read_text())
+    factories = [
+        node for node in composition_tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "project_config_tools"
+    ]
+    assert len(factories) == 1
+    assert any(
+        isinstance(node, ast.Return)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+        and node.value.func.id == "ProjectConfigCommands"
+        for node in ast.walk(factories[0])
+    )
+    assert_no_direct_io(factories[0])

@@ -12,6 +12,12 @@ from poise.modules.foundation.errors import PoiseError, VersionConflict
 from poise.runtime import Poise
 from poise.application.work import WorkTools
 from tests.conftest import DeterministicClock, write_json
+from batch.helpers import request
+from sprints.helpers import (
+    bootstrap as bootstrap_sprint,
+    draft as draft_sprint,
+    publish as publish_sprint,
+)
 from .helpers import setup_case
 
 
@@ -291,6 +297,42 @@ def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_reques
     assert Path(result["receipt_path"]).is_file()
 
 
+def test_superseded_task_does_not_block_quiescent_manifest_update(project):
+    settings, config_path, created = installed_project(project)
+    original = deepcopy(project["task"])
+    original.update(id="BAD", sprint_id="S", goal="Replace this fixture")
+    replacement = deepcopy(original)
+    replacement.update(id="BAD-2", goal="Replacement fixture")
+    planner = WorkTools(Poise(config_path, "replacement-planner", DeterministicClock()))
+    planned = draft_sprint(planner, [original])
+    published = publish_sprint(planner, planned["revision"])
+    planner.invoke(request("sprint", {
+        "action": "replace_task",
+        "sprint_id": None,
+        "request_id": "replace-before-project-update",
+        "expected_revision": published["revision"],
+        "source_task": "BAD",
+        "replacement": replacement,
+        "reason": "Replace the unfinished test fixture task",
+        "authorization": "The test explicitly authorizes this replacement",
+    }))
+    worker = WorkTools(Poise(config_path, "replacement-worker", DeterministicClock()))
+    bootstrap_sprint(worker, "BAD-2")
+    worker.invoke(request("cancel", {"reason": "Leave the project quiescent"}))
+    assert planner.runtime.task_queries.record("BAD")["status"] == "superseded"
+    assert planner.runtime.task_queries.record("BAD-2")["status"] == "cancelled"
+    update = update_request(
+        config_path,
+        created["revision"],
+        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+    )
+
+    result = update_tools(settings).apply(update)
+
+    assert result["status"] == "updated"
+    assert json.loads(config_path.read_text())["git"]["push_required"] is False
+
+
 def relocation(config_path, destination, source_disposition="delete_after_publish"):
     root, config, _ = load_config(config_path)
     source = Path(config["paths"]["state"])
@@ -379,6 +421,31 @@ def test_state_relocation_rejects_occupied_destination_and_active_work(project):
     assert not empty_destination.exists()
 
 
+def test_state_relocation_rejects_unowned_staging_without_deleting_it(project):
+    settings, config_path, created = installed_project(project)
+    destination = project["root"].parent / "relocated-with-foreign-staging"
+    move = relocation(config_path, destination)
+    source = Path(move["expected_source"])
+    source.mkdir(parents=True)
+    (source / "precious.txt").write_text("keep source")
+    staging = destination.parent / f".{destination.name}.project-update"
+    staging.mkdir()
+    foreign = staging / "foreign.txt"
+    foreign.write_text("do not delete")
+    update = update_request(config_path, created["revision"], state_relocation=move)
+
+    with pytest.raises(PoiseError, match="staging|подготов"):
+        update_tools(settings).apply(update)
+
+    assert foreign.read_text() == "do not delete"
+    assert (source / "precious.txt").read_text() == "keep source"
+    assert not destination.exists()
+    assert project_revision(config_path) == created["revision"]
+    receipt = project["root"] / update["receipt_path"]
+    assert not receipt.exists()
+    assert not receipt.with_name(receipt.name + ".pending").exists()
+
+
 @pytest.mark.parametrize("failure_point", ["copy", "publish", "switch", "cleanup"])
 def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, failure_point):
     import poise.infrastructure.project_config as infrastructure
@@ -398,7 +465,11 @@ def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, fa
     original = getattr(infrastructure, seam)
 
     def interrupt(*args, **kwargs):
-        if failure_point in {"publish", "switch", "cleanup"}:
+        if failure_point == "copy":
+            staging = args[1]
+            staging.mkdir()
+            (staging / "partial.txt").write_text("incomplete copy")
+        else:
             original(*args, **kwargs)
         raise OSError(f"interrupted during {failure_point}")
 

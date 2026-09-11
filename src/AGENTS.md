@@ -1,6 +1,6 @@
 # Harness source development
 
-Updated: 2026-09-07T00:25:38+05:00.
+Updated: 2026-09-11T05:25:00+05:00.
 
 ## Declarative, reusable tools
 
@@ -15,6 +15,8 @@ Do not duplicate existing tools. Compose their calls or simplify their inputs an
 Apply domain-driven design throughout the codebase, not just to stage handlers. Identify the owner of each business rule before adding behaviour.
 
 Document and respect the responsibility boundaries of libraries and data owners. Change Task, Sprint, content, evidence, configuration and artifact state only through their owning APIs. CLI adapters, runners and hooks must not bypass those APIs with direct lifecycle assignments or table updates.
+
+For every new trace requirement, ensure that its due stages intersect the referenced point's `write_stages`. Apply this rule to new goal-type and Task candidates, Sprint publication, and new active-Task additions before persistence or external effects. Restore stored contracts without retroactive rejection or rewriting, but validate every genuinely new requirement added to them. Keep immutable early evidence writable only at its owning stage; include that stage among the requirement's due stages instead of making the evidence writable later.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.
 

@@ -16,10 +16,15 @@ class WorkResourcesPort(Protocol):
     def remember(self,task:dict,digest:str)->None: ...
 
 
+class TaskOverviewPort(Protocol):
+    def standalone_summary(self)->list[dict]: ...
+
+
 class WorkRuntime(Protocol):
     accounting: Any
     transfer_tools:Any
     sprint_tools:SprintWorkPort
+    task_queries:TaskOverviewPort
     session:str
     cfg:dict
     interactions:InteractionPort

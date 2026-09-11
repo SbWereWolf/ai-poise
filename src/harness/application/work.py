@@ -98,6 +98,11 @@ class WorkTools:
             if kind=='accounting':value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
             elif kind=='tool_result':value=h.show_output(query['receipt_id'],query['representation'],query['range'])
             elif kind=='sprint':value=h.sprint_tools.query(query['sprint_id'],query['view'])
+            elif kind=='work_overview':
+                sprint_statuses=query['sprint_statuses'];task_statuses=query['standalone_task_statuses']
+                sprints=h.sprint_tools.overviews();standalone=h.task_queries.standalone_summary()
+                value={'sprints':sprints if sprint_statuses is None else [x for x in sprints if x['status'] in sprint_statuses],
+                       'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
             elif kind=='task':value=h.show()
             elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])
             elif kind=='messages':value=self.interactions.summary(h.current_task())

@@ -73,6 +73,33 @@ python -m harness project --settings "$PWD/config/project-setup.json"
 не из встроенных defaults. Изменение `automatic_checks` передаёт точные правила проекта;
 редактор не читает команды из prose AGENTS и не изобретает их.
 
+### Политика Task ID
+
+Automatic Task creation доступен только при явном поле `task_ids` полного project config:
+
+```json
+{
+  "task_ids": {
+    "namespace": {"minimum": 1, "maximum": 9999},
+    "width": 4,
+    "progression": {"first": 1, "step": 1}
+  }
+}
+```
+
+Значения выше — пример политики, не default. `minimum` и `maximum` задают включительный
+неотрицательный namespace; `width` обязан представлять `maximum`; `first` входит в namespace;
+`step` — положительный. Кандидаты имеют decimal-представление с ведущими нулями до `width`.
+Invalid policy отклоняет загрузку конфигурации. Отсутствующая policy сохраняет чтение и
+explicit-ID creation существующих проектов, но automatic intent завершается явной ошибкой.
+
+Project templates и уже опубликованные project configs не получают `task_ids` автоматически.
+Этот срез не выбирает за пользователя числовой диапазон и не редактирует действующий managed
+config. Чтобы новый проект поддерживал automatic allocation, выбранный полный template должен
+уже содержать принятую policy; изменение существующего проекта требует отдельной штатной
+операции конфигурации, которой текущий `project` API не предоставляет. Ручная правка managed
+manifest не объявляется поддержанным обходом.
+
 Перед публикацией инструмент проверяет весь кандидат штатным `load_config`, в том числе
 каждый process через общий GoalTypeDefinition. Затем (при true) выполняются только локальные
 Git-проверки: repository root, разрешимость base ref, имя ветки, настройка remote при push.
@@ -161,7 +188,7 @@ python examples/project_pilot.py \
 
 С 2026-09-11 источник сообщений этой установки — только `codex-hook-main`, `mode=runtime_event`. Пользователь явно выбрал переход без сохранения прежнего рабочего режима. События поступают от Codex; агент не составляет и не воспроизводит их вручную. Поле `messages` в агентском пакете всегда равно `[]`.
 
-Установка выполнена публичным `runtime-setup`. Конкретные настройки находятся в `config/projects/ai-poise/hooks-settings.json`, обработчики — в `.codex/hooks.json`, неизменяемое определение — в `config/projects/ai-poise/hook-definitions/`. Эти пути принадлежат интеграционной ветке установки и могут отсутствовать в историческом дереве отдельной задачи до её интеграции. Выбраны существующие WSL Python 3.13 и `src/` этого репозитория. Проверка доступности включает только Python; подключение IDE/MCP этим набором не заявляется.
+Установка выполнена публичным `runtime-setup`. Конкретные настройки находятся в [hooks-settings.json](../../config/projects/ai-poise/hooks-settings.json), обработчики — в [.codex/hooks.json](../../.codex/hooks.json), неизменяемое определение — в [hook-definitions](../../config/projects/ai-poise/hook-definitions/). Выбраны существующие WSL Python 3.13 и `src/` этого репозитория. Проверка доступности включает только Python; подключение IDE/MCP этим набором не заявляется.
 
 `SessionStart` связывает нативную сессию с проектом, `UserPromptSubmit` регистрирует пользовательский ход. Оба возвращают агенту путь к сессионному `work.sh`. `Stop` сообщает состояние; он не заменяет `verify` и не принимает результат. `SessionEnd` обрабатывается для настроенной причины `other`.
 

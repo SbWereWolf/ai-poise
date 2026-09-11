@@ -75,8 +75,9 @@ from .modules.verification.domain import validate_method
 def load_config(path: Path) -> tuple[Path, dict, dict]:
     root = path.resolve().parent
     cfg = read_json(path)
-    exact_keys(cfg, {'schema','project','paths','limits','git','processes','environment_names',
-                     'automatic_checks','batch','sprint','runtime_services','accounting'}, 'project config')
+    keys = {'schema','project','paths','limits','git','processes','environment_names',
+            'automatic_checks','batch','sprint','runtime_services','accounting'}
+    exact_keys(cfg, keys | ({'task_ids'} if 'task_ids' in cfg else set()), 'project config')
     if cfg['schema'] != 'ddd-accounting-11':
         raise HarnessError('Неподдерживаемая schema; автоматических миграций нет')
     exact_keys(cfg['paths'], {'state','database','lock','runtime','tasks','sprints','worktrees',
@@ -136,6 +137,9 @@ def load_config(path: Path) -> tuple[Path, dict, dict]:
         raise HarnessError('Explicit handoff file_mode required')
     from .modules.sprints.domain import SprintPolicy
     SprintPolicy.parse(cfg['sprint'])
+    if 'task_ids' in cfg:
+        from .modules.tasks.allocation import TaskIdPolicy
+        TaskIdPolicy.parse(cfg['task_ids'])
     from .modules.work.domain import validate_config
     validate_config(cfg['batch'])
     processes = {}

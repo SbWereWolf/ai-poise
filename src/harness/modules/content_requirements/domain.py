@@ -196,6 +196,24 @@ class ContentPolicy:
     def from_layers(cls, goal: dict, task: dict, stages: tuple[str, ...],
                     requirement_ids: tuple[str, ...], method_ids: tuple[str, ...],
                     standard_sections: tuple[str, ...]) -> ContentPolicy:
+        policy = cls._parse_layers(
+            goal, task, stages, requirement_ids, method_ids, standard_sections)
+        policy._require_schedulable_trace_requirements(
+            frozenset(r.id for r in policy.requirements if r.kind == "trace"))
+        return policy
+
+    @classmethod
+    def restore_layers(cls, goal: dict, task: dict, stages: tuple[str, ...],
+                       requirement_ids: tuple[str, ...], method_ids: tuple[str, ...],
+                       standard_sections: tuple[str, ...]) -> ContentPolicy:
+        """Structurally restore persisted layers without applying newer creation rules."""
+        return cls._parse_layers(
+            goal, task, stages, requirement_ids, method_ids, standard_sections)
+
+    @classmethod
+    def _parse_layers(cls, goal: dict, task: dict, stages: tuple[str, ...],
+                      requirement_ids: tuple[str, ...], method_ids: tuple[str, ...],
+                      standard_sections: tuple[str, ...]) -> ContentPolicy:
         for label, values in (("stages", stages), ("task requirements", requirement_ids),
                               ("methods", method_ids), ("standard sections", standard_sections)):
             if type(values) is not tuple:
@@ -300,12 +318,27 @@ class ContentPolicy:
         return cls(_json(goal), _json(task), stages, requirement_ids, method_ids, standard_sections,
                    tuple(sections), tuple(routes), tuple(requirements))
 
+    def _require_schedulable_trace_requirements(self, selected: frozenset[str]) -> None:
+        routes = {route.id: route for route in self.routes}
+        for requirement in self.requirements:
+            if requirement.kind != "trace" or requirement.id not in selected:
+                continue
+            details = json.loads(requirement.details)
+            route = routes[details["route"]]
+            point = next(point for point in route.points if point.id == details["point"])
+            if set(requirement.stages).isdisjoint(point.write_stages):
+                raise DomainError(
+                    f"Требование {requirement.id}: маршрут {route.id}, точка {point.id}; "
+                    f"write_stages={list(point.write_stages)}, "
+                    f"due_stages={list(requirement.stages)} не пересекаются")
+
     def to_layers(self) -> dict:
         return {"goal": json.loads(self.goal_json), "task": json.loads(self.task_json)}
 
     def extend(self, additions: dict) -> ContentPolicy:
         _object(additions, {"sections", "routes", "requirements"}, "content additions")
         layers = self.to_layers()
+        new_requirement_ids = set()
         for group in ("sections", "routes", "requirements"):
             if not isinstance(additions[group], list):
                 raise DomainError(f"content additions.{group}: требуется список")
@@ -323,8 +356,12 @@ class ContentPolicy:
                         raise DomainError(f"Запрещена замена определения {name}; требуется решение о перепланировании")
                 else:
                     layers["task"][group].append(value)
-        return self.from_layers(layers["goal"], layers["task"], self.stages, self.requirement_ids,
-                                self.method_ids, self.standard_sections)
+                    if group == "requirements":
+                        new_requirement_ids.add(name)
+        policy = self.restore_layers(layers["goal"], layers["task"], self.stages,
+                                     self.requirement_ids, self.method_ids, self.standard_sections)
+        policy._require_schedulable_trace_requirements(frozenset(new_requirement_ids))
+        return policy
 
     def apply(self, snapshot: ContentSnapshot, stage: str, sections: dict,
               trace: dict) -> ContentSnapshot:

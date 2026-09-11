@@ -4,10 +4,70 @@ from dataclasses import dataclass
 from ..modules.tasks.domain import Task, TaskState, TaskStatus
 from ..modules.workflow.domain import RouteDefinition
 from ..modules.tasks.ports import TaskUnitOfWork
-from ..modules.tasks.contracts import stages_from_process, content_policy_from_metadata, evidence_plan_from_metadata
+from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError
+
+
+def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata):
+    from ..modules.tasks.allocation import materialize_contract
+    from ..modules.tasks.definition import build_task, validate_creation
+    contract, creation_request = materialize_contract(intent, allocation.task_id)
+    metadata = validate_creation(contract, process, automatic_checks)
+    metadata.update(base_metadata)
+    metadata.update(sprint_id=contract['sprint_id'], goal=contract['goal'])
+    if creation_request is not None:
+        metadata['creation_request'] = creation_request
+    return build_task(metadata, actor), metadata, contract
+
+
+def create_planned_in_uow(uow, intent, process, automatic_checks, base_metadata, policy,
+                          reserved_ids=()):
+    from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
+    request_id, _, _ = creation_parts(intent)
+    parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
+    allocation = uow.tasks.allocate(intent, parsed_policy, reserved_ids)
+    task, metadata, contract = _creation_values(
+        intent, allocation, None, process, automatic_checks, base_metadata
+    )
+    uow.tasks.create(task, metadata)
+    return allocation, contract
+
+
+def creation_batch_reservations(intents, additional=()):
+    from ..modules.tasks.allocation import creation_parts
+    reserved = set(additional)
+    for intent in intents:
+        request_id, task, _ = creation_parts(intent)
+        if request_id is None:
+            reserved.add(task['id'])
+    return frozenset(reserved)
+
+
+def rewrite_task_plan(plan, contracts_by_alias):
+    data = dict(plan)
+    data['tasks'] = [contracts_by_alias[key] for key in contracts_by_alias]
+    aliases = {alias: contract['id'] for alias, contract in contracts_by_alias.items()}
+    data['dependencies'] = [
+        {**edge,
+         'predecessor':aliases[edge['predecessor']],
+         'successor':aliases[edge['successor']]}
+        for edge in plan['dependencies']
+    ]
+    return data
+
+
+def validate_creation_intent(intent, process, automatic_checks):
+    from ..modules.tasks.allocation import creation_alias, materialize_contract
+    from ..modules.tasks.definition import validate_creation
+    contract, _ = materialize_contract(intent, creation_alias(intent))
+    return validate_creation(contract, process, automatic_checks)
+
+
+def creation_intent_alias(intent):
+    from ..modules.tasks.allocation import creation_alias
+    return creation_alias(intent)
 
 
 @dataclass(frozen=True)
@@ -23,14 +83,21 @@ class TaskCommands:
     def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork]):
         self.unit_of_work = unit_of_work
 
-    def create(self, task_id: str, actor: str, metadata: dict, execution: dict) -> None:
-        from ..modules.tasks.definition import build_task
-        if task_id != metadata['contract']['id']:
-            raise DomainError('Task identity does not match creation contract')
-        task = build_task(metadata,actor)
+    def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
+               base_metadata: dict, execution, policy):
+        from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
+        request_id, _, _ = creation_parts(intent)
+        parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
         with self.unit_of_work() as uow:
+            allocation = uow.tasks.allocate(intent, parsed_policy)
+            task, metadata, _ = _creation_values(
+                intent, allocation, actor, process, automatic_checks, base_metadata
+            )
             uow.tasks.create(task, metadata)
-            uow.execution.create(task_id, execution)
+            if not allocation.replayed:
+                snapshot = execution(allocation.task_id)
+                uow.execution.create(allocation.task_id, snapshot)
+            return allocation
 
     def start(self, task_id, actor, execution):
         with self.unit_of_work() as uow:

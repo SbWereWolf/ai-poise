@@ -89,10 +89,22 @@ def test_required_content_can_be_removed_only_with_its_references():
 
 def test_trace_route_and_requirement_are_one_candidate():
     out=GoalTypeDefinition.build("writing",template(),[
-     {"op":"put_requirement","value":{"id":"proof","kind":"trace","stages":["audit"],"phase":"post","route":"r","point":"p","field_equals":{}}},
+     {"op":"put_requirement","value":{"id":"proof","kind":"trace","stages":["draft","audit"],"phase":"post","route":"r","point":"p","field_equals":{}}},
      {"op":"put_trace_route","value":{"id":"r","requirements":["R1"],"points":[{"id":"p","kind":"method","fields":{},"write_stages":["draft"]}]}}
     ])
     assert out.data["content_contract"]["routes"][0]["id"]=="r"
+
+
+def test_goal_config_rejects_trace_required_only_after_its_write_stage():
+    changes = [
+      {"op":"put_requirement","value":{"id":"late-proof","kind":"trace","stages":["audit"],"phase":"post","route":"r","point":"p","field_equals":{}}},
+      {"op":"put_trace_route","value":{"id":"r","requirements":["R1"],"points":[{"id":"p","kind":"method","fields":{},"write_stages":["draft"]}]}}
+    ]
+    with pytest.raises(BatchValidationError) as error:
+        GoalTypeDefinition.build("writing",template(),changes)
+    message = str(error.value)
+    for expected in ("late-proof", "r", "p", "write_stages", "draft", "audit"):
+        assert expected in message
 
 
 def test_unknown_operation_not_raw_json_patch():

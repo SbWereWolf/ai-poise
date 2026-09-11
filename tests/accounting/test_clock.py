@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
 import sys
@@ -47,10 +48,18 @@ def cycle(h):
 def test_harness_clock_boundary_is_explicit_and_runtime_has_no_wall_fallback():
     from harness.infrastructure.clock import SystemClock
     from harness.infrastructure.accounting import RuntimeAccounting
+    from harness.modules.accounting.clock import ClockObservation
 
     assert "clock" in inspect.signature(Harness).parameters
-    assert callable(SystemClock().observe)
     assert "datetime.now" not in inspect.getsource(RuntimeAccounting)
+    clock = SystemClock()
+    first = clock.observe()
+    second = clock.observe()
+    assert isinstance(first, ClockObservation)
+    assert datetime.fromisoformat(first.audit_utc).astimezone(timezone.utc).utcoffset().total_seconds() == 0
+    assert first.comparison_domain
+    assert second.comparison_domain == first.comparison_domain
+    assert second.monotonic_ns >= first.monotonic_ns
 
 
 def test_tool_cycle_uses_monotonic_duration_and_preserves_backwards_audit_utc(project):
@@ -76,7 +85,7 @@ def test_tool_cycle_uses_monotonic_duration_and_preserves_backwards_audit_utc(pr
         "elapsed_microseconds": 60_000_000,
         "status": "measured",
     }
-    assert data["seconds"] == 60
+    assert "seconds" not in data
 
 
 def test_same_domain_backwards_monotonic_value_is_rejected_without_clamping(project):
@@ -119,7 +128,7 @@ def test_incomparable_open_cycle_is_recorded_unmeasured_then_retryable(project, 
 
     old_row, old_data = cycle(h)
     assert old_row["ended_at"] == "2026-09-11T11:00:00+00:00"
-    assert old_data["seconds"] is None
+    assert "seconds" not in old_data
     assert old_data["timing"]["status"] == "unmeasured_clock_discontinuity"
     assert old_data["timing"]["elapsed_microseconds"] is None
 

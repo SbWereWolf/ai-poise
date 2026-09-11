@@ -113,9 +113,16 @@ class RuntimeResultIntegration:
 
     def _dirty_paths(self, target):
         staged = self._git(target, "diff", "--cached", "--name-only", "--no-renames", "-z")
-        unstaged = self._git(target, "diff", "--name-only", "--no-renames", "-z")
-        untracked = self._git(target, "ls-files", "--others", "--exclude-standard", "-z")
-        return self._split_paths(staged + unstaged + untracked)
+        return self._split_paths(staged) | self._worktree_paths(target)
+
+    def _worktree_paths(self, target, env=None):
+        unstaged = self._git(
+            target, "diff", "--name-only", "--no-renames", "-z", env=env
+        )
+        untracked = self._git(
+            target, "ls-files", "--others", "--exclude-standard", "-z", env=env
+        )
+        return self._split_paths(unstaged + untracked)
 
     def _incoming_paths(self, target, target_before, source):
         merge_base = self._git(target, "merge-base", target_before, source)
@@ -202,7 +209,28 @@ class RuntimeResultIntegration:
 
     def _sync_target_index(self, target, incoming_paths):
         if incoming_paths:
-            self._git(target, "add", "--all", "--", *sorted(incoming_paths))
+            self._git(
+                target, "restore", "--staged", "--source=HEAD", "--",
+                *sorted(incoming_paths)
+            )
+
+    @staticmethod
+    def _saved_preflight(run):
+        preflight = None if run.merge is None else run.merge.get("preflight")
+        if not isinstance(preflight, dict):
+            raise HarnessError("Pending integration preflight is missing; inspect and abort the merge")
+        return preflight
+
+    def _reject_post_preflight_drift(self, target, run, env, allowed=()):
+        preflight = self._saved_preflight(run)
+        permitted = set(preflight["local_paths"]) | set(allowed)
+        unexpected = self._worktree_paths(target, env=env) - permitted
+        if unexpected:
+            raise HarnessError(
+                "Target incoming paths changed after integration preflight: "
+                + ", ".join(sorted(unexpected))
+                + "; restore the pending merge output or abort the merge before retrying"
+            )
 
     def _conflicts(self, target, env=None):
         raw = self._git(
@@ -223,7 +251,7 @@ class RuntimeResultIntegration:
         source = intent.expected_source_commit
         if run.status == "prepared":
             preflight = self._preflight(target, source, intent.expected_target_commit)
-            started = run.start({"target_before": preflight["head"]})
+            started = run.start({"target_before": preflight["head"], "preflight": preflight})
             self._save(intent.task_id, started, run.version)
             run = started
             if self._run(target, "merge-base", "--is-ancestor", source, "HEAD")["actual_exit_code"] == 0:
@@ -254,13 +282,9 @@ class RuntimeResultIntegration:
                     or self._optional_ref(target, "MERGE_HEAD") != source:
                 raise HarnessError("Pending conflict no longer belongs to this integration")
             continued = run.continue_with(intent.resolutions)
-            preflight = run.merge["receipt"]["preflight"]
-            permitted = set(run.conflicts) | set(preflight["local_paths"]) \
-                | set(preflight["incoming_paths"])
-            unexpected = self._dirty_paths(target) - permitted
-            if unexpected:
-                raise HarnessError("Conflict continuation contains unrelated target changes: "
-                                   + ", ".join(sorted(unexpected)))
+            self._reject_post_preflight_drift(
+                target, run, env, allowed=run.conflicts
+            )
             for item in continued.resolutions:
                 path = target / item["path"]
                 if not path.resolve().is_relative_to(target.resolve()):
@@ -289,6 +313,7 @@ class RuntimeResultIntegration:
                 raise HarnessError("Unknown merge outcome requires inspection")
         if run.status == "running":
             env = {**self._actor(), **self._index_env(target, intent)}
+            self._reject_post_preflight_drift(target, run, env)
             receipt = self._run(target, "commit", "-m", intent.authorization, env=env)
             if receipt["actual_exit_code"] != 0:
                 blocked = run.blocked("integration_commit_failed", receipt)

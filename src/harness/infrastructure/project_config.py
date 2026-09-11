@@ -1,6 +1,7 @@
 """Revision-aware live project configuration publication and recovery."""
 from __future__ import annotations
 from copy import deepcopy
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
@@ -104,6 +105,8 @@ class FileProjectConfigUpdate:
             if not isinstance(item, dict) or set(item) != {"path", "value"}:
                 raise HarnessError("manifest edit requires path and value")
             path = path_key(item["path"])
+            if path[0] in {"paths", "processes", "project", "schema"}:
+                raise HarnessError(f"Manifest field {path[0]} has a dedicated owner")
             field_at(config, path)
             if any(path[:len(old)] == old or old[:len(path)] == path for old in changed):
                 raise HarnessError("Conflicting manifest edits")
@@ -146,7 +149,8 @@ class FileProjectConfigUpdate:
         source = Path(move["expected_source"]).resolve()
         destination = Path(move["destination"]).resolve()
         disposition = move["source_disposition"]
-        if disposition not in {"retain", "delete_after_publish"} or source == destination:
+        overlap = source == destination or source.is_relative_to(destination) or destination.is_relative_to(source)
+        if disposition not in {"retain", "delete_after_publish"} or overlap:
             raise HarnessError("Invalid state relocation")
         configured = configured_root(config_path.parent, config["paths"]["state"])
         already_switched = configured == destination
@@ -185,7 +189,10 @@ class FileProjectConfigUpdate:
         request_digest = digest(request)
         lock = confined(settings.root, settings.raw["lock"])
         try:
-            with exclusive_lock(lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]):
+            with ExitStack() as locks:
+                locks.enter_context(exclusive_lock(
+                    lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
+                ))
                 if receipt_path.is_file():
                     saved = read_document(receipt_path)
                     if saved.get("request_digest") != request_digest:
@@ -201,19 +208,43 @@ class FileProjectConfigUpdate:
                 current_revision = digest({"config": live_config, "processes": live_processes})
                 if request["expected_revision"] not in self._known_revisions(root):
                     raise VersionConflict("External project revision is not known")
+                if not replayed and current_revision != request["expected_revision"]:
+                    raise VersionConflict("Live project differs from the expected known revision")
+                if request["state_relocation"] is not None:
+                    self._relocation_state(config_path, live_config, request["state_relocation"])
+                state = configured_root(root, live_config["paths"]["state"])
+                state_lock = descendant(state, live_config["paths"]["lock"])
+                locks.enter_context(exclusive_lock(
+                    state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
+                ))
                 candidate_config = self._manifest(live_config, request["manifest_edits"])
                 candidate_processes = self._processes(live_processes, request["process_updates"])
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
                 if (request["manifest_edits"] or request["state_relocation"] is not None) and self._active_work(root, live_config):
                     raise HarnessError("Manifest or state relocation requires quiescent project; active work exists")
-                if request["state_relocation"] is not None:
-                    self._relocation_state(config_path, live_config, request["state_relocation"])
+                component_digests = lambda config, processes: {
+                    "config": digest(config),
+                    "processes": {goal: digest(value) for goal, value in processes.items()},
+                }
+                before = component_digests(live_config, live_processes)
+                after = component_digests(candidate_config, candidate_processes)
+                if replayed:
+                    if pending.get("before") is None or pending.get("after") is None:
+                        raise VersionConflict("Pending publication lacks recovery digests")
+                    live = component_digests(live_config, live_processes)
+                    if live["config"] not in {pending["before"]["config"], pending["after"]["config"]}:
+                        raise VersionConflict("Unmanaged manifest change during recovery")
+                    for goal, value in live["processes"].items():
+                        if value not in {pending["before"]["processes"].get(goal), pending["after"]["processes"].get(goal)}:
+                            raise VersionConflict("Unmanaged process change during recovery")
                 self._validate_candidate(root, candidate_config, candidate_processes)
                 readiness = FileProjectSetup(settings)._probe(candidate_config, request["probe_repository"])
-                atomic_write(pending_path, encoded({"schema": "project-config-pending-1",
-                    "request_id": request["request_id"], "request_digest": request_digest},
-                    settings.raw["json_indent"]), settings.raw["file_mode"])
+                if not replayed:
+                    atomic_write(pending_path, encoded({"schema": "project-config-pending-1",
+                        "request_id": request["request_id"], "request_digest": request_digest,
+                        "before": before, "after": after}, settings.raw["json_indent"]),
+                        settings.raw["file_mode"])
                 for goal, process in candidate_processes.items():
                     if process != live_processes[goal]:
                         atomic_write(descendant(root, candidate_config["processes"][goal]), encoded(process, settings.raw["json_indent"]), settings.raw["file_mode"])

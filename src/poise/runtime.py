@@ -179,12 +179,6 @@ class Poise:
         return [s for s in result.split('\0') if s]
 
     def _task(self) -> dict:
-        task = self._current_task_required()
-        if task['config_hash'] != self.config_hash:
-            raise PoiseError('Конфигурация изменена во время задачи; этот срез не меняет её контракт автоматически')
-        return task
-
-    def _current_task_required(self) -> dict:
         task = self.store.current(self.session)
         if task is None:
             raise PoiseError('Нет текущей задачи; сначала bootstrap с явной задачей')
@@ -750,7 +744,7 @@ class Poise:
 
     def cancel(self, reason: str) -> dict:
         if not isinstance(reason,str) or not reason.strip(): raise PoiseError('Нужна инструкция пользователя об отмене')
-        data = self._current_task_required()
+        data = self._task()
         if data['pending'] is not None: raise PoiseError('Сначала установить исход незавершённой операции')
         self.task_commands.cancel(data['id'], self.session, reason)
         self.store.event(self.session,data['id'],'task.cancelled',{'reason':reason,'worktree_preserved':True})
@@ -768,26 +762,26 @@ class Poise:
                 'history':self.task_queries.history(data['id']), 'workflow':self.runner.context(data['id']), 'token_usage':'unavailable'}
 
     def show_section(self, name: str, stage: str | None, submission: int | None) -> dict:
-        data = self._current_task_required()
+        data = self._task()
         stage_id = self._stage(data)['id'] if stage is None else stage
         return {'status':'read_only', **self.task_queries.section(data['id'],stage_id,name,submission)}
 
     def show_content(self) -> dict:
-        data = self._current_task_required()
+        data = self._task()
         return {'status':'read_only','task':data['id'],'stage':self._stage(data)['id'],
                 'iteration':data['iteration'], **self.task_queries.content(data['id'])}
 
     def show_trace(self, route: str, point: str, submission: int | None) -> dict:
-        data = self._current_task_required()
+        data = self._task()
         return {'status':'read_only', **self.task_queries.trace_point(data['id'],route,point,submission)}
 
     def show_evidence(self):
-        data=self._current_task_required()
+        data=self._task()
         return {'status':'read_only','task':data['id'],**self.task_queries.evidence_view(data['id'])}
 
     def show_output(self,receipt_id,representation,requested):
         from .modules.work.domain import read_range
-        data=self._current_task_required()
+        data=self._task()
         records=self.evidence_commands.list_for(data['id'])
         receipt=next((x for x in records if x['id']==receipt_id),None)
         if receipt is None or 'presentation' not in receipt:

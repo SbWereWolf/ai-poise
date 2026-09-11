@@ -70,9 +70,12 @@ source внутри её `Task worktree`. Продолжение уже назн
 на installation source. Дочерний процесс получает только проверенный source через собственный
 `PYTHONPATH`; внутренние факты маршрута удаляются из окружения до вызова `WorkTools`.
 
-Проверка `config_hash` по-прежнему защищает рабочие переходы, но не блокирует read-only
-восстановление и явную отмену. После изменения конфигурации остаются доступны отмена Task и
-операции Sprint `cancel_tasks` и `cancel`.
+Уточнено: **2026-09-12**. Согласно контракту задачи 0026, изменение валидной конфигурации
+проекта не блокирует ни рабочие переходы, ни чтение, ни отмену Task/Sprint. Сохранённый
+`config_hash` — диагностический provenance, а не lifecycle gate. Операция использует текущую
+конфигурацию и сохранённые Task-owned process/contract/method snapshots; изменение конфига
+не переписывает эти снимки и не перезапускает задачу. Проверки native binding и границ
+выбранного source выполняются независимо от этого правила.
 
 ## Данные
 Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.

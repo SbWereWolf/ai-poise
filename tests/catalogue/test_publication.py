@@ -3,9 +3,9 @@ from copy import deepcopy
 import json
 import pytest
 from conftest import write_json
-from conftest import WorkHarness as Harness
-from harness.application.work import WorkTools
-from harness.common import HarnessError
+from conftest import WorkPoise as Poise
+from poise.application.work import WorkTools
+from poise.common import PoiseError
 
 
 def call(h,op,inp):
@@ -37,7 +37,7 @@ def setup(project):
     task=deepcopy(project['task']);task.update(id='PLAN',goal_type='planning',methods=[],
         checks={s['id']:[] for s in p['stages']},evidence_plan={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']})
     child=deepcopy(project['task']);child['id']='CHILD'
-    h=Harness(project['config_path'],'PLANNER');ctx=start(h,task)
+    h=Poise(project['config_path'],'PLANNER');ctx=start(h,task)
     return h,ctx,child
 
 
@@ -67,14 +67,14 @@ def test_publish_reviewed_task_batch_and_bootstrap_child(project):
 def test_invalid_child_batch_creates_no_partial_tasks(project):
     h,ctx,child=setup(project);bad=deepcopy(child);bad['id']='BAD';bad['methods']=[]
     ctx=to_publish(h,ctx,[child,bad])
-    with pytest.raises(HarnessError):verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.'},{})
+    with pytest.raises(PoiseError):verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.'},{})
     assert h.task_queries.record('CHILD') is None
     assert h.task_queries.record('BAD') is None
 
 
 def test_publication_does_not_accept_unreviewed_inline_draft(project):
     h,ctx,child=setup(project);ctx=to_publish(h,ctx,[child])
-    with pytest.raises(HarnessError):verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.','tasks':[child]}, {})
+    with pytest.raises(PoiseError):verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.','tasks':[child]}, {})
     assert h.task_queries.record('CHILD') is None
 
 
@@ -99,6 +99,6 @@ def test_child_rows_and_publication_receipt_roll_back_together(project):
 def test_unknown_child_goal_cannot_be_filled_from_parent(project):
     h,ctx,child=setup(project);child['goal_type']='NO_SUCH_GOAL'
     ctx=to_publish(h,ctx,[child])
-    with pytest.raises(HarnessError,match='Unknown child'):
+    with pytest.raises(PoiseError,match='Unknown child'):
         verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.'},{})
     assert h.task_queries.record('CHILD') is None

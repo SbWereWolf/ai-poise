@@ -2,8 +2,8 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 from conftest import git,write_json
-from conftest import WorkHarness as Harness
-from harness.application.work import WorkTools
+from conftest import WorkPoise as Poise
+from poise.application.work import WorkTools
 
 
 def call(h,op,inp,messages=None):
@@ -74,7 +74,7 @@ def setup(project, kind='git_merge', conflict=True):
     if kind=='git_merge':
         task['methods']=[method('COMBINED','from src.double import double; assert double(4)==8; print("combined OK")')]
         for s in ('apply','review','fix','recheck'):task['checks'][s]=['COMBINED']
-    h=Harness(project['config_path'],'ACTION-AGENT');ctx=start(h,task)
+    h=Poise(project['config_path'],'ACTION-AGENT');ctx=start(h,task)
     plan={'kind':'git_merge','base_commit':base,'sources':sources} if kind=='git_merge' else None
     return h,ctx,plan,base
 

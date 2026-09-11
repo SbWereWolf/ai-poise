@@ -10,8 +10,8 @@ from batch.helpers import request
 def test_transfer_cli_rejects_unknown_operation_without_worktree(project):
     enabled(project)
     env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
-         'HARNESS_CONFIG':str(project['config_path']),'HARNESS_SESSION':'transfer-cli'}
-    p=subprocess.run([sys.executable,'-m','harness','work'],
+         'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'transfer-cli'}
+    p=subprocess.run([sys.executable,'-m','poise','work'],
          input=json.dumps(request('transfer',{'action':'unknown'})),text=True,capture_output=True,env=env,timeout=15)
     assert p.returncode==2 and json.loads(p.stdout)['status']=='rejected'
     assert not (project['root']/'state/worktrees/T1').exists()

@@ -1,5 +1,5 @@
 {
-  "schema": "harness-doc-lifecycle/3",
+  "schema": "poise-doc-lifecycle/3",
   "created_at": "2026-09-06T10:07:45+05:00",
   "requirements": [
     "HR-033",
@@ -19,25 +19,25 @@
       "entity": "SemanticSubmission",
       "identity": "iteration ID + semantic content digest",
       "change_rule": "Одинаковое содержание даёт ту же revision/layer; изменение кода без изменения payload не создаёт revision. CONTINUE может добавить новые semantic поля и отдельную revision, не копируя прежние поля.",
-      "producer": "harness from agent content"
+      "producer": "poise from agent content"
     },
     {
       "entity": "OperationIntent",
       "identity": "logical action + binding + iteration + effect scope",
       "change_rule": "Фиксирует разрешённое действие и persisted steps. После known failure новая verification attempt не повторяет выполненные non-repeatable preparations. После новой user instruction/явного нового effect — новый intent.",
-      "producer": "harness"
+      "producer": "poise"
     },
     {
       "entity": "ExecutionAttempt",
       "identity": "intent + phase + execution key + attempt sequence",
       "change_rule": "Фактические H/ENV/inputs получают probe до replay decision; count растёт только при новом исполнении.",
-      "producer": "harness"
+      "producer": "poise"
     },
     {
       "entity": "EffectReceipt",
       "identity": "effect ID + immutable effect inputs + observed outcome",
       "change_rule": "Повтор при terminal receipt без изменения ожидаемого subject не создаёт второй effect. Receipt прежнего дерева сохраняется, но не используется как proof нового.",
-      "producer": "adapter verified by harness"
+      "producer": "adapter verified by poise"
     }
   ],
   "replay_decisions": [
@@ -196,7 +196,7 @@
       ]
     },
     "BoundExecution": {
-      "producer": "harness/adapter",
+      "producer": "poise/adapter",
       "phase_required": "immediately before execution",
       "fields": [
         "method_id",
@@ -212,7 +212,7 @@
       ]
     },
     "ExecutionReceipt": {
-      "producer": "adapter verified by harness",
+      "producer": "adapter verified by poise",
       "phase_required": "after execution terminal/probe",
       "fields": [
         "attempt_id",
@@ -229,7 +229,7 @@
       "producer": "agent",
       "phase_required": "before resolution checks",
       "fields": [
-        "proposal_id_assigned_by_harness",
+        "proposal_id_assigned_by_poise",
         "finding_ref",
         "explanation",
         "proposed_semantic_change",
@@ -242,7 +242,7 @@
       ]
     },
     "ResolutionBinding": {
-      "producer": "harness",
+      "producer": "poise",
       "phase_required": "after resulting tree/content and checks observed",
       "fields": [
         "proposal_ref",
@@ -420,7 +420,7 @@
       }
     ],
     "partial_failure": "accepted subject remains; gate not succeeded until required receipts terminal; known effects not duplicated; task stays blocked/active, not failed/cancelled automatically",
-    "report": "operation result/cycle cost recorded; count of content-stage iterations unchanged; all Harness Incidents visible"
+    "report": "operation result/cycle cost recorded; count of content-stage iterations unchanged; all AI poise Incidents visible"
   },
   "noncommand_evidence": {
     "scope": "verification independent process; exact routes embedded in its execution stage",
@@ -485,7 +485,7 @@
     ],
     "coverage": "Required means one present structurally valid proposal per method, not a statement that it will be written. PREPARE sources available at entry; CONTINUE source refs must be produced by exact declared OBSERVE methods. Unknown/cyclic source references fail before execution.",
     "empty": "Input array explicit; empty is valid iff no mandatory method assigned to that phase. [] never waives an obligation. No command-only CONTINUE.",
-    "verdict_separation": "Harness structural validity != truth. Evidence registration is not execution. Independent subsequent self_inspection records accepted/rejected proposal decisions and task-quality findings, preserving all layers.",
+    "verdict_separation": "AI poise structural validity != truth. Evidence registration is not execution. Independent subsequent self_inspection records accepted/rejected proposal decisions and task-quality findings, preserving all layers.",
     "phases": "PREPARE missing argument blocks expensive OBSERVE. OBSERVE missing terminal receipt does not fabricate it. CONTINUE missing argument blocks SEAL; retry reuses receipts according to HR-057. Same content stage/iteration throughout.",
     "source_content": "fact entries include statement+source_ref; assumptions explicit; inference_summary is a reviewable argument, never private chain of thought.",
     "supported_paths": [
@@ -522,7 +522,7 @@
     "fixture_rule": "JSON будущего payload в fixture не является данными store. Только события public create/update/verify/publication вводят его. Bootstrap probe сам является будущим E2E assertion, не заявленным запуском продукта."
   },
   "artifact_paths": {
-    "input": "artifact_paths: list[path]; только путь; ID — результат Harness, не дополнительная обязанность агента",
+    "input": "artifact_paths: list[path]; только путь; ID — результат AI poise, не дополнительная обязанность агента",
     "roots": [
       "current runtime",
       "current task",

@@ -1,13 +1,13 @@
 import io,json,os,subprocess,sys
 from pathlib import Path
-from harness.interfaces.projects import execute,interactive
+from poise.interfaces.projects import execute,interactive
 from tests.conftest import write_json
 from .helpers import setup_case
 
 
 def test_batch_cli_one_packet_creates_real_project(project):
     settings,_,req=setup_case(project)
-    r=subprocess.run([sys.executable,'-m','harness','project','--settings',str(settings)],input=json.dumps(req),text=True,capture_output=True)
+    r=subprocess.run([sys.executable,'-m','poise','project','--settings',str(settings)],input=json.dumps(req),text=True,capture_output=True)
     assert r.returncode==0,r.stderr+r.stdout
     reply=json.loads(r.stdout);assert Path(reply['config_path']).exists()
 

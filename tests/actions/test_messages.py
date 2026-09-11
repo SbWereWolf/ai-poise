@@ -1,10 +1,10 @@
-from harness.application.work import WorkTools
-from conftest import WorkHarness as Harness
+from poise.application.work import WorkTools
+from conftest import WorkPoise as Poise
 from batch.helpers import request,message,bootstrap
 
 
 def test_all_received_user_messages_count_in_active_task_including_readonly_and_unknown(project):
-    tools=WorkTools(Harness(project['config_path'],'MESSAGES'))
+    tools=WorkTools(Poise(project['config_path'],'MESSAGES'))
     ctx=bootstrap(tools,project,[message('start','initial')])
     events=[message('continue','continue'),message('clarify','clarification'),message('unknown',None),
             message('permission','authorization'),message('feedback','feedback')]
@@ -18,7 +18,7 @@ def test_all_received_user_messages_count_in_active_task_including_readonly_and_
 
 
 def test_later_taskless_read_does_not_charge_completed_or_cancelled_task(project):
-    h=Harness(project['config_path'],'MESSAGES');tools=WorkTools(h)
+    h=Poise(project['config_path'],'MESSAGES');tools=WorkTools(h)
     bootstrap(tools,project,[message('start','initial')])
     tools.invoke(request('cancel',{'reason':'User stop'},[message('cancel','cancel')]))
     tools.invoke(request('show',{'queries':[{'id':'context','kind':'task'}]},[message('new-topic',None)]))

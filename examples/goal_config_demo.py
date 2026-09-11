@@ -8,15 +8,15 @@ import subprocess
 import sys
 from pathlib import Path
 from demo import create, save, SOURCE
-from harness.common import digest
-from harness.runtime import Harness
-from harness.infrastructure.clock import SystemClock
-from harness.application.work import WorkTools
+from poise.common import digest
+from poise.runtime import Poise
+from poise.infrastructure.clock import SystemClock
+from poise.application.work import WorkTools
 from copy import deepcopy
 
 
 def run(directory: Path):
-    # Initial fixture construction, not a user instruction to edit Harness data.
+    # Initial fixture construction, not a user instruction to edit Poise data.
     home=create(directory)
     source=home/'config/processes/development.json'
     template=json.loads(source.read_text())
@@ -31,7 +31,7 @@ def run(directory: Path):
     def packet(mode,expected,changes,rid,template):
         return {"schema":"goal-config-batch-1","request_id":rid,"mode":mode,"goal_type":"development","expected_revision":expected,"template":template,"changes":changes}
     def call(data):
-        result=subprocess.run([sys.executable,'-m','harness','goal-config','--settings',str(settings_path)],
+        result=subprocess.run([sys.executable,'-m','poise','goal-config','--settings',str(settings_path)],
              input=json.dumps(data),text=True,capture_output=True,env={**os.environ,'PYTHONPATH':str(SOURCE/'src')},timeout=15)
         if result.returncode: raise RuntimeError(result.stdout+result.stderr)
         return json.loads(result.stdout)
@@ -44,7 +44,7 @@ def run(directory: Path):
     updated=call(edit); replay=call(edit)
     assert replay['replayed'] and updated['revision']==replay['revision']
     assert json.loads(source.read_text())==template
-    h=Harness(home/'project.json','demo-agent',SystemClock()); context=h.bootstrap(json.loads((home/'task.json').read_text())); reports=[]; tools=WorkTools(h)
+    h=Poise(home/'project.json','demo-agent',SystemClock()); context=h.bootstrap(json.loads((home/'task.json').read_text())); reports=[]; tools=WorkTools(h)
     blocked=False
     for i,sid in enumerate(['tests','test_review','implementation','code_review']):
         if i: context=h.bootstrap(decision='continue')

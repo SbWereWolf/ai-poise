@@ -7,9 +7,9 @@ import sys
 
 import pytest
 
-from harness.application.work import WorkTools
-from harness.composition import project_tools
-from conftest import WorkHarness as Harness
+from poise.application.work import WorkTools
+from poise.composition import project_tools
+from conftest import WorkPoise as Poise
 from examples.project_execution import continue_execution
 from examples.project_pilot import run as plan_real_source
 from tests.conftest import git
@@ -19,7 +19,7 @@ def snapshot_source(tmp_path):
     source = Path(__file__).resolve().parents[1]
     repo = tmp_path / 'actual-source'
     repo.mkdir()
-    for folder in ('src', 'tests', 'config', 'examples', 'tools', 'skills'):
+    for folder in ('src', 'tests', 'config', 'examples', 'tools', '.agents'):
         shutil.copytree(source / folder, repo / folder,
                         ignore=shutil.ignore_patterns('__pycache__', '.pytest_cache'))
     for filename in ('pyproject.toml', '.gitignore', 'AGENTS.md'):
@@ -28,7 +28,7 @@ def snapshot_source(tmp_path):
     git(repo, 'config', 'user.name', 'Pilot fixture')
     git(repo, 'config', 'user.email', 'pilot@example.invalid')
     git(repo, 'add', '.')
-    git(repo, 'commit', '-m', 'Actual Harness sources, no toy implementation')
+    git(repo, 'commit', '-m', 'Actual Poise sources, no toy implementation')
     return repo
 
 
@@ -36,8 +36,8 @@ def setup_destination(repo, destination):
     setup = json.loads((repo / 'config/project-setup.json').read_text())
     selected = setup['templates']['linux-reference']
     template = json.loads((repo / selected['path']).read_text())
-    values = {'project': 'harness-pilot', 'repository': str(repo), 'base': 'main',
-              'remote': 'not-configured', 'author_name': 'Harness pilot',
+    values = {'project': 'poise-pilot', 'repository': str(repo), 'base': 'main',
+              'remote': 'not-configured', 'author_name': 'Poise pilot',
               'author_email': 'pilot@example.invalid', 'push': False,
               'state': 'state', 'environment': ['PATH', 'HOME']}
     return project_tools(repo / 'config/project-setup.json').apply({
@@ -70,7 +70,7 @@ def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(
     setup = setup_destination(receiving_repo, 'state/received')
     # Remove access to the original operational store before importing/reading evidence.
     (repo / 'state/planned').rename(repo / 'state/offline')
-    h = Harness(setup['config_path'], 'next-agent')
+    h = Poise(setup['config_path'], 'next-agent')
     client = WorkTools(h)
     def call(op, args):
         return client.invoke({'operation': op, 'input': args, 'messages': []})

@@ -9,8 +9,8 @@ import sys
 
 import pytest
 
-from harness.common import HarnessError
-from harness.runtime import Harness
+from poise.common import PoiseError
+from poise.runtime import Poise
 from tests.batch.helpers import request
 from .test_paths import metrics, setup
 
@@ -25,11 +25,11 @@ class FakeClock:
         try:
             return next(self._observations)
         except StopIteration as exc:
-            raise HarnessError("FakeClock exhausted") from exc
+            raise PoiseError("FakeClock exhausted") from exc
 
 
 def observation(audit_utc: str, monotonic_ns: int, domain: str = "boot-a"):
-    from harness.modules.accounting.clock import ClockObservation
+    from poise.modules.accounting.clock import ClockObservation
 
     return ClockObservation(
         audit_utc=audit_utc,
@@ -45,12 +45,12 @@ def cycle(h):
     return row, json.loads(row["data"])
 
 
-def test_harness_clock_boundary_is_explicit_and_runtime_has_no_wall_fallback():
-    from harness.infrastructure.clock import SystemClock
-    from harness.infrastructure.accounting import RuntimeAccounting
-    from harness.modules.accounting.clock import ClockObservation
+def test_poise_clock_boundary_is_explicit_and_runtime_has_no_wall_fallback():
+    from poise.infrastructure.clock import SystemClock
+    from poise.infrastructure.accounting import RuntimeAccounting
+    from poise.modules.accounting.clock import ClockObservation
 
-    assert "clock" in inspect.signature(Harness).parameters
+    assert "clock" in inspect.signature(Poise).parameters
     assert "datetime.now" not in inspect.getsource(RuntimeAccounting)
     clock = SystemClock()
     first = clock.observe()
@@ -63,13 +63,13 @@ def test_harness_clock_boundary_is_explicit_and_runtime_has_no_wall_fallback():
 
 
 def test_system_clock_rejects_missing_stable_boot_identity(monkeypatch):
-    from harness.infrastructure import clock as clock_module
+    from poise.infrastructure import clock as clock_module
 
     def missing(*args, **kwargs):
         raise OSError("boot identity unavailable")
 
     monkeypatch.setattr(clock_module.Path, "read_text", missing)
-    with pytest.raises(HarnessError, match="boot identity.*readable"):
+    with pytest.raises(PoiseError, match="boot identity.*readable"):
         clock_module.SystemClock()
 
 
@@ -105,10 +105,10 @@ def test_same_domain_backwards_monotonic_value_is_rejected_without_clamping(proj
         observation("2026-09-11T10:00:01+00:00", 1_000_000_000),
     ])
 
-    with pytest.raises(HarnessError, match="Monotonic clock moved backwards"):
+    with pytest.raises(PoiseError, match="Monotonic clock moved backwards"):
         setup(project, clock)
 
-    h = Harness(project["config_path"], "A", clock=FakeClock([]))
+    h = Poise(project["config_path"], "A", clock=FakeClock([]))
     row, data = cycle(h)
     assert row["ended_at"] is None
     assert data["timing"]["started_monotonic_ns"] == 2_000_000_000
@@ -128,7 +128,7 @@ def test_malformed_persisted_monotonic_order_is_rejected_without_mutation(projec
     with h.store.transaction() as db:
         db.execute("UPDATE accounting_cycles SET data=? WHERE id=?", (json.dumps(data), row["id"]))
 
-    with pytest.raises(HarnessError, match="Persisted monotonic clock state is backwards"):
+    with pytest.raises(PoiseError, match="Persisted monotonic clock state is backwards"):
         h.accounting.port.repo.stop(
             h.session,
             observation("2026-09-11T10:00:02+00:00", 6_000),
@@ -157,7 +157,7 @@ def test_incomparable_open_cycle_is_recorded_unmeasured_then_retryable(project, 
             data["timing"]["comparison_domain"] = "boot-old"
         db.execute("UPDATE accounting_cycles SET data=? WHERE id=?", (json.dumps(data), row["id"]))
 
-    with pytest.raises(HarnessError, match="cannot be compared.*retry"):
+    with pytest.raises(PoiseError, match="cannot be compared.*retry"):
         tools.invoke(request("show", {"queries": [{"id": "state", "kind": "task"}]}))
 
     old_row, old_data = cycle(h)
@@ -200,10 +200,10 @@ def test_public_work_interface_supports_fake_clock_in_a_subprocess(project):
 import io
 import json
 import sys
-from harness.common import HarnessError
-from harness.interfaces.work import execute
-from harness.modules.accounting.clock import ClockObservation
-from harness.runtime import Harness
+from poise.common import PoiseError
+from poise.interfaces.work import execute
+from poise.modules.accounting.clock import ClockObservation
+from poise.runtime import Poise
 
 class FakeClock:
     def __init__(self):
@@ -215,16 +215,16 @@ class FakeClock:
         try:
             return next(self.values)
         except StopIteration as exc:
-            raise HarnessError("FakeClock exhausted") from exc
+            raise PoiseError("FakeClock exhausted") from exc
 
 clock = FakeClock()
-runtime = Harness(sys.argv[1], "clock-subprocess", clock=clock)
+runtime = Poise(sys.argv[1], "clock-subprocess", clock=clock)
 packet = {"operation":"bootstrap","input":{"task":None,"decision":None,"feedback":None,"rework_stage":None},"messages":[]}
 code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), sys.stdout)
 assert code == 0
 try:
     clock.observe()
-except HarnessError as exc:
+except PoiseError as exc:
     assert str(exc) == "FakeClock exhausted"
 else:
     raise AssertionError("FakeClock retained an unexpected fallback observation")

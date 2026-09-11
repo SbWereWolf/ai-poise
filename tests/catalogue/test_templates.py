@@ -3,9 +3,9 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import pytest
-from harness.modules.foundation.errors import HarnessError
-from harness.modules.goal_config.domain import GoalTypeDefinition
-from harness.modules.catalogue.domain import TaskBlueprint
+from poise.modules.foundation.errors import PoiseError
+from poise.modules.goal_config.domain import GoalTypeDefinition
+from poise.modules.catalogue.domain import TaskBlueprint
 
 ROOT = Path(__file__).resolve().parents[2]
 GOALS = ('development','test_development','verification','review','design','analysis',
@@ -86,19 +86,19 @@ def test_typed_instantiation_preserves_exact_command_and_does_not_mutate_templat
                                   lambda p:p.update(identity=12),lambda p:p.update(requirements='R')])
 def test_missing_extra_or_wrong_parameter_is_rejected_without_fallback(change):
     p=values();change(p)
-    with pytest.raises(HarnessError):TaskBlueprint.parse(tiny()).instantiate(p,process(),[])
+    with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(p,process(),[])
 
 
 def test_unknown_placeholder_is_rejected():
     raw=tiny();raw['task']['goal']={'$input':'undeclared'}
-    with pytest.raises(HarnessError):TaskBlueprint.parse(raw)
+    with pytest.raises(PoiseError):TaskBlueprint.parse(raw)
 
 
 def test_exact_method_reference_is_validated_by_existing_task_owner():
     raw=tiny();raw['task']['checks']['draft']=['NO_SUCH_METHOD']
-    with pytest.raises(HarnessError):TaskBlueprint.parse(raw).instantiate(values(),process(),[])
+    with pytest.raises(PoiseError):TaskBlueprint.parse(raw).instantiate(values(),process(),[])
 
 
 def test_mismatched_process_identity_is_not_reclassified():
     p=process();p['goal_type']='other'
-    with pytest.raises(HarnessError):TaskBlueprint.parse(tiny()).instantiate(values(),p,[])
+    with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(values(),p,[])

@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def test_project_domain_and_application_depend_on_ports_not_io():
-    root=Path(__file__).resolve().parents[2]/'src/harness'
+    root=Path(__file__).resolve().parents[2]/'src/poise'
     paths=list((root/'modules/projects').glob('*.py'))+[root/'application/projects.py']
     assert len(paths)>=3
     for path in paths:
@@ -13,7 +13,7 @@ def test_project_domain_and_application_depend_on_ports_not_io():
 
 
 def test_setup_validates_with_runtime_validator_and_does_not_write_task_state():
-    root=Path(__file__).resolve().parents[2]/'src/harness'
+    root=Path(__file__).resolve().parents[2]/'src/poise'
     text=(root/'infrastructure/projects.py').read_text()
     assert 'load_config(' in text
     assert 'INSERT INTO' not in text and 'UPDATE tasks' not in text

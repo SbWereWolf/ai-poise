@@ -2,15 +2,15 @@ from copy import deepcopy
 from pathlib import Path
 import pytest
 from conftest import add_test,write_json
-from conftest import WorkHarness as Harness
-from harness.application.work import WorkTools
-from harness.common import HarnessError
+from conftest import WorkPoise as Poise
+from poise.application.work import WorkTools
+from poise.common import PoiseError
 from .helpers import configure,bootstrap,result,verify,request,message,text_artifact
 
 
 def tools_for(project):
     configure(project)
-    return WorkTools(Harness(project['config_path'],'SESSION-BATCH'))
+    return WorkTools(Poise(project['config_path'],'SESSION-BATCH'))
 
 
 def test_single_packet_result_artifacts_messages_and_replay(project):
@@ -35,14 +35,14 @@ def test_single_packet_result_artifacts_messages_and_replay(project):
 def test_missing_result_no_legacy_file_read(project):
     tools=tools_for(project);b=bootstrap(tools,project)
     Path(b['runtime_root'],'stage-result.json').write_text('{}')
-    with pytest.raises(HarnessError):verify(tools,None)
+    with pytest.raises(PoiseError):verify(tools,None)
     assert tools.runtime.show()['submission_count']==0
 
 
 def test_bad_semantic_payload_has_no_artifact_side_effect(project):
     tools=tools_for(project);b=bootstrap(tools,project)
     value=result(b); value['stage_work']={'unknown':'bad'}
-    with pytest.raises(HarnessError):verify(tools,value,[text_artifact()])
+    with pytest.raises(PoiseError):verify(tools,value,[text_artifact()])
     assert not (Path(b['task_root'])/'artifacts/report.md').exists()
     assert tools.runtime.show()['submission_count']==0
 
@@ -51,7 +51,7 @@ def test_count_gate_created_artifacts_are_inputs_same_verify(project):
     configure(project)
     project['process']['stages'][0]['artifact_requirements']=[{'scope':'task','pattern':'artifacts/*.md','minimum':2,'maximum':2}]
     write_json(project['root']/'config/processes/development.json',project['process'])
-    tools=WorkTools(Harness(project['config_path'],'S'))
+    tools=WorkTools(Poise(project['config_path'],'S'))
     b=bootstrap(tools,project);add_test(b['worktree'])
     v=verify(tools,result(b),[text_artifact(path='a.md'),text_artifact(path='b.md')])
     assert v['status']=='verified' and len(v['artifacts'])==2
@@ -94,12 +94,12 @@ def test_messages_batch_exact_once_without_task_id(project):
 
 def test_message_same_identity_different_body_rejected(project):
     tools=tools_for(project);bootstrap(tools,project,[message()])
-    with pytest.raises(HarnessError):tools.invoke(request('show',{'queries':[{'id':'m','kind':'messages'}]},[message(reason='feedback')]))
+    with pytest.raises(PoiseError):tools.invoke(request('show',{'queries':[{'id':'m','kind':'messages'}]},[message(reason='feedback')]))
 
 
 def test_message_batch_is_atomic_on_conflict(project):
     tools=tools_for(project);bootstrap(tools,project,[message()])
-    with pytest.raises(HarnessError):tools.invoke(request('show',{'queries':[{'id':'m','kind':'messages'}]},[message('new'),message(reason='feedback')]))
+    with pytest.raises(PoiseError):tools.invoke(request('show',{'queries':[{'id':'m','kind':'messages'}]},[message('new'),message(reason='feedback')]))
     metrics=tools.invoke(request('show',{'queries':[{'id':'m','kind':'messages'}]}))['results'][0]['value']
     assert metrics['user_messages_count']==1
 
@@ -120,13 +120,13 @@ def test_bootstrap_task_direct_not_temp_json(project):
     {'operation':'show','input':{'queries':[]},'messages':[]}])
 def test_invalid_request_has_no_task_side_effect(project,bad):
     tools=tools_for(project)
-    with pytest.raises(HarnessError):tools.invoke(bad)
+    with pytest.raises(PoiseError):tools.invoke(bad)
     assert tools.runtime.store.current(tools.runtime.session) is None
 
 
 def test_new_runtime_same_message_no_recount(project):
     tools=tools_for(project);bootstrap(tools,project,[message()])
-    new=WorkTools(Harness(project['config_path'],'SESSION-BATCH'))
+    new=WorkTools(Poise(project['config_path'],'SESSION-BATCH'))
     b=new.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None},[message()]))
     assert b['interaction']['user_messages_count']==1
 
@@ -161,7 +161,7 @@ def test_repeated_original_packet_does_not_recreate_runtime_artifact(project):
     first=verify(tools,p,items);assert first['status']=='verified'
     replay=verify(tools,p,items);assert replay['replayed']
     assert not Path(b['runtime_root']).exists()
-    with pytest.raises(HarnessError):verify(tools,p,[text_artifact(text='other')])
+    with pytest.raises(PoiseError):verify(tools,p,[text_artifact(text='other')])
 
 
 def test_artifact_batch_is_available_without_verify_and_path_only_registration(project):
@@ -215,14 +215,14 @@ def test_secondary_task_cannot_steal_primary_message_binding(project):
 def test_bad_message_time_and_unknown_reason_rejected_without_work(project):
     tools=tools_for(project)
     for m in ({**message(),'occurred_at':'2026-09-06T12:00:00'},message(reason='guess-from-wording')):
-        with pytest.raises(HarnessError):bootstrap(tools,project,[m])
+        with pytest.raises(PoiseError):bootstrap(tools,project,[m])
     assert tools.runtime.store.current(tools.runtime.session) is None
 
 
 def test_mixed_evidence_continuation_direct_batch_no_rerun(project):
     from evidence.test_paths import setup,arg
     configure(project);unused,counter=setup(project)
-    tools=WorkTools(Harness(project['config_path'],'DIRECT-MIXED'))
+    tools=WorkTools(Poise(project['config_path'],'DIRECT-MIXED'))
     b=bootstrap(tools,project,[message()]);p=result(b)
     first=verify(tools,p,messages=[message()]);assert first['status']=='awaiting_continuation'
     p=first['context']['result_template'];p['evidence_work']['arguments']=[arg([first['checks'][0]['id']])]
@@ -234,15 +234,15 @@ def test_mixed_evidence_continuation_direct_batch_no_rerun(project):
 def test_bad_existing_artifact_path_prevents_new_file_publication(project):
     tools=tools_for(project);b=bootstrap(tools,project)
     p=result(b);p['artifact_paths']=[str(project['app']/'src/double.py')]
-    with pytest.raises(HarnessError):verify(tools,p,[text_artifact()])
+    with pytest.raises(PoiseError):verify(tools,p,[text_artifact()])
     assert not (Path(b['task_root'])/'artifacts/report.md').exists()
 
 
 def test_batch_show_no_repeat_task_id_and_bad_query_rejected(project):
     tools=tools_for(project);b=bootstrap(tools,project);add_test(b['worktree']);verify(tools,result(b))
-    with pytest.raises(HarnessError):tools.invoke(request('show',{'queries':[{'id':'x','kind':'task'},{'id':'x','kind':'messages'}]}))
+    with pytest.raises(PoiseError):tools.invoke(request('show',{'queries':[{'id':'x','kind':'task'},{'id':'x','kind':'messages'}]}))
     q={'id':'text','kind':'section','name':'report','stage':None,'submission':None,'range':{'unit':'bytes','start':1,'end':2}}
-    with pytest.raises(HarnessError):tools.invoke(request('show',{'queries':[q]}))
+    with pytest.raises(PoiseError):tools.invoke(request('show',{'queries':[q]}))
 
 
 def test_content_query_in_batch_retains_current_process_position(project):

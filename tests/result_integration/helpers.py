@@ -3,8 +3,8 @@ from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
 
-from harness.application.work import WorkTools
-from conftest import WorkHarness as Harness
+from poise.application.work import WorkTools
+from conftest import WorkPoise as Poise
 
 from conftest import git, write_json
 
@@ -53,7 +53,7 @@ def prepare_completed_task(project, change, *, task_id="T1", accept=True):
         },
         "content_contract": {"sections": [], "routes": [], "requirements": []},
     }
-    runtime = Harness(project["config_path"], "worker")
+    runtime = Poise(project["config_path"], "worker")
     tools = WorkTools(runtime)
     context = tools.invoke(request("bootstrap", {
         "task": task,

@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 import pytest
 from conftest import write_json, fill, git
-from conftest import Harness
-from harness.common import HarnessError
+from conftest import Poise
+from poise.common import PoiseError
 from .helpers import process, inspect, finding, resolution, decision
 
 
@@ -29,7 +29,7 @@ def setup_project(project, goal):
     contract["checks"]={s["id"]:["TARGETED"] for s in proc["stages"]}
     contract["evidence_plan"]={s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in proc["stages"]}
     write_json(project["task_path"],contract)
-    return Harness(project["config_path"],"S1")
+    return Poise(project["config_path"],"S1")
 
 def result(ctx,work):
     path=fill(ctx)
@@ -55,7 +55,7 @@ def test_short_and_full_feedback_real_git_sqlite(project,goal):
     assert h.show()["stage"]=="audit"
     for number,outcome in [(1,"rejected"),(2,"accepted")]:
         # Reload proves persistent route counters and feedback, not in-memory state.
-        h=Harness(project["config_path"],"S1")
+        h=Poise(project["config_path"],"S1")
         ctx=h.bootstrap(decision="continue")
         assert ctx["stage"]=="amend" and ctx["iteration"]==number
         assert ctx["workflow"]["feedback"]["open_findings"][0]["id"]=="F1"
@@ -87,7 +87,7 @@ def test_inspect_is_read_only_and_never_accepts_its_own_target_edit(project):
     h=setup_project(project,"development");ctx=h.bootstrap(task_file=project["task_path"])
     edit(ctx,"development","initial\n"); result(ctx,{});h.verify();ctx=h.bootstrap(decision="continue")
     edit(ctx,"development","modified during review\n");result(ctx,inspect())
-    with pytest.raises(HarnessError,match="read-only"): h.verify()
+    with pytest.raises(PoiseError,match="read-only"): h.verify()
     assert h.show()["status"]=="active"
 
 
@@ -97,7 +97,7 @@ def test_task_artifact_requirement_uses_terminal_edge_not_last_index(project):
     write_json(project["task_path"],contract)
     ctx=h.bootstrap(task_file=project["task_path"]);edit(ctx,"documentation","initial\n");result(ctx,{});h.verify()
     ctx=h.bootstrap(decision="continue");result(ctx,inspect())
-    with pytest.raises(HarnessError): h.verify()
+    with pytest.raises(PoiseError): h.verify()
     a=Path(ctx["task_root"])/"report.md";a.write_text("final report")
     data=ctx["result_template"];data["artifact_paths"]=[str(a)];
     assert h.verify()["status"]=="verified"
@@ -120,7 +120,7 @@ def test_continue_rejects_changed_verified_subject(project):
     h=setup_project(project,"development");ctx=h.bootstrap(task_file=project["task_path"])
     edit(ctx,"development","initial\n");result(ctx,{});h.verify()
     edit(ctx,"development","modified after report\n")
-    with pytest.raises(HarnessError,match="измен|проверенн"):
+    with pytest.raises(PoiseError,match="измен|проверенн"):
         h.bootstrap(decision="continue")
     assert h.show()["stage"]=="draft"
 
@@ -133,7 +133,7 @@ def test_explicit_return_preserves_feedback_and_earlier_reports(project):
     ctx=h.bootstrap(decision="rework",feedback="Переработать текст",rework_stage="draft")
     assert ctx["stage"]=="draft" and ctx["iteration"]==2
     assert h.task_queries.result("T1",first_sub)==first
-    h=Harness(project["config_path"],"S1")
+    h=Poise(project["config_path"],"S1")
     assert h.bootstrap()["workflow"]["visits"]["draft"]==2
 
 
@@ -141,11 +141,11 @@ def test_route_limit_survives_reload_and_keeps_verified_result(project):
     h=setup_project(project,"documentation")
     path=project["root"]/"config/processes/documentation.json"
     cfg=json.loads(path.read_text());cfg["route"]["max_transitions"]=1;write_json(path,cfg)
-    h=Harness(project["config_path"],"S1");ctx=h.bootstrap(task_file=project["task_path"])
+    h=Poise(project["config_path"],"S1");ctx=h.bootstrap(task_file=project["task_path"])
     edit(ctx,"documentation","draft\n");result(ctx,{});h.verify()
     ctx=h.bootstrap(decision="continue");result(ctx,inspect([finding()]));h.verify()
-    h=Harness(project["config_path"],"S1")
-    with pytest.raises(HarnessError,match="[Лл]имит"): h.bootstrap(decision="continue")
+    h=Poise(project["config_path"],"S1")
+    with pytest.raises(PoiseError,match="[Лл]имит"): h.bootstrap(decision="continue")
     assert h.show()["status"]=="verified" and h.show()["stage"]=="audit"
     assert h.cancel("Пользователь отменил работу")["status"]=="cancelled"
 
@@ -167,13 +167,13 @@ def test_content_obligation_is_enforced_inside_feedback_route(project):
 
 
 def test_old_step02_schema_rejected_without_touching_store(project):
-    from harness.infrastructure.sqlite.database import Database
+    from poise.infrastructure.sqlite.database import Database
     path=project["root"]/"old3.sqlite"
     with sqlite3.connect(path) as db:
         db.execute("CREATE TABLE precious(value TEXT)")
         db.execute("INSERT INTO precious VALUES('keep')")
         db.execute("PRAGMA user_version=3")
     original=path.read_bytes()
-    with pytest.raises(HarnessError,match="миграц"):
+    with pytest.raises(PoiseError,match="миграц"):
         Database(path,project["root"]/"old3.lock",2,0.01)
     assert path.read_bytes()==original

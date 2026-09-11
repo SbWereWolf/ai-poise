@@ -12,24 +12,24 @@ import tempfile
 
 def run(root: Path, output: Path):
     cases=[
-        ('historical_argument_dedup','src/harness/modules/evidence/domain.py',
+        ('historical_argument_dedup','src/poise/modules/evidence/domain.py',
          'if latest != value: proposals.append(value)','if value not in proposals: proposals.append(value)',
          'tests/evidence/test_domain.py::test_argument_A_B_A_selects_current_A_not_historical_B'),
-        ('timeout_as_observation','src/harness/modules/evidence/domain.py',
+        ('timeout_as_observation','src/poise/modules/evidence/domain.py',
          "transport_bad=not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0",
          'transport_bad=False','tests/evidence/test_domain.py::test_timeout_cannot_be_a_negative_subject_proof'),
-        ('unsafe_publication_resume','src/harness/runtime.py',
+        ('unsafe_publication_resume','src/poise/runtime.py',
          "and publication['execution_key']==execution_key and usable", 'and True',
          'tests/evidence/test_paths.py::test_push_resume_after_explicit_environment_change_rechecks'),
-        ('unbound_environment','src/harness/runtime.py',
+        ('unbound_environment','src/poise/runtime.py',
          "'invocations':invocations", "'invocations':[{'method':i['method'],'cwd':i['cwd']} for i in invocations]",
          'tests/evidence/test_paths.py::test_changed_observation_input_rejects_stale_argument'),
-        ('io_in_domain','src/harness/modules/evidence/domain.py','import hashlib','import hashlib\nimport pathlib',
+        ('io_in_domain','src/poise/modules/evidence/domain.py','import hashlib','import hashlib\nimport pathlib',
          'tests/evidence/test_architecture.py::test_evidence_domain_and_application_do_not_contain_io'),
     ]
     results=[]
     for name,rel,before,after,test in cases:
-        with tempfile.TemporaryDirectory(prefix='harness-evidence-mutation-') as d:
+        with tempfile.TemporaryDirectory(prefix='poise-evidence-mutation-') as d:
             target=Path(d)
             for folder in ('src','tests','examples','config'):
                 shutil.copytree(root/folder,target/folder,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))

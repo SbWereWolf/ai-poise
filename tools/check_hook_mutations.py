@@ -14,20 +14,20 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     a=p.parse_args();root=a.root.resolve();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False)
     changes=[
-        ('duplicate_hooks','src/harness/infrastructure/hook_transport.py',
+        ('duplicate_hooks','src/poise/infrastructure/hook_transport.py',
          "previous=[] if old is None else json.loads(old[0])['groups']",'previous=[]',
          'tests/hook_transport/test_hooks.py::test_install_replay_and_edit_do_not_duplicate'),
-        ('ignore_project_binding','src/harness/infrastructure/capabilities.py',
+        ('ignore_project_binding','src/poise/infrastructure/capabilities.py',
          "if p['json_assertions'] and not satisfies(strict_json(stdout),p['json_assertions']):",
          "if False and p['json_assertions'] and not satisfies(strict_json(stdout),p['json_assertions']):",
          'tests/hook_transport/test_probes.py::test_json_project_binding_is_verified_not_inferred'),
-        ('double_count_user_turn','src/harness/infrastructure/hook_transport.py',
+        ('double_count_user_turn','src/poise/infrastructure/hook_transport.py',
          "'message_id':native['turn_id']", "'message_id':native['turn_id']+__import__('uuid').uuid4().hex",
          'tests/hook_transport/test_demo.py::test_generated_native_hooks_and_bound_work_complete_task'),
     ]
     before={path:hashlib.sha256((root/path).read_bytes()).hexdigest() for _,path,*_ in changes};results=[]
     for name,path,old,new,test in changes:
-        with tempfile.TemporaryDirectory(prefix='harness-hook-mutation-') as temp:
+        with tempfile.TemporaryDirectory(prefix='poise-hook-mutation-') as temp:
             copy=Path(temp)/'copy';copy.mkdir()
             for folder in ('src','tests','config','examples'):
                 shutil.copytree(root/folder,copy/folder,ignore=shutil.ignore_patterns('__pycache__','.pytest_cache'))

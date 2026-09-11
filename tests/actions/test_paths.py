@@ -2,8 +2,8 @@ from copy import deepcopy
 from pathlib import Path
 import pytest
 from conftest import git
-from conftest import WorkHarness as Harness
-from harness.common import HarnessError
+from conftest import WorkPoise as Poise
+from poise.common import PoiseError
 from .helpers import setup,verify,result,advance,call,resolve,inspect,method
 
 
@@ -15,7 +15,7 @@ def test_merge_conflict_continue_inspect_publish_happy_path(project):
     assert out['action']['conflicts']==['src/double.py']
     assert git(project['remote'],'rev-parse','main')==base
     assert h.show()['status']=='active'
-    out=verify(Harness(project['config_path'],'ACTION-AGENT'),resolve(out,ctx['worktree']))
+    out=verify(Poise(project['config_path'],'ACTION-AGENT'),resolve(out,ctx['worktree']))
     assert out['status']=='verified' and out['checks'][0]['passed']
     assert git(project['remote'],'rev-parse','main')==base
     assert git(Path(ctx['worktree']),'status','--porcelain')==''
@@ -45,9 +45,9 @@ def test_conflict_needs_explicit_resolution_and_cannot_change_plan(project):
     h,ctx,plan,base=setup(project)
     p=result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]});out=verify(h,p)
     bad=deepcopy(out['context']['result_template']);bad['stage_work']['resolutions']=[]
-    with pytest.raises(HarnessError):verify(h,bad)
+    with pytest.raises(PoiseError):verify(h,bad)
     bad=deepcopy(p);bad['stage_work']['plan']['sources'].reverse()
-    with pytest.raises(HarnessError):verify(h,bad)
+    with pytest.raises(PoiseError):verify(h,bad)
     assert git(project['remote'],'rev-parse','main')==base
 
 
@@ -65,7 +65,7 @@ def test_publish_blocks_target_drift_without_rewriting_remote(project):
 def test_dirty_apply_entry_does_not_overwrite_foreign_work(project):
     h,ctx,plan,base=setup(project)
     file=Path(ctx['worktree'],'src/double.py');file.write_text('unattributed work\n')
-    with pytest.raises(HarnessError):verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))
+    with pytest.raises(PoiseError):verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))
     assert file.read_text()=='unattributed work\n'
     assert git(project['remote'],'rev-parse','main')==base
 
@@ -103,7 +103,7 @@ def test_failed_combined_test_rechecks_new_tree_without_second_merge(project):
     with h.store.database.transaction() as db:
         cursor=db.execute('SELECT version FROM action_runs').fetchone()[0]
     Path(ctx['worktree'],'src/double.py').write_text('def double(n):\n    return n * 2\n')
-    fixed=verify(Harness(project['config_path'],'ACTION-AGENT'),p)
+    fixed=verify(Poise(project['config_path'],'ACTION-AGENT'),p)
     assert fixed['status']=='verified' and fixed['checks'][0]['passed']
     with h.store.database.transaction() as db:assert db.execute('SELECT version FROM action_runs').fetchone()[0]==cursor
     assert git(project['remote'],'rev-parse','main')==base
@@ -120,7 +120,7 @@ def test_publication_needs_last_artifact_before_target_update(project):
     ctx=start(h,task)
     verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}));inspect(h,advance(h));ctx=advance(h)
     p=result(ctx,{'target_ref':'refs/heads/main','expected_commit':base,'authorization':'User: publish'})
-    with pytest.raises(HarnessError):verify(h,p)
+    with pytest.raises(PoiseError):verify(h,p)
     assert git(project['remote'],'rev-parse','main')==base
 
 
@@ -165,7 +165,7 @@ def test_direct_task_cannot_mark_external_stage_verified_without_receipt(project
     receipt=h.runner.submit('INTEGRATE',h.session,p)
     with h.store.unit_of_work() as uow:
         task=uow.tasks.load('INTEGRATE')
-        with pytest.raises(HarnessError):task.mark_verified(h.session,receipt.digest,())
+        with pytest.raises(PoiseError):task.mark_verified(h.session,receipt.digest,())
 
 
 def test_resume_known_pending_merge_after_lost_response(project,monkeypatch):
@@ -182,7 +182,7 @@ def test_resume_known_pending_merge_after_lost_response(project,monkeypatch):
     monkeypatch.setattr(h.plan_actions,'_git_effect',effect)
     p=result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]})
     with pytest.raises(RuntimeError):verify(h,p)
-    resumed=Harness(project['config_path'],'ACTION-AGENT')
+    resumed=Poise(project['config_path'],'ACTION-AGENT')
     out=verify(resumed,p)
     assert out['status']=='verified'
     assert git(project['remote'],'rev-parse','main')==base
@@ -200,7 +200,7 @@ def test_unknown_command_outcome_uses_probe_not_second_effect(project,monkeypatc
     monkeypatch.setattr(h.plan_actions,'_method',method_call)
     p=result(ctx,{'plan':{'kind':'commands','steps':[{'id':'S','probe_false_exit_codes':[1],'apply':apply,'probe':probe}]},'phase':'prepare','resolutions':[],'finding_resolutions':[]})
     with pytest.raises(RuntimeError):verify(h,p)
-    out=verify(Harness(project['config_path'],h.session),p)
+    out=verify(Poise(project['config_path'],h.session),p)
     assert out['status']=='verified' and count.read_text()=='x'
 
 
@@ -233,7 +233,7 @@ def test_target_push_retry_is_probed_and_bounded_without_repeating_checks(projec
 
 def test_missing_plan_is_rejected_as_domain_input_not_typeerror(project):
     h,ctx,_,_=setup(project,conflict=False)
-    with pytest.raises(HarnessError):verify(h,result(ctx))
+    with pytest.raises(PoiseError):verify(h,result(ctx))
 
 
 def test_unresolved_markers_are_not_committed(project):
@@ -241,21 +241,21 @@ def test_unresolved_markers_are_not_committed(project):
     out=verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))
     p=deepcopy(out['context']['result_template'])
     p['stage_work']['resolutions']=[{'path':'src/double.py','reason':'Claimed resolved but markers remain'}]
-    with pytest.raises(HarnessError):verify(h,p)
+    with pytest.raises(PoiseError):verify(h,p)
     assert git(project['remote'],'rev-parse','main')==base
 
 
 def test_only_accepted_inspection_can_lead_to_publish(project):
-    from harness.modules.goal_config.domain import GoalTypeDefinition
+    from poise.modules.goal_config.domain import GoalTypeDefinition
     h,ctx,_,_=setup(project)
     process=deepcopy(h.current_task()['process'])
     process['stages'][0]['transitions']['complete']='publish'
-    with pytest.raises(HarnessError):GoalTypeDefinition.parse(process)
+    with pytest.raises(PoiseError):GoalTypeDefinition.parse(process)
 
 
 def test_action_receipt_transaction_rolls_back_on_event_error(project):
     import sqlite3
-    from harness.modules.actions.domain import PlanSpec
+    from poise.modules.actions.domain import PlanSpec
     h,ctx,plan,_=setup(project,conflict=False)
     # The trigger is fault injection in an isolated test store, not an API bypass.
     with h.store.database.transaction() as db:

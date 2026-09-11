@@ -11,20 +11,20 @@ import tempfile
 
 def run(source: Path, output: Path):
     mutations=[
-        ("inspect-always-clear", "src/harness/modules/workflow/handlers.py",
+        ("inspect-always-clear", "src/poise/modules/workflow/handlers.py",
          '"changes_requested" if updated.open_findings else "clear"', '"clear"',
          "tests/runner/test_route_domain.py::test_full_feedback_rejection_then_acceptance_same_task"),
-        ("next-by-list-index", "src/harness/modules/tasks/domain.py",
+        ("next-by-list-index", "src/poise/modules/tasks/domain.py",
          'target = self.route.node(self.stage.stage_id).target(self.progress.outcome)',
          'target = self.stages[(self.state.stage_index + 1) % len(self.stages)].stage_id',
          "tests/runner/test_route_domain.py::test_graph_is_not_list_order"),
-        ("no-visit-budget", "src/harness/modules/workflow/domain.py",
+        ("no-visit-budget", "src/poise/modules/workflow/domain.py",
          'if visits[target] >= self.max_stage_visits:', 'if False:',
          "tests/runner/test_route_domain.py::test_limits_persist_and_do_not_block_cancellation"),
     ]
     results=[]
     for name,file,needle,replacement,test in mutations:
-        with tempfile.TemporaryDirectory(prefix="harness-runner-mutation-") as folder:
+        with tempfile.TemporaryDirectory(prefix="poise-runner-mutation-") as folder:
             root=Path(folder)
             for top in ("src","tests"):
                 shutil.copytree(source/top,root/top,ignore=shutil.ignore_patterns("__pycache__"))

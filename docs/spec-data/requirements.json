@@ -4,7 +4,7 @@
     {
       "id": "HR-001",
       "title": "Предмет и границы продукта",
-      "text": "Harness — отдельное CLI-приложение и кодовая база для одного пользователя. Приоритет: ChatGPT cloud с Linux execution, вторая среда: Codex в WSL/Linux. Work, нативные Windows/macOS, запуск/назначение моделей и оркестратор агентов вне объёма. Пользователь выбирает исполнителя. Harness планирует работу задач через зависимости, а не запускает агентов. Git, IDE MCP, shell и тестовые frameworks сохраняются; Harness объединяет механические действия и обрабатывает результаты, а не заменяет их.",
+      "text": "AI poise — отдельное CLI-приложение и кодовая база для одного пользователя. Приоритет: ChatGPT cloud с Linux execution, вторая среда: Codex в WSL/Linux. Work, нативные Windows/macOS, запуск/назначение моделей и оркестратор агентов вне объёма. Пользователь выбирает исполнителя. AI poise планирует работу задач через зависимости, а не запускает агентов. Git, IDE MCP, shell и тестовые frameworks сохраняются; AI poise объединяет механические действия и обрабатывает результаты, а не заменяет их.",
       "review_findings": [
         "R-03",
         "R-30"
@@ -14,7 +14,7 @@
     {
       "id": "HR-002",
       "title": "Главный результат и административная стоимость",
-      "text": "Цель — качественный конечный код/документация при минимуме токенов и времени на администрирование. Обязательная последовательность двух и более механических действий без нового инженерного решения является composite action. Любой инструмент Harness принимает коллекцию изменений/объектов одним декларативным пакетом; одиночное действие — пакет из одного элемента. Обычный этап использует bootstrap и verify с прямым содержательным payload; физическое stage-result представление создаёт инструмент, ручное редактирование файла не требуется. Дополнительные show/явные business actions нужны для содержательного выбора, не для bookkeeping каждого элемента. Отчёт показывает измеренный расход, не контрфактическую экономию; сообщения пользователя — отдельная метрика, не оценка tokens. CPU, RAM, диск и невостребованные parser views не KPI.",
+      "text": "Цель — качественный конечный код/документация при минимуме токенов и времени на администрирование. Обязательная последовательность двух и более механических действий без нового инженерного решения является composite action. Любой инструмент AI poise принимает коллекцию изменений/объектов одним декларативным пакетом; одиночное действие — пакет из одного элемента. Обычный этап использует bootstrap и verify с прямым содержательным payload; физическое stage-result представление создаёт инструмент, ручное редактирование файла не требуется. Дополнительные show/явные business actions нужны для содержательного выбора, не для bookkeeping каждого элемента. Отчёт показывает измеренный расход, не контрфактическую экономию; сообщения пользователя — отдельная метрика, не оценка tokens. CPU, RAM, диск и невостребованные parser views не KPI.",
       "review_findings": [
         "R-30"
       ],
@@ -43,7 +43,7 @@
     {
       "id": "HR-005",
       "title": "Комплект и трассировка документации",
-      "text": "Все договорённости имеют нормативные IDs, документацию, независимые process matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний Harness.",
+      "text": "Все договорённости имеют нормативные IDs, документацию, независимые process matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний AI poise.",
       "review_findings": [
         "R-01",
         "R-07",
@@ -96,7 +96,7 @@
     {
       "id": "HR-014",
       "title": "Идентичность живого executor",
-      "text": "Bootstrap и каждый execution после reconnect получают handshake работающего runner/parser worker/IDE adapter: implementation digest, schema version, effective config digest, instance generation, start time, bound project/worktree. Hash файла на диске не заменяет handshake. Несовпадение с выбранным release/execution snapshot блокирует использование как новой версии; выдаётся точная инструкция restart и повторного probe. При разработке Harness рабочая копия изменения не подменяет установленный исполняющий release. Нельзя автоматически перезапускать неизвестный чужой процесс по PID.",
+      "text": "Bootstrap и каждый execution после reconnect получают handshake работающего runner/parser worker/IDE adapter: implementation digest, schema version, effective config digest, instance generation, start time, bound project/worktree. Hash файла на диске не заменяет handshake. Несовпадение с выбранным release/execution snapshot блокирует использование как новой версии; выдаётся точная инструкция restart и повторного probe. При разработке AI poise рабочая копия изменения не подменяет установленный исполняющий release. Нельзя автоматически перезапускать неизвестный чужой процесс по PID.",
       "review_findings": [
         "R-24"
       ],
@@ -125,7 +125,7 @@
     {
       "id": "HR-020",
       "title": "Конфигурация без неявных значений",
-      "text": "Все конфиги Harness находятся в его repository и создаются/редактируются инструментом через GoalConfig API одним пакетом желаемых изменений. Target codebases содержат собственные AGENTS, не machine configs Harness. Обязательное значение, unknown key, неоднозначный matcher или неразрешимая ссылка дают configuration_error до публикации. Запрещены hidden defaults/fallback, implicit inheritance, угадывание команд по AGENTS/cwd и broad suite «на всякий случай». Явно выбранный шаблон содержит принятые значения и фиксированную revision; missing в шаблоне и запросе остаётся ошибкой. Unknown-command parser — обязательный явный профиль. Отсутствующий auto-check mapping — invalid project config для выбранного класса; явный no_auto_check с причиной разрешён и не отключает task-registered tests. Конфиги разных goal types независимы. Имена классов и policies задаются configs, не ветвлением kernel.",
+      "text": "Все конфиги AI poise находятся в его repository и создаются/редактируются инструментом через GoalConfig API одним пакетом желаемых изменений. Target codebases содержат собственные AGENTS, не machine configs AI poise. Обязательное значение, unknown key, неоднозначный matcher или неразрешимая ссылка дают configuration_error до публикации. Запрещены hidden defaults/fallback, implicit inheritance, угадывание команд по AGENTS/cwd и broad suite «на всякий случай». Явно выбранный шаблон содержит принятые значения и фиксированную revision; missing в шаблоне и запросе остаётся ошибкой. Unknown-command parser — обязательный явный профиль. Отсутствующий auto-check mapping — invalid project config для выбранного класса; явный no_auto_check с причиной разрешён и не отключает task-registered tests. Конфиги разных goal types независимы. Имена классов и policies задаются configs, не ветвлением kernel.",
       "review_findings": [
         "R-23",
         "R-30"
@@ -135,7 +135,7 @@
     {
       "id": "HR-021",
       "title": "Начальный протокол без рекурсивных fallback",
-      "text": "Граница B0 — явный вызов установленного launcher с абсолютным путём bootstrap descriptor; путь не ищется от cwd и не берётся из origin/.harness по умолчанию. Descriptor и launcher являются частью поставки, содержат явные корень, config schema, encoding, emergency channel и mapping numeric exit outcomes. Синтаксис входа/структурные имена протокола и инварианты атомарности относятся к kernel contract, не настраиваемой business policy. До загрузки валидного descriptor невозможен обычный configured report: запуск обязан завершиться ненулевым исходом и диагностикой launcher/runtime, без рабочего режима и mutations. Это не fallback-профиль. После descriptor все тексты/лимиты/report layouts/exit mappings берутся из config. Harness не пытается обеспечить свой формат, пользуясь повреждённой конфигурацией.",
+      "text": "Граница B0 — явный вызов установленного launcher с абсолютным путём bootstrap descriptor; путь не ищется от cwd и не берётся из origin/.poise по умолчанию. Descriptor и launcher являются частью поставки, содержат явные корень, config schema, encoding, emergency channel и mapping numeric exit outcomes. Синтаксис входа/структурные имена протокола и инварианты атомарности относятся к kernel contract, не настраиваемой business policy. До загрузки валидного descriptor невозможен обычный configured report: запуск обязан завершиться ненулевым исходом и диагностикой launcher/runtime, без рабочего режима и mutations. Это не fallback-профиль. После descriptor все тексты/лимиты/report layouts/exit mappings берутся из config. AI poise не пытается обеспечить свой формат, пользуясь повреждённой конфигурацией.",
       "review_findings": [
         "R-23"
       ],
@@ -263,7 +263,7 @@
     {
       "id": "HR-041",
       "title": "Внешний монопольный lock",
-      "text": "Все Harness business writers используют один внешний OS flock по canonical DB identity; alias пути к той же БД не создаёт второй lock. Lock на постоянном файле рядом с DB, существование файла не признак занятости. Процесс освобождает OS lock при exit/crash. Short SQLite transactions под lock, foreign key/check constraints и SQLite внутреннюю атомарность не отключать. Checks, IDE, backup copy больших файлов и сеть не удерживают глобальный writer lock. Продолжение повторно проверяет revisions. DB на общей сетевой/непроверенной lock filesystem не принимается. Timeout/wait/retry явно config; контенция разных task не означает баг.",
+      "text": "Все AI poise business writers используют один внешний OS flock по canonical DB identity; alias пути к той же БД не создаёт второй lock. Lock на постоянном файле рядом с DB, существование файла не признак занятости. Процесс освобождает OS lock при exit/crash. Short SQLite transactions под lock, foreign key/check constraints и SQLite внутреннюю атомарность не отключать. Checks, IDE, backup copy больших файлов и сеть не удерживают глобальный writer lock. Продолжение повторно проверяет revisions. DB на общей сетевой/непроверенной lock filesystem не принимается. Timeout/wait/retry явно config; контенция разных task не означает баг.",
       "review_findings": [
         "R-13",
         "R-16"
@@ -273,7 +273,7 @@
     {
       "id": "HR-042",
       "title": "Artifacts и публикация",
-      "text": "Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно Harness codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.",
+      "text": "Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно AI poise codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.",
       "review_findings": [
         "R-16",
         "R-19",
@@ -284,7 +284,7 @@
     {
       "id": "HR-043",
       "title": "Sections, resolutions и содержательная история",
-      "text": "Task хранит все semantic layers, proposals, evidence и решения. ResolutionProposal содержит finding/ref, explanation, proposed result и запланированный/полученный метод доказательства, но не обязательный accepted/rejected. Отдельный ResolutionReviewDecision создаётся осмотром после доступности именно result/evidence этого proposal; отказ не стирает proposal. Артефактный индекс с bytes/digest/provenance, execution receipts и timestamps создаёт Harness; агент передаёт artifact_paths — только пути файлов, уже размещённых внутри разрешённых корней текущих runtime, task или sprint. Внутренний ID назначает Harness; purpose, role и requirement_refs от агента не требуются. Manual evidence подаётся по своему контракту. Подсчёт артефактов выполняется по явно заданным файловым признакам типа и границам количества; отсутствие надёжного проектного парсера не блокирует запуск первого рабочего среза. Evidence-view и traceability — generated projections, не редактируемые агентом индексы. Historical refs не становятся несуществующими при замене current результата. Сравнение template и поля содержательного результата не заменяют семантический осмотр.",
+      "text": "Task хранит все semantic layers, proposals, evidence и решения. ResolutionProposal содержит finding/ref, explanation, proposed result и запланированный/полученный метод доказательства, но не обязательный accepted/rejected. Отдельный ResolutionReviewDecision создаётся осмотром после доступности именно result/evidence этого proposal; отказ не стирает proposal. Артефактный индекс с bytes/digest/provenance, execution receipts и timestamps создаёт AI poise; агент передаёт artifact_paths — только пути файлов, уже размещённых внутри разрешённых корней текущих runtime, task или sprint. Внутренний ID назначает AI poise; purpose, role и requirement_refs от агента не требуются. Manual evidence подаётся по своему контракту. Подсчёт артефактов выполняется по явно заданным файловым признакам типа и границам количества; отсутствие надёжного проектного парсера не блокирует запуск первого рабочего среза. Evidence-view и traceability — generated projections, не редактируемые агентом индексы. Historical refs не становятся несуществующими при замене current результата. Сравнение template и поля содержательного результата не заменяют семантический осмотр.",
       "review_findings": [
         "R-08",
         "R-25"
@@ -294,7 +294,7 @@
     {
       "id": "HR-044",
       "title": "Sprint graph и доступность результата",
-      "text": "Зависимости — DAG только между tasks одного sprint. Eligibility требует accepted completion predecessor и успешного MaterializationContract на точном стартовом snapshot successor. Contract имеет явный kind: exact_history (ancestry/identity только для требования истории), result_availability (source-result→materialized-result receipt и exact declared availability predicates) либо artifact_identity (digest/owner ref). Ancestry не доказывает наличие поведения. Cherry-pick/rebase разрешены с recorded mapping и проверкой результата; после revert/drift прежний receipt сам по себе не обеспечивает readiness. Все predicates имеют точные команды или digest checks; Harness не угадывает смысл кода. Unavailable prerequisite даёт blocker и receipt, не автоматическую интеграцию или foreign-task mutation. Межспринтовые refs допускаются как immutable inputs, не dependency edges.",
+      "text": "Зависимости — DAG только между tasks одного sprint. Eligibility требует accepted completion predecessor и успешного MaterializationContract на точном стартовом snapshot successor. Contract имеет явный kind: exact_history (ancestry/identity только для требования истории), result_availability (source-result→materialized-result receipt и exact declared availability predicates) либо artifact_identity (digest/owner ref). Ancestry не доказывает наличие поведения. Cherry-pick/rebase разрешены с recorded mapping и проверкой результата; после revert/drift прежний receipt сам по себе не обеспечивает readiness. Все predicates имеют точные команды или digest checks; AI poise не угадывает смысл кода. Unavailable prerequisite даёт blocker и receipt, не автоматическую интеграцию или foreign-task mutation. Межспринтовые refs допускаются как immutable inputs, не dependency edges.",
       "review_findings": [
         "R-06",
         "R-09"
@@ -364,7 +364,7 @@
     {
       "id": "HR-054",
       "title": "Точный executable contract",
-      "text": "Executable method разделён на PlannedInvocation, BoundExecution и ExecutionReceipt. При планировании обязателен exact codebase/environment target, cwd, mode, полный argv/shell binary+command, explicit env/secret references и inheritance policy, stdin, declared input paths/IDs, resource requirements, expected/collection predicates, stage applicability, limits/retry/reuse policy и references нужных runner/parser profiles. Эти значения могут быть явными resolvable config refs; команда не выводится из AGENTS. Для будущего теста точный путь/команда уже определены, а observed input digest, worktree identity, live generation, фактические resource bindings и timestamps ещё НЕ требуются. Harness сам получает их при binding/readiness и сохраняет immutable BoundExecution. Missing будущий input допустим на planning phase по explicit deadline, но блокирует его execution. Exit, collection, raw hashes и duration появляются только в Receipt. Поддельные наблюдения от модели не принимаются как факты.",
+      "text": "Executable method разделён на PlannedInvocation, BoundExecution и ExecutionReceipt. При планировании обязателен exact codebase/environment target, cwd, mode, полный argv/shell binary+command, explicit env/secret references и inheritance policy, stdin, declared input paths/IDs, resource requirements, expected/collection predicates, stage applicability, limits/retry/reuse policy и references нужных runner/parser profiles. Эти значения могут быть явными resolvable config refs; команда не выводится из AGENTS. Для будущего теста точный путь/команда уже определены, а observed input digest, worktree identity, live generation, фактические resource bindings и timestamps ещё НЕ требуются. AI poise сам получает их при binding/readiness и сохраняет immutable BoundExecution. Missing будущий input допустим на planning phase по explicit deadline, но блокирует его execution. Exit, collection, raw hashes и duration появляются только в Receipt. Поддельные наблюдения от модели не принимаются как факты.",
       "review_findings": [
         "R-02",
         "R-11",
@@ -418,7 +418,7 @@
     {
       "id": "HR-059",
       "title": "Что kernel может доказать",
-      "text": "Structural validators проверяют required typed fields, cardinality, applicability, references/digests, command predicates и наличие accepted/rejected inspection decisions. Не утверждают, что текст истинный, полезный, constraint содержательно соблюдён или scope осмотрен только из факта ссылок. Logical evidence хранит claim, fact refs, assumptions, проверяемое краткое inference, conclusion и reviewer verdict, не private chain of thought. Добавление символа к template меняет digest, но не заполняет типизированные пункты. При semantic rejection review record блокирует completion независимо от структурной полноты. Agent-evaluation/manual cases проверяют reasoning отдельно от deterministic kernel. Некомандный метод не создаёт ExecutionReceipt: агент предоставляет EvidenceProposal, Harness регистрирует evidence и отдельно структурный validation receipt. Решение reviewer принадлежит последующему осмотру. Proposal не включает придуманную коллекцию тестов, exit code или собственное accepted/rejected решение. Проверка существования фактов/источников не доказывает истинность аргумента.",
+      "text": "Structural validators проверяют required typed fields, cardinality, applicability, references/digests, command predicates и наличие accepted/rejected inspection decisions. Не утверждают, что текст истинный, полезный, constraint содержательно соблюдён или scope осмотрен только из факта ссылок. Logical evidence хранит claim, fact refs, assumptions, проверяемое краткое inference, conclusion и reviewer verdict, не private chain of thought. Добавление символа к template меняет digest, но не заполняет типизированные пункты. При semantic rejection review record блокирует completion независимо от структурной полноты. Agent-evaluation/manual cases проверяют reasoning отдельно от deterministic kernel. Некомандный метод не создаёт ExecutionReceipt: агент предоставляет EvidenceProposal, AI poise регистрирует evidence и отдельно структурный validation receipt. Решение reviewer принадлежит последующему осмотру. Proposal не включает придуманную коллекцию тестов, exit code или собственное accepted/rejected решение. Проверка существования фактов/источников не доказывает истинность аргумента.",
       "review_findings": [
         "R-01",
         "R-25",
@@ -468,7 +468,7 @@
     {
       "id": "HR-064",
       "title": "Минимальный отчёт и runtime cleanup",
-      "text": "Доклад содержит цель/результат, evidence/verdict, Git/delivery receipts, findings/waivers/risks и ВСЕ Harness Incidents текущего cycle, включая recovered; обычные tests/environment outcomes не выдаются за баги Harness. Report immutable в DB и адресует durable ResultSet, не удаляемый runtime. Для task/sprint result views принадлежат соответствующему owner; ad-hoc — durable session deliverable root вне runtime с явной retention. Cleanup удаляет временные копии после pins/publication, не target ready refs. Binding, usage/report pointers сохраняются. Native detail reads после verify допустимы без дополнительной formal work и не запускают commands. Runtime user message/report boundary фиксирует адаптер; неизвестные границы метрик partial.",
+      "text": "Доклад содержит цель/результат, evidence/verdict, Git/delivery receipts, findings/waivers/risks и ВСЕ AI poise Incidents текущего cycle, включая recovered; обычные tests/environment outcomes не выдаются за баги AI poise. Report immutable в DB и адресует durable ResultSet, не удаляемый runtime. Для task/sprint result views принадлежат соответствующему owner; ad-hoc — durable session deliverable root вне runtime с явной retention. Cleanup удаляет временные копии после pins/publication, не target ready refs. Binding, usage/report pointers сохраняются. Native detail reads после verify допустимы без дополнительной formal work и не запускают commands. Runtime user message/report boundary фиксирует адаптер; неизвестные границы метрик partial.",
       "review_findings": [
         "R-14",
         "R-20",
@@ -479,7 +479,7 @@
     {
       "id": "HR-065",
       "title": "Диагностирование собственного отказа",
-      "text": "Operational journal — append-only файлы на выделенном configured Harness journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, process sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.",
+      "text": "Operational journal — append-only файлы на выделенном configured AI poise journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, process sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.",
       "review_findings": [
         "R-18",
         "R-28"
@@ -624,7 +624,7 @@
     {
       "id": "HR-091",
       "title": "Секция как проверяемый контракт",
-      "text": "Section text/typed fields в SQLite. Для каждого field/schema path объявлены producer (user/config/agent/kernel/adapter/reviewer), earliest availability и required phase, empty/not_applicable policy. Содержательная applicability/plan — агентские данные, actual digests/versions/receipt — наблюдения Harness. Разрешённая будущая команда точна до создания файла, её observed digest только на execution. Manual evidence proposal не включает автоматические observations и не заменяет reviewer decision. Required-before валидирует только доступные на PREPARE поля; post-observation проверяется после фактов; обязательное final — перед verified. Все ранее принятые layers сохраняются, current view не создаёт второй источник.",
+      "text": "Section text/typed fields в SQLite. Для каждого field/schema path объявлены producer (user/config/agent/kernel/adapter/reviewer), earliest availability и required phase, empty/not_applicable policy. Содержательная applicability/plan — агентские данные, actual digests/versions/receipt — наблюдения AI poise. Разрешённая будущая команда точна до создания файла, её observed digest только на execution. Manual evidence proposal не включает автоматические observations и не заменяет reviewer decision. Required-before валидирует только доступные на PREPARE поля; post-observation проверяется после фактов; обязательное final — перед verified. Все ранее принятые layers сохраняются, current view не создаёт второй источник.",
       "review_findings": [
         "R-01",
         "R-25"
@@ -1706,14 +1706,14 @@
     {
       "id": "HR-097",
       "title": "Числовые эталоны измерений",
-      "text": "metrics-contract.json и fixtures/metrics-golden.json задают все bytes, line boundaries, token units/IDs, serialization и ledger events. Fixture tokenizer ETALON-BPE-1 — фиксированный измерительный тестовый прибор с собственными ranks, не approximation model usage и не runtime fallback. Для выбранного production measurement tokenizer release содержит его точный digest и тот же corpus с собственными golden token IDs/counts. Числа tests не становятся defaults runtime. В этой документации эталонный профиль самодостаточен, его расчёт проверен независимо от Harness. Иные measurement profiles не подменяют эти значения.",
+      "text": "metrics-contract.json и fixtures/metrics-golden.json задают все bytes, line boundaries, token units/IDs, serialization и ledger events. Fixture tokenizer ETALON-BPE-1 — фиксированный измерительный тестовый прибор с собственными ranks, не approximation model usage и не runtime fallback. Для выбранного production measurement tokenizer release содержит его точный digest и тот же corpus с собственными golden token IDs/counts. Числа tests не становятся defaults runtime. В этой документации эталонный профиль самодостаточен, его расчёт проверен независимо от AI poise. Иные measurement profiles не подменяют эти значения.",
       "review_findings": [],
       "group": "09. Метрики результата и стоимости"
     },
     {
       "id": "HR-098",
       "title": "Декларативный пакет вместо ручного обслуживания",
-      "text": "Каждый Harness tool принимает множество однородных/связанных изменений одним логическим пакетом. Агент задаёт желаемое содержание, инструмент выполняет создание, форматирование, validation, регистрацию, сохранение и обновление проекций. Агенту запрещено напрямую изменять обслуживаемые config/task/sprint/runtime-файлы и SQLite. Общие pipelines не обходят доменные владельцы. Нативные IDE/patch tools исходников, тестов и документации целевой codebase сохраняются; Git остаётся источником их изменений.",
+      "text": "Каждый AI poise tool принимает множество однородных/связанных изменений одним логическим пакетом. Агент задаёт желаемое содержание, инструмент выполняет создание, форматирование, validation, регистрацию, сохранение и обновление проекций. Агенту запрещено напрямую изменять обслуживаемые config/task/sprint/runtime-файлы и SQLite. Общие pipelines не обходят доменные владельцы. Нативные IDE/patch tools исходников, тестов и документации целевой codebase сохраняются; Git остаётся источником их изменений.",
       "review_findings": [],
       "group": "11. Декларативные инструменты и пользовательские сообщения"
     },
@@ -1774,6 +1774,6 @@
       "group": "11. Декларативные инструменты и пользовательские сообщения"
     }
   ],
-  "schema": "harness-doc-requirements/3",
+  "schema": "poise-doc-requirements/3",
   "updated_at": "2026-09-06T19:39:04+05:00"
 }

@@ -214,7 +214,7 @@
       "internal_qa",
       "delivered_rework",
       "requirement_change",
-      "harness_incident"
+      "poise_incident"
     ],
     "sources": {
       "test": "reported",

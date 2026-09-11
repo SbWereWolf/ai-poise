@@ -84,7 +84,7 @@ BootstrapWork / VerifyStage / ApplyUserDecision / Handoff ...
 | `HandoffWork` | Краткий содержательный итог и WIP commit message при необходимости | tasks/sessions/artifacts + workspace/transfer ports | Устойчивая передача текущего состояния и снятие binding |
 | `DiscardWork` | Решение о сбросе в разрешённой области | sessions + workspace port | Сброс только собственных текущих изменений; не отмена task |
 | `CancelTask` | Однозначная санкция пользователя | tasks, sprints, sessions | Cancelled; последствия для зависимостей, без обычных checks |
-| `ForceCloseSprint` | Санкция пользователя и судьба сохранённой работы | sprints, tasks, sessions | Закрытый выбранный спринт и честный итог WIP/отмен |
+| `CancelSprint` | Санкция пользователя и судьба сохранённой работы | sprints, tasks, sessions | Отменённый выбранный Sprint с сохранёнными результатами, историей и WIP |
 | `CreateProjectBinding` | Полная анкета/явный ввод | configuration | Проверенный manifest, atomic write |
 | `TransferWork` | Scope/режим переноса и разрешённый destination | operations + task/sprint export APIs + transfer adapter | Receipt, исходная revision и проверенный комплект |
 | `IngestUsage` | Наблюдаемые usage events из поддерживаемого адаптера | metrics | Принятые события без дублирования, completeness |
@@ -124,7 +124,7 @@ BootstrapWork / VerifyStage / ApplyUserDecision / Handoff ...
 | `SprintCommands.record_decisions` | Решения по плану/зависимостям/ветвям | Business record спринта |
 | `SprintCommands.link_artifact_paths` | Только пути текущего sprint | Shared artifact refs |
 | `SprintCommands.resolve_cancelled_branch` | Явная судьба зависимых задач | Изменение только вычисленной области и согласованных tasks |
-| `SprintCommands.force_close` | Санкция и dispositions WIP | Терминальный исход выбранного спринта |
+| `SprintCommands.cancel` | Санкция, атомарная отмена незавершённых Task и сохранение WIP | Терминальный исход выбранного Sprint |
 
 Не предоставляется `set_eligible_tasks`: eligible set является вычислением, а не ручным вводом агента. Нет `assign_model`, `launch_codex`, межспринтовых dependencies и автоматического выбора исполнителя.
 

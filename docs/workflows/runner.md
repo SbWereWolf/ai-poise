@@ -1,6 +1,6 @@
 # Runner и фазы DDD-04
 
-Обновлено: **2026-09-06T19:15:45+05:00**. Срез **HARNESS-DDD-04**.
+Обновлено: **2026-09-11T07:13:29+05:00**. Срез **HARNESS-DDD-04**.
 
 Пять реализованных семейств: produce, inspect, revise, observe, check. `apply_plan/publish` по полному архитектурному контракту ещё DDD-06; обычный commit/push прототипа уже работает как финализация write-stage.
 
@@ -19,5 +19,7 @@ Route: явный entry, outcomes→targets, rework_targets, max_transitions/max
 10. Очистить runtime, вернуть доклад. Следующий этап ждёт пользовательского решения.
 
 Незаполненная ручная часть до команды — evidence_requirements_failed. После новых фактов — awaiting_continuation. Неизвестные ссылки/невалидный формат — входная ошибка. Сбой или нераспознанный результат команды — checks_failed. Негативный predicate subject внутри check — нормальный not_satisfied, если процедура выполнена корректно. Guard failures никогда не становятся нормальным негативным subject.
+
+После `checks_failed` активный submitted этап не требуется отменять или пересоздавать. Только новый явный пользовательский `bootstrap(decision=rework, feedback, rework_stage)` может провести ту же Task через объявленный `rework_targets`, если сохранился точный доступный failed batch текущих stage, iteration, submission, tree и execution key и нет неизвестного `pending`. Цель `revise` без открытых findings отклоняется до изменения состояния. Переход сохраняет contracts, worktree, историю и receipts, применяет обычные route limits и scope целевого этапа и очищает только заброшенное retry-состояние. Полные условия и пакет запроса определены в [пакетном контракте](batch-work.md#явный-rework-после-checks_failed).
 
 Следующий inspect решает accepted/rejected для конкретной revision аргумента. Rejected направляет route в явно заданный changes_requested edge. Исправление проходит новую iteration и снова проверяется; старые revisions/decisions не теряются. Командные и логические evidence не подменяют друг друга.

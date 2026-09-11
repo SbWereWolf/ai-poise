@@ -1,11 +1,30 @@
 """Composition adapter; observes existing work, never drives its business lifecycle."""
-from datetime import datetime,timezone
+from datetime import datetime,timedelta,timezone
+import time
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 from ..modules.accounting.domain import MetricPolicy,BenefitDefinition,parse_telemetry
 from ..common import HarnessError
 from .sqlite.accounting import SqliteAccounting,timestamp
 from .accounting_measurement import PayloadMeasurer,zero_measure
 from .accounting_queries import AccountingQueries
+
+
+class AnchoredUtcClock:
+    """UTC labels advanced by monotonic elapsed time within one process."""
+    def __init__(self, wall_clock=None, elapsed_clock=None):
+        self._wall_clock = (
+            (lambda: datetime.now(timezone.utc).isoformat())
+            if wall_clock is None else wall_clock
+        )
+        self._elapsed_clock = time.monotonic if elapsed_clock is None else elapsed_clock
+        self._anchor = timestamp(self._wall_clock())
+        self._started = self._elapsed_clock()
+
+    def __call__(self):
+        elapsed = self._elapsed_clock() - self._started
+        if elapsed < 0:
+            raise HarnessError('Monotonic clock moved backwards')
+        return (self._anchor + timedelta(seconds=elapsed)).isoformat()
 
 
 class RuntimeAccounting:
@@ -15,7 +34,7 @@ class RuntimeAccounting:
         except ZoneInfoNotFoundError as exc:raise HarnessError('Unknown accounting timezone') from exc
         self.repo=SqliteAccounting(h.store.database,h.cfg['project'],self.policy)
         self.measurer=PayloadMeasurer(h)
-        self.clock=(lambda:datetime.now(timezone.utc).isoformat()) if clock is None else clock
+        self.clock=AnchoredUtcClock() if clock is None else clock
         self.call_started=None;self.telemetry=None;self.turn_id=None
 
     def close_cycle(self):self.repo.stop(self.h.session,self.clock())

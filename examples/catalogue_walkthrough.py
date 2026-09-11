@@ -52,8 +52,15 @@ def install(home):
     return repo,commands
 
 
-def method(mid,code,expected=0,needles=()):
+def repository_method(mid,code,expected=0,needles=()):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
+            'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
+            'timeout_seconds':10,'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
+
+
+def external_method(mid,code,expected=0,needles=()):
+    return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
+            'source_under_test':{'kind':'external','reason':'The reference command reads only generated external state.'},
             'timeout_seconds':10,'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
 
 
@@ -62,30 +69,34 @@ def _methods(goal,home):
     inspect_service=f'from pathlib import Path; import json; p=Path({str(service)!r}); d=json.loads(p.read_text()); print(json.dumps(d,sort_keys=True))'
     perf='import time,json; a=time.perf_counter_ns(); value=sum(range(10000)); dt=time.perf_counter_ns()-a; assert value==49995000 and dt>0; print("MEASURED",json.dumps({"elapsed_ns":dt,"value":value}))'
     if goal=='development':
-        methods=[method('BASELINE','from src.double import double; assert double(2)==3; print("BASELINE=3")',needles=['BASELINE=3'])]
+        methods=[repository_method('BASELINE','from src.double import double; assert double(2)==3; print("BASELINE=3")',needles=['BASELINE=3'])]
         argv=[sys.executable,'-B','-m','unittest','discover','-s','tests','-v']
         for mid,code,needles in [('TEST_RED',1,['test_double','AssertionError: 3 != 4','Ran 1 test']),('TEST_GREEN',0,['test_double','Ran 1 test','OK'])]:
             methods.append({'id':mid,'argv':argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'timeout_seconds':10,
+                            'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
                             'expected_exit_code':code,'stdout_contains':[],'stderr_contains':needles})
-        methods.append(method('DOC_CHECK','from pathlib import Path; assert "double(2) == 4" in Path("docs/usage.md").read_text(); print("DOC_OK")',needles=['DOC_OK']))
+        methods.append(repository_method('DOC_CHECK','from pathlib import Path; assert "double(2) == 4" in Path("docs/usage.md").read_text(); print("DOC_OK")',needles=['DOC_OK']))
         return methods
     if goal=='test_development':
-        return [method('BASELINE','from src.double import double; assert double(2)==4; print("BASELINE=4")',needles=['BASELINE=4']),
-                {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{},'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
-                method('SENSITIVITY','import unittest; from unittest.mock import patch; from tests.test_double import Regression; s=unittest.TestSuite([Regression("test_double")]);\nwith patch("tests.test_double.double",lambda n:n+1):\n r=unittest.TestResult(); s.run(r)\nassert len(r.failures)==1 and not r.errors; print("DETECTED_BAD_IMPLEMENTATION")',needles=['DETECTED_BAD_IMPLEMENTATION'])]
-    if goal=='verification':return [method('VERIFY','from src.double import double; print("VALUE="+str(double(2))); raise SystemExit(0 if double(2)==4 else 1)',needles=['VALUE=4'])]
+        return [repository_method('BASELINE','from src.double import double; assert double(2)==4; print("BASELINE=4")',needles=['BASELINE=4']),
+                {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
+                repository_method('SENSITIVITY','import unittest; from unittest.mock import patch; from tests.test_double import Regression; s=unittest.TestSuite([Regression("test_double")]);\nwith patch("tests.test_double.double",lambda n:n+1):\n r=unittest.TestResult(); s.run(r)\nassert len(r.failures)==1 and not r.errors; print("DETECTED_BAD_IMPLEMENTATION")',needles=['DETECTED_BAD_IMPLEMENTATION'])]
+    if goal=='verification':return [repository_method('VERIFY','from src.double import double; print("VALUE="+str(double(2))); raise SystemExit(0 if double(2)==4 else 1)',needles=['VALUE=4'])]
     if goal=='review':return []
-    if goal=='design':return [method('DESIGN_CHECK','from pathlib import Path; import json; x=json.loads(Path("docs/design.json").read_text()); assert x["operation"]=="double" and x["formula"]=="n * 2"; print("DESIGN_VALID")',needles=['DESIGN_VALID'])]
-    if goal=='analysis':return [method('COLLECT','import json; from pathlib import Path; v=json.loads(Path("data/sample.json").read_text()); assert len(v)==3; print("RECORDS=3 SUM="+str(sum(v)))',needles=['RECORDS=3 SUM=6'])]
-    if goal=='profiling':return [method(i,perf,needles=['MEASURED']) for i in ('BASELINE','MEASURE','CONFIRM')]
+    if goal=='design':return [repository_method('DESIGN_CHECK','from pathlib import Path; import json; x=json.loads(Path("docs/design.json").read_text()); assert x["operation"]=="double" and x["formula"]=="n * 2"; print("DESIGN_VALID")',needles=['DESIGN_VALID'])]
+    if goal=='analysis':return [repository_method('COLLECT','import json; from pathlib import Path; v=json.loads(Path("data/sample.json").read_text()); assert len(v)==3; print("RECORDS=3 SUM="+str(sum(v)))',needles=['RECORDS=3 SUM=6'])]
+    if goal=='profiling':
+        return [external_method(i,perf+f'; print("PHASE={i}")',needles=['MEASURED',f'PHASE={i}'])
+                for i in ('BASELINE','MEASURE','CONFIRM')]
     if goal=='environment_diagnostics':
         experiment=(f'from pathlib import Path; import json; p=Path({str(service)!r}); old=p.read_text();\ntry:\n p.write_text(json.dumps({{"ready":True}})); assert json.loads(p.read_text())["ready"]; print("CONTROLLED_CAUSE_CONFIRMED")\nfinally:\n p.write_text(old)')
-        return [method('REPRODUCE',inspect_service,needles=['"ready": false']),method('EXPERIMENT',experiment,needles=['CONTROLLED_CAUSE_CONFIRMED']),method('CONFIRM',experiment,needles=['CONTROLLED_CAUSE_CONFIRMED'])]
-    if goal=='environment_remediation':return [method('BASELINE',inspect_service,needles=['"ready": false']),method('ENV_CHECK',inspect_service+'; assert d["ready"]',needles=['"ready": true'])]
-    if goal=='documentation':return [method('DOC_CHECK','from pathlib import Path; t=Path("docs/usage.md").read_text(); assert "double(2) == 4" in t and "Python" in t; print("DOC_OK")',needles=['DOC_OK'])]
-    if goal=='sprint_planning':return [method('COVERAGE','print("CAPABILITY_READY: project fixture has a configured runtime and local Git")',needles=['CAPABILITY_READY'])]
+        confirm=experiment.replace('CONTROLLED_CAUSE_CONFIRMED','CONTROLLED_FIX_CONFIRMED')
+        return [external_method('REPRODUCE',inspect_service,needles=['"ready": false']),external_method('EXPERIMENT',experiment,needles=['CONTROLLED_CAUSE_CONFIRMED']),external_method('CONFIRM',confirm,needles=['CONTROLLED_FIX_CONFIRMED'])]
+    if goal=='environment_remediation':return [external_method('BASELINE',inspect_service,needles=['"ready": false']),external_method('ENV_CHECK',inspect_service+'; assert d["ready"]',needles=['"ready": true'])]
+    if goal=='documentation':return [repository_method('DOC_CHECK','from pathlib import Path; t=Path("docs/usage.md").read_text(); assert "double(2) == 4" in t and "Python" in t; print("DOC_OK")',needles=['DOC_OK'])]
+    if goal=='sprint_planning':return [external_method('COVERAGE','print("CAPABILITY_READY: project fixture has a configured runtime and local Git")',needles=['CAPABILITY_READY'])]
     if goal=='task_planning':return []
-    if goal=='integration':return [method('COMBINED','from src.double import double; assert double(2)==4 and double(0)==0; print("COMBINED_OK")',needles=['COMBINED_OK'])]
+    if goal=='integration':return [repository_method('COMBINED','from src.double import double; assert double(2)==4 and double(0)==0; print("COMBINED_OK")',needles=['COMBINED_OK'])]
     raise ValueError('Unknown reference scenario')
 
 
@@ -149,8 +160,8 @@ def _seed(app,home,goal,scenario):
 
 def _environment_plan(home,revision):
     path=str(home/'service-state.json');desired={'ready':True,'revision':revision}
-    probe=method('PROBE',f'from pathlib import Path; import json; assert json.loads(Path({path!r}).read_text())=={desired!r}; print("READY")',needles=['READY'])
-    apply=method('APPLY',f'from pathlib import Path; import json; Path({path!r}).write_text(json.dumps({desired!r})); print("APPLIED")',needles=['APPLIED'])
+    probe=external_method('PROBE',f'from pathlib import Path; import json; assert json.loads(Path({path!r}).read_text())=={desired!r}; print("READY")',needles=['READY'])
+    apply=external_method('APPLY',f'from pathlib import Path; import json; Path({path!r}).write_text(json.dumps({desired!r})); print("APPLIED")',needles=['APPLIED'])
     return {'kind':'commands','steps':[{'id':'service-state','apply':apply,'probe':probe,'probe_false_exit_codes':[1]}]}
 
 

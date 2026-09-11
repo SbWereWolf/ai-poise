@@ -33,6 +33,15 @@
       ],
       "cwd": ".",
       "environment": {},
+      "source_under_test": {
+        "kind": "repository",
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": "."
+          }
+        ]
+      },
       "timeout_seconds": 120,
       "expected_exit_code": 0,
       "stdout_contains": [],

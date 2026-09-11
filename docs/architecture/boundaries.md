@@ -6,7 +6,7 @@
 |---|---|---|
 | Task | кандидатный результат, доказательства, transition, приёмка и rework | SQL/Git/команды |
 | workflow/handlers | produce/inspect/revise/observe/check | goal-type branching, присваивание lifecycle |
-| verification/CheckRegistry | точные команды, ID и расписание | изобретение команд |
+| verification/CheckRegistry | точные команды, ID, расписание, `source_under_test` и семантические конфликты | изобретение команд или разрешение filesystem paths |
 | evidence | план, immutable observations/arguments/decisions, механическая достаточность | I/O, оценка истинности вместо агента |
 | application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
 | SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
@@ -15,6 +15,12 @@
 `EvidenceBook` используется композиционно; это не BaseTask и не отдельный движок каждого goal type. Runner делегирует чистым handler/domain, не держит lock во время subprocess. Generic observe/check отличаются способом интерпретации заданных наблюдений, не названием цели.
 
 Правила происхождения, аргумента и осмотра остаются раздельными. `passed` — исход predicate, `interpretable` — распознанность наблюдения, `accepted/rejected` — последующий смысловой осмотр. Их нельзя сворачивать в один status.
+
+`CheckRegistry` владеет чистым контрактом provenance и сравнением методов. Runtime владеет
+разрешением repository-relative binding против текущего task worktree, проверкой границ и
+формированием digest/receipt. Execution adapter получает уже связанный cwd/environment и не
+угадывает язык, layout проекта или источник импорта. Evidence хранит наблюдение и provenance,
+но не исправляет неверный method после запуска.
 
 Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw capture синхронный, адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы EvidenceBook.
 

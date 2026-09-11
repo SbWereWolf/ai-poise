@@ -8,9 +8,21 @@ from conftest import write_json
 from harness.common import HarnessError
 from harness.runtime import Harness
 from harness.application.work import WorkTools
+from harness.infrastructure.accounting import AnchoredUtcClock
 from tests.batch.helpers import request,message
 from .test_domain import sample
 from .test_paths import setup,send,metrics,finish
+
+
+def test_internal_clock_uses_monotonic_elapsed_time():
+    elapsed = iter((100.0, 100.0, 101.25))
+    clock = AnchoredUtcClock(
+        wall_clock=lambda: "2026-09-11T14:00:00+00:00",
+        elapsed_clock=lambda: next(elapsed),
+    )
+
+    assert clock() == "2026-09-11T14:00:00+00:00"
+    assert clock() == "2026-09-11T14:00:01.250000+00:00"
 
 
 def test_usage_transaction_rolls_back_all_new_events(project):

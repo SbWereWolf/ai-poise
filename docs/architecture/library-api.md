@@ -106,6 +106,12 @@ Updated: 2026-09-07T02:34:02+05:00.
 
 `MetricPolicy` и `BenefitDefinition` — чистые явные контракты. `AccountingCommands` работает через `AccountingPort`. `RuntimeAccounting` связывает исходную Task, clock и измеритель; `SqliteAccounting` хранит ledger и receipts. `AccountingQueries` строит read-only итоговые отчёты. `PayloadMeasurer` читает закреплённые Git blobs и final section layers; он не управляет Task lifecycle.
 
+Production default `RuntimeAccounting` использует `AnchoredUtcClock`: одна UTC-метка
+фиксируется при создании адаптера, а последующие метки продвигаются по `time.monotonic()`.
+Инъекция callable `clock` остаётся поддерживаемой границей для детерминированных тестов.
+Это защищает один процесс от коррекции wall clock назад; сравнимость сохранённого состояния
+между загрузками по-прежнему определяется accounting contract, а не скрытым clamp.
+
 Batch work получил optional `telemetry`, а batch show — kind `accounting`. Определение полезных categories/sections редактируется одной `set_benefit` action goal-config. Существующие API сохранены по смыслу, но старые неподдерживаемые schema не читаются. Подробности: [accounting.md](../operations/accounting.md).
 
 
@@ -143,6 +149,16 @@ Batch work получил optional `telemetry`, а batch show — kind `accounti
 
 CLI `project` принимает один JSON stdin. CLI `project-init` получает ответы через bounded
 questionnaire и применяет один тот же пакет при publish. Обе операции не изменяют Task/Sprint.
+
+## Verification source provenance — task 0037
+
+`CheckRegistry.from_task/extend` требует у нового метода `source_under_test`, проверяет форму
+repository/external provenance и отклоняет semantic duplicates и конфликтующие ожидания до
+I/O. `resolve_source_under_test(method, worktree, cwd, environment)` — runtime API разрешения
+binding внутри текущего worktree. Результат запуска включает `source_provenance`,
+`provenance_digest` и `expectation_digest`; replay identity учитывает эти значения. Старые
+сохранённые определения читаются без обратной миграции, но новые и расширяющие методы обязаны
+передавать контракт явно.
 
 
 ## HARNESS-PILOT-02: граница вспомогательных инструментов — 2026-09-07T15:04:48+05:00

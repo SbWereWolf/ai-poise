@@ -49,6 +49,10 @@ def resolve_source_under_test(
                     'Source provenance не подтверждена: cwd binding не совпадает с cwd команды'
                 )
         else:
+            if binding['name'] in environment:
+                raise HarnessError(
+                    f"Source provenance конфликтует с environment: {binding['name']}"
+                )
             environment[binding['name']] = str(resolved)
         facts.append(fact)
     return {'kind': 'repository', 'bindings': facts}

@@ -168,6 +168,22 @@ def test_overlapping_conflict_is_rejected_before_execution():
         )
 
 
+def test_overlapping_methods_with_distinct_source_bindings_are_allowed():
+    source_tree = method(
+        "SOURCE_TREE",
+        source_under_test=repository_source(environment_binding(path="src")),
+    )
+    library_tree = method(
+        "LIBRARY_TREE",
+        source_under_test=repository_source(environment_binding(path="library")),
+    )
+
+    registry(
+        [source_tree, library_tree],
+        {"red": ["SOURCE_TREE", "LIBRARY_TREE"], "green": []},
+    )
+
+
 def test_phase_disjoint_red_green_methods_are_allowed():
     passing = method("GREEN", source_under_test=repository_source(cwd_binding()))
     failing = method(
@@ -255,6 +271,28 @@ def test_missing_repository_binding_does_not_start_command(project):
         )
 
     assert not counter.exists()
+
+
+def test_repository_environment_binding_rejects_inherited_collision(tmp_path):
+    from harness.runtime import resolve_source_under_test
+
+    (tmp_path / "src").mkdir()
+    selected = method(
+        source_under_test=repository_source(
+            environment_binding(name="PATH", path="src")
+        )
+    )
+    environment = {"PATH": "/trusted/bin"}
+
+    with pytest.raises(HarnessError, match="environment|collision|конфликт"):
+        resolve_source_under_test(
+            selected,
+            worktree=tmp_path,
+            cwd=tmp_path,
+            environment=environment,
+        )
+
+    assert environment == {"PATH": "/trusted/bin"}
 
 
 def test_red_receipt_records_expectation_and_provenance_identity(project):

@@ -2,6 +2,20 @@
 
 Обновлено: **2026-09-11T06:55:21+05:00**.
 
+## Verification source provenance — task 0037
+
+Новые методы требуют явный `source_under_test`: repository bindings разрешаются внутри
+текущего task worktree, external methods содержат причину. До subprocess проверяются
+отсутствующие/выходящие пути, коллизии окружения, semantic duplicates, конфликтующие
+ожидания и несвязанный RED. Receipt и replay identity содержат `provenance_digest` и
+`expectation_digest`. Сохранённые прежние методы не переписываются миграцией; строгий
+контракт действует при создании и расширении реестра.
+
+Изменение устраняет класс ошибки подтверждённого incident 0035, где один method прошёл над
+неподтверждённым источником, а task-owned regression в том же запуске сообщил 7 failures.
+Ограничение: external provenance подтверждает декларацию отсутствия repository source, но
+не fingerprint внешнего сервиса; такие доказательства требуют собственных наблюдений.
+
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
 точные проверки и Git, runtime/JSONL/парсеры/handoff/scoped transfer, локальные hooks/probes,

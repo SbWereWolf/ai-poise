@@ -2,7 +2,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import math
-from pathlib import PurePosixPath
 from ..foundation.errors import DomainError
 
 
@@ -21,8 +20,7 @@ EXPECTATION_FIELDS = {'expected_exit_code', 'stdout_contains', 'stderr_contains'
 def _repository_path(value: object, where: str) -> str:
     if not isinstance(value, str) or not value or '\x00' in value or '\\' in value:
         raise DomainError(f'{where}: требуется repository-relative path')
-    path = PurePosixPath(value)
-    if path.is_absolute() or '..' in path.parts:
+    if value.startswith('/') or '..' in value.split('/'):
         raise DomainError(f'{where}: путь должен находиться внутри repository')
     return value
 
@@ -117,8 +115,8 @@ def _validate_relationships(entries: tuple[RegisteredCheck, ...]) -> None:
                     f'семантический дубликат методов {left.method_id} и {right.method_id}'
                 )
             if (set(left.stages) & set(right.stages)
-                    and _without(left_method, {'id'} | EXPECTATION_FIELDS | {'source_under_test'})
-                    == _without(right_method, {'id'} | EXPECTATION_FIELDS | {'source_under_test'})):
+                    and _without(left_method, {'id'} | EXPECTATION_FIELDS)
+                    == _without(right_method, {'id'} | EXPECTATION_FIELDS)):
                 raise DomainError(
                     f'конфликт методов {left.method_id} и {right.method_id} на одном этапе'
                 )

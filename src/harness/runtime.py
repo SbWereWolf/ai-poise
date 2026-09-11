@@ -188,7 +188,8 @@ class Harness:
                 'runtime_root': str(self.runtime), 'task_root': str(task_root),
                 'sprint_root': None if sprint_root is None else str(sprint_root),
                 'result_template': payload,
-                'agents_files': [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
+                'agents_files': [] if data['worktree'] is None else
+                    [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
 
     def _validate_task(self, task: dict, process: dict) -> dict:
@@ -224,6 +225,8 @@ class Harness:
             if selected is None:raise HarnessError('Неизвестный task/sprint ID')
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
             if selected['status']=='superseded':
+                if current and current['status'] not in ('completed','cancelled','superseded') and current['id']!=selected['id']:
+                    raise HarnessError('Сначала прекратить/передать текущую задачу')
                 self.store.bind(self.session,selected['id'])
                 return self._context(selected,False)
             task=deepcopy(selected['contract'])

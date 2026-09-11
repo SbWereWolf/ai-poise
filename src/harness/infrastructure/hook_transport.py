@@ -249,9 +249,10 @@ class HookService:
         # It performs no target implementation. Failures retain the created context for recovery.
         if req['operation']=='bootstrap':result=WorkTools(h).invoke(req)
         if gated:
-            task=h.current_task();workspace=h.cfg['git']['repository'] if task is None else task['worktree']
-            checks=self.probes(record['definition_path'],workspace)
+            task=h.current_task()
             active_task=task is not None and task['status'] not in ('completed','cancelled','superseded')
+            workspace=task['worktree'] if active_task else h.cfg['git']['repository']
+            checks=self.probes(record['definition_path'],workspace)
             if not checks['ready'] and not (req['operation']=='bootstrap' and not active_task):
                 h.interactions.record(h.interactions.prepare(req['messages']),h.session,
                     task if task is not None and task['status'] not in ('completed','cancelled','superseded') else None)

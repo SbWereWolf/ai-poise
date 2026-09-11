@@ -68,7 +68,7 @@ class RuntimeAccounting:
         for a in data['accounts']:
             task=data['tasks'][a['task_id']]
             old=self.repo.latest_credit(task['id'])
-            state='completed' if task['status']=='completed' else ('cancelled' if task['status']=='cancelled' else 'open')
+            state=task['status'] if task['status'] in ('completed','cancelled','superseded') else 'open'
             if state=='open' and (old is None or old['state']=='open'):continue
             if old is not None and old['state']==state and state!='completed':continue
             if old is not None and old['state']=='completed' and state=='completed':continue

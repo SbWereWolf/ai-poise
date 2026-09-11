@@ -16,7 +16,7 @@ Deliver the working path rather than delaying it for speculative combinations of
 
 ## Start and finish work
 
-Work from this AI poise repository and explicitly select the configured project. Target codebases have their own applicable `AGENTS.md` files; read those before working on them. Use the [AI poise skill](skills/poise/SKILL.md) for task work and the [development skill](skills/poise-development/SKILL.md) when changing AI poise itself. The [source rules](src/AGENTS.md) govern its implementation.
+Work from this AI poise repository and explicitly select the configured project. Target codebases have their own applicable `AGENTS.md` files; read those before working on them. Use the [AI poise skill](.agents/skills/poise/SKILL.md) for task work and the [development skill](.agents/skills/poise-development/SKILL.md) when changing AI poise itself. The [source rules](src/AGENTS.md) govern its implementation.
 
 Before changing code, use a dedicated Git worktree. For AI poise, use `tasks/<task-id>`; target applications use their configured branch rule. Do not require a worktree for a read-only summary. Git supplies changed files; the agent does not register them manually.
 
@@ -65,7 +65,7 @@ If configuration, runtime or a required operation is unavailable, report the con
 
 If the native hook has not supplied a launcher, complete hook discovery/trust and diagnose its execution before task work. Direct `/home/sbwerewolf/workdata/ai-poise/.venv/bin/poise work` with explicit `POISE_CONFIG` and a preserved operator `POISE_SESSION` is available for installation diagnostics only; it does not establish a native binding or prove event delivery. Keep `messages=[]` in those diagnostic packets too. The installation contract and recovery steps are in the local project documentation below.
 
-Read [Local ai-poise commands](docs/configuration/project-setup.md#%D0%BB%D0%BE%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [AI poise workflow](skills/poise/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
+Read [Local ai-poise commands](docs/configuration/project-setup.md#%D0%BB%D0%BE%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D0%B8%D0%B9-%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are discovered from the [AI poise workflow](.agents/skills/poise/SKILL.md) project skill. Do not search for nonexistent skills named `bootstrap` or `verify`.
 
 This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`, `task/`, `sprint/`, `worktrees/`, and `database/`. The live Task DB is `database/tasks.sqlite`, its lock is `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for the old root-level database paths. This is the user's explicit local placement decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`, separate from mutable data.
 

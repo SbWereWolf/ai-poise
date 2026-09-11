@@ -111,20 +111,20 @@ def test_current_documentation_links_and_commands_use_poise():
     rules = _allowlist()
     required = (
         ROOT / "README.md", ROOT / "AGENTS.md", ROOT / "src" / "AGENTS.md",
-        ROOT / "skills" / "poise" / "SKILL.md",
-        ROOT / "skills" / "poise-development" / "SKILL.md",
+        ROOT / ".agents" / "skills" / "poise" / "SKILL.md",
+        ROOT / ".agents" / "skills" / "poise-development" / "SKILL.md",
         ROOT / "docs" / "operations" / "replacement-upgrade.md",
     )
     assert all(path.is_file() for path in required)
-    assert not (ROOT / "skills" / LEGACY_LOWER).exists()
-    assert not (ROOT / "skills" / (LEGACY_LOWER + "-development")).exists()
+    assert not (ROOT / ".agents" / "skills" / LEGACY_LOWER).exists()
+    assert not (ROOT / ".agents" / "skills" / (LEGACY_LOWER + "-development")).exists()
 
     readme = (ROOT / "README.md").read_text()
     agents = (ROOT / "AGENTS.md").read_text()
     upgrade = (ROOT / "docs" / "operations" / "replacement-upgrade.md").read_text()
     assert ".venv/bin/poise --help" in readme
     assert "POISE_CONFIG" in readme and "POISE_SESSION" in readme
-    assert "skills/poise/SKILL.md" in agents
+    assert ".agents/skills/poise/SKILL.md" in agents
     assert "tools/upgrade_to_ai_poise.py" in upgrade
     assert f"pip uninstall -y {('agent-' + LEGACY_LOWER + '-happy-path')}" in upgrade
     assert "ai-poise" in upgrade and "poise --help" in upgrade

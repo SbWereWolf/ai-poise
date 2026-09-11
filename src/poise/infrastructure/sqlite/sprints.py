@@ -47,6 +47,11 @@ class SqliteSprintRepository:
         self.db.executemany('INSERT INTO sprint_dependencies VALUES(?,?,?,?)',
             [(sid,e['predecessor'],e['successor'],e['kind']) for e in plan['dependencies']])
 
+    def add_replacement_member(self,record,replacement):
+        plan=record['aggregate']['plan'];sid=plan['id']
+        self.db.execute('INSERT INTO sprint_members VALUES(?,?)',(sid,replacement))
+        self.replace_dependencies(record)
+
     def receipt(self,sprint_id,request_id,digest):
         row=self.db.execute('SELECT digest,data FROM sprint_requests WHERE sprint_id=? AND request_id=?',(sprint_id,request_id)).fetchone()
         if row is None:return None
@@ -64,12 +69,19 @@ class SqliteSprintRepository:
         return None if row is None else row[0]
 
     def facts(self,sprint_id):
+        record=self.get(sprint_id)
+        if record is None:return {}
+        current={
+            t['request_id'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t['id']
+            for t in record['aggregate']['plan']['tasks']
+        }
         rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
             "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available "
             'FROM sprint_members m JOIN tasks t ON t.id=m.task_id '
             'LEFT JOIN task_execution e ON e.task_id=t.id WHERE m.sprint_id=? ORDER BY t.id',(sprint_id,)).fetchall()
         result={}
         for r in rows:
+            if r['id'] not in current:continue
             meta=json.loads(r['metadata']);exe=None if r['execution'] is None else json.loads(r['execution'])
             report=None if exe is None else exe['last_report']
             result[r['id']]={'status':r['status'],'goal':meta['goal'],'goal_type':meta['contract']['goal_type'],

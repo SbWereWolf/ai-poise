@@ -1,6 +1,6 @@
 # Sprint API — DDD-05
 
-Обновлено: **2026-09-11T06:55:21+05:00**. Исполняемый срез; не заявление о выполнении всех нормативных процессов.
+Обновлено: **2026-09-11T16:25:00+05:00**. Исполняемый срез; не заявление о выполнении всех нормативных процессов.
 
 ## Владелец и основные гарантии
 Sprint владеет планом, принадлежностью задач, внутриспринтовым DAG, решениями об отмене/waiver. Task владеет своим содержимым и жизненным циклом. `SprintCommands` координирует их в одной короткой UoW. Отдельного процесса/scheduler и отдельной базы для Sprint нет.
@@ -117,6 +117,7 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
 | action | Остальные поля |
 |---|---|
 | `dependencies` | request_id, expected_revision, items, reason |
+| `replace_task` | request_id, expected_revision, source_task, полный replacement, reason, authorization |
 | `cancel_tasks` | request_id, tasks (список ID), mode (`single`/`cascade`), reason |
 | `waive_dependencies` | request_id, decisions (predecessor, successor, reason) |
 | `force_close` | request_id, reason |
@@ -126,6 +127,69 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
 `cancel_tasks` завершает **незавершённых** выбранных участников; уже completed/cancelled не переписываются. `force_close` также сохраняет принятые результаты, отменяет незавершённых и обходит обычные content/evidence gates. Неполный draft можно force-close без создания Task. Worktree-файлы не удаляются и не выдаются за проверенный WIP commit.
 
 Владение всё ещё проверяется Task: срез не крадёт чужую активную session и не отменяет во время pending внешней операции. Восстановление брошенного ownership относится к DDD-07. Семантическую санкцию пользователя интерпретирует агент; непустая reason сохраняет это решение, но не является криптографическим удостоверением.
+
+## Заменить ошибочную незавершённую Task
+
+`replace_task` заменяет участника внутри уже опубликованного Sprint; создавать новый Sprint не нужно. Это исправление ошибочного неизменяемого Task-контракта, а не редактирование старой Task. Клиент передаёт текущую `expected_revision`, новый `request_id`, ID источника, полный контракт новой Task, содержательную причину и явное основание полномочий пользователя:
+
+```json
+{
+  "operation": "sprint",
+  "input": {
+    "action": "replace_task",
+    "sprint_id": "S-1",
+    "request_id": "replace-invalid-import-1",
+    "expected_revision": 3,
+    "source_task": "IMPORT-BAD",
+    "replacement": {
+      "id": "IMPORT-FIXED",
+      "sprint_id": "S-1",
+      "goal_type": "development",
+      "goal": "Исправить импорт клиентов",
+      "requirements": ["Импорт использует проверенный формат"],
+      "definition_of_done": ["Точные проверки проходят"],
+      "methods": [{
+        "id": "CHECK",
+        "argv": ["python", "-m", "pytest", "-q"],
+        "cwd": ".",
+        "environment": {},
+        "timeout_seconds": 120,
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": []
+      }],
+      "checks": {"work": ["CHECK"]},
+      "artifact_requirements": [],
+      "content_contract": {"sections": [], "routes": [], "requirements": []},
+      "evidence_plan": {"work": {"subject_methods": {}, "arguments": [], "review_arguments": []}}
+    },
+    "reason": "В опубликованной задаче сохранён ошибочный неизменяемый метод",
+    "authorization": "Пользователь поручил заменить незавершённую задачу"
+  },
+  "messages": []
+}
+```
+
+Имена stages, methods, checks и evidence в примере иллюстративны: `replacement` обязан быть полным точным creation contract выбранного `goal_type` из сохранённого process snapshot Sprint. Живая конфигурация процесса, изменённая после публикации, не подменяет этот snapshot. Новый ID должен быть свободен среди Task и Sprint, `sprint_id` обязан совпадать, а устаревшая revision и неполный/невалидный контракт отклоняются до мутации.
+
+Допустимая граница состояния источника:
+
+| Состояние источника | Результат и обязательное восстановление |
+|---|---|
+| `available` без claim/worktree | Замена разрешена; фиксируется safety kind `available` |
+| `active`/`verified`/`accepted`, текущая session — владелец, worktree чист | Замена разрешена; worktree не удаляется и не копируется, в relation фиксируются его путь и tree |
+| Task освобождена подтверждённым handoff | Замена разрешена; relation ссылается на `handoff_request`, receipt и сохранённый WIP остаются у старой Task |
+| Чужой owner, dirty/неоднозначный WIP | Замена отклоняется: владелец должен сначала выполнить handoff, сохранив WIP |
+| Есть pending external outcome | Замена отклоняется: сначала нужно разрешить/завершить pending operation и повторить запрос с актуальной revision |
+| `completed`, `cancelled` или уже `superseded` | Замена запрещена: источник не является незавершённой текущей Task |
+
+Все входящие и исходящие зависимости и действующие waivers перенаправляются на новую Task с прежними kinds. До записи повторно проверяются полный конечный DAG, `max_dependencies`, self-edges, дубликаты и циклы. Если источник был predecessor уже начатого successor, замена отклоняется, потому что она изменила бы его prerequisite. Проекции `eligible` и `blocked` сразу используют новый ID.
+
+Внешний preflight чистоты worktree выполняется без блокировки БД. Затем короткая UoW повторно сверяет Sprint revision, Task version, факты ownership/pending и последний handoff; в ней вместе сохраняются новый Task-агрегат, `superseded` старой Task, новый Sprint plan/dependencies, relation и receipt. Сбой любого writer откатывает весь этот набор. Старые contract, submissions, evidence, artifacts, handoff receipts, worktree и audit history не переписываются.
+
+В успешном ответе `replacements` содержит `source`, `replacement`, `reason`, `authorization`, `from_revision`, `to_revision` и `safety`; `tasks`, `eligible` и `blocked` описывают уже новый текущий граф. `show` с `kind: sprint` и views `current`/`plan`/`history` возвращает relation и соответствующие слои. При отсутствии другой активной Task старый ID можно выбрать адресным `bootstrap` только для read-only контекста со статусом `superseded`; её evidence остаётся доступным через обычный query `kind: evidence`.
+
+Повтор идентичного успешно применённого пакета с тем же `request_id` возвращает исходный receipt до нового внешнего preflight и не создаёт второй Task/слой. Другой intent с уже сохранённым ID отклоняется. После отказа по revision, контракту, графу или safety исправьте указанную причину, прочитайте актуальную Sprint revision и повторите пакет; отклонённый запрос не сохраняет operation receipt и не оставляет частичного graph/lifecycle состояния.
 
 ## Закрытие и чтение
 Sprint progress — согласованная проекция из membership и Task states, а не дублируемые вручную счётчики. Нормальное закрытие определяется явным `acceptable_terminal_states` и отсутствием незавершённой работы/блокировок. Полное тестирование приложения при закрытии не запускается. Полный future closure process с артефактными post-gates пока не реализован.

@@ -82,7 +82,7 @@ printf '%s\n' '{"operation":"bootstrap","input":{"task":{"id":"SPRINT-0001"},"de
 
 ## Skills для агента
 
-Для обычной работы: [AI poise task workflow](../../skills/poise/SKILL.md#poise-task-workflow). Для изменения AI poise: [AI poise development](../../skills/poise-development/SKILL.md#poise-development).
+Для обычной работы: [AI poise task workflow](../../.agents/skills/poise/SKILL.md#poise-task-workflow). Для изменения AI poise: [AI poise development](../../.agents/skills/poise-development/SKILL.md#poise-development).
 
 Skill, который опирается на нормативную документацию, должен ссылаться на минимальный конкретный section, достаточный для данного operational rule.
 

@@ -20,6 +20,7 @@ class TaskStatus(StrEnum):
     ACCEPTED = "accepted"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    SUPERSEDED = "superseded"
 
 
 def identifier(value: str) -> None:
@@ -136,7 +137,7 @@ class Task:
         if (not 0 <= self.state.stage_index < len(self.stages) or
                 self.state.iteration < 1 or self.state.version < 0):
             raise DomainError("Нарушена позиция задачи")
-        if self.state.status in (TaskStatus.AVAILABLE, TaskStatus.COMPLETED, TaskStatus.CANCELLED) and self.state.claimed_by is not None:
+        if self.state.status in (TaskStatus.AVAILABLE, TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.SUPERSEDED) and self.state.claimed_by is not None:
             raise DomainError("Завершённая задача не может оставаться занятой")
 
     @classmethod
@@ -394,6 +395,21 @@ class Task:
         self._owned(actor)
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("Нужна инструкция пользователя об отмене")
+        if self.state.status == TaskStatus.SUPERSEDED:
+            raise DomainError("A superseded Task is immutable")
         if self.state.status == TaskStatus.CANCELLED:
             return self._unchanged()
         return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)
+
+    def supersede(self, actor: str, reason: str) -> Change:
+        self._owned(actor)
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Task replacement reason is required")
+        if self.state.status not in (
+            TaskStatus.AVAILABLE,
+            TaskStatus.ACTIVE,
+            TaskStatus.VERIFIED,
+            TaskStatus.ACCEPTED,
+        ):
+            raise DomainError("Only an unfinished Task can be superseded")
+        return self._change("superseded", reason, None, status=TaskStatus.SUPERSEDED, claimed_by=None)

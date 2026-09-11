@@ -54,7 +54,7 @@ JSON
 
 В корне также находятся `pyproject.toml` с метаданными и требованиями Python, `requirements-dev.txt`, `.gitignore` и правила [AGENTS.md](AGENTS.md).
 
-Для этой установки конфигурация и рабочие данные разделены: `config/projects/ai-poise/` и `projects/ai-poise/`. Перенос навыков в `.agents/skills/` и отдельная Requirements DB пока запланированы; текущую работу они не обеспечивают.
+Для этой установки конфигурация и рабочие данные разделены: `config/projects/ai-poise/` и `projects/ai-poise/`. Навыки проекта находятся в `.agents/skills/`; отдельная Requirements DB пока запланирована и текущую работу не обеспечивает.
 
 ## Документация
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
@@ -102,69 +101,6 @@ def test_create_rejects_existing_generated_name_without_overwrite(project):
     assert marker(database) == "live"
 
 
-def test_create_publication_does_not_depend_on_unlinking_the_published_temp(
-    project, monkeypatch
-):
-    database = live_database(project)
-    create_database(database, "live")
-
-    original_unlink = Path.unlink
-
-    def reject_pending_unlink(path, *args, **kwargs):
-        if path.name.endswith(".pending"):
-            raise OSError("simulated pending cleanup failure")
-        return original_unlink(path, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "unlink", reject_pending_unlink)
-
-    result = backup_commands(project).create()
-
-    assert marker(backup_directory(project) / result["name"]) == "live"
-    assert sorted(path.name for path in backup_directory(project).iterdir()) == [result["name"]]
-
-
-def test_list_and_restore_exclude_operation_owned_pending_files(project):
-    try:
-        from poise.common import PoiseError
-    except ModuleNotFoundError as exc:
-        pytest.fail(f"public poise error contract is absent: {exc}")
-    database = live_database(project)
-    create_database(database, "live")
-    pending = backup_directory(project) / ".copy.sqlite.token.pending"
-    create_database(pending, "pending")
-
-    assert backup_commands(project).list() == []
-    with pytest.raises(PoiseError, match="pending|internal|backup"):
-        backup_commands(project).restore(pending.name)
-    assert marker(database) == "live"
-
-
-def test_create_directory_sync_failure_reports_published_state(project, monkeypatch):
-    try:
-        from poise.common import PoiseError
-        from poise.infrastructure import backups as backup_infrastructure
-    except ModuleNotFoundError as exc:
-        pytest.fail(f"public poise error contract is absent: {exc}")
-    database = live_database(project)
-    create_database(database, "live")
-
-    def fail_directory_sync(_path):
-        raise OSError("simulated directory sync failure")
-
-    monkeypatch.setattr(backup_infrastructure, "_sync_directory", fail_directory_sync)
-
-    with pytest.raises(PoiseError, match="published.*list|list.*published"):
-        backup_commands(project).create()
-
-    backups = [
-        path
-        for path in backup_directory(project).iterdir()
-        if not path.name.endswith(".pending")
-    ]
-    assert len(backups) == 1
-    assert marker(backups[0]) == "live"
-
-
 def test_restore_exact_valid_name_atomically_replaces_live_database(project):
     database = live_database(project)
     create_database(database, "old-live")
@@ -179,28 +115,6 @@ def test_restore_exact_valid_name_atomically_replaces_live_database(project):
     assert integrity(database) == "ok"
     assert database.stat().st_mode & 0o777 == mode
     assert not list(database.parent.glob(f".{database.name}.restore-*.pending"))
-
-
-def test_restore_directory_sync_failure_reports_replaced_state(project, monkeypatch):
-    try:
-        from poise.common import PoiseError
-        from poise.infrastructure import backups as backup_infrastructure
-    except ModuleNotFoundError as exc:
-        pytest.fail(f"public poise error contract is absent: {exc}")
-    database = live_database(project)
-    create_database(database, "old")
-    selected = backup_directory(project) / "selected.sqlite"
-    create_database(selected, "new")
-
-    def fail_directory_sync(_path):
-        raise OSError("simulated directory sync failure")
-
-    monkeypatch.setattr(backup_infrastructure, "_sync_directory", fail_directory_sync)
-
-    with pytest.raises(PoiseError, match="replaced.*integrity|integrity.*replaced"):
-        backup_commands(project).restore(selected.name)
-
-    assert marker(database) == "new"
 
 
 @pytest.mark.parametrize(

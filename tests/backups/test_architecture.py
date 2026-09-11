@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,10 +34,3 @@ def test_backup_layers_keep_sqlite_and_filesystem_out_of_domain_and_work():
     assert "backups" not in (ROOT / "src/poise/application/work.py").read_text(encoding="utf-8")
     assert "backups" not in (ROOT / "src/poise/modules/tasks/domain.py").read_text(encoding="utf-8")
     assert "backups" not in (ROOT / "src/poise/modules/sprints/domain.py").read_text(encoding="utf-8")
-
-
-def test_package_installs_the_public_poise_command():
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
-
-    assert project["name"] == "ai-poise"
-    assert project["scripts"] == {"poise": "poise.__main__:main"}

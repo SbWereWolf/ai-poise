@@ -51,15 +51,15 @@ def test_result_dependency_starts_from_current_base_and_retains_provenance(proje
     predecessor_commit = complete_with_change(tools, predecessor, "n * 2")
     current_base = advance_base(project, "successor-base")
 
-    overview = bootstrap(tools, "S")
-    assert overview["result_provenance"] == {
-        "B": [{"predecessor": "A", "result_commit": predecessor_commit}]
-    }
     successor = bootstrap(tools, "B")
 
     assert predecessor_commit != current_base
     assert git(Path(successor["worktree"]), "rev-parse", "HEAD") == current_base
     assert execution(runtime, "B")["base"] == current_base
+    overview = bootstrap(tools, "S")
+    assert overview["result_provenance"] == {
+        "B": [{"predecessor": "A", "result_commit": predecessor_commit}]
+    }
 
 
 def test_incomplete_result_dependency_blocks_and_reports_provenance(project):
@@ -201,7 +201,7 @@ def test_base_observation_is_fixed_before_durable_sprint_start(project, monkeypa
     setup(project)
     runtime = Poise(project["config_path"], "boundary-owner")
     tools = WorkTools(runtime)
-    planned = draft(tools, [task(project, "A")])
+    planned = draft(tools, [task(project, "A"), task(project, "B")])
     publish(tools, planned["revision"])
     observed_base = git(project["app"], "rev-parse", "HEAD")
     real_start = runtime.task_commands.start
@@ -217,6 +217,13 @@ def test_base_observation_is_fixed_before_durable_sprint_start(project, monkeypa
     assert moved["base"] != observed_base
     assert git(Path(context["worktree"]), "rev-parse", "HEAD") == observed_base
     assert execution(runtime, "A")["base"] == observed_base
+    monkeypatch.setattr(runtime.task_commands, "start", real_start)
+    verify(tools, context)
+    accept(tools)
+
+    later = bootstrap(tools, "B")
+    assert git(Path(later["worktree"]), "rev-parse", "HEAD") == moved["base"]
+    assert execution(runtime, "B")["base"] == moved["base"]
 
 
 def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
@@ -240,6 +247,12 @@ def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
     worktree = Path(context["worktree"])
     saved_head = git(worktree, "rev-parse", "HEAD")
     saved_base = execution(runtime, "T1")["base"]
+    exclude = Path(git(worktree, "rev-parse", "--git-path", "info/exclude"))
+    with exclude.open("a", encoding="utf-8") as stream:
+        stream.write("\n.resume-sentinel\n")
+    sentinel = worktree / ".resume-sentinel"
+    sentinel_bytes = b"existing worktree must survive resume\n"
+    sentinel.write_bytes(sentinel_bytes)
     later_base = advance_base(project, "handoff-later-base")
     next_tools = WorkTools(Poise(project["config_path"], "handoff-resumer"))
 
@@ -255,3 +268,4 @@ def test_handoff_resume_preserves_existing_worktree_when_base_moves(project):
     assert resumed["worktree"] == str(worktree)
     assert git(worktree, "rev-parse", "HEAD") == saved_head
     assert execution(next_tools.runtime, "T1")["base"] == saved_base
+    assert sentinel.read_bytes() == sentinel_bytes

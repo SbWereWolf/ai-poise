@@ -17,6 +17,10 @@ from poise.infrastructure.result_integration import RuntimeResultIntegration
 from .helpers import integration_input, prepare_completed_task, request
 
 
+def _branch_name(ref: str) -> str:
+    return ref.removeprefix("refs/heads/")
+
+
 def _optional_ref(root: Path, ref: str) -> str | None:
     result = subprocess.run(
         ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", ref],
@@ -170,12 +174,8 @@ def _assert_terminal_contract(
     }
     assert git(repository, "merge-base", "--is-ancestor", source, result["target_after"]) == ""
     integration_worktree = Path(result["integration_worktree"])
-    integration_branch = result["integration_branch"]
-    integration_ref = (
-        integration_branch
-        if integration_branch.startswith("refs/heads/")
-        else f"refs/heads/{integration_branch}"
-    )
+    integration_branch = _branch_name(result["integration_branch"])
+    integration_ref = f"refs/heads/{integration_branch}"
     worktrees = subprocess.check_output(
         ["git", "-C", str(repository), "worktree", "list", "--porcelain"],
         text=True,
@@ -211,7 +211,7 @@ def test_happy_path_uses_child_branch_workspace_and_preserves_dirty_main_checkou
     assert [item["method"] for item in result["checks"]] == [method["id"]]
     output = Path(result["checks"][0]["stdout"]).read_text()
     assert f"cwd={result['integration_worktree']}" in output
-    assert f"branch={result['integration_branch']}" in output
+    assert f"branch={_branch_name(result['integration_branch'])}" in output
     assert f"head={result['integration_head']}" in output
 
 
@@ -251,9 +251,9 @@ def test_conflict_is_resolved_only_in_owned_child_branch_workspace_then_checked(
     assert waiting["observed_target"] == target_before
     assert waiting["conflicts"] == ["src/double.py"]
     assert integration_worktree.is_dir()
-    assert git(integration_worktree, "symbolic-ref", "--short", "HEAD") == waiting[
-        "integration_branch"
-    ]
+    assert git(integration_worktree, "symbolic-ref", "--short", "HEAD") == _branch_name(
+        waiting["integration_branch"]
+    )
     assert _optional_ref(integration_worktree, "MERGE_HEAD") == source
     assert _optional_ref(project["app"], "MERGE_HEAD") is None
     (integration_worktree / "src" / "double.py").write_text("VALUE = 'resolved'\n")

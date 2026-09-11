@@ -341,12 +341,24 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, completed, run.version)
         return completed
 
-    def _delete_branch(self, run, component, branch, repository):
+    def _delete_branch(self, run, component, branch, repository, target):
         if run.cleanup[component] == "deleted":
             return run
         ref = branch if branch.startswith("refs/heads/") else f"refs/heads/{branch}"
-        if self._optional_ref(repository, ref) is not None:
-            receipt = self._run(repository, "branch", "-d", self._short_branch(ref))
+        commit = self._optional_ref(repository, ref)
+        if commit is not None:
+            ancestry = self._run(
+                repository, "merge-base", "--is-ancestor", commit, target
+            )
+            if ancestry["actual_exit_code"] != 0:
+                blocked = run.cleanup_blocked(component, {
+                    **ancestry,
+                    "reason": "owned_branch_is_not_merged_into_current_target",
+                    "target": target,
+                })
+                self._save(run.intent.task_id, blocked, run.version)
+                return blocked
+            receipt = self._run(repository, "update-ref", "-d", ref, commit)
             if receipt["actual_exit_code"] != 0:
                 blocked = run.cleanup_blocked(component, receipt)
                 self._save(run.intent.task_id, blocked, run.version)
@@ -376,10 +388,11 @@ class RuntimeResultIntegration:
     def _cleanup(self, record, run, repository):
         if run.phase != "cleanup_pending":
             return run
-        if self._git(repository, "rev-parse", self._target_ref()) != run.target_after:
-            raise PoiseError("Published target moved before owned-resource cleanup completed")
-        if not self._contains_source(repository, run.accepted_commit, run.target_after):
-            raise PoiseError("Published target does not contain the accepted commit")
+        current_target = self._git(repository, "rev-parse", self._target_ref())
+        if not self._contains_source(repository, run.target_after, current_target):
+            raise PoiseError("Current target does not contain the published integration head")
+        if not self._contains_source(repository, run.accepted_commit, current_target):
+            raise PoiseError("Current target does not contain the accepted commit")
         for component, path in (
             ("integration_worktree", Path(run.integration_worktree)),
             ("task_worktree", Path(record["worktree"])),
@@ -391,7 +404,9 @@ class RuntimeResultIntegration:
             ("integration_branch", run.integration_branch),
             ("task_branch", record["branch"]),
         ):
-            run = self._delete_branch(run, component, branch, repository)
+            run = self._delete_branch(
+                run, component, branch, repository, current_target
+            )
             if run.cleanup[component] == "blocked":
                 return run
         return self._remove_temporary_backups(run)

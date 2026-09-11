@@ -3,10 +3,10 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 import pytest
-from harness.common import HarnessError
-from harness.modules.capabilities.domain import ProbeSpec
-from harness.application.capabilities import CapabilityChecks
-from harness.infrastructure.capabilities import LocalProbeExecutor
+from poise.common import PoiseError
+from poise.modules.capabilities.domain import ProbeSpec
+from poise.application.capabilities import CapabilityChecks
+from poise.infrastructure.capabilities import LocalProbeExecutor
 from .helpers import command_probe
 
 
@@ -31,12 +31,12 @@ def test_failure_of_one_probe_does_not_hide_the_rest(tmp_path):
 
 def test_invalid_batch_executes_nothing(tmp_path):
     p=command_probe();p.pop('timeout_seconds')
-    with pytest.raises(HarnessError):run_probes(tmp_path,[command_probe('ok'),p])
+    with pytest.raises(PoiseError):run_probes(tmp_path,[command_probe('ok'),p])
     assert not (tmp_path/'receipts').exists()
 
 
 def test_duplicate_probe_ids_rejected(tmp_path):
-    with pytest.raises(HarnessError):run_probes(tmp_path,[command_probe(),command_probe()])
+    with pytest.raises(PoiseError):run_probes(tmp_path,[command_probe(),command_probe()])
 
 
 def test_unknown_executable_has_unavailable_receipt(tmp_path):
@@ -64,7 +64,7 @@ def test_json_project_binding_is_verified_not_inferred(tmp_path):
 
 def test_project_claim_requires_explicit_workspace_predicate():
     p=command_probe();p['project_bound']=True
-    with pytest.raises(HarnessError):ProbeSpec.parse(p)
+    with pytest.raises(PoiseError):ProbeSpec.parse(p)
 
 
 def test_output_limit_and_optional_unavailable(tmp_path):
@@ -79,6 +79,6 @@ def test_identity_probe_records_null_version_unless_observed(tmp_path):
 
 
 def test_explicit_environment_no_inherited_secrets(tmp_path,monkeypatch):
-    monkeypatch.setenv('HARNESS_PRIVATE_SECRET','secret')
-    p=command_probe(code='import os;print("ready" if "HARNESS_PRIVATE_SECRET" not in os.environ else "leaked")')
+    monkeypatch.setenv('POISE_PRIVATE_SECRET','secret')
+    p=command_probe(code='import os;print("ready" if "POISE_PRIVATE_SECRET" not in os.environ else "leaked")')
     assert run_probes(tmp_path,[p])['ready']

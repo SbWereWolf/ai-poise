@@ -33,7 +33,7 @@ produce/inspect/revise/observe/check/apply_plan/publish остаются общ�
 
 ```bash
 export PYTHONPATH="$PWD/src"
-python -m harness catalogue --settings "$PWD/config/catalogue/settings.json"
+python -m poise catalogue --settings "$PWD/config/catalogue/settings.json"
 ```
 
 В stdin — один JSON с точными полями `action`, `items`, `project_config`.
@@ -123,8 +123,8 @@ ID означает конфликт, а не перезапись. Поздни
 ## Примеры
 
 ```bash
-python examples/catalogue_walkthrough.py --directory /tmp/harness-catalogue-dev-new --goal development --scenario feedback
-python examples/catalogue_walkthrough.py --directory /tmp/harness-catalogue-plan-new --goal sprint_planning --scenario short
+python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-dev-new --goal development --scenario feedback
+python examples/catalogue_walkthrough.py --directory /tmp/poise-catalogue-plan-new --goal sprint_planning --scenario short
 ```
 
 Каталоги должны быть новыми. Другие `--goal`: test_development, verification, review, design,

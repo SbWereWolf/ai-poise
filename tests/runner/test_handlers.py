@@ -1,5 +1,5 @@
 import pytest
-from harness.modules.foundation.errors import DomainError
+from poise.modules.foundation.errors import DomainError
 from .helpers import task, verify, submit, inspect, finding, resolution, decision
 
 def review_task():

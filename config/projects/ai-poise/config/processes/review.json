@@ -143,7 +143,7 @@
         "planning"
       ],
       "sections": {
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
         "report": "Record the substantive result for this stage."
       },
       "transitions": {

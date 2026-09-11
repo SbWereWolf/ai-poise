@@ -16,7 +16,7 @@ def user(identifier,reason):
 
 def run(directory):
     home=create(directory)
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'HARNESS_CONFIG':str(home/'project.json'),'HARNESS_SESSION':'batch-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'batch-demo'}
     client=WorkClient(env,30)
     task=json.loads((home/'task.json').read_text());task['sprint_id']='SPRINT-DEMO'
     draft=client.invoke('sprint',{'action':'draft','sprint_id':'SPRINT-DEMO','request_id':'demo-draft',

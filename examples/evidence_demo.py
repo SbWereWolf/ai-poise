@@ -28,7 +28,7 @@ def run(directory: Path, scenario: str):
     task = json.loads((home / 'task.json').read_text())
     task.update(goal_type=goal, goal='Получить воспроизводимое наблюдение/аргумент и осмотреть его.', requirements=['Результат относится к выбранному состоянию и воспроизводим.'], definition_of_done=['Аргумент, когда требуется, осмотрен; отрицательный предметный результат не скрыт.'], methods=[] if logical else [method], checks={'measure': [] if logical else ['MEASURE'], 'audit': []}, artifact_requirements=[], evidence_plan={'measure': {'subject_methods': {} if logical else {'MEASURE': {'exit_codes': [0, 1], 'stdout_contains': ['VALUE=3'], 'stderr_contains': []}}, 'arguments': [{'id': 'A', 'kind': 'logical', 'phase': 'prepare' if logical else 'continue', 'observation_methods': [] if logical else ['MEASURE']}] if argument_required else [], 'review_arguments': []}, 'audit': {'subject_methods': {}, 'arguments': [], 'review_arguments': ['A'] if argument_required else []}})
     save(home / 'task.json', task)
-    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'HARNESS_CONFIG': str(home / 'project.json'), 'HARNESS_SESSION': 'evidence-demo'}
+    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'evidence-demo'}
     calls = []
     client = WorkClient(env, 30)
     calls = client.calls

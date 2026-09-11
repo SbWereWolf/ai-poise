@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[2]/'src/harness'
+ROOT=Path(__file__).resolve().parents[2]/'src/poise'
 
 
 def test_catalogue_domain_application_use_ports_and_owners_not_io():

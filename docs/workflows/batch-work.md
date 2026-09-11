@@ -116,10 +116,10 @@ Content pre-gate может отклонить уже сохранённый к�
 }
 ```
 
-Команда выполняется через уже выбранные `HARNESS_CONFIG` и `HARNESS_SESSION`:
+Команда выполняется через уже выбранные `POISE_CONFIG` и `POISE_SESSION`:
 
 ```bash
-harness work <<'JSON'
+poise work <<'JSON'
 {"operation":"integrate","input":{"request_id":"integrate-0016-1","task_id":"0016","expected_source_commit":"0123456789abcdef0123456789abcdef01234567","expected_target_commit":"89abcdef0123456789abcdef0123456789abcdef","authorization":"Integrate accepted task 0016","resolutions":[]},"messages":[]}
 JSON
 ```
@@ -217,7 +217,7 @@ Query не поддерживает pagination и не обещает один c
 Событие сохраняется даже если последующий verify не прошёл: это фактический расход взаимодействия. Поэтому отказ Task не откатывает ledger. Первичное связывание сообщения с task неизменно; read/retry не переносит расход на другую task. Подготовительное ad-hoc-событие может получить первый task binding в последующем bootstrap.
 
 ## Выдача
-`work` возвращает валидный JSON, не обрезанный посреди объекта. Лимит включает весь ответ. Действующий Task response сохраняется под её root; краткий ответ содержит ссылку на полное содержание. Слишком маленький output budget отклоняется до создания worktree. Exit 0 — получен штатный результат, в том числе `awaiting_continuation`; exit 1 — проверки/обязательства ещё не выполнены; exit 2 — неправильный вход/конфигурация. Это не вывод о наличии бага Harness по любому non-zero.
+`work` возвращает валидный JSON, не обрезанный посреди объекта. Лимит включает весь ответ. Действующий Task response сохраняется под её root; краткий ответ содержит ссылку на полное содержание. Слишком маленький output budget отклоняется до создания worktree. Exit 0 — получен штатный результат, в том числе `awaiting_continuation`; exit 1 — проверки/обязательства ещё не выполнены; exit 2 — неправильный вход/конфигурация. Это не вывод о наличии бага AI poise по любому non-zero.
 
 Обычный read-only taskless verify принимает result=null/artifacts=[] и очищает runtime. Taskless создание постоянного deliverable не реализовано этим срезом; formal task нужна для durable task-result.
 
@@ -234,7 +234,7 @@ Query не поддерживает pagination и не обещает один c
 
 Обновлено: **2026-09-07T00:07:53+05:00**. `handoff` в общем work packet принимает request_id/reason/result/commit_message/artifact_paths. Только paths для готовых файлов. Resume — обычный bootstrap существующей задачи другим actor. `show.queries` принимает kind=tool_result с receipt_id/representation/range; доступ ограничен текущей задачей.
 
-`harness runtime --settings <file>` добавляет внешний envelope identity/capabilities/transcript/work, автоматически устанавливает внутреннюю session и передаёт work в тот же прикладной API. Никаких отдельных record-message или set-session вызовов. Полное описание в [runtime](../configuration/runtime-services.md) и [handoff](local-handoff.md).
+`poise runtime --settings <file>` добавляет внешний envelope identity/capabilities/transcript/work, автоматически устанавливает внутреннюю session и передаёт work в тот же прикладной API. Никаких отдельных record-message или set-session вызовов. Полное описание в [runtime](../configuration/runtime-services.md) и [handoff](local-handoff.md).
 
 
 ## Transfer — DDD-07B (2026-09-07T00:50:18+05:00)

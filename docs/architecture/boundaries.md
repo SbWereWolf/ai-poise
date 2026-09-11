@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-11T05:57:22+05:00**. Срез **HARNESS-DDD-04B**.
+Обновлено: **2026-09-11T05:57:22+05:00**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -33,7 +33,7 @@
 | Runtime/CLI adapter | Передать непосредственный payload и наблюдённый user event | Требовать заранее ручной JSON-файл или выдавать reported events за полный поток |
 | SQLite/filesystem adapters | Сохранить валидный кандидат, staging и receipt, согласованная активация | Бизнес-валидация истинности аргумента |
 
-Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги Harness остаются в Harness; generated project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация приложения — через нативные инструменты согласно правилам codebase. Полный контракт: [declarative-tools](declarative-tools.md).
+Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги AI poise остаются в AI poise; generated project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация приложения — через нативные инструменты согласно правилам codebase. Полный контракт: [declarative-tools](declarative-tools.md).
 
 ## DDD-04A — 2026-09-06T20:26:43+05:00
 
@@ -89,7 +89,7 @@ RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands мен
 - `infrastructure/HookService`: composition с прежним WorkTools/InteractionStore; native hook не принимает и не завершает Task.
 - `HookRegistry`: собственные operational таблицы, без SQL к tasks/sprints.
 - `LocalProbeExecutor`/`StdioProbe`: реальные read-only наблюдения, не интерпретация пользовательского intent. Наличие inventory не выдаётся за успешный probe.
-- Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет скрыто приёмку Harness этапа.
+- Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет скрыто приёмку AI poise этапа.
 
 
 ## Accounting ownership — DDD-08
@@ -163,7 +163,7 @@ Intent до эффекта фиксирует task ID, request ID, source/target
 
 ## Проверка пилота — 2026-09-07T15:04:48+05:00
 
-В HARNESS-PILOT-02 не добавлены новые домены, таблицы или прикладной runner. Development-
+В POISE-PILOT-02 не добавлены новые домены, таблицы или прикладной runner. Development-
 супервизор использует существующий command executor. Пример continuation вызывает WorkTools,
 не пишет SQL/config и не присваивает lifecycle-поля. Контроль источников включает tools.
 Статус процесса и факт наличия XML отделены от содержательного итога проверок.

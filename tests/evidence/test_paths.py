@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 import pytest
 from conftest import write_json, fill
-from conftest import Harness
-from harness.common import HarnessError
+from conftest import Poise
+from poise.common import PoiseError
 from runner.helpers import stage
 
 
@@ -29,7 +29,7 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
            {'id':'A','kind':'logical','phase':phase,'observation_methods':['M'] if phase=='continue' else []}] if logical else [],'review_arguments':[]},
            'audit':{'subject_methods':{},'arguments':[],'review_arguments':['A'] if logical else []}})
     write_json(project['task_path'],task)
-    return Harness(project['config_path'],'S1'), counter
+    return Poise(project['config_path'],'S1'), counter
 
 
 def input_result(context, arguments=(), decisions=(), phase='prepare'):
@@ -54,7 +54,7 @@ def test_observe_continue_restart_no_rerun_and_accept(project):
     assert h.show()['status']=='active' and counter.read_text()=='x'
     ids=[r['id'] for r in pending['checks']]
     input_result(pending['context'],[arg(ids)],phase='continue')
-    h=Harness(project['config_path'],'S1')
+    h=Poise(project['config_path'],'S1')
     report=h.verify()
     assert report['status']=='verified' and counter.read_text()=='x'
     assert report['evidence']['arguments'][0]['body']['facts']
@@ -82,7 +82,7 @@ def test_guard_failure_is_not_swallowed_by_observe(project):
     h,counter=setup(project,logical=False)
     task=project['task']; guard={**task['methods'][0],'id':'GUARD','argv':[sys.executable,'-c','raise SystemExit(1)'],'stdout_contains':[]}
     task['methods'].append(guard); task['checks']['measure'].append('GUARD'); write_json(project['task_path'],task)
-    h=Harness(project['config_path'],'S1'); ctx=h.bootstrap(project['task_path']); input_result(ctx)
+    h=Poise(project['config_path'],'S1'); ctx=h.bootstrap(project['task_path']); input_result(ctx)
     result=h.verify()
     assert result['status']=='checks_failed'
     assert h.show()['status']=='active'
@@ -92,7 +92,7 @@ def test_logical_only_has_no_command_receipts(project):
     h,counter=setup(project,kind='check',phase='prepare')
     task=project['task']; task['methods']=[]; task['checks']['measure']=[]; task['evidence_plan']['measure']['subject_methods']={}
     write_json(project['task_path'],task)
-    h=Harness(project['config_path'],'S1'); ctx=h.bootstrap(project['task_path'])
+    h=Poise(project['config_path'],'S1'); ctx=h.bootstrap(project['task_path'])
     input_result(ctx,[arg([])])
     result=h.verify()
     assert result['status']=='verified' and result['stage_outcome']=='satisfied'
@@ -139,7 +139,7 @@ def test_task_api_cannot_mark_verified_before_evidence_gate(project):
     h,_=setup(project); ctx=h.bootstrap(project['task_path']); input_result(ctx)
     payload=ctx['result_template']
     rec=h.runner.submit('T1','S1',payload)
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         h.task_commands.mark_verified('T1','S1',rec.digest,{'verified_tree':'anything'},())
     assert h.show()['status']=='active'
 
@@ -171,7 +171,7 @@ def test_project_automatic_check_stays_guard_when_also_subject(project):
     # No source change needed: command is also an explicit task guard in the plan's role.
     cfg=project['cfg']; cfg['automatic_checks']=[{'paths':['**'],'by_stage':{'measure':['M'],'audit':[]}}]
     write_json(project['config_path'],cfg)
-    h=Harness(project['config_path'],'S1');ctx=h.bootstrap(project['task_path'])
+    h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path'])
     data=h.store.current('S1')
     selected=h._select_checks(data,['src/double.py'])
     assert len(selected)==1 and selected[0]['guard'] is True
@@ -183,8 +183,8 @@ def test_unknown_method_and_missing_plan_rejected_before_worktree(project):
         if value is None: del task['evidence_plan']
         else: task['evidence_plan']=value
         write_json(project['task_path'],task)
-        h=Harness(project['config_path'],'S1')
-        with pytest.raises(HarnessError): h.bootstrap(project['task_path'])
+        h=Poise(project['config_path'],'S1')
+        with pytest.raises(PoiseError): h.bootstrap(project['task_path'])
         assert not (project['root']/'state/worktrees/T1').exists()
 
 
@@ -199,7 +199,7 @@ def test_observe_timeout_is_not_verified(project):
     h,_=setup(project,logical=False)
     task=project['task'];task['methods'][0].update(argv=[sys.executable,'-c','import time; time.sleep(5)'],timeout_seconds=0.05)
     write_json(project['task_path'],task)
-    h=Harness(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']); input_result(ctx)
+    h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']); input_result(ctx)
     r=h.verify();assert r['status']=='checks_failed' and r['checks'][0]['timed_out'] is True
     assert h.show()['status']=='active'
 
@@ -220,7 +220,7 @@ def test_cancel_skips_missing_evidence_and_preserves_observation(project):
 
 def test_empty_pre_argument_cannot_be_self_certified(project):
     h,_=setup(project,phase='prepare');ctx=h.bootstrap(project['task_path']);input_result(ctx,[{**arg([]),'facts':[]}])
-    with pytest.raises(HarnessError): h.verify()
+    with pytest.raises(PoiseError): h.verify()
     assert h.show()['status']=='active'
 
 
@@ -228,7 +228,7 @@ def test_check_unrecognised_output_is_not_a_product_negative_verdict(project):
     h,_=setup(project,kind='check',logical=False)
     task=project['task'];task['methods'][0]['argv']=[sys.executable,'-c',"print('tool crashed before observation'); raise SystemExit(1)"]
     write_json(project['task_path'],task)
-    h=Harness(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);input_result(ctx)
+    h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);input_result(ctx)
     result=h.verify()
     assert result['status']=='checks_failed'
     assert h.show()['status']=='active'
@@ -238,19 +238,19 @@ def test_observation_cannot_request_reasoning_on_mutated_target(project):
     h,_=setup(project)
     task=project['task'];task['methods'][0]['argv']=[sys.executable,'-c',"from pathlib import Path; Path('src/generated.py').write_text('x=1'); print('observed=3')"]
     write_json(project['task_path'],task)
-    h=Harness(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);input_result(ctx)
-    with pytest.raises(HarnessError,match='дерево|состояни'):
+    h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);input_result(ctx)
+    with pytest.raises(PoiseError,match='дерево|состояни'):
         h.verify()
     assert h.show()['status']=='active'
 
 
 def test_push_resume_after_explicit_environment_change_rechecks(project, monkeypatch):
     from conftest import add_test
-    h=Harness(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);add_test(ctx['worktree']);fill(ctx)
+    h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);add_test(ctx['worktree']);fill(ctx)
     offline=project['remote'].with_name('remote-offline.git')
     project['remote'].rename(offline)
     try:
-        with pytest.raises(HarnessError): h.verify()
+        with pytest.raises(PoiseError): h.verify()
     finally:
         offline.rename(project['remote'])
     assert h.show()['evidence_count']==1

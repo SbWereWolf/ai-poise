@@ -1,8 +1,8 @@
 import io,json,shutil
 from pathlib import Path
-from harness.composition import project_tools
-from harness.common import load_config
-from harness.interfaces.projects import interactive
+from poise.composition import project_tools
+from poise.common import load_config
+from poise.interfaces.projects import interactive
 from .helpers import setup_case
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 def test_installed_reference_template_builds_all_thirteen_processes(project):
     root=project['root']
     shutil.copytree(ROOT/'config',root/'catalogue-config')
-    # This copy is the explicitly mounted Harness configuration, not the target application.
+    # This copy is the explicitly mounted Poise configuration, not the target application.
     shutil.rmtree(root/'config');(root/'catalogue-config').rename(root/'config')
     settings=root/'config/project-setup.json';cfg=json.loads(settings.read_text())
     selection=cfg['templates']['linux-reference']

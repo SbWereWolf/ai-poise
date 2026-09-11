@@ -1,6 +1,6 @@
 # Библиотечный API — DDD-04B
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Срез **HARNESS-DDD-04B**.
+Обновлено: **2026-09-06T22:58:21+05:00**. Срез **POISE-DDD-04B**.
 
 ## Доменные библиотеки
 - `Task`: create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel. Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.
@@ -23,14 +23,14 @@
 `TaskQueries.section/result/content/trace_point/history/summary/evidence_view`. Тексты остаются в SQLite. `evidence_view` читает snapshot задачи, не весь store. В данном срезе история evidence внутри задачи ещё не вынесена в постраничное чтение; raw text никогда не включается в snapshot.
 
 ## CLI
-`harness work` принимает прямой JSON stdin. `operation` выбирает bootstrap/verify/show/artifacts/accept/cancel. Для известной работы task ID не передаётся повторно. Полный контракт и примеры: [batch-work](../workflows/batch-work.md).
+`poise work` принимает прямой JSON stdin. `operation` выбирает bootstrap/verify/show/artifacts/accept/cancel. Для известной работы task ID не передаётся повторно. Полный контракт и примеры: [batch-work](../workflows/batch-work.md).
 
 `evidence_work` подаётся частью прямого result object, не редактируемым файлом. `awaiting_continuation` возвращает факты и новый шаблон объекта, а не требует повторного запуска команд. `accept` принимает/останавливается; `continue` выражает новую пользовательскую инструкцию.
 
 ## Конфигурация типа цели
 `GoalTypeDefinition.parse/build`: общий чистый владелец полного process. `GoalConfigCommands.apply_batch(request)`: один декларативный пакет, создание из явного template либо update по revision. Порт `GoalConfigRepository.edit` реализует короткий controlled edit; FileGoalConfigRepository и FileTemplates — infrastructure.
 
-CLI: `harness goal-config --settings <file>` с одним JSON в stdin. Не требует активной task и не открывает её DB. Стандартные/дополнительные sections, content rules, trace routes, stages/transitions редактируются одним кандидатом. Точный контракт: [goal-config](../configuration/goal-config.md).
+CLI: `poise goal-config --settings <file>` с одним JSON в stdin. Не требует активной task и не открывает её DB. Стандартные/дополнительные sections, content rules, trace routes, stages/transitions редактируются одним кандидатом. Точный контракт: [goal-config](../configuration/goal-config.md).
 
 `exclusive_lock` общий для Task и editor store. Runtime pack loader делегирует в тот же доменный validator. Конкретные EvidencePlan и command methods задачи не перемещены в pack и не заполняются по догадке.
 
@@ -43,10 +43,10 @@ CLI: `harness goal-config --settings <file>` с одним JSON в stdin. Не �
 - `UserMessage.parse` / `InteractionLedger.merge` — identity и конфликт/дедупликация.
 - `InteractionStore.prepare/record/delivered/summary` — SQLite-факты и проекция без lifecycle writes.
 - `TaskCommands.validate_submission` — проверка кандидата без сохранения, перед файловыми side effects.
-- `Harness.bootstrap(task_object, decision, feedback, rework_stage)` / `verify(payload)` — явный новый transport; обязательного result_path нет.
+- `AI poise.bootstrap(task_object, decision, feedback, rework_stage)` / `verify(payload)` — явный новый transport; обязательного result_path нет.
 - `TaskQueries.latest_submission` возвращает пакет вместе с section layers, а не только envelope.
 
-Public CLI: `harness work` (stdin JSON) и `harness goal-config --settings ...`. Прежние CLI-команды из исторических отчётов не являются действующим API. Полная грамматика: [batch-work](../workflows/batch-work.md).
+Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. Прежние CLI-команды из исторических отчётов не являются действующим API. Полная грамматика: [batch-work](../workflows/batch-work.md).
 
 
 # DDD-05: Sprint / Task publication
@@ -145,10 +145,10 @@ CLI `project` принимает один JSON stdin. CLI `project-init` пол�
 questionnaire и применяет один тот же пакет при publish. Обе операции не изменяют Task/Sprint.
 
 
-## HARNESS-PILOT-02: граница вспомогательных инструментов — 2026-09-07T15:04:48+05:00
+## POISE-PILOT-02: граница вспомогательных инструментов — 2026-09-07T15:04:48+05:00
 
 Task/Sprint/domain API не изменяется. `tools/run_test_packages.py` — development-инструмент,
-использующий существующий `harness.execution.run_command`. `run_package(...)` возвращает
+использующий существующий `poise.execution.run_command`. `run_package(...)` возвращает
 terminal receipt одного pytest-модуля; `parse_junit(...)` отделяет missing/invalid/empty
 report от нулевого кода процесса. Он не изменяет бизнес-состояние приложения.
 
@@ -162,7 +162,7 @@ report от нулевого кода процесса. Он не изменяе
 export PYTHONPATH="$PWD/src"
 python tools/run_test_packages.py \
   --root "$PWD" \
-  --output /tmp/harness-regression \
+  --output /tmp/poise-regression \
   --workers 2 \
   --timeout 900 \
   --success-workspaces delete

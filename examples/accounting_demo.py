@@ -15,7 +15,7 @@ def main():
     home=create(a.directory)
     cfg=json.loads((home/'project.json').read_text())
     task=json.loads((home/'task.json').read_text())
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'HARNESS_CONFIG':str(home/'project.json'),'HARNESS_SESSION':'accounting-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'accounting-demo'}
     client=WorkClient(env,30);seq=0
     def msg(mid):return {'conversation_id':'demo','message_id':mid,'occurred_at':datetime.now(timezone.utc).isoformat(),'reason':None,'subject':None}
     def usage():

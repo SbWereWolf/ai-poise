@@ -5,17 +5,17 @@
     "linux-reference": {
       "path": "config/project-templates/linux-reference.json",
       "version": "1",
-      "digest": "05cea08528fa6be253c1adf1c4bdbb18a033480ad5666c3d88a570c2a0050fe1"
+      "digest": "48aa7902b14d725938db09f3847eb3a60eb5448dd0fc481195ede5f5a1269240"
     },
     "wsl-system": {
       "path": "config/project-templates/wsl-system.json",
       "version": "2",
       "digest": "16a8333f11988a75f3bf87a26481e514a89155db74a788e66a7cf87882ac8fbb"
     },
-    "wsl-harness": {
-      "path": "config/project-templates/wsl-harness.json",
+    "wsl-poise": {
+      "path": "config/project-templates/wsl-poise.json",
       "version": "2",
-      "digest": "eb0a51ccff5d870aad34fd742ad4bdb54dfda485e5e5032a4ddc238382c65789"
+      "digest": "8b8d87c652ee03aae6211022b6929f2c0fb65fd73ef2d1e38ccb71a1de7d1789"
     }
   },
   "manifest": "project.json",

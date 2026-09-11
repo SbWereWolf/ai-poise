@@ -2,7 +2,7 @@
 >
 > Эта редакция фиксирует целевой контракт, а не статус реализации: [декларативные инструменты](../architecture/declarative-tools.md) и [текущий статус](../architecture/implementation-status.md). Детальные матрицы полного продукта остаются целевыми требованиями, а не отчётом об исполнении.
 
-# Технические требования Harness
+# Технические требования AI poise
 
 Обновлено: 2026-09-06T14:30:44+05:00.
 
@@ -16,13 +16,13 @@
 
 ### HR-001. Предмет и границы продукта
 
-Harness — отдельное CLI-приложение и кодовая база для одного пользователя. Приоритет: ChatGPT cloud с Linux execution, вторая среда: Codex в WSL/Linux. Work, нативные Windows/macOS, запуск/назначение моделей и оркестратор агентов вне объёма. Пользователь выбирает исполнителя. Harness планирует работу задач через зависимости, а не запускает агентов. Git, IDE MCP, shell и тестовые frameworks сохраняются; Harness объединяет механические действия и обрабатывает результаты, а не заменяет их.
+AI poise — отдельное CLI-приложение и кодовая база для одного пользователя. Приоритет: ChatGPT cloud с Linux execution, вторая среда: Codex в WSL/Linux. Work, нативные Windows/macOS, запуск/назначение моделей и оркестратор агентов вне объёма. Пользователь выбирает исполнителя. AI poise планирует работу задач через зависимости, а не запускает агентов. Git, IDE MCP, shell и тестовые frameworks сохраняются; AI poise объединяет механические действия и обрабатывает результаты, а не заменяет их.
 
 <a id="HR-002"></a>
 
 ### HR-002. Главный результат и административная стоимость
 
-Цель — качественный конечный код/документация при минимуме токенов и времени на администрирование. Обязательная последовательность двух и более механических действий без нового инженерного решения является composite action. Любой инструмент Harness принимает коллекцию изменений/объектов одним декларативным пакетом; одиночное действие — пакет из одного элемента. Обычный этап использует bootstrap и verify с прямым содержательным payload; физическое stage-result представление создаёт инструмент, ручное редактирование файла не требуется. Дополнительные show/явные business actions нужны для содержательного выбора, не для bookkeeping каждого элемента. Отчёт показывает измеренный расход, не контрфактическую экономию; сообщения пользователя — отдельная метрика, не оценка tokens. CPU, RAM, диск и невостребованные parser views не KPI.
+Цель — качественный конечный код/документация при минимуме токенов и времени на администрирование. Обязательная последовательность двух и более механических действий без нового инженерного решения является composite action. Любой инструмент AI poise принимает коллекцию изменений/объектов одним декларативным пакетом; одиночное действие — пакет из одного элемента. Обычный этап использует bootstrap и verify с прямым содержательным payload; физическое stage-result представление создаёт инструмент, ручное редактирование файла не требуется. Дополнительные show/явные business actions нужны для содержательного выбора, не для bookkeeping каждого элемента. Отчёт показывает измеренный расход, не контрфактическую экономию; сообщения пользователя — отдельная метрика, не оценка tokens. CPU, RAM, диск и невостребованные parser views не KPI.
 
 <a id="HR-003"></a>
 
@@ -40,7 +40,7 @@ Harness — отдельное CLI-приложение и кодовая баз
 
 ### HR-005. Комплект и трассировка документации
 
-Все договорённости имеют нормативные IDs, документацию, независимые process matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний Harness.
+Все договорённости имеют нормативные IDs, документацию, независимые process matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний AI poise.
 
 ## 02. Среда, загрузка и возможности
 
@@ -72,7 +72,7 @@ Harness — отдельное CLI-приложение и кодовая баз
 
 ### HR-014. Идентичность живого executor
 
-Bootstrap и каждый execution после reconnect получают handshake работающего runner/parser worker/IDE adapter: implementation digest, schema version, effective config digest, instance generation, start time, bound project/worktree. Hash файла на диске не заменяет handshake. Несовпадение с выбранным release/execution snapshot блокирует использование как новой версии; выдаётся точная инструкция restart и повторного probe. При разработке Harness рабочая копия изменения не подменяет установленный исполняющий release. Нельзя автоматически перезапускать неизвестный чужой процесс по PID.
+Bootstrap и каждый execution после reconnect получают handshake работающего runner/parser worker/IDE adapter: implementation digest, schema version, effective config digest, instance generation, start time, bound project/worktree. Hash файла на диске не заменяет handshake. Несовпадение с выбранным release/execution snapshot блокирует использование как новой версии; выдаётся точная инструкция restart и повторного probe. При разработке AI poise рабочая копия изменения не подменяет установленный исполняющий release. Нельзя автоматически перезапускать неизвестный чужой процесс по PID.
 
 <a id="HR-015"></a>
 
@@ -92,13 +92,13 @@ Project config задаёт требуемые semantic capabilities (поиск
 
 ### HR-020. Конфигурация без неявных значений
 
-Все конфиги Harness находятся в его repository и создаются/редактируются инструментом через GoalConfig API одним пакетом желаемых изменений. Target codebases содержат собственные AGENTS, не machine configs Harness. Обязательное значение, unknown key, неоднозначный matcher или неразрешимая ссылка дают configuration_error до публикации. Запрещены hidden defaults/fallback, implicit inheritance, угадывание команд по AGENTS/cwd и broad suite «на всякий случай». Явно выбранный шаблон содержит принятые значения и фиксированную revision; missing в шаблоне и запросе остаётся ошибкой. Unknown-command parser — обязательный явный профиль. Отсутствующий auto-check mapping — invalid project config для выбранного класса; явный no_auto_check с причиной разрешён и не отключает task-registered tests. Конфиги разных goal types независимы. Имена классов и policies задаются configs, не ветвлением kernel.
+Все конфиги AI poise находятся в его repository и создаются/редактируются инструментом через GoalConfig API одним пакетом желаемых изменений. Target codebases содержат собственные AGENTS, не machine configs AI poise. Обязательное значение, unknown key, неоднозначный matcher или неразрешимая ссылка дают configuration_error до публикации. Запрещены hidden defaults/fallback, implicit inheritance, угадывание команд по AGENTS/cwd и broad suite «на всякий случай». Явно выбранный шаблон содержит принятые значения и фиксированную revision; missing в шаблоне и запросе остаётся ошибкой. Unknown-command parser — обязательный явный профиль. Отсутствующий auto-check mapping — invalid project config для выбранного класса; явный no_auto_check с причиной разрешён и не отключает task-registered tests. Конфиги разных goal types независимы. Имена классов и policies задаются configs, не ветвлением kernel.
 
 <a id="HR-021"></a>
 
 ### HR-021. Начальный протокол без рекурсивных fallback
 
-Граница B0 — явный вызов установленного launcher с абсолютным путём bootstrap descriptor; путь не ищется от cwd и не берётся из origin/.harness по умолчанию. Descriptor и launcher являются частью поставки, содержат явные корень, config schema, encoding, emergency channel и mapping numeric exit outcomes. Синтаксис входа/структурные имена протокола и инварианты атомарности относятся к kernel contract, не настраиваемой business policy. До загрузки валидного descriptor невозможен обычный configured report: запуск обязан завершиться ненулевым исходом и диагностикой launcher/runtime, без рабочего режима и mutations. Это не fallback-профиль. После descriptor все тексты/лимиты/report layouts/exit mappings берутся из config. Harness не пытается обеспечить свой формат, пользуясь повреждённой конфигурацией.
+Граница B0 — явный вызов установленного launcher с абсолютным путём bootstrap descriptor; путь не ищется от cwd и не берётся из origin/.poise по умолчанию. Descriptor и launcher являются частью поставки, содержат явные корень, config schema, encoding, emergency channel и mapping numeric exit outcomes. Синтаксис входа/структурные имена протокола и инварианты атомарности относятся к kernel contract, не настраиваемой business policy. До загрузки валидного descriptor невозможен обычный configured report: запуск обязан завершиться ненулевым исходом и диагностикой launcher/runtime, без рабочего режима и mutations. Это не fallback-профиль. После descriptor все тексты/лимиты/report layouts/exit mappings берутся из config. AI poise не пытается обеспечить свой формат, пользуясь повреждённой конфигурацией.
 
 <a id="HR-022"></a>
 
@@ -180,25 +180,25 @@ Canonical task/sprint structured state, весь текст секций/сло�
 
 ### HR-041. Внешний монопольный lock
 
-Все Harness business writers используют один внешний OS flock по canonical DB identity; alias пути к той же БД не создаёт второй lock. Lock на постоянном файле рядом с DB, существование файла не признак занятости. Процесс освобождает OS lock при exit/crash. Short SQLite transactions под lock, foreign key/check constraints и SQLite внутреннюю атомарность не отключать. Checks, IDE, backup copy больших файлов и сеть не удерживают глобальный writer lock. Продолжение повторно проверяет revisions. DB на общей сетевой/непроверенной lock filesystem не принимается. Timeout/wait/retry явно config; контенция разных task не означает баг.
+Все AI poise business writers используют один внешний OS flock по canonical DB identity; alias пути к той же БД не создаёт второй lock. Lock на постоянном файле рядом с DB, существование файла не признак занятости. Процесс освобождает OS lock при exit/crash. Short SQLite transactions под lock, foreign key/check constraints и SQLite внутреннюю атомарность не отключать. Checks, IDE, backup copy больших файлов и сеть не удерживают глобальный writer lock. Продолжение повторно проверяет revisions. DB на общей сетевой/непроверенной lock filesystem не принимается. Timeout/wait/retry явно config; контенция разных task не означает баг.
 
 <a id="HR-042"></a>
 
 ### HR-042. Artifacts и публикация
 
-Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно Harness codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.
+Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно AI poise codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.
 
 <a id="HR-043"></a>
 
 ### HR-043. Sections, resolutions и содержательная история
 
-Task хранит все semantic layers, proposals, evidence и решения. ResolutionProposal содержит finding/ref, explanation, proposed result и запланированный/полученный метод доказательства, но не обязательный accepted/rejected. Отдельный ResolutionReviewDecision создаётся осмотром после доступности именно result/evidence этого proposal; отказ не стирает proposal. Артефактный индекс с bytes/digest/provenance, execution receipts и timestamps создаёт Harness; агент передаёт artifact_paths — только пути файлов, уже размещённых внутри разрешённых корней текущих runtime, task или sprint. Внутренний ID назначает Harness; purpose, role и requirement_refs от агента не требуются. Manual evidence подаётся по своему контракту. Подсчёт артефактов выполняется по явно заданным файловым признакам типа и границам количества; отсутствие надёжного проектного парсера не блокирует запуск первого рабочего среза. Evidence-view и traceability — generated projections, не редактируемые агентом индексы. Historical refs не становятся несуществующими при замене current результата. Сравнение template и поля содержательного результата не заменяют семантический осмотр.
+Task хранит все semantic layers, proposals, evidence и решения. ResolutionProposal содержит finding/ref, explanation, proposed result и запланированный/полученный метод доказательства, но не обязательный accepted/rejected. Отдельный ResolutionReviewDecision создаётся осмотром после доступности именно result/evidence этого proposal; отказ не стирает proposal. Артефактный индекс с bytes/digest/provenance, execution receipts и timestamps создаёт AI poise; агент передаёт artifact_paths — только пути файлов, уже размещённых внутри разрешённых корней текущих runtime, task или sprint. Внутренний ID назначает AI poise; purpose, role и requirement_refs от агента не требуются. Manual evidence подаётся по своему контракту. Подсчёт артефактов выполняется по явно заданным файловым признакам типа и границам количества; отсутствие надёжного проектного парсера не блокирует запуск первого рабочего среза. Evidence-view и traceability — generated projections, не редактируемые агентом индексы. Historical refs не становятся несуществующими при замене current результата. Сравнение template и поля содержательного результата не заменяют семантический осмотр.
 
 <a id="HR-044"></a>
 
 ### HR-044. Sprint graph и доступность результата
 
-Зависимости — DAG только между tasks одного sprint. Eligibility требует accepted completion predecessor и успешного MaterializationContract на точном стартовом snapshot successor. Contract имеет явный kind: exact_history (ancestry/identity только для требования истории), result_availability (source-result→materialized-result receipt и exact declared availability predicates) либо artifact_identity (digest/owner ref). Ancestry не доказывает наличие поведения. Cherry-pick/rebase разрешены с recorded mapping и проверкой результата; после revert/drift прежний receipt сам по себе не обеспечивает readiness. Все predicates имеют точные команды или digest checks; Harness не угадывает смысл кода. Unavailable prerequisite даёт blocker и receipt, не автоматическую интеграцию или foreign-task mutation. Межспринтовые refs допускаются как immutable inputs, не dependency edges.
+Зависимости — DAG только между tasks одного sprint. Eligibility требует accepted completion predecessor и успешного MaterializationContract на точном стартовом snapshot successor. Contract имеет явный kind: exact_history (ancestry/identity только для требования истории), result_availability (source-result→materialized-result receipt и exact declared availability predicates) либо artifact_identity (digest/owner ref). Ancestry не доказывает наличие поведения. Cherry-pick/rebase разрешены с recorded mapping и проверкой результата; после revert/drift прежний receipt сам по себе не обеспечивает readiness. Все predicates имеют точные команды или digest checks; AI poise не угадывает смысл кода. Unavailable prerequisite даёт blocker и receipt, не автоматическую интеграцию или foreign-task mutation. Межспринтовые refs допускаются как immutable inputs, не dependency edges.
 
 <a id="HR-045"></a>
 
@@ -242,7 +242,7 @@ Integration объединяет объявленные exact sources с target 
 
 ### HR-054. Точный executable contract
 
-Executable method разделён на PlannedInvocation, BoundExecution и ExecutionReceipt. При планировании обязателен exact codebase/environment target, cwd, mode, полный argv/shell binary+command, explicit env/secret references и inheritance policy, stdin, declared input paths/IDs, resource requirements, expected/collection predicates, stage applicability, limits/retry/reuse policy и references нужных runner/parser profiles. Эти значения могут быть явными resolvable config refs; команда не выводится из AGENTS. Для будущего теста точный путь/команда уже определены, а observed input digest, worktree identity, live generation, фактические resource bindings и timestamps ещё НЕ требуются. Harness сам получает их при binding/readiness и сохраняет immutable BoundExecution. Missing будущий input допустим на planning phase по explicit deadline, но блокирует его execution. Exit, collection, raw hashes и duration появляются только в Receipt. Поддельные наблюдения от модели не принимаются как факты.
+Executable method разделён на PlannedInvocation, BoundExecution и ExecutionReceipt. При планировании обязателен exact codebase/environment target, cwd, mode, полный argv/shell binary+command, explicit env/secret references и inheritance policy, stdin, declared input paths/IDs, resource requirements, expected/collection predicates, stage applicability, limits/retry/reuse policy и references нужных runner/parser profiles. Эти значения могут быть явными resolvable config refs; команда не выводится из AGENTS. Для будущего теста точный путь/команда уже определены, а observed input digest, worktree identity, live generation, фактические resource bindings и timestamps ещё НЕ требуются. AI poise сам получает их при binding/readiness и сохраняет immutable BoundExecution. Missing будущий input допустим на planning phase по explicit deadline, но блокирует его execution. Exit, collection, raw hashes и duration появляются только в Receipt. Поддельные наблюдения от модели не принимаются как факты.
 
 <a id="HR-055"></a>
 
@@ -272,7 +272,7 @@ Verify — фазовый протокол одной iteration. PREPARE: submis
 
 ### HR-059. Что kernel может доказать
 
-Structural validators проверяют required typed fields, cardinality, applicability, references/digests, command predicates и наличие accepted/rejected inspection decisions. Не утверждают, что текст истинный, полезный, constraint содержательно соблюдён или scope осмотрен только из факта ссылок. Logical evidence хранит claim, fact refs, assumptions, проверяемое краткое inference, conclusion и reviewer verdict, не private chain of thought. Добавление символа к template меняет digest, но не заполняет типизированные пункты. При semantic rejection review record блокирует completion независимо от структурной полноты. Agent-evaluation/manual cases проверяют reasoning отдельно от deterministic kernel. Некомандный метод не создаёт ExecutionReceipt: агент предоставляет EvidenceProposal, Harness регистрирует evidence и отдельно структурный validation receipt. Решение reviewer принадлежит последующему осмотру. Proposal не включает придуманную коллекцию тестов, exit code или собственное accepted/rejected решение. Проверка существования фактов/источников не доказывает истинность аргумента.
+Structural validators проверяют required typed fields, cardinality, applicability, references/digests, command predicates и наличие accepted/rejected inspection decisions. Не утверждают, что текст истинный, полезный, constraint содержательно соблюдён или scope осмотрен только из факта ссылок. Logical evidence хранит claim, fact refs, assumptions, проверяемое краткое inference, conclusion и reviewer verdict, не private chain of thought. Добавление символа к template меняет digest, но не заполняет типизированные пункты. При semantic rejection review record блокирует completion независимо от структурной полноты. Agent-evaluation/manual cases проверяют reasoning отдельно от deterministic kernel. Некомандный метод не создаёт ExecutionReceipt: агент предоставляет EvidenceProposal, AI poise регистрирует evidence и отдельно структурный validation receipt. Решение reviewer принадлежит последующему осмотру. Proposal не включает придуманную коллекцию тестов, exit code или собственное accepted/rejected решение. Проверка существования фактов/источников не доказывает истинность аргумента.
 
 ## 07. Вывод, hooks и завершение цикла
 
@@ -304,13 +304,13 @@ Blocking hooks нужны для разрешений/обязательных e
 
 ### HR-064. Минимальный отчёт и runtime cleanup
 
-Доклад содержит цель/результат, evidence/verdict, Git/delivery receipts, findings/waivers/risks и ВСЕ Harness Incidents текущего cycle, включая recovered; обычные tests/environment outcomes не выдаются за баги Harness. Report immutable в DB и адресует durable ResultSet, не удаляемый runtime. Для task/sprint result views принадлежат соответствующему owner; ad-hoc — durable session deliverable root вне runtime с явной retention. Cleanup удаляет временные копии после pins/publication, не target ready refs. Binding, usage/report pointers сохраняются. Native detail reads после verify допустимы без дополнительной formal work и не запускают commands. Runtime user message/report boundary фиксирует адаптер; неизвестные границы метрик partial.
+Доклад содержит цель/результат, evidence/verdict, Git/delivery receipts, findings/waivers/risks и ВСЕ AI poise Incidents текущего cycle, включая recovered; обычные tests/environment outcomes не выдаются за баги AI poise. Report immutable в DB и адресует durable ResultSet, не удаляемый runtime. Для task/sprint result views принадлежат соответствующему owner; ad-hoc — durable session deliverable root вне runtime с явной retention. Cleanup удаляет временные копии после pins/publication, не target ready refs. Binding, usage/report pointers сохраняются. Native detail reads после verify допустимы без дополнительной formal work и не запускают commands. Runtime user message/report boundary фиксирует адаптер; неизвестные границы метрик partial.
 
 <a id="HR-065"></a>
 
 ### HR-065. Диагностирование собственного отказа
 
-Operational journal — append-only файлы на выделенном configured Harness journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, process sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.
+Operational journal — append-only файлы на выделенном configured AI poise journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, process sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.
 
 ## 08. Восстановление и перенос
 
@@ -400,7 +400,7 @@ Benefit ledger хранит credit/reversal с unique task result revision и as
 
 ### HR-091. Секция как проверяемый контракт
 
-Section text/typed fields в SQLite. Для каждого field/schema path объявлены producer (user/config/agent/kernel/adapter/reviewer), earliest availability и required phase, empty/not_applicable policy. Содержательная applicability/plan — агентские данные, actual digests/versions/receipt — наблюдения Harness. Разрешённая будущая команда точна до создания файла, её observed digest только на execution. Manual evidence proposal не включает автоматические observations и не заменяет reviewer decision. Required-before валидирует только доступные на PREPARE поля; post-observation проверяется после фактов; обязательное final — перед verified. Все ранее принятые layers сохраняются, current view не создаёт второй источник.
+Section text/typed fields в SQLite. Для каждого field/schema path объявлены producer (user/config/agent/kernel/adapter/reviewer), earliest availability и required phase, empty/not_applicable policy. Содержательная applicability/plan — агентские данные, actual digests/versions/receipt — наблюдения AI poise. Разрешённая будущая команда точна до создания файла, её observed digest только на execution. Manual evidence proposal не включает автоматические observations и не заменяет reviewer decision. Required-before валидирует только доступные на PREPARE поля; post-observation проверяется после фактов; обязательное final — перед verified. Все ранее принятые layers сохраняются, current view не создаёт второй источник.
 
 <a id="HR-092"></a>
 
@@ -1110,7 +1110,7 @@ Ready result reference означает bytes уже опубликованы и
 
 ### HR-097. Числовые эталоны измерений
 
-metrics-contract.json и fixtures/metrics-golden.json задают все bytes, line boundaries, token units/IDs, serialization и ledger events. Fixture tokenizer ETALON-BPE-1 — фиксированный измерительный тестовый прибор с собственными ranks, не approximation model usage и не runtime fallback. Для выбранного production measurement tokenizer release содержит его точный digest и тот же corpus с собственными golden token IDs/counts. Числа tests не становятся defaults runtime. В этой документации эталонный профиль самодостаточен, его расчёт проверен независимо от Harness. Иные measurement profiles не подменяют эти значения.
+metrics-contract.json и fixtures/metrics-golden.json задают все bytes, line boundaries, token units/IDs, serialization и ledger events. Fixture tokenizer ETALON-BPE-1 — фиксированный измерительный тестовый прибор с собственными ranks, не approximation model usage и не runtime fallback. Для выбранного production measurement tokenizer release содержит его точный digest и тот же corpus с собственными golden token IDs/counts. Числа tests не становятся defaults runtime. В этой документации эталонный профиль самодостаточен, его расчёт проверен независимо от AI poise. Иные measurement profiles не подменяют эти значения.
 
 
 # Независимые процессы типов целей
@@ -1139,26 +1139,26 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | constraints | список id, predicate/statement, source, область и способ проверки; explicit empty с причиной. |
 | baseline | applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён. |
 | solution_plan | затрагиваемые компоненты; proposed change/contracts; риски; порядок реализации; решения и assumptions refs. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
-| test_registry | Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
+| test_registry | Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution. |
 | documentation_plan | required/not_required с причиной; при required deliverables/paths, content requirements и exact validation methods/DoD refs. |
 | assumptions | список id, statement, justification, impact_if_false, evidence/ref status; explicit none. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | baseline_plan | Creation input: explicit applicability+reason, target identity, exact declared baseline invocation или documented observation method. Не требует будущих execution digests; mandatory для запуска baseline stage. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Точный контракт полей создаваемой задачи
 
@@ -1283,10 +1283,10 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| baseline | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| baseline | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1328,9 +1328,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | decisions | agent | PREPARE | before_observe | task_requirements, definition_of_done, constraints, baseline |
 | assumptions | agent | PREPARE | before_observe | task_requirements, definition_of_done, constraints, baseline |
 | documentation_plan | agent | PREPARE | before_observe | task_requirements, definition_of_done, constraints, baseline |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1370,9 +1370,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | --- | --- | --- | --- | --- |
 | verification_plan | agent | PREPARE | before_observe | task_requirements, definition_of_done, solution_plan, baseline |
 | test_registry | agent | PREPARE | before_observe | task_requirements, definition_of_done, solution_plan, baseline |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1411,9 +1411,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | test_registry | agent | PREPARE | before_observe | verification_plan, test_registry, baseline |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1454,9 +1454,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | inspection_coverage | agent | PREPARE | before_observe | task_requirements, definition_of_done, verification_plan, test_registry, evidence |
 | findings | agent | PREPARE | before_observe | task_requirements, definition_of_done, verification_plan, test_registry, evidence |
 | inspection_verdict | agent | PREPARE | before_observe | task_requirements, definition_of_done, verification_plan, test_registry, evidence |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1497,10 +1497,10 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | --- | --- | --- | --- | --- |
 | finding_resolutions | agent | PREPARE | before_observe | findings, test_registry, verification_plan |
 | test_registry | agent | PREPARE | before_observe | findings, test_registry, verification_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1542,9 +1542,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | inspection_verdict | agent | PREPARE | before_observe | finding_resolutions, evidence, test_registry, resolution_bindings |
 | findings | agent | PREPARE | before_observe | finding_resolutions, evidence, test_registry, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | finding_resolutions, evidence, test_registry, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1583,9 +1583,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1626,9 +1626,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | inspection_coverage | agent | PREPARE | before_observe | task_requirements, definition_of_done, solution_plan, evidence, traceability |
 | findings | agent | PREPARE | before_observe | task_requirements, definition_of_done, solution_plan, evidence, traceability |
 | inspection_verdict | agent | PREPARE | before_observe | task_requirements, definition_of_done, solution_plan, evidence, traceability |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1669,10 +1669,10 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | finding_resolutions | agent | PREPARE | before_observe | findings, solution_plan, verification_plan, test_registry |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1714,9 +1714,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | findings | agent | PREPARE | before_observe | finding_resolutions, evidence, task_requirements, resolution_bindings |
 | inspection_verdict | agent | PREPARE | before_observe | finding_resolutions, evidence, task_requirements, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | finding_resolutions, evidence, task_requirements, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1757,9 +1757,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | result | agent | PREPARE | before_observe | documentation_plan, task_requirements, evidence |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1789,7 +1789,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -1833,19 +1833,19 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | definition_of_done | список id, requirement_refs, measurable criterion, expected deliverable, verification_obligation_refs; хотя бы один критерий. |
 | baseline | applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён. |
 | coverage_matrix | requirement→scenario→case→oracle→method, обязательность и причина explicit exclusion. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
-| test_registry | Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; Harness binds created file at execution. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
+| test_registry | Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution. |
 | fixture_plan | required/not_applicable+reason; при required id,purpose,consumers,input invariants,создание/cleanup,метод validation. |
 | sensitivity_plan | case_id, negative-control/known-bad revision/mutation method, exact commands/expected detectable error, clean target restoration; not_applicable только с обоснованием и inspection verdict. |
 | constraints | список id, predicate/statement, source, область и способ проверки; explicit empty с причиной. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
@@ -1853,7 +1853,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | baseline_plan | Creation input: explicit applicability+reason, target identity, exact declared baseline invocation или documented observation method. Не требует будущих execution digests; mandatory для запуска baseline stage. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -1884,10 +1884,10 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| baseline | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| baseline | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1926,9 +1926,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | coverage_matrix | agent | PREPARE | before_observe | task_requirements, definition_of_done, baseline |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -1970,9 +1970,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | test_registry | agent | PREPARE | before_observe | coverage_matrix, task_requirements, baseline |
 | fixture_plan | agent | PREPARE | before_observe | coverage_matrix, task_requirements, baseline |
 | sensitivity_plan | agent | PREPARE | before_observe | coverage_matrix, task_requirements, baseline |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2011,9 +2011,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | test_registry | agent | PREPARE | before_observe | verification_plan, test_registry, fixture_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2051,9 +2051,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2094,9 +2094,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | inspection_coverage | agent | PREPARE | before_observe | coverage_matrix, test_registry, sensitivity_plan, evidence |
 | findings | agent | PREPARE | before_observe | coverage_matrix, test_registry, sensitivity_plan, evidence |
 | inspection_verdict | agent | PREPARE | before_observe | coverage_matrix, test_registry, sensitivity_plan, evidence |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2137,10 +2137,10 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | --- | --- | --- | --- | --- |
 | finding_resolutions | agent | PREPARE | before_observe | findings, verification_plan, test_registry |
 | test_registry | agent | PREPARE | before_observe | findings, verification_plan, test_registry |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2182,9 +2182,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | findings | agent | PREPARE | before_observe | finding_resolutions, evidence, resolution_bindings |
 | inspection_verdict | agent | PREPARE | before_observe | finding_resolutions, evidence, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | finding_resolutions, evidence, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2215,7 +2215,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -2272,16 +2272,16 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Список EvidenceProposal для назначенных PREPARE logical_argument/inspection методов. Обязательные id, method_ref, obligation_refs, subject_ref, claim, facts с source_ref, assumptions, inference_summary, conclusion, source_refs. Пустой список явно разрешён только при отсутствии таких обязанностей; reviewer verdict и execution observations не поля агента. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | observed_manual_evidence | Список EvidenceProposal для CONTINUE по новым observation_receipts. Все поля manual_evidence плюс непустые observation_refs. Источники должны реально появиться в OBSERVE; это не новая задача или слой чужого command output. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Точный контракт полей создаваемой задачи
 
@@ -2407,9 +2407,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | verification_program | agent | PREPARE | before_observe | target, task_requirements, definition_of_done, constraints |
 | verification_methods | agent | PREPARE | before_observe | target, task_requirements, definition_of_done, constraints |
 | environment | agent | PREPARE | before_observe | target, task_requirements, definition_of_done, constraints |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2449,10 +2449,10 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | manual_evidence | agent | PREPARE | required_PREPARE_noncommand_obligations | current_method_plan, existing_pinned_sources |
-| execution_results | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| execution_results | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | observed_manual_evidence | agent | CONTINUE | required_CONTINUE_noncommand_obligations | current_method_plan, observation_receipt, pinned_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -2494,9 +2494,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | findings | agent | PREPARE | before_observe | verification_criteria, execution_results, evidence |
 | verdict | agent | PREPARE | before_observe | verification_criteria, execution_results, evidence |
 | result | agent | PREPARE | before_observe | verification_criteria, execution_results, evidence |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2523,7 +2523,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Условие continuation | none: post-observation fields отсутствуют; механические фазы проходят одним вызовом. |
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | task-data |
-| Проверки | Target и осматриваемый результат не меняются; review decisions фиксируются отдельно; task-quality objection даёт rework. По каждому некомандному proposal record осмотра указывает accepted/rejected и основание; это не автоматическое принятие Harness по ссылкам. Rejected proposal создаёт task-quality objection и блокирует completion. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Проверки | Target и осматриваемый результат не меняются; review decisions фиксируются отдельно; task-quality objection даёт rework. По каждому некомандному proposal record осмотра указывает accepted/rejected и основание; это не автоматическое принятие AI poise по ссылкам. Rejected proposal создаёт task-quality objection и блокирует completion. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
 | Доказательства | полнота/непротиворечивость методики и вывода. |
 | Final fields / conditions | {"inspection_coverage":"always","inspection_verdict":"always","findings":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
@@ -2537,9 +2537,9 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | inspection_coverage | agent | PREPARE | before_observe | verification_criteria, verdict, findings, traceability, evidence |
 | inspection_verdict | agent | PREPARE | before_observe | verification_criteria, verdict, findings, traceability, evidence |
 | findings | agent | PREPARE | before_observe | verification_criteria, verdict, findings, traceability, evidence |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2572,7 +2572,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -2624,17 +2624,17 @@ Negative product verdict не даёт cancelled verification. По каждой
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | constraints | Явные ограничения review scope; absent не заменяется значениями другого process pack. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -2667,9 +2667,9 @@ Negative product verdict не даёт cancelled verification. По каждой
 | --- | --- | --- | --- | --- |
 | review_criteria | agent | PREPARE | before_observe | goal, target, scope, task_requirements, definition_of_done |
 | review_plan | agent | PREPARE | before_observe | goal, target, scope, task_requirements, definition_of_done |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2712,9 +2712,9 @@ Negative product verdict не даёт cancelled verification. По каждой
 | manual_evidence | agent | PREPARE | before_observe | target, review_criteria, review_plan, task_requirements |
 | verdict | agent | PREPARE | before_observe | target, review_criteria, review_plan, task_requirements |
 | result | agent | PREPARE | before_observe | target, review_criteria, review_plan, task_requirements |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2755,9 +2755,9 @@ Negative product verdict не даёт cancelled verification. По каждой
 | inspection_verdict | agent | PREPARE | before_observe | target, review_criteria, inspection_coverage, findings, evidence, verdict |
 | decisions | agent | PREPARE | before_observe | target, review_criteria, inspection_coverage, findings, evidence, verdict |
 | findings | agent | PREPARE | before_observe | target, review_criteria, inspection_coverage, findings, evidence, verdict |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2788,7 +2788,7 @@ Negative product verdict не даёт cancelled verification. По каждой
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -2839,24 +2839,24 @@ Solution rationale не inline в независимом inspection; досту�
 | design | components/responsibilities, данные, состояния/переходы, interfaces, errors/failures, concurrency/security/observability applicability, requirement mapping; каждый неприменимый блок явно помечен с причиной. |
 | interfaces_contracts | applicability; API/CLI/data contract, inputs/outputs/errors, side effects, invariants, versioned target references, schema validators. |
 | impact_analysis | affected/unchanged codebases/components/contracts; prerequisites/risks; downstream requirements, не самостоятельная реализация. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | verdict | по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | baseline_plan | Creation input: explicit applicability+reason, target identity, exact declared baseline invocation или documented observation method. Не требует будущих execution digests; mandatory для запуска baseline stage. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -2891,9 +2891,9 @@ Solution rationale не inline в независимом inspection; досту�
 | assumptions | agent | PREPARE | before_observe | task_requirements, definition_of_done, constraints, baseline_plan |
 | decision_criteria | agent | PREPARE | before_observe | task_requirements, definition_of_done, constraints, baseline_plan |
 | verification_plan | agent | PREPARE | before_observe | task_requirements, definition_of_done, constraints, baseline_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2932,9 +2932,9 @@ Solution rationale не inline в независимом inspection; досту�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | alternatives | agent | PREPARE | before_observe | baseline, constraints, decision_criteria, task_requirements |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -2974,9 +2974,9 @@ Solution rationale не inline в независимом inspection; досту�
 | --- | --- | --- | --- | --- |
 | selected_approach | agent | PREPARE | before_observe | alternatives, decision_criteria, constraints |
 | decisions | agent | PREPARE | before_observe | alternatives, decision_criteria, constraints |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3017,9 +3017,9 @@ Solution rationale не inline в независимом inspection; досту�
 | design | agent | PREPARE | before_observe | selected_approach, task_requirements, definition_of_done, verification_plan |
 | interfaces_contracts | agent | PREPARE | before_observe | selected_approach, task_requirements, definition_of_done, verification_plan |
 | impact_analysis | agent | PREPARE | before_observe | selected_approach, task_requirements, definition_of_done, verification_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3057,9 +3057,9 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | manual_evidence | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | verdict | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
@@ -3102,9 +3102,9 @@ Solution rationale не inline в независимом inspection; досту�
 | inspection_coverage | agent | PREPARE | before_observe | design, interfaces_contracts, constraints, verdict, evidence |
 | findings | agent | PREPARE | before_observe | design, interfaces_contracts, constraints, verdict, evidence |
 | inspection_verdict | agent | PREPARE | before_observe | design, interfaces_contracts, constraints, verdict, evidence |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3146,10 +3146,10 @@ Solution rationale не inline в независимом inspection; досту�
 | design | agent | PREPARE | before_observe | findings, design, verification_plan |
 | interfaces_contracts | agent | PREPARE | before_observe | findings, design, verification_plan |
 | finding_resolutions | agent | PREPARE | before_observe | findings, design, verification_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3191,9 +3191,9 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | agent | PREPARE | before_observe | finding_resolutions, design, evidence, resolution_bindings |
 | inspection_verdict | agent | PREPARE | before_observe | finding_resolutions, design, evidence, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | finding_resolutions, design, evidence, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3224,7 +3224,7 @@ Solution rationale не inline в независимом inspection; досту�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -3278,21 +3278,21 @@ Solution rationale не inline в независимом inspection; досту�
 | limitations | что не установлено, ограничения данных/метода, влияние на conclusions/DoD; explicit none с основанием. |
 | conclusions | question/criterion refs, claim, facts+assumptions, inference summary, ограничения и verdict. |
 | recommendations | предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -3325,9 +3325,9 @@ Solution rationale не inline в независимом inspection; досту�
 | --- | --- | --- | --- | --- |
 | source_plan | agent | PREPARE | before_observe | goal, scope, task_requirements, definition_of_done, questions |
 | method | agent | PREPARE | before_observe | goal, scope, task_requirements, definition_of_done, questions |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3365,9 +3365,9 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | sources | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | facts | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | assumptions | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
@@ -3411,9 +3411,9 @@ Solution rationale не inline в независимом inspection; досту�
 | analysis | agent | PREPARE | before_observe | questions, facts, assumptions, method |
 | conclusions | agent | PREPARE | before_observe | questions, facts, assumptions, method |
 | recommendations | agent | PREPARE | before_observe | questions, facts, assumptions, method |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3454,9 +3454,9 @@ Solution rationale не inline в независимом inspection; досту�
 | alternative_explanations | agent | PREPARE | before_observe | analysis, conclusions, facts, assumptions |
 | counterevidence | agent | PREPARE | before_observe | analysis, conclusions, facts, assumptions |
 | limitations | agent | PREPARE | before_observe | analysis, conclusions, facts, assumptions |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3498,9 +3498,9 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | agent | PREPARE | before_observe | questions, conclusions, analysis, alternative_explanations, counterevidence, limitations |
 | inspection_verdict | agent | PREPARE | before_observe | questions, conclusions, analysis, alternative_explanations, counterevidence, limitations |
 | result | agent | PREPARE | before_observe | questions, conclusions, analysis, alternative_explanations, counterevidence, limitations |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3533,7 +3533,7 @@ Solution rationale не inline в независимом inspection; досту�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -3589,22 +3589,22 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | recommendations | предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически. |
 | confirmation | critical claim/root_cause/finding refs, independent/repeat procedure, exact command либо reasoned method, actual evidence и verdict. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | confirmation_plan | Claims to confirm; exact confirmation methods, input selectors, repetitions/limits, independent observation criterion. Формируется в analysis до confirmation execution. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -3638,9 +3638,9 @@ Solution rationale не inline в независимом inspection; досту�
 | environment | agent | PREPARE | before_observe | target, task_requirements, definition_of_done, metrics |
 | workload | agent | PREPARE | before_observe | target, task_requirements, definition_of_done, metrics |
 | verification_plan | agent | PREPARE | before_observe | target, task_requirements, definition_of_done, metrics |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3678,10 +3678,10 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| baseline | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| baseline | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3721,9 +3721,9 @@ Solution rationale не inline в независимом inspection; досту�
 | --- | --- | --- | --- | --- |
 | experiment_plan | agent | PREPARE | before_observe | baseline, metrics, task_requirements |
 | instrumentation_plan | agent | PREPARE | before_observe | baseline, metrics, task_requirements |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3761,10 +3761,10 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| measurements | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| measurements | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3808,9 +3808,9 @@ Solution rationale не inline в независимом inspection; досту�
 | recommendations | agent | PREPARE | before_observe | baseline, measurements, metrics, experiment_plan |
 | limitations | agent | PREPARE | before_observe | baseline, measurements, metrics, experiment_plan |
 | confirmation_plan | agent | PREPARE | before_observe | baseline, measurements, metrics, experiment_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3848,9 +3848,9 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | confirmation | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -3893,9 +3893,9 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | agent | PREPARE | before_observe | metrics, baseline, measurements, analysis, confirmation, limitations |
 | inspection_verdict | agent | PREPARE | before_observe | metrics, baseline, measurements, analysis, confirmation, limitations |
 | result | agent | PREPARE | before_observe | metrics, baseline, measurements, analysis, confirmation, limitations |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -3929,7 +3929,7 @@ Solution rationale не inline в независимом inspection; досту�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -3984,23 +3984,23 @@ Solution rationale не inline в независимом inspection; досту�
 | root_cause | cause statement, symptoms/facts/experiments links, rejected alternatives, confirmation refs, limitations; inconclusive только если разрешён DoD задачи. |
 | confirmation | critical claim/root_cause/finding refs, independent/repeat procedure, exact command либо reasoned method, actual evidence и verdict. |
 | recommendations | предлагаемое действие, основание conclusion/evidence, expected effect, риски и способ последующей проверки; не выполняется автоматически. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
 | confirmation_plan | Root cause refs, точный controlled confirmation method, expected distinguishing observations, restore operation/probe и limits. Формируется root_cause_analysis. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -4032,10 +4032,10 @@ Solution rationale не inline в независимом inspection; досту�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | verification_plan | agent | PREPARE | before_observe | symptoms, expected_behavior, target, task_requirements, definition_of_done |
-| environment_snapshot | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| environment_snapshot | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | facts | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -4074,9 +4074,9 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | reproduction | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -4117,9 +4117,9 @@ Solution rationale не inline в независимом inspection; досту�
 | --- | --- | --- | --- | --- |
 | hypotheses | agent | PREPARE | before_observe | facts, reproduction, symptoms |
 | diagnostic_plan | agent | PREPARE | before_observe | facts, reproduction, symptoms |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4157,10 +4157,10 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| experiments | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| experiments | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | facts | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -4202,9 +4202,9 @@ Solution rationale не inline в независимом inspection; досту�
 | root_cause | agent | PREPARE | before_observe | experiments, facts, hypotheses, symptoms |
 | recommendations | agent | PREPARE | before_observe | experiments, facts, hypotheses, symptoms |
 | confirmation_plan | agent | PREPARE | before_observe | experiments, facts, hypotheses, symptoms |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4242,9 +4242,9 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | confirmation | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -4287,9 +4287,9 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | agent | PREPARE | before_observe | root_cause, confirmation, recommendations, experiments |
 | inspection_verdict | agent | PREPARE | before_observe | root_cause, confirmation, recommendations, experiments |
 | result | agent | PREPARE | before_observe | root_cause, confirmation, recommendations, experiments |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4324,7 +4324,7 @@ Solution rationale не inline в независимом inspection; досту�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -4374,7 +4374,7 @@ Solution rationale не inline в независимом inspection; досту�
 | assumptions | список id, statement, justification, impact_if_false, evidence/ref status; explicit none. |
 | change_plan | desired-state obligations, exact ordered actions, prerequisites, privileges, observable receipts, replay/rollback policy, risks. |
 | rollback_plan | reversible steps exact undo+verification, irreversible effects явно и основание пользовательской санкции, interruption policy. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
 | execution_results | generated immutable receipts: method,target,key,status,expected/actual,evidence/output refs; unknown отдельно от failed. |
 | observed_state | generated after facts, desired criteria comparisons, persistent changes/temporary residue, evidence refs. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
@@ -4383,16 +4383,16 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -4426,9 +4426,9 @@ Solution rationale не inline в независимом inspection; досту�
 | scope | agent | PREPARE | before_observe | target, desired_state, task_requirements, definition_of_done |
 | constraints | agent | PREPARE | before_observe | target, desired_state, task_requirements, definition_of_done |
 | verification_plan | agent | PREPARE | before_observe | target, desired_state, task_requirements, definition_of_done |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4466,10 +4466,10 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| baseline | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| baseline | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4510,9 +4510,9 @@ Solution rationale не inline в независимом inspection; досту�
 | change_plan | agent | PREPARE | before_observe | baseline, desired_state, constraints |
 | rollback_plan | agent | PREPARE | before_observe | baseline, desired_state, constraints |
 | verification_plan | agent | PREPARE | before_observe | baseline, desired_state, constraints |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4550,11 +4550,11 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| execution_results | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| observed_state | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| execution_results | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| observed_state | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4592,9 +4592,9 @@ Solution rationale не inline в независимом inspection; досту�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | verdict | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -4637,9 +4637,9 @@ Solution rationale не inline в независимом inspection; досту�
 | findings | agent | PREPARE | before_observe | desired_state, baseline, observed_state, evidence, verdict |
 | inspection_verdict | agent | PREPARE | before_observe | desired_state, baseline, observed_state, evidence, verdict |
 | result | agent | PREPARE | before_observe | desired_state, baseline, observed_state, evidence, verdict |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4680,11 +4680,11 @@ Solution rationale не inline в независимом inspection; досту�
 | --- | --- | --- | --- | --- |
 | change_plan | agent | PREPARE | before_observe | findings, observed_state, rollback_plan |
 | finding_resolutions | agent | PREPARE | before_observe | findings, observed_state, rollback_plan |
-| observed_state | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| observed_state | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4727,9 +4727,9 @@ Solution rationale не inline в независимом inspection; досту�
 | inspection_verdict | agent | PREPARE | before_observe | finding_resolutions, observed_state, evidence, resolution_bindings |
 | result | agent | PREPARE | before_observe | finding_resolutions, observed_state, evidence, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | finding_resolutions, observed_state, evidence, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4760,7 +4760,7 @@ Solution rationale не inline в независимом inspection; досту�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -4779,7 +4779,7 @@ Solution rationale не inline в независимом inspection; досту�
 
 **Польза:** Основное — desired-state criteria achieved; final concise result text supplemental; не считать весь installed software payload созданным агентом.
 
-User-executed instruction фиксируется как external action и последующий наблюдаемый state receipt, не как будто command исполнил Harness.
+User-executed instruction фиксируется как external action и последующий наблюдаемый state receipt, не как будто command исполнил AI poise.
 
 ## documentation — независимый процесс
 
@@ -4808,26 +4808,26 @@ User-executed instruction фиксируется как external action и по�
 | outline | section IDs, purpose, content_requirement refs, последовательность. |
 | content | final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB. |
 | examples_commands | document locator, exact executable method, sandbox/mutation bounds, expected outcome, evidence refs. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
 | publication_target | codebase/path или task artifact, формат и правила delivery; явная push/transport policy. |
 | assumptions | список id, statement, justification, impact_if_false, evidence/ref status; explicit none. |
 | constraints | список id, predicate/statement, source, область и способ проверки; explicit empty с причиной. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | verdict | по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -4862,9 +4862,9 @@ User-executed instruction фиксируется как external action и по�
 | content_requirements | agent | PREPARE | before_observe | goal, scope, audience, task_requirements, definition_of_done |
 | verification_plan | agent | PREPARE | before_observe | goal, scope, audience, task_requirements, definition_of_done |
 | publication_target | agent | PREPARE | before_observe | goal, scope, audience, task_requirements, definition_of_done |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4903,9 +4903,9 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | outline | agent | PREPARE | before_observe | content_requirements, audience, source_inventory |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4945,9 +4945,9 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | content | agent | PREPARE | before_observe | outline, audience, source_inventory, verification_plan |
 | examples_commands | agent | PREPARE | before_observe | outline, audience, source_inventory, verification_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -4985,9 +4985,9 @@ User-executed instruction фиксируется как external action и по�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | verdict | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -5030,9 +5030,9 @@ User-executed instruction фиксируется как external action и по�
 | findings | agent | PREPARE | before_observe | content, audience, content_requirements, evidence, verdict |
 | inspection_verdict | agent | PREPARE | before_observe | content, audience, content_requirements, evidence, verdict |
 | result | agent | PREPARE | before_observe | content, audience, content_requirements, evidence, verdict |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5073,10 +5073,10 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | content | agent | PREPARE | before_observe | findings, content, verification_plan |
 | finding_resolutions | agent | PREPARE | before_observe | findings, content, verification_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5119,9 +5119,9 @@ User-executed instruction фиксируется как external action и по�
 | inspection_verdict | agent | PREPARE | before_observe | content, finding_resolutions, evidence, resolution_bindings |
 | result | agent | PREPARE | before_observe | content, finding_resolutions, evidence, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | content, finding_resolutions, evidence, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5152,7 +5152,7 @@ User-executed instruction фиксируется как external action и по�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -5201,24 +5201,24 @@ User-executed instruction фиксируется как external action и по�
 | deliverables | id, type, owner/path, expected content/schema, acceptance method и requirement refs. |
 | work_plan | ordered work items и dependencies; outcome каждого; required inputs; scope/риски; без копирования mechanical lifecycle steps. |
 | acceptance_design | target requirements→DoD→deliverables/obligations/methods, applicability и разрешённые поздние design steps. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
 | planned_task | полный draft target task по собственному goal_type schema, creation validation receipt, origin planning owner, canonical publish receipt после publication. |
 | risks | id, condition, impact, mitigation/контроль, owner decision; explicit none допускается. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -5252,9 +5252,9 @@ User-executed instruction фиксируется как external action и по�
 | constraints | agent | PREPARE | before_observe | planning_target, product_requirements, task_requirements, definition_of_done |
 | assumptions | agent | PREPARE | before_observe | planning_target, product_requirements, task_requirements, definition_of_done |
 | deliverables | agent | PREPARE | before_observe | planning_target, product_requirements, task_requirements, definition_of_done |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5293,10 +5293,10 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | goal_classification | agent | PREPARE | before_observe | deliverables, constraints, planning_target |
-| planned_task | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| planned_task | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5335,9 +5335,9 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | planned_task | agent | PREPARE | before_observe | goal_classification, product_requirements, planned_task |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5377,9 +5377,9 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | acceptance_design | agent | PREPARE | before_observe | planned_task, deliverables |
 | planned_task | agent | PREPARE | before_observe | planned_task, deliverables |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5419,9 +5419,9 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | work_plan | agent | PREPARE | before_observe | planned_task, acceptance_design, constraints |
 | planned_task | agent | PREPARE | before_observe | planned_task, acceptance_design, constraints |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5461,9 +5461,9 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | verification_plan | agent | PREPARE | before_observe | planned_task, work_plan, acceptance_design |
 | planned_task | agent | PREPARE | before_observe | planned_task, work_plan, acceptance_design |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5504,9 +5504,9 @@ User-executed instruction фиксируется как external action и по�
 | inspection_coverage | agent | PREPARE | before_observe | planned_task, verification_plan, acceptance_design |
 | findings | agent | PREPARE | before_observe | planned_task, verification_plan, acceptance_design |
 | inspection_verdict | agent | PREPARE | before_observe | planned_task, verification_plan, acceptance_design |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5547,10 +5547,10 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | planned_task | agent | PREPARE | before_observe | findings, planned_task |
 | finding_resolutions | agent | PREPARE | before_observe | findings, planned_task |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5592,9 +5592,9 @@ User-executed instruction фиксируется как external action и по�
 | findings | agent | PREPARE | before_observe | planned_task, finding_resolutions, resolution_bindings |
 | inspection_verdict | agent | PREPARE | before_observe | planned_task, finding_resolutions, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | planned_task, finding_resolutions, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5634,10 +5634,10 @@ User-executed instruction фиксируется как external action и по�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| result | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| evidence | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| artifacts | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| traceability | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| result | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| evidence | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| artifacts | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| traceability | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
 
 **Переходы:**
 
@@ -5666,7 +5666,7 @@ User-executed instruction фиксируется как external action и по�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -5727,16 +5727,16 @@ User-executed instruction фиксируется как external action и по�
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -5769,10 +5769,10 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | constraints | agent | PREPARE | before_observe | planning_inputs, product_requirements, sprint_requirements, definition_of_done, planning_target |
 | assumptions | agent | PREPARE | before_observe | planning_inputs, product_requirements, sprint_requirements, definition_of_done, planning_target |
-| planned_sprint | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| planned_sprint | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5811,9 +5811,9 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | decomposition | agent | PREPARE | before_observe | sprint_requirements, definition_of_done, constraints |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5852,10 +5852,10 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | goal_classification | agent | PREPARE | before_observe | decomposition |
-| task_contracts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| task_contracts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5894,9 +5894,9 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | task_contracts | agent | PREPARE | before_observe | task_contracts, decomposition, constraints |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5935,9 +5935,9 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | dependency_plan | agent | PREPARE | before_observe | task_contracts, decomposition |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -5979,9 +5979,9 @@ User-executed instruction фиксируется как external action и по�
 | shared_context_plan | agent | PREPARE | before_observe | dependency_plan, task_contracts |
 | shared_artifacts_plan | agent | PREPARE | before_observe | dependency_plan, task_contracts |
 | risks | agent | PREPARE | before_observe | dependency_plan, task_contracts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6021,9 +6021,9 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | manual_evidence | agent | PREPARE | before_observe | sprint_requirements, definition_of_done, task_contracts, dependency_plan |
 | planned_sprint | agent | PREPARE | before_observe | sprint_requirements, definition_of_done, task_contracts, dependency_plan |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6064,9 +6064,9 @@ User-executed instruction фиксируется как external action и по�
 | inspection_coverage | agent | PREPARE | before_observe | planned_sprint, task_contracts, dependency_plan, traceability, execution_plan |
 | findings | agent | PREPARE | before_observe | planned_sprint, task_contracts, dependency_plan, traceability, execution_plan |
 | inspection_verdict | agent | PREPARE | before_observe | planned_sprint, task_contracts, dependency_plan, traceability, execution_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6109,10 +6109,10 @@ User-executed instruction фиксируется как external action и по�
 | task_contracts | agent | PREPARE | before_observe | planned_sprint, findings |
 | dependency_plan | agent | PREPARE | before_observe | planned_sprint, findings |
 | finding_resolutions | agent | PREPARE | before_observe | planned_sprint, findings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6154,9 +6154,9 @@ User-executed instruction фиксируется как external action и по�
 | findings | agent | PREPARE | before_observe | planned_sprint, finding_resolutions, resolution_bindings |
 | inspection_verdict | agent | PREPARE | before_observe | planned_sprint, finding_resolutions, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | planned_sprint, finding_resolutions, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6196,10 +6196,10 @@ User-executed instruction фиксируется как external action и по�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| result | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| evidence | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| artifacts | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| traceability | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| result | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| evidence | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| artifacts | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| traceability | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
 
 **Переходы:**
 
@@ -6228,7 +6228,7 @@ User-executed instruction фиксируется как external action и по�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -6274,26 +6274,26 @@ User-executed instruction фиксируется как external action и по�
 | integration_sources | список exact source commits и result/task refs, required delivered requirements, preserve/rewrite policy. |
 | baseline | applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён. |
 | integration_plan | explicit merge/rebase/cherry-pick strategy, order, private refs, conflicts policy, exact targeted checks и target publication predicate. |
-| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен. |
+| verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
 | conflicts | generated conflict ID, file/object, base/ours/theirs refs, source obligations; conflict не defect finding. |
-| conflict_resolutions | После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set Harness сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее. |
+| conflict_resolutions | После реального conflict receipt: conflict ID, rationale, retained source requirement refs, resolution proposal. При actual empty conflict set AI poise сам фиксирует no_conflicts; agent не выдумывает пустой verdict заранее. |
 | constraints | список id, predicate/statement, source, область и способ проверки; explicit empty с причиной. |
-| artifacts | Generated Harness index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
+| artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
 | evidence | Generated current evidence projection: execution receipts + зарегистрированные manual_evidence; outcome/validity/subject отдельны. Агент не перезаписывает индекс. |
 | verdict | по каждому criterion/вопросу: proved/disproved/inconclusive/waived из явного набора; evidence и основания; product verdict отдельно от качества исполнения задачи. |
 | inspection_coverage | subject result/revision, inspected units/criteria, skipped units+reason, supporting references; полнота scope проверяется структурно и отдельным semantic verdict. |
 | findings | id, category subject_defect/task_quality/internal_QA, defect-of immutable result, origin cycle/iteration, subject, observed/expected, significance, evidence, requirement refs, current disposition; explicit empty с coverage/verdict. |
 | inspection_verdict | accepted/rework_required; subject result refs, identified objections/findings, required follow-up stage; не изменяет осмотренный результат. |
-| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. Harness resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
+| finding_resolutions | ResolutionProposal: finding ref, explanation, proposed substantive result, method refs и доступные manual evidence. Не содержит обязательного accepted/rejected будущего осмотра. AI poise resolution_bindings привязывает proposal к наблюдаемому result/receipts. |
 | result | final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем. |
-| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла. |
-| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся Harness из semantic input агента. |
+| decisions | Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла. |
+| user_feedback | instruction reference, смысл, classify=accept/rework/requirement_change/cancel, target result/stage; создаётся AI poise из semantic input агента. |
 | traceability | Generated view типизированных relations HR-095; historical provenance не распространяет stale. |
 | handoff | current stage/iteration/submission, last accepted result, WIP/verified vector, outstanding findings/evidence/decisions, bundle/receipt; generated. |
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает Harness. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
+| artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
 
@@ -6325,10 +6325,10 @@ User-executed instruction фиксируется как external action и по�
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
 | constraints | agent | PREPARE | before_observe | integration_target, integration_sources, task_requirements, definition_of_done |
-| baseline | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| baseline | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6368,9 +6368,9 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | integration_plan | agent | PREPARE | before_observe | baseline, integration_sources, constraints, task_requirements |
 | verification_plan | agent | PREPARE | before_observe | baseline, integration_sources, constraints, task_requirements |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6408,10 +6408,10 @@ User-executed instruction фиксируется как external action и по�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| conflicts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| conflicts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | conflict_resolutions | agent | CONTINUE | after_observation_if_actual_conflicts_nonempty | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -6450,9 +6450,9 @@ User-executed instruction фиксируется как external action и по�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| evidence | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| artifacts | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
-| traceability | harness | OBSERVE | before_seal | bound_subject, operation_receipts |
+| evidence | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
+| traceability | poise | OBSERVE | before_seal | bound_subject, operation_receipts |
 | verdict | agent | CONTINUE | after_observation | observation_receipt, bound_subject |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
@@ -6494,9 +6494,9 @@ User-executed instruction фиксируется как external action и по�
 | inspection_coverage | agent | PREPARE | before_observe | integration_sources, conflict_resolutions, verdict, evidence, task_requirements |
 | findings | agent | PREPARE | before_observe | integration_sources, conflict_resolutions, verdict, evidence, task_requirements |
 | inspection_verdict | agent | PREPARE | before_observe | integration_sources, conflict_resolutions, verdict, evidence, task_requirements |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6537,10 +6537,10 @@ User-executed instruction фиксируется как external action и по�
 | --- | --- | --- | --- | --- |
 | finding_resolutions | agent | PREPARE | before_observe | findings, integration_plan, verification_plan |
 | conflict_resolutions | agent | PREPARE | before_observe | findings, integration_plan, verification_plan |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| resolution_bindings | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| resolution_bindings | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6582,9 +6582,9 @@ User-executed instruction фиксируется как external action и по�
 | findings | agent | PREPARE | before_observe | finding_resolutions, evidence, integration_sources, resolution_bindings |
 | inspection_verdict | agent | PREPARE | before_observe | finding_resolutions, evidence, integration_sources, resolution_bindings |
 | resolution_review_decisions | reviewer | PREPARE | before_observe | finding_resolutions, evidence, integration_sources, resolution_bindings |
-| artifacts | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| evidence | harness | CHECK | before_seal | bound_subject, operation_receipts |
-| traceability | harness | CHECK | before_seal | bound_subject, operation_receipts |
+| artifacts | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| evidence | poise | CHECK | before_seal | bound_subject, operation_receipts |
+| traceability | poise | CHECK | before_seal | bound_subject, operation_receipts |
 | artifact_paths | agent | PREPARE | explicit_list_empty_allowed | current runtime/task/sprint roots |
 
 **Переходы:**
@@ -6624,10 +6624,10 @@ User-executed instruction фиксируется как external action и по�
 
 | Поле | Автор | Фаза появления | Обязательно | Основания |
 | --- | --- | --- | --- | --- |
-| result | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| evidence | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| artifacts | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
-| traceability | harness | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| result | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| evidence | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| artifacts | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
+| traceability | poise | CHECK | before_gate_success | accepted_inspection, publish_authority, immutable_candidate |
 
 **Переходы:**
 
@@ -6656,7 +6656,7 @@ User-executed instruction фиксируется как external action и по�
   },
   "binding_output": {
     "field": "resolution_bindings",
-    "producer": "harness",
+    "producer": "poise",
     "phase": "CHECK",
     "when": "proposal exists and resulting subject observed"
   },
@@ -6687,7 +6687,7 @@ Private publication на промежуточных этапах не означ
 
 ### HR-098. Декларативный пакет вместо ручного обслуживания
 
-Каждый Harness tool принимает множество однородных/связанных изменений одним логическим пакетом. Агент задаёт желаемое содержание, инструмент выполняет создание, форматирование, validation, регистрацию, сохранение и обновление проекций. Агенту запрещено напрямую изменять обслуживаемые config/task/sprint/runtime-файлы и SQLite. Общие pipelines не обходят доменные владельцы. Нативные IDE/patch tools исходников, тестов и документации целевой codebase сохраняются; Git остаётся источником их изменений.
+Каждый AI poise tool принимает множество однородных/связанных изменений одним логическим пакетом. Агент задаёт желаемое содержание, инструмент выполняет создание, форматирование, validation, регистрацию, сохранение и обновление проекций. Агенту запрещено напрямую изменять обслуживаемые config/task/sprint/runtime-файлы и SQLite. Общие pipelines не обходят доменные владельцы. Нативные IDE/patch tools исходников, тестов и документации целевой codebase сохраняются; Git остаётся источником их изменений.
 
 <a id="HR-099"></a>
 

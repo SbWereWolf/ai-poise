@@ -19,7 +19,7 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
 Образец: `config/sprint.example.json`. Это явные значения примера, не defaults кода. Выбор шаблона обязателен при создании; при изменении передаётся `template: null`, используется сохранённый контракт. Missing values не изобретаются.
 
 ## Пакетные изменения
-Один вызов `harness work`, JSON в stdin. Общий envelope: `operation`, `input`, `messages`. Для Sprint — `operation: sprint`. Структурные имена команд являются протоколом инструмента, а не названием goal type.
+Один вызов `poise work`, JSON в stdin. Общий envelope: `operation`, `input`, `messages`. Для Sprint — `operation: sprint`. Структурные имена команд являются протоколом инструмента, а не названием goal type.
 
 ### Создать/доработать draft
 ```json

@@ -201,7 +201,7 @@
         "baseline": "applicability required/not_applicable + reason; при required exact target revision/state и evidence refs. В профилях с mandatory baseline not_applicable запрещён.",
         "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
         "decision_criteria": "id, statement, priority/weights только при явно выбранной scoring model, evidence/predicate для сравнения.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет Harness при запуске; future test path известен, future hash не нужен."
+        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
       },
       "required_sections": [
         "report",
@@ -265,7 +265,7 @@
       "sections": {
         "report": "Record the substantive result for this stage.",
         "selected_approach": "alternative_id, rationale, criteria comparisons, constraints/evidence refs, rejected alternatives причины.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит Harness после semantic interpretation, а не выполняет автоматически из текста файла."
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла."
       },
       "required_sections": [
         "report",

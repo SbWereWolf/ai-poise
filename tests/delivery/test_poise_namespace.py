@@ -158,7 +158,7 @@ def test_live_project_uses_allocator_owned_task_identity():
 
     workflow = (ROOT / "docs" / "workflows" / "batch-work.md").read_text()
     boundaries = (ROOT / "docs" / "architecture" / "boundaries.md").read_text()
-    assert "agent при обычном создании нового Task использует automatic" in workflow
+    assert "агент при обычном создании нового Task использует automatic" in workflow
     assert "никогда не выбирает номер сам" in workflow
     assert "TaskRepository.allocate" in boundaries
     assert "не вычисляют номер" in boundaries

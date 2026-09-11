@@ -5,7 +5,7 @@ import subprocess
 import sys
 from copy import deepcopy
 import pytest
-from harness.common import HarnessError
+from poise.common import PoiseError
 from hook_transport.helpers import settings, definition
 
 
@@ -16,7 +16,7 @@ def prepared(project,tmp_path):
 
 
 def test_setup_one_packet_creates_settings_hooks_and_runs_probes(project,tmp_path):
-    from harness.infrastructure.hook_transport import setup_runtime
+    from poise.infrastructure.hook_transport import setup_runtime
     path,packet=prepared(project,tmp_path)
     result=setup_runtime(path,packet)
     assert result['status']=='installed' and result['capability_checks']['ready']
@@ -29,25 +29,25 @@ def test_setup_one_packet_creates_settings_hooks_and_runs_probes(project,tmp_pat
 
 @pytest.mark.parametrize('problem',['invalid_definition','missing_setting'])
 def test_invalid_setup_does_not_write_managed_files(project,tmp_path,problem):
-    from harness.infrastructure.hook_transport import setup_runtime
+    from poise.infrastructure.hook_transport import setup_runtime
     path,packet=prepared(project,tmp_path)
     if problem=='invalid_definition':packet['installation']['definition']['events'][0]['matcher']='['
     else:packet['settings'].pop('file_mode')
-    with pytest.raises(HarnessError):setup_runtime(path,packet)
+    with pytest.raises(PoiseError):setup_runtime(path,packet)
     assert not path.exists() and not (project['root']/'.codex/hooks.json').exists()
 
 
 def test_setup_cannot_replace_different_existing_settings(project,tmp_path):
-    from harness.infrastructure.hook_transport import setup_runtime
+    from poise.infrastructure.hook_transport import setup_runtime
     path,packet=prepared(project,tmp_path);setup_runtime(path,packet);old=path.read_bytes()
     changed=deepcopy(packet);changed['settings']['output_chars']+=1
-    with pytest.raises(HarnessError):setup_runtime(path,changed)
+    with pytest.raises(PoiseError):setup_runtime(path,changed)
     assert path.read_bytes()==old
 
 
 def test_setup_cli_has_explicit_bootstrap_limit(project,tmp_path):
     path,packet=prepared(project,tmp_path)
-    result=subprocess.run([sys.executable,'-m','harness','runtime-setup','--settings',str(path),
+    result=subprocess.run([sys.executable,'-m','poise','runtime-setup','--settings',str(path),
         '--max-input-bytes',str(1048576)],input=json.dumps(packet),text=True,capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)['capability_checks']['ready']

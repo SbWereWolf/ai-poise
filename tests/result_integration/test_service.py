@@ -1,9 +1,9 @@
 import pytest
 
 from conftest import git
-from harness.application.work import WorkTools
-from harness.modules.foundation.errors import HarnessError
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.modules.foundation.errors import PoiseError
+from poise.runtime import Poise
 
 from .helpers import integration_input, prepare_completed_task, request
 
@@ -74,7 +74,7 @@ def test_stale_target_is_rejected_without_touching_source_or_target(project):
     payload = integration_input(project, source)
     payload["expected_target_commit"] = stale
 
-    with pytest.raises(HarnessError, match="target.*changed|expected target"):
+    with pytest.raises(PoiseError, match="target.*changed|expected target"):
         tools.invoke(request("integrate", payload))
 
     assert git(project["app"], "rev-parse", "HEAD") == target_after
@@ -100,7 +100,7 @@ def test_source_task_branch_commit_and_both_worktrees_are_validated_before_merge
         git(source_worktree, "branch", "-m", "unexpected-source")
     target_before = git(project["app"], "rev-parse", "HEAD")
 
-    with pytest.raises(HarnessError):
+    with pytest.raises(PoiseError):
         tools.invoke(request("integrate", payload))
 
     assert git(project["app"], "rev-parse", "HEAD") == target_before
@@ -132,7 +132,7 @@ def test_cleanup_interruption_is_queryable_and_retry_only_finishes_cleanup(proje
     assert not source_worktree.exists()
     assert git(project["app"], "branch", "--list", "tasks/T1") == ""
 
-    reader = WorkTools(Harness(project["config_path"], "reader"))
+    reader = WorkTools(Poise(project["config_path"], "reader"))
     shown = reader.invoke(request("show", {"queries": [{
         "id": "integration",
         "kind": "integration",

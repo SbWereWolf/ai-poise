@@ -34,8 +34,8 @@ def project(tmp_path, monkeypatch):
     subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
     git(app, 'remote', 'add', 'backup', str(remote))
     git(app, 'push', 'backup', 'main')
-    harness_root = tmp_path / 'harness'
-    harness_root.mkdir()
+    poise_root = tmp_path / 'poise'
+    poise_root.mkdir()
     stages = []
     for name, readonly, allowed in [
         ('tests', False, ['tests/**']),
@@ -56,7 +56,7 @@ def project(tmp_path, monkeypatch):
     for i, stage in enumerate(stages):
         stage.update(handler="produce", transitions={"complete":stages[i+1]["id"] if i+1<len(stages) else None}, rework_targets=[stage["id"]])
     process = {'route':{"entry":"tests","max_transitions":40,"max_stage_visits":8}, 'goal_type': 'development', 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
-    write_json(harness_root / 'config/processes/development.json', process)
+    write_json(poise_root / 'config/processes/development.json', process)
     cfg = {
         'schema': 'ddd-accounting-11',
         'project': 'demo',
@@ -92,7 +92,7 @@ def project(tmp_path, monkeypatch):
     cfg['runtime_services']=json.loads((Path(__file__).resolve().parents[1]/'config/runtime.example.json').read_text())
     cfg['batch']=json.loads((Path(__file__).resolve().parents[1]/'config/batch.example.json').read_text())
     cfg['sprint']=json.loads((Path(__file__).resolve().parents[1]/'config/sprint.example.json').read_text())
-    cfg_path = write_json(harness_root / 'project.json', cfg)
+    cfg_path = write_json(poise_root / 'project.json', cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     methods = [
         {'id': 'RED', 'argv': argv, 'cwd': '.', 'environment': {},
@@ -111,8 +111,8 @@ def project(tmp_path, monkeypatch):
         'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']},
      "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     task['evidence_plan'] = {s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}
-    task_path = write_json(harness_root / 'task.json', task)
-    return {'root': harness_root, 'config_path': cfg_path, 'cfg': cfg, 'process': process,
+    task_path = write_json(poise_root / 'task.json', task)
+    return {'root': poise_root, 'config_path': cfg_path, 'cfg': cfg, 'process': process,
             'task_path': task_path, 'task': task, 'app': app, 'remote': remote}
 
 
@@ -135,10 +135,10 @@ def add_test(worktree):
 
 
 # Test-only scenario client. It keeps the caller's draft in memory, then sends
-# the NEW explicit result object. It is not installed/exported by Harness and
+# the NEW explicit result object. It is not installed/exported by Poise and
 # it does not read or write an operational result file. This preserves old
 # behavioural assertions while changing their transport fixture.
-from harness.runtime import Harness as Runtime
+from poise.runtime import Poise as Runtime
 from copy import deepcopy
 _SCENARIO_DRAFTS={}
 
@@ -148,7 +148,7 @@ def clear_scenario_clients():
     yield
     _SCENARIO_DRAFTS.clear()
 
-class Harness(Runtime):
+class Poise(Runtime):
     def _remember(self,context):
         key=(str(self.config_path),self.session)
         candidate=context.get('result_template')

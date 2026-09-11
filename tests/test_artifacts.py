@@ -1,12 +1,12 @@
 from pathlib import Path
 import pytest
 from conftest import fill, add_test, write_json
-from harness.runtime import HarnessError
-from conftest import Harness
+from poise.runtime import PoiseError
+from conftest import Poise
 
 
 def begin(project):
-    h = Harness(project['config_path'], 'A'); b = h.bootstrap(task_file=project['task_path'])
+    h = Poise(project['config_path'], 'A'); b = h.bootstrap(task_file=project['task_path'])
     add_test(b['worktree'])
     return h, b
 
@@ -23,7 +23,7 @@ def test_only_path_is_needed_and_id_is_stable(project):
 
 def test_sprint_artifact_in_sprint_root(project):
     from sprints.helpers import publish_existing_contract
-    h=Harness(project['config_path'],'A')
+    h=Poise(project['config_path'],'A')
     contract=publish_existing_contract(h,project['task'],'S1')
     write_json(project['task_path'],contract)
     b=h.bootstrap(task_file=project['task_path']);add_test(b['worktree'])
@@ -36,7 +36,7 @@ def test_external_path_rejected(project, tmp_path):
     h, b = begin(project)
     f = tmp_path / 'outside.md'; f.write_text('outside')
     fill(b, artifacts=[str(f)])
-    with pytest.raises(HarnessError, match='root|root|област'):
+    with pytest.raises(PoiseError, match='root|root|област'):
         h.verify()
 
 
@@ -45,14 +45,14 @@ def test_symlink_escape_rejected(project, tmp_path):
     outside = tmp_path / 'secret'; outside.write_text('outside')
     link = Path(b['task_root']) / 'bad'; link.symlink_to(outside)
     fill(b, artifacts=[str(link)])
-    with pytest.raises(HarnessError): h.verify()
+    with pytest.raises(PoiseError): h.verify()
 
 
 def test_foreign_task_path_rejected(project):
     h, b = begin(project)
     f = Path(b['task_root']).parent / 'T2' / 'file'; f.parent.mkdir(); f.write_text('foreign')
     fill(b, artifacts=[str(f)])
-    with pytest.raises(HarnessError): h.verify()
+    with pytest.raises(PoiseError): h.verify()
 
 
 def test_configured_file_count_is_checked(project):
@@ -62,7 +62,7 @@ def test_configured_file_count_is_checked(project):
     h, b = begin(project)
     a = Path(b['task_root']) / 'a.json'; a.write_text('{}')
     fill(b, artifacts=[str(a), str(a)])
-    with pytest.raises(HarnessError, match='количество'): h.verify()
+    with pytest.raises(PoiseError, match='количество'): h.verify()
     c = Path(b['task_root']) / 'b.json'; c.write_text('{}')
     fill(b, artifacts=[str(a), str(c)])
     assert len(h.verify()['artifacts']) == 2
@@ -81,7 +81,7 @@ def test_runtime_artifact_is_not_a_durable_task_artifact(project):
 def test_missing_artifact_rejected_before_tests(project):
     h, b = begin(project)
     fill(b, artifacts=[str(Path(b['task_root']) / 'missing')])
-    with pytest.raises(HarnessError): h.verify()
+    with pytest.raises(PoiseError): h.verify()
     assert h.show()['attempts'] == 0
 
 
@@ -89,6 +89,6 @@ def test_task_owner_root_cannot_redirect_to_external_directory(project,tmp_path)
     outside=tmp_path/'other-owner';outside.mkdir()
     parent=project['root']/'state/tasks';parent.mkdir(parents=True)
     (parent/'T1').symlink_to(outside,target_is_directory=True)
-    h=Harness(project['config_path'],'A')
-    with pytest.raises(HarnessError,match='symlink'):
+    h=Poise(project['config_path'],'A')
+    with pytest.raises(PoiseError,match='symlink'):
         h.bootstrap(task_file=project['task_path'])

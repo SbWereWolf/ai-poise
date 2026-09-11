@@ -27,7 +27,7 @@ def run_one(directory: Path, goal: str, feedback: bool):
         task['methods'][0]['argv'][0] = sys.executable
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in process['stages']}
     save(home / 'task.json', task)
-    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'HARNESS_CONFIG': str(home / 'project.json'), 'HARNESS_SESSION': 'runner-demo'}
+    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'runner-demo'}
     calls = []
     client = WorkClient(env, 30)
     calls = client.calls
@@ -44,7 +44,7 @@ def run_one(directory: Path, goal: str, feedback: bool):
     route[-1] = (review_id, {**clean, 'findings': [issue]} if feedback else clean)
     if feedback:
         for number, verdict in [(1, 'rejected'), (2, 'accepted')]:
-            route.extend([(fix_id, {'resolutions': [{'id': f'R{number}', 'finding_id': 'F1', 'description': f'Предложение {number}', 'evidence': 'Точный проектный check выполняет Harness; смысл осматривается агентом.'}]}), (follow_id, {**clean, 'resolution_decisions': [{'resolution_id': f'R{number}', 'decision': verdict, 'reason': 'Результат повторного осмотра, заданный сценарием.'}]})])
+            route.extend([(fix_id, {'resolutions': [{'id': f'R{number}', 'finding_id': 'F1', 'description': f'Предложение {number}', 'evidence': 'Точный проектный check выполняет Poise; смысл осматривается агентом.'}]}), (follow_id, {**clean, 'resolution_decisions': [{'resolution_id': f'R{number}', 'decision': verdict, 'reason': 'Результат повторного осмотра, заданный сценарием.'}]})])
     reports = []
     for index, (stage, work) in enumerate(route):
         if index:

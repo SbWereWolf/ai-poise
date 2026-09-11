@@ -10,9 +10,9 @@
 ## Один прямой вызов
 ```bash
 export PYTHONPATH="$PWD/src"
-python -m harness goal-config --settings config/goal-editor.json < examples/goal_config_create.json
+python -m poise goal-config --settings config/goal-editor.json < examples/goal_config_create.json
 ```
-Это готовый пример create `generated_notes`. Вход JSON можно передать прямо через stdin в том же tool call; предварительно создавать/редактировать request-файл не требуется. `HARNESS_CONFIG` и `HARNESS_SESSION` для конфигурирования не нужны: Task store не открывается и task не создаётся. В API: `goal_config_tools(settings_path).apply_batch(request)`.
+Это готовый пример create `generated_notes`. Вход JSON можно передать прямо через stdin в том же tool call; предварительно создавать/редактировать request-файл не требуется. `POISE_CONFIG` и `POISE_SESSION` для конфигурирования не нужны: Task store не открывается и task не создаётся. В API: `goal_config_tools(settings_path).apply_batch(request)`.
 
 `--settings` — явный installation-конфиг редактора. Он задаёт root, разрешённые target paths, шаблоны, лимиты, форматирование, права создаваемого файла и выходные коды. Нет автопоиска settings по cwd, неявного шаблона или имени `origin`.
 

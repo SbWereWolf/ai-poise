@@ -2,9 +2,9 @@ from copy import deepcopy
 
 import pytest
 
-from harness.application.work import WorkTools
-from harness.common import HarnessError
-from harness.runtime import Harness
+from poise.application.work import WorkTools
+from poise.common import PoiseError
+from poise.runtime import Poise
 from sprints.helpers import changes, setup, task
 
 from .helpers import request
@@ -33,7 +33,7 @@ def sprint_overview(tools, sprint_id):
 def standalone(project, identifier, session):
     contract = task(project, identifier)
     contract["sprint_id"] = None
-    tools = WorkTools(Harness(project["config_path"], session))
+    tools = WorkTools(Poise(project["config_path"], session))
     context = tools.invoke(request("bootstrap", {
         "task": contract,
         "decision": None,
@@ -54,7 +54,7 @@ def complete_standalone(project, identifier, session):
 
 
 def drafted_sprint(project, identifier, task_ids, edges=()):
-    tools = WorkTools(Harness(project["config_path"], f"planner-{identifier}"))
+    tools = WorkTools(Poise(project["config_path"], f"planner-{identifier}"))
     contracts = []
     for task_id in task_ids:
         contract = task(project, task_id)
@@ -84,7 +84,7 @@ def published_sprint(project, identifier, task_ids, edges=()):
 
 def test_work_overview_empty_lists_and_exact_query_contract(project):
     setup(project)
-    tools = WorkTools(Harness(project["config_path"], "overview-empty"))
+    tools = WorkTools(Poise(project["config_path"], "overview-empty"))
 
     assert overview(tools) == {"sprints": [], "standalone_tasks": []}
 
@@ -110,7 +110,7 @@ def test_work_overview_empty_lists_and_exact_query_contract(project):
         },
     ]
     for query in bad_queries:
-        with pytest.raises(HarnessError):
+        with pytest.raises(PoiseError):
             tools.invoke(request("show", {"queries": [query]}))
 
 
@@ -121,7 +121,7 @@ def test_work_overview_separates_sprint_members_and_orders_each_list(project):
     drafted_sprint(project, "draft-sprint", ["draft-member"])
     standalone(project, "standalone-z", "standalone-z-session")
     standalone(project, "standalone-a", "standalone-a-session")
-    observer = WorkTools(Harness(project["config_path"], "overview-observer"))
+    observer = WorkTools(Poise(project["config_path"], "overview-observer"))
 
     result = overview(observer)
 
@@ -151,7 +151,7 @@ def test_work_overview_filters_lists_independently_with_null_and_empty(project):
     cancelled_task, _ = standalone(project, "cancelled-standalone", "cancelled-standalone-session")
     cancelled_task.invoke(request("cancel", {"reason": "Cancelled by the test scenario"}))
     complete_standalone(project, "completed-standalone", "completed-standalone-session")
-    observer = WorkTools(Harness(project["config_path"], "filter-observer"))
+    observer = WorkTools(Poise(project["config_path"], "filter-observer"))
 
     no_sprints = overview(observer, [], None)
     assert no_sprints["sprints"] == []
@@ -206,7 +206,7 @@ def test_work_overview_reuses_dependency_aware_blocked_sprint_overview(project):
         "feedback": None,
         "rework_stage": None,
     }))
-    observer = WorkTools(Harness(project["config_path"], "dependency-overview-observer"))
+    observer = WorkTools(Poise(project["config_path"], "dependency-overview-observer"))
     blocked_expected = sprint_overview(observer, "blocked-sprint")
     mixed_expected = sprint_overview(observer, "mixed-sprint")
     result = overview(observer, ["active", "blocked"], [])

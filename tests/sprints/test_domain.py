@@ -139,22 +139,32 @@ def test_replace_task_rejects_started_successor():
         )
 
 
-@pytest.mark.parametrize('edges',[
-    [{'predecessor':'BAD','successor':'BAD','kind':'completion'}],
-    [
+@pytest.mark.parametrize(('edges','max_dependencies'),[
+    ([{'predecessor':'BAD','successor':'BAD','kind':'completion'}],3000),
+    ([
         {'predecessor':'BAD','successor':'POST','kind':'completion'},
         {'predecessor':'POST','successor':'BAD','kind':'result'},
-    ],
+    ],3000),
+    ([
+        {'predecessor':'BAD','successor':'POST','kind':'completion'},
+        {'predecessor':'BAD','successor':'POST','kind':'result'},
+    ],3000),
+    ([
+        {'predecessor':'PRE','successor':'BAD','kind':'completion'},
+        {'predecessor':'BAD','successor':'POST','kind':'result'},
+    ],1),
 ])
-def test_replace_task_revalidates_corrupt_final_graph(edges):
-    value,p=plan([{'id':x,'sprint_id':'S'} for x in ('BAD','POST')])
+def test_replace_task_revalidates_corrupt_final_graph(edges,max_dependencies):
+    value,p=plan([{'id':x,'sprint_id':'S'} for x in ('PRE','BAD','POST')])
     corrupt=SprintPlan({**value.data,'dependencies':edges})
+    if max_dependencies != p.data['max_dependencies']:
+        raw=deepcopy(p.data);raw['max_dependencies']=max_dependencies;p=SprintPolicy.parse(raw)
     sprint=Sprint(corrupt,p,2,'published',(),())
     with pytest.raises(HarnessError):
         sprint.replace_task(
             'BAD',
             {'id':'BAD-2','sprint_id':'S'},
-            {'BAD':'available','POST':'available'},
+            {'PRE':'available','BAD':'available','POST':'available'},
             'Исправить контракт',
             'Пользователь разрешил замену',
             {'kind':'available'},

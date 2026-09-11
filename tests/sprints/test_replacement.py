@@ -4,6 +4,7 @@ import sqlite3
 
 import pytest
 
+from conftest import write_json
 from harness.application.work import WorkTools
 from harness.modules.foundation.errors import HarnessError
 from harness.runtime import Harness
@@ -94,10 +95,29 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     assert verify(tools, predecessor, "The predecessor is complete.")["status"] == "verified"
     assert tools.invoke(request("accept", {}))["status"] == "completed"
     context = bootstrap(tools, "BAD")
+    made = tools.invoke(
+        request(
+            "artifacts",
+            {
+                "items": [
+                    {
+                        "scope": "task",
+                        "path": "immutable-failure.txt",
+                        "source": {
+                            "kind": "text",
+                            "text": "Evidence owned by the superseded Task",
+                        },
+                    }
+                ]
+            },
+        )
+    )
     failed = verify(tools, context, "The immutable method is erroneous.")
     assert failed["status"] == "checks_failed"
     evidence_before = runtime.task_queries.evidence_view("BAD")
     history_before = runtime.task_queries.history("BAD")
+    submission_before = runtime.task_queries.latest_submission("BAD", "work", 1)
+    artifacts_before = deepcopy(runtime.store.artifact_records("BAD"))
     contract_before = runtime.task_queries.record("BAD")["contract"]
 
     outcome = replace(tools, current["revision"], replacement(project))
@@ -121,6 +141,9 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     assert runtime.task_queries.record("BAD")["contract"] == contract_before
     assert runtime.task_queries.evidence_view("BAD") == evidence_before
     assert runtime.task_queries.history("BAD")[:-1] == history_before
+    assert runtime.task_queries.latest_submission("BAD", "work", 1) == submission_before
+    assert runtime.store.artifact_records("BAD") == artifacts_before
+    assert Path(made["artifact_paths"][0]).read_text() == "Evidence owned by the superseded Task"
     assert runtime.task_queries.record("BAD-2")["status"] == "available"
     assert runtime.task_queries.record("BAD-2")["worktree"] is None
 
@@ -129,6 +152,8 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     assert old["status"] == "superseded" and old["result_template"] is None
     shown = reader.invoke(request("show", {"queries": [{"id": "old", "kind": "evidence"}]}))
     assert shown["results"][0]["value"] == evidence_before
+    assert reader.runtime.task_queries.latest_submission("BAD", "work", 1) == submission_before
+    assert reader.runtime.store.artifact_records("BAD") == artifacts_before
 
 
 def test_replacement_redirects_waiver_and_current_projection(sprint):
@@ -186,10 +211,37 @@ def test_replacement_rejects_invalid_candidates_without_mutation(sprint):
     invalid_method["checks"]["work"] = ["MISSING"]
     with pytest.raises(HarnessError, match="MISSING|method"):
         replace(tools, current["revision"], invalid_method, request_id="invalid-method")
+    incomplete = replacement(project)
+    del incomplete["definition_of_done"]
+    with pytest.raises(HarnessError, match="task|field|keys|набор полей"):
+        replace(tools, current["revision"], incomplete, request_id="incomplete-contract")
 
     assert sprint_view(tools, "plan") == before
     assert runtime.task_queries.record("BAD")["status"] == "available"
     assert runtime.task_queries.record("BAD-2") is None
+
+
+def test_replacement_uses_published_process_snapshot_after_live_config_changes(sprint):
+    project, runtime, tools = sprint
+    current = published_graph(sprint)
+    saved_process = deepcopy(runtime.task_queries.record("BAD")["process"])
+    live_process = deepcopy(project["process"])
+    live_process["stages"][0]["id"] = "changed-work"
+    live_process["stages"][0]["rework_targets"] = ["changed-work"]
+    live_process["route"]["entry"] = "changed-work"
+    write_json(project["root"] / "config/processes/development.json", live_process)
+    fresh_runtime = Harness(project["config_path"], "fresh-planner")
+    fresh_tools = WorkTools(fresh_runtime)
+
+    outcome = replace(
+        fresh_tools,
+        current["revision"],
+        replacement(project),
+        sprint_id="S",
+    )
+
+    assert outcome["revision"] == current["revision"] + 1
+    assert fresh_runtime.task_queries.record("BAD-2")["process"] == saved_process
 
 
 def test_replacement_rejects_started_successor_without_graph_change(sprint):
@@ -240,7 +292,10 @@ def test_replacement_rejects_dirty_foreign_and_pending_work_with_recovery(sprint
     current = published_graph(sprint)
     context = bootstrap(tools, "BAD")
     Path(context["worktree"], "src/double.py").write_text("dirty replacement candidate\n")
-    with pytest.raises(HarnessError, match="handoff|WIP|dirty"):
+    with pytest.raises(
+        HarnessError,
+        match=r"(?i)(?=.*(?:dirty|WIP|измен))(?=.*(?:handoff|передач))",
+    ):
         replace(tools, current["revision"], replacement(project), request_id="dirty")
     assert runtime.task_queries.record("BAD")["status"] == "active"
 
@@ -252,7 +307,10 @@ def test_replacement_rejects_foreign_owner_and_pending_operation(sprint):
     current = published_graph(sprint)
     other = WorkTools(Harness(project["config_path"], "worker"))
     bootstrap(other, "BAD")
-    with pytest.raises(HarnessError, match="owner|owned|handoff|session"):
+    with pytest.raises(
+        HarnessError,
+        match=r"(?i)(?=.*(?:owner|owned|session|владел))(?=.*(?:handoff|передач))",
+    ):
         replace(
             tools,
             current["revision"],
@@ -263,7 +321,10 @@ def test_replacement_rejects_foreign_owner_and_pending_operation(sprint):
     data = other.runtime.current_task()
     data["pending"] = "checks"
     other.runtime.store.save(data)
-    with pytest.raises(HarnessError, match="pending|outcome|resolve"):
+    with pytest.raises(
+        HarnessError,
+        match=r"(?i)(?=.*(?:pending|ожида))(?=.*(?:outcome|resolve|заверш|устран))",
+    ):
         replace(
             other,
             current["revision"],
@@ -272,6 +333,68 @@ def test_replacement_rejects_foreign_owner_and_pending_operation(sprint):
             sprint_id="S",
         )
     assert runtime.task_queries.record("BAD-2") is None
+
+
+@pytest.mark.parametrize("terminal", ["completed", "cancelled"])
+def test_replacement_rejects_terminal_source_tasks(sprint, terminal):
+    project, runtime, tools = sprint
+    current = published_graph(sprint)
+    revision = current["revision"]
+    if terminal == "completed":
+        context = bootstrap(tools, "BAD")
+        assert verify(tools, context)["status"] == "verified"
+        assert tools.invoke(request("accept", {}))["status"] == "completed"
+    else:
+        cancelled = tools.invoke(
+            request(
+                "sprint",
+                {
+                    "action": "cancel_tasks",
+                    "sprint_id": "S",
+                    "request_id": "cancel-BAD",
+                    "tasks": ["BAD"],
+                    "mode": "single",
+                    "reason": "The erroneous Task will not be executed",
+                },
+            )
+        )
+        revision = cancelled["revision"]
+
+    with pytest.raises(HarnessError, match="unfinished|completed|cancelled|заверш|отмен"):
+        replace(
+            tools,
+            revision,
+            replacement(project),
+            sprint_id="S",
+        )
+
+    assert runtime.task_queries.record("BAD")["status"] == terminal
+    assert runtime.task_queries.record("BAD-2") is None
+
+
+def test_replacement_current_projection_redirects_blockers_and_eligibility(sprint):
+    project, _, tools = sprint
+    current = published_graph(
+        sprint,
+        [
+            {"predecessor": "PRE", "successor": "BAD", "kind": "completion"},
+            {"predecessor": "BAD", "successor": "POST", "kind": "result"},
+        ],
+    )
+
+    outcome = replace(tools, current["revision"], replacement(project))
+
+    assert outcome["eligible"] == ["PRE"]
+    assert outcome["blocked"] == [
+        {
+            "task": "BAD-2",
+            "reasons": [{"predecessor": "PRE", "reason": "predecessor_incomplete"}],
+        },
+        {
+            "task": "POST",
+            "reasons": [{"predecessor": "BAD-2", "reason": "predecessor_incomplete"}],
+        },
+    ]
 
 
 def test_replacement_accepts_released_handoff_and_preserves_receipt(sprint):

@@ -61,11 +61,18 @@ def registry(methods: list[dict], checks: dict | None = None) -> CheckRegistry:
     return CheckRegistry.from_task(methods, schedule, STAGES)
 
 
-def task_tools(project, selected: dict, actor: str) -> tuple[WorkTools, dict]:
+def task_tools(
+    project,
+    selected: dict,
+    actor: str,
+    *,
+    task_id: str = "T1",
+) -> tuple[WorkTools, dict]:
     cfg = deepcopy(project["cfg"])
     cfg["automatic_checks"] = []
     write_json(project["config_path"], cfg)
     task = deepcopy(project["task"])
+    task["id"] = task_id
     task["methods"] = [selected]
     task["checks"] = {
         stage["id"]: [selected["id"]] if stage["id"] == "tests" else []
@@ -277,6 +284,82 @@ def test_red_receipt_records_expectation_and_provenance_identity(project):
     assert receipt["source_provenance"]["bindings"][0]["resolved_path"] == str(
         Path(context["worktree"]).resolve()
     )
+
+
+def test_receipt_identities_change_with_expectation_and_worktree(project):
+    first = method(
+        "FIRST",
+        expected_exit_code=1,
+        stdout_contains=["FIRST_FAILURE"],
+        source_under_test=repository_source(cwd_binding()),
+    )
+    first["argv"] = [
+        sys.executable,
+        "-B",
+        "-c",
+        "print('FIRST_FAILURE'); raise SystemExit(1)",
+    ]
+    first_tools, first_context = task_tools(
+        project,
+        first,
+        "identity-first",
+        task_id="FIRST",
+    )
+    first_result = first_tools.invoke(
+        request(
+            "verify",
+            {"result": stage_result(first_context), "artifacts": []},
+        )
+    )
+
+    second = method(
+        "SECOND",
+        expected_exit_code=1,
+        stdout_contains=["SECOND_FAILURE"],
+        source_under_test=repository_source(cwd_binding()),
+    )
+    second["argv"] = [
+        sys.executable,
+        "-B",
+        "-c",
+        "print('SECOND_FAILURE'); raise SystemExit(1)",
+    ]
+    second_tools, second_context = task_tools(
+        project,
+        second,
+        "identity-second",
+        task_id="SECOND",
+    )
+    second_result = second_tools.invoke(
+        request(
+            "verify",
+            {"result": stage_result(second_context), "artifacts": []},
+        )
+    )
+
+    first_receipt = first_result["checks"][0]
+    second_receipt = second_result["checks"][0]
+    assert first_receipt["expectation_digest"] != second_receipt["expectation_digest"]
+    assert first_receipt["provenance_digest"] != second_receipt["provenance_digest"]
+    assert first_receipt["source_provenance"] != second_receipt["source_provenance"]
+
+
+def test_legacy_snapshot_is_readable_but_not_executable(tmp_path):
+    legacy = method()
+    item = {"method": legacy, "stages": ["red"]}
+
+    restored = CheckRegistry.from_items([item], STAGES)
+
+    assert restored.entries[0].to_dict() == item
+    from harness.runtime import resolve_source_under_test
+
+    with pytest.raises(HarnessError, match="provenance|source_under_test|source"):
+        resolve_source_under_test(
+            legacy,
+            worktree=tmp_path,
+            cwd=tmp_path,
+            environment={},
+        )
 
 
 def test_unrelated_nonzero_exit_does_not_satisfy_red(project):

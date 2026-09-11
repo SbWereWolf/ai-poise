@@ -135,6 +135,23 @@ class TaskCommands:
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
             return change.task.state
 
+    def rework_failed(self, task_id: str, actor: str, feedback: str, entry_tree: str,
+                      execution_key: str, target: str | None = None) -> TaskState:
+        if not isinstance(entry_tree,str) or not entry_tree or not isinstance(execution_key,str) or not execution_key:
+            raise DomainError("Failed-check rework требует точные tree и execution key")
+        with self.unit_of_work() as uow:
+            task=uow.tasks.load(task_id)
+            change=task.rework_failed(actor,feedback,entry_tree,execution_key,target)
+            uow.tasks.save(change,task.state.version)
+            uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
+            return change.task.state
+
+    def failed_observation_batch(self, task_id, tree, execution_key):
+        with self.unit_of_work() as uow:
+            task=uow.tasks.load(task_id)
+            return task.evidence_book.failed_batch(
+                task.stage.stage_id,task.state.iteration,task.state.submission_digest,tree,execution_key)
+
     def cancel(self, task_id: str, actor: str, reason: str) -> TaskState:
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)

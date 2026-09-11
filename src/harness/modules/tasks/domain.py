@@ -287,6 +287,23 @@ class Task:
         progress = self.route.enter(self.progress, destination)
         return self._enter("user_rework", feedback, actor, destination, progress)
 
+    def rework_failed(self, actor: str, feedback: str, tree: str, execution_key: str,
+                      target: str | None = None) -> Change:
+        self._owned(actor)
+        if not isinstance(feedback,str) or not feedback.strip():
+            raise DomainError("Для rework требуется замечание пользователя")
+        if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
+            raise DomainError("Failed-check rework относится к активному submitted этапу")
+        batch=self.evidence_book.failed_batch(
+            self.stage.stage_id,self.state.iteration,self.state.submission_digest,tree,execution_key)
+        if batch is None:
+            raise DomainError("Нет точного известного failed check batch текущего результата")
+        destination=self.stage.stage_id if target is None else target
+        if destination not in self.route.node(self.stage.stage_id).rework_targets:
+            raise DomainError("Возврат на этот этап не разрешён конфигурацией")
+        progress=self.route.enter(self.progress,destination)
+        return self._enter("user_failed_check_rework",feedback,actor,destination,progress)
+
     def restart_action(self, actor, feedback, target):
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.route.node(self.stage.stage_id).handler.value not in ('apply_plan','publish'):
@@ -335,7 +352,8 @@ class Task:
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
             raise DomainError("Наблюдения принадлежат активному submitted этапу")
-        book = self.evidence_book.record_batch(self.stage.stage_id,self.state.iteration,tree,execution_key,receipts)
+        book = self.evidence_book.record_submission_batch(
+            self.stage.stage_id,self.state.iteration,tree,execution_key,self.state.submission_digest,receipts)
         if book == self.evidence_book:
             return self._unchanged()
         change = self._change('observations_recorded',None,None)

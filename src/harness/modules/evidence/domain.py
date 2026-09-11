@@ -208,6 +208,13 @@ class EvidenceBook:
         return cls(*(tuple(canonical(x) for x in raw[k]) for k in ('batches','arguments','decisions')))
 
     def record_batch(self, stage, iteration, tree, key, receipts):
+        return self._record_batch(stage,iteration,tree,key,None,receipts)
+
+    def record_submission_batch(self, stage, iteration, tree, key, submission_digest, receipts):
+        text(submission_digest,'submission_digest')
+        return self._record_batch(stage,iteration,tree,key,submission_digest,receipts)
+
+    def _record_batch(self, stage, iteration, tree, key, submission_digest, receipts):
         text(stage,'stage'); text(tree,'tree'); text(key,'execution_key')
         if type(iteration) is not int or iteration < 1 or not isinstance(receipts,list):
             raise DomainError('Некорректная итерация/набор observations')
@@ -221,8 +228,11 @@ class EvidenceBook:
             if r['actual_exit_code'] is not None and type(r['actual_exit_code']) is not int:
                 raise DomainError('Неверный actual_exit_code')
             ids.add(r['id'])
-        ident=identity([stage,iteration,tree,key,[r['id'] for r in receipts]])
+        identity_parts=[stage,iteration,tree,key,[r['id'] for r in receipts]]
+        if submission_digest is not None:identity_parts.append(submission_digest)
+        ident=identity(identity_parts)
         value={'id':ident,'stage':stage,'iteration':iteration,'tree':tree,'execution_key':key,'receipts':receipts}
+        if submission_digest is not None:value['submission_digest']=submission_digest
         encoded=canonical(value)
         for old in self.batches:
             prior=json.loads(old)
@@ -239,6 +249,20 @@ class EvidenceBook:
             b=json.loads(item)
             if (b['stage'],b['iteration'],b['tree'],b['execution_key']) == (stage,iteration,tree,key):
                 return b
+        return None
+
+    def failed_batch(self, stage, iteration, submission_digest, tree, key):
+        for item in reversed(self.batches):
+            batch=json.loads(item)
+            if (batch['stage'],batch['iteration'],batch.get('submission_digest'),batch['tree'],batch['execution_key']) != (
+                    stage,iteration,submission_digest,tree,key):
+                continue
+            receipts=batch['receipts']
+            known=bool(receipts) and all(
+                r['interpretable'] and not r['timed_out'] and
+                r['actual_exit_code'] is not None and r['actual_exit_code'] >= 0
+                for r in receipts)
+            return batch if known and any(r['guard'] and not r['passed'] for r in receipts) else None
         return None
 
     def latest_argument(self, id):

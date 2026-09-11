@@ -282,6 +282,19 @@ class Harness:
             else:
                 if data['status']=='active' and self._stage(data)['handler'] in ('apply_plan','publish'):
                     self.plan_actions.rework_failed(data,feedback,rework_stage,entry_tree)
+                elif data['status']=='active':
+                    if data['pending'] is not None:
+                        raise HarnessError('Неизвестен исход прерванной проверки; rework запрещён')
+                    worktree=Path(data['worktree'])
+                    checks=self._select_checks(data,self._changed(data,entry_tree))
+                    invocations=self._invocations(checks,worktree)
+                    execution_key=digest({'stage':self._stage(data)['id'],'iteration':data['iteration'],
+                                          'tree':entry_tree,'invocations':invocations})
+                    batch=self.task_commands.failed_observation_batch(data['id'],entry_tree,execution_key)
+                    if batch is None or not self._intact_receipts(batch['receipts']):
+                        raise HarnessError('Нет точного доступного failed check batch текущего результата')
+                    self.runner.rework_failed(
+                        data['id'],self.session,feedback,entry_tree,execution_key,rework_stage)
                 else:
                     self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage)
                 data = self._task()
@@ -519,15 +532,18 @@ class Harness:
             invocations.append({'method':method,'cwd':str(cwd),'environment':env})
         return invocations
 
-    def _usable_receipts(self, receipts):
+    def _intact_receipts(self, receipts):
         for r in receipts:
-            if not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0 or (r['guard'] and not r['passed']):
+            if not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0:
                 return False
             for name in ('stdout','stderr'):
                 path=Path(r[name])
                 if not path.is_file() or file_digest(path)!=r[name+'_digest']:
                     return False
         return True
+
+    def _usable_receipts(self, receipts):
+        return self._intact_receipts(receipts) and all(not r['guard'] or r['passed'] for r in receipts)
 
     def _execute_checks(self, data, stage, tree, checks, invocations, roots):
         receipts=[]

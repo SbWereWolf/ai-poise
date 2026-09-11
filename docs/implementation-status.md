@@ -1,6 +1,6 @@
 # Статус реализации
 
-Обновлено: **2026-09-07T07:34:23+05:00**.
+Обновлено: **2026-09-11T16:55:00+05:00**.
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
@@ -20,6 +20,14 @@ SQLite, subprocess, конфликты, публикации, изоляция �
 Task/store: ddd-accounting-11 / SQLite 12; структура таблиц в DDD-09 не менялась. Миграций нет.
 Live Codex trust, JetBrains, Gmail-доставка, полные usage/latency источники и многомашинная
 синхронизация существующих владельцев всё ещё требуют отдельного доступа/работы.
+
+DDD-10 result integration поддерживает dirty target при непересекающихся локальных staged,
+unstaged и untracked путях. Preflight блокирует точные и parent/descendant пересечения и
+незавершённые Git operations до мутации; отдельный index сохраняет пользовательские байты и
+классификацию, а post-preflight drift не попадает в merge commit. Публичные conflict, retry,
+idempotent replay и cleanup остаются в одном `integrate` API. Сфокусированный test-набор:
+23 проверки result integration; системный дефект выбора source root проверки относится к
+отдельной задаче 0037 и не объявляется исправленным этой поставкой.
 
 
 # HARNESS-PILOT-01 — 2026-09-07T14:15:55+05:00

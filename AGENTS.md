@@ -30,7 +30,7 @@ Count observed user messages without inventing missing messages or token usage. 
 
 ## Shared agent policy
 
-The canonical policy is [Development rules](docs/development-rules.md#общие-правила-агентов). Keep this English projection and its Russian source consistent in the same change.
+The canonical policy is [Development rules](docs/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2). Keep this English projection and its Russian source consistent in the same change.
 
 - Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`, `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation with behaviour, configuration or workflow changes.
@@ -49,7 +49,7 @@ The canonical policy is [Development rules](docs/development-rules.md#общие
 
 ## Mandatory bootstrap and verification
 
-Follow [Start and finish](docs/development-rules.md#начало-и-завершение-работы) and the [batch API](docs/batch-work.md#verify).
+Follow [Start and finish](docs/development-rules.md#%D0%BD%D0%B0%D1%87%D0%B0%D0%BB%D0%BE-%D0%B8-%D0%B7%D0%B0%D0%B2%D0%B5%D1%80%D1%88%D0%B5%D0%BD%D0%B8%D0%B5-%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D1%8B) and the [batch API](docs/batch-work.md#verify).
 
 Before substantive project work, explicitly select the working project configuration and session identity, then invoke `bootstrap` through Harness's public work API. Only prerequisite inspection needed to locate/configure that entry point precedes it. Consume the returned task/stage, capabilities and result template; do not invent task IDs, state or a worktree. Resume through the same API.
 
@@ -63,7 +63,7 @@ If configuration, runtime or a required operation is unavailable, report the con
 
 `bootstrap` and `verify` are JSON operations of Harness's existing `work` CLI, not standalone skills, shell commands or MCP tools. The executable is `/home/sbwerewolf/workdata/ai-poise/.venv/bin/harness` (equivalent to `.venv/bin/python -m harness`). Use `HARNESS_CONFIG=/home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/project.json` and one explicit `HARNESS_SESSION` identity per session. Preserve that identity across separate shell/tool calls; shell exports are not assumed to persist between calls.
 
-Read [Local ai-poise commands](docs/project-setup.md#локальный-проект-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [Harness workflow](skills/harness/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
+Read [Local ai-poise commands](docs/project-setup.md#%D0%BB%D0%BE%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9-%D0%BF%D1%80%D0%BE%D0%B5%D0%BA%D1%82-ai-poise) for complete runnable bootstrap/verify packets. Existing workflow instructions are in [Harness workflow](skills/harness/SKILL.md); read that file explicitly until the separately planned `.agents/skills/` move enables repository skill discovery. Do not search for nonexistent skills named `bootstrap` or `verify`.
 
 This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/projects/ai-poise/`: `.runtime/`, `task/`, `sprint/`, `worktrees/`, and `database/`. The live Task DB is `database/tasks.sqlite`, its lock is `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for the old root-level database paths. This is the user's explicit local placement decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`, separate from mutable data.
 

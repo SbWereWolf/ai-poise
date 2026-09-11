@@ -129,15 +129,17 @@ readiness probes и публикует новый каталог. Это не un
 
 ## DDD-10 — интеграция принятого результата
 
-Обновлено: **2026-09-11T05:00:00+05:00**.
+Обновлено: **2026-09-11T16:55:00+05:00**.
 
 `ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и idempotent replay. Task остаётся единственным владельцем verified/accepted/completed lifecycle и содержательного результата: операция интеграции читает окончательный Task result, но не меняет его статус, секции или evidence. Sprint продолжает вычислять состояние из Task и не выполняет скрытый auto-merge.
 
 `ResultIntegrationCommands` — прикладная граница одного декларативного пакета. `RuntimeResultIntegration` реализует Git-наблюдения и эффекты, а сохранение выполняет через execution repository. WorkTools только маршрутизирует `integrate` и `show integration`; domain не импортирует filesystem, subprocess или SQLite.
 
-Intent до эффекта фиксирует task ID, request ID, source/target commits и пользовательскую authorization. Внешняя блокировка БД не удерживается во время Git. Между короткими сохранениями adapter повторно проверяет HEAD, MERGE_HEAD, conflict set, cleanliness и ancestry. Поэтому повтор либо продолжает известную фазу, либо возвращает сохранённый `blocked`; он не выполняет второй merge по догадке.
+Intent до эффекта фиксирует task ID, request ID, source/target commits и пользовательскую authorization. Preflight snapshot дополнительно сохраняет target HEAD, множество локальных путей и incoming delta от merge base. `RuntimeResultIntegration` отклоняет unresolved Git operation и пересечение этих множеств до первой мутации. Для разрешённого dirty target отдельный служебный index изолирует принимаемый source от пользовательских staged, unstaged и untracked изменений; основной index после commit синхронизируется только по incoming paths из нового `HEAD`, а не из worktree.
 
-До подтверждения, что target содержит source commit и остаётся чистым, source worktree и ветка не удаляются. Уборка монотонна: worktree removal предшествует безопасному branch deletion, каждый результат сохраняется, а interruption повторяет только недостающий шаг. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
+Внешняя блокировка БД не удерживается во время Git. Между короткими сохранениями adapter повторно проверяет HEAD, MERGE_HEAD, conflict set, сохранённый preflight и drift worktree относительно служебного index. Поэтому повтор либо продолжает известную фазу, либо возвращает сохранённый `blocked`; он не выполняет второй merge по догадке и не включает более поздние пользовательские байты.
+
+До подтверждения, что target содержит source commit, source worktree и ветка не удаляются; разрешённые непересекающиеся локальные изменения target не блокируют cleanup. Уборка монотонна: worktree removal предшествует безопасному branch deletion, каждый результат сохраняется, а interruption повторяет только недостающий шаг. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
 
 
 ## Проверка пилота — 2026-09-07T15:04:48+05:00

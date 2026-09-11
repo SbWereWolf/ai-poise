@@ -49,8 +49,9 @@ def _instrumented_project_source(project):
                 inserted += 1
                 probe = ast.parse(
                     "package_root = Path(__file__).resolve().parents[1]\n"
-                    "result.update({'loaded_source': str(package_root), "
-                    "'source_sentinel': (package_root / 'source_sentinel.txt').read_text(encoding='utf-8').strip()})"
+                    "result.setdefault('loaded_source', str(package_root))\n"
+                    "result.setdefault('source_sentinel', "
+                    "(package_root / 'source_sentinel.txt').read_text(encoding='utf-8').strip())"
                 ).body
                 return [node, *probe]
             return node
@@ -58,6 +59,26 @@ def _instrumented_project_source(project):
     tree = InstrumentWorkResult().visit(tree)
     assert inserted == 1
     transport.write_text(ast.unparse(ast.fix_missing_locations(tree)) + "\n", encoding="utf-8")
+
+    application = target / "application" / "work.py"
+    tree = ast.parse(application.read_text(encoding="utf-8"))
+    instrumented = 0
+    trace_path = repr(str(project["root"] / "work-invocations.jsonl"))
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == "WorkTools":
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef) and item.name == "invoke":
+                    instrumented += 1
+                    probe = ast.parse(
+                        f"trace_path = __import__('pathlib').Path({trace_path})\n"
+                        "with trace_path.open('a', encoding='utf-8') as trace:\n"
+                        "    trace.write(__import__('json').dumps({"
+                        "'source': str(__import__('pathlib').Path(__file__).resolve().parents[1]), "
+                        "'operation': packet.get('operation')}) + '\\n')"
+                    ).body
+                    item.body = [*probe, *item.body]
+    assert instrumented == 1
+    application.write_text(ast.unparse(ast.fix_missing_locations(tree)) + "\n", encoding="utf-8")
     git(project["app"], "add", "src/harness")
     git(project["app"], "commit", "-m", "Add instrumented Harness source")
     return target.parent
@@ -120,6 +141,13 @@ def _result(context, report="Fixture stage verified."):
     value["sections"]["report"] = report
     value["commit_message"] = "test: verify source routing fixture"
     return request("verify", {"result": value, "artifacts": []})
+
+
+def _work_invocations(project):
+    path = project["root"] / "work-invocations.jsonl"
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
 def _commit_source_probe(worktree, sentinel):
@@ -194,6 +222,9 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
         "mode": "runtime_event",
     }
     assert task_source != installation / "harness"
+    assert _work_invocations(project) == [
+        {"source": str(task_source), "operation": "bootstrap"}
+    ]
 
 
 @pytest.mark.parametrize("state", ["active", "verified", "accepted"])
@@ -303,7 +334,16 @@ def test_invalid_registered_task_source_is_rejected_without_fallback(project, tm
     attempted, payload = _call(launcher, _bootstrap(None))
     assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
     assert payload["status"] == "rejected"
-    assert any(word in payload["reason"].lower() for word in ("source", "worktree", "symlink", "branch"))
+    reason_terms = {
+        "missing_worktree": ("source", "worktree", "missing", "path"),
+        "escaped_symlink": ("source", "worktree", "symlink", "escape"),
+        "intermediate_symlink": ("source", "worktree", "symlink", "escape"),
+        "wrong_branch": ("source", "worktree", "git", "branch"),
+        "wrong_git_root": ("source", "worktree", "git", "repository", "root"),
+        "missing_package": ("source", "worktree", "harness", "package", "missing"),
+        "missing_work_method": ("source", "hookservice", "work", "entrypoint", "structure"),
+    }
+    assert any(word in payload["reason"].lower() for word in reason_terms[damage])
     assert payload.get("loaded_source") != str(installation / "harness")
 
 

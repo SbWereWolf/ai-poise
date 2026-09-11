@@ -287,61 +287,92 @@ def test_red_receipt_records_expectation_and_provenance_identity(project):
 
 
 def test_receipt_identities_change_with_expectation_and_worktree(project):
+    def execute(selected: dict, actor: str, task_id: str) -> dict:
+        tools, context = task_tools(
+            project,
+            selected,
+            actor,
+            task_id=task_id,
+        )
+        result = tools.invoke(
+            request(
+                "verify",
+                {"result": stage_result(context), "artifacts": []},
+            )
+        )
+        assert result["status"] == "verified"
+        return result["checks"][0]
+
+    shared_expectation_argv = [
+        sys.executable,
+        "-B",
+        "-c",
+        "print('FIRST_FAILURE SECOND_FAILURE'); raise SystemExit(1)",
+    ]
     first = method(
-        "FIRST",
         expected_exit_code=1,
         stdout_contains=["FIRST_FAILURE"],
-        source_under_test=repository_source(cwd_binding()),
+        source_under_test=external_source("No repository source is loaded."),
     )
-    first["argv"] = [
-        sys.executable,
-        "-B",
-        "-c",
-        "print('FIRST_FAILURE'); raise SystemExit(1)",
-    ]
-    first_tools, first_context = task_tools(
-        project,
-        first,
-        "identity-first",
-        task_id="FIRST",
-    )
-    first_result = first_tools.invoke(
-        request(
-            "verify",
-            {"result": stage_result(first_context), "artifacts": []},
-        )
-    )
-
+    first["argv"] = shared_expectation_argv
     second = method(
-        "SECOND",
         expected_exit_code=1,
         stdout_contains=["SECOND_FAILURE"],
+        source_under_test=external_source("No repository source is loaded."),
+    )
+    second["argv"] = shared_expectation_argv
+    first_receipt = execute(
+        first,
+        "identity-first",
+        "EXPECTATION-FIRST",
+    )
+    second_receipt = execute(
+        second,
+        "identity-second",
+        "EXPECTATION-SECOND",
+    )
+
+    assert first["id"] == second["id"]
+    assert first["argv"] == second["argv"]
+    assert first["source_under_test"] == second["source_under_test"]
+    assert first_receipt["expectation_digest"] != second_receipt["expectation_digest"]
+    assert first_receipt["provenance_digest"] == second_receipt["provenance_digest"]
+    assert first_receipt["source_provenance"] == second_receipt["source_provenance"]
+
+    repository_method = method(
+        expected_exit_code=1,
+        stdout_contains=["SOURCE_FAILURE"],
         source_under_test=repository_source(cwd_binding()),
     )
-    second["argv"] = [
+    repository_method["argv"] = [
         sys.executable,
         "-B",
         "-c",
-        "print('SECOND_FAILURE'); raise SystemExit(1)",
+        "print('SOURCE_FAILURE'); raise SystemExit(1)",
     ]
-    second_tools, second_context = task_tools(
-        project,
-        second,
-        "identity-second",
-        task_id="SECOND",
+    first_source_receipt = execute(
+        repository_method,
+        "source-first",
+        "SOURCE-FIRST",
     )
-    second_result = second_tools.invoke(
-        request(
-            "verify",
-            {"result": stage_result(second_context), "artifacts": []},
-        )
+    second_source_receipt = execute(
+        repository_method,
+        "source-second",
+        "SOURCE-SECOND",
     )
 
-    first_receipt = first_result["checks"][0]
-    second_receipt = second_result["checks"][0]
-    assert first_receipt["expectation_digest"] != second_receipt["expectation_digest"]
-    assert first_receipt["provenance_digest"] != second_receipt["provenance_digest"]
-    assert first_receipt["source_provenance"] != second_receipt["source_provenance"]
+    assert (
+        first_source_receipt["expectation_digest"]
+        == second_source_receipt["expectation_digest"]
+    )
+    assert (
+        first_source_receipt["provenance_digest"]
+        != second_source_receipt["provenance_digest"]
+    )
+    assert (
+        first_source_receipt["source_provenance"]
+        != second_source_receipt["source_provenance"]
+    )
 
 
 def test_legacy_snapshot_is_readable_but_not_executable(tmp_path):

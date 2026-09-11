@@ -1,6 +1,6 @@
 # Статус реализации
 
-Обновлено: **2026-09-07T07:34:23+05:00**.
+Обновлено: **2026-09-11T06:55:21+05:00**.
 
 DDD-01…08: Task/Sprint, секции и поэтапное содержимое, графовый runner, Evidence,
 FeedbackBook, семь семейств handlers, конфиг-редактор, декларативные пакеты, ArtifactFactory,
@@ -20,6 +20,23 @@ SQLite, subprocess, конфликты, публикации, изоляция �
 Task/store: ddd-accounting-11 / SQLite 12; структура таблиц в DDD-09 не менялась. Миграций нет.
 Live Codex trust, JetBrains, Gmail-доставка, полные usage/latency источники и многомашинная
 синхронизация существующих владельцев всё ещё требуют отдельного доступа/работы.
+
+## Automatic Task ID allocation — 2026-09-11T06:55:21+05:00
+
+Реализован public `bootstrap` creation intent `{request_id, task без id}`. Task domain/application
+и repository/UoW атомарно выбирают явно настроенный numeric ID, создают aggregate и durable
+worktree reservation; replay возвращает стабильный ID. Reviewed standalone и Sprint
+publication используют тот же allocator, возвращают allocation receipts и резервируют весь
+explicit состав независимо от порядка. Explicit-ID path и SQLite schema 12 сохранены.
+
+Проверены последовательность/progression, конкурентность, replay другой сессии, digest
+conflict, occupied/exhausted namespace, конфигурация, идентичность downstream surfaces,
+matching/conflicting worktree recovery, reviewed publication, rollback, Sprint alias rewrite,
+legacy row и архитектурные границы. Точные результаты записаны в [test-report](test-report.md).
+
+Ограничение поставки: этот task не меняет действующие project manifests и reference templates,
+поскольку numeric policy является отдельным выбором проекта. Поэтому проекты без `task_ids`
+продолжают работать только с explicit IDs и получают явную ошибку на automatic intent.
 
 
 # HARNESS-PILOT-01 — 2026-09-07T14:15:55+05:00

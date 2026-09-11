@@ -3,17 +3,19 @@ from copy import deepcopy
 import json
 from ..modules.catalogue.publication import DataPublication
 from ..modules.actions.domain import ActionRun,PlanSpec
-from ..modules.tasks.definition import validate_creation,build_task
 from ..modules.sprints.domain import Sprint,SprintPlan,SprintPolicy
 from ..modules.foundation.errors import DomainError
 from ..modules.verification.domain import exact_keys
+from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
+                    rewrite_task_plan, validate_creation_intent)
 
 
 class PlanningPublications:
-    def __init__(self,uow,project,processes,automatic_checks,sprint_policy,execution_hash,max_items):
+    def __init__(self,uow,project,processes,automatic_checks,sprint_policy,task_id_policy,execution_hash,max_items):
         self.uow,self.project,self.processes=uow,project,deepcopy(processes)
         self.automatic_checks=deepcopy(automatic_checks)
         self.policy=SprintPolicy.parse(sprint_policy)
+        self.task_id_policy=task_id_policy
         self.execution_hash,self.max_items=execution_hash,max_items
 
     def publish(self,task_id,actor,intent):
@@ -53,22 +55,34 @@ class PlanningPublications:
                 contracts=sprint.plan.data['tasks']
                 if u.sprints.get(body['sprint_id']) is not None or u.tasks.exists(body['sprint_id']):
                     raise DomainError('Publication cannot replace an existing sprint/task')
-            prepared=[];ids=set()
-            for contract in contracts:
-                goal=contract.get('goal_type') if isinstance(contract,dict) else None
+            candidates=[];aliases=set()
+            for intent in contracts:
+                body_contract=intent.get('task') if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
+                goal=body_contract.get('goal_type') if isinstance(body_contract,dict) else None
                 if goal not in self.processes:raise DomainError('Unknown child goal type')
-                metadata=validate_creation(contract,self.processes[goal],self.automatic_checks)
+                validate_creation_intent(intent,self.processes[goal],self.automatic_checks)
+                alias=creation_intent_alias(intent)
+                if alias in aliases:raise DomainError('Duplicate child creation identity')
+                aliases.add(alias);candidates.append((intent,goal))
+            reservations=creation_batch_reservations(
+                contracts, () if sprint is None else (sprint.plan.data['id'],)
+            )
+            prepared={};ids=set();allocations=[]
+            for intent,goal in candidates:
+                allocation,contract=create_planned_in_uow(
+                    u,intent,self.processes[goal],self.automatic_checks,
+                    {'config_hash':self.execution_hash},self.task_id_policy,reservations)
                 ident=contract['id']
-                if ident in ids or u.tasks.exists(ident) or u.sprints.get(ident) is not None:
+                if ident in ids:
                     raise DomainError('Child identity collides with existing work')
                 if sprint is not None and ident==sprint.plan.data['id']:raise DomainError('Task/sprint ID collision')
                 ids.add(ident)
-                metadata.update(sprint_id=contract['sprint_id'],goal=contract['goal'],config_hash=self.execution_hash)
-                prepared.append((build_task(metadata,None),metadata))
-            # All candidates were validated before first write. Rows and receipt
-            # share one UoW; no child is visible if any repository write fails.
-            for child,metadata in prepared:u.tasks.create(child,metadata)
+                alias=allocation.request_id if allocation.request_id is not None else ident
+                prepared[alias]=contract
+                if allocation.receipt() is not None:allocations.append(allocation.receipt())
             if sprint is not None:
+                from dataclasses import replace
+                sprint=replace(sprint,plan=SprintPlan(rewrite_task_plan(sprint.plan.data,prepared)))
                 record={'project':self.project,'actor':actor,'aggregate':sprint.to_dict(),
                         'processes':deepcopy(self.processes),'automatic_checks':deepcopy(self.automatic_checks),
                         'execution_hash':self.execution_hash}
@@ -77,7 +91,8 @@ class PlanningPublications:
             u.actions.create(task_id,stage,iteration,run.to_dict())
             next_run=run.start(0,{'source_section':spec.section,'parent_task':task_id})
             u.actions.save(task_id,stage,iteration,next_run.to_dict(),run.version);run=next_run
-            next_run=run.record('ready',{'task_ids':sorted(ids),'sprint_id':None if sprint is None else sprint.plan.data['id'],
+            next_run=run.record('ready',{'task_ids':sorted(ids),'allocations':allocations,
+                                      'sprint_id':None if sprint is None else sprint.plan.data['id'],
                                       'authorization':spec.authorization,'effect':'published'})
             u.actions.save(task_id,stage,iteration,next_run.to_dict(),run.version)
             return next_run

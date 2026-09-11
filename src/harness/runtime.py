@@ -22,7 +22,7 @@ from .execution import run_command, contains, preview
 
 class Harness:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
-    def __init__(self, config_path: Path | str, session: str):
+    def __init__(self, config_path: Path | str, session: str, clock=None):
         self.config_path = Path(config_path).resolve()
         self.root, self.cfg, self.processes = load_config(self.config_path)
         self.session = self._identifier(session)
@@ -45,7 +45,7 @@ class Harness:
         self.work_resources=WorkResources(self)
         from .application.accounting import AccountingCommands
         from .infrastructure.accounting import RuntimeAccounting
-        self.accounting=AccountingCommands(RuntimeAccounting(self))
+        self.accounting=AccountingCommands(RuntimeAccounting(self,clock))
         from .infrastructure.sprint_work import SprintWork
         self.sprint_tools=SprintWork(self)
         from .infrastructure.actions import RuntimePlanActions

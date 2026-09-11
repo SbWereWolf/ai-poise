@@ -5,6 +5,7 @@ from datetime import datetime,timezone
 from uuid import uuid4
 from ...common import HarnessError,encoded
 from ...modules.accounting.domain import UsageSample,usage_contribution,identity
+from ...modules.accounting.clock import ClockObservation
 from .queries import TaskQueries
 
 
@@ -99,17 +100,64 @@ class SqliteAccounting:
                         db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(data),current['id']))
                     elif data['cause']!=prepared['cause']:raise HarnessError('A work cycle already has an explicit cause')
 
-    def start(self,session,task,at,turn_id):
+    @staticmethod
+    def _new_timing(observation:ClockObservation):
+        return {'version':2,'comparison_domain':observation.comparison_domain,
+                'started_monotonic_ns':observation.monotonic_ns,'last_monotonic_ns':observation.monotonic_ns,
+                'ended_monotonic_ns':None,'elapsed_microseconds':None,'status':'open'}
+
+    @staticmethod
+    def _unmeasured(data):
+        old=data.get('timing')
+        old=old if isinstance(old,dict) else {}
+        data['timing']={'version':2,'comparison_domain':old.get('comparison_domain'),
+            'started_monotonic_ns':old.get('started_monotonic_ns'),
+            'last_monotonic_ns':old.get('last_monotonic_ns'),
+            'ended_monotonic_ns':None,'elapsed_microseconds':None,'status':'unmeasured_clock_discontinuity'}
+        data.pop('seconds',None);data['closed_by']='clock_discontinuity'
+
+    @staticmethod
+    def _advance(db,row,observation:ClockObservation,close:bool):
+        data=json.loads(row['data']);timing=data.get('timing')
+        valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
+               and type(timing.get('started_monotonic_ns')) is int
+               and type(timing.get('last_monotonic_ns')) is int
+               and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
+        if not valid or timing.get('comparison_domain')!=observation.comparison_domain:
+            SqliteAccounting._unmeasured(data)
+            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',
+                       (observation.audit_utc,encoded(data),row['id']))
+            return 'Open accounting cycle cannot be compared safely; retry the operation'
+        if observation.monotonic_ns<timing['last_monotonic_ns']:
+            return 'Monotonic clock moved backwards; accounting state was not changed'
+        timing['last_monotonic_ns']=observation.monotonic_ns;data['last_observed_at']=observation.audit_utc
+        if close:
+            timing['ended_monotonic_ns']=observation.monotonic_ns
+            timing['elapsed_microseconds']=(observation.monotonic_ns-timing['started_monotonic_ns'])//1000
+            timing['status']='measured';data['closed_by']='tool_result_returned'
+            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',
+                       (observation.audit_utc,encoded(data),row['id']))
+        else:db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(data),row['id']))
+        return None
+
+    def start(self,session,task,at:ClockObservation,turn_id):
         with self.database.transaction() as db:
-            r=db.execute('SELECT task_id FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
+            r=db.execute('SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if r is not None:
-                if r[0]!=task['id']:raise HarnessError('Finish current accounting cycle before changing task')
-                return
-            data={'kind':'tool_cycle','event':None,'binding':binding(task),'cause':None,'finding_ids':[], 'seconds':None,'closed_by':None,'turn_id':turn_id,'last_observed_at':at}
-            db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',(str(uuid4()),task['id'],self.project,session,at,None,encoded(data)))
+                if r['task_id']!=task['id']:raise HarnessError('Finish current accounting cycle before changing task')
+                error=self._advance(db,r,at,False)
+            else:
+                error=None
+                data={'kind':'tool_cycle','event':None,'binding':binding(task),'cause':None,'finding_ids':[],
+                      'closed_by':None,'turn_id':turn_id,'last_observed_at':at.audit_utc,
+                      'timing':self._new_timing(at)}
+                db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
+                           (str(uuid4()),task['id'],self.project,session,at.audit_utc,None,encoded(data)))
+        if error is not None:raise HarnessError(error)
 
     def new_turn(self,session,turn_id):
         if turn_id is None:return
+        error=None
         with self.database.transaction() as db:
             row=db.execute('SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if row is None:return
@@ -118,28 +166,36 @@ class SqliteAccounting:
                 d['turn_id']=turn_id
                 db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
             elif d['turn_id']!=turn_id:
-                at=d['last_observed_at'];elapsed=(timestamp(at)-timestamp(row['started_at'])).total_seconds()
-                if elapsed<0:raise HarnessError('Invalid observed interval')
-                d['seconds']=elapsed;d['closed_by']='next_user_turn_at_last_observation'
-                db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),row['id']))
+                at=d['last_observed_at'];timing=d.get('timing')
+                valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
+                       and type(timing.get('started_monotonic_ns')) is int
+                       and type(timing.get('last_monotonic_ns')) is int
+                       and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
+                if not valid:
+                    self._unmeasured(d);error='Open accounting cycle cannot be compared safely; retry the operation'
+                elif timing['last_monotonic_ns']<timing['started_monotonic_ns']:
+                    error='Monotonic clock moved backwards; accounting state was not changed'
+                else:
+                    error=None;timing['ended_monotonic_ns']=timing['last_monotonic_ns']
+                    timing['elapsed_microseconds']=(timing['last_monotonic_ns']-timing['started_monotonic_ns'])//1000
+                    timing['status']='measured';d['closed_by']='next_user_turn_at_last_observation'
+                if error is None or d['timing']['status']=='unmeasured_clock_discontinuity':
+                    db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),row['id']))
+        if error is not None:raise HarnessError(error)
 
-    def touch(self,session,at):
+    def touch(self,session,at:ClockObservation):
         with self.database.transaction() as db:
-            row=db.execute('SELECT id,started_at,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
+            row=db.execute('SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if row is None:return
-            d=json.loads(row['data'])
-            if timestamp(at)<timestamp(d['last_observed_at']):raise HarnessError('Clock moved backwards')
-            d['last_observed_at']=at
-            db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
+            error=self._advance(db,row,at,False)
+        if error is not None:raise HarnessError(error)
 
-    def stop(self,session,at):
+    def stop(self,session,at:ClockObservation):
         with self.database.transaction() as db:
             r=db.execute('SELECT * FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
             if r is None:return
-            elapsed=(timestamp(at)-timestamp(r['started_at'])).total_seconds()
-            if elapsed<0:raise HarnessError('Clock moved backwards; duration not invented')
-            d=json.loads(r['data']);d['seconds']=elapsed;d['closed_by']='tool_result_returned'
-            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),r['id']))
+            error=self._advance(db,r,at,True)
+        if error is not None:raise HarnessError(error)
 
     def snapshot(self):
         with self.database.transaction() as db:

@@ -34,11 +34,23 @@ class AccountingQueries:
         for row in data['usage']:
             d=json.loads(row['data'])
             if d['sample']['mode']!='baseline':emit('usage',d['binding'],timestamp(row['occurred_at']),d)
-        open_cycles=[]
+        open_cycles=[];unmeasured_cycles=0
         for row in data['cycles']:
             d=json.loads(row['data']);b=d['binding']
             if not include(b):continue
             if row['ended_at'] is None:open_cycles.append(row['id']);continue
+            if d['kind']=='tool_cycle':
+                timing=d.get('timing')
+                if timing is not None and timing.get('version')==2:
+                    if timing.get('status')!='measured' or timing.get('elapsed_microseconds') is None:
+                        unmeasured_cycles+=1;continue
+                    seconds=timing['elapsed_microseconds']/1_000_000
+                elif isinstance(d.get('seconds'),(int,float)) and not isinstance(d.get('seconds'),bool):
+                    seconds=d['seconds']
+                else:
+                    unmeasured_cycles+=1;continue
+                emit('time',b,timestamp(row['started_at']),{**d,'seconds':seconds})
+                continue
             a=timestamp(row['started_at']);z=timestamp(row['ended_at'])
             if start is not None:a=max(a,start)
             if end is not None:z=min(z,end)
@@ -64,6 +76,7 @@ class AccountingQueries:
         current=[(tid,d) for tid,d in latest.items() if include(d['binding'])]
         selected_tasks={tid:t for tid,t in tasks.items() if include(binding(t))}
         totals=self._sum(facts,tasks)
+        if unmeasured_cycles:totals['time_coverage']='partial'
         if start is None and end is None:
             totals['benefit']=self._current_benefit(current)
         totals['open_work_cycles']=len(open_cycles)
@@ -140,11 +153,11 @@ class AccountingQueries:
         for counter in ('input_tokens','output_tokens','cached_input_tokens','reasoning_tokens'):
             values=[f['data']['contribution'][counter] for f in usage]
             result[counter]=sum(values) if values and all(v is not None for v in values) else None
-        intervals=sorted((f['data']['start'],f['data']['end']) for f in times);merged=[]
+        intervals=sorted((f['data']['start'],f['data']['end']) for f in times if 'start' in f['data']);merged=[]
         for a,b in intervals:
             if merged and a<=merged[-1][1]:merged[-1]=(merged[-1][0],max(b,merged[-1][1]))
             else:merged.append((a,b))
-        result['wall_active_seconds']=sum((b-a).total_seconds() for a,b in merged) if times else None
+        result['wall_active_seconds']=sum((b-a).total_seconds() for a,b in merged) if intervals else None
         for f in usage+times:
             name=f['data']['cause'] if f['data']['cause'] is not None else 'unclassified'
             bucket=result['by_cause'].setdefault(name,{'model_tokens':0,'active_seconds':0})

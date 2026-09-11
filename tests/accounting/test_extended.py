@@ -8,6 +8,7 @@ from conftest import write_json
 from harness.common import HarnessError
 from harness.runtime import Harness
 from harness.application.work import WorkTools
+from harness.modules.accounting.clock import ClockObservation
 from tests.batch.helpers import request,message
 from .test_domain import sample
 from .test_paths import setup,send,metrics,finish
@@ -130,14 +131,18 @@ def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     h,w,c=setup(project)
     # Close setup interval and use explicit test clock for a new work session.
     h.accounting.close_cycle()
-    now=['2026-09-07T10:00:00+00:00'];h.accounting.port.clock=lambda:now[0]
+    class MutableClock:
+        def __init__(self, value): self.value=value
+        def observe(self): return self.value
+    clock=MutableClock(ClockObservation('2026-09-07T10:00:00+00:00',0,'test-boot'))
+    h.accounting.port.clock=clock
     w.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None},[message('turn-a')]))
     p=deepcopy(c['result_template']);p['sections']['report']='Attempt';p['commit_message']='feat: measured'
     p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'timeout_seconds':5,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
-    now[0]='2026-09-07T10:01:00+00:00'
+    clock.value=ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot')
     assert w.invoke(request('verify',{'result':p,'artifacts':[]}))['status']=='checks_failed'
     base=metrics(w)['totals']['active_seconds'] or 0
-    now[0]='2026-09-07T20:00:00+00:00'
+    clock.value=ClockObservation('2026-09-07T20:00:00+00:00',36_000_000_000_000,'test-boot')
     w.invoke(request('cancel',{'reason':'User stops'},[message('turn-b','cancel')]))
     total=metrics(w)['totals']['active_seconds']
     assert 60<=total-base<61

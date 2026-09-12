@@ -52,12 +52,6 @@ class SprintWork:
             prepared={}
             for tid,item in snapshot['tasks'].items():
                 run=self.h.cleanup_tools.prepare_terminal(tid,f"{packet['request_id']}:{tid}",packet['reason'])
-                worktree=next((resource for resource in run.resources if resource.kind=='worktree'),None)
-                if worktree is not None and self.h._git(Path(worktree.path),'status','--porcelain','--untracked-files=all'):
-                    run=run.cleanup_blocked(worktree,{
-                        'reason':'dirty_worktree_requires_decision',
-                        'recovery':'Preserve the worktree changes or commit them, then provide an explicit cleanup disposition.',
-                    })
                 prepared[tid]={**item,'cleanup_pending':self.h.cleanup_tools.pending(run),
                                'cleanup_result':self.h.cleanup_tools.terminal_result(run)}
             preflight={**snapshot,'tasks':prepared}

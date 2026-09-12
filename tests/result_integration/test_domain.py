@@ -31,14 +31,35 @@ def test_run_records_conflict_and_requires_exact_resolution_set():
 
 def test_cleanup_progress_is_monotonic_and_replayable():
     run = IntegrationRun.new(intent()).start({"target_before": "b" * 40})
-    run = run.integrated("c" * 40, {"exit_code": 0})
-    pending = run.cleanup_blocked("worktree", {"reason": "locked"})
+    resources = [
+        {"kind": "worktree", "identity": "git-owner", "path": "/worktrees/T1"},
+        {"kind": "branch", "name": "tasks/T1", "commit": "a" * 40},
+    ]
+    run = run.integrated("c" * 40, {"exit_code": 0}, resources)
+    pending = run.cleanup_blocked(run.cleanup.resources[0], {"reason": "locked"})
     assert pending.status == "cleanup_pending"
     assert pending.target_after == "c" * 40
 
-    complete = pending.worktree_removed().branch_deleted()
+    after_worktree = pending.cleanup_resource_removed(pending.cleanup.resources[0])
+    complete = after_worktree.cleanup_resource_removed(after_worktree.cleanup.resources[0])
     assert complete.status == "integrated"
     assert complete.cleanup.status == "cleanup_complete"
     assert complete.cleanup.disposition.kind == "integrated"
     assert complete.cleanup.remaining_resources() == ()
-    assert complete.branch_deleted() == complete
+    assert complete.cleanup_resource_removed(resources[1]) == complete
+
+
+def test_integration_cleanup_advances_temporary_resources_without_branch_aliasing():
+    run = IntegrationRun.new(intent()).start({"target_before": "b" * 40})
+    resources = [
+        {"kind": "temporary", "path": "/runtime/T1/index", "digest": "d" * 64},
+        {"kind": "temporary_backup", "path": "/runtime/T1/backup", "digest": "e" * 64},
+    ]
+    run = run.integrated("c" * 40, {"exit_code": 0}, resources)
+
+    first = run.cleanup_resource_removed(run.cleanup.resources[0])
+    complete = first.cleanup_resource_removed(first.cleanup.resources[0])
+
+    assert first.status == "cleanup_pending"
+    assert complete.status == "integrated"
+    assert complete.cleanup.status == "cleanup_complete"

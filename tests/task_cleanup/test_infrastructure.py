@@ -29,10 +29,11 @@ def descriptor(resource_type, path, content):
 def test_exact_registered_temporary_files_and_backups_are_removed(project):
     adapter_type, resource_type = cleanup_types()
     runtime = Poise(project["config_path"], "cleanup-adapter")
-    owned = runtime.runtime / "task-cleanup" / "T1"
-    owned.mkdir(parents=True)
-    temporary = owned / "merge.index"
-    backup = owned / "recovery.bundle.tmp"
+    adapter = adapter_type(runtime)
+    temporary = adapter.resource_root("T1", "temporary") / "merge.index"
+    backup = adapter.resource_root("T1", "temporary_backup") / "recovery.bundle.tmp"
+    temporary.parent.mkdir(parents=True)
+    backup.parent.mkdir(parents=True)
     temporary_content = b"temporary index\n"
     backup_content = b"temporary backup\n"
     temporary.write_bytes(temporary_content)
@@ -40,8 +41,6 @@ def test_exact_registered_temporary_files_and_backups_are_removed(project):
     operator_backup = runtime.state / "backups" / "operator.sqlite"
     operator_backup.parent.mkdir(parents=True, exist_ok=True)
     operator_backup.write_bytes(b"operator backup\n")
-    adapter = adapter_type(runtime)
-
     temporary_receipt = adapter.remove(
         "T1", resource_type.parse(descriptor("temporary", temporary, temporary_content))
     )
@@ -58,14 +57,12 @@ def test_exact_registered_temporary_files_and_backups_are_removed(project):
 def test_temporary_cleanup_rejects_digest_drift_and_foreign_paths(project):
     adapter_type, resource_type = cleanup_types()
     runtime = Poise(project["config_path"], "cleanup-adapter")
-    owned = runtime.runtime / "task-cleanup" / "T1"
-    owned.mkdir(parents=True)
-    changed = owned / "changed.tmp"
+    adapter = adapter_type(runtime)
+    changed = adapter.resource_root("T1", "temporary") / "changed.tmp"
+    changed.parent.mkdir(parents=True)
     changed.write_bytes(b"changed content\n")
     foreign = project["root"] / "foreign.tmp"
     foreign.write_bytes(b"foreign content\n")
-    adapter = adapter_type(runtime)
-
     with pytest.raises(PoiseError, match="digest|changed"):
         adapter.remove(
             "T1", resource_type.parse(descriptor("temporary", changed, b"original content\n"))

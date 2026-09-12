@@ -340,27 +340,28 @@ class RuntimeResultIntegration:
         if self._run(target, "merge-base", "--is-ancestor", run.intent.expected_source_commit,
                      run.target_after)["actual_exit_code"] != 0:
             raise PoiseError("Integrated target does not contain the accepted source")
+        if run.cleanup is None:
+            raise PoiseError("Integrated result has no cleanup state")
         try:
             self.cleanup.validate(run.intent.task_id, run.cleanup)
         except PoiseError as exc:
             resource,receipt=self.cleanup.validation_failure(run.intent.task_id,run.cleanup,exc)
-            blocked=run.cleanup_blocked(resource.kind,receipt)
+            blocked=run.cleanup_blocked(resource,receipt)
             self._save(run.intent.task_id,blocked,run.version)
             return blocked
-        if run.cleanup is None:
-            raise PoiseError("Integrated result has no cleanup state")
         while run.cleanup.resources:
             resource = run.cleanup.resources[0]
             try:
                 receipt = self.cleanup.remove(run.intent.task_id, resource)
             except PoiseError as exc:
                 receipt = getattr(exc, "receipt", None) or {"reason": f"{resource.kind}_cleanup_failed", "error": str(exc)}
-                blocked = run.cleanup_blocked(resource.kind, receipt)
+                blocked = run.cleanup_blocked(resource, receipt)
                 self._save(run.intent.task_id, blocked, run.version)
                 return blocked
-            advanced = run.worktree_removed() if resource.kind == "worktree" else run.branch_deleted()
+            advanced = run.cleanup_resource_removed(resource, receipt)
             self._save(run.intent.task_id, advanced, run.version)
             run = advanced
+        self.cleanup.finish(run.intent.task_id)
         return run
 
     def apply(self, intent):
@@ -373,6 +374,7 @@ class RuntimeResultIntegration:
         elif not self._same_intent(run, intent) and not self._completed_replay(run, intent):
             raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated":
+            self.cleanup.finish(run.intent.task_id)
             return run.result(replayed=True)
         if run.status in ("prepared", "running", "awaiting_resolution"):
             run = self._integrate(record, run, intent, target)

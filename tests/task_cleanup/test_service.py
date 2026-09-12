@@ -8,6 +8,7 @@ from batch.helpers import request
 from conftest import WorkPoise as Poise, git
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
+from result_integration.helpers import prepare_completed_task
 
 from .helpers import branch_exists, cleanup_input, prepare_cancelled_task
 
@@ -199,3 +200,75 @@ def test_cleanup_blocks_when_the_registered_branch_commit_has_drifted(project):
     assert blocked["blocker"]["actual_commit"] == drifted
     assert worktree.is_dir() and branch_exists(project)
     assert git(project["app"], "rev-parse", "HEAD") == main_before
+
+
+def test_dirty_standalone_worktree_remains_blocked_after_disposition_replay(project):
+    tools, worktree, commit = prepare_completed_task(
+        project,
+        lambda root: (root / "src" / "cancelled.py").write_text(
+            "VALUE = 'cancelled task commit'\n", encoding="utf-8"
+        ),
+        accept=False,
+    )
+    marker = Path(worktree) / "unfinished.txt"
+    marker.write_text("uncommitted user work\n", encoding="utf-8")
+
+    cancelled = tools.invoke(request("cancel", {"reason": "User cancelled this dirty Task."}))
+    assert cancelled["cleanup"]["status"] == "cleanup_blocked"
+    assert cancelled["cleanup"]["blocker"]["reason"] == "dirty_worktree_requires_decision"
+
+    replay = tools.invoke(request("cleanup", cleanup_input(commit)))
+    assert replay["status"] == "cleanup_blocked"
+    assert replay["blocker"]["reason"] == "dirty_worktree_requires_decision"
+    assert marker.read_text(encoding="utf-8") == "uncommitted user work\n"
+    assert Path(worktree).is_dir() and branch_exists(project)
+
+
+def test_registered_temporary_resources_flow_through_public_cleanup(project):
+    tools, worktree, commit = prepare_completed_task(
+        project,
+        lambda root: (root / "src" / "temporary.py").write_text(
+            "VALUE = 'temporary resource owner'\n", encoding="utf-8"
+        ),
+        accept=False,
+    )
+    adapter = tools.runtime.cleanup_tools.adapter
+    temporary = adapter.resource_root("T1", "temporary") / "merge.index"
+    backup = adapter.resource_root("T1", "temporary_backup") / "recovery.bundle.tmp"
+    temporary.parent.mkdir(parents=True, exist_ok=True)
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    temporary.write_text("temporary index\n", encoding="utf-8")
+    backup.write_text("temporary backup\n", encoding="utf-8")
+    adapter.register("T1", "temporary", temporary)
+    adapter.register("T1", "temporary_backup", backup)
+
+    cancelled = tools.invoke(request("cancel", {"reason": "User cancelled this exact Task."}))
+    kinds = [item["kind"] for item in cancelled["cleanup"]["remaining_resources"]]
+    assert kinds == ["worktree", "branch", "temporary", "temporary_backup"]
+
+    resumer = WorkTools(Poise(project["config_path"], "temporary-cleanup-resumer"))
+    completed = resumer.invoke(request("cleanup", cleanup_input(commit)))
+    assert completed["status"] == "cleanup_complete"
+    assert not temporary.exists() and not backup.exists()
+    assert not Path(worktree).exists() and not branch_exists(project)
+
+
+def test_explicit_cleanup_initializes_a_preexisting_terminal_task(project):
+    tools, worktree, commit = prepare_completed_task(
+        project,
+        lambda root: (root / "src" / "legacy.py").write_text(
+            "VALUE = 'legacy terminal task'\n", encoding="utf-8"
+        ),
+        accept=False,
+    )
+    with tools.runtime.store.unit_of_work() as uow:
+        task = uow.tasks.load("T1")
+        change = task.cancel(tools.runtime.session, "Legacy cancellation without cleanup state.")
+        uow.tasks.save(change, task.state.version)
+    tools.runtime.store.bind(tools.runtime.session, None)
+    assert tools.runtime.task_queries.record("T1")["pending"] is None
+
+    completed = tools.invoke(request("cleanup", cleanup_input(commit)))
+
+    assert completed["status"] == "cleanup_complete"
+    assert not Path(worktree).exists() and not branch_exists(project)

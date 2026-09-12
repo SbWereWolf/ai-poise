@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from pathlib import Path
 import subprocess
 
+from ..artifacts import inspect_paths
 from ..modules.foundation.errors import PoiseError
 from ..modules.task_cleanup.domain import CleanupRun, TaskOwnedResource
 
@@ -37,6 +39,62 @@ class RuntimeTaskResourceCleanup:
             raise CleanupEffectError(f"Git {args[0]}: {receipt['stderr']}", receipt)
         return receipt["stdout"].strip()
 
+    def resource_root(self, task_id: str, kind: str | None = None) -> Path:
+        root = (self.h.runtime.parent / "task-cleanup" / task_id).resolve()
+        if kind is None:
+            return root
+        if kind not in ("temporary", "temporary_backup"):
+            raise PoiseError("Only temporary cleanup resource kinds can be registered")
+        return root / kind
+
+    def register(self, task_id: str, kind: str, path: Path | str) -> dict:
+        if self.h.task_queries.record(task_id) is None:
+            raise PoiseError("Task does not exist")
+        root = self.resource_root(task_id, kind)
+        candidate = Path(path)
+        if candidate.is_symlink():
+            raise PoiseError("Registered cleanup resource cannot be a symlink")
+        records = inspect_paths([str(candidate)], {"runtime": root}, {"runtime": task_id})
+        record = records[0]
+        descriptor = {"kind": kind, "path": record["path"], "digest": record["digest"]}
+        packed = json.dumps(descriptor, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        registry = self.resource_root(task_id) / ".registry"
+        if registry.is_symlink():
+            raise PoiseError("Cleanup resource registry cannot be a symlink")
+        registry.mkdir(parents=True, exist_ok=True)
+        target = registry / f"{hashlib.sha256(packed.encode()).hexdigest()}.json"
+        if target.exists():
+            if target.is_symlink() or target.read_text(encoding="utf-8") != packed + "\n":
+                raise PoiseError("Cleanup resource registration identity changed")
+        else:
+            target.write_text(packed + "\n", encoding="utf-8")
+        return descriptor
+
+    def _registered(self, task_id: str) -> list[dict]:
+        registry = self.resource_root(task_id) / ".registry"
+        if not registry.exists():
+            return []
+        if registry.is_symlink() or not registry.is_dir():
+            raise PoiseError("Cleanup resource registry ownership changed")
+        resources = []
+        for source in sorted(registry.iterdir()):
+            if source.is_symlink() or not source.is_file() or source.suffix != ".json":
+                raise PoiseError("Cleanup resource registry contains an unknown entry")
+            try:
+                value = json.loads(source.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise PoiseError(f"Cleanup resource registration is unreadable: {exc}") from exc
+            owned = TaskOwnedResource.parse(value)
+            if owned.kind not in ("temporary", "temporary_backup"):
+                raise PoiseError("Cleanup resource registry contains a non-temporary resource")
+            packed = json.dumps(owned.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            if source.name != f"{hashlib.sha256(packed.encode()).hexdigest()}.json":
+                raise PoiseError("Cleanup resource registration digest changed")
+            if not Path(owned.path).resolve().is_relative_to(self.resource_root(task_id, owned.kind)):
+                raise PoiseError("Registered cleanup resource escaped its task-owned root")
+            resources.append(owned.to_dict())
+        return resources
+
     def resources(self, task_id: str) -> list[dict]:
         record = self.h.task_queries.record(task_id)
         if record is None: raise PoiseError("Task does not exist")
@@ -58,6 +116,7 @@ class RuntimeTaskResourceCleanup:
             if not observed["actual_exit_code"]: commit = observed["stdout"].strip()
         if branch and commit:
             resources.append({"kind": "branch", "name": branch, "commit": commit})
+        resources.extend(sorted(self._registered(task_id), key=lambda item: (item["kind"], item["path"])))
         return resources
 
     def load(self, task_id):
@@ -81,10 +140,81 @@ class RuntimeTaskResourceCleanup:
             data["pending"] = pending
             uow.execution.save(task_id, data, version)
 
+    def initialize(self, task_id, pending):
+        with self.h.store.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            if task.state.status.value not in ("cancelled", "superseded"):
+                raise PoiseError("Cleanup initialization requires a terminal cancelled or superseded Task")
+            data, version = uow.execution.load(task_id)
+            if data["pending"] is not None:
+                raise PoiseError("Task acquired a pending external operation during cleanup initialization")
+            data["pending"] = pending
+            uow.execution.save(task_id, data, version)
+
+    def finish(self, task_id):
+        root = self.resource_root(task_id)
+        registry = root / ".registry"
+        if registry.is_dir() and not registry.is_symlink():
+            for source in registry.iterdir():
+                if source.is_symlink() or not source.is_file():
+                    continue
+                try:
+                    owned = TaskOwnedResource.parse(json.loads(source.read_text(encoding="utf-8")))
+                except (OSError, json.JSONDecodeError, PoiseError):
+                    continue
+                path = Path(owned.path)
+                if not path.exists() and not path.is_symlink():
+                    source.unlink()
+            try:
+                registry.rmdir()
+            except OSError:
+                pass
+        for kind in ("temporary", "temporary_backup"):
+            directory = root / kind
+            if directory.is_dir():
+                try:
+                    directory.rmdir()
+                except OSError:
+                    pass
+        if root.is_dir():
+            try:
+                root.rmdir()
+            except OSError:
+                pass
+
     def _branch(self, run):
         return next((item for item in run.resources if item.kind == "branch"), None)
 
     def validate(self, task_id: str, run: CleanupRun):
+        worktree = next((item for item in run.resources if item.kind == "worktree"), None)
+        if worktree is not None and Path(worktree.path).exists():
+            path = Path(worktree.path)
+            expected = (self.h.state / self.h.paths["worktrees"] / task_id).resolve()
+            if path.is_symlink() or path.resolve() != expected:
+                error = PoiseError("owned worktree path changed after terminal transition")
+                error.cleanup_resource = worktree
+                error.cleanup_details = {
+                    "reason": "owned_resource_changed",
+                    "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
+                }
+                raise error
+            identity = str(Path(self._git(path, "rev-parse", "--git-dir")).resolve())
+            if identity != worktree.identity:
+                error = PoiseError("owned worktree identity changed after terminal transition")
+                error.cleanup_resource = worktree
+                error.cleanup_details = {
+                    "reason": "owned_resource_changed",
+                    "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
+                }
+                raise error
+            if self._git(path, "status", "--porcelain", "--untracked-files=all"):
+                error = PoiseError("owned worktree contains uncommitted changes")
+                error.cleanup_resource = worktree
+                error.cleanup_details = {
+                    "reason": "dirty_worktree_requires_decision",
+                    "recovery": "Preserve or commit the worktree changes, then replay this cleanup request.",
+                }
+                raise error
         branch = self._branch(run)
         if branch is None: return
         repository = Path(self.h.cfg["git"]["repository"])
@@ -102,7 +232,8 @@ class RuntimeTaskResourceCleanup:
     def validation_failure(self, task_id, run, exc):
         branch = self._branch(run)
         details = getattr(exc, "cleanup_details", {"reason": "ownership_validation_failed", "error": str(exc)})
-        return branch or run.resources[0], details
+        resource = getattr(exc, "cleanup_resource", None)
+        return resource or branch or run.resources[0], details
 
     def preserve(self, task_id: str, run: CleanupRun) -> str:
         branch = self._branch(run)
@@ -123,8 +254,11 @@ class RuntimeTaskResourceCleanup:
 
     def remove(self, task_id: str, resource: TaskOwnedResource) -> dict:
         if resource.kind in ("temporary", "temporary_backup"):
-            path = Path(resource.path).resolve()
-            root = (self.h.runtime / "task-cleanup" / task_id).resolve()
+            raw = Path(resource.path)
+            if raw.is_symlink():
+                raise PoiseError("registered resource ownership changed to a symlink")
+            path = raw.resolve()
+            root = self.resource_root(task_id, resource.kind).resolve()
             if not path.is_relative_to(root): raise PoiseError("resource path is outside task-owned runtime root")
             if not path.is_file(): return {"status": "removed", "already_absent": True}
             if hashlib.sha256(path.read_bytes()).hexdigest() != resource.digest:

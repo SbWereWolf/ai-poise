@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 import re
 
 from ..foundation.errors import DomainError
-from ..task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
+from ..task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition, TaskOwnedResource
 
 
 _COMMIT = re.compile(r"[0-9a-f]{40,64}")
@@ -138,17 +138,12 @@ class IntegrationRun:
         return self._step("running", "resolutions_declared", resolutions=parsed,
                           merge={**self.merge, "resolutions": list(parsed)})
 
-    def integrated(self, target_after, receipt, resources=None):
+    def integrated(self, target_after, receipt, resources):
         if self.status != "running":
             raise DomainError("Only a running integration can record a target result")
         target = _commit(target_after, "integrated target")
         merge = {"receipt": receipt, "conflicts": list(self.conflicts),
                  "resolutions": list(self.resolutions)}
-        if resources is None:
-            resources = [
-                {"kind": "worktree", "identity": self.intent.task_id, "path": self.intent.task_id},
-                {"kind": "branch", "name": self.intent.task_id, "commit": self.intent.expected_source_commit},
-            ]
         disposition = CommitDisposition("integrated", self.intent.expected_source_commit,
                                         target, self.intent.request_id)
         cleanup_intent = CleanupIntent(self.intent.request_id, self.intent.task_id,
@@ -170,37 +165,27 @@ class IntegrationRun:
         target = "running" if self.failure["reason"] == "integration_commit_failed" else "prepared"
         return self._step(target, "merge_retry", failure=None)
 
-    def cleanup_blocked(self, component, receipt):
-        if self.status != "cleanup_pending" or component not in ("worktree", "branch") or self.cleanup is None:
+    def cleanup_blocked(self, resource, receipt):
+        if self.status != "cleanup_pending" or self.cleanup is None:
             raise DomainError("Cleanup blockage does not match the integration state")
-        resource = next((item for item in self.cleanup.resources if item.kind == component), None)
-        if resource is None: return self
-        cleanup = self.cleanup.cleanup_blocked(resource, receipt)
-        details = {"component": component, "receipt": receipt}
-        return self._step("cleanup_pending", f"{component}_cleanup_blocked",
+        owned = resource if isinstance(resource, TaskOwnedResource) else TaskOwnedResource.parse(resource)
+        if owned not in self.cleanup.resources:
+            raise DomainError("Cleanup blockage resource is not pending")
+        cleanup = self.cleanup.cleanup_blocked(owned, receipt)
+        details = {"component": owned.kind, "receipt": receipt}
+        return self._step("cleanup_pending", f"{owned.kind}_cleanup_blocked",
                           details=details, cleanup=cleanup)
 
-    def worktree_removed(self):
+    def cleanup_resource_removed(self, resource, receipt=None):
         if self.status not in ("cleanup_pending", "integrated") or self.cleanup is None:
-            raise DomainError("Worktree cleanup requires an integrated target")
-        resource = next((item for item in self.cleanup.resources if item.kind == "worktree"), None)
-        if resource is None:
+            raise DomainError("Resource cleanup requires an integrated target")
+        owned = resource if isinstance(resource, TaskOwnedResource) else TaskOwnedResource.parse(resource)
+        if owned not in self.cleanup.resources:
             return self
         cleanup = self.cleanup.retry_blocked() if self.cleanup.blocker is not None else self.cleanup
-        cleanup = cleanup.resource_removed(resource)
-        return self._step(self.status, "worktree_removed", cleanup=cleanup)
-
-    def branch_deleted(self):
-        if self.cleanup is None:
-            raise DomainError("Cleanup state is missing")
-        if any(item.kind == "worktree" for item in self.cleanup.resources):
-            raise DomainError("Branch deletion follows worktree removal")
-        resource = next((item for item in self.cleanup.resources if item.kind == "branch"), None)
-        if resource is None:
-            return self
-        cleanup = self.cleanup.retry_blocked() if self.cleanup.blocker is not None else self.cleanup
-        cleanup = cleanup.resource_removed(resource)
-        return self._step("integrated", "branch_deleted", cleanup=cleanup)
+        cleanup = cleanup.resource_removed(owned, receipt)
+        status = "integrated" if cleanup.complete else "cleanup_pending"
+        return self._step(status, f"{owned.kind}_removed", cleanup=cleanup)
 
     def to_storage(self):
         return {

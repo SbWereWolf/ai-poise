@@ -13,7 +13,13 @@ class TaskResourceCleanup:
 
     def prepare_terminal(self, task_id: str, request_id: str, authorization: str) -> CleanupRun:
         resources = self.adapter.resources(task_id)
-        return CleanupRun.new(CleanupIntent(request_id, task_id, authorization, None), resources)
+        run = CleanupRun.new(CleanupIntent(request_id, task_id, authorization, None), resources)
+        try:
+            self.adapter.validate(task_id, run)
+        except PoiseError as exc:
+            resource, receipt = self.adapter.validation_failure(task_id, run, exc)
+            run = run.cleanup_blocked(resource, receipt)
+        return run
 
     @staticmethod
     def pending(run: CleanupRun) -> dict:
@@ -36,7 +42,23 @@ class TaskResourceCleanup:
 
     def apply(self, args: dict) -> dict:
         intent = CleanupIntent.parse(args)
-        run = self._load(intent.task_id)
+        value = self.adapter.load(intent.task_id)
+        if value is None:
+            run = self.prepare_terminal(intent.task_id, intent.request_id, intent.authorization)
+            self.adapter.initialize(intent.task_id, self.pending(run))
+            if run.complete:
+                self.adapter.finish(intent.task_id)
+                return run.result()
+        elif value.get("kind") != "task_cleanup":
+            raise PoiseError("Task has an incompatible pending external operation")
+        else:
+            run = CleanupRun.restore(value)
+        if run.complete and run.intent.commit_disposition.kind == "no_resources":
+            if (run.intent.request_id, run.intent.task_id, run.intent.authorization) != (
+                    intent.request_id, intent.task_id, intent.authorization):
+                raise PoiseError("Cleanup request immutable intent changed")
+            self.adapter.finish(intent.task_id)
+            return run.result(replayed=True)
         if run.intent.commit_disposition is not None:
             if run.intent.request_id != intent.request_id:
                 raise PoiseError("Cleanup request identity is immutable")
@@ -49,6 +71,7 @@ class TaskResourceCleanup:
             if saved != received:
                 raise PoiseError("Cleanup request immutable commit disposition changed")
             if run.complete:
+                self.adapter.finish(intent.task_id)
                 return run.result(replayed=True)
         else:
             # A terminal transition records the resource obligation but does not
@@ -99,4 +122,5 @@ class TaskResourceCleanup:
                 return run.result()
             run = run.resource_removed(resource, receipt)
             self.adapter.save(intent.task_id, self.pending(run))
+        self.adapter.finish(intent.task_id)
         return run.result()

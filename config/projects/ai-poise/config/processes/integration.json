@@ -206,7 +206,13 @@
         "src/**",
         "tests/**",
         "fixtures/**",
-        "docs/**"
+        "docs/**",
+        "config/**",
+        "scripts/**",
+        "templates/**",
+        "examples/**",
+        "delivery/**",
+        "*.md"
       ],
       "artifact_requirements": [],
       "handler": "apply_plan",
@@ -295,7 +301,13 @@
         "src/**",
         "tests/**",
         "fixtures/**",
-        "docs/**"
+        "docs/**",
+        "config/**",
+        "scripts/**",
+        "templates/**",
+        "examples/**",
+        "delivery/**",
+        "*.md"
       ],
       "artifact_requirements": [],
       "handler": "revise",

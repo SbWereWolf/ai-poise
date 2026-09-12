@@ -29,7 +29,6 @@
           }
         ]
       },
-      "timeout_seconds": 10,
       "expected_exit_code": 0,
       "stdout_contains": [
         "VALUE=4"

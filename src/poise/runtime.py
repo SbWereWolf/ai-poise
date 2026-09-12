@@ -671,7 +671,7 @@ class Poise:
         for method,invocation in zip(checks,invocations,strict=True):
             run_id=str(uuid.uuid4())
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
-            result=run_command(method['argv'],Path(invocation['cwd']),invocation['environment'],method['timeout_seconds'],
+            result=run_command(method['argv'],Path(invocation['cwd']),invocation['environment'],None,
                                descendant(run_dir,self.paths['stdout']),descendant(run_dir,self.paths['stderr']))
             passed=(not result['timed_out'] and result['actual_exit_code']==method['expected_exit_code'] and
                     all(contains(Path(result['stdout']),t) for t in method['stdout_contains']) and

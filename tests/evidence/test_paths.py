@@ -22,7 +22,7 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     write_json(project['config_path'],cfg)
     counter=project['root']/'calls.txt'
     code=f"from pathlib import Path; p=Path({str(counter)!r}); p.write_text(p.read_text()+'x' if p.exists() else 'x'); print('observed=3'); raise SystemExit({1 if negative else 0})"
-    m={'id':'M','argv':[sys.executable,'-B','-c',code], 'cwd':'.','environment':{},'timeout_seconds':5,
+    m={'id':'M','argv':[sys.executable,'-B','-c',code], 'cwd':'.','environment':{},
        'source_under_test':{'kind':'external','reason':'The observer records generated evidence and reads no repository source.'},
        'expected_exit_code':0,'stdout_contains':['observed=3'],'stderr_contains':[]}
     task=project['task']; task.update(goal_type='verification_demo', methods=[m],checks={'measure':['M'],'audit':[]},
@@ -196,13 +196,14 @@ def test_repeated_pending_does_not_rerun_command(project):
     assert counter.read_text()=='x' and first['checks']==again['checks']
 
 
-def test_observe_timeout_is_not_verified(project):
+def test_verification_method_waits_for_process_completion(project):
     h,_=setup(project,logical=False)
-    task=project['task'];task['methods'][0].update(argv=[sys.executable,'-c','import time; time.sleep(5)'],timeout_seconds=0.05)
+    task=project['task'];task['methods'][0].update(
+        argv=[sys.executable,'-c',"import time; time.sleep(0.05); print('observed=3')"]
+    )
     write_json(project['task_path'],task)
     h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']); input_result(ctx)
-    r=h.verify();assert r['status']=='checks_failed' and r['checks'][0]['timed_out'] is True
-    assert h.show()['status']=='active'
+    r=h.verify();assert r['status']=='verified' and r['checks'][0]['timed_out'] is False
 
 
 def test_lost_raw_receipt_blocks_continue_not_silent_reexecution(project):

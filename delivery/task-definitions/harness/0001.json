@@ -44,7 +44,6 @@
           }
         ]
       },
-      "timeout_seconds": 120,
       "expected_exit_code": 0,
       "stdout_contains": [],
       "stderr_contains": []

@@ -43,6 +43,9 @@ Follow the [TDD rules](../docs/governance/development-rules.md), [library bounda
 Every new verification method must declare `source_under_test`. Bind repository sources to
 paths inside the current task worktree; never infer a language layout, overwrite an existing
 environment value, or add a fallback checkout. External methods require an explicit reason.
+Verification methods never declare execution timeouts; after launch, wait for the process to
+reach a terminal result. Capability probes, hooks and other bounded infrastructure retain their
+own explicit timeout contracts.
 Reject semantic duplicates and conflicting methods before execution. Accept RED evidence only
 when the declared failure predicate matches and the recorded source provenance is valid; an
 import error or execution against another checkout is not a valid RED.

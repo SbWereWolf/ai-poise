@@ -56,13 +56,13 @@ def install(home):
 def repository_method(mid,code,expected=0,needles=()):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-            'timeout_seconds':10,'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
+            'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
 
 
 def external_method(mid,code,expected=0,needles=()):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'external','reason':'The reference command reads only generated external state.'},
-            'timeout_seconds':10,'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
+            'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
 
 
 def _methods(goal,home):
@@ -73,14 +73,14 @@ def _methods(goal,home):
         methods=[repository_method('BASELINE','from src.double import double; assert double(2)==3; print("BASELINE=3")',needles=['BASELINE=3'])]
         argv=[sys.executable,'-B','-m','unittest','discover','-s','tests','-v']
         for mid,code,needles in [('TEST_RED',1,['test_double','AssertionError: 3 != 4','Ran 1 test']),('TEST_GREEN',0,['test_double','Ran 1 test','OK'])]:
-            methods.append({'id':mid,'argv':argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'timeout_seconds':10,
+            methods.append({'id':mid,'argv':argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},
                             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
                             'expected_exit_code':code,'stdout_contains':[],'stderr_contains':needles})
         methods.append(repository_method('DOC_CHECK','from pathlib import Path; assert "double(2) == 4" in Path("docs/usage.md").read_text(); print("DOC_OK")',needles=['DOC_OK']))
         return methods
     if goal=='test_development':
         return [repository_method('BASELINE','from src.double import double; assert double(2)==4; print("BASELINE=4")',needles=['BASELINE=4']),
-                {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
+                {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
                 repository_method('SENSITIVITY','import unittest; from unittest.mock import patch; from tests.test_double import Regression; s=unittest.TestSuite([Regression("test_double")]);\nwith patch("tests.test_double.double",lambda n:n+1):\n r=unittest.TestResult(); s.run(r)\nassert len(r.failures)==1 and not r.errors; print("DETECTED_BAD_IMPLEMENTATION")',needles=['DETECTED_BAD_IMPLEMENTATION'])]
     if goal=='verification':return [repository_method('VERIFY','from src.double import double; print("VALUE="+str(double(2))); raise SystemExit(0 if double(2)==4 else 1)',needles=['VALUE=4'])]
     if goal=='review':return []

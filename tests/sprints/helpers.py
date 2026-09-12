@@ -37,7 +37,7 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
         goal=f'Результат {identifier}',requirements=[f'R-{identifier}'],definition_of_done=[f'DOD-{identifier}'])
     t['methods']=[{'id':'CHECK','argv':[sys.executable,'-B','-c',command],'cwd':'.','environment':{},
                    'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-                   'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}]
+                   'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}]
     t['checks']={'work':['CHECK']};t['evidence_plan']={'work':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     return t
 

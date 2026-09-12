@@ -98,11 +98,11 @@ def project(tmp_path, monkeypatch):
     methods = [
         {'id': 'RED', 'argv': argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
-         'timeout_seconds': 10, 'expected_exit_code': 1,
+         'expected_exit_code': 1,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']},
         {'id': 'GREEN', 'argv': argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
-         'timeout_seconds': 10, 'expected_exit_code': 0,
+         'expected_exit_code': 0,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'Ran 1 test', 'OK']},
     ]
     task = {

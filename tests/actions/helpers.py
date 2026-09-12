@@ -33,7 +33,7 @@ def verify(h,p):
 def method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-            'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
+            'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 
 def setup(project, kind='git_merge', conflict=True):

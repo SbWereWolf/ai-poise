@@ -66,7 +66,7 @@ Task владеет ContentPolicy, ContentSnapshot и CheckRegistry. Чиста�
 
 `content_additions` позволяет зарегистрировать секции, цепочки и дополнительные обязательства. `trace` — изменения точек вида `{route: {point: value}}`; для осмысленной очистки разрешён null. Snapshot и declared contract получаются самим AI poise. Агент не передаёт status/version/task_id/Git diff/hashes.
 
-`method_additions`: список `{method: <точный метод>, stages: [<этапы исполнения>]}`. Поля метода: id, argv, cwd, environment, timeout_seconds, expected_exit_code, stdout_contains, stderr_contains. Метод имеет неизменное определение; другой способ/ожидание получает новый ID. Такой метод сразу включается в checks указанных этапов. Пустое расписание допускается явно, например для метода, который нужен только automatic mapping; AI poise не угадывает его назначение.
+`method_additions`: список `{method: <точный метод>, stages: [<этапы исполнения>]}`. Поля метода: id, argv, cwd, environment, expected_exit_code, stdout_contains, stderr_contains. Verification method не задаёт таймаут: после запуска AI poise ждёт конечный результат процесса. Метод имеет неизменное определение; другой способ/ожидание получает новый ID. Такой метод сразу включается в checks указанных этапов. Пустое расписание допускается явно, например для метода, который нужен только automatic mapping; AI poise не угадывает его назначение.
 
 ## Последовательность verify
 

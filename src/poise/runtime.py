@@ -397,7 +397,7 @@ class Poise:
                         data,entry_tree,checks,worktree)
                     batch=self.task_commands.failed_observation_batch(data['id'],entry_tree,execution_key)
                     if batch is None or not self._intact_receipts(
-                        batch['receipts'], invocations, entry_tree
+                        data['id'], batch['receipts'], invocations, entry_tree
                     ):
                         raise PoiseError('Нет точного доступного failed check batch текущего результата')
                     self.runner.rework_failed(
@@ -554,7 +554,7 @@ class Poise:
         # Env values participate only in the digest; they are not persisted in receipts.
         batch = self.task_commands.observation_batch(data['id'],tree,execution_key)
         usable = batch is not None and self._usable_receipts(
-            batch['receipts'], invocations, tree
+            data['id'], batch['receipts'], invocations, tree
         )
         if payload['evidence_work']['phase']=='continue' and not usable:
             return {'status':'observations_stale','task':data['id'],'stage':stage['id'],
@@ -592,7 +592,7 @@ class Poise:
             self.store.save(data)
             self.runner.record_observations(data['id'],self.session,tree,execution_key,receipts)
             data = self._task()
-        if not self._usable_receipts(receipts, invocations, tree):
+        if not self._usable_receipts(data['id'], receipts, invocations, tree):
             return {'status':'checks_failed','task':data['id'],'stage':stage['id'],'attempt':attempt,'checks':receipts,'replayed':False}
         if self._tree(worktree) != tree:
             raise PoiseError('Наблюдения изменили проверяемое дерево; сначала согласуйте фактическое состояние')
@@ -674,13 +674,18 @@ class Poise:
         })
         return invocations, execution_key
 
-    def _intact_receipts(self, receipts, invocations, tree):
+    def _intact_receipts(self, task_id, receipts, invocations, tree):
         if (
             not completed_receipts(receipts)
             or not isinstance(invocations, list)
             or len(receipts) != len(invocations)
         ):
             return False
+        recorded={
+            receipt['id']: receipt
+            for receipt in self.evidence_commands.list_for(task_id)
+            if isinstance(receipt,dict) and isinstance(receipt.get('id'),str)
+        }
         required = {
             'stderr',
             'stderr_digest',
@@ -688,7 +693,11 @@ class Poise:
             'stdout_digest',
         }
         for r, invocation in zip(receipts, invocations, strict=True):
-            if not isinstance(r, dict) or not required <= set(r):
+            if (
+                not isinstance(r, dict)
+                or not required <= set(r)
+                or recorded.get(r['id']) != r
+            ):
                 return False
             method=invocation['method']
             expected={
@@ -717,8 +726,8 @@ class Poise:
                     return False
         return True
 
-    def _usable_receipts(self, receipts, invocations, tree):
-        return self._intact_receipts(receipts, invocations, tree) and all(
+    def _usable_receipts(self, task_id, receipts, invocations, tree):
+        return self._intact_receipts(task_id, receipts, invocations, tree) and all(
             not r['guard'] or r['passed'] for r in receipts
         )
 

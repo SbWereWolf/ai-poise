@@ -172,6 +172,10 @@ def test_current_automatic_check_mapping_applies_to_existing_task(project):
         "expected_exit_code": 0,
         "stdout_contains": ["current-config-check"],
         "stderr_contains": [],
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
     })
     contract["method_inputs"].append({
         "method_id": "CURRENT_CONFIG_CHECK",

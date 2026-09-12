@@ -6,6 +6,7 @@ import re
 from ..artifact_factory.domain import exact
 from ..capabilities.domain import ProbeSpec,positive,nonempty
 from ..foundation.errors import PoiseError
+from ..tasks.domain import is_terminal_task_status
 
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
@@ -24,10 +25,12 @@ class BoundSourceRoute:
             return cls('installation',None)
         if operation=='bootstrap':
             if target_task is not None:
+                if is_terminal_task_status(target_task['status']):
+                    return cls('installation',None)
                 return cls('target_task',target_task['id'])
             if task_input is not None:
                 return cls('installation',None)
-        if current_task is not None and current_task['status'] not in ('completed','cancelled','superseded'):
+        if current_task is not None and not is_terminal_task_status(current_task['status']):
             return cls('current_task',current_task['id'])
         return cls('installation',None)
 

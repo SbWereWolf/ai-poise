@@ -15,6 +15,7 @@ from .application.runner import StageRunner
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
 from .modules.foundation.paths import matches_allowed_path
+from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
 
@@ -232,6 +233,14 @@ class Poise:
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
 
+    def _terminal_context(self, data: dict) -> dict:
+        return {
+            **self._context(data, False),
+            'content': self.task_queries.content(data['id']),
+            'evidence': self.task_queries.evidence_view(data['id']),
+            'history': self.task_queries.history(data['id']),
+        }
+
     def _validate_task(self, task: dict, process: dict) -> dict:
         from .modules.tasks.definition import validate_creation
         validate_creation(task,process,self.cfg['automatic_checks'])
@@ -313,11 +322,12 @@ class Poise:
             selected=self.task_queries.record(task['id'])
             if selected is None:raise PoiseError('Неизвестный task/sprint ID')
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
-            if selected['status']=='superseded':
-                if current and current['status'] not in ('completed','cancelled','superseded') and current['id']!=selected['id']:
+            if is_terminal_task_status(selected['status']):
+                if current and not is_terminal_task_status(current['status']):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
-                self.store.bind(self.session,selected['id'])
-                return self._context(selected,False)
+                result = self._terminal_context(selected)
+                self.store.bind(self.session, None)
+                return result
             task=deepcopy(selected['contract'])
         if task is not None:
             intent = deepcopy(task)
@@ -333,7 +343,7 @@ class Poise:
                 if contract.get('goal_type') not in self.processes:
                     raise PoiseError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
-            if current and current['status'] not in ('completed','cancelled','superseded'):
+            if current and not is_terminal_task_status(current['status']):
                 same_automatic=(automatic and current.get('creation_request',{}).get('request_id')==intent.get('request_id'))
                 if not same_automatic and current['id'] != contract.get('id'):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
@@ -341,7 +351,7 @@ class Poise:
                 data = existing
                 if data['claimed_by'] not in (None, self.session):
                     raise PoiseError('Задача уже связана с другой сессией')
-                if data['claimed_by'] is None and data['status'] not in ('completed','cancelled','superseded'):
+                if data['claimed_by'] is None and not is_terminal_task_status(data['status']):
                     self.handoff_tools.resume(data)
                     data=self.task_queries.record(data['id'])
                 self._reconcile_task_worktree(data)
@@ -365,7 +375,10 @@ class Poise:
                 data=self.task_queries.record(allocation.task_id)
             self.store.bind(self.session, data['id'])
             current = self.store.current(self.session)
-        if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled','superseded')):
+        if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
+            self.store.bind(self.session, None)
+            current = None
+        if decision is None and task is None and current is None:
             sprint=self.sprint_tools.overview(None)
             if sprint is not None:return sprint
         if current is None:

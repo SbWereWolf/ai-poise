@@ -3,6 +3,7 @@ from copy import deepcopy
 from ..modules.work.domain import parse_request,read_range
 from ..modules.hook_transport.domain import BoundSourceRoute
 from ..modules.foundation.errors import PoiseError
+from ..modules.tasks.domain import is_terminal_task_status
 from ..modules.work.ports import WorkRuntime
 
 
@@ -41,7 +42,7 @@ class WorkTools:
         # Count all received user messages during current work, independently
         # of the requested tool or the supplied reason. Completed work is not
         # charged for an unrelated later query.
-        bound_before = before if before is not None and before['status'] not in ('completed','cancelled','superseded') else None
+        bound_before = before if before is not None and not is_terminal_task_status(before['status']) else None
         self.interactions.record(events,h.session,bound_before)
         telemetry=h.accounting.prepare(req['telemetry']) if 'telemetry' in req else None
         h.accounting.begin(op,bound_before,telemetry,events[-1].identity if events else None)
@@ -69,12 +70,12 @@ class WorkTools:
             else:raise PoiseError('Unreachable work operation')
         except Exception:
             after=h.current_task()
-            self.interactions.record(events,h.session,after if after is not None and after['status'] not in ('completed','cancelled','superseded') else bound_before)
+            self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
             if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,after)
             h.accounting.finish(op,before,after,{'status':'rejected'})
             raise
         current=h.current_task()
-        self.interactions.record(events,h.session,current if current is not None and current['status'] not in ('completed','cancelled','superseded') else bound_before)
+        self.interactions.record(events,h.session,current if current is not None and not is_terminal_task_status(current['status']) else bound_before)
         self.interactions.delivered(current,out)
         if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,current)
         h.accounting.finish(op,before,current,out)

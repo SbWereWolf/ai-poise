@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-12T00:25:00+05:00.
+Updated: 2026-09-12T04:43:01+05:00.
 
 ## Declarative, reusable tools
 
@@ -39,6 +39,10 @@ Keep all AI poise configuration in the AI poise codebase and select the project 
 Use a dedicated Git worktree and the repository branch-naming rule before modifying code. Do not complicate read-only inspection with worktree creation.
 
 Follow the [TDD rules](../docs/governance/development-rules.md), [library boundaries](../docs/architecture/boundaries.md) and [declarative tool contract](../docs/architecture/declarative-tools.md). Write and inspect tests before implementation, verify the completed path, review fixes, and update tool, code and storage documentation with a timestamp.
+
+Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; do not register unfiltered repository-wide test discovery as a task method.
+
+Every new Task worktree starts from the current configured base ref observed for that start. Sprint result dependencies expose predecessor commits through `result_provenance`; they do not select or merge a successor branch base.
 
 Every new verification method must declare `source_under_test`. Bind repository sources to
 paths inside the current task worktree; never infer a language layout, overwrite an existing

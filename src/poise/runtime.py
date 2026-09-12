@@ -237,10 +237,9 @@ class Poise:
         validate_creation(task,process,self.cfg['automatic_checks'])
         return process
 
-    def _creation_base(self, base_revision=None):
+    def _creation_base(self):
         repository=Path(self.cfg['git']['repository']).resolve(strict=True)
-        reference=self.cfg['git']['base_ref'] if base_revision is None else base_revision
-        return self._git(repository,'rev-parse','--verify',reference+'^{commit}')
+        return self._git(repository,'rev-parse','--verify',self.cfg['git']['base_ref']+'^{commit}')
 
     def _execution_reservation(self, task_id, base):
         branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)

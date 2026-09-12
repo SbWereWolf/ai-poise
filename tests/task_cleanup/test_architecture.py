@@ -15,11 +15,49 @@ def parsed(path):
     return ast.parse(source(path))
 
 
+def dotted_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        owner = dotted_name(node.value)
+        return f"{owner}.{node.attr}" if owner else node.attr
+    return ""
+
+
+def routes_operation_to(tree, operation, owner_call):
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.If) or not isinstance(node.test, ast.Compare):
+            continue
+        compared = [node.test.left, *node.test.comparators]
+        if not any(isinstance(value, ast.Constant) and value.value == operation for value in compared):
+            continue
+        if any(
+            isinstance(candidate, ast.Call) and dotted_name(candidate.func) == owner_call
+            for statement in node.body
+            for candidate in ast.walk(statement)
+        ):
+            return True
+    return False
+
+
+def assigns_constructed_owner(tree, target, constructor):
+    return any(
+        isinstance(node, (ast.Assign, ast.AnnAssign))
+        and any(dotted_name(candidate) == target for candidate in (
+            node.targets if isinstance(node, ast.Assign) else [node.target]
+        ))
+        and isinstance(node.value, ast.Call)
+        and dotted_name(node.value.func).endswith(constructor)
+        for node in ast.walk(tree)
+    )
+
+
 def test_one_cleanup_owner_is_shared_by_terminal_and_integration_paths():
     domain = source("src/poise/modules/task_cleanup/domain.py")
     application = parsed("src/poise/application/task_cleanup.py")
     infrastructure = parsed("src/poise/infrastructure/task_cleanup.py")
     integration = parsed("src/poise/infrastructure/result_integration.py")
+    runtime = parsed("src/poise/runtime.py")
     work = parsed("src/poise/application/work.py")
 
     assert "subprocess" not in domain and "sqlite" not in domain.lower()
@@ -44,11 +82,8 @@ def test_one_cleanup_owner_is_shared_by_terminal_and_integration_paths():
         and node.func.id == "RuntimeTaskResourceCleanup"
         for node in ast.walk(integration)
     )
-    assert any(
-        isinstance(node, ast.Compare)
-        and any(isinstance(value, ast.Constant) and value.value == "cleanup" for value in node.comparators)
-        for node in ast.walk(work)
-    )
+    assert assigns_constructed_owner(runtime, "self.cleanup_tools", "TaskResourceCleanup")
+    assert routes_operation_to(work, "cleanup", "h.cleanup_tools.apply")
 
 
 def test_cleanup_implementation_contains_no_force_or_transport_owned_deletion():

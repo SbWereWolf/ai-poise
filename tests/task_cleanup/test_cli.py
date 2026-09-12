@@ -31,9 +31,9 @@ def test_cleanup_packet_and_query_have_exact_public_shapes():
 
 
 @pytest.mark.parametrize("change,match", [
-    (lambda value: value.pop("commit_disposition"), "commit_disposition|exact.*fields"),
-    (lambda value: value.update(extra="not-allowed"), "cleanup input|exact.*fields"),
-    (lambda value: value["commit_disposition"].pop("expected_commit"), "expected_commit|exact.*fields"),
+    (lambda value: value.pop("commit_disposition"), "commit_disposition"),
+    (lambda value: value.update(extra="not-allowed"), "cleanup input.*fields"),
+    (lambda value: value["commit_disposition"].pop("expected_commit"), "expected_commit"),
     (lambda value: value["commit_disposition"].update(kind="published"), "disposition.*kind|preserved|discard_authorized"),
 ])
 def test_cleanup_packet_rejects_missing_extra_or_forged_publication(change, match):

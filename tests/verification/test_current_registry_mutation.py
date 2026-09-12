@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
+import sqlite3
 
 import pytest
 
@@ -15,6 +17,12 @@ STAGES = (
     "implementation",
 )
 OBLIGATIONS = ("requirements[0]", "definition_of_done[0]")
+OBLIGATION_CATALOG = (
+    "requirements[0]",
+    "requirements[1]",
+    "definition_of_done[0]",
+    "definition_of_done[1]",
+)
 
 
 def method(method_id: str, marker: str, *, green_stage: str = "implementation") -> dict:
@@ -66,14 +74,24 @@ def initial_registry() -> CheckRegistry:
         STAGES,
         require_source=True,
         require_plan=True,
+    ).with_executable_obligations(
+        OBLIGATIONS,
+        ("test_inspection",),
+        OBLIGATION_CATALOG,
     )
 
 
-def change(*operations: dict, request_id: str = "registry-1", revision: int = 0) -> dict:
+def change(
+    *operations: dict,
+    request_id: str = "registry-1",
+    revision: int = 0,
+    executable_obligations: tuple[str, ...] = OBLIGATIONS,
+) -> dict:
     return {
         "request_id": request_id,
         "expected_revision": revision,
         "operations": list(operations),
+        "executable_obligations": list(executable_obligations),
     }
 
 
@@ -110,6 +128,15 @@ def test_atomic_add_replace_reschedule_and_remove_are_one_current_projection_cha
 
 
 def test_change_has_exact_revision_and_request_id_replay_guards():
+    with pytest.raises(DomainError, match="executable_obligations"):
+        initial_registry().apply_change(
+            {
+                "request_id": "missing-classification",
+                "expected_revision": 0,
+                "operations": [operation("remove", "DROP")],
+            }
+        )
+
     first_request = change(
         operation("replace", "REPLACE", registration=registration("REPLACE", "replacement"))
     )
@@ -153,12 +180,19 @@ def test_invalid_batch_is_atomic_and_rejects_duplicates_conflicts_and_dangling_t
         )
     with pytest.raises(DomainError, match="неизвест"):
         before.apply_change(change(operation("remove", "MISSING")))
+    with pytest.raises(DomainError, match="неизвестные обязательства"):
+        before.apply_change(
+            change(
+                operation("remove", "DROP"),
+                executable_obligations=("requirements[9]",),
+            )
+        )
 
 
 def test_inspection_exit_requires_nonempty_complete_current_green_executable_coverage():
     before = initial_registry()
     with pytest.raises(DomainError, match="GREEN executable-test"):
-        before.validate_inspection_exit(OBLIGATIONS)
+        before.validate_inspection_exit()
 
     partial = before.apply_change(
         change(
@@ -174,7 +208,7 @@ def test_inspection_exit_requires_nonempty_complete_current_green_executable_cov
         )
     ).registry
     with pytest.raises(DomainError, match=r"definition_of_done\[0\]"):
-        partial.validate_inspection_exit(OBLIGATIONS)
+        partial.validate_inspection_exit()
 
     complete = partial.apply_change(
         change(
@@ -187,7 +221,9 @@ def test_inspection_exit_requires_nonempty_complete_current_green_executable_cov
             revision=1,
         )
     ).registry
-    complete.validate_inspection_exit(OBLIGATIONS)
+    complete.validate_inspection_exit()
+    assert complete.obligation_catalog == OBLIGATION_CATALOG
+    assert complete.executable_obligations == OBLIGATIONS
 
 
 def configure_public_registry_case(project: dict) -> None:
@@ -230,6 +266,13 @@ def configure_public_registry_case(project: dict) -> None:
         allowed_paths=["src/**"],
     )
     project["process"]["route"]["entry"] = "test_implementation"
+    project["task"]["requirements"].append(
+        "Canonical documentation describes the registry lifecycle."
+    )
+    project["task"]["definition_of_done"].append(
+        "The operator-facing workflow documentation is synchronized."
+    )
+    project["task"]["executable_obligations"] = list(OBLIGATIONS)
 
     methods = {item["id"]: item for item in project["task"]["methods"]}
     methods["RED"]["verification_plan"]["red_stages"] = ["test_implementation"]
@@ -287,6 +330,26 @@ def public_tools(project: dict, session: str):
     return WorkTools(WorkPoise(project["config_path"], session))
 
 
+def remove_creation_classification_from_stored_fixture(project: dict, task_id: str) -> None:
+    """Represent a pre-contract stored Task; subsequent work must remain public."""
+    database = (
+        project["root"]
+        / project["cfg"]["paths"]["state"]
+        / project["cfg"]["paths"]["database"]
+    )
+    with sqlite3.connect(database) as connection:
+        row = connection.execute(
+            "SELECT metadata FROM tasks WHERE id=?",
+            (task_id,),
+        ).fetchone()
+        metadata = json.loads(row[0])
+        metadata["contract"].pop("executable_obligations")
+        connection.execute(
+            "UPDATE tasks SET metadata=? WHERE id=?",
+            (json.dumps(metadata, ensure_ascii=False, sort_keys=True), task_id),
+        )
+
+
 def focused_product_registration(project: dict, covers: tuple[str, ...]) -> dict:
     focused = deepcopy(next(item for item in project["task"]["methods"] if item["id"] == "GREEN"))
     focused["argv"] = [
@@ -331,6 +394,7 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
     first = verify(tools, payload)
     assert first["status"] == "verified"
     red_receipt = next(item for item in first["checks"] if item["method"] == "RED")["id"]
+    remove_creation_classification_from_stored_fixture(project, project["task"]["id"])
 
     inspection = tools.invoke(
         request(
@@ -444,6 +508,12 @@ def test_public_work_api_allows_only_stages_with_test_registry_section(project):
     from tests.batch.helpers import bootstrap, request, result, verify
 
     configure_public_registry_case(project)
+    unclassified = {**project, "task": deepcopy(project["task"])}
+    unclassified["task"]["id"] = "REGISTRY-UNCLASSIFIED"
+    unclassified["task"].pop("executable_obligations")
+    with pytest.raises(PoiseError, match="executable_obligations"):
+        bootstrap(public_tools(project, "registry-unclassified"), unclassified)
+
     cases = {
         "zero": [
             operation("remove", "GREEN"),

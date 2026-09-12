@@ -38,5 +38,7 @@ def test_cleanup_progress_is_monotonic_and_replayable():
 
     complete = pending.worktree_removed().branch_deleted()
     assert complete.status == "integrated"
-    assert complete.cleanup == {"worktree": "removed", "branch": "deleted"}
+    assert complete.cleanup.status == "cleanup_complete"
+    assert complete.cleanup.disposition.kind == "integrated"
+    assert complete.cleanup.remaining_resources() == ()
     assert complete.branch_deleted() == complete

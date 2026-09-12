@@ -45,6 +45,8 @@ def test_standalone_cancel_ignores_config_digest_and_releases_claim(project):
     assert {
         key: cancelled[key] for key in ("status", "task", "worktree_preserved")
     } == {"status": "cancelled", "task": "T1", "worktree_preserved": True}
+    assert cancelled["cleanup"]["status"] == "disposition_required"
+    assert cancelled["cleanup"]["remaining_resources"]
     assert cancelled["interaction"]["outcome"] == "cancelled"
     assert record["status"] == "cancelled" and record["claimed_by"] is None
     assert record["last_report"] == before_report
@@ -79,6 +81,7 @@ def test_selected_sprint_cancel_uses_task_domain_and_is_atomic(project):
     }))
 
     assert overview["eligible"] == ["B"]
+    assert overview["cleanup"]["A"]["status"] == "disposition_required"
     assert current.runtime.task_queries.record("A")["status"] == "cancelled"
     assert current.runtime.task_queries.record("A")["claimed_by"] is None
     assert current.runtime.task_queries.record("B")["status"] == "available"

@@ -123,6 +123,7 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     outcome = replace(tools, current["revision"], replacement(project))
 
     assert outcome["revision"] == current["revision"] + 1
+    assert outcome["cleanup"]["BAD"]["status"] == "disposition_required"
     assert relation(outcome) | {
         "source": "BAD",
         "replacement": "BAD-2",

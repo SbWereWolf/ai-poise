@@ -76,7 +76,14 @@ def test_completed_result_is_integrated_and_source_worktree_and_branch_are_remov
     assert result["source_commit"] == source
     assert result["target_before"] == target_before
     assert result["target_after"] == git(project["app"], "rev-parse", "HEAD")
-    assert result["cleanup"] == {"worktree": "removed", "branch": "deleted"}
+    assert result["cleanup"]["status"] == "cleanup_complete"
+    assert result["cleanup"]["disposition"] == {
+        "kind": "integrated",
+        "expected_commit": source,
+        "target_commit": result["target_after"],
+        "integration_request_id": "integrate-1",
+    }
+    assert result["cleanup"]["remaining_resources"] == []
     assert not source_worktree.exists()
     assert git(project["app"], "branch", "--list", "tasks/T1") == ""
     assert git(project["app"], "merge-base", "--is-ancestor", source, "HEAD") == ""
@@ -195,7 +202,8 @@ def test_cleanup_interruption_is_queryable_and_retry_only_finishes_cleanup(proje
     integrated_head = git(project["app"], "rev-parse", "HEAD")
     assert git(project["app"], "merge-base", "--is-ancestor", source, "HEAD") == ""
     assert source_worktree.exists()
-    assert pending["cleanup"]["worktree"] == "blocked"
+    assert pending["cleanup"]["status"] == "cleanup_blocked"
+    assert pending["cleanup"]["blocker"]["resource"]["kind"] == "worktree"
     pending_history = pending["history"]
     assert pending_history[-1]["status"] == "cleanup_pending"
     git(project["app"], "worktree", "unlock", str(source_worktree))
@@ -218,7 +226,8 @@ def test_cleanup_interruption_is_queryable_and_retry_only_finishes_cleanup(proje
     assert saved["status"] == "integrated"
     assert saved["source_commit"] == source
     assert saved["target_after"] == integrated_head
-    assert saved["cleanup"] == {"worktree": "removed", "branch": "deleted"}
+    assert saved["cleanup"]["status"] == "cleanup_complete"
+    assert saved["cleanup"]["remaining_resources"] == []
     assert [entry["status"] for entry in saved["history"]][-2:] == ["cleanup_pending", "integrated"]
     task = reader.task_queries.record("T1")
     assert task["status"] == "completed"

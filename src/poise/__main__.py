@@ -3,8 +3,8 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from .runtime import Poise
-from .common import PoiseError
+from .common import PoiseError,load_config
+from .infrastructure.session_establishment import direct_caller,establish_poise
 
 
 def parser():
@@ -100,14 +100,16 @@ def main():
     if args.command=='route-migrate':
         from .interfaces.route_migration import execute
         return execute(args.config,sys.stdout)
-    for name in ('POISE_CONFIG','POISE_SESSION'):
-        if name not in os.environ or not os.environ[name]:
-            print(f'Не задан {name}: выберите конфигурацию проекта и сессию.',file=sys.stderr)
-            return 2
+    if not os.environ.get('POISE_CONFIG'):
+        print('Не задан POISE_CONFIG: выберите конфигурацию проекта.',file=sys.stderr)
+        return 2
     try:
         from .interfaces.work import execute
         from .infrastructure.clock import SystemClock
-        h=Poise(Path(os.environ['POISE_CONFIG']),os.environ['POISE_SESSION'],SystemClock())
+        config=Path(os.environ['POISE_CONFIG'])
+        _,document,_=load_config(config)
+        caller=direct_caller(document['project'],os.environ)
+        h=establish_poise(config,caller,[],SystemClock()).runtime
         return execute(h,sys.stdin.buffer,sys.stdout)
     except PoiseError as exc:
         print(str(exc),file=sys.stderr)

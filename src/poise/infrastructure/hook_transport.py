@@ -13,12 +13,13 @@ from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded
 from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
 from ..modules.capabilities.domain import positive,nonempty
 from ..modules.runtime_adapter.domain import RuntimeIdentity
+from ..modules.session_establishment.domain import CallerIdentity
 from ..application.capabilities import CapabilityChecks
 from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
-from ..runtime import Poise
 from .capabilities import LocalProbeExecutor
 from .goal_config import read_document,atomic_write,strict_json
+from .session_establishment import establish_poise
 from .sqlite.hook_transport import HookRegistry
 
 
@@ -230,14 +231,17 @@ class HookService:
     def bound_runtime(self,binding_path):
         from .clock import SystemClock
         record,_=self._record(binding_path)
-        return Poise(self.settings.project_config,record['session_id'],SystemClock())
+        caller=CallerIdentity.native(record['project'],record['external_session'])
+        return establish_poise(self.settings.project_config,caller,[],SystemClock(),record['session_id']).runtime
 
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
     def event(self,definition_path,event):
         from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
-        h=Poise(self.settings.project_config,binding['session_id'],SystemClock());task=h.current_task()
+        caller=CallerIdentity.native(binding['project'],binding['external_session'])
+        h=establish_poise(self.settings.project_config,caller,[],SystemClock(),binding['session_id']).runtime
+        task=h.current_task()
         active=task if task is not None and task['status'] not in ('completed','cancelled','superseded') else None
         message=None
         if native['event']=='UserPromptSubmit':
@@ -409,7 +413,9 @@ class HookService:
         from .clock import SystemClock
         bound_facts=self._bound_source_facts(binding_path)
         record,message=self._record(binding_path)
-        h=Poise(self.settings.project_config,record['session_id'],SystemClock());self.runtime=h
+        caller=CallerIdentity.native(record['project'],record['external_session'])
+        h=establish_poise(self.settings.project_config,caller,[],SystemClock(),record['session_id']).runtime
+        self.runtime=h
         from ..modules.work.domain import parse_request
         req=parse_request(packet,h.cfg['batch'])
         if req['messages']:raise PoiseError('Hooked work derives messages from UserPromptSubmit; do not supply a second source')

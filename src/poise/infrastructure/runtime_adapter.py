@@ -8,12 +8,11 @@ import hashlib
 import json
 from pathlib import Path
 from copy import deepcopy
-from ..common import PoiseError,exact_keys,load_config,descendant
+from ..common import PoiseError,exact_keys,load_config
 from ..modules.runtime_adapter.domain import RuntimeIdentity,validate_inventory
+from ..modules.session_establishment.domain import CallerIdentity
 from ..application.work import WorkTools
-from ..runtime import Poise
-from .sqlite.runtime_adapter import RuntimeRegistry
-from .sqlite.database import Database
+from .session_establishment import establish_poise
 
 
 def validate_settings(cfg):
@@ -95,11 +94,11 @@ class RuntimeAdapter:
         root,cfg,_=load_config(cfgpath)
         identity=RuntimeIdentity.parse(cfg['project'],self.settings['adapter_id'],packet['identity'])
         inventory=validate_inventory(packet['capabilities'],[])
-        state=descendant(root,cfg['paths']['state'])
-        db=Database(descendant(state,cfg['paths']['database']),descendant(state,cfg['paths']['lock']),
-                    cfg['limits']['lock_seconds'],cfg['limits']['lock_poll_seconds'])
-        registry=RuntimeRegistry(db);session=registry.bind(identity,inventory)
-        h=Poise(cfgpath,session,SystemClock());self.runtime=h;work=deepcopy(packet['work'])
+        caller=(CallerIdentity.native(cfg['project'],identity.key) if identity.kind=='external'
+                else CallerIdentity.generated(cfg['project'],identity.key))
+        established=establish_poise(cfgpath,caller,inventory,SystemClock())
+        registry=established.registry;session=established.session.session_id
+        h=established.runtime;self.runtime=h;work=deepcopy(packet['work'])
         from ..modules.work.domain import parse_request
         parse_request(work,cfg['batch'])
         source=None;cursor=None;path=None

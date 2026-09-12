@@ -1,21 +1,29 @@
 """Runtime identity/cursor storage; no Task lifecycle writes."""
 import json
-import uuid
+import sqlite3
 from ...common import encoded,PoiseError
 
 
 class RuntimeRegistry:
     def __init__(self,database):self.database=database
 
-    def bind(self,identity,inventory):
+    def existing(self,identity_key,inventory):
         with self.database.transaction() as db:
-            row=db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',(identity.key,)).fetchone()
-            if row is None:
-                session=identity.key if identity.kind=='external' else uuid.uuid4().hex
-                db.execute('INSERT INTO runtime_bindings VALUES(?,?,?)',(identity.key,session,encoded(inventory)))
-            else:
-                session=row[0]
-                db.execute('UPDATE runtime_bindings SET inventory=? WHERE identity_key=?',(encoded(inventory),identity.key))
+            row=db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',(identity_key,)).fetchone()
+            if row is None:return None
+            db.execute('UPDATE runtime_bindings SET inventory=? WHERE identity_key=?',(encoded(inventory),identity_key))
+            return row[0]
+
+    def reserve(self,identity_key,session,inventory):
+        with self.database.transaction() as db:
+            row=db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',(identity_key,)).fetchone()
+            if row is not None:
+                db.execute('UPDATE runtime_bindings SET inventory=? WHERE identity_key=?',(encoded(inventory),identity_key))
+                return row[0]
+            try:
+                db.execute('INSERT INTO runtime_bindings VALUES(?,?,?)',(identity_key,session,encoded(inventory)))
+            except sqlite3.IntegrityError:
+                return None
             return session
 
     def cursor(self,session,path):

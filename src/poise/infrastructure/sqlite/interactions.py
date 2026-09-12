@@ -60,7 +60,7 @@ class InteractionStore:
                 event=json.loads(row[0])
                 if event['reason'] is None:unknown+=1
                 else:counts[event['reason']]+=1
-            return {'user_messages_count':len(rows) if rows else None,'observed_messages_count':len(rows),
+            return {'user_messages_count':len(rows),'observed_messages_count':len(rows),
                     'coverage':'partial' if rows else 'unavailable',
                     'source':self.config['message_source'], 'reason_counts':counts,'unclassified_messages':unknown,
                     'task':None if task is None else task['id'],

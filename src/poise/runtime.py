@@ -389,7 +389,8 @@ class Poise:
             self.runtime.mkdir(parents=True, exist_ok=True)
             self.store.bind(self.session, None)
             return {'session': self.session, 'status':'read_only', 'project':self.cfg['project'],
-                    'runtime_root':str(self.runtime), 'next_work':'передать task object через work bootstrap; сводка — batch show'}
+                    'task':None,'result_template':None,'runtime_root':str(self.runtime),
+                    'next_work':'передать task object через work bootstrap; сводка — batch show'}
         data = self._task()
         if decision is not None:
             if decision not in ('continue','rework'):

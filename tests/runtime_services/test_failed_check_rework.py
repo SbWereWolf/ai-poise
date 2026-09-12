@@ -373,10 +373,34 @@ def test_active_rework_rejects_an_unknown_pending_check_outcome(project):
     assert _show(tools) == before
 
 
-def test_active_rework_rejects_a_failed_batch_with_missing_output(project):
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+@pytest.mark.parametrize("damage", ["missing", "changed"])
+def test_active_rework_rejects_a_failed_batch_with_damaged_output(
+    project,
+    stream,
+    damage,
+):
     tools, context = _scenario(project)
     failed = _fail_current_stage(tools, context)
-    Path(failed["checks"][0]["stdout"]).unlink()
+    output = Path(failed["checks"][0][stream])
+    if damage == "missing":
+        output.unlink()
+    else:
+        output.write_text("corrupted\n", encoding="utf-8")
+    before = _show(tools)
+
+    with pytest.raises(PoiseError):
+        _rework(tools)
+
+    assert _show(tools) == before
+
+
+def test_active_rework_rejects_a_failed_batch_with_malformed_digest_metadata(project):
+    tools, context = _scenario(project)
+    _fail_current_stage(tools, context)
+    current = tools.runtime.current_task()
+    del current["evidence"]["batches"][-1]["receipts"][0]["stdout_digest"]
+    tools.runtime.store.save(current)
     before = _show(tools)
 
     with pytest.raises(PoiseError):

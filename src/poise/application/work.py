@@ -3,6 +3,7 @@ from copy import deepcopy
 from ..modules.work.domain import parse_request,read_range
 from ..modules.hook_transport.domain import BoundSourceRoute
 from ..modules.foundation.errors import PoiseError
+from ..modules.tasks.domain import is_terminal_task_status
 from ..modules.work.ports import WorkRuntime
 
 
@@ -21,14 +22,17 @@ class WorkTools:
         if isinstance(task_input,dict):
             task_id=task_input.get('id')
             if isinstance(task_id,str):target=self.task_queries.record(task_id)
+        if request['operation']=='integrate':
+            target=h.integration_tools.prepare_source(request['input'])
         current=h.current_task()
         route=BoundSourceRoute.decide(request['operation'],task_input,current,target)
         if route.source=='target_task':
-            h.bootstrap(**request['input'])
-            current=h.current_task()
-            if current is None or current['id']!=route.task_id:
-                raise PoiseError('Existing Task preparation did not bind the requested Task')
-            return route,current
+            if request['operation']=='bootstrap':
+                h.bootstrap(**request['input'])
+                target=h.current_task()
+                if target is None or target['id']!=route.task_id:
+                    raise PoiseError('Existing Task preparation did not bind the requested Task')
+            return route,target
         if route.source=='current_task':return route,current
         return route,None
 
@@ -41,7 +45,7 @@ class WorkTools:
         # Count all received user messages during current work, independently
         # of the requested tool or the supplied reason. Completed work is not
         # charged for an unrelated later query.
-        bound_before = before if before is not None and before['status'] not in ('completed','cancelled','superseded') else None
+        bound_before = before if before is not None and not is_terminal_task_status(before['status']) else None
         self.interactions.record(events,h.session,bound_before)
         telemetry=h.accounting.prepare(req['telemetry']) if 'telemetry' in req else None
         h.accounting.begin(op,bound_before,telemetry,events[-1].identity if events else None)
@@ -69,12 +73,12 @@ class WorkTools:
             else:raise PoiseError('Unreachable work operation')
         except Exception:
             after=h.current_task()
-            self.interactions.record(events,h.session,after if after is not None and after['status'] not in ('completed','cancelled','superseded') else bound_before)
+            self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
             if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,after)
             h.accounting.finish(op,before,after,{'status':'rejected'})
             raise
         current=h.current_task()
-        self.interactions.record(events,h.session,current if current is not None and current['status'] not in ('completed','cancelled','superseded') else bound_before)
+        self.interactions.record(events,h.session,current if current is not None and not is_terminal_task_status(current['status']) else bound_before)
         self.interactions.delivered(current,out)
         if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,current)
         h.accounting.finish(op,before,current,out)

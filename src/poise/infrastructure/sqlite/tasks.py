@@ -16,6 +16,12 @@ def encode(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def without_retired_method_timeout(value: dict) -> dict:
+    normalized = {**value, "method": dict(value["method"])}
+    normalized["method"].pop("timeout_seconds", None)
+    return normalized
+
+
 class SqliteTaskRepository:
     """The only writer of Task aggregate, submitted content and domain events."""
     def __init__(self, connection):
@@ -81,7 +87,9 @@ class SqliteTaskRepository:
         record = self.db.execute("SELECT data FROM content_contracts WHERE task_id=? ORDER BY version DESC LIMIT 1", (task_id,)).fetchone()
         if record is None:
             raise PoiseError("Нет зарегистрированного контракта содержимого")
-        items = [json.loads(r[0]) for r in self.db.execute("SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid",(task_id,))]
+        items = [without_retired_method_timeout(json.loads(r[0])) for r in self.db.execute(
+            "SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid", (task_id,)
+        )]
         registry = CheckRegistry.from_items(items,tuple(s['id'] for s in metadata['process']['stages']))
         metadata['contract']['methods']=[item['method'] for item in items]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
@@ -158,7 +166,12 @@ class SqliteTaskRepository:
             if existing is None:
                 self.db.execute("INSERT INTO task_methods VALUES(?,?,?,?)",(task.state.task_id,entry.method_id,task.state.version,data))
             elif existing[0] != data:
-                raise PoiseError("Попытка заменить неизменный метод проверки")
+                if encode(without_retired_method_timeout(json.loads(existing[0]))) != data:
+                    raise PoiseError("Попытка заменить неизменный метод проверки")
+                self.db.execute(
+                    "UPDATE task_methods SET version=?,data=? WHERE task_id=? AND method_id=?",
+                    (task.state.version, data, task.state.task_id, entry.method_id),
+                )
 
     def record_result(self, task_id: str, submission_id: int, report: dict) -> None:
         self.db.execute("INSERT INTO task_results VALUES(?,?,?)", (task_id,submission_id,encode(report)))

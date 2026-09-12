@@ -9,7 +9,7 @@ import sys
 import pytest
 
 from batch.helpers import request
-from conftest import DeterministicClock, write_json
+from conftest import DeterministicClock, verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.modules.foundation.errors import DomainError
@@ -42,17 +42,40 @@ def method(
     expected_exit_code: int = 0,
     stdout_contains: list[str] | None = None,
     source_under_test: dict | None = None,
+    plan: dict | None | object = ...,
 ) -> dict:
     value = {
         "id": identifier,
         "argv": [sys.executable, "-B", "-c", "print('OK')"],
         "cwd": ".",
         "environment": {},
-        "timeout_seconds": 10,
         "expected_exit_code": expected_exit_code,
         "stdout_contains": ["OK"] if stdout_contains is None else stdout_contains,
         "stderr_contains": [],
     }
+    selected_stdout = value["stdout_contains"]
+    if plan is ...:
+        value["verification_plan"] = verification_plan(
+            "Verify the declared repository behaviour.",
+            ["tests/**"],
+            red_stages=["red"] if expected_exit_code != 0 else [],
+            green_stages=[] if expected_exit_code != 0 else ["green"],
+            red_failure=(
+                {
+                    "exit_code": expected_exit_code,
+                    "stdout_equals": (
+                        selected_stdout[0] + "\n"
+                        if len(selected_stdout) == 1
+                        else ""
+                    ),
+                    "stderr_equals": "",
+                }
+                if expected_exit_code != 0
+                else None
+            ),
+        )
+    elif plan is not None:
+        value["verification_plan"] = plan
     if source_under_test is not None:
         value["source_under_test"] = source_under_test
     return value
@@ -60,7 +83,16 @@ def method(
 
 def registry(methods: list[dict], checks: dict | None = None) -> CheckRegistry:
     schedule = {"red": [], "green": []} if checks is None else checks
-    return CheckRegistry.from_task(methods, schedule, STAGES)
+    selected = [deepcopy(method_value) for method_value in methods]
+    for method_value in selected:
+        plan = method_value.get("verification_plan")
+        if plan is None:
+            continue
+        stages = [stage for stage in STAGES if method_value["id"] in schedule[stage]]
+        is_red = method_value["expected_exit_code"] != 0
+        plan["red_stages"] = stages if is_red else []
+        plan["green_stages"] = [] if is_red else stages
+    return CheckRegistry.from_task(selected, schedule, STAGES)
 
 
 def task_tools(
@@ -75,7 +107,23 @@ def task_tools(
     write_json(project["config_path"], cfg)
     task = deepcopy(project["task"])
     task["id"] = task_id
+    selected = deepcopy(selected)
+    if "verification_plan" in selected:
+        planned = selected["verification_plan"]
+        is_red = selected["expected_exit_code"] != 0
+        planned["red_stages"] = ["tests"] if is_red else []
+        planned["green_stages"] = [] if is_red else ["tests"]
     task["methods"] = [selected]
+    task["method_inputs"] = [{
+        "method_id": selected["id"],
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
+    }]
     task["checks"] = {
         stage["id"]: [selected["id"]] if stage["id"] == "tests" else []
         for stage in project["process"]["stages"]
@@ -115,6 +163,14 @@ def test_new_method_requires_explicit_source_under_test():
         [method(source_under_test=external_source())],
         {"red": ["M"], "green": []},
     )
+
+
+def test_verification_method_rejects_timeout_field():
+    selected = method(source_under_test=repository_source(cwd_binding()))
+    selected["timeout_seconds"] = 10
+
+    with pytest.raises(DomainError, match="точный набор полей"):
+        registry([selected], {"red": ["M"], "green": []})
 
 
 def test_repository_source_rejects_escape_duplicate_and_environment_collision():
@@ -326,6 +382,66 @@ def test_red_receipt_records_expectation_and_provenance_identity(project):
     )
 
 
+def test_exact_red_predicate_accepts_declared_failure_set(project):
+    selected = method(
+        expected_exit_code=1,
+        stdout_contains=["EXPECTED_FAILURE"],
+        source_under_test=repository_source(cwd_binding()),
+        plan=verification_plan(
+            "Prove the exact intended regression failure.",
+            ["src/**"],
+            red_stages=["red"],
+            red_failure={
+                "exit_code": 1,
+                "stdout_equals": "EXPECTED_FAILURE\n",
+                "stderr_equals": "",
+            },
+        ),
+    )
+    selected["argv"] = [
+        sys.executable,
+        "-B",
+        "-c",
+        "print('EXPECTED_FAILURE'); raise SystemExit(1)",
+    ]
+    tools, context = task_tools(project, selected, "exact-red")
+
+    result = tools.invoke(request("verify", {"result": stage_result(context), "artifacts": []}))
+
+    assert result["status"] == "verified"
+    assert result["checks"][0]["passed"] is True
+
+
+def test_exact_red_predicate_rejects_additional_failure(project):
+    selected = method(
+        expected_exit_code=1,
+        stdout_contains=["EXPECTED_FAILURE"],
+        source_under_test=repository_source(cwd_binding()),
+        plan=verification_plan(
+            "Reject any failure outside the declared regression predicate.",
+            ["src/**"],
+            red_stages=["red"],
+            red_failure={
+                "exit_code": 1,
+                "stdout_equals": "EXPECTED_FAILURE\n",
+                "stderr_equals": "",
+            },
+        ),
+    )
+    selected["argv"] = [
+        sys.executable,
+        "-B",
+        "-c",
+        "print('EXPECTED_FAILURE'); print('UNRELATED_FAILURE'); raise SystemExit(1)",
+    ]
+    tools, context = task_tools(project, selected, "exact-red-extra")
+
+    result = tools.invoke(request("verify", {"result": stage_result(context), "artifacts": []}))
+
+    assert result["status"] == "checks_failed"
+    assert result["checks"][0]["passed"] is False
+
+
 def test_receipt_identities_change_with_expectation_and_worktree(project):
     def execute(selected: dict, actor: str, task_id: str) -> dict:
         tools, context = task_tools(
@@ -360,6 +476,10 @@ def test_receipt_identities_change_with_expectation_and_worktree(project):
         stdout_contains=["SECOND_FAILURE"],
         source_under_test=external_source("No repository source is loaded."),
     )
+    for selected in (first, second):
+        selected["verification_plan"]["red_failure"]["stdout_equals"] = (
+            "FIRST_FAILURE SECOND_FAILURE\n"
+        )
     second["argv"] = shared_expectation_argv
     first_receipt = execute(
         first,
@@ -417,6 +537,7 @@ def test_receipt_identities_change_with_expectation_and_worktree(project):
 
 def test_legacy_snapshot_is_readable_but_not_executable(tmp_path):
     legacy = method()
+    legacy.pop("verification_plan")
     item = {"method": legacy, "stages": ["red"]}
 
     restored = CheckRegistry.from_items([item], STAGES)

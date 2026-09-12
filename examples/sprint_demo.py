@@ -31,7 +31,12 @@ def task(tid,kind,command):
        'requirements':[f'R-{tid}'],'definition_of_done':[f'Результат {tid} проверен'],
        'methods':[{'id':'CHECK','argv':[sys.executable,'-B','-c',command],'cwd':'.','environment':{},
                    'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-                   'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}],
+                   'verification_plan':{'responsibility':'Verify the Task result across its route.',
+                       'change_surface':['src/**'] if kind=='development' else ['docs/**'],
+                       'red_stages':[],'green_stages':['write','inspect','amend','confirm'],'red_failure':None},
+                   'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}],
+       'method_inputs':[{'method_id':'CHECK','repository_inputs':[],'future_outputs':[],
+                        'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}],
        'checks':{name:['CHECK'] for name in ('write','inspect','amend','confirm')},
        'artifact_requirements':[],'content_contract':{'sections':[],'routes':[],'requirements':[]},
        'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in ('write','inspect','amend','confirm')}}
@@ -48,9 +53,9 @@ def run(directory):
     env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'sprint-demo'}
     client=WorkClient(env,30)
     a=task('A','development','from src.double import double; assert double(2)==4')
-    b=task('B','documentation','from src.double import double; assert double(0)==0')
+    b=task('B','documentation','print("documentation checked")')
     c=task('C','documentation','print("independent")')
-    incomplete=deepcopy(b);del incomplete['methods']
+    incomplete=deepcopy(b);del incomplete['methods'];del incomplete['method_inputs']
     r=client.invoke('sprint',{'action':'draft','sprint_id':'SPRINT','request_id':'draft-1','expected_revision':None,
        'template':{'id':'basic','version':'1'},'changes':[
        {'kind':'purpose','goal':'Код и инструкция','requirements':['Исправление и инструкция'],'definition_of_done':['Три задачи приняты']},
@@ -88,7 +93,9 @@ def run(directory):
                     'evidence':'Проверяется zero case зарегистрированной командой.'}]}
                 value['method_additions']=[{'method':{'id':'ZERO','argv':[sys.executable,'-B','-c','from src.double import double; assert double(0)==0'],
                     'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-                    'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},
+                    'verification_plan':{'responsibility':'Verify the corrected zero case.',
+                        'change_surface':['src/**'],'red_stages':[],'green_stages':['amend','confirm'],'red_failure':None},
+                    'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},
                     'stages':['amend','confirm']}]
             out=client.verify(value,[]);assert out['status']=='verified'
             reports.append({'task':tid,'stage':name,'commit':out['commit']})

@@ -21,7 +21,7 @@ from poise.runtime import Poise
 from poise.infrastructure.clock import SystemClock
 
 
-def run(root,repository,base_ref,destination,task_id,timeout):
+def run(root,repository,base_ref,destination,task_id):
     root=Path(root).resolve();repository=Path(repository).resolve()
     settings=root/'config/project-setup.json'
     setup=json.loads(settings.read_text());selected=setup['templates']['linux-reference']
@@ -39,8 +39,10 @@ def run(root,repository,base_ref,destination,task_id,timeout):
     commands=CatalogueCommands(catalogue,goal_config_tools(catalogue.editor.path),catalogue.raw['max_items'])
     selected_task=catalogue.raw['task_templates']['verification-v1']
     invocation={'id':'VERIFY','argv':[sys.executable,'-m','pytest','tests/projects','-q'],
-        'cwd':'.','environment':{'PYTHONPATH':'src'},'timeout_seconds':timeout,
-        'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
+        'cwd':'.','environment':{'PYTHONPATH':'src'},
+        'source_under_test':{'kind':'external','reason':'The pilot verifies the separately selected source repository, not files produced in its Task worktree.'},
+        'verification_plan':{'responsibility':'Verify the selected external source revision during execution.',
+            'change_surface':[],'red_stages':[],'green_stages':['execution'],'red_failure':None},
         'expected_exit_code':0,'stdout_contains':['passed'],'stderr_contains':[]}
     parameters={'identity':task_id,'membership':None,
         'goal':'Plan the verification of declarative project setup on the real Poise revision.',
@@ -48,7 +50,10 @@ def run(root,repository,base_ref,destination,task_id,timeout):
                         'The exact setup test command works from the real Poise worktree.'],
         'dod':['Preserve the project receipt, exact test procedure and real readiness test output.',
                'Stop after the verified planning stage; do not invent user acceptance.'],
-        'methods':[invocation],'artifact_requirements':[],
+        'methods':[invocation],
+        'method_inputs':[{'method_id':'VERIFY','repository_inputs':['tests/projects'],'future_outputs':[],
+            'reference_profile':{'runner':'pytest','parser':'positional-paths','version':1}}],
+        'artifact_requirements':[],
         'contract':{'sections':[],'routes':[],'requirements':[]},
         'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in processes['verification']['stages']}}
     parameters['evidence']['execution']['subject_methods']={
@@ -70,6 +75,13 @@ def run(root,repository,base_ref,destination,task_id,timeout):
     readiness={**invocation,'id':'PLANNING_READINESS',
         'argv':[sys.executable,'-m','pytest',
                 'tests/projects/test_reference.py::test_installed_reference_template_builds_all_thirteen_processes','-q']}
+    readiness['verification_plan']={
+        'responsibility':'Confirm external source readiness during planning.',
+        'change_surface':[],
+        'red_stages':[],
+        'green_stages':['planning'],
+        'red_failure':None,
+    }
     result['method_additions']=[{'method':readiness,'stages':['planning']}]
     artifact={'scope':'task','path':'setup-receipt.json','source':{'kind':'text','text':json.dumps(setup_result,ensure_ascii=False,indent=2)}}
     report=call('verify',{'result':result,'artifacts':[artifact]})
@@ -92,6 +104,5 @@ if __name__=='__main__':
     p.add_argument('--base-ref',required=True)
     p.add_argument('--destination',required=True,help='new directory relative to Poise root')
     p.add_argument('--task-id',required=True)
-    p.add_argument('--check-seconds',type=float,required=True)
     a=p.parse_args()
-    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id,a.check_seconds),ensure_ascii=False,indent=2))
+    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id),ensure_ascii=False,indent=2))

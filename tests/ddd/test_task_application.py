@@ -1,8 +1,9 @@
 import json
 import sqlite3
+from copy import deepcopy
 from pathlib import Path
 import pytest
-from conftest import add_test, fill
+from conftest import add_test, fill, write_json
 from conftest import Poise
 from poise.common import PoiseError
 
@@ -59,6 +60,43 @@ def test_section_lookup_cannot_cross_task_or_stage(project):
     with pytest.raises(PoiseError): h.task_queries.section("T1","test_review","report",row["submission"])
 
 
+def test_failed_observation_batch_cannot_cross_task_owner(project):
+    first, _ = bootstrap(project)
+    second_task = deepcopy(project['task'])
+    second_task['id'] = 'T2'
+    second_path = write_json(project['root'] / 'task-2.json', second_task)
+    second = Poise(project['config_path'], 'S2')
+    second.bootstrap(task_file=second_path)
+    payload = {
+        'sections': {'report': 'failed candidate'},
+        'artifact_paths': [],
+        'commit_message': 'test: candidate',
+        'content_additions': {'sections': [], 'routes': [], 'requirements': []},
+        'trace': {},
+        'method_additions': [],
+        'stage_work': {},
+        'evidence_work': {'phase': 'prepare', 'arguments': [], 'decisions': []},
+    }
+    first_submission = first.task_commands.submit('T1', 'S1', payload)
+    second_submission = second.task_commands.submit('T2', 'S2', payload)
+    assert first_submission.digest == second_submission.digest
+    receipt = {
+        'id': 'FAILED-RUN',
+        'method': 'RED',
+        'obligations': ['RED'],
+        'passed': False,
+        'timed_out': False,
+        'actual_exit_code': 1,
+        'tree': 'TREE',
+        'guard': True,
+        'interpretable': True,
+    }
+    first.runner.record_observations('T1', 'S1', 'TREE', 'KEY', [receipt])
+
+    assert first.task_commands.failed_observation_batch('T1', 'TREE', 'KEY') is not None
+    assert second.task_commands.failed_observation_batch('T2', 'TREE', 'KEY') is None
+
+
 def test_failed_batch_is_atomic_and_foreign_keys_enabled(project):
     h,b=bootstrap(project)
     # Inject a real DB abort on event persistence: root/layers must roll back too.
@@ -105,6 +143,89 @@ def test_queries_do_not_change_revision(project):
     h.task_queries.section("T1","tests","report",None)
     with h.store.unit_of_work() as uow: after=uow.tasks.load("T1").state
     assert before == after
+
+
+def test_retired_verification_timeout_is_removed_on_next_owner_save(project):
+    h, _ = bootstrap(project)
+    with h.store.transaction() as db:
+        row = db.execute(
+            "SELECT data FROM task_methods WHERE task_id='T1' AND method_id='RED'"
+        ).fetchone()
+        stored = json.loads(row[0])
+        stored["method"]["timeout_seconds"] = 10
+        db.execute(
+            "UPDATE task_methods SET data=? WHERE task_id='T1' AND method_id='RED'",
+            (json.dumps(stored, ensure_ascii=False, sort_keys=True, separators=(",", ":")),),
+        )
+
+    assert "timeout_seconds" not in h._task()["contract"]["methods"][0]
+    h.task_commands.submit(
+        "T1",
+        "S1",
+        {
+            "sections": {"report": "normalized"},
+            "artifact_paths": [],
+            "commit_message": "test: normalize method",
+            "content_additions": {"sections": [], "routes": [], "requirements": []},
+            "trace": {},
+            "method_additions": [],
+            "stage_work": {},
+            "evidence_work": {"phase": "prepare", "arguments": [], "decisions": []},
+        },
+    )
+
+    with h.store.transaction() as db:
+        normalized = json.loads(db.execute(
+            "SELECT data FROM task_methods WHERE task_id='T1' AND method_id='RED'"
+        ).fetchone()[0])
+    assert "timeout_seconds" not in normalized["method"]
+
+
+def test_stored_pre_plan_method_snapshot_continues_without_revalidation(project):
+    h, _ = bootstrap(project)
+    with h.store.transaction() as db:
+        rows = db.execute(
+            "SELECT method_id,data FROM task_methods WHERE task_id='T1' ORDER BY method_id"
+        ).fetchall()
+        for row in rows:
+            stored = json.loads(row["data"])
+            stored["method"].pop("verification_plan")
+            db.execute(
+                "UPDATE task_methods SET data=? WHERE task_id='T1' AND method_id=?",
+                (
+                    json.dumps(
+                        stored,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    row["method_id"],
+                ),
+            )
+
+    restored = h._task()
+    assert all("verification_plan" not in method for method in restored["contract"]["methods"])
+
+    h.task_commands.submit(
+        "T1",
+        "S1",
+        {
+            "sections": {"report": "historical method remains readable"},
+            "artifact_paths": [],
+            "commit_message": "test: preserve historical verification method",
+            "content_additions": {"sections": [], "routes": [], "requirements": []},
+            "trace": {},
+            "method_additions": [],
+            "stage_work": {},
+            "evidence_work": {"phase": "prepare", "arguments": [], "decisions": []},
+        },
+    )
+
+    with h.store.transaction() as db:
+        after = [json.loads(row[0]) for row in db.execute(
+            "SELECT data FROM task_methods WHERE task_id='T1' ORDER BY method_id"
+        )]
+    assert all("verification_plan" not in item["method"] for item in after)
 
 
 def test_verified_report_replay_cannot_substitute_another_tree(project):
@@ -158,7 +279,8 @@ def test_cli_reads_section_without_repeating_task_id(project):
     import os, subprocess, sys
     h,b=bootstrap(project); add_test(b['worktree']); fill(b,'addressed section'); h.verify()
     result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'show','input':{'queries':[{'id':'report','kind':'section','name':'report','stage':None,'submission':None,'range':None}]},'messages':[]}),
-                          env={**os.environ,'POISE_CONFIG':str(project['config_path']), 'POISE_SESSION':'S1'},
+                          env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
+                               'POISE_CONFIG':str(project['config_path']), 'POISE_SESSION':'S1'},
                           capture_output=True,text=True,timeout=15)
     assert result.returncode == 0, result.stderr
     assert 'addressed section' in result.stdout

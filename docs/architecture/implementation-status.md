@@ -67,18 +67,33 @@ Process updates не меняют snapshots существующих Task. Manif
 state требуют quiescent проекта и сериализуются с Task creation/claim через state locks.
 Relocation проверяет source/destination, сохраняет всё дерево, поддерживает `retain` и
 `delete_after_publish`, удерживает locks обоих state roots до receipt и не допускает пустой
-замены. Проверяемый контракт покрыт 24 сценариями `tests/projects/test_update.py`; это число
+замены. `superseded` учитывается как terminal history, а не активная работа. Первый запрос
+отклоняет занятый deterministic staging без удаления и без pending receipt; exact retry
+очищает только частичную staging-копию операции с matching pending receipt. Проверяемый
+контракт покрыт 27 сценариями `tests/projects/test_update.py`; это число
 относится к профильному набору BUG-CONFIG-001, а не к полной регрессии репозитория.
 
-## DDD-10 result integration — 2026-09-11T16:55:00+05:00
+## DDD-10 result integration — 2026-09-11T23:25:02Z
 
-DDD-10 result integration поддерживает dirty target при непересекающихся локальных staged,
-unstaged и untracked путях. Preflight блокирует точные и parent/descendant пересечения и
-незавершённые Git operations до мутации; отдельный index сохраняет пользовательские байты и
-классификацию, а post-preflight drift не попадает в merge commit. Публичные conflict, retry,
-idempotent replay и cleanup остаются в одном `integrate` API. Сфокусированный test-набор:
-23 проверки result integration; системный дефект выбора source root проверки относится к
-отдельной задаче 0037 и не объявляется исправленным этой поставкой.
+Публичный `integrate` реализует локальный lifecycle принятого результата одним декларативным
+пакетом. Неизменяемый accepted commit синхронизируется с текущим target только в owned child
+integration worktree; конфликты сохраняются для агентского разрешения там же, а проверки
+выполняются на mutable integration head. Перед compare-and-swap публикацией target читается
+повторно; drift перестраивает candidate и повторяет checks. Crash до или после публикации,
+неудачный candidate, cleanup failure и terminal replay продолжаются из persisted phase.
+
+Основной checkout, его staged/unstaged/untracked bytes, unresolved merge/cherry-pick и чужие
+worktrees не являются precondition или integration surface. После подтверждённой публикации
+удаляются оба owned worktree, обе owned ветки и task/integration-scoped temporary directory.
+Удаление веток проверяет ancestry относительно текущего target и использует compare-and-delete,
+не checkout `HEAD`; descendant target допускается, переписанная история сохраняет recovery
+state. Operator, deliverable и unfinished-recovery backups вне scoped directory сохраняются.
+
+Профильный зарегистрированный набор `tests/result_integration` содержит 36 проверок и прошёл
+GREEN в task 0040. Он покрывает happy/conflict paths, repeated target drift, crash до/после
+publication, persisted failure/check/cleanup receipts, terminal no-op, cleanup replay и
+main-checkout/foreign-state fingerprints. Это не сертификация push, remote publication,
+multi-codebase integration или recovery после внешнего удаления owned Git-объектов.
 
 
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00
@@ -106,3 +121,6 @@ retention успешных пакетов. Это не новый runtime AI poi
 ## Автономный пилот — 2026-09-09T01-11-02+05-00
 
 Завершены analysis и self_inspection прежней POISE-SELF-VERIFY-02. Итог completed принят агентом по ограниченному делегированию пользователя. Checkpoints трёх состояний сохранены отдельно; последний реально импортирован и прочитан в третьем store. Продуктовый код не изменён, 719 исходных тестов не объявляются заново выполненными. Следующая работа — выбранный реальный проект/native runtime; входы не предоставлены.
+Реализован явный `verification_plan`; его владелец — `CheckRegistry`. Проверка
+использует route и `allowed_paths`, но не выполняет рекурсивный анализ зависимостей
+pytest или другого runner.

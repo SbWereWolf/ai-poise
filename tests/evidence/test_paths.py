@@ -22,10 +22,13 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     write_json(project['config_path'],cfg)
     counter=project['root']/'calls.txt'
     code=f"from pathlib import Path; p=Path({str(counter)!r}); p.write_text(p.read_text()+'x' if p.exists() else 'x'); print('observed=3'); raise SystemExit({1 if negative else 0})"
-    m={'id':'M','argv':[sys.executable,'-B','-c',code], 'cwd':'.','environment':{},'timeout_seconds':5,
+    m={'id':'M','argv':[sys.executable,'-B','-c',code], 'cwd':'.','environment':{},
        'source_under_test':{'kind':'external','reason':'The observer records generated evidence and reads no repository source.'},
        'expected_exit_code':0,'stdout_contains':['observed=3'],'stderr_contains':[]}
-    task=project['task']; task.update(goal_type='verification_demo', methods=[m],checks={'measure':['M'],'audit':[]},
+    task=project['task']; task.update(goal_type='verification_demo', methods=[m],
+       method_inputs=[{'method_id':'M','repository_inputs':[],'future_outputs':[],
+           'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}],
+       checks={'measure':['M'],'audit':[]},
        evidence_plan={'measure':{'subject_methods':{'M':{'exit_codes':[0,1],'stdout_contains':['observed=3'],'stderr_contains':[]}},'arguments':[
            {'id':'A','kind':'logical','phase':phase,'observation_methods':['M'] if phase=='continue' else []}] if logical else [],'review_arguments':[]},
            'audit':{'subject_methods':{},'arguments':[],'review_arguments':['A'] if logical else []}})
@@ -82,7 +85,9 @@ def test_check_negative_product_completes_successfully(project):
 def test_guard_failure_is_not_swallowed_by_observe(project):
     h,counter=setup(project,logical=False)
     task=project['task']; guard={**task['methods'][0],'id':'GUARD','argv':[sys.executable,'-c','raise SystemExit(1)'],'stdout_contains':[]}
-    task['methods'].append(guard); task['checks']['measure'].append('GUARD'); write_json(project['task_path'],task)
+    task['methods'].append(guard); task['method_inputs'].append({'method_id':'GUARD','repository_inputs':[],
+        'future_outputs':[],'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}})
+    task['checks']['measure'].append('GUARD'); write_json(project['task_path'],task)
     h=Poise(project['config_path'],'S1'); ctx=h.bootstrap(project['task_path']); input_result(ctx)
     result=h.verify()
     assert result['status']=='checks_failed'
@@ -91,7 +96,7 @@ def test_guard_failure_is_not_swallowed_by_observe(project):
 
 def test_logical_only_has_no_command_receipts(project):
     h,counter=setup(project,kind='check',phase='prepare')
-    task=project['task']; task['methods']=[]; task['checks']['measure']=[]; task['evidence_plan']['measure']['subject_methods']={}
+    task=project['task']; task['methods']=[]; task['method_inputs']=[]; task['checks']['measure']=[]; task['evidence_plan']['measure']['subject_methods']={}
     write_json(project['task_path'],task)
     h=Poise(project['config_path'],'S1'); ctx=h.bootstrap(project['task_path'])
     input_result(ctx,[arg([])])
@@ -196,13 +201,14 @@ def test_repeated_pending_does_not_rerun_command(project):
     assert counter.read_text()=='x' and first['checks']==again['checks']
 
 
-def test_observe_timeout_is_not_verified(project):
+def test_verification_method_waits_for_process_completion(project):
     h,_=setup(project,logical=False)
-    task=project['task'];task['methods'][0].update(argv=[sys.executable,'-c','import time; time.sleep(5)'],timeout_seconds=0.05)
+    task=project['task'];task['methods'][0].update(
+        argv=[sys.executable,'-c',"import time; time.sleep(0.05); print('observed=3')"]
+    )
     write_json(project['task_path'],task)
     h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']); input_result(ctx)
-    r=h.verify();assert r['status']=='checks_failed' and r['checks'][0]['timed_out'] is True
-    assert h.show()['status']=='active'
+    r=h.verify();assert r['status']=='verified' and r['checks'][0]['timed_out'] is False
 
 
 def test_lost_raw_receipt_blocks_continue_not_silent_reexecution(project):

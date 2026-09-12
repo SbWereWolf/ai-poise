@@ -74,129 +74,298 @@ class IntegrationIntent:
 class IntegrationRun:
     intent: IntegrationIntent
     status: str
+    phase: str
     version: int
-    target_before: str | None
+    accepted_commit: str
+    integration_branch: str
+    integration_worktree: str
+    temporary_backup_directory: str
+    observed_target: str | None
+    integration_head: str | None
     target_after: str | None
     conflicts: tuple[str, ...]
     resolutions: tuple[dict, ...]
-    merge: dict | None
+    checks: tuple[dict, ...]
+    publication: dict | None
+    temporary_backups: tuple[str, ...]
     failure: dict | None
     cleanup: dict
     history: tuple[dict, ...]
+    drift_retries: int
 
     @classmethod
-    def new(cls, intent):
-        return cls(intent, "prepared", 0, None, None, (), (), None, None,
-                   {"worktree": "pending", "branch": "pending"},
-                   ({"status": "prepared"},))
+    def new(cls, intent, integration_branch, integration_worktree,
+            temporary_backup_directory):
+        cleanup = {
+            "task_worktree": "pending",
+            "integration_worktree": "pending",
+            "task_branch": "pending",
+            "integration_branch": "pending",
+            "temporary_backups": "pending",
+        }
+        return cls(
+            intent=intent,
+            status="prepared",
+            phase="prepared",
+            version=0,
+            accepted_commit=intent.expected_source_commit,
+            integration_branch=_text(integration_branch, "integration branch"),
+            integration_worktree=_text(integration_worktree, "integration worktree"),
+            temporary_backup_directory=_text(
+                temporary_backup_directory, "temporary backup directory"
+            ),
+            observed_target=None,
+            integration_head=None,
+            target_after=None,
+            conflicts=(),
+            resolutions=(),
+            checks=(),
+            publication=None,
+            temporary_backups=(),
+            failure=None,
+            cleanup=cleanup,
+            history=({"status": "prepared", "phase": "prepared"},),
+            drift_retries=0,
+        )
 
     @classmethod
     def restore(cls, value):
         if not isinstance(value, dict) or value.get("kind") != "result_integration":
             raise DomainError("Saved result integration state is invalid")
         intent = IntegrationIntent.parse({**value["intent"], "resolutions": []})
-        return cls(intent, value["status"], value["version"], value["target_before"],
-                   value["target_after"], tuple(value["conflicts"]), tuple(value["resolutions"]),
-                   value["merge"], value["failure"], dict(value["cleanup"]), tuple(value["history"]))
+        return cls(
+            intent=intent,
+            status=value["status"],
+            phase=value["phase"],
+            version=value["version"],
+            accepted_commit=value["accepted_commit"],
+            integration_branch=value["integration_branch"],
+            integration_worktree=value["integration_worktree"],
+            temporary_backup_directory=value["temporary_backup_directory"],
+            observed_target=value["observed_target"],
+            integration_head=value["integration_head"],
+            target_after=value["target_after"],
+            conflicts=tuple(value["conflicts"]),
+            resolutions=tuple(value["resolutions"]),
+            checks=tuple(value["checks"]),
+            publication=value["publication"],
+            temporary_backups=tuple(value["temporary_backups"]),
+            failure=value["failure"],
+            cleanup=dict(value["cleanup"]),
+            history=tuple(value["history"]),
+            drift_retries=value["drift_retries"],
+        )
 
-    def _step(self, status, event=None, details=None, **changes):
-        entry = {"status": status}
+    def _step(self, status, phase, event=None, details=None, **changes):
+        entry = {"status": status, "phase": phase}
         if event is not None:
             entry["event"] = event
         if details is not None:
             entry["details"] = details
-        return replace(self, status=status, version=self.version + 1,
+        return replace(self, status=status, phase=phase, version=self.version + 1,
                        history=self.history + (entry,), **changes)
 
-    def start(self, observation):
-        if self.status != "prepared":
-            raise DomainError("Only a prepared integration can start")
-        target = _commit(observation.get("target_before"), "observed target")
-        if target != self.intent.expected_target_commit:
-            raise DomainError("Observed target changed before integration")
-        preflight = observation.get("preflight")
-        merge = None if preflight is None else {"preflight": preflight}
-        return self._step("running", "merge_started", target_before=target, merge=merge)
+    def begin_candidate(self, observed_target):
+        if self.status not in ("prepared", "running") or self.phase not in (
+            "prepared", "candidate_ready", "publishing"
+        ):
+            raise DomainError("Integration cannot start a candidate from this phase")
+        target = _commit(observed_target, "observed target")
+        return self._step(
+            "running",
+            "preparing_candidate",
+            "candidate_started",
+            observed_target=target,
+            integration_head=target,
+            conflicts=(),
+            resolutions=(),
+            failure=None,
+            publication=None,
+        )
 
     def await_resolution(self, conflicts, receipt):
         paths = tuple(sorted(conflicts))
-        if self.status != "running" or not paths:
+        if self.phase != "preparing_candidate" or not paths:
             raise DomainError("A running integration requires observed conflicts")
-        return self._step("awaiting_resolution", "conflicts_observed", conflicts=paths,
-                          merge={**(self.merge or {}), "receipt": receipt,
-                                 "conflicts": list(paths), "resolutions": []})
+        return self._step(
+            "awaiting_resolution",
+            "awaiting_resolution",
+            "conflicts_observed",
+            details={"receipt": receipt},
+            conflicts=paths,
+        )
 
     def continue_with(self, resolutions):
-        if self.status != "awaiting_resolution":
+        if self.phase != "awaiting_resolution":
             raise DomainError("No conflict continuation is pending")
         parsed = tuple(_resolution(value) for value in resolutions)
         if {item["path"] for item in parsed} != set(self.conflicts):
             raise DomainError("Provide one resolution for every observed conflict, and no unrelated paths")
-        return self._step("running", "resolutions_declared", resolutions=parsed,
-                          merge={**self.merge, "resolutions": list(parsed)})
+        return self._step(
+            "running",
+            "preparing_candidate",
+            "resolutions_declared",
+            resolutions=parsed,
+        )
 
-    def integrated(self, target_after, receipt):
-        if self.status != "running":
-            raise DomainError("Only a running integration can record a target result")
-        target = _commit(target_after, "integrated target")
-        merge = {"receipt": receipt, "conflicts": list(self.conflicts),
-                 "resolutions": list(self.resolutions)}
-        return self._step("cleanup_pending", "target_integrated", target_after=target,
-                          merge=merge, failure=None)
+    def candidate_ready(self, integration_head, receipt):
+        if self.phase != "preparing_candidate":
+            raise DomainError("Only a prepared candidate can record its head")
+        head = _commit(integration_head, "integration head")
+        return self._step(
+            "running",
+            "candidate_ready",
+            "candidate_ready",
+            details={"receipt": receipt},
+            integration_head=head,
+            failure=None,
+        )
 
-    def blocked(self, reason, receipt):
-        if self.status != "running":
-            raise DomainError("Only a running integration can record a merge failure")
-        failure = {"reason": _text(reason, "failure reason"), "receipt": receipt}
-        return self._step("blocked", "merge_blocked", details=failure, failure=failure)
+    def candidate_failed(self, reason, receipt):
+        if self.phase != "preparing_candidate":
+            raise DomainError("Only a running candidate can record a failure")
+        failure = {
+            "reason": _text(reason, "candidate failure reason"),
+            "receipt": receipt,
+        }
+        return self._step(
+            "blocked",
+            "candidate_failed",
+            "candidate_failed",
+            details=failure,
+            failure=failure,
+        )
 
-    def retry_blocked(self):
-        if self.status != "blocked" or not isinstance(self.failure, dict):
-            raise DomainError("No blocked integration can be retried")
-        target = "running" if self.failure["reason"] == "integration_commit_failed" else "prepared"
-        return self._step(target, "merge_retry", failure=None)
+    def retry_candidate(self):
+        if self.phase != "candidate_failed":
+            raise DomainError("Only a failed candidate can be retried")
+        return self._step(
+            "running",
+            "preparing_candidate",
+            "candidate_retry_started",
+            conflicts=(),
+            resolutions=(),
+            failure=None,
+        )
+
+    def checks_recorded(self, receipts):
+        if self.phase != "candidate_ready":
+            raise DomainError("Checks require a ready integration candidate")
+        batch = tuple(receipts)
+        passed = all(item.get("passed") is True for item in batch)
+        checks = self.checks + batch
+        if passed:
+            return self._step(
+                "running", "publishing", "checks_passed", checks=checks, failure=None
+            )
+        failure = {"reason": "checks_failed", "checks": list(batch)}
+        return self._step(
+            "blocked",
+            "checks_failed",
+            "checks_failed",
+            details=failure,
+            checks=checks,
+            failure=failure,
+        )
+
+    def drifted(self, receipt):
+        if self.phase != "publishing":
+            raise DomainError("Target drift is observed only during publication")
+        return self._step(
+            "running",
+            "publishing",
+            "target_drifted",
+            details={"receipt": receipt},
+            drift_retries=self.drift_retries + 1,
+        )
+
+    def publication_confirmed(self, target_ref, receipt, *, no_op, recovered):
+        if self.phase != "publishing" or self.integration_head is None \
+                or self.observed_target is None:
+            raise DomainError("Publication requires a tested candidate")
+        publication = {
+            "status": "confirmed",
+            "target_ref": _text(target_ref, "target ref"),
+            "commit": self.integration_head,
+            "observed_target": self.observed_target,
+            "no_op": bool(no_op),
+            "recovered": bool(recovered),
+            "drift_retries": self.drift_retries,
+            "receipt": receipt,
+        }
+        return self._step(
+            "cleanup_pending",
+            "cleanup_pending",
+            "publication_confirmed",
+            publication=publication,
+            target_after=self.integration_head,
+            failure=None,
+        )
 
     def cleanup_blocked(self, component, receipt):
-        if self.status != "cleanup_pending" or component not in ("worktree", "branch"):
+        if self.phase != "cleanup_pending" or component not in self.cleanup:
             raise DomainError("Cleanup blockage does not match the integration state")
         cleanup = dict(self.cleanup)
         cleanup[component] = "blocked"
         details = {"component": component, "receipt": receipt}
-        return self._step("cleanup_pending", f"{component}_cleanup_blocked",
-                          details=details, cleanup=cleanup)
+        return self._step(
+            "cleanup_pending",
+            "cleanup_pending",
+            f"{component}_cleanup_blocked",
+            details=details,
+            cleanup=cleanup,
+        )
 
-    def worktree_removed(self):
-        if self.status not in ("cleanup_pending", "integrated"):
-            raise DomainError("Worktree cleanup requires an integrated target")
-        if self.cleanup["worktree"] == "removed":
+    def cleanup_completed(self, component, outcome):
+        if component not in self.cleanup:
+            raise DomainError("Cleanup step does not match the integration state")
+        if outcome not in ("removed", "deleted"):
+            raise DomainError("Cleanup outcome is invalid")
+        if self.cleanup[component] == outcome and self.phase in (
+            "cleanup_pending", "integrated"
+        ):
             return self
+        if self.phase != "cleanup_pending":
+            raise DomainError("Cleanup step does not match the integration state")
         cleanup = dict(self.cleanup)
-        cleanup["worktree"] = "removed"
-        return self._step(self.status, "worktree_removed", cleanup=cleanup)
-
-    def branch_deleted(self):
-        if self.cleanup["worktree"] != "removed":
-            raise DomainError("Branch deletion follows worktree removal")
-        if self.cleanup["branch"] == "deleted":
-            return self
-        cleanup = dict(self.cleanup)
-        cleanup["branch"] = "deleted"
-        return self._step("integrated", "branch_deleted", cleanup=cleanup)
+        cleanup[component] = outcome
+        terminal = cleanup == {
+            "task_worktree": "removed",
+            "integration_worktree": "removed",
+            "task_branch": "deleted",
+            "integration_branch": "deleted",
+            "temporary_backups": "removed",
+        }
+        return self._step(
+            "integrated" if terminal else "cleanup_pending",
+            "integrated" if terminal else "cleanup_pending",
+            f"{component}_{outcome}",
+            cleanup=cleanup,
+        )
 
     def to_storage(self):
         return {
             "kind": "result_integration",
             "intent": self.intent.identity(),
             "status": self.status,
+            "phase": self.phase,
             "version": self.version,
-            "target_before": self.target_before,
+            "accepted_commit": self.accepted_commit,
+            "integration_branch": self.integration_branch,
+            "integration_worktree": self.integration_worktree,
+            "temporary_backup_directory": self.temporary_backup_directory,
+            "observed_target": self.observed_target,
+            "integration_head": self.integration_head,
             "target_after": self.target_after,
             "conflicts": list(self.conflicts),
             "resolutions": list(self.resolutions),
-            "merge": self.merge,
+            "checks": list(self.checks),
+            "publication": self.publication,
+            "temporary_backups": list(self.temporary_backups),
             "failure": self.failure,
             "cleanup": self.cleanup,
             "history": list(self.history),
+            "drift_retries": self.drift_retries,
         }
 
     def result(self, replayed=False):
@@ -205,14 +374,27 @@ class IntegrationRun:
             "task": self.intent.task_id,
             "request_id": self.intent.request_id,
             "source_commit": self.intent.expected_source_commit,
-            "target_before": self.target_before,
+            "accepted_commit": self.accepted_commit,
+            "integration_branch": self.integration_branch,
+            "integration_worktree": self.integration_worktree,
+            "temporary_backup_directory": self.temporary_backup_directory,
+            "temporary_backups": list(self.temporary_backups),
+            "phase": self.phase,
+            "observed_target": self.observed_target,
+            "integration_head": self.integration_head,
+            "target_before": self.intent.expected_target_commit,
             "target_after": self.target_after,
+            "conflicts": list(self.conflicts),
+            "resolutions": list(self.resolutions),
+            "checks": list(self.checks),
+            "publication": self.publication,
             "cleanup": self.cleanup,
-            "merge": self.merge,
+            "merge": {
+                "conflicts": list(self.conflicts),
+                "resolutions": list(self.resolutions),
+            },
             "failure": self.failure,
             "history": list(self.history),
             "replayed": replayed,
         }
-        if self.status == "awaiting_resolution":
-            value["conflicts"] = list(self.conflicts)
         return value

@@ -66,7 +66,7 @@ Task владеет ContentPolicy, ContentSnapshot и CheckRegistry. Чиста�
 
 `content_additions` позволяет зарегистрировать секции, цепочки и дополнительные обязательства. `trace` — изменения точек вида `{route: {point: value}}`; для осмысленной очистки разрешён null. Snapshot и declared contract получаются самим AI poise. Агент не передаёт status/version/task_id/Git diff/hashes.
 
-`method_additions`: список `{method: <точный метод>, stages: [<этапы исполнения>]}`. Поля метода: id, argv, cwd, environment, timeout_seconds, expected_exit_code, stdout_contains, stderr_contains. Метод имеет неизменное определение; другой способ/ожидание получает новый ID. Такой метод сразу включается в checks указанных этапов. Пустое расписание допускается явно, например для метода, который нужен только automatic mapping; AI poise не угадывает его назначение.
+`method_additions`: список `{method: <точный метод>, stages: [<этапы исполнения>]}`. Поля метода: id, argv, cwd, environment, expected_exit_code, stdout_contains, stderr_contains. Verification method не задаёт таймаут: после запуска AI poise ждёт конечный результат процесса. Метод имеет неизменное определение; другой способ/ожидание получает новый ID. Такой метод сразу включается в checks указанных этапов. Пустое расписание допускается явно, например для метода, который нужен только automatic mapping; AI poise не угадывает его назначение.
 
 ## Последовательность verify
 
@@ -89,3 +89,8 @@ Task владеет ContentPolicy, ContentSnapshot и CheckRegistry. Чиста�
 ## Границы
 
 Работает последовательный runner существующего прототипа и rework последнего предъявленного этапа. Механика проверки не зависит от goal_type и отдельно проверена на произвольных stage IDs. Общий runner семи семейств, возврат на произвольный ранний этап, полноценные evidence/resolution aggregates, Sprint planner, 13 производственных конфигураций и scoped waiver пока не реализованы. Ожидание этих возможностей не блокирует использование описанного пути.
+Новые методы в исходном контракте Task и в `method_additions` содержат
+`verification_plan`. Его матрица проверяется вместе с расписанием, route и
+`allowed_paths` до сохранения содержимого, регистрации метода и любых побочных
+эффектов. Ошибка не оставляет частично созданную Task или частично применённый
+пакет результата.

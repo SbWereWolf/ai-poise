@@ -44,10 +44,23 @@
           }
         ]
       },
-      "timeout_seconds": 120,
       "expected_exit_code": 0,
       "stdout_contains": [],
       "stderr_contains": []
+    }
+  ],
+  "method_inputs": [
+    {
+      "method_id": "BASELINE",
+      "repository_inputs": [
+        "tests/projects"
+      ],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "pytest",
+        "parser": "positional-paths",
+        "version": 1
+      }
     }
   ],
   "checks": {

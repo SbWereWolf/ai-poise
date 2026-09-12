@@ -5,7 +5,7 @@
         "hooks": [
           {
             "async": false,
-            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -B -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
             "statusMessage": "Record session end",
             "timeout": 3,
             "type": "command"
@@ -20,7 +20,7 @@
           {
             "additionalContextLimit": 2000,
             "async": false,
-            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -B -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
             "statusMessage": "Bind AI poise session",
             "timeout": 15,
             "type": "command"
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "async": false,
-            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -B -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
             "statusMessage": "Report AI poise state",
             "timeout": 5,
             "type": "command"
@@ -48,7 +48,7 @@
           {
             "additionalContextLimit": 2000,
             "async": false,
-            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
+            "command": "env PYTHONPATH=/home/sbwerewolf/workdata/ai-poise/src /home/sbwerewolf/workdata/ai-poise/.venv/bin/python -B -m poise hook --settings /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hooks-settings.json --definition /home/sbwerewolf/workdata/ai-poise/config/projects/ai-poise/hook-definitions/b6a62ac1ad396fb5806af837716149f428efa3a158dba09e3221ca001ef6464b.json",
             "statusMessage": "Record user turn",
             "timeout": 15,
             "type": "command"

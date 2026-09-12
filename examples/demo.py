@@ -48,10 +48,17 @@ def create(directory: Path):
     cfg['batch'] = json.loads((SOURCE / 'config/batch.example.json').read_text())
     save(home / 'project.json', cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
-    methods = []
-    for sid, code, needles in [('RED', 1, ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']), ('GREEN', 0, ['test_double', 'Ran 1 test', 'OK'])]:
-        methods.append({'id': sid, 'argv': argv, 'cwd': '.', 'environment': {'LANG': 'C.UTF-8'}, 'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]}, 'timeout_seconds': 10, 'expected_exit_code': code, 'stdout_contains': [], 'stderr_contains': needles})
-    task = {'id': 'DEMO-1', 'sprint_id': None, 'goal_type': 'development', 'goal': 'Исправить double(2), получить 4.', 'requirements': ['double(n) возвращает n*2'], 'definition_of_done': ['Регрессионный тест RED до правки, GREEN после.'], 'methods': methods, 'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']}, 'artifact_requirements': [{'scope': 'task', 'pattern': 'artifacts/result.md', 'minimum': 1, 'maximum': 1}], 'content_contract': {'sections': [], 'routes': [], 'requirements': []}}
+    red_argv = [sys.executable, '-B', '-c', "import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"]
+    red_output = '{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}\n'
+    methods = [
+        {'id':'RED','argv':red_argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'verification_plan':{'responsibility':'Prove the regression test fails before implementation.','change_surface':['tests/**'],'red_stages':['tests'],'green_stages':[],'red_failure':{'exit_code':1,'stdout_equals':red_output,'stderr_equals':''}},'expected_exit_code':1,'stdout_contains':[red_output.strip()],'stderr_contains':[]},
+        {'id':'GREEN','argv':argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'verification_plan':{'responsibility':'Verify implemented behaviour and final regression.','change_surface':['src/**'],'red_stages':[],'green_stages':['implementation','code_review'],'red_failure':None},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['test_double','Ran 1 test','OK']},
+    ]
+    method_inputs = [
+        {'method_id':'RED','repository_inputs':[],'future_outputs':[],'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}},
+        {'method_id':'GREEN','repository_inputs':[],'future_outputs':[{'path':'tests','producer_stage':'tests'}],'reference_profile':{'runner':'unittest','parser':'discover-start-directory','version':1}},
+    ]
+    task = {'id': 'DEMO-1', 'sprint_id': None, 'goal_type': 'development', 'goal': 'Исправить double(2), получить 4.', 'requirements': ['double(n) возвращает n*2'], 'definition_of_done': ['Регрессионный тест RED до правки, GREEN после.'], 'methods': methods, 'method_inputs': method_inputs, 'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']}, 'artifact_requirements': [{'scope': 'task', 'pattern': 'artifacts/result.md', 'minimum': 1, 'maximum': 1}], 'content_contract': {'sections': [], 'routes': [], 'requirements': []}}
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in stages}
     save(home / 'task.json', task)
     return home

@@ -8,6 +8,7 @@
     "requirements": "strings",
     "dod": "strings",
     "methods": "list",
+    "method_inputs": "list",
     "artifact_requirements": "list",
     "contract": "object",
     "evidence": "object"
@@ -31,6 +32,9 @@
     },
     "methods": {
       "$input": "methods"
+    },
+    "method_inputs": {
+      "$input": "method_inputs"
     },
     "checks": {
       "baseline": [

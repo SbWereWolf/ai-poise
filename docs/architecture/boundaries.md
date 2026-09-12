@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-12T00:00:00+05:00**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-09-12T09:06:11+05:00**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -21,6 +21,14 @@
 формированием digest/receipt. Execution adapter получает уже связанный cwd/environment и не
 угадывает язык, layout проекта или источник импорта. Evidence хранит наблюдение и provenance,
 но не исправляет неверный method после запуска.
+
+Runtime строит invocation и `execution_key` для verify и failed-check rework одним
+каноническим путём; отдельная identity без source provenance не является поддержанным
+вариантом. Evidence repository владеет полной неизменяемой записью command receipt, а batch в
+Task лишь ссылается на то же наблюдение. Перед reuse или failed-check rework runtime требует
+точного равенства этих записей, привязки к текущим invocation/tree и целостности output.
+Task применяет переход только после этих проверок. Это разделение не создаёт второго writer,
+совместимого ключа или миграции evidence.
 
 Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw capture синхронный, адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы EvidenceBook.
 
@@ -62,7 +70,7 @@ WorkTools — application facade, не новый агрегат. Task оста�
 ## DDD-05 — 2026-09-11T16:25:00+05:00
 Sprint владеет планом/графом/решениями; Task владеет доступностью, началом и состоянием работы. Published Sprint создаёт Task через общий доменный builder и TaskRepository в одной UoW. Клиент не подменяет исходные шаблоны/таблицы рабочими JSON patch.
 
-`modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem. `infrastructure/sprint_work` выполняет только доступ к наблюдаемым Git-объектам и делегирует Task API. База сериализует короткие записи; проверки/commit/push параллельных worktrees не держат общий DB lock. Readiness графа не равна auto-merge: разные result revisions возвращаются как integration_required.
+`modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem. `infrastructure/sprint_work` вычисляет eligibility, формирует `result_provenance`, наблюдает текущий commit явно настроенного Git `base_ref` для новой Task и делегирует Task API. Result commits предшественников остаются provenance и не выбирают branch base. Точный наблюдённый base SHA сохраняется в reservation до Task start; recovery использует его повторно, а resume/handoff существующего worktree не наблюдают ref заново и не пересоздают workspace. База сериализует короткие записи; проверки/commit/push параллельных worktrees не держат общий DB lock.
 
 Замена ошибочной незавершённой Task остаётся координацией этих владельцев, а не новым lifecycle writer. `SprintWork` до транзакции наблюдает pending/ownership/handoff и чистоту worktree. `SprintCommands` в короткой UoW повторно сверяет Sprint revision, Task version и снимок preflight, валидирует полный replacement через сохранённый process, вызывает `Sprint.replace_task` для графа/relation и `Task.supersede` для состояния источника. Инфраструктурный адаптер не присваивает lifecycle напрямую.
 
@@ -119,6 +127,17 @@ interface только переносит результат выбранног�
 переходы, используют валидную текущую конфигурацию без общего `config_hash` gate, как
 предусмотрено задачей 0026. Task-owned snapshots сохраняются; хеш остаётся диагностическим
 provenance. Это не отменяет проверок binding, source, ownership и revisions.
+
+Адресный `terminal inspection snapshot` для `completed`, `cancelled` и `superseded` проходит
+через installation source: терминальная Task не обязана иметь доступную worktree и не может
+становиться владельцем session source. `BoundSourceRoute` выбирает эту транспортную границу,
+а `WorkTools` координирует вызов; ни один из них не меняет Task lifecycle.
+
+Task остаётся владельцем terminal status и освобождённого claim. Runtime составляет проекцию
+из сохранённых Task context, content, evidence и audit history через существующие owner/query
+API, после чего гарантирует отсутствие current-task binding. Активные `active`, `verified` и
+`accepted` ownership guards проверяются до такого чтения. Пустая evidence-проекция
+аварийно отменённой Task допустима и не интерпретируется как незавершённая проверка.
 
 
 ## Accounting ownership — DDD-08
@@ -177,7 +196,12 @@ Task остаётся владельцем process snapshot и lifecycle. Обн
 исходного state удерживаются от проверки до durable receipt, а при relocation до переключения
 manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
 проверкой активной работы и публикацией. Перенос не удаляет source до подтверждённой копии и
-переключения manifest; overlapping roots и отсутствующий source отклоняются.
+переключения manifest; overlapping roots и отсутствующий source отклоняются. Quiescence
+использует terminal-набор Task `completed`/`cancelled`/`superseded`, поэтому исторический
+superseded snapshot не становится активной работой. Детерминированный relocation staging
+принадлежит операции только после проверки его отсутствия и публикации matching pending
+receipt: первый запрос не удаляет уже существующий staging, а очистка частичной копии
+разрешена только exact replay того же request digest.
 
 
 ## Task identity allocation — 2026-09-11T06:55:21+05:00
@@ -203,17 +227,19 @@ Replay identity имеет project scope и не равен session binding: д�
 
 ## DDD-10 — интеграция принятого результата
 
-Обновлено: **2026-09-11T16:55:00+05:00**.
+Обновлено: **2026-09-11T23:25:02Z**.
 
 `ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и idempotent replay. Task остаётся единственным владельцем verified/accepted/completed lifecycle и содержательного результата: операция интеграции читает окончательный Task result, но не меняет его статус, секции или evidence. Sprint продолжает вычислять состояние из Task и не выполняет скрытый auto-merge.
 
 `ResultIntegrationCommands` — прикладная граница одного декларативного пакета. `RuntimeResultIntegration` реализует Git-наблюдения и эффекты, а сохранение выполняет через execution repository. WorkTools только маршрутизирует `integrate` и `show integration`; domain не импортирует filesystem, subprocess или SQLite.
 
-Intent до эффекта фиксирует task ID, request ID, source/target commits и пользовательскую authorization. Preflight snapshot дополнительно сохраняет target HEAD, множество локальных путей и incoming delta от merge base. `RuntimeResultIntegration` отклоняет unresolved Git operation и пересечение этих множеств до первой мутации. Для разрешённого dirty target отдельный служебный index изолирует принимаемый source от пользовательских staged, unstaged и untracked изменений; основной index после commit синхронизируется только по incoming paths из нового `HEAD`, а не из worktree.
+Intent до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся target commit и пользовательскую authorization. Adapter проверяет окончательный Task result и чистый source worktree, но не использует основной checkout как integration surface или precondition. Детерминированные дочерняя ветка, integration worktree и task/integration-scoped temporary-backup directory сохраняются до первого Git-эффекта; новый вызов с тем же request ID и изменённым intent отклоняется.
 
-Внешняя блокировка БД не удерживается во время Git. Между короткими сохранениями adapter повторно проверяет HEAD, MERGE_HEAD, conflict set, сохранённый preflight и drift worktree относительно служебного index. Поэтому повтор либо продолжает известную фазу, либо возвращает сохранённый `blocked`; он не выполняет второй merge по догадке и не включает более поздние пользовательские байты.
+Внешняя блокировка БД не удерживается во время Git. `IntegrationRun` сохраняет accepted commit, observed target, mutable integration head, конфликты и решения, check receipts, publication receipt, cleanup outcomes и историю фаз. Незавершённый merge восстанавливается по owned workspace, `MERGE_HEAD` и conflict set; неудачный merge без конфликтов сохраняет `candidate_failed`, а тот же intent запускает безопасный повтор candidate. Разрешение конфликта принимает ровно один rationale для каждого сохранённого conflict path и выполняется только в owned workspace.
 
-До подтверждения, что target содержит source commit, source worktree и ветка не удаляются; разрешённые непересекающиеся локальные изменения target не блокируют cleanup. Уборка монотонна: worktree removal предшествует безопасному branch deletion, каждый результат сохраняется, а interruption повторяет только недостающий шаг. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
+Объявленные проверки запускаются на готовом integration head. Перед публикацией adapter снова читает target ref: drift создаёт новый candidate от текущего target и повторяет проверки. Стабильный candidate публикуется compare-and-swap обновлением target; crash после эффекта распознаётся по текущему ref и не повторяет публикацию. Terminal no-op требует наблюдаемого target, уже содержащего accepted commit.
+
+Только после подтверждённой публикации начинается монотонная уборка. Worktree removal предшествует branch deletion, каждый исход сохраняется, а interruption повторяет только недостающий шаг. Текущий target обязан содержать опубликованный integration head и accepted commit: descendant допускается, переписанная история сохраняет recovery state. Безопасность удаления owned-ветки не зависит от checkout `HEAD`: commit проверяется относительно явного target и ref удаляется compare-and-delete. Scoped temporary directory удаляется последним; чужие worktrees и operator/deliverable/recovery backups вне него не затрагиваются. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
 
 
 ## Проверка пилота — 2026-09-07T15:04:48+05:00
@@ -222,3 +248,6 @@ Intent до эффекта фиксирует task ID, request ID, source/target
 супервизор использует существующий command executor. Пример continuation вызывает WorkTools,
 не пишет SQL/config и не присваивает lifecycle-поля. Контроль источников включает tools.
 Статус процесса и факт наличия XML отделены от содержательного итога проверок.
+`CheckRegistry` владеет структурой `verification_plan` и сопоставляет
+`change_surface` с route-путями. `RouteDefinition` предоставляет настроенные
+`allowed_paths`; отдельного планировщика или анализа исходников теста нет.

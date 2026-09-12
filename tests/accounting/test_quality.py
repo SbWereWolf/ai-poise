@@ -15,7 +15,7 @@ def test_only_explicit_late_findings_count_and_group_cost_is_not_divided(project
     project['cfg']['accounting']['time_mode']=mode
     p=process('development');project['cfg']['automatic_checks']=[]
     write_json(project['root']/'config/processes/development.json',p);write_json(project['config_path'],project['cfg'])
-    t=deepcopy(project['task']);t['methods']=[];t['checks']={s['id']:[] for s in p['stages']}
+    t=deepcopy(project['task']);t['methods']=[];t['method_inputs']=[];t['checks']={s['id']:[] for s in p['stages']}
     t['evidence_plan']={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']}
     h=Poise(project['config_path'],'Q',DeterministicClock());w=WorkTools(h)
     ctx=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))

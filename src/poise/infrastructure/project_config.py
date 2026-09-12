@@ -92,7 +92,8 @@ class FileProjectConfigUpdate:
         try:
             with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
                 row = connection.execute(
-                    "SELECT 1 FROM tasks WHERE status NOT IN ('completed','cancelled') LIMIT 1"
+                    "SELECT 1 FROM tasks "
+                    "WHERE status NOT IN ('completed','cancelled','superseded') LIMIT 1"
                 ).fetchone()
             return row is not None
         except sqlite3.Error as exc:
@@ -163,13 +164,19 @@ class FileProjectConfigUpdate:
             raise PoiseError("State source is missing; empty replacement refused")
         return source, destination, disposition, already_switched
 
-    def _relocate(self, config_path, live_config, candidate_config, move, locks):
+    @staticmethod
+    def _staging_path(destination):
+        return destination.parent / f".{destination.name}.project-update"
+
+    def _relocate(self, config_path, live_config, candidate_config, move, locks, recovering):
         source, destination, disposition, already_switched = self._relocation_state(
             config_path, live_config, move
         )
-        staging = destination.parent / f".{destination.name}.project-update"
+        staging = self._staging_path(destination)
         if not destination.exists():
             if staging.exists():
+                if not recovering:
+                    raise PoiseError("State relocation staging already exists; refusing unverified deletion")
                 shutil.rmtree(staging)
             copy_state_tree(source, staging)
             publish_state_tree(staging, destination)
@@ -220,7 +227,13 @@ class FileProjectConfigUpdate:
                 if not replayed and current_revision != request["expected_revision"]:
                     raise VersionConflict("Live project differs from the expected known revision")
                 if request["state_relocation"] is not None:
-                    self._relocation_state(config_path, live_config, request["state_relocation"])
+                    _, destination, _, _ = self._relocation_state(
+                        config_path, live_config, request["state_relocation"]
+                    )
+                    if not replayed and self._staging_path(destination).exists():
+                        raise PoiseError(
+                            "State relocation staging already exists; refusing unverified deletion"
+                        )
                 state = configured_root(root, live_config["paths"]["state"])
                 state_lock = descendant(state, live_config["paths"]["lock"])
                 locks.enter_context(exclusive_lock(
@@ -260,7 +273,8 @@ class FileProjectConfigUpdate:
                 relocation = None
                 if request["state_relocation"] is not None:
                     relocation = self._relocate(
-                        config_path, live_config, candidate_config, request["state_relocation"], locks
+                        config_path, live_config, candidate_config, request["state_relocation"],
+                        locks, replayed,
                     )
                 elif candidate_config != live_config:
                     atomic_write(config_path, encoded(candidate_config, settings.raw["json_indent"]), settings.raw["file_mode"])

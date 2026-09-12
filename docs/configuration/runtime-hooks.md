@@ -23,6 +23,8 @@ Bootstrap-настройки устанавливают root, project_config, in
 
 Сначала публикуется неизменяемый definition в config root, потом одним atomic replace обновляется hooks.json. Operational SQLite сохраняет pending/completed receipt. Одна SQL-транзакция НЕ делает файл частью SQLite; повтор сверяет фактический digest.
 
+Управляемые native-команды и session launcher запускают Python с `-B`, поэтому загрузка installation source не создаёт и не обновляет bytecode в checkout. При следующем native event точный launcher прежней управляемой формы без `-B` атомарно заменяется текущей формой; любое другое изменение launcher по-прежнему считается внешним и вызывает отказ без перезаписи. Рабочий `hooks.json` обновляется через `runtime-config`, а не одной лишь заменой генератора команд.
+
 Новый/изменённый hook требует пользовательского review/trust в Codex. Инструмент возвращает `requires_user_review` и `live_codex: not_observed`; не включает `--dangerously-bypass-hook-trust`, не правит config.toml и не выдаёт генерацию файла за активацию в приложении.
 
 ## Native события и счётчик
@@ -76,6 +78,7 @@ source внутри её `Task worktree`. Продолжение уже назн
 конфигурацию и сохранённые Task-owned process/contract/method snapshots; изменение конфига
 не переписывает эти снимки и не перезапускает задачу. Проверки native binding и границ
 выбранного source выполняются независимо от этого правила.
+Для Sprint явная отмена представлена операциями `cancel_tasks` и `cancel`.
 
 ## Данные
 Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.

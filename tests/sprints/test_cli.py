@@ -10,7 +10,8 @@ from batch.helpers import request
 
 def call(project,packet,session='sprint-cli'):
     r=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps(packet),capture_output=True,text=True,
-        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':session},timeout=20)
+        env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
+             'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':session},timeout=20)
     view=json.loads(r.stdout)
     return r,json.loads(Path(view['response_path']).read_text()) if 'response_path' in view else view
 

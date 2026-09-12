@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-12T00:25:00+05:00.
+Updated: 2026-09-12T04:43:01+05:00.
 
 ## Declarative, reusable tools
 
@@ -40,9 +40,22 @@ Use a dedicated Git worktree and the repository branch-naming rule before modify
 
 Follow the [TDD rules](../docs/governance/development-rules.md), [library boundaries](../docs/architecture/boundaries.md) and [declarative tool contract](../docs/architecture/declarative-tools.md). Write and inspect tests before implementation, verify the completed path, review fixes, and update tool, code and storage documentation with a timestamp.
 
+Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; do not register unfiltered repository-wide test discovery as a task method.
+
+Every new Task worktree starts from the current configured base ref observed for that start. Sprint result dependencies expose predecessor commits through `result_provenance`; they do not select or merge a successor branch base.
+
 Every new verification method must declare `source_under_test`. Bind repository sources to
 paths inside the current task worktree; never infer a language layout, overwrite an existing
 environment value, or add a fallback checkout. External methods require an explicit reason.
+Verification methods never declare execution timeouts; after launch, wait for the process to
+reach a terminal result. Capability probes, hooks and other bounded infrastructure retain their
+own explicit timeout contracts.
 Reject semantic duplicates and conflicting methods before execution. Accept RED evidence only
 when the declared failure predicate matches and the recorded source provenance is valid; an
 import error or execution against another checkout is not a valid RED.
+Keep `verification_plan` validation in `CheckRegistry` and route scope ownership
+in `RouteDefinition`. New methods declare `change_surface`, `red_stages`, and
+`green_stages`; every required GREEN path must be covered by configured
+`allowed_paths`. RED predicates compare complete output exactly, so additional
+failures do not pass. Preserve pre-plan snapshot restoration without adding a
+default, migration, or recursive runner-specific source inference.

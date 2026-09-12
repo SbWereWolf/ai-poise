@@ -15,12 +15,8 @@
       "argv": [
         "REPLACE_WITH_ABSOLUTE_PYTHON_EXECUTABLE",
         "-B",
-        "-m",
-        "unittest",
-        "discover",
-        "-s",
-        "tests",
-        "-v"
+        "-c",
+        "import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"
       ],
       "cwd": ".",
       "environment": {
@@ -35,14 +31,27 @@
           }
         ]
       },
-      "timeout_seconds": 10,
+      "verification_plan": {
+        "responsibility": "Prove that the regression test fails before implementation.",
+        "change_surface": [
+          "tests/**"
+        ],
+        "red_stages": [
+          "tests",
+          "test_fix"
+        ],
+        "green_stages": [],
+        "red_failure": {
+          "exit_code": 1,
+          "stdout_equals": "{\"errors\":[],\"failures\":[\"test_double.Regression.test_double\"],\"tests_run\":1}\n",
+          "stderr_equals": ""
+        }
+      },
       "expected_exit_code": 1,
-      "stdout_contains": [],
-      "stderr_contains": [
-        "test_double",
-        "AssertionError: 3 != 4",
-        "Ran 1 test"
-      ]
+      "stdout_contains": [
+        "{\"errors\":[],\"failures\":[\"test_double.Regression.test_double\"],\"tests_run\":1}"
+      ],
+      "stderr_contains": []
     },
     {
       "id": "GREEN",
@@ -69,7 +78,20 @@
           }
         ]
       },
-      "timeout_seconds": 10,
+      "verification_plan": {
+        "responsibility": "Verify the implemented behavior and final regression.",
+        "change_surface": [
+          "src/**"
+        ],
+        "red_stages": [],
+        "green_stages": [
+          "implementation",
+          "code_review",
+          "code_fix",
+          "code_recheck"
+        ],
+        "red_failure": null
+      },
       "expected_exit_code": 0,
       "stdout_contains": [],
       "stderr_contains": [
@@ -77,6 +99,33 @@
         "Ran 1 test",
         "OK"
       ]
+    }
+  ],
+  "method_inputs": [
+    {
+      "method_id": "RED",
+      "repository_inputs": [],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "python",
+        "parser": "inline-no-path-arguments",
+        "version": 1
+      }
+    },
+    {
+      "method_id": "GREEN",
+      "repository_inputs": [],
+      "future_outputs": [
+        {
+          "path": "tests",
+          "producer_stage": "tests"
+        }
+      ],
+      "reference_profile": {
+        "runner": "unittest",
+        "parser": "discover-start-directory",
+        "version": 1
+      }
     }
   ],
   "checks": {

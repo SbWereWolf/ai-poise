@@ -167,6 +167,8 @@ overwrite или удалением проекта.
 Process update не переписывает process snapshot уже созданной Task: она продолжает работать
 по сохранённому определению, а новая revision применяется к будущим задачам. Manifest edit и
 перенос `paths.state` разрешены только у quiescent проекта без Task в незавершённом состоянии.
+Для этой проверки terminal считаются только `completed`, `cancelled` и `superseded`;
+сохранённая история заменённой Task не блокирует операцию, а любой другой status блокирует.
 Проверка quiescence и публикация защищены тем же state lock, который сериализует создание и
 claim Task.
 
@@ -179,6 +181,13 @@ claim Task.
 успешного переключения при `delete_after_publish`; при `retain` он сохраняется. Повтор после
 прерывания распознаёт уже опубликованную точную копию, но не создаёт пустое replacement state
 из отсутствующего source.
+
+Временный каталог имеет детерминированное имя `.<destination-name>.project-update`. Если он
+уже существует при первом запросе, операция завершается до создания pending receipt и ничего
+в нём не удаляет. Очистить частично заполненный staging разрешено только точному повтору
+запроса, для которого уже существует matching pending receipt с известными before/after
+digests. Новый request ID, изменённый пакет или ручное удаление staging не являются способом
+восстановления.
 
 Успешный результат имеет `status=updated`, `changed`, `prior_revision`, `revision`,
 `config_path`, `readiness`, `receipt_path` и `replayed`; при переносе добавляется
@@ -219,8 +228,7 @@ python examples/project_pilot.py \
   --repository /absolute/git/checkout/of/poise \
   --base-ref tasks/POISE-PILOT-01 \
   --destination state/pilots/self-check \
-  --task-id SELF-PILOT \
-  --check-seconds 60
+  --task-id SELF-PILOT
 ```
 
 Нужен реальный закоммиченный revision этой версии с `tests/projects`. Имя repository/ref

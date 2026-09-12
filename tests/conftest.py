@@ -5,13 +5,47 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
 import pytest
+
+
+# The repository test command executes the sources from this exact worktree.
+_TASK_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+if str(_TASK_SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_TASK_SOURCE_ROOT))
+
+import poise
+
+_LOADED_POISE = Path(poise.__file__).resolve() if poise.__file__ else None
+if _LOADED_POISE is None or not _LOADED_POISE.is_relative_to(_TASK_SOURCE_ROOT.resolve()):
+    raise RuntimeError(
+        f"Tests loaded poise from {_LOADED_POISE}, expected {_TASK_SOURCE_ROOT.resolve()}"
+    )
 
 
 def write_json(path: Path, value: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return path
+
+
+def verification_plan(
+    responsibility: str,
+    change_surface: list[str],
+    *,
+    red_stages: list[str] | None = None,
+    green_stages: list[str] | None = None,
+    red_failure: dict | None = None,
+) -> dict:
+    return {
+        "responsibility": responsibility,
+        "change_surface": change_surface,
+        "red_stages": [] if red_stages is None else red_stages,
+        "green_stages": [] if green_stages is None else green_stages,
+        "red_failure": red_failure,
+    }
 
 
 def git(root: Path, *args: str) -> str:
@@ -95,14 +129,46 @@ def project(tmp_path, monkeypatch):
     cfg['sprint']=json.loads((Path(__file__).resolve().parents[1]/'config/sprint.example.json').read_text())
     cfg_path = write_json(poise_root / 'project.json', cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
+    red_argv = [
+        sys.executable,
+        '-B',
+        '-c',
+        (
+            "import io,json,sys,unittest;"
+            "result=unittest.TextTestRunner(stream=io.StringIO()).run("
+            "unittest.defaultTestLoader.discover('tests'));"
+            "print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),"
+            "'failures':sorted(case.id() for case,_ in result.failures),"
+            "'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));"
+            "raise SystemExit(0 if result.wasSuccessful() else 1)"
+        ),
+    ]
+    exact_red_output = (
+        '{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}\n'
+    )
     methods = [
-        {'id': 'RED', 'argv': argv, 'cwd': '.', 'environment': {},
+        {'id': 'RED', 'argv': red_argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
-         'timeout_seconds': 10, 'expected_exit_code': 1,
-         'stdout_contains': [], 'stderr_contains': ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']},
+         'verification_plan': verification_plan(
+             'Prove the regression test fails for the declared product behaviour.',
+             ['src/**'],
+             red_stages=['tests'],
+             red_failure={
+                 'exit_code': 1,
+                 'stdout_equals': exact_red_output,
+                 'stderr_equals': '',
+             },
+         ),
+         'expected_exit_code': 1,
+         'stdout_contains': [exact_red_output.strip()], 'stderr_contains': []},
         {'id': 'GREEN', 'argv': argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
-         'timeout_seconds': 10, 'expected_exit_code': 0,
+         'verification_plan': verification_plan(
+             'Prove the implemented product behaviour and final regression remain green.',
+             ['src/**'],
+             green_stages=['implementation', 'code_review'],
+         ),
+         'expected_exit_code': 0,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'Ran 1 test', 'OK']},
     ]
     task = {
@@ -111,6 +177,28 @@ def project(tmp_path, monkeypatch):
         'requirements': ['double(n) возвращает n*2'],
         'definition_of_done': ['Регрессионный тест RED до исправления и GREEN после.'],
         'methods': methods, 'artifact_requirements': [],
+        'method_inputs': [
+            {
+                'method_id': 'RED',
+                'repository_inputs': [],
+                'future_outputs': [],
+                'reference_profile': {
+                    'runner': 'python',
+                    'parser': 'inline-no-path-arguments',
+                    'version': 1,
+                },
+            },
+            {
+                'method_id': 'GREEN',
+                'repository_inputs': [],
+                'future_outputs': [{'path': 'tests', 'producer_stage': 'tests'}],
+                'reference_profile': {
+                    'runner': 'unittest',
+                    'parser': 'discover-start-directory',
+                    'version': 1,
+                },
+            },
+        ],
         'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']},
      "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     task['evidence_plan'] = {s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}

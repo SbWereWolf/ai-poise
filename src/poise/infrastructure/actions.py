@@ -13,7 +13,7 @@ import uuid
 from ..application.actions import PlanCommands
 from ..modules.actions.domain import PlanSpec, Publication, parse_apply_work
 from ..common import PoiseError, descendant, digest, file_digest
-from ..execution import run_command, contains
+from ..execution import method_passed, run_command
 
 
 class RuntimePlanActions:
@@ -190,11 +190,9 @@ class RuntimePlanActions:
 
     def _method(self,data,method):
         invocation=self.h._invocations([method],Path(data['worktree']))[0]
-        receipt=self._command(data,method['argv'],Path(invocation['cwd']),invocation['environment'],method['timeout_seconds'])
+        receipt=self._command(data,method['argv'],Path(invocation['cwd']),invocation['environment'],None)
         receipt['method']=method['id']
-        receipt['passed']=(not receipt['timed_out'] and receipt['actual_exit_code']==method['expected_exit_code']
-                           and all(contains(Path(receipt['stdout']),v) for v in method['stdout_contains'])
-                           and all(contains(Path(receipt['stderr']),v) for v in method['stderr_contains']))
+        receipt['passed']=method_passed(method, receipt)
         return receipt
 
     def _commands(self,data,run):
@@ -223,7 +221,8 @@ class RuntimePlanActions:
         if 'kind' in payload['stage_work']:
             from ..application.planning_publication import PlanningPublications
             service=PlanningPublications(h.store.unit_of_work,h.cfg['project'],h.processes,
-                h.cfg['automatic_checks'],h.cfg['sprint'],h.cfg.get('task_ids'),h.config_hash,h.cfg['batch']['max_items'])
+                h.cfg['automatic_checks'],h.cfg['sprint'],h.cfg.get('task_ids'),h.config_hash,
+                h.cfg['batch']['max_items'],h.task_commands.prepare_creation,h._creation_base)
             return self._summary(service.publish(data['id'],h.session,payload['stage_work']))
         wt=Path(data['worktree']);spec=Publication.parse(payload['stage_work'])
         candidate=h._git(wt,'rev-parse','HEAD')

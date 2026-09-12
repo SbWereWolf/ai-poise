@@ -34,13 +34,16 @@ def process(kind):
 def method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-            'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
+            'verification_plan':{'responsibility':'Verify the integrated source result.',
+                'change_surface':['src/**'],'red_stages':[],
+                'green_stages':['apply','inspect','correct','followup'],'red_failure':None},
+            'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 
 def external_method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'external','reason':'The service-state command reads no repository source.'},
-            'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
+            'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 
 def submission(ctx,work):
@@ -67,6 +70,8 @@ def run(directory,scenario):
     task={'id':'ACTIONS','sprint_id':None,'goal_type':kind,'goal':'Проверенное объединение результатов' if kind=='integration' else 'Настроить учебную среду',
           'requirements':['Сохранить требуемое поведение'],'definition_of_done':['Состояние подтверждено и осмотрено'],
           'methods':[check] if kind=='integration' else [],
+          'method_inputs':[{'method_id':'CHECK','repository_inputs':[],'future_outputs':[],
+              'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}] if kind=='integration' else [],
           'checks':{name:(['CHECK'] if kind=='integration' and name!='publish' else []) for name in names},
           'artifact_requirements':[],'content_contract':{'sections':[],'routes':[],'requirements':[]},
           'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in names}}

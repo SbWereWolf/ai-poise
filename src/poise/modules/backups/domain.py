@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
 from ..foundation.errors import PoiseError
 
@@ -25,12 +24,13 @@ def exact_backup_name(value: str) -> str:
     return value
 
 
-def generated_backup_name(database_name: str, observed_at: datetime) -> str:
+def generated_backup_name(database_name: str, observed_at) -> str:
     exact_backup_name(database_name)
-    if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+    offset = observed_at.utcoffset()
+    if observed_at.tzinfo is None or offset is None:
         raise PoiseError("Backup clock must return a timezone-aware timestamp")
     dot = database_name.rfind(".")
     stem = database_name[:dot] if dot > 0 else database_name
     suffix = database_name[dot:] if dot > 0 else ""
-    stamp = observed_at.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    stamp = (observed_at - offset).strftime("%Y%m%dT%H%M%S%fZ")
     return f"{stem}-backup-{stamp}{suffix}"

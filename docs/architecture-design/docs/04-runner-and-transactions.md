@@ -168,9 +168,9 @@ Read-only inspection не запрещает сохранить новый от�
 
 ## 8. Пример: осмотр → исправление → повторный осмотр
 
-`InspectHandler` принимает findings/coverage по pinned subject через Task API. Он не изменяет предмет. Task сохраняет findings и предложенный по route edge следующий вид работы. После пользовательской инструкции `RoutePolicy` выбирает `revise`.
+`InspectHandler` принимает findings/coverage по pinned subject через Task API. Он не изменяет предмет. Task сохраняет findings и предложенный по route edge следующий вид работы. После handoff ревьюера действующее поручение исполнителю позволяет `RoutePolicy` выбрать исполнительский `revise`; новый reviewer-участок всё равно требует отдельной команды пользователя.
 
-`ReviseHandler` добавляет к produce/apply_plan активные findings и требуемые evidence. Task сохраняет ResolutionProposal, не выставляя ему самостоятельное accepted. После успешного verify, доклада и следующей инструкции `InspectHandler` принимает/отклоняет исправление. Новый цикл создаёт новый слой внутри той же task.
+`ReviseHandler` добавляет к produce/apply_plan активные findings и требуемые evidence. Task сохраняет ResolutionProposal, не выставляя ему самостоятельное accepted. После успешного verify исполнитель докладывает и освобождает Task; только новый явно назначенный ревьюер через `InspectHandler` принимает/отклоняет исправление. Новый цикл создаёт новый слой внутри той же task.
 
 Стоимость доработки связывается с конкретными предъявленными результатами и work cycles. Внутренняя самопроверка до выдачи не превращается в quality finding только из-за имени handler. `Metrics` получает классифицированное доменное событие; не выводит её по строке `inspect`.
 

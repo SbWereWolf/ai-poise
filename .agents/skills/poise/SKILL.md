@@ -23,7 +23,7 @@ Do not create a worktree for read-only queries. For repository-changing work, us
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
-Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. A user instruction to start a Task authorizes its executor and reviewer to continue ordinary execution, review and remediation through the harness without a new user command for each stage or review. Honor an explicit stage-only assignment or other user limit. Continue stages of your own role; at a role boundary follow the handoff procedure below. Do not bypass gates or act as your own independent reviewer.
+Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user instruction to start a Task authorizes its executor and reviewer to continue ordinary execution, review and remediation through the harness without a new user command for each stage or review. Honor an explicit stage-only assignment or other user limit. Continue stages of your own role; at a role boundary follow the handoff procedure below. Do not bypass gates or act as your own independent reviewer. Stop for a real blocker, a new required decision, or separately controlled acceptance/publication/integration.
 
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method.
 
@@ -47,7 +47,7 @@ Discover the public backup surface with `poise backup help`. Use `poise backup l
 
 ## Handoff and transfer
 
-For another agent in the same store, use one `handoff` package; never manually commit/copy/release task state. Read [Local handoff → Package](../../../docs/workflows/local-handoff.md#пакет).
+User Task start authorizes routine reviewer work as well as execution; no separate command is needed for each review. At every executor/reviewer boundary, the sender preserves the result or findings and required evidence, uses one public `handoff` package, verifies that ownership was released, and stops modifying the Task. The receiver claims/resumes it through public bootstrap before mutation. A chat message is not release; report a failed handoff as failed. Read [Local handoff → Role transfer](../../../docs/workflows/local-handoff.md#передача-между-исполнителем-и-ревьюером).
 
 When the Task's counterpart executor/reviewer is known, apply [Direct role handoff](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) in both directions:
 

@@ -1,9 +1,9 @@
 {
   "schema": "goal-config-editor-1",
   "root": "../..",
-  "database": "state/catalogue-editor.sqlite",
-  "lock": "state/catalogue-editor.lock",
-  "responses": "state/catalogue-responses",
+  "database": "projects/ai-poise/database/catalogue-editor.sqlite",
+  "lock": "projects/ai-poise/database/catalogue-editor.lock",
+  "responses": "projects/ai-poise/.runtime/catalogue-responses",
   "file_mode": 420,
   "json_indent": 2,
   "lock_seconds": 2.0,

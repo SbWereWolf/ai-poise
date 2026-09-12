@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import runpy
 import sys
 
 import pytest
@@ -138,7 +139,23 @@ def test_development_template_does_not_default_missing_checks():
         )
 
 
+@pytest.mark.parametrize("mutation", ["missing_stage", "extra_stage", "unknown_method"])
+def test_development_template_reuses_exact_task_schedule_validation(mutation):
+    process, _ = _documents()
+    checks = _empty_schedule(process)
+    if mutation == "missing_stage":
+        checks.pop("documentation")
+    elif mutation == "extra_stage":
+        checks["not_a_process_stage"] = []
+    else:
+        checks["baseline"] = ["NOT_A_REGISTERED_METHOD"]
+    with pytest.raises(PoiseError):
+        _instantiate(checks)
+
+
 def test_catalogue_identity_reference_and_example_use_explicit_checks():
+    from poise.application.catalogue import CatalogueCommands
+    from poise.infrastructure.catalogue import FileCatalogue
     from poise.modules.goal_config.domain import fingerprint
 
     template = json.loads(TEMPLATE_PATH.read_text())
@@ -151,9 +168,24 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
     )
     assert development["method_schedule"] == {}
     assert reference["methods"]["development"] == {}
-    walkthrough = (ROOT / "examples/catalogue_walkthrough.py").read_text()
-    assert "'checks':checks" in walkthrough
-    assert "The template fixes scheduling" not in walkthrough
+    walkthrough = runpy.run_path(str(ROOT / "examples/catalogue_walkthrough.py"))
+    catalogue = FileCatalogue(ROOT / "config/catalogue/settings.json")
+    process = GoalTypeDefinition.parse(json.loads(PROCESS_PATH.read_text())).data
+    task = walkthrough["prepare_task"](
+        catalogue,
+        CatalogueCommands(catalogue, None, catalogue.raw["max_items"]),
+        {"development": process},
+        "development",
+        "REAL-CONSUMER",
+        ROOT,
+    )
+    assert task["checks"] == walkthrough["_initial_checks"](
+        process,
+        task["methods"],
+    )
+    assert task["checks"]["baseline"] == ["BASELINE"]
+    assert task["checks"]["test_implementation"] == ["TEST_RED"]
+    assert task["checks"]["implementation"] == ["TEST_GREEN"]
 
 
 def test_canonical_guidance_distinguishes_initial_and_planned_checks():
@@ -185,6 +217,8 @@ def _run_green() -> int:
     test_development_template_accepts_complete_empty_initial_schedule()
     test_development_template_accepts_explicit_nonempty_initial_schedule()
     test_development_template_does_not_default_missing_checks()
+    for mutation in ("missing_stage", "extra_stage", "unknown_method"):
+        test_development_template_reuses_exact_task_schedule_validation(mutation)
     test_catalogue_identity_reference_and_example_use_explicit_checks()
     print("INITIAL_CHECKS_GREEN")
     return 0

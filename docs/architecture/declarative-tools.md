@@ -111,3 +111,6 @@ project route координирует общую revision, несколько �
 state переносится только явным relocation protocol, активные Task сохраняют собственные
 snapshots. Точная грамматика, CLI, receipt/retry и ограничения relocation описаны в
 [подготовке проекта](../configuration/project-setup.md#обновление-действующего-проекта).
+Quiescence считает `completed`, `cancelled` и `superseded` terminal состояниями. Первый
+запрос не присваивает себе и не удаляет уже существующий deterministic staging; право на
+очистку частичной staging-копии появляется только у exact replay с matching pending receipt.

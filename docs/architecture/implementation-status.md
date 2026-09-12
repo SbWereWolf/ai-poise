@@ -67,7 +67,10 @@ Process updates не меняют snapshots существующих Task. Manif
 state требуют quiescent проекта и сериализуются с Task creation/claim через state locks.
 Relocation проверяет source/destination, сохраняет всё дерево, поддерживает `retain` и
 `delete_after_publish`, удерживает locks обоих state roots до receipt и не допускает пустой
-замены. Проверяемый контракт покрыт 24 сценариями `tests/projects/test_update.py`; это число
+замены. `superseded` учитывается как terminal history, а не активная работа. Первый запрос
+отклоняет занятый deterministic staging без удаления и без pending receipt; exact retry
+очищает только частичную staging-копию операции с matching pending receipt. Проверяемый
+контракт покрыт 27 сценариями `tests/projects/test_update.py`; это число
 относится к профильному набору BUG-CONFIG-001, а не к полной регрессии репозитория.
 
 ## DDD-10 result integration — 2026-09-11T16:55:00+05:00

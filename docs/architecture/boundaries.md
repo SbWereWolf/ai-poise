@@ -177,7 +177,12 @@ Task остаётся владельцем process snapshot и lifecycle. Обн
 исходного state удерживаются от проверки до durable receipt, а при relocation до переключения
 manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
 проверкой активной работы и публикацией. Перенос не удаляет source до подтверждённой копии и
-переключения manifest; overlapping roots и отсутствующий source отклоняются.
+переключения manifest; overlapping roots и отсутствующий source отклоняются. Quiescence
+использует terminal-набор Task `completed`/`cancelled`/`superseded`, поэтому исторический
+superseded snapshot не становится активной работой. Детерминированный relocation staging
+принадлежит операции только после проверки его отсутствия и публикации matching pending
+receipt: первый запрос не удаляет уже существующий staging, а очистка частичной копии
+разрешена только exact replay того же request digest.
 
 
 ## Task identity allocation — 2026-09-11T06:55:21+05:00

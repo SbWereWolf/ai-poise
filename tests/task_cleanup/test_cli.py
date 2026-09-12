@@ -41,4 +41,3 @@ def test_cleanup_packet_rejects_missing_extra_or_forged_publication(change):
     change(value)
     with pytest.raises(PoiseError):
         parse_request(request("cleanup", value), batch_config())
-

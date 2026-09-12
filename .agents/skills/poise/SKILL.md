@@ -23,7 +23,7 @@ Do not create a worktree for read-only queries. For repository-changing work, us
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
-Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. After a verified stage, report the result and stop unless the user has explicitly delegated multi-stage autonomous continuation.
+Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения): an executor assignment covers consecutive executor-owned stages, including checks and remediation, without repeated continue prompts. Report and stop before reviewer-owned work, a real blocker, a new required decision, or separately controlled acceptance/publication/integration.
 
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method.
 
@@ -47,7 +47,7 @@ Discover the public backup surface with `poise backup help`. Use `poise backup l
 
 ## Handoff and transfer
 
-For another agent in the same store, use one `handoff` package; never manually commit/copy/release task state. Read [Local handoff → Package](../../../docs/workflows/local-handoff.md#пакет).
+Reviewer work starts only on the user's explicit command. At every executor/reviewer boundary, the sender preserves the result or findings and required evidence, uses one public `handoff` package, verifies that ownership was released, and stops modifying the Task. The receiver claims/resumes it through public bootstrap before mutation. A chat message is not release; report a failed handoff as failed. Read [Local handoff → Role transfer](../../../docs/workflows/local-handoff.md#передача-между-исполнителем-и-ревьюером).
 
 For another store/environment, use `transfer`; do not merge task databases manually. Read [Transfer → Batch API](../../../docs/workflows/transfer.md#пакетный-api).
 

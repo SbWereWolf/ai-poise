@@ -9,9 +9,10 @@ import pytest
 
 from batch.helpers import request
 from conftest import WorkPoise as Poise
-from conftest import write_json
+from conftest import verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.foundation.errors import DomainError
 
 
 PROFILE = {"runner": "pytest", "parser": "positional-paths", "version": 1}
@@ -79,7 +80,11 @@ def _method(path=MISSING_TEST):
             "kind": "repository",
             "bindings": [{"kind": "cwd", "path": "."}],
         },
-        "timeout_seconds": 30,
+        "verification_plan": verification_plan(
+            "Verify the declared future repository surface.",
+            ["tests/**"],
+            green_stages=["validation"],
+        ),
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": [],
@@ -102,6 +107,11 @@ def _task(project, process, *, method_inputs=...):
             for stage in process["stages"]
         },
     )
+    task["methods"][0]["verification_plan"]["green_stages"] = [
+        stage["id"]
+        for stage in process["stages"]
+        if stage["id"] == "validation"
+    ]
     if method_inputs is not ...:
         task["method_inputs"] = deepcopy(method_inputs)
     return task
@@ -117,6 +127,54 @@ def _inputs(*, baseline=(), future=(), profile=PROFILE, method_id="CHECK"):
         ],
         "reference_profile": deepcopy(profile),
     }]
+
+
+def _inline_method(identifier, *, responsibility, surface, green_stages):
+    return {
+        "id": identifier,
+        "argv": [sys.executable, "-B", "-c", f"print('{identifier}')"],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
+        "verification_plan": verification_plan(
+            responsibility,
+            list(surface),
+            green_stages=list(green_stages),
+        ),
+        "expected_exit_code": 0,
+        "stdout_contains": [identifier],
+        "stderr_contains": [],
+    }
+
+
+def _inline_inputs(identifier):
+    return {
+        "method_id": identifier,
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
+    }
+
+
+def _branch_process(project, *, left_scope, right_scope):
+    gate = _stage("branch_gate", allowed_paths=(), target=None)
+    gate.update(
+        handler="inspect",
+        transitions={"clear": "left_writer", "changes_requested": "right_writer"},
+    )
+    return _configure(project, [
+        gate,
+        _stage("left_writer", allowed_paths=(left_scope,), target="joined_green"),
+        _stage("right_writer", allowed_paths=(right_scope,), target="joined_green"),
+        _stage("joined_green", allowed_paths=(), target=None),
+    ])
 
 
 def _intent(task, request_id):
@@ -218,6 +276,186 @@ def test_reachable_future_output_allowed_before_first_execution_is_accepted(proj
 
     assert result["task"] == "0001"
     assert not (Path(result["worktree"]) / MISSING_TEST).exists()
+
+
+def test_public_creation_red_reproduces_early_green_for_late_docs_surface(project):
+    docs = project["app"] / "docs"
+    docs.mkdir()
+    (docs / "contract.md").write_text("baseline contract\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "-C", str(project["app"]), "add", "docs/contract.md"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(project["app"]), "commit", "-m", "Add baseline docs"],
+        check=True,
+        capture_output=True,
+    )
+    process = _configure(project, [
+        _stage("implementation_green", allowed_paths=("src/**",), target="docs_writer"),
+        _stage("docs_writer", allowed_paths=("docs/**",), target=None),
+    ])
+    tools = WorkTools(Poise(project["config_path"], "public-early-green-red"))
+    task = _task(project, process, method_inputs=[])
+    selected = _inline_method(
+        "EARLY_DOCS_GREEN",
+        responsibility="Verify documentation before its producer runs.",
+        surface=("docs/**",),
+        green_stages=("implementation_green",),
+    )
+    selected.pop("verification_plan")
+    selected["argv"] = [sys.executable, "-m", "pytest", "-q", "docs/contract.md"]
+    selected["stdout_contains"] = []
+    task["methods"] = [selected]
+    task["method_inputs"] = _inputs(
+        baseline=("docs/contract.md",),
+        method_id="EARLY_DOCS_GREEN",
+    )
+    task["checks"] = {"implementation_green": ["EARLY_DOCS_GREEN"], "docs_writer": []}
+
+    with pytest.raises(DomainError, match="verification_plan"):
+        _bootstrap(tools, _intent(task, "public-early-green-red"))
+
+
+def test_creation_rejects_green_before_only_declared_surface_producer_atomically(project):
+    process = _configure(project, [
+        _stage("early_green", allowed_paths=(), target="docs_writer"),
+        _stage("docs_writer", allowed_paths=("docs/**",), target=None),
+    ])
+    tools = WorkTools(Poise(project["config_path"], "green-before-docs"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [_inline_method(
+        "DOC_GREEN",
+        responsibility="Verify the canonical documentation contract.",
+        surface=("docs/**",),
+        green_stages=("early_green",),
+    )]
+    task["method_inputs"] = [_inline_inputs("DOC_GREEN")]
+    task["checks"] = {"early_green": ["DOC_GREEN"], "docs_writer": []}
+
+    _assert_rejected(
+        tools,
+        _intent(task, "green-before-docs"),
+        tokens=("DOC_GREEN", "early_green", "docs/**", "allowed_paths"),
+    )
+
+
+def test_creation_rejects_task_0050_partially_unsupported_surface_atomically(project):
+    process = _configure(project, [
+        _stage("docs_writer", allowed_paths=("docs/**",), target="final_check"),
+        _stage("final_check", allowed_paths=(), target=None),
+    ])
+    tools = WorkTools(Poise(project["config_path"], "task-0050-surface"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [_inline_method(
+        "TASK_0050_GREEN",
+        responsibility="Verify documentation and both agent instruction surfaces.",
+        surface=("docs/**", "AGENTS.md", ".agents/**"),
+        green_stages=("final_check",),
+    )]
+    task["method_inputs"] = [_inline_inputs("TASK_0050_GREEN")]
+    task["checks"] = {"docs_writer": [], "final_check": ["TASK_0050_GREEN"]}
+
+    _assert_rejected(
+        tools,
+        _intent(task, "task-0050-surface"),
+        tokens=(
+            "TASK_0050_GREEN",
+            "final_check",
+            "AGENTS.md",
+            ".agents/**",
+            "allowed_paths",
+        ),
+    )
+
+
+def test_valid_behaviour_documentation_and_combined_green_split_is_accepted(project):
+    process = _configure(project, [
+        _stage("code_writer", allowed_paths=("src/**",), target="docs_writer"),
+        _stage("docs_writer", allowed_paths=("docs/**",), target="combined_check"),
+        _stage("combined_check", allowed_paths=(), target=None),
+    ])
+    tools = WorkTools(Poise(project["config_path"], "valid-split"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [
+        _inline_method(
+            "BEHAVIOUR_GREEN",
+            responsibility="Verify product behaviour.",
+            surface=("src/**",),
+            green_stages=("code_writer",),
+        ),
+        _inline_method(
+            "DOCS_GREEN",
+            responsibility="Verify canonical documentation.",
+            surface=("docs/**",),
+            green_stages=("docs_writer",),
+        ),
+        _inline_method(
+            "COMBINED_GREEN",
+            responsibility="Verify the combined final regression.",
+            surface=("src/**", "docs/**"),
+            green_stages=("combined_check",),
+        ),
+    ]
+    task["method_inputs"] = [_inline_inputs(method["id"]) for method in task["methods"]]
+    task["checks"] = {
+        "code_writer": ["BEHAVIOUR_GREEN"],
+        "docs_writer": ["DOCS_GREEN"],
+        "combined_check": ["COMBINED_GREEN"],
+    }
+
+    result = _bootstrap(tools, _intent(task, "valid-split"))
+
+    assert result["task"] == "0001"
+
+
+def test_branching_route_accepts_collective_surface_producers_on_every_path(project):
+    process = _branch_process(project, left_scope="docs/**", right_scope="docs/**")
+    tools = WorkTools(Poise(project["config_path"], "branch-valid"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [_inline_method(
+        "BRANCH_GREEN",
+        responsibility="Verify documentation after either configured writer path.",
+        surface=("docs/**",),
+        green_stages=("joined_green",),
+    )]
+    task["method_inputs"] = [_inline_inputs("BRANCH_GREEN")]
+    task["checks"] = {
+        "branch_gate": [],
+        "left_writer": [],
+        "right_writer": [],
+        "joined_green": ["BRANCH_GREEN"],
+    }
+
+    result = _bootstrap(tools, _intent(task, "branch-valid"))
+
+    assert result["task"] == "0001"
+
+
+def test_branching_route_rejects_path_that_reaches_green_without_surface_producer(project):
+    process = _branch_process(project, left_scope="docs/**", right_scope="src/**")
+    tools = WorkTools(Poise(project["config_path"], "branch-invalid"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [_inline_method(
+        "BRANCH_DOCS_GREEN",
+        responsibility="Verify documentation after every configured branch.",
+        surface=("docs/**",),
+        green_stages=("joined_green",),
+    )]
+    task["method_inputs"] = [_inline_inputs("BRANCH_DOCS_GREEN")]
+    task["checks"] = {
+        "branch_gate": [],
+        "left_writer": [],
+        "right_writer": [],
+        "joined_green": ["BRANCH_DOCS_GREEN"],
+    }
+
+    _assert_rejected(
+        tools,
+        _intent(task, "branch-invalid"),
+        tokens=("BRANCH_DOCS_GREEN", "joined_green", "docs/**", "allowed_paths"),
+    )
 
 
 @pytest.mark.parametrize(

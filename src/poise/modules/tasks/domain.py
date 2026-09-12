@@ -209,6 +209,7 @@ class Task:
         handling = stage_handler.evaluate(stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
         registry = self.check_registry.extend(method_additions)
+        registry.validate_route(self.route)
         policy = replace(self.content_policy, method_ids=registry.method_ids).extend(content_additions)
         if not isinstance(sections, dict):
             raise DomainError("sections должен быть объектом")

@@ -17,7 +17,7 @@ from .modules.content_requirements.domain import ArtifactFact
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import run_command, contains, preview
+from .execution import run_command, contains, method_passed, preview
 
 
 def resolve_source_under_test(
@@ -668,8 +668,10 @@ class Poise:
                 invocation['source_provenance']=provenance
                 invocation['provenance_digest']=digest(provenance)
                 invocation['expectation_digest']=digest({
-                    key:method[key]
-                    for key in ('expected_exit_code','stdout_contains','stderr_contains')
+                    'expected_exit_code': method['expected_exit_code'],
+                    'stdout_contains': method['stdout_contains'],
+                    'stderr_contains': method['stderr_contains'],
+                    'red_failure': method.get('verification_plan', {}).get('red_failure'),
                 })
             invocations.append(invocation)
         return invocations
@@ -694,9 +696,7 @@ class Poise:
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
             result=run_command(method['argv'],Path(invocation['cwd']),invocation['environment'],None,
                                descendant(run_dir,self.paths['stdout']),descendant(run_dir,self.paths['stderr']))
-            passed=(not result['timed_out'] and result['actual_exit_code']==method['expected_exit_code'] and
-                    all(contains(Path(result['stdout']),t) for t in method['stdout_contains']) and
-                    all(contains(Path(result['stderr']),t) for t in method['stderr_contains']))
+            passed=method_passed(method, result)
             interpretable=(not result['timed_out'] and result['actual_exit_code'] is not None and result['actual_exit_code']>=0 and
                            all(result['actual_exit_code'] in rule['exit_codes'] and
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and

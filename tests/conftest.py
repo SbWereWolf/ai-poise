@@ -31,6 +31,23 @@ def write_json(path: Path, value: object) -> Path:
     return path
 
 
+def verification_plan(
+    responsibility: str,
+    change_surface: list[str],
+    *,
+    red_stages: list[str] | None = None,
+    green_stages: list[str] | None = None,
+    red_failure: dict | None = None,
+) -> dict:
+    return {
+        "responsibility": responsibility,
+        "change_surface": change_surface,
+        "red_stages": [] if red_stages is None else red_stages,
+        "green_stages": [] if green_stages is None else green_stages,
+        "red_failure": red_failure,
+    }
+
+
 def git(root: Path, *args: str) -> str:
     return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
 
@@ -112,13 +129,45 @@ def project(tmp_path, monkeypatch):
     cfg['sprint']=json.loads((Path(__file__).resolve().parents[1]/'config/sprint.example.json').read_text())
     cfg_path = write_json(poise_root / 'project.json', cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
+    red_argv = [
+        sys.executable,
+        '-B',
+        '-c',
+        (
+            "import io,json,sys,unittest;"
+            "result=unittest.TextTestRunner(stream=io.StringIO()).run("
+            "unittest.defaultTestLoader.discover('tests'));"
+            "print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),"
+            "'failures':sorted(case.id() for case,_ in result.failures),"
+            "'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));"
+            "raise SystemExit(0 if result.wasSuccessful() else 1)"
+        ),
+    ]
+    exact_red_output = (
+        '{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}\n'
+    )
     methods = [
-        {'id': 'RED', 'argv': argv, 'cwd': '.', 'environment': {},
+        {'id': 'RED', 'argv': red_argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
+         'verification_plan': verification_plan(
+             'Prove the regression test fails for the declared product behaviour.',
+             ['src/**'],
+             red_stages=['tests'],
+             red_failure={
+                 'exit_code': 1,
+                 'stdout_equals': exact_red_output,
+                 'stderr_equals': '',
+             },
+         ),
          'expected_exit_code': 1,
-         'stdout_contains': [], 'stderr_contains': ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']},
+         'stdout_contains': [exact_red_output.strip()], 'stderr_contains': []},
         {'id': 'GREEN', 'argv': argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
+         'verification_plan': verification_plan(
+             'Prove the implemented product behaviour and final regression remain green.',
+             ['src/**'],
+             green_stages=['implementation', 'code_review'],
+         ),
          'expected_exit_code': 0,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'Ran 1 test', 'OK']},
     ]
@@ -130,7 +179,17 @@ def project(tmp_path, monkeypatch):
         'methods': methods, 'artifact_requirements': [],
         'method_inputs': [
             {
-                'method_id': method['id'],
+                'method_id': 'RED',
+                'repository_inputs': [],
+                'future_outputs': [],
+                'reference_profile': {
+                    'runner': 'python',
+                    'parser': 'inline-no-path-arguments',
+                    'version': 1,
+                },
+            },
+            {
+                'method_id': 'GREEN',
                 'repository_inputs': [],
                 'future_outputs': [{'path': 'tests', 'producer_stage': 'tests'}],
                 'reference_profile': {
@@ -138,8 +197,7 @@ def project(tmp_path, monkeypatch):
                     'parser': 'discover-start-directory',
                     'version': 1,
                 },
-            }
-            for method in methods
+            },
         ],
         'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']},
      "content_contract": {"sections":[],"routes":[],"requirements":[]}}

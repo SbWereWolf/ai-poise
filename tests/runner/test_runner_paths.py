@@ -26,6 +26,9 @@ def setup_project(project, goal):
              else "from pathlib import Path; text=Path('docs/guide.md').read_text(); assert text.startswith('# Guide'); print('CHECK_OK')")
     contract["methods"]=[{"id":"TARGETED","argv":[sys.executable,"-B","-c",probe],"cwd":".","environment":{},
       "source_under_test":{"kind":"repository","bindings":[{"kind":"cwd","path":"."}]},
+      "verification_plan":{"responsibility":"Verify the target after each configured route stage.",
+        "change_surface":["src/**" if goal=="development" else "docs/**"],"red_stages":[],
+        "green_stages":[s["id"] for s in proc["stages"]],"red_failure":None},
       "expected_exit_code":0,"stdout_contains":["CHECK_OK"],"stderr_contains":[]}]
     contract["method_inputs"]=[{"method_id":"TARGETED","repository_inputs":[],"future_outputs":[],
       "reference_profile":{"runner":"python","parser":"inline-no-path-arguments","version":1}}]

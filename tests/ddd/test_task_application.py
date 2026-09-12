@@ -143,6 +143,53 @@ def test_retired_verification_timeout_is_removed_on_next_owner_save(project):
     assert "timeout_seconds" not in normalized["method"]
 
 
+def test_stored_pre_plan_method_snapshot_continues_without_revalidation(project):
+    h, _ = bootstrap(project)
+    with h.store.transaction() as db:
+        rows = db.execute(
+            "SELECT method_id,data FROM task_methods WHERE task_id='T1' ORDER BY method_id"
+        ).fetchall()
+        for row in rows:
+            stored = json.loads(row["data"])
+            stored["method"].pop("verification_plan")
+            db.execute(
+                "UPDATE task_methods SET data=? WHERE task_id='T1' AND method_id=?",
+                (
+                    json.dumps(
+                        stored,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ),
+                    row["method_id"],
+                ),
+            )
+
+    restored = h._task()
+    assert all("verification_plan" not in method for method in restored["contract"]["methods"])
+
+    h.task_commands.submit(
+        "T1",
+        "S1",
+        {
+            "sections": {"report": "historical method remains readable"},
+            "artifact_paths": [],
+            "commit_message": "test: preserve historical verification method",
+            "content_additions": {"sections": [], "routes": [], "requirements": []},
+            "trace": {},
+            "method_additions": [],
+            "stage_work": {},
+            "evidence_work": {"phase": "prepare", "arguments": [], "decisions": []},
+        },
+    )
+
+    with h.store.transaction() as db:
+        after = [json.loads(row[0]) for row in db.execute(
+            "SELECT data FROM task_methods WHERE task_id='T1' ORDER BY method_id"
+        )]
+    assert all("verification_plan" not in item["method"] for item in after)
+
+
 def test_verified_report_replay_cannot_substitute_another_tree(project):
     h,b=bootstrap(project); add_test(b["worktree"]); fill(b); report=h.verify()
     with h.store.unit_of_work() as uow:

@@ -66,26 +66,38 @@ def external_method(mid,code,expected=0,needles=()):
 
 
 def _methods(goal,home):
+    application=home.parent/'application'
     service=home/'service-state.json'
     inspect_service=f'from pathlib import Path; import json; p=Path({str(service)!r}); d=json.loads(p.read_text()); print(json.dumps(d,sort_keys=True))'
     perf='import time,json; a=time.perf_counter_ns(); value=sum(range(10000)); dt=time.perf_counter_ns()-a; assert value==49995000 and dt>0; print("MEASURED",json.dumps({"elapsed_ns":dt,"value":value}))'
     if goal=='development':
-        methods=[repository_method('BASELINE','from src.double import double; assert double(2)==3; print("BASELINE=3")',needles=['BASELINE=3'])]
+        baseline=f'import sys; sys.path.insert(0,{str(application)!r}); from src.double import double; assert double(2)==3; print("BASELINE=3")'
+        methods=[external_method('BASELINE',baseline,needles=['BASELINE=3'])]
         argv=[sys.executable,'-B','-m','unittest','discover','-s','tests','-v']
         for mid,code,needles in [('TEST_RED',1,['test_double','AssertionError: 3 != 4','Ran 1 test']),('TEST_GREEN',0,['test_double','Ran 1 test','OK'])]:
-            methods.append({'id':mid,'argv':argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},
+            selected_argv=argv
+            stdout=[];stderr=needles
+            if mid=='TEST_RED':
+                selected_argv=[sys.executable,'-B','-c',"import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"]
+                stdout=['{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}'];stderr=[]
+            methods.append({'id':mid,'argv':selected_argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},
                             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-                            'expected_exit_code':code,'stdout_contains':[],'stderr_contains':needles})
+                            'expected_exit_code':code,'stdout_contains':stdout,'stderr_contains':stderr})
         methods.append(repository_method('DOC_CHECK','from pathlib import Path; assert "double(2) == 4" in Path("docs/usage.md").read_text(); print("DOC_OK")',needles=['DOC_OK']))
         return methods
     if goal=='test_development':
-        return [repository_method('BASELINE','from src.double import double; assert double(2)==4; print("BASELINE=4")',needles=['BASELINE=4']),
+        baseline=f'import sys; sys.path.insert(0,{str(application)!r}); from src.double import double; assert double(2)==4; print("BASELINE=4")'
+        return [external_method('BASELINE',baseline,needles=['BASELINE=4']),
                 {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
                 repository_method('SENSITIVITY','import unittest; from unittest.mock import patch; from tests.test_double import Regression; s=unittest.TestSuite([Regression("test_double")]);\nwith patch("tests.test_double.double",lambda n:n+1):\n r=unittest.TestResult(); s.run(r)\nassert len(r.failures)==1 and not r.errors; print("DETECTED_BAD_IMPLEMENTATION")',needles=['DETECTED_BAD_IMPLEMENTATION'])]
-    if goal=='verification':return [repository_method('VERIFY','from src.double import double; print("VALUE="+str(double(2))); raise SystemExit(0 if double(2)==4 else 1)',needles=['VALUE=4'])]
+    if goal=='verification':
+        verify=f'import sys; sys.path.insert(0,{str(application)!r}); from src.double import double; print("VALUE="+str(double(2))); raise SystemExit(0 if double(2)==4 else 1)'
+        return [external_method('VERIFY',verify,needles=['VALUE=4'])]
     if goal=='review':return []
     if goal=='design':return [repository_method('DESIGN_CHECK','from pathlib import Path; import json; x=json.loads(Path("docs/design.json").read_text()); assert x["operation"]=="double" and x["formula"]=="n * 2"; print("DESIGN_VALID")',needles=['DESIGN_VALID'])]
-    if goal=='analysis':return [repository_method('COLLECT','import json; from pathlib import Path; v=json.loads(Path("data/sample.json").read_text()); assert len(v)==3; print("RECORDS=3 SUM="+str(sum(v)))',needles=['RECORDS=3 SUM=6'])]
+    if goal=='analysis':
+        collect=f'import json; from pathlib import Path; v=json.loads(Path({str(application/'data/sample.json')!r}).read_text()); assert len(v)==3; print("RECORDS=3 SUM="+str(sum(v)))'
+        return [external_method('COLLECT',collect,needles=['RECORDS=3 SUM=6'])]
     if goal=='profiling':
         return [external_method(i,perf+f'; print("PHASE={i}")',needles=['MEASURED',f'PHASE={i}'])
                 for i in ('BASELINE','MEASURE','CONFIRM')]
@@ -105,9 +117,10 @@ def _method_inputs(goal, methods):
     unittest_ids={'development':{'TEST_RED','TEST_GREEN'},'test_development':{'TEST_GREEN'}}.get(goal,set())
     return [{'method_id':m['id'],
              'repository_inputs':[],
-             'future_outputs':[{'path':'tests','producer_stage':'test_implementation'}] if m['id'] in unittest_ids else [],
+             'future_outputs':[{'path':'tests','producer_stage':'test_implementation'}]
+                 if m['id'] in unittest_ids and '-m' in m['argv'] else [],
              'reference_profile':{'runner':'unittest','parser':'discover-start-directory','version':1}
-                 if m['id'] in unittest_ids else
+                 if m['id'] in unittest_ids and '-m' in m['argv'] else
                  {'runner':'python','parser':'inline-no-path-arguments','version':1}}
             for m in methods]
 
@@ -128,6 +141,31 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
     blueprint=repo.task_blueprint(_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'))
     # The template fixes scheduling. Only actual invocation/environment data comes from the caller.
     checks=blueprint.data['task']['checks']
+    surfaces={
+        ('development','TEST_RED'):['tests/**'],
+        ('development','TEST_GREEN'):['src/**'],
+        ('development','DOC_CHECK'):['docs/**'],
+        ('test_development','TEST_GREEN'):['tests/**'],
+        ('test_development','SENSITIVITY'):['tests/**'],
+        ('design','DESIGN_CHECK'):['docs/**'],
+        ('documentation','DOC_CHECK'):['docs/**'],
+        ('integration','COMBINED'):['src/**'],
+    }
+    for method in methods:
+        scheduled=[stage['id'] for stage in process['stages'] if method['id'] in checks[stage['id']]]
+        red=scheduled if method['expected_exit_code'] else []
+        failure=None
+        if red:
+            failure={'exit_code':method['expected_exit_code'],
+                     'stdout_equals':'{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}\n',
+                     'stderr_equals':''}
+        method['verification_plan']={
+            'responsibility':f'Verify {method["id"]} on its declared catalogue route stages.',
+            'change_surface':[] if method['source_under_test']['kind']=='external' else surfaces[(goal,method['id'])],
+            'red_stages':red,
+            'green_stages':[] if red else scheduled,
+            'red_failure':failure,
+        }
     evidence,by_id,_=_evidence(process,methods)
     for stage in process['stages']:
         sid=stage['id'];mids=checks[sid]

@@ -43,6 +43,36 @@ def contains(path: Path, needle: str) -> bool:
     return False
 
 
+def equals(path: Path, expected: str) -> bool:
+    target = expected.encode('utf-8')
+    offset = 0
+    with path.open('rb') as stream:
+        while chunk := stream.read(64 * 1024):
+            if chunk != target[offset:offset + len(chunk)]:
+                return False
+            offset += len(chunk)
+    return offset == len(target)
+
+
+def method_passed(method: dict, result: dict) -> bool:
+    passed = (
+        not result['timed_out']
+        and result['actual_exit_code'] == method['expected_exit_code']
+        and all(contains(Path(result['stdout']), marker) for marker in method['stdout_contains'])
+        and all(contains(Path(result['stderr']), marker) for marker in method['stderr_contains'])
+    )
+    plan = method.get('verification_plan')
+    failure = None if plan is None else plan.get('red_failure')
+    if failure is None:
+        return passed
+    return (
+        passed
+        and result['actual_exit_code'] == failure['exit_code']
+        and equals(Path(result['stdout']), failure['stdout_equals'])
+        and equals(Path(result['stderr']), failure['stderr_equals'])
+    )
+
+
 def preview(path: Path, chars: int) -> str:
     with path.open('rb') as stream:
         stream.seek(0, os.SEEK_END)

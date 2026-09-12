@@ -76,3 +76,10 @@ This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/
 Discover and operate Task DB backups through the public `poise backup` CLI. Start with `poise backup help`; use `poise backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config PROJECT_JSON BACKUP_NAME` rather than copying or replacing the database manually. Run create and restore only while no agent or process is writing the Task DB. The complete operator contract is [Task DB backups](docs/task-db-backups.md).
 
 The initial manifest has `push_required=false`, base ref `master`, and repository readiness `not_checked` because no initial commit existed at setup. Taskless bootstrap/verify do not establish Git/worktree readiness. Before repository-changing task work, verify that the configured base resolves to a commit and contains the required sources. A baseline commit needed to execute the assigned task is authorized by the task workflow; include only the approved project files and preserve unrelated changes.
+Every new or explicitly changed verification method must declare an exact
+`verification_plan` with `responsibility`, `change_surface`, `red_stages`,
+`green_stages`, and `red_failure`. Its schedule must match the plan, and every
+route to a required GREEN must pass through a stage whose `allowed_paths` covers
+each declared surface item. RED uses exact stdout/stderr equality; additional
+failures invalidate it. Do not infer recursive test dependencies. Stored
+pre-plan snapshots remain readable, but this is not a fallback for new methods.

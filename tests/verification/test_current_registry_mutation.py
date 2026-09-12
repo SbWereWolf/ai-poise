@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 
 from poise.modules.foundation.errors import DomainError
@@ -79,14 +81,7 @@ def operation(kind: str, method_id: str, **fields: object) -> dict:
     return {"kind": kind, "method_id": method_id, **fields}
 
 
-def require_contract() -> None:
-    assert hasattr(CheckRegistry, "apply_change"), (
-        "CheckRegistry must own guarded, atomic current-registry mutation"
-    )
-
-
 def test_atomic_add_replace_reschedule_and_remove_are_one_current_projection_change():
-    require_contract()
     before = initial_registry()
     applied = before.apply_change(
         change(
@@ -109,10 +104,12 @@ def test_atomic_add_replace_reschedule_and_remove_are_one_current_projection_cha
     current = {item.method_id: item for item in applied.registry.entries}
     assert current["REPLACE"].to_dict()["method"]["stdout_contains"] == ["replacement"]
     assert current["MOVE"].stages == ("test_remediation",)
+    assert current["MOVE"].to_dict()["method"]["verification_plan"]["green_stages"] == [
+        "test_remediation"
+    ]
 
 
 def test_change_has_exact_revision_and_request_id_replay_guards():
-    require_contract()
     first_request = change(
         operation("replace", "REPLACE", registration=registration("REPLACE", "replacement"))
     )
@@ -136,7 +133,6 @@ def test_change_has_exact_revision_and_request_id_replay_guards():
 
 
 def test_invalid_batch_is_atomic_and_rejects_duplicates_conflicts_and_dangling_targets():
-    require_contract()
     before = initial_registry()
     duplicate = registration("ADDED", "old")
     with pytest.raises(DomainError, match="дубликат"):
@@ -149,7 +145,8 @@ def test_invalid_batch_is_atomic_and_rejects_duplicates_conflicts_and_dangling_t
     assert before.revision == 0
     assert before.method_ids == ("REPLACE", "MOVE", "DROP")
 
-    conflicting = registration("CONFLICT", "move")
+    conflicting = registration("CONFLICT", "different-expectation")
+    conflicting["method"]["argv"] = method("MOVE", "move")["argv"]
     with pytest.raises(DomainError, match="конфликт"):
         before.apply_change(
             change(operation("add", "CONFLICT", registration=conflicting))
@@ -159,7 +156,6 @@ def test_invalid_batch_is_atomic_and_rejects_duplicates_conflicts_and_dangling_t
 
 
 def test_inspection_exit_requires_nonempty_complete_current_green_executable_coverage():
-    require_contract()
     before = initial_registry()
     with pytest.raises(DomainError, match="GREEN executable-test"):
         before.validate_inspection_exit(OBLIGATIONS)
@@ -197,9 +193,51 @@ def test_inspection_exit_requires_nonempty_complete_current_green_executable_cov
 def configure_public_registry_case(project: dict) -> None:
     from conftest import write_json
 
-    project["process"]["stages"][0]["sections"]["test_registry"] = (
-        "Submit one guarded current-registry change."
+    stages = project["process"]["stages"]
+    stage_ids = (
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "implementation",
     )
+    for stage, stage_id in zip(stages, stage_ids, strict=True):
+        stage["id"] = stage_id
+        stage["rework_targets"] = list(stage_ids)
+    stages[0].update(
+        handler="produce",
+        transitions={"complete": "test_inspection"},
+        read_only=False,
+        allowed_paths=["tests/**"],
+    )
+    stages[0]["sections"]["test_registry"] = "Submit one guarded registry change."
+    stages[1].update(
+        handler="inspect",
+        transitions={"clear": "implementation", "changes_requested": "test_remediation"},
+        read_only=True,
+        allowed_paths=[],
+    )
+    stages[2].update(
+        handler="revise",
+        transitions={"complete": "test_inspection"},
+        read_only=False,
+        allowed_paths=["tests/**"],
+    )
+    stages[2]["sections"]["test_registry"] = "Submit one guarded registry change."
+    stages[3].update(
+        handler="produce",
+        transitions={"complete": None},
+        read_only=False,
+        allowed_paths=["src/**"],
+    )
+    project["process"]["route"]["entry"] = "test_implementation"
+
+    methods = {item["id"]: item for item in project["task"]["methods"]}
+    methods["RED"]["verification_plan"]["red_stages"] = ["test_implementation"]
+    methods["GREEN"]["verification_plan"]["green_stages"] = ["implementation"]
+    for inputs in project["task"]["method_inputs"]:
+        for output in inputs["future_outputs"]:
+            if output["producer_stage"] == "tests":
+                output["producer_stage"] = "test_implementation"
     cleanup = method("CLEANUP_FULL_GREEN", "obsolete-full-suite")
     project["task"]["methods"].append(cleanup)
     project["task"]["method_inputs"].append(
@@ -214,7 +252,26 @@ def configure_public_registry_case(project: dict) -> None:
             },
         }
     )
-    project["task"]["checks"]["implementation"].append("CLEANUP_FULL_GREEN")
+    project["task"]["checks"] = {
+        "test_implementation": ["RED"],
+        "test_inspection": [],
+        "test_remediation": [],
+        "implementation": ["GREEN", "CLEANUP_FULL_GREEN"],
+    }
+    project["task"]["evidence_plan"] = {
+        stage["id"]: {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": [],
+        }
+        for stage in stages
+    }
+    project["cfg"]["automatic_checks"][0]["by_stage"] = {
+        "test_implementation": ["RED"],
+        "test_inspection": [],
+        "test_remediation": [],
+        "implementation": ["GREEN"],
+    }
     write_json(
         project["root"] / "config/processes/development.json",
         project["process"],
@@ -231,7 +288,6 @@ def public_tools(project: dict, session: str):
 
 
 def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_history(project):
-    require_contract()
     from conftest import add_test
     from tests.batch.helpers import bootstrap, request, result, verify
 
@@ -241,57 +297,186 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
     add_test(boot["worktree"])
     payload = result(boot)
     payload["method_additions"] = change(
-        operation("remove", "CLEANUP_FULL_GREEN")
+        operation(
+            "add",
+            "FOCUSED_GREEN",
+            registration=registration("FOCUSED_GREEN", "focused-green"),
+        )
     )
-    assert verify(tools, payload)["status"] == "verified"
+    first = verify(tools, payload)
+    assert first["status"] == "verified"
+    red_receipt = next(item for item in first["checks"] if item["method"] == "RED")["id"]
+
+    inspection = tools.invoke(
+        request(
+            "bootstrap",
+            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
+        )
+    )
+    inspected = result(inspection)
+    inspected["stage_work"] = {
+        "coverage": "Force the configured remediation route after complete coverage passes.",
+        "findings": [
+            {
+                "id": "fixture-remediation",
+                "subject": "current registry",
+                "description": "Remove obsolete checks through the authorized remediation stage.",
+                "evidence": "RED has an execution receipt and CLEANUP_FULL_GREEN is obsolete.",
+            }
+        ],
+        "resolution_decisions": [],
+    }
+    assert verify(tools, inspected)["stage_outcome"] == "changes_requested"
+
+    remediation = tools.invoke(
+        request(
+            "bootstrap",
+            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
+        )
+    )
+    corrected = result(remediation)
+    corrected["method_additions"] = change(
+        operation("remove", "RED"),
+        operation("remove", "CLEANUP_FULL_GREEN"),
+        request_id="registry-2",
+        revision=1,
+    )
+    corrected["stage_work"] = {
+        "resolutions": [
+            {
+                "id": "fixture-resolution",
+                "finding_id": "fixture-remediation",
+                "description": "Removed the two obsolete current methods atomically.",
+                "evidence": "The public verify response reports registry revision 2.",
+            }
+        ]
+    }
+    assert verify(tools, corrected)["status"] == "verified"
 
     restarted = public_tools(project, "registry-owner")
-    query = restarted.invoke(
+    values = restarted.invoke(
         request(
             "show",
             {
                 "queries": [
                     {"id": "registry", "kind": "verification_registry"},
+                    {"id": "evidence", "kind": "evidence"},
                 ]
             },
         )
-    )["results"][0]["value"]
-    assert query["revision"] == 1
+    )["results"]
+    query = values[0]["value"]
+    evidence = values[1]["value"]
+    assert query["revision"] == 2
     assert "CLEANUP_FULL_GREEN" not in {
         item["method"]["id"] for item in query["current"]
     }
-    assert "CLEANUP_FULL_GREEN" in {
-        item["method"]["id"] for item in query["history"][0]["entries"]
-    }
+    assert "RED" not in {item["method"]["id"] for item in query["current"]}
+    assert any(
+        {"RED", "CLEANUP_FULL_GREEN"}
+        <= {item["method"]["id"] for item in snapshot["entries"]}
+        for snapshot in query["history"]
+    )
     assert query["history"][0]["revision"] == 0
-    assert query["requests"][0]["request_id"] == "registry-1"
+    assert [item["request_id"] for item in query["requests"]] == [
+        "registry-1",
+        "registry-2",
+    ]
+    preserved = next(item for item in evidence["observations"] if item["id"] == red_receipt)
+    assert preserved["method"] == "RED" and preserved["passed"] is True
+
+    reinspection = restarted.invoke(
+        request(
+            "bootstrap",
+            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
+        )
+    )
+    reinspected = result(reinspection)
+    reinspected["stage_work"] = {
+        "coverage": "Verified the correction and complete current GREEN coverage.",
+        "findings": [],
+        "resolution_decisions": [
+            {
+                "resolution_id": "fixture-resolution",
+                "decision": "accepted",
+                "reason": "Current projection and original receipt are both addressable.",
+            }
+        ],
+    }
+    assert verify(restarted, reinspected)["status"] == "verified"
+    continued = restarted.invoke(
+        request(
+            "bootstrap",
+            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
+        )
+    )
+    assert continued["stage"] == "implementation"
 
 
 def test_public_work_api_allows_only_stages_with_test_registry_section(project):
-    require_contract()
     from conftest import add_test
     from poise.common import PoiseError
     from tests.batch.helpers import bootstrap, request, result, verify
 
     configure_public_registry_case(project)
-    tools = public_tools(project, "registry-public")
-    boot = bootstrap(tools, project)
-    add_test(boot["worktree"])
-    assert verify(tools, result(boot))["status"] == "verified"
-    inspection = tools.invoke(
-        request(
-            "bootstrap",
-            {
-                "task": None,
-                "decision": "continue",
-                "feedback": None,
-                "rework_stage": None,
-            },
+    cases = {
+        "zero": [],
+        "partial": [
+            operation(
+                "add",
+                "FOCUSED_GREEN",
+                registration=registration(
+                    "FOCUSED_GREEN", "partial", covers=("requirements[0]",)
+                ),
+            )
+        ],
+        "complete": [
+            operation(
+                "add",
+                "FOCUSED_GREEN",
+                registration=registration("FOCUSED_GREEN", "complete"),
+            )
+        ],
+    }
+    for case, additions in cases.items():
+        scenario = {**project, "task": deepcopy(project["task"])}
+        scenario["task"]["id"] = f"REGISTRY-{case.upper()}"
+        tools = public_tools(project, f"registry-{case}")
+        boot = bootstrap(tools, scenario)
+        add_test(boot["worktree"])
+        prepared = result(boot)
+        prepared["method_additions"] = change(
+            operation("remove", "GREEN"),
+            operation("remove", "CLEANUP_FULL_GREEN"),
+            *additions,
+            request_id=f"registry-{case}",
         )
-    )
-    forbidden = result(inspection)
-    forbidden["method_additions"] = change(
-        operation("remove", "CLEANUP_FULL_GREEN")
-    )
-    with pytest.raises(PoiseError, match="test_registry"):
-        verify(tools, forbidden)
+        assert verify(tools, prepared)["status"] == "verified"
+        inspection = tools.invoke(
+            request(
+                "bootstrap",
+                {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
+            )
+        )
+        inspected = result(inspection)
+        inspected["stage_work"] = {
+            "coverage": f"Exercise {case} current executable coverage.",
+            "findings": [],
+            "resolution_decisions": [],
+        }
+        if case == "zero":
+            with pytest.raises(PoiseError, match="GREEN executable-test"):
+                verify(tools, inspected)
+        elif case == "partial":
+            with pytest.raises(PoiseError, match=r"definition_of_done\[0\]"):
+                verify(tools, inspected)
+        else:
+            forbidden = deepcopy(inspected)
+            forbidden["method_additions"] = change(
+                operation("remove", "FOCUSED_GREEN"),
+                request_id="inspection-forbidden",
+                revision=1,
+            )
+            with pytest.raises(PoiseError, match="test_registry"):
+                verify(tools, forbidden)
+            assert verify(tools, inspected)["status"] == "verified"

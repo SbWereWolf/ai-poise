@@ -50,4 +50,3 @@ def test_runtime_and_library_docs_identify_one_owner_and_current_limits():
     assert "runtime_bindings" in combined
     assert "anti-tamper" in combined
     assert "не даёт" in combined or "не предоставляет" in combined
-

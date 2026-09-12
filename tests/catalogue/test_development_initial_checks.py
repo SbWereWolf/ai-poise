@@ -25,6 +25,15 @@ def _documents() -> tuple[dict, dict]:
     return process, template
 
 
+def _load_walkthrough() -> dict:
+    examples = str(ROOT / "examples")
+    sys.path.insert(0, examples)
+    try:
+        return runpy.run_path(str(ROOT / "examples/catalogue_walkthrough.py"))
+    finally:
+        sys.path.remove(examples)
+
+
 def _empty_schedule(process: dict) -> dict[str, list[str]]:
     return {stage["id"]: [] for stage in process["stages"]}
 
@@ -168,7 +177,7 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
     )
     assert development["method_schedule"] == {}
     assert reference["methods"]["development"] == {}
-    walkthrough = runpy.run_path(str(ROOT / "examples/catalogue_walkthrough.py"))
+    walkthrough = _load_walkthrough()
     catalogue = FileCatalogue(ROOT / "config/catalogue/settings.json")
     process = GoalTypeDefinition.parse(json.loads(PROCESS_PATH.read_text())).data
     task = walkthrough["prepare_task"](

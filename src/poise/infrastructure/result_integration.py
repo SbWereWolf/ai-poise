@@ -550,7 +550,9 @@ class RuntimeResultIntegration:
         if run.status == "integrated":
             return run.result(replayed=True)
         if run.phase == "checks_failed":
-            return run.result()
+            retried = run.retry_checks()
+            self._save(intent.task_id, retried, run.version)
+            run = retried
         if run.phase == "candidate_failed":
             retried = run.retry_candidate()
             self._save(intent.task_id, retried, run.version)

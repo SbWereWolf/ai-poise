@@ -248,6 +248,13 @@ class IntegrationRun:
             checks=checks, failure=failure,
         )
 
+    def retry_checks(self):
+        if self.phase != "checks_failed":
+            raise DomainError("Only failed integration checks can be retried")
+        return self._step(
+            "running", "candidate_ready", "checks_retry_started", failure=None,
+        )
+
     def drifted(self, receipt):
         if self.phase != "publishing":
             raise DomainError("Target drift is observed only during publication")

@@ -34,6 +34,23 @@ def test_run_records_conflict_and_requires_exact_resolution_set():
     assert continued.resolutions[0]["path"] == "src/a.py"
 
 
+def test_failed_checks_can_return_to_the_same_candidate_for_retry():
+    run = IntegrationRun.new(
+        intent(), "tasks/T1", "/worktrees/T1", "/runtime/integration/T1"
+    )
+    run = run.begin_update("b" * 40)
+    run = run.candidate_ready("c" * 40, {"actual_exit_code": 0})
+    failed = run.checks_recorded([{"method": "M", "passed": False}])
+
+    retried = failed.retry_checks()
+
+    assert retried.status == "running"
+    assert retried.phase == "candidate_ready"
+    assert retried.integration_head == "c" * 40
+    assert retried.failure is None
+    assert retried.history[-1]["event"] == "checks_retry_started"
+
+
 def test_cleanup_progress_is_monotonic_and_replayable():
     run = IntegrationRun.new(
         intent(),

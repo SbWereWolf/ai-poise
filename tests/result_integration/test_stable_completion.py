@@ -14,6 +14,11 @@ from conftest import git
 from poise.application.work import WorkTools
 from poise.infrastructure.result_integration import RuntimeResultIntegration
 from poise.modules.foundation.errors import PoiseError
+from hook_transport.test_source_resolution import (
+    _call,
+    _completed_source,
+    _work_invocations,
+)
 
 from .helpers import integration_input, prepare_completed_task, request
 
@@ -677,3 +682,119 @@ def test_persisted_intent_rejects_mutation_without_rewriting_accepted_commit(pro
     shown = _show_integration(project, "immutable-intent")
     assert shown == before
     assert shown["accepted_commit"] == waiting["accepted_commit"] == source
+
+
+def test_completed_integrate_dispatches_accepted_task_source(project, tmp_path):
+    _, installation, launcher, binding, source_worktree, source = _completed_source(
+        project, tmp_path, "completed-source"
+    )
+    task_source = source_worktree / "src" / "poise"
+
+    attempted, result = _call(
+        launcher,
+        request("integrate", integration_input(project, source)),
+    )
+
+    assert attempted.returncode == 0, attempted.stdout + attempted.stderr
+    assert result["status"] == "integrated"
+    assert result["hook_session"] == binding["session_id"]
+    assert Path(result["loaded_source"]) == task_source
+    assert result["source_sentinel"] == "accepted-task"
+    assert Path(result["loaded_source"]) != installation / "poise"
+    assert _work_invocations(project) == [
+        {"source": str(task_source), "operation": "integrate"}
+    ]
+
+
+@pytest.mark.parametrize("mutation", ["expected_source", "head", "dirty"])
+def test_completed_integrate_rejects_untrusted_task_source_before_dispatch(
+    project, tmp_path, mutation
+):
+    service, _, launcher, _, source_worktree, source = _completed_source(
+        project, tmp_path, "untrusted-" + mutation
+    )
+    payload = integration_input(project, source)
+    if mutation == "expected_source":
+        payload["expected_source_commit"] = "f" * 40
+    elif mutation == "head":
+        (source_worktree / "src" / "after-acceptance.py").write_text(
+            "VALUE = 'changed'\n", encoding="utf-8"
+        )
+        git(source_worktree, "add", "src/after-acceptance.py")
+        git(source_worktree, "commit", "-m", "Mutate completed source HEAD")
+    else:
+        (source_worktree / "untracked-after-acceptance.txt").write_text(
+            "changed\n", encoding="utf-8"
+        )
+    target_before = git(project["app"], "rev-parse", "refs/heads/main")
+
+    attempted, result = _call(launcher, request("integrate", payload))
+
+    assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
+    assert result["status"] == "rejected"
+    assert "loaded_source" not in result
+    assert _work_invocations(project) == []
+    assert git(project["app"], "rev-parse", "refs/heads/main") == target_before
+    assert source_worktree.exists()
+
+
+def _checked_out_target_fingerprint(root, protected, merge_head):
+    return {
+        "bytes": {path: (root / path).read_bytes() for path in protected},
+        "index": git(root, "write-tree"),
+        "branch": git(root, "symbolic-ref", "--short", "HEAD"),
+        "status": subprocess.check_output(
+            ["git", "-C", str(root), "status", "--porcelain=v2"], text=True
+        ),
+        "merge_head": merge_head.read_bytes(),
+    }
+
+
+def test_completed_integrate_preserves_checked_out_target_main_wip(project, tmp_path):
+    _, _, launcher, _, _, source = _completed_source(
+        project, tmp_path, "checked-out-target"
+    )
+    root = project["app"]
+    (root / "operator-staged.txt").write_text("staged\n", encoding="utf-8")
+    git(root, "add", "operator-staged.txt")
+    (root / "src" / "double.py").write_text(
+        "def double(n):\n    return n + 2\n", encoding="utf-8"
+    )
+    (root / "operator-untracked.txt").write_text("untracked\n", encoding="utf-8")
+    merge_head_value = git(root, "rev-parse", "HEAD")
+    merge_head = root / git(root, "rev-parse", "--git-path", "MERGE_HEAD")
+    merge_head.write_text(merge_head_value + "\n", encoding="utf-8")
+    protected = ["operator-staged.txt", "src/double.py", "operator-untracked.txt"]
+    before = _checked_out_target_fingerprint(root, protected, merge_head)
+
+    attempted, result = _call(
+        launcher,
+        request("integrate", integration_input(project, source)),
+    )
+
+    assert attempted.returncode == 0, attempted.stdout + attempted.stderr
+    assert result["status"] == "integrated"
+    assert _checked_out_target_fingerprint(root, protected, merge_head) == before
+
+
+def test_completed_integrate_child_returns_after_source_worktree_cleanup(project, tmp_path):
+    _, _, launcher, _, source_worktree, source = _completed_source(
+        project, tmp_path, "source-cleanup"
+    )
+    source_branch = git(source_worktree, "symbolic-ref", "--short", "HEAD")
+
+    attempted, result = _call(
+        launcher,
+        request("integrate", integration_input(project, source)),
+    )
+
+    assert attempted.returncode == 0, attempted.stdout + attempted.stderr
+    assert result["status"] == "integrated"
+    assert result["source_commit"] == source
+    assert not source_worktree.exists()
+    assert subprocess.run(
+        ["git", "-C", str(project["app"]), "rev-parse", "--verify", "--quiet", source_branch],
+        capture_output=True,
+        text=True,
+    ).returncode != 0
+    assert git(project["app"], "merge-base", "--is-ancestor", source, result["target_after"]) == ""

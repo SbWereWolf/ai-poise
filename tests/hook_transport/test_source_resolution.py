@@ -14,6 +14,7 @@ from conftest import add_test, git, write_json
 from poise.application.work import WorkTools
 from poise.infrastructure.hook_transport import HookService
 from hook_transport.helpers import definition, event, install, settings
+from result_integration.helpers import integration_input, prepare_completed_task
 from sprints.helpers import (
     draft,
     publish,
@@ -47,13 +48,16 @@ def _instrumented_project_source(project):
                 and call.func.attr == "work"
             ):
                 inserted += 1
-                probe = ast.parse(
+                before = ast.parse(
                     "package_root = Path(__file__).resolve().parents[1]\n"
-                    "result.setdefault('loaded_source', str(package_root))\n"
-                    "result.setdefault('source_sentinel', "
-                    "(package_root / 'source_sentinel.txt').read_text(encoding='utf-8').strip())"
+                    "source_sentinel = "
+                    "(package_root / 'source_sentinel.txt').read_text(encoding='utf-8').strip()"
                 ).body
-                return [node, *probe]
+                after = ast.parse(
+                    "result.setdefault('loaded_source', str(package_root))\n"
+                    "result.setdefault('source_sentinel', source_sentinel)"
+                ).body
+                return [*before, node, *after]
             return node
 
     tree = InstrumentWorkResult().visit(tree)
@@ -156,6 +160,21 @@ def _commit_source_probe(worktree, sentinel):
     git(Path(worktree), "add", "src/poise/source_sentinel.txt")
     git(Path(worktree), "commit", "-m", f"Set {sentinel} source sentinel")
     return package
+
+
+def _accepted_source_change(worktree):
+    package = Path(worktree) / "src" / "poise"
+    (package / "source_sentinel.txt").write_text("accepted-task\n", encoding="utf-8")
+    (Path(worktree) / "src" / "accepted_feature.py").write_text(
+        "VALUE = 'accepted'\n", encoding="utf-8"
+    )
+
+
+def _completed_source(project, tmp_path, session):
+    service, installed, installation = _service(project, tmp_path)
+    _, source_worktree, source = prepare_completed_task(project, _accepted_source_change)
+    launcher, binding = _launcher(service, installed, session)
+    return service, installation, launcher, binding, source_worktree, source
 
 
 def _remove_work_method(package):

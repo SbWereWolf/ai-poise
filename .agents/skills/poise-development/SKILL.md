@@ -23,7 +23,7 @@ AI poise is a separate application. Each configured project owns its Task DB and
 
 ## Verification and delivery
 
-Run focused checks while developing, then the complete configured regression runner for a delivery boundary. Preserve failed diagnostic workspaces and do not replace a failed run with a retry. Package code, tasks/configs, documentation and verification evidence as one self-contained delivery.
+Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method. Preserve failed diagnostic workspaces and do not replace a failed run with a retry. Package code, tasks/configs, documentation and verification evidence as one self-contained delivery.
 
 Treat the accepted commit as immutable. Complete delivery through a child task/integration worktree with a separate mutable integration head: update from current `master`, merge, resolve conflicts there, and rerun checks. Stop automation on conflicts for agent resolution in that worktree. Recheck `master` immediately before publication and automatically repeat the cycle on drift until a safe fast-forward is possible; never force-update or require manual supervision.
 

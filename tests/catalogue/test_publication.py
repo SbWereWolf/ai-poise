@@ -34,7 +34,7 @@ def setup(project):
     write_json(project['root']/'config/processes/planning.json',p)
     cfg=deepcopy(project['cfg']);cfg['processes']['planning']='config/processes/planning.json';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
-    task=deepcopy(project['task']);task.update(id='PLAN',goal_type='planning',methods=[],
+    task=deepcopy(project['task']);task.update(id='PLAN',goal_type='planning',methods=[],method_inputs=[],
         checks={s['id']:[] for s in p['stages']},evidence_plan={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']})
     child=deepcopy(project['task']);child['id']='CHILD'
     h=Poise(project['config_path'],'PLANNER');ctx=start(h,task)
@@ -65,7 +65,7 @@ def test_publish_reviewed_task_batch_and_bootstrap_child(project):
 
 
 def test_invalid_child_batch_creates_no_partial_tasks(project):
-    h,ctx,child=setup(project);bad=deepcopy(child);bad['id']='BAD';bad['methods']=[]
+    h,ctx,child=setup(project);bad=deepcopy(child);bad['id']='BAD';bad['methods']=[];bad['method_inputs']=[]
     ctx=to_publish(h,ctx,[child,bad])
     with pytest.raises(PoiseError):verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.'},{})
     assert h.task_queries.record('CHILD') is None

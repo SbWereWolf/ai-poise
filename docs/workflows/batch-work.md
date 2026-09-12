@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-12T01:38:13+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
+Обновлено: **2026-09-12T09:06:11+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -16,74 +16,31 @@
 | sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
-| cleanup | request_id, task_id, authorization, commit_disposition | Завершить сохраняемую уборку точных ресурсов terminal Task |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
-`cancel` в этом API отменяет текущую standalone Task, сохраняет её историю и результаты,
-освобождает claim, записывает явную причину пользователя и создаёт сохраняемое обязательство
-уборки. Worktree и ветка остаются до отдельного явного решения о commit. Выбранные участники
-Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
+`cancel` в этом API отменяет текущую standalone Task, сохраняет её историю, результаты и worktree, освобождает claim и записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
 
-## Уборка ресурсов terminal Task
+### Просмотр терминальной Task
 
-Статус `cancelled`, superseded либо `completed` описывает lifecycle Task, но не является
-решением о судьбе commit, разрешением публикации или доказательством удаления ресурсов.
-Terminal-переход через standalone `cancel`, Sprint `cancel_tasks`/`cancel`, supersession или
-успешную интеграцию создаёт одно сохраняемое состояние cleanup у владельца Task. Для
-отменённой или superseded Task вызывающая сторона затем передаёт отдельный пакет:
+`bootstrap` с адресом существующей Task в статусе `completed`, `cancelled` или
+`superseded` возвращает `terminal inspection snapshot`: обычный контекст с
+`result_template=null` и сохранённые проекции `content`, `evidence`, `history`. Это чтение не
+возобновляет и не захватывает Task, не требует её worktree и не оставляет её текущей для
+сессии. Если сессия уже владеет Task в статусе `active`, `verified` или `accepted`, просмотр
+другой терминальной Task отклоняется до изменения binding.
 
-```json
-{
-  "operation": "cleanup",
-  "input": {
-    "request_id": "cleanup-0042-1",
-    "task_id": "0042",
-    "authorization": "Пользователь разрешил удалить точные локальные ресурсы Task 0042.",
-    "commit_disposition": {
-      "kind": "discard_authorized",
-      "expected_commit": "0123456789abcdef0123456789abcdef01234567"
-    }
-  },
-  "messages": []
-}
-```
+Native hook выполняет такой адресный просмотр через installation source. Сразу после него
+безадресный `bootstrap` возвращает `read_only`, а `verify` с `result=null` и `artifacts=[]` —
+`read_only_verified`. Дополнительный `show` для получения terminal data не нужен: полный
+snapshot уже возвращён адресным `bootstrap`.
 
-Публичны только два решения: `preserved` сначала создаёт и проверяет долговечный Git bundle,
-а `discard_authorized` разрешает удалить последние принадлежащие Task ссылки на указанный
-commit. `expected_commit` — полный наблюдённый commit точной task-ветки. Publication не
-выражается этим полем: принятый результат публикуется только отдельной операцией `integrate`,
-которая после подтверждённой публикации передаёт cleanup внутреннее решение `integrated`.
-
-Ответ всегда различает состояние обязательства:
-
-- `disposition_required` — ресурсы сохранены, требуется отдельное решение о commit;
-- `cleanup_blocked` — указан точный блокирующий ресурс, причина и действие восстановления;
-- `cleanup_pending` — часть монотонной уборки ещё не завершена;
-- `cleanup_complete` — `remaining_resources` пуст, все требуемые эффекты подтверждены.
-
-`remaining_resources` перечисляет только зарегистрированные ресурсы Task: worktree, ветку и
-зарегистрированные временные файлы/temporary backups с их точными identity, commit или digest.
-Основной checkout, чужие worktrees/ветки, история Task, артефакты и операторские backups не
-входят в эту область. Worktree удаляется раньше ветки; каждый шаг и blocker сохраняются, поэтому
-тот же неизменный запрос после сбоя или перезапуска продолжает только незавершённые шаги.
-
-Dirty worktree не очищается автоматически. Первый пакет фиксирует точный disposition, но
-остаётся `cleanup_blocked`: оператор либо убирает незакоммиченные изменения без помощи cleanup
-и повторяет тот же запрос, либо делает один clean checkpoint в той же task-ветке и отправляет
-новый `request_id` с новым `expected_commit`. Принимается только fast-forward потомок terminal
-commit. Изменившаяся ветка, digest, identity или конкурентная версия состояния блокируют
-операцию вместо удаления неизвестного ресурса.
-
-Состояние читается после перезапуска через `show`:
-
-```json
-{"operation":"show","input":{"queries":[{"id":"cleanup","kind":"task_cleanup","task_id":"0042","request_id":"cleanup-0042-1"}]},"messages":[]}
-```
-
-Для ранее созданной terminal Task без cleanup-state первый явный `cleanup` атомарно создаёт
-это состояние и продолжает обычный путь. Это не фоновая миграция и не скрытый fallback.
+До исправления от **2026-09-12** адресный просмотр мог оставить `stale current-task binding`:
+следующий taskless bootstrap снова показывал завершённую Task, а null-result verify
+отклонялся. Инцидент воспроизведён и закрыт задачей 0050. Исправление не вводит критериев
+успеха для аварийной отмены: `cancelled` может не иметь evidence, а просмотр возвращает ровно
+то, что было сохранено до отмены.
 
 ## Автоматическое создание Task
 
@@ -123,6 +80,14 @@ commit. Изменившаяся ветка, digest, identity или конку�
 пустые значения примера не объявляются универсально исполнимой задачей. Успешный ответ
 содержит фактический `task`, task/worktree roots с тем же ID и квитанцию; persisted branch
 формируется из этого ID по `git.branch_template`:
+
+Для каждого executable method полный creation contract также содержит соответствующий
+`method_inputs`: существующие baseline-пути перечисляются в `repository_inputs`, а каждый
+разрешённый `future output` — в `future_outputs` вместе с producer stage. Preflight сверяет
+эти объявления с выбранным base tree, `allowed_paths`, порядком stages и явным
+runner/parser profile до allocation Task ID и подготовки worktree. Отсутствующий,
+необъявленный или недостижимый путь отклоняет весь creation intent без частичных эффектов;
+исправленный контракт отправляется с новым `request_id`.
 
 ```json
 {"allocation":{"request_id":"customer-import-creation-1","task_id":"0029","replayed":false}}
@@ -178,7 +143,25 @@ Content pre-gate может отклонить уже сохранённый к�
 }
 ```
 
-Такой переход допустим только для текущих stage, iteration, submission digest, Git tree и execution key. Сохранённый batch должен содержать хотя бы один неуспешный guard; все receipts должны иметь известный неотрицательный exit code, не быть timeout и оставаться интерпретируемыми, а их `stdout`/`stderr` — существовать с сохранёнными digest. `pending` должен быть null. Поэтому отсутствующий batch или batch без неуспешного guard, прерванный/неизвестный исход, удалённый либо изменённый output и evidence другого stage, iteration, submission, tree или запуска не дают права на rework.
+Такой переход допустим только для текущих stage, iteration, submission digest, Git tree и
+`execution_key`. Verify и этот поиск failed batch получают invocation и ключ через один
+канонический builder: точный метод с ожиданиями и observation rules, cwd/env и разрешённая
+source provenance участвуют в одной identity. Source-less или совместимого второго ключа нет.
+
+Сохранённый batch должен содержать хотя бы один неуспешный guard либо один
+неинтерпретируемый observation receipt. Каждый receipt обязан
+полностью совпадать со своей неизменяемой записью evidence ledger, точно соответствовать
+текущему invocation и tree, иметь известный неотрицательный exit code, не быть timeout и
+иметь логически корректные control flags; его `stdout`/`stderr` должны существовать с сохранёнными digest.
+`pending` должен быть null. Поэтому отсутствующий batch или ledger receipt, batch без
+неуспешного guard или неинтерпретируемого receipt, прерванный/неизвестный исход, изменённые method/expectations/provenance,
+повреждённый receipt, удалённый либо изменённый output и evidence другого stage, iteration,
+submission, tree или запуска не дают права на rework. Отказ происходит до изменения route,
+lifecycle и execution state.
+
+Поиск не использует fallback, dual key, legacy alias или tolerant reconstruction. Старые
+неканонические receipts и ключи не мигрируются и не получают совместимое прочтение: они явно
+не подходят под точный контракт.
 
 `feedback` обязателен и сохраняется в истории. `rework_stage` должен входить в `rework_targets` текущего этапа; null означает сам текущий этап. Цель с обработчиком `revise` допустима только при наличии открытых findings: иначе Task отклоняет переход до изменения route, lifecycle или execution state, потому что такому этапу нечего исправлять. Task применяет обычный `Route.enter`, поэтому `max_transitions`, `max_stage_visits` и `allowed_paths` целевого этапа продолжают действовать. Проверка `pending`, доменный переход Task и очистка execution state согласованы в одном UoW: отказ предшествует любому изменению lifecycle или execution.
 
@@ -194,9 +177,9 @@ Content pre-gate может отклонить уже сохранённый к�
 
 Persisted integration state обеспечивает crash recovery и идемпотентный повтор: отдельно сохраняются accepted commit, mutable integration head, наблюдавшийся target, conflict state, проверки, публикация и уборка. Повтор с тем же intent продолжает подтверждённую незавершённую фазу и не воспроизводит вслепую уже подтверждённые Git-эффекты.
 
-После подтверждённого fast-forward или terminal no-op эта же операция удаляет task worktree, integration worktree, дочерние локальные ветки и зарегистрированные временные backup-файлы задачи. Временные backup разрешено создавать только в task/integration-scoped каталоге настроенного runtime root; `integrated` недоступен, пока каталог не пуст. Уборка адресует только зарегистрированные объекты этой задачи: предсуществующие, чужие и долговременные операторские backup-файлы не удаляются. Backup, являющийся deliverable задачи или необходимый для recovery незавершённой интеграции, остаётся до отдельного terminal decision.
+После подтверждённого fast-forward или terminal no-op эта же операция удаляет task worktree, integration worktree, дочерние локальные ветки и зарегистрированные временные backup-файлы задачи. Безопасность удаления owned-веток проверяется относительно текущего target, а ref удаляется compare-and-delete по наблюдавшемуся commit; `HEAD` основного checkout не участвует. Потомок опубликованного integration head не блокирует уборку, но переписанная либо посторонняя история target сохраняет recovery state и завершает вызов ошибкой. Временные backup разрешено создавать только в task/integration-scoped каталоге настроенного runtime root; `integrated` недоступен, пока каталог не пуст. Уборка адресует только зарегистрированные объекты этой задачи: предсуществующие, чужие и долговременные операторские backup-файлы не удаляются. Backup, являющийся deliverable задачи или необходимый для recovery незавершённой интеграции, остаётся до отдельного terminal decision.
 
-Полный цикл выше — согласованный обязательный контракт завершителя. Текущая реализация `integrate` ещё использует checkout target-ветки и не автоматизирует stable-master retry, отдельный integration worktree/head и scoped backup cleanup; её замена должна быть выполнена отдельной formal development task с TDD. До поставки этой задачи существующий результат операции нельзя считать доказательством реализации нового контракта.
+Полный локальный цикл выше, включая stable-master retry при drift target, реализован существующей операцией `integrate` и проверен на отдельном integration worktree, конфликтах, повторном drift target, crash/replay, cleanup и terminal no-op. Контракт не включает push, удалённую публикацию или multi-codebase integration.
 
 ```json
 {
@@ -227,8 +210,8 @@ JSON
 
 - `integrated`: `master` безопасно fast-forward-нут либо terminal no-op доказан; task/integration worktrees, дочерние ветки и scoped temporary-backup directory удалены; повтор возвращает сохранённый результат с `replayed: true`;
 - `awaiting_resolution`: дочерний integration worktree оставлен в точном conflict state; исправьте только перечисленные файлы в нём и повторите тот же пакет, заменив `resolutions` на один объект для каждого conflict path;
-- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD, MERGE_HEAD, служебный index и сохранённый preflight подтверждают принадлежность этой интеграции;
-- `cleanup_pending`: target уже содержит проверенный integration head, но уборка worktrees, веток или scoped temporary backups не завершена. Принадлежащие recovery/deliverable backups сохраняются до отдельного terminal decision; после устранения причины тот же пакет продолжает только подтверждённую уборку.
+- `blocked`: `candidate_failed` сохраняет receipt неудачного merge без распознанных конфликтов и при том же intent повторно готовит owned candidate; `checks_failed` сохраняет все check receipts, не публикует target и не начинает cleanup;
+- `cleanup_pending`: публикация подтверждена, но уборка worktrees, веток или scoped temporary backups не завершена. Тот же пакет повторяет только недостающие шаги. Текущий target должен содержать опубликованный integration head и accepted commit; безопасный потомок допускается, переписанная история отклоняется. Принадлежащие recovery/deliverable backups сохраняются до отдельного terminal decision.
 
 Пример продолжения конфликта — все остальные поля исходного intent остаются прежними:
 
@@ -241,7 +224,7 @@ JSON
 ]
 ```
 
-Операция сама управляет staging, integration commit, повторной проверкой target, fast-forward и поэтапной уборкой внутри дочернего integration worktree. Пользователю не требуется обслуживать index или основной checkout. При конфликте повтор допускает только сохранённое состояние интеграции и объявленные conflict paths; новый посторонний эффект в integration worktree требует отдельного восстановления. Если Git не смог безопасно продолжить, accepted commit и восстановимое integration state сохраняются, успех не записывается. Force-update и force-delete не используются.
+Операция сама управляет staging, integration commit, повторной проверкой target, fast-forward и поэтапной уборкой внутри дочернего integration worktree. Пользователю не требуется обслуживать index или основной checkout. При конфликте повтор допускает только сохранённое состояние интеграции и объявленные conflict paths; новый посторонний эффект в integration worktree требует отдельного восстановления. Если Git не смог безопасно продолжить, accepted commit и восстановимое integration state сохраняются, успех не записывается. Публикация использует compare-and-swap target ref, а удаление owned-веток — compare-and-delete; force-update и безусловное удаление ref не используются.
 
 Состояние и полная история переходов читаются пакетным query после перезапуска процесса:
 
@@ -249,7 +232,7 @@ JSON
 {"operation":"show","input":{"queries":[{"id":"result","kind":"integration","task_id":"0016","request_id":"integrate-0016-1"}]},"messages":[]}
 ```
 
-Ответ сохраняет `source_commit`, `target_before`, `target_after`, merge/failure receipts, conflict resolutions, поэтапный `cleanup` и `history`. Task/Sprint history и прежний проверенный результат не переписываются.
+Ответ сохраняет `source_commit`, `accepted_commit`, `observed_target`, `integration_head`, `target_before`, `target_after`, check/failure/publication receipts, conflict resolutions, поэтапный `cleanup` и `history` переходов с merge receipts. Task/Sprint history и прежний проверенный результат не переписываются.
 
 ## Создание файлов
 ```json

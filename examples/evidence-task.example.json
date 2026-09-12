@@ -16,25 +16,40 @@
         "REPLACE_WITH_ABSOLUTE_PYTHON_EXECUTABLE",
         "-B",
         "-c",
-        "from app import double; print(\"VALUE=\" + str(double(2))); raise SystemExit(0 if double(2)==4 else 1)"
+        "print(\"VALUE=4\")"
       ],
       "cwd": ".",
       "environment": {},
       "source_under_test": {
-        "kind": "repository",
-        "bindings": [
-          {
-            "kind": "cwd",
-            "path": "."
-          }
-        ]
+        "kind": "external",
+        "reason": "The example records a declared external observation and reads no repository source."
       },
-      "timeout_seconds": 10,
+      "verification_plan": {
+        "responsibility": "Record the declared external observation.",
+        "change_surface": [],
+        "red_stages": [],
+        "green_stages": [
+          "measure"
+        ],
+        "red_failure": null
+      },
       "expected_exit_code": 0,
       "stdout_contains": [
         "VALUE=4"
       ],
       "stderr_contains": []
+    }
+  ],
+  "method_inputs": [
+    {
+      "method_id": "MEASURE",
+      "repository_inputs": [],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "python",
+        "parser": "inline-no-path-arguments",
+        "version": 1
+      }
     }
   ],
   "checks": {

@@ -86,7 +86,10 @@ class TaskQueries:
         if row is None: return None
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
         metadata = json.loads(row['metadata'])
-        items = [json.loads(r[0]) for r in db.execute('SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid',(task_id,))]
+        from .tasks import without_retired_method_timeout
+        items = [without_retired_method_timeout(json.loads(r[0])) for r in db.execute(
+            'SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid', (task_id,)
+        )]
         metadata['contract']['methods'] = [item['method'] for item in items]
         metadata['contract']['checks'] = {s['id']:[item['method']['id'] for item in items if s['id'] in item['stages']]
                                           for s in metadata['process']['stages']}

@@ -16,7 +16,12 @@ def intent():
 
 
 def test_run_records_conflict_and_requires_exact_resolution_set():
-    run = IntegrationRun.new(intent()).start({"target_before": "b" * 40})
+    run = IntegrationRun.new(
+        intent(),
+        "refs/heads/integration/T1-example",
+        "/state/worktrees/T1-integration-example",
+        "/state/runtime/session/result-integration/T1/example",
+    ).begin_candidate("b" * 40)
     run = run.await_resolution(["src/a.py"], {"exit_code": 1})
 
     with pytest.raises(DomainError, match="every observed conflict"):
@@ -30,36 +35,36 @@ def test_run_records_conflict_and_requires_exact_resolution_set():
 
 
 def test_cleanup_progress_is_monotonic_and_replayable():
-    run = IntegrationRun.new(intent()).start({"target_before": "b" * 40})
-    resources = [
-        {"kind": "worktree", "identity": "git-owner", "path": "/worktrees/T1"},
-        {"kind": "branch", "name": "tasks/T1", "commit": "a" * 40},
-    ]
-    run = run.integrated("c" * 40, {"exit_code": 0}, resources)
-    pending = run.cleanup_blocked(run.cleanup.resources[0], {"reason": "locked"})
+    run = IntegrationRun.new(
+        intent(),
+        "refs/heads/integration/T1-example",
+        "/state/worktrees/T1-integration-example",
+        "/state/runtime/session/result-integration/T1/example",
+    ).begin_candidate("b" * 40)
+    run = run.candidate_ready("c" * 40, {"exit_code": 0})
+    run = run.checks_recorded([])
+    run = run.publication_confirmed(
+        "refs/heads/main", {"exit_code": 0}, no_op=False, recovered=False
+    )
+    pending = run.cleanup_blocked("integration_worktree", {"reason": "locked"})
     assert pending.status == "cleanup_pending"
     assert pending.target_after == "c" * 40
 
-    after_worktree = pending.cleanup_resource_removed(pending.cleanup.resources[0])
-    complete = after_worktree.cleanup_resource_removed(after_worktree.cleanup.resources[0])
+    complete = pending
+    for component, outcome in (
+        ("integration_worktree", "removed"),
+        ("task_worktree", "removed"),
+        ("integration_branch", "deleted"),
+        ("task_branch", "deleted"),
+        ("temporary_backups", "removed"),
+    ):
+        complete = complete.cleanup_completed(component, outcome)
     assert complete.status == "integrated"
-    assert complete.cleanup.status == "cleanup_complete"
-    assert complete.cleanup.disposition.kind == "integrated"
-    assert complete.cleanup.remaining_resources() == ()
-    assert complete.cleanup_resource_removed(resources[1]) == complete
-
-
-def test_integration_cleanup_advances_temporary_resources_without_branch_aliasing():
-    run = IntegrationRun.new(intent()).start({"target_before": "b" * 40})
-    resources = [
-        {"kind": "temporary", "path": "/runtime/T1/index", "digest": "d" * 64},
-        {"kind": "temporary_backup", "path": "/runtime/T1/backup", "digest": "e" * 64},
-    ]
-    run = run.integrated("c" * 40, {"exit_code": 0}, resources)
-
-    first = run.cleanup_resource_removed(run.cleanup.resources[0])
-    complete = first.cleanup_resource_removed(first.cleanup.resources[0])
-
-    assert first.status == "cleanup_pending"
-    assert complete.status == "integrated"
-    assert complete.cleanup.status == "cleanup_complete"
+    assert complete.cleanup == {
+        "task_worktree": "removed",
+        "integration_worktree": "removed",
+        "task_branch": "deleted",
+        "integration_branch": "deleted",
+        "temporary_backups": "removed",
+    }
+    assert complete.cleanup_completed("task_branch", "deleted") == complete

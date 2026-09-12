@@ -7,7 +7,7 @@ from pathlib import Path
 from .common import PoiseError
 
 
-def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float,
+def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float | None,
                 stdout_path: Path, stderr_path: Path) -> dict:
     """Не загружает полный вывод в память; ждёт конечного результата процесса."""
     start = time.monotonic()
@@ -21,7 +21,7 @@ def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float,
         except OSError as exc:
             raise PoiseError(f'Не удалось запустить точную команду {argv[0]}: {exc}') from exc
         try:
-            code = child.wait(timeout=timeout)
+            code = child.wait() if timeout is None else child.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
             os.killpg(child.pid, signal.SIGKILL)
@@ -41,6 +41,36 @@ def contains(path: Path, needle: str) -> bool:
             if target in block: return True
             tail = block[-(len(target)-1):] if len(target)>1 else b''
     return False
+
+
+def equals(path: Path, expected: str) -> bool:
+    target = expected.encode('utf-8')
+    offset = 0
+    with path.open('rb') as stream:
+        while chunk := stream.read(64 * 1024):
+            if chunk != target[offset:offset + len(chunk)]:
+                return False
+            offset += len(chunk)
+    return offset == len(target)
+
+
+def method_passed(method: dict, result: dict) -> bool:
+    passed = (
+        not result['timed_out']
+        and result['actual_exit_code'] == method['expected_exit_code']
+        and all(contains(Path(result['stdout']), marker) for marker in method['stdout_contains'])
+        and all(contains(Path(result['stderr']), marker) for marker in method['stderr_contains'])
+    )
+    plan = method.get('verification_plan')
+    failure = None if plan is None else plan.get('red_failure')
+    if failure is None:
+        return passed
+    return (
+        passed
+        and result['actual_exit_code'] == failure['exit_code']
+        and equals(Path(result['stdout']), failure['stdout_equals'])
+        and equals(Path(result['stderr']), failure['stderr_equals'])
+    )
 
 
 def preview(path: Path, chars: int) -> str:

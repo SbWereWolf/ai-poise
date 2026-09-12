@@ -99,7 +99,7 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
 `HookCommands.install` принимает целый definition; `HookRepository` сохраняет candidate/receipt и только свои groups. `HookDefinition` проверяет явность native-контракта. `CapabilityChecks.run` валидирует пакет ProbeSpec и получает независимые результаты через ProbeExecutor. `LocalProbeExecutor`/`StdioProbe` — внешние адаптеры.
-`HookService` связывает native event с session и InteractionStore, но не меняет lifecycle. Generated launcher вызывает прежний WorkTools с текущим сообщением. Public interfaces: runtime-setup (полный settings + install + probe), runtime-config (install/probe), hook (native event), hook-work (bound packet). `HookSettings.proposed` проверяет кандидат настроек до его записи; `setup_runtime` использует тот же FileHookRepository и не переписывает активные bindings. См. [полный контракт](../configuration/runtime-hooks.md).
+`HookService` связывает native event с session и InteractionStore, но не меняет lifecycle. Generated launcher вызывает прежний WorkTools с текущим сообщением и запрещает запись Python bytecode в source checkout; точная предыдущая управляемая форма launcher обновляется при native rebind, а произвольное изменение не перезаписывается. Public interfaces: runtime-setup (полный settings + install + probe), runtime-config (install/probe), hook (native event), hook-work (bound packet). `HookSettings.proposed` проверяет кандидат настроек до его записи; `setup_runtime` использует тот же FileHookRepository и не переписывает активные bindings. См. [полный контракт](../configuration/runtime-hooks.md).
 
 
 ## Accounting API — DDD-08
@@ -207,3 +207,7 @@ python examples/project_execution.py \
 
 Пути и идентификаторы в примере нужно заменить фактическими значениями существующей задачи;
 команда не создаёт задачу и не подменяет требуемое решение пользователя.
+`CheckRegistry.from_task` и `CheckRegistry.extend` требуют `verification_plan`
+для новых методов и выполняют раннюю route-проверку. `from_items` восстанавливает
+исторические снимки без плана; автоматическая migration и двойная запись не
+вводятся.

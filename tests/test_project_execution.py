@@ -51,7 +51,7 @@ def setup_destination(repo, destination):
 def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(tmp_path):
     repo = snapshot_source(tmp_path)
     base = git(repo, 'rev-parse', 'HEAD')
-    first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE', 60)
+    first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE')
     # User decision is an explicit fixture. The test does not simulate a human reviewer.
     result = continue_execution(config_path=Path(first['setup']['config_path']),
                                session='VERIFY-SOURCE', task_id='VERIFY-SOURCE',

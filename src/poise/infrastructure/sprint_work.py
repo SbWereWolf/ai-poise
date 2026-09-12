@@ -10,7 +10,8 @@ class SprintWork:
         self.h=runtime
         self.commands=SprintCommands(runtime.store.unit_of_work,runtime.cfg['project'],runtime.session,
             runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.processes,
-            runtime.cfg['automatic_checks'],runtime.config_hash)
+            runtime.cfg['automatic_checks'],runtime.config_hash,
+            runtime.task_commands.prepare_creation,runtime._creation_base)
 
     def known(self,sprint_id):return self.commands.known(sprint_id)
 
@@ -82,26 +83,27 @@ class SprintWork:
         if out is None:return None
         record=self.commands.read(out['sprint'],'plan')
         plan=record['aggregate']['plan'];waived={(x['predecessor'],x['successor']) for x in record['aggregate']['waivers']}
-        facts={t['id']:t for t in out['tasks']};ready=[];bases={}
+        facts={t['id']:t for t in out['tasks']};ready=[]
+        result_predecessors={
+            tid:[e['predecessor'] for e in plan['dependencies']
+                 if e['successor']==tid and e['kind']=='result'
+                 and (e['predecessor'],tid) not in waived]
+            for tid in facts
+        }
+        out['result_provenance']={
+            tid:[{'predecessor':predecessor,'result_commit':facts[predecessor]['result_commit']}
+                 for predecessor in predecessors]
+            for tid,predecessors in result_predecessors.items() if predecessors
+        }
         for tid in out['eligible']:
             if tid in out['resumable']:
                 # Resume the saved process/workspace; do not prepare a new baseline.
-                ready.append(tid);bases[tid]=None;continue
-            predecessors=[e['predecessor'] for e in plan['dependencies'] if e['successor']==tid and e['kind']=='result'
-                          and (e['predecessor'],tid) not in waived]
-            commits={facts[i]['result_commit'] for i in predecessors}
-            if None in commits:
+                ready.append(tid);continue
+            predecessors=result_predecessors[tid]
+            if any(facts[i]['result_commit'] is None for i in predecessors):
                 out['blocked'].append({'task':tid,'reasons':[{'reason':'missing_predecessor_result','predecessors':predecessors}]});continue
-            # Multiple different trees must be integrated deliberately, not guessed from ancestry.
-            if len(commits)>1:
-                out['blocked'].append({'task':tid,'reasons':[{'reason':'integration_required','predecessors':predecessors,'commits':sorted(commits)}]});continue
-            base=next(iter(commits)) if commits else None
-            if base is not None:
-                try:self.h._git(Path(self.h.cfg['git']['repository']),'cat-file','-e',base+'^{commit}')
-                except PoiseError:
-                    out['blocked'].append({'task':tid,'reasons':[{'reason':'result_objects_unavailable','commit':base}]});continue
-            ready.append(tid);bases[tid]=base
-        out['eligible']=ready;out['start_revisions']=bases
+            ready.append(tid)
+        out['eligible']=ready
         if out['status'] not in ('draft','completed','cancelled') and not ready and not out['active']:out['status']='blocked'
         current=self.h.current_task()
         out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled','superseded') and current['sprint_id']==out['sprint'] else None
@@ -120,7 +122,7 @@ class SprintWork:
             raise PoiseError('Сначала завершить/передать текущую задачу')
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise PoiseError('Task is not eligible: '+str(state['blocked']))
-        base=h._creation_base(None if state is None else state['start_revisions'][task_id])
+        base=h._creation_base()
         execution=h._execution_reservation(task_id,base)
         h.task_commands.start(task_id,h.session,execution)
         h._reconcile_task_worktree(h.task_queries.record(task_id))

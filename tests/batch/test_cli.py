@@ -7,7 +7,8 @@ from .helpers import configure,request,message
 def call(project,packet):
     raw=packet if isinstance(packet,str) else json.dumps(packet)
     return subprocess.run([sys.executable,'-m','poise','work'],input=raw,text=True,capture_output=True,
-        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'CLI-BATCH'},timeout=15)
+        env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
+             'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'CLI-BATCH'},timeout=15)
 
 
 def test_cli_unknown_duplicate_nan_and_size_reject_before_task(project):

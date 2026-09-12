@@ -51,3 +51,12 @@ def test_setup_cli_has_explicit_bootstrap_limit(project,tmp_path):
         '--max-input-bytes',str(1048576)],input=json.dumps(packet),text=True,capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)['capability_checks']['ready']
+
+
+def test_checked_in_codex_hooks_disable_installation_bytecode_writes():
+    root=Path(__file__).resolve().parents[2]
+    document=json.loads((root/'.codex/hooks.json').read_text(encoding='utf-8'))
+    commands=[hook['command'] for groups in document['hooks'].values()
+              for group in groups for hook in group['hooks']]
+    assert commands
+    assert all(' -B -m poise hook ' in command for command in commands)

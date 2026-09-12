@@ -164,10 +164,23 @@ def test_current_automatic_check_mapping_applies_to_existing_task(project):
         "argv": [sys.executable, "-B", "-c", "print('current-config-check')"],
         "cwd": ".",
         "environment": {},
-        "timeout_seconds": 10,
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
         "expected_exit_code": 0,
         "stdout_contains": ["current-config-check"],
         "stderr_contains": [],
+    })
+    contract["method_inputs"].append({
+        "method_id": "CURRENT_CONFIG_CHECK",
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
     })
     original = WorkTools(Poise(project["config_path"], "live-check-session"))
     context = original.invoke(request("bootstrap", {

@@ -1,9 +1,10 @@
 from __future__ import annotations
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import dataclass
 from ..modules.tasks.domain import Task, TaskState, TaskStatus
 from ..modules.workflow.domain import RouteDefinition
-from ..modules.tasks.ports import TaskUnitOfWork
+from ..modules.tasks.ports import RepositoryTreeReader, TaskUnitOfWork
 from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
@@ -22,9 +23,20 @@ def _creation_values(intent, allocation, actor, process, automatic_checks, base_
     return build_task(metadata, actor), metadata, contract
 
 
-def create_planned_in_uow(uow, intent, process, automatic_checks, base_metadata, policy,
-                          reserved_ids=()):
+@dataclass(frozen=True)
+class PreparedCreation:
+    intent: dict
+    process: dict
+    automatic_checks: list
+
+
+def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=()):
     from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
+    if not isinstance(prepared, PreparedCreation):
+        raise DomainError("Task creation requires a verified creation preflight")
+    intent = deepcopy(prepared.intent)
+    process = deepcopy(prepared.process)
+    automatic_checks = deepcopy(prepared.automatic_checks)
     request_id, _, _ = creation_parts(intent)
     parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
     allocation = uow.tasks.allocate(intent, parsed_policy, reserved_ids)
@@ -80,18 +92,43 @@ class SubmissionReceipt:
 
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
-    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork]):
+    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader):
         self.unit_of_work = unit_of_work
+        self.repository_tree = repository_tree
+
+    def prepare_creation(self, intent, process, automatic_checks, base_revision):
+        from ..modules.tasks.allocation import creation_alias, materialize_contract
+        from ..modules.tasks.creation_preflight import CreationPreflight
+        from ..modules.tasks.definition import validate_creation
+        candidate, _ = materialize_contract(intent, creation_alias(intent))
+        metadata = validate_creation(candidate, process, automatic_checks)
+        preflight = CreationPreflight.parse(metadata["contract"], process)
+        if not isinstance(base_revision, str) or not base_revision:
+            raise DomainError("Task creation requires an explicit repository tree preflight")
+        preflight.validate_base(
+            self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
+        )
+        return PreparedCreation(
+            deepcopy(intent),
+            deepcopy(process),
+            deepcopy(automatic_checks),
+        )
 
     def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
-               base_metadata: dict, execution, policy):
+               base_metadata: dict, execution, policy, base_revision):
         from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
         request_id, _, _ = creation_parts(intent)
         parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
+        prepared = self.prepare_creation(intent, process, automatic_checks, base_revision)
         with self.unit_of_work() as uow:
             allocation = uow.tasks.allocate(intent, parsed_policy)
             task, metadata, _ = _creation_values(
-                intent, allocation, actor, process, automatic_checks, base_metadata
+                prepared.intent,
+                allocation,
+                actor,
+                prepared.process,
+                prepared.automatic_checks,
+                base_metadata,
             )
             uow.tasks.create(task, metadata)
             if not allocation.replayed:

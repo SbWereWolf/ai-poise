@@ -16,11 +16,13 @@ def fingerprint(value):
 
 
 class SprintCommands:
-    def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,automatic_checks,execution_hash):
+    def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
+                 automatic_checks,execution_hash,prepare_creation,creation_base):
         self.uow=unit_of_work;self.project=project;self.actor=actor
         self.policy=SprintPolicy.parse(policy);self.processes=deepcopy(processes)
         self.task_id_policy=task_id_policy
         self.automatic_checks=deepcopy(automatic_checks);self.execution_hash=execution_hash
+        self.prepare_creation=prepare_creation;self.creation_base=creation_base
 
     def _errors(self,record):
         s=Sprint.restore(record['aggregate']);errors=s.plan.content_errors(s.policy)+s.plan.graph_errors(s.policy)
@@ -112,9 +114,34 @@ class SprintCommands:
                 snapshots[tid]={'fact':facts[tid],'task_version':task.state.version}
             return {'receipt':None,'sprint':sid,'tasks':snapshots}
 
+    def publication_preflight(self,packet,identity):
+        with self.uow() as u:
+            sid=packet['sprint_id'] if packet['sprint_id'] is not None else u.sprints.scope(self.actor)
+            path_identifier(sid);record=u.sprints.get(sid)
+            if record is None:raise DomainError('Sprint does not exist')
+            if record['project']!=self.project:raise DomainError('Sprint belongs to another project')
+            if u.sprints.receipt(sid,packet['request_id'],identity) is not None:return None
+            if type(packet['expected_revision']) is not int or packet['expected_revision']!=record['aggregate']['revision']:
+                raise VersionConflict('Publish revision changed')
+            errors=self._errors(record)
+            if errors:raise DomainError('; '.join(errors))
+            intents=deepcopy(Sprint.restore(record['aggregate']).plan.data['tasks'])
+            processes=deepcopy(record['processes'])
+            automatic_checks=deepcopy(record['automatic_checks'])
+            snapshot=fingerprint(record)
+        base=self.creation_base()
+        prepared=[]
+        for intent in intents:
+            body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
+            prepared.append(self.prepare_creation(
+                intent,processes[body['goal_type']],automatic_checks,base
+            ))
+        return {'record':snapshot,'prepared':prepared}
+
     def apply(self,packet,preflight=None):
         action=self._action(packet)
         identity=fingerprint(packet)
+        publication = self.publication_preflight(packet,identity) if action=='publish' else None
         with self.uow() as u:
             sid=packet['sprint_id'] if packet['sprint_id'] is not None else u.sprints.scope(self.actor)
             path_identifier(sid)
@@ -149,16 +176,20 @@ class SprintCommands:
                         raise VersionConflict('Publish revision changed')
                     errors=self._errors(record)
                     if errors:raise DomainError('; '.join(errors))
+                    if publication is None or fingerprint(record)!=publication['record']:
+                        raise VersionConflict('Sprint changed after creation preflight')
                     s=s.publish()
                     reservations=creation_batch_reservations(
                         s.plan.data['tasks'],(s.plan.data['id'],)
                     )
                     created={}
-                    for intent in s.plan.data['tasks']:
+                    for intent,prepared in zip(s.plan.data['tasks'],publication['prepared'],strict=True):
                         body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
+                        if prepared.intent!=intent:
+                            raise VersionConflict('Sprint Task intent changed after creation preflight')
                         allocation,contract=create_planned_in_uow(
-                            u,intent,record['processes'][body['goal_type']],record['automatic_checks'],
-                            {'config_hash':record['execution_hash']},self.task_id_policy,reservations)
+                            u,prepared,{'config_hash':record['execution_hash']},
+                            self.task_id_policy,reservations)
                         alias=allocation.request_id if allocation.request_id is not None else contract['id']
                         created[alias]=contract
                         if allocation.receipt() is not None:allocations.append(allocation.receipt())

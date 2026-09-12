@@ -1,9 +1,9 @@
 from .application.tasks import TaskCommands
 
 
-def task_tools(store):
+def task_tools(store, repository_tree):
     """Explicit composition for the extracted Task slice; no service locator."""
-    return TaskCommands(store.unit_of_work), store.queries
+    return TaskCommands(store.unit_of_work, repository_tree), store.queries
 
 
 def goal_config_tools(settings_path):

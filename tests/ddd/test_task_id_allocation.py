@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+from dataclasses import replace
 import json
 import os
 from pathlib import Path
@@ -49,6 +50,40 @@ def automatic_intent(project, request_id, *, sprint_id=None, goal=None):
     if goal is not None:
         task["goal"] = goal
     return {"request_id": request_id, "task": task}
+
+
+def missing_repository_input_intent(project, request_id, *, sprint_id=None):
+    intent = automatic_intent(project, request_id, sprint_id=sprint_id)
+    missing = "tests/contract/test_missing_creation_path.py"
+    intent["task"]["methods"] = [{
+        "id": "CHECK",
+        "argv": [sys.executable, "-m", "pytest", "-q", missing],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
+        "timeout_seconds": 30,
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": [],
+    }]
+    intent["task"]["method_inputs"] = [{
+        "method_id": "CHECK",
+        "repository_inputs": [missing],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "pytest",
+            "parser": "positional-paths",
+            "version": 1,
+        },
+    }]
+    intent["task"]["checks"] = {
+        stage["id"]: (["CHECK"] if stage["id"] == "tests" else [])
+        for stage in project["process"]["stages"]
+    }
+    return intent
 
 
 def bootstrap(tools, intent):
@@ -411,6 +446,7 @@ def _planning_context(project):
     parent.update(
         goal_type="planning",
         methods=[],
+        method_inputs=[],
         checks={stage["id"]: [] for stage in process["stages"]},
         evidence_plan={
             stage["id"]: {
@@ -527,6 +563,36 @@ def test_reviewed_publication_failure_rolls_back_allocations(project):
     assert allocation_map(result) == {"rollback-A": "0001", "rollback-B": "0002"}
 
 
+def test_reviewed_planning_publication_preflights_before_allocation(project):
+    configure(project, policy(maximum=20))
+    tools, context = _planning_context(project)
+    intent = missing_repository_input_intent(project, "planning-missing-input")
+    context = _advance_reviewed_plan(tools, context, [intent])
+    before = deepcopy(tools.runtime.task_queries.summary())
+
+    with pytest.raises(PoiseError) as caught:
+        _verify(
+            tools,
+            context,
+            stage_work={
+                "kind": "tasks",
+                "section": "planned_tasks",
+                "authorization": "User: publish reviewed automatic task intents.",
+            },
+        )
+
+    message = str(caught.value)
+    assert all(token in message for token in ("CHECK", "test_missing_creation_path.py", "base"))
+    assert tools.runtime.task_queries.summary() == before
+    with tools.runtime.store.unit_of_work() as uow:
+        assert uow.actions.load("PLAN", "publish", 1) is None
+    next_result = bootstrap(
+        WorkTools(Poise(project["config_path"], "after-planning-preflight")),
+        automatic_intent(project, "after-planning-preflight"),
+    )
+    assert next_result["task"] == "0001"
+
+
 def test_sprint_publication_rewrites_request_aliases_to_allocated_ids(project):
     from sprints.helpers import changes, policy as sprint_policy
 
@@ -581,17 +647,135 @@ def test_sprint_publication_rewrites_request_aliases_to_allocated_ids(project):
     assert not (tools.runtime.state / tools.runtime.paths["worktrees"]).exists()
 
 
+def test_sprint_publication_preflights_before_allocation(project):
+    from sprints.helpers import changes, policy as sprint_policy
+
+    configure(project, policy(maximum=20))
+    cfg = deepcopy(project["cfg"])
+    cfg["sprint"] = sprint_policy()
+    cfg["automatic_checks"] = []
+    write_json(project["config_path"], cfg)
+    tools = WorkTools(Poise(project["config_path"], "sprint-preflight"))
+    intent = missing_repository_input_intent(
+        project, "sprint-missing-input", sprint_id="S"
+    )
+    drafted = tools.invoke(
+        request(
+            "sprint",
+            {
+                "action": "draft",
+                "sprint_id": "S",
+                "request_id": "draft-invalid-member",
+                "expected_revision": None,
+                "template": {"id": "basic", "version": "1"},
+                "changes": changes([intent]),
+            },
+        )
+    )
+    before = deepcopy(tools.runtime.task_queries.summary())
+
+    with pytest.raises(PoiseError) as caught:
+        tools.invoke(
+            request(
+                "sprint",
+                {
+                    "action": "publish",
+                    "sprint_id": None,
+                    "request_id": "publish-invalid-member",
+                    "expected_revision": drafted["revision"],
+                },
+            )
+        )
+
+    message = str(caught.value)
+    assert all(token in message for token in ("CHECK", "test_missing_creation_path.py", "base"))
+    assert tools.runtime.task_queries.summary() == before
+    plan = tools.invoke(
+        request(
+            "show",
+            {"queries": [{"id": "plan", "kind": "sprint", "sprint_id": "S", "view": "plan"}]},
+        )
+    )["results"][0]["value"]
+    assert plan["aggregate"]["state"] == "draft"
+    next_result = bootstrap(
+        WorkTools(Poise(project["config_path"], "after-sprint-preflight")),
+        automatic_intent(project, "after-sprint-preflight"),
+    )
+    assert next_result["task"] == "0001"
+
+
 def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
     configure(project, policy())
+    cfg = deepcopy(project["cfg"])
+    cfg["automatic_checks"] = []
+    write_json(project["config_path"], cfg)
+    project["cfg"] = cfg
     runtime = Poise(project["config_path"], "legacy-owner")
-    explicit = bootstrap(WorkTools(runtime), task_contract(project, "LEGACY"))
+    seed = task_contract(project, "LEGACY")
+    existing = "src/double.py"
+    seed["methods"] = [{
+        "id": "CHECK",
+        "argv": [sys.executable, "-m", "pytest", "-q", existing],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
+        "timeout_seconds": 30,
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": [],
+    }]
+    seed["method_inputs"] = [{
+        "method_id": "CHECK",
+        "repository_inputs": [existing],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "pytest",
+            "parser": "positional-paths",
+            "version": 1,
+        },
+    }]
+    seed["checks"] = {
+        stage["id"]: (["CHECK"] if stage["id"] == "tests" else [])
+        for stage in project["process"]["stages"]
+    }
+    explicit = bootstrap(WorkTools(runtime), seed)
+    source = runtime.task_queries.record("LEGACY")
+    historical_contract = deepcopy(source["contract"])
+    historical_contract["id"] = "HISTORICAL"
+    historical_contract.pop("method_inputs")
+    with runtime.store.unit_of_work() as uow:
+        original = uow.tasks.load("LEGACY")
+        historical = replace(
+            original,
+            state=replace(original.state, task_id="HISTORICAL"),
+        )
+        uow.tasks.create(
+            historical,
+            {
+                "contract": historical_contract,
+                "process": deepcopy(source["process"]),
+                "sprint_id": None,
+                "goal": historical_contract["goal"],
+                "config_hash": source["config_hash"],
+            },
+        )
     with runtime.store.transaction() as db:
         before_version = db.execute("PRAGMA user_version").fetchone()[0]
 
     reopened = Poise(project["config_path"], "legacy-reader")
     record = reopened.task_queries.record("LEGACY")
+    historical_record = reopened.task_queries.record("HISTORICAL")
+    with reopened.store.unit_of_work() as uow:
+        restored = uow.tasks.load("HISTORICAL")
 
     assert explicit["task"] == record["id"] == "LEGACY"
+    assert historical_record["contract"] == historical_contract
+    assert "method_inputs" not in historical_record["contract"]
+    assert restored.state.task_id == "HISTORICAL"
+    assert restored.state.version == historical.state.version
     assert before_version == 12
     with reopened.store.transaction() as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 12

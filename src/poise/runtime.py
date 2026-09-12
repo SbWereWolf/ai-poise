@@ -1,6 +1,5 @@
 from __future__ import annotations
 from copy import deepcopy
-import fnmatch
 import json
 import os
 import re
@@ -15,8 +14,11 @@ from .composition import task_tools
 from .application.runner import StageRunner
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
+from .modules.evidence.domain import completed_receipts
+from .modules.foundation.paths import matches_allowed_path
+from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import run_command, contains, preview
+from .execution import run_command, contains, method_passed, preview
 
 
 def resolve_source_under_test(
@@ -74,7 +76,11 @@ class Poise:
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
                            limits['lock_seconds'], limits['lock_poll_seconds'])
-        self.task_commands, self.task_queries = task_tools(self.store)
+        from .infrastructure.repository_tree import GitRepositoryTree
+        repository_tree = GitRepositoryTree(
+            self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
+        )
+        self.task_commands, self.task_queries = task_tools(self.store, repository_tree)
         self.runner = StageRunner(self.task_commands)
         self.evidence_commands = EvidenceCommands(self.store.unit_of_work)
         from .infrastructure.sqlite.interactions import InteractionStore
@@ -231,15 +237,22 @@ class Poise:
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
 
+    def _terminal_context(self, data: dict) -> dict:
+        return {
+            **self._context(data, False),
+            'content': self.task_queries.content(data['id']),
+            'evidence': self.task_queries.evidence_view(data['id']),
+            'history': self.task_queries.history(data['id']),
+        }
+
     def _validate_task(self, task: dict, process: dict) -> dict:
         from .modules.tasks.definition import validate_creation
         validate_creation(task,process,self.cfg['automatic_checks'])
         return process
 
-    def _creation_base(self, base_revision=None):
+    def _creation_base(self):
         repository=Path(self.cfg['git']['repository']).resolve(strict=True)
-        reference=self.cfg['git']['base_ref'] if base_revision is None else base_revision
-        return self._git(repository,'rev-parse','--verify',reference+'^{commit}')
+        return self._git(repository,'rev-parse','--verify',self.cfg['git']['base_ref']+'^{commit}')
 
     def _execution_reservation(self, task_id, base):
         branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
@@ -313,11 +326,12 @@ class Poise:
             selected=self.task_queries.record(task['id'])
             if selected is None:raise PoiseError('Неизвестный task/sprint ID')
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
-            if selected['status']=='superseded':
-                if current and current['status'] not in ('completed','cancelled','superseded') and current['id']!=selected['id']:
+            if is_terminal_task_status(selected['status']):
+                if current and not is_terminal_task_status(current['status']):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
-                self.store.bind(self.session,selected['id'])
-                return self._context(selected,False)
+                result = self._terminal_context(selected)
+                self.store.bind(self.session, None)
+                return result
             task=deepcopy(selected['contract'])
         if task is not None:
             intent = deepcopy(task)
@@ -333,7 +347,7 @@ class Poise:
                 if contract.get('goal_type') not in self.processes:
                     raise PoiseError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
-            if current and current['status'] not in ('completed','cancelled','superseded'):
+            if current and not is_terminal_task_status(current['status']):
                 same_automatic=(automatic and current.get('creation_request',{}).get('request_id')==intent.get('request_id'))
                 if not same_automatic and current['id'] != contract.get('id'):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
@@ -341,7 +355,7 @@ class Poise:
                 data = existing
                 if data['claimed_by'] not in (None, self.session):
                     raise PoiseError('Задача уже связана с другой сессией')
-                if data['claimed_by'] is None and data['status'] not in ('completed','cancelled','superseded'):
+                if data['claimed_by'] is None and not is_terminal_task_status(data['status']):
                     self.handoff_tools.resume(data)
                     data=self.task_queries.record(data['id'])
                 self._reconcile_task_worktree(data)
@@ -355,7 +369,7 @@ class Poise:
                     intent,self.session,selected_process,self.cfg['automatic_checks'],
                     {'config_hash':self.config_hash},
                     lambda task_id:self._execution_reservation(task_id,base),
-                    self.cfg.get('task_ids'))
+                    self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
                 data=self.task_queries.record(allocation.task_id)
                 if allocation.replayed and data['claimed_by'] not in (None,self.session):
@@ -365,7 +379,10 @@ class Poise:
                 data=self.task_queries.record(allocation.task_id)
             self.store.bind(self.session, data['id'])
             current = self.store.current(self.session)
-        if decision is None and task is None and (current is None or current['status'] in ('completed','cancelled','superseded')):
+        if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
+            self.store.bind(self.session, None)
+            current = None
+        if decision is None and task is None and current is None:
             sprint=self.sprint_tools.overview(None)
             if sprint is not None:return sprint
         if current is None:
@@ -392,11 +409,12 @@ class Poise:
                         raise PoiseError('Неизвестен исход прерванной проверки; rework запрещён')
                     worktree=Path(data['worktree'])
                     checks=self._select_checks(data,self._changed(data,entry_tree))
-                    invocations=self._invocations(checks,worktree)
-                    execution_key=digest({'stage':self._stage(data)['id'],'iteration':data['iteration'],
-                                          'tree':entry_tree,'invocations':invocations})
+                    invocations,execution_key=self._verification_execution(
+                        data,entry_tree,checks,worktree)
                     batch=self.task_commands.failed_observation_batch(data['id'],entry_tree,execution_key)
-                    if batch is None or not self._intact_receipts(batch['receipts']):
+                    if batch is None or not self._intact_receipts(
+                        data['id'], batch['receipts'], invocations, entry_tree
+                    ):
                         raise PoiseError('Нет точного доступного failed check batch текущего результата')
                     self.runner.rework_failed(
                         data['id'],self.session,feedback,entry_tree,execution_key,rework_stage)
@@ -424,7 +442,11 @@ class Poise:
         ids = list(data['contract']['checks'][stage_id])
         automatic = set()
         for mapping in self.cfg['automatic_checks']:
-            if any(fnmatch.fnmatchcase(path,pattern) for path in changed for pattern in mapping['paths']):
+            if any(
+                matches_allowed_path(path, pattern)
+                for path in changed
+                for pattern in mapping['paths']
+            ):
                 ids.extend(mapping['by_stage'][stage_id])
                 automatic.update(mapping['by_stage'][stage_id])
         methods = {m['id']:m for m in data['contract']['methods']}
@@ -512,7 +534,10 @@ class Poise:
         changed = self._changed(data, tree)
         if stage['read_only'] and changed:
             raise PoiseError(f'read-only этап изменил репозиторий: {changed}')
-        outside = [p for p in changed if not any(fnmatch.fnmatchcase(p,pattern) for pattern in stage['allowed_paths'])]
+        outside = [
+            path for path in changed
+            if not any(matches_allowed_path(path, pattern) for pattern in stage['allowed_paths'])
+        ]
         if outside: raise PoiseError(f'Изменения вне разрешённой области этапа: {outside}')
         if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
             raise PoiseError('Сообщение коммита не соответствует правилу проекта')
@@ -531,17 +556,22 @@ class Poise:
                 return self._action_incomplete(data,payload,action)
             tree=self._tree(worktree)
             changed=self._changed(data,tree)
-            outside=[p for p in changed if not any(fnmatch.fnmatchcase(p,pattern) for pattern in stage['allowed_paths'])]
+            outside = [
+                path for path in changed
+                if not any(matches_allowed_path(path, pattern) for pattern in stage['allowed_paths'])
+            ]
             if outside:raise PoiseError(f'Plan changed files outside its declared stage scope: {outside}')
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         checks = self._select_checks(data, changed)
-        invocations = self._invocations(checks, worktree, require_source=True)
-        execution_key = digest({'stage':stage['id'],'iteration':data['iteration'],'tree':tree,
-                                'invocations':invocations})
+        invocations, execution_key = self._verification_execution(
+            data, tree, checks, worktree
+        )
         # Env values participate only in the digest; they are not persisted in receipts.
         batch = self.task_commands.observation_batch(data['id'],tree,execution_key)
-        usable = batch is not None and self._usable_receipts(batch['receipts'])
+        usable = batch is not None and self._usable_receipts(
+            data['id'], batch['receipts'], invocations, tree
+        )
         if payload['evidence_work']['phase']=='continue' and not usable:
             return {'status':'observations_stale','task':data['id'],'stage':stage['id'],
                     'reason':'Нужен PREPARE: точные входы наблюдения изменились или receipt недоступен.',
@@ -578,7 +608,7 @@ class Poise:
             self.store.save(data)
             self.runner.record_observations(data['id'],self.session,tree,execution_key,receipts)
             data = self._task()
-        if not self._usable_receipts(receipts):
+        if not self._usable_receipts(data['id'], receipts, invocations, tree):
             return {'status':'checks_failed','task':data['id'],'stage':stage['id'],'attempt':attempt,'checks':receipts,'replayed':False}
         if self._tree(worktree) != tree:
             raise PoiseError('Наблюдения изменили проверяемое дерево; сначала согласуйте фактическое состояние')
@@ -624,7 +654,7 @@ class Poise:
         return {'status':status,'task':data['id'],'stage':self._stage(data)['id'],
                 'action':action,'context':context,'next_work':'Resolve the reported action state; do not repeat external effects manually.'}
 
-    def _invocations(self, checks, worktree, *, require_source=False):
+    def _invocations(self, checks, worktree):
         invocations=[]
         for method in checks:
             self.result_views.policy.select(method['argv'])
@@ -638,42 +668,96 @@ class Poise:
                 env[name]=os.environ[name]
             env.update(method['environment'])
             invocation={'method':method,'cwd':str(cwd),'environment':env}
-            if require_source:
-                provenance=resolve_source_under_test(
-                    method, worktree=worktree, cwd=cwd, environment=env
-                )
-                invocation['source_provenance']=provenance
-                invocation['provenance_digest']=digest(provenance)
-                invocation['expectation_digest']=digest({
-                    key:method[key]
-                    for key in ('expected_exit_code','stdout_contains','stderr_contains')
-                })
+            provenance=resolve_source_under_test(
+                method, worktree=worktree, cwd=cwd, environment=env
+            )
+            invocation['source_provenance']=provenance
+            invocation['provenance_digest']=digest(provenance)
+            invocation['expectation_digest']=digest({
+                'expected_exit_code': method['expected_exit_code'],
+                'stdout_contains': method['stdout_contains'],
+                'stderr_contains': method['stderr_contains'],
+                'red_failure': method.get('verification_plan', {}).get('red_failure'),
+            })
             invocations.append(invocation)
         return invocations
 
-    def _intact_receipts(self, receipts):
-        for r in receipts:
-            if not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0:
+    def _verification_execution(self, data, tree, checks, worktree):
+        invocations = self._invocations(checks, worktree)
+        execution_key = digest({
+            'stage': self._stage(data)['id'],
+            'iteration': data['iteration'],
+            'tree': tree,
+            'invocations': invocations,
+        })
+        return invocations, execution_key
+
+    def _intact_receipts(self, task_id, receipts, invocations, tree):
+        if (
+            not completed_receipts(receipts)
+            or not isinstance(invocations, list)
+            or len(receipts) != len(invocations)
+        ):
+            return False
+        recorded={
+            receipt['id']: receipt
+            for receipt in self.evidence_commands.list_for(task_id)
+            if isinstance(receipt,dict) and isinstance(receipt.get('id'),str)
+        }
+        required = {
+            'stderr',
+            'stderr_digest',
+            'stdout',
+            'stdout_digest',
+        }
+        for r, invocation in zip(receipts, invocations, strict=True):
+            if (
+                not isinstance(r, dict)
+                or not required <= set(r)
+                or recorded.get(r['id']) != r
+            ):
+                return False
+            method=invocation['method']
+            expected={
+                'argv': method['argv'],
+                'cwd': invocation['cwd'],
+                'expectation_digest': invocation['expectation_digest'],
+                'expected_exit_code': method['expected_exit_code'],
+                'guard': method['guard'],
+                'method': method['id'],
+                'obligations': method['obligations'],
+                'provenance_digest': invocation['provenance_digest'],
+                'source_provenance': invocation['source_provenance'],
+                'tree': tree,
+            }
+            if any(r.get(field) != value for field,value in expected.items()):
                 return False
             for name in ('stdout','stderr'):
-                path=Path(r[name])
-                if not path.is_file() or file_digest(path)!=r[name+'_digest']:
+                path_value = r[name]
+                digest_value = r[name + '_digest']
+                if not isinstance(path_value, str) or not path_value:
+                    return False
+                if not isinstance(digest_value, str) or not digest_value:
+                    return False
+                path=Path(path_value)
+                if not path.is_file() or file_digest(path)!=digest_value:
                     return False
         return True
 
-    def _usable_receipts(self, receipts):
-        return self._intact_receipts(receipts) and all(not r['guard'] or r['passed'] for r in receipts)
+    def _usable_receipts(self, task_id, receipts, invocations, tree):
+        return self._intact_receipts(task_id, receipts, invocations, tree) and all(
+            r['interpretable'] and (not r['guard'] or r['passed'])
+            for r in receipts
+        )
 
     def _execute_checks(self, data, stage, tree, checks, invocations, roots):
         receipts=[]
         for method,invocation in zip(checks,invocations,strict=True):
             run_id=str(uuid.uuid4())
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
-            result=run_command(method['argv'],Path(invocation['cwd']),invocation['environment'],method['timeout_seconds'],
+            result=run_command(method['argv'],Path(invocation['cwd']),invocation['environment'],None,
                                descendant(run_dir,self.paths['stdout']),descendant(run_dir,self.paths['stderr']))
-            passed=(not result['timed_out'] and result['actual_exit_code']==method['expected_exit_code'] and
-                    all(contains(Path(result['stdout']),t) for t in method['stdout_contains']) and
-                    all(contains(Path(result['stderr']),t) for t in method['stderr_contains']))
+            passed=method_passed(method, result)
             interpretable=(not result['timed_out'] and result['actual_exit_code'] is not None and result['actual_exit_code']>=0 and
                            all(result['actual_exit_code'] in rule['exit_codes'] and
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and

@@ -165,8 +165,10 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     reader = WorkTools(Poise(project["config_path"], "old-task-reader"))
     old = bootstrap(reader, "BAD")
     assert old["status"] == "superseded" and old["result_template"] is None
-    shown = reader.invoke(request("show", {"queries": [{"id": "old", "kind": "evidence"}]}))
-    assert shown["results"][0]["value"] == evidence_before
+    assert reader.runtime.current_task() is None
+    assert old["evidence"] == evidence_before
+    assert old["content"] == reader.runtime.task_queries.content("BAD")
+    assert old["history"] == reader.runtime.task_queries.history("BAD")
     assert reader.runtime.task_queries.latest_submission("BAD", "work", 1) == submission_before
     assert reader.runtime.store.artifact_records("BAD") == artifacts_before
 

@@ -45,6 +45,7 @@ class RouteNode:
     transitions: tuple[tuple[str, str | None], ...]
     rework_targets: tuple[str, ...]
     read_only: bool
+    allowed_paths: tuple[str, ...]
 
     def target(self, outcome: str) -> str | None:
         choices = dict(self.transitions)
@@ -85,6 +86,10 @@ class RouteDefinition:
                 raise DomainError("Повтор outcome")
             if type(node.read_only) is not bool:
                 raise DomainError("read_only должен быть явным bool")
+            if (type(node.allowed_paths) is not tuple
+                    or any(not isinstance(path, str) or not path for path in node.allowed_paths)
+                    or len(set(node.allowed_paths)) != len(node.allowed_paths)):
+                raise DomainError("allowed_paths должен содержать уникальные непустые строки")
             if node.handler == HandlerKind.INSPECT and not node.read_only:
                 raise DomainError("inspect обязан оставлять предмет read-only")
             if len(set(node.rework_targets)) != len(node.rework_targets):
@@ -132,8 +137,14 @@ class RouteDefinition:
                     raise DomainError("rework_targets: требуется явный список ID")
                 if kind == HandlerKind.INSPECT and stage["allowed_paths"]:
                     raise DomainError("inspect не разрешает изменения target paths")
-                nodes.append(RouteNode(stage["id"], kind, tuple(transitions.items()),
-                                       tuple(stage["rework_targets"]), stage["read_only"]))
+                nodes.append(RouteNode(
+                    stage["id"],
+                    kind,
+                    tuple(transitions.items()),
+                    tuple(stage["rework_targets"]),
+                    stage["read_only"],
+                    tuple(stage["allowed_paths"]),
+                ))
             return cls(cfg["entry"], tuple(nodes), cfg["max_transitions"], cfg["max_stage_visits"])
         except (KeyError, TypeError, ValueError) as exc:
             raise DomainError(f"Неполный/неверный маршрут: {exc}") from exc

@@ -8,10 +8,16 @@ from pathlib import Path
 import pytest
 
 from poise.common import digest, load_config
-from poise.modules.foundation.errors import PoiseError
+from poise.modules.foundation.errors import PoiseError, VersionConflict
 from poise.runtime import Poise
 from poise.application.work import WorkTools
 from tests.conftest import DeterministicClock, write_json
+from batch.helpers import request
+from sprints.helpers import (
+    bootstrap as bootstrap_sprint,
+    draft as draft_sprint,
+    publish as publish_sprint,
+)
 from .helpers import setup_case
 
 
@@ -181,6 +187,28 @@ def test_stale_or_invalid_candidate_never_partially_publishes(project, case):
     assert not (project["root"].parent / "outside.json").exists()
 
 
+def test_stale_process_revision_never_partially_publishes(project):
+    settings, config_path, created = installed_project(project)
+    process_path = config_path.parent / "config/processes/development.json"
+    before_manifest = config_path.read_bytes()
+    before_process = process_path.read_bytes()
+    update = process_change(read_process(config_path))
+    update["expected_revision"] = "0" * 64
+    request = update_request(
+        config_path,
+        created["revision"],
+        process_updates=[update],
+    )
+
+    with pytest.raises(VersionConflict, match="Process revision is stale"):
+        update_tools(settings).apply(request)
+
+    assert config_path.read_bytes() == before_manifest
+    assert process_path.read_bytes() == before_process
+    assert project_revision(config_path) == created["revision"]
+    assert not (project["root"] / request["receipt_path"]).exists()
+
+
 def test_external_file_change_is_not_adopted_as_a_known_revision(project):
     settings, config_path, created = installed_project(project)
     process_path = config_path.parent / "config/processes/development.json"
@@ -267,6 +295,42 @@ def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_reques
     assert result["readiness"]["repository"] == "verified"
     assert result["readiness"]["remote"] == "not_required"
     assert Path(result["receipt_path"]).is_file()
+
+
+def test_superseded_task_does_not_block_quiescent_manifest_update(project):
+    settings, config_path, created = installed_project(project)
+    original = deepcopy(project["task"])
+    original.update(id="BAD", sprint_id="S", goal="Replace this fixture")
+    replacement = deepcopy(original)
+    replacement.update(id="BAD-2", goal="Replacement fixture")
+    planner = WorkTools(Poise(config_path, "replacement-planner", DeterministicClock()))
+    planned = draft_sprint(planner, [original])
+    published = publish_sprint(planner, planned["revision"])
+    planner.invoke(request("sprint", {
+        "action": "replace_task",
+        "sprint_id": None,
+        "request_id": "replace-before-project-update",
+        "expected_revision": published["revision"],
+        "source_task": "BAD",
+        "replacement": replacement,
+        "reason": "Replace the unfinished test fixture task",
+        "authorization": "The test explicitly authorizes this replacement",
+    }))
+    worker = WorkTools(Poise(config_path, "replacement-worker", DeterministicClock()))
+    bootstrap_sprint(worker, "BAD-2")
+    worker.invoke(request("cancel", {"reason": "Leave the project quiescent"}))
+    assert planner.runtime.task_queries.record("BAD")["status"] == "superseded"
+    assert planner.runtime.task_queries.record("BAD-2")["status"] == "cancelled"
+    update = update_request(
+        config_path,
+        created["revision"],
+        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+    )
+
+    result = update_tools(settings).apply(update)
+
+    assert result["status"] == "updated"
+    assert json.loads(config_path.read_text())["git"]["push_required"] is False
 
 
 def relocation(config_path, destination, source_disposition="delete_after_publish"):
@@ -357,6 +421,31 @@ def test_state_relocation_rejects_occupied_destination_and_active_work(project):
     assert not empty_destination.exists()
 
 
+def test_state_relocation_rejects_unowned_staging_without_deleting_it(project):
+    settings, config_path, created = installed_project(project)
+    destination = project["root"].parent / "relocated-with-foreign-staging"
+    move = relocation(config_path, destination)
+    source = Path(move["expected_source"])
+    source.mkdir(parents=True)
+    (source / "precious.txt").write_text("keep source")
+    staging = destination.parent / f".{destination.name}.project-update"
+    staging.mkdir()
+    foreign = staging / "foreign.txt"
+    foreign.write_text("do not delete")
+    update = update_request(config_path, created["revision"], state_relocation=move)
+
+    with pytest.raises(PoiseError, match="staging|подготов"):
+        update_tools(settings).apply(update)
+
+    assert foreign.read_text() == "do not delete"
+    assert (source / "precious.txt").read_text() == "keep source"
+    assert not destination.exists()
+    assert project_revision(config_path) == created["revision"]
+    receipt = project["root"] / update["receipt_path"]
+    assert not receipt.exists()
+    assert not receipt.with_name(receipt.name + ".pending").exists()
+
+
 @pytest.mark.parametrize("failure_point", ["copy", "publish", "switch", "cleanup"])
 def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, failure_point):
     import poise.infrastructure.project_config as infrastructure
@@ -376,7 +465,11 @@ def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, fa
     original = getattr(infrastructure, seam)
 
     def interrupt(*args, **kwargs):
-        if failure_point in {"publish", "switch", "cleanup"}:
+        if failure_point == "copy":
+            staging = args[1]
+            staging.mkdir()
+            (staging / "partial.txt").write_text("incomplete copy")
+        else:
             original(*args, **kwargs)
         raise OSError(f"interrupted during {failure_point}")
 
@@ -393,9 +486,14 @@ def test_interrupted_relocation_recovers_on_exact_retry(project, monkeypatch, fa
     assert not source.exists()
 
 
-def test_project_config_cli_accepts_one_bounded_packet(project):
+def test_project_config_cli_publishes_process_update_and_durable_receipt(project):
     settings, config_path, created = installed_project(project)
-    request = update_request(config_path, created["revision"])
+    instruction = "Task 0033 updates this process through the public CLI."
+    request = update_request(
+        config_path,
+        created["revision"],
+        process_updates=[process_change(read_process(config_path), instruction)],
+    )
 
     completed = subprocess.run(
         [sys.executable, "-m", "poise", "project-config", "--settings", str(settings)],
@@ -405,7 +503,15 @@ def test_project_config_cli_accepts_one_bounded_packet(project):
     )
 
     assert completed.returncode == 0, completed.stderr + completed.stdout
-    assert json.loads(completed.stdout)["status"] == "updated"
+    result = json.loads(completed.stdout)
+    assert result["status"] == "updated"
+    assert result["changed"] is True
+    assert result["revision"] == project_revision(config_path)
+    assert read_process(config_path)["stages"][0]["instruction"] == instruction
+    receipt = project["root"] / request["receipt_path"]
+    saved = json.loads(receipt.read_text())
+    assert saved["request_digest"] == digest(request)
+    assert saved["result"]["revision"] == result["revision"]
 
 
 @pytest.mark.parametrize("case", ["oversized", "duplicate_key"])

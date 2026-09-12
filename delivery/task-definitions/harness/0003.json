@@ -26,6 +26,7 @@
     "Логическая inspection проверила непротиворечивость документации, skill и фактических результатов исследования; существенные findings закрыты повторной inspection."
   ],
   "methods": [],
+  "method_inputs": [],
   "checks": {
     "framing": [],
     "outline": [],

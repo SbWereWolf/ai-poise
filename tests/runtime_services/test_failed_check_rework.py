@@ -1,10 +1,11 @@
 from copy import deepcopy
+import json
 from pathlib import Path
 import sys
 
 import pytest
 
-from conftest import write_json
+from conftest import verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from conftest import WorkPoise as Poise
@@ -32,7 +33,7 @@ def _stage(stage_id, allowed_paths):
 
 
 def _scenario(project, *, passing_continuation=False, historical_observation=False,
-              closed_revise_target=False):
+              closed_revise_target=False, uninterpretable_subject=False):
     configure(project)
     project["cfg"]["accounting"]["time_mode"] = "reported"
     stages = [
@@ -54,7 +55,7 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         stages.extend((closed, inspection))
         stages[1]["transitions"] = {"complete": "closed_finding_remediation"}
         stages[0]["rework_targets"].append("closed_finding_remediation")
-    if passing_continuation or historical_observation:
+    if passing_continuation or historical_observation or uninterpretable_subject:
         stages[0]["handler"] = "check"
         stages[0]["transitions"] = {
             "satisfied": "test_remediation",
@@ -83,13 +84,31 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         "argv": [sys.executable, "-c", "raise SystemExit(0)" if passing_continuation else "raise SystemExit(1)"],
         "cwd": ".",
         "environment": {},
-        "timeout_seconds": 10,
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
+        "verification_plan": verification_plan(
+            "Verify the exact failed-check recovery scenario.",
+            ["src/**"],
+            green_stages=["implementation"],
+        ),
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": [],
     }
     task = deepcopy(project["task"])
     task["methods"] = [method]
+    task["method_inputs"] = [{
+        "method_id": "CHECK",
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
+    }]
     task["checks"] = {
         "implementation": ["CHECK"],
         "test_remediation": [],
@@ -112,7 +131,13 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
                     "stdout_contains": [],
                     "stderr_contains": [],
                 }
-            } if historical_observation else {}),
+            } if historical_observation else ({
+                "CHECK": {
+                    "exit_codes": [1],
+                    "stdout_contains": ["DOC_RULES_OBSERVED"],
+                    "stderr_contains": [],
+                }
+            } if uninterpretable_subject else {})),
             "arguments": [{
                 "id": "CONTINUE",
                 "kind": "logical",
@@ -213,6 +238,38 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     completed = verify(tools, result(recovered, "recovered through the declared route"))
     assert completed["status"] == "verified"
     assert completed["stage"] == "test_remediation"
+
+
+def test_uninterpretable_subject_check_can_rework_to_declared_stage(project):
+    tools, context = _scenario(project, uninterpretable_subject=True)
+    failed = _fail_current_stage(tools, context, "DOC_RULES-like subject failed without marker")
+    receipt = failed["checks"][0]
+    before = _show(tools)
+    observations = _show(tools, "evidence")["observations"]
+
+    assert receipt["guard"] is False
+    assert receipt["interpretable"] is False
+    assert receipt["timed_out"] is False
+    assert receipt["actual_exit_code"] == 1
+
+    recovered = _rework(tools)
+
+    after = _show(tools)
+    current = tools.runtime.current_task()
+    assert recovered["stage"] == "test_remediation"
+    assert recovered["iteration"] == 1
+    assert after["attempts"] == 0
+    assert current["publication"] is None
+    assert current["pending"] is None
+    assert current["entry_tree"] == receipt["tree"]
+    assert after["submission_count"] == before["submission_count"] == 1
+    assert after["evidence_count"] == before["evidence_count"] == 1
+    assert _show(tools, "evidence")["observations"] == observations
+    assert any(
+        event.get("event") == "user_failed_check_rework"
+        and event.get("reason") == "Repair the failed verification through the declared test route."
+        for event in after["history"]
+    )
 
 
 def test_checks_failed_rework_does_not_bypass_target_allowed_paths(project):
@@ -360,13 +417,54 @@ def test_active_rework_rejects_an_unknown_pending_check_outcome(project):
     assert _show(tools) == before
 
 
-def test_active_rework_rejects_a_failed_batch_with_missing_output(project):
+@pytest.mark.parametrize(
+    ('stream','mutation'),
+    [
+        ('stdout','missing'),
+        ('stderr','missing'),
+        ('stdout','modified'),
+        ('stderr','modified'),
+    ],
+)
+def test_active_rework_rejects_a_failed_batch_with_unavailable_output(project, stream, mutation):
     tools, context = _scenario(project)
     failed = _fail_current_stage(tools, context)
-    Path(failed["checks"][0]["stdout"]).unlink()
+    output = Path(failed["checks"][0][stream])
+    if mutation == 'missing':
+        output.unlink()
+    else:
+        output.write_text('modified after receipt\n', encoding='utf-8')
     before = _show(tools)
 
     with pytest.raises(PoiseError):
+        _rework(tools)
+
+    assert _show(tools) == before
+
+
+def test_active_rework_rejects_a_failed_batch_with_malformed_digest_metadata(project):
+    tools, context = _scenario(project)
+    _fail_current_stage(tools, context)
+    with tools.runtime.store.transaction() as db:
+        row = db.execute(
+            "SELECT data FROM task_proofs WHERE task_id='T1'"
+        ).fetchone()
+        proof = json.loads(row[0])
+        del proof["book"]["batches"][-1]["receipts"][0]["stdout_digest"]
+        db.execute(
+            "UPDATE task_proofs SET data=? WHERE task_id='T1'",
+            (
+                json.dumps(
+                    proof,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            ),
+        )
+    before = _show(tools)
+
+    with pytest.raises(PoiseError, match="точного доступного failed check batch"):
         _rework(tools)
 
     assert _show(tools) == before

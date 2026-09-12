@@ -37,7 +37,12 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
         goal=f'Результат {identifier}',requirements=[f'R-{identifier}'],definition_of_done=[f'DOD-{identifier}'])
     t['methods']=[{'id':'CHECK','argv':[sys.executable,'-B','-c',command],'cwd':'.','environment':{},
                    'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-                   'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}]
+                   'verification_plan':{'responsibility':'Verify the published Task result.',
+                       'change_surface':['src/**' if kind=='development' else 'docs/**'],
+                       'red_stages':[],'green_stages':['work'],'red_failure':None},
+                   'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}]
+    t['method_inputs']=[{'method_id':'CHECK','repository_inputs':[],'future_outputs':[],
+        'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}]
     t['checks']={'work':['CHECK']};t['evidence_plan']={'work':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     return t
 

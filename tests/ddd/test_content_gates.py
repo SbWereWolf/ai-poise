@@ -5,7 +5,7 @@ import json
 import sqlite3
 from pathlib import Path
 import pytest
-from conftest import write_json, fill, add_test
+from conftest import write_json, fill, add_test, verification_plan
 from conftest import Poise
 from poise.common import PoiseError
 from poise.modules.content_requirements.domain import ContentPolicy
@@ -226,6 +226,8 @@ def test_old_version_two_store_is_rejected_without_migration(project):
 
 def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_executed(project):
     import sys
+    project['task']['methods']=[]
+    project['task']['method_inputs']=[]
     project['task']['checks']={s['id']:[] for s in project['process']['stages']}
     project['cfg']['automatic_checks']=[]
     h,b=setup(project,empty(),empty()); fill(b)
@@ -235,7 +237,9 @@ def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_execute
         {'id':'method-required','kind':'trace','route':'new-test','point':'method','stages':['tests'],'phase':'pre','field_equals':{}}]}
     method={'id':'ADDED','argv':[sys.executable,'-c',"print('executed-new-method')"],'cwd':'.','environment':{},
             'source_under_test':{'kind':'external','reason':'The registration probe reads no repository source.'},
-            'timeout_seconds':5,'expected_exit_code':0,'stdout_contains':['executed-new-method'],'stderr_contains':[]}
+            'verification_plan':verification_plan(
+                'Verify the newly registered external observation.',[],green_stages=['tests','code_review']),
+            'expected_exit_code':0,'stdout_contains':['executed-new-method'],'stderr_contains':[]}
     update(b,content_additions=additions,trace={'new-test':{'method':'ADDED'}},
            method_additions=[{'method':method,'stages':['tests','code_review']}])
     result=h.verify()
@@ -252,7 +256,8 @@ def test_cli_content_failure_is_business_failure_not_exit_zero(project):
     import os, subprocess, sys
     h,b=setup(project,section_policy('tests'),empty()); fill(b)
     result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'verify','input':{'result':b['result_template'],'artifacts':[]},'messages':[]}),capture_output=True,text=True,
-        env={**os.environ,'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'S1'},timeout=15)
+        env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
+             'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'S1'},timeout=15)
     assert result.returncode==1, result.stdout+result.stderr
     assert 'content_requirements_failed' in result.stdout
     assert h.show()['evidence_count']==0
@@ -261,8 +266,10 @@ def test_cli_content_failure_is_business_failure_not_exit_zero(project):
 def test_method_registration_rolls_back_with_failed_content_batch(project):
     import sys
     h,b=setup(project,empty(),empty()); fill(b)
-    method={'id':'NEW','argv':[sys.executable,'-c','print(1)'],'cwd':'.','environment':{},'timeout_seconds':3,
+    method={'id':'NEW','argv':[sys.executable,'-c','print(1)'],'cwd':'.','environment':{},
             'source_under_test':{'kind':'external','reason':'The rollback probe reads no repository source.'},
+            'verification_plan':verification_plan(
+                'Verify the rollback observation.',[],green_stages=['tests']),
             'expected_exit_code':0,'stdout_contains':['1'],'stderr_contains':[]}
     update(b,method_additions=[{'method':method,'stages':['tests']}])
     with h.store.transaction() as db:
@@ -271,6 +278,49 @@ def test_method_registration_rolls_back_with_failed_content_batch(project):
     with h.store.transaction() as db:
         assert db.execute("SELECT COUNT(*) FROM task_methods WHERE method_id='NEW'").fetchone()[0]==0
         assert db.execute('SELECT COUNT(*) FROM submissions').fetchone()[0]==0
+
+
+def test_invalid_method_addition_plan_is_rejected_before_any_owner_mutation(project):
+    import sys
+
+    h,b=setup(project,empty(),empty());fill(b)
+    method={
+        'id':'DOCS_TOO_EARLY',
+        'argv':[sys.executable,'-B','-c',"print('docs-green')"],
+        'cwd':'.',
+        'environment':{},
+        'source_under_test':{
+            'kind':'external',
+            'reason':'The deterministic contract command reads no repository source.',
+        },
+        'verification_plan':verification_plan(
+            'Verify documentation that this process cannot produce.',
+            ['docs/**'],
+            green_stages=['tests'],
+        ),
+        'expected_exit_code':0,
+        'stdout_contains':['docs-green'],
+        'stderr_contains':[],
+    }
+    update(b,method_additions=[{'method':method,'stages':['tests']}])
+    before=h.task_queries.record('T1')
+    before_files=sorted(str(path.relative_to(Path(b['task_root'])))
+                        for path in Path(b['task_root']).rglob('*'))
+
+    with pytest.raises(PoiseError) as caught:
+        h.verify()
+
+    message=str(caught.value)
+    assert all(token in message for token in
+               ('DOCS_TOO_EARLY','tests','docs/**','allowed_paths'))
+    assert h.task_queries.record('T1')==before
+    assert h.show()['submission_count']==0
+    assert sorted(str(path.relative_to(Path(b['task_root'])))
+                  for path in Path(b['task_root']).rglob('*'))==before_files
+    with h.store.transaction() as db:
+        assert db.execute(
+            "SELECT COUNT(*) FROM task_methods WHERE task_id='T1' AND method_id='DOCS_TOO_EARLY'"
+        ).fetchone()[0]==0
 
 
 def test_accepted_result_cannot_hide_unsatisfied_newly_registered_goal_requirements(project):

@@ -14,6 +14,7 @@ from conftest import add_test, git, write_json
 from poise.application.work import WorkTools
 from poise.infrastructure.hook_transport import HookService
 from hook_transport.helpers import definition, event, install, settings
+from result_integration.helpers import integration_input, prepare_completed_task
 from sprints.helpers import (
     draft,
     publish,
@@ -47,13 +48,16 @@ def _instrumented_project_source(project):
                 and call.func.attr == "work"
             ):
                 inserted += 1
-                probe = ast.parse(
+                before = ast.parse(
                     "package_root = Path(__file__).resolve().parents[1]\n"
-                    "result.setdefault('loaded_source', str(package_root))\n"
-                    "result.setdefault('source_sentinel', "
-                    "(package_root / 'source_sentinel.txt').read_text(encoding='utf-8').strip())"
+                    "source_sentinel = "
+                    "(package_root / 'source_sentinel.txt').read_text(encoding='utf-8').strip()"
                 ).body
-                return [node, *probe]
+                after = ast.parse(
+                    "result.setdefault('loaded_source', str(package_root))\n"
+                    "result.setdefault('source_sentinel', source_sentinel)"
+                ).body
+                return [*before, node, *after]
             return node
 
     tree = InstrumentWorkResult().visit(tree)
@@ -158,6 +162,27 @@ def _commit_source_probe(worktree, sentinel):
     return package
 
 
+def _accepted_source_change(worktree):
+    package = Path(worktree) / "src" / "poise"
+    (package / "source_sentinel.txt").write_text("accepted-task\n", encoding="utf-8")
+    (Path(worktree) / "src" / "accepted_feature.py").write_text(
+        "VALUE = 'accepted'\n", encoding="utf-8"
+    )
+
+
+def _completed_source(project, tmp_path, session, *, missing_entrypoint=False):
+    service, installed, installation = _service(project, tmp_path)
+
+    def accepted_source_change(worktree):
+        _accepted_source_change(worktree)
+        if missing_entrypoint:
+            (Path(worktree) / "src" / "poise" / "__main__.py").unlink()
+
+    _, source_worktree, source = prepare_completed_task(project, accepted_source_change)
+    launcher, binding = _launcher(service, installed, session)
+    return service, installation, launcher, binding, source_worktree, source
+
+
 def _remove_work_method(package):
     transport = package / "infrastructure" / "hook_transport.py"
     tree = ast.parse(transport.read_text(encoding="utf-8"))
@@ -225,6 +250,32 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
     assert _work_invocations(project) == [
         {"source": str(task_source), "operation": "bootstrap"}
     ]
+
+
+def test_terminal_task_bootstrap_uses_installation_source_without_binding(project, tmp_path):
+    service, installed, installation = _service(project, tmp_path)
+    owner_launcher, _ = _launcher(service, installed, "terminal-owner")
+    started, context = _call(owner_launcher, _bootstrap(project["task"]))
+    assert started.returncode == 0, started.stdout + started.stderr
+    cancelled, report = _call(
+        owner_launcher,
+        request("cancel", {"reason": "Prepare a terminal source-resolution fixture."}),
+    )
+    assert cancelled.returncode == 0, cancelled.stdout + cancelled.stderr
+    assert report["status"] == "cancelled"
+
+    reader_launcher, binding = _launcher(service, installed, "terminal-reader")
+    prompt = event("UserPromptSubmit", session="terminal-reader", turn="terminal-turn")
+    prompt["cwd"] = str(service.settings.root)
+    service.event(installed["definition_path"], prompt)
+
+    inspected, terminal = _call(reader_launcher, _bootstrap({"id": "T1"}))
+
+    assert inspected.returncode == 0, inspected.stdout + inspected.stderr
+    assert terminal["status"] == "cancelled"
+    assert Path(terminal["loaded_source"]) == installation / "poise"
+    assert terminal["session"] == binding["session_id"]
+    assert service.bound_runtime(binding["binding_path"]).current_task() is None
 
 
 @pytest.mark.parametrize("config_changed", [False, True])

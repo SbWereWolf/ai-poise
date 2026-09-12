@@ -14,8 +14,24 @@ def request(operation, inputs):
 
 
 def prepare_completed_task(
-    project, change, *, task_id="T1", accept=True, artifact_files=None
+    project,
+    change,
+    *,
+    task_id="T1",
+    accept=True,
+    methods=(),
+    checks=(),
+    artifact_files=None,
 ):
+    methods = [deepcopy(method) for method in methods]
+    for method in methods:
+        method.setdefault("verification_plan", {
+            "responsibility": "Verify the source result before integration.",
+            "change_surface": ["src/**"],
+            "red_stages": [],
+            "green_stages": ["implementation"],
+            "red_failure": None,
+        })
     cfg = deepcopy(project["cfg"])
     cfg["automatic_checks"] = []
     cfg["git"]["push_required"] = False
@@ -47,9 +63,19 @@ def prepare_completed_task(
         "goal": "Create an accepted source commit.",
         "requirements": ["The source commit is preserved until integration."],
         "definition_of_done": ["The completed result can be integrated."],
-        "methods": [],
+        "methods": list(methods),
+        "method_inputs": [{
+            "method_id": method["id"],
+            "repository_inputs": [],
+            "future_outputs": [],
+            "reference_profile": {
+                "runner": "python",
+                "parser": "inline-no-path-arguments",
+                "version": 1,
+            },
+        } for method in methods],
         "artifact_requirements": [],
-        "checks": {"implementation": []},
+        "checks": {"implementation": list(checks)},
         "evidence_plan": {
             "implementation": {"subject_methods": {}, "arguments": [], "review_arguments": []}
         },

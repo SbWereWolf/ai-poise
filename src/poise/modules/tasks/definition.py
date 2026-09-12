@@ -16,8 +16,13 @@ def path_identifier(value):
 
 
 def validate_creation(contract, process, automatic_checks):
+    if isinstance(contract,dict) and 'method_inputs' not in contract:
+        method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
+        raise DomainError(
+            f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
+        )
     exact_keys(contract,{'id','sprint_id','goal_type','goal','requirements','definition_of_done',
-        'methods','checks','artifact_requirements','content_contract','evidence_plan'},'task')
+        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan'},'task')
     path_identifier(contract['id'])
     if contract['sprint_id'] is not None:path_identifier(contract['sprint_id'])
     GoalTypeDefinition.parse(process)
@@ -30,7 +35,11 @@ def validate_creation(contract, process, automatic_checks):
         if not isinstance(v,list) or not v or any(not isinstance(s,str) or not s.strip() for s in v) or len(v)!=len(set(v)):
             raise DomainError(f'{field}: требуются непустые уникальные строки')
     stages=tuple(s['id'] for s in process['stages'])
+    route = RouteDefinition.from_process(process)
     registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages)
+    from .creation_preflight import CreationPreflight
+    CreationPreflight.parse(contract,process)
+    registry.validate_route(route)
     for entry in automatic_checks:
         for stage in stages:
             if stage not in entry['by_stage']:
@@ -54,7 +63,9 @@ def build_task(metadata, actor):
     stages=stages_from_process(metadata['process'])
     policy=candidate_content_policy_from_metadata(metadata,{'goal':metadata['process']['content_contract'],
                                                             'task':metadata['contract']['content_contract']})
+    route = RouteDefinition.from_process(metadata['process'])
     registry=CheckRegistry.from_task(metadata['contract']['methods'],metadata['contract']['checks'],tuple(s.stage_id for s in stages))
-    args=(metadata['contract']['id'],stages,policy,registry,RouteDefinition.from_process(metadata['process']),evidence_plan_from_metadata(metadata,registry))
+    registry.validate_route(route)
+    args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry))
     if actor is None:return Task.planned(*args)
     return Task.new(args[0],args[1],actor,*args[2:])

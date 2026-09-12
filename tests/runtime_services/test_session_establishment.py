@@ -83,8 +83,17 @@ def test_generated_collision_is_retried_atomically_between_competing_registries(
 
     def compete(caller_id: str, fresh: str):
         values = iter(("collision", fresh))
-        owner = SessionEstablisher(registry(project), lambda: next(values))
-        ready.wait()
+        first_candidate = True
+
+        def generate() -> str:
+            nonlocal first_candidate
+            candidate = next(values)
+            if first_candidate:
+                first_candidate = False
+                ready.wait()
+            return candidate
+
+        owner = SessionEstablisher(registry(project), generate)
         return owner.establish(CallerIdentity.generated("P", caller_id), [])
 
     with ThreadPoolExecutor(max_workers=2) as pool:

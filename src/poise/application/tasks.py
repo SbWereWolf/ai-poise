@@ -259,11 +259,16 @@ class TaskCommands:
             return task.evidence_book.failed_batch(
                 task.stage.stage_id,task.state.iteration,task.state.submission_digest,tree,execution_key)
 
-    def cancel(self, task_id: str, actor: str, reason: str) -> TaskState:
+    def cancel(self, task_id: str, actor: str, reason: str, cleanup: dict) -> TaskState:
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
             change=task.cancel(actor,reason)
             uow.tasks.save(change,task.state.version)
+            execution,version=uow.execution.load(task_id)
+            if execution['pending'] is not None:
+                raise DomainError('External operation outcome must be resolved first')
+            execution['pending']=cleanup
+            uow.execution.save(task_id,execution,version)
             return change.task.state
 
     def evidence_precheck(self, task_id, actor, tree, execution_key):

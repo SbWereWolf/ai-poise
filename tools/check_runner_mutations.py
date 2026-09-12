@@ -18,9 +18,9 @@ def run(source: Path, output: Path):
          'target = self.route.node(self.stage.stage_id).target(self.progress.outcome)',
          'target = self.stages[(self.state.stage_index + 1) % len(self.stages)].stage_id',
          "tests/runner/test_route_domain.py::test_graph_is_not_list_order"),
-        ("no-visit-budget", "src/poise/modules/workflow/domain.py",
-         'if visits[target] >= self.max_stage_visits:', 'if False:',
-         "tests/runner/test_route_domain.py::test_limits_persist_and_do_not_block_cancellation"),
+        ("no-visit-history", "src/poise/modules/workflow/domain.py",
+         'visits[target] += 1', 'pass',
+         "tests/runner/test_unbounded_route.py::test_route_accepts_only_entry_and_keeps_audit_counters_without_limits"),
     ]
     results=[]
     for name,file,needle,replacement,test in mutations:

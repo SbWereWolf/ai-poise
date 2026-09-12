@@ -19,9 +19,6 @@ def test_native_source_resolution_is_canonical_and_cross_referenced():
         "session-scoped",
         "без fallback",
         "config_hash",
-        "cancel_tasks",
-        "cancel",
-        "конкурент",
     ):
         assert term in runtime
     for term in (

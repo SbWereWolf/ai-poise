@@ -15,7 +15,7 @@ def test_graph_is_not_list_order():
     t=verify(t,inspect()).accept("S",False).task
     assert t.state.status=="completed"
 
-@pytest.mark.parametrize("damage",["missing-route","missing-handler","unknown-handler","unknown-target","wrong-outcome","no-terminal","unreachable","write-inspection","missing-limits","bad-limit","bad-rework"])
+@pytest.mark.parametrize("damage",["missing-route","missing-handler","unknown-handler","unknown-target","wrong-outcome","no-terminal","unreachable","write-inspection","unknown-route-field","bad-rework"])
 def test_invalid_graph_rejected(damage):
     cfg=process()
     if damage=="missing-route": del cfg["route"]
@@ -27,8 +27,7 @@ def test_invalid_graph_rejected(damage):
         cfg["stages"][1]["transitions"]["clear"]="draft"; cfg["stages"][3]["transitions"]["clear"]="draft"
     elif damage=="unreachable": cfg["stages"][2]["transitions"]["complete"]="audit"
     elif damage=="write-inspection": cfg["stages"][1]["read_only"]=False
-    elif damage=="missing-limits": del cfg["route"]["max_transitions"]
-    elif damage=="bad-limit": cfg["route"]["max_stage_visits"]=0
+    elif damage=="unknown-route-field": cfg["route"]["depth"]=1
     elif damage=="bad-rework": cfg["stages"][0]["rework_targets"]=["missing"]
     with pytest.raises(DomainError): route(cfg)
 
@@ -55,18 +54,6 @@ def test_full_feedback_rejection_then_acceptance_same_task():
     data=t.workflow_context()
     assert len(data["feedback"]["resolutions"])==2
     assert [x["decision"] for x in data["feedback"]["decisions"]]==["rejected","accepted"]
-
-@pytest.mark.parametrize("key,value",[("max_transitions",1),("max_stage_visits",1)])
-def test_limits_persist_and_do_not_block_cancellation(key,value):
-    cfg=process(); cfg["route"][key]=value
-    t=verify(task(cfg),{}).accept("S",True).task
-    t=verify(t,inspect([finding()]))
-    if key=="max_stage_visits":
-        t=t.accept("S",True).task
-        t=verify(t,{"resolutions":[resolution()]}).accept("S",True).task
-        t=verify(t,inspect(decisions=[decision(outcome="rejected")]))
-    with pytest.raises(DomainError,match="[Лл]имит"): t.accept("S",True)
-    assert t.cancel("S","Пользователь отменил").task.state.status=="cancelled"
 
 def test_explicit_user_rework_can_return_to_allowed_stage():
     t=verify(task(),{}).accept("S",True).task

@@ -80,6 +80,30 @@ source внутри её `Task worktree`. Продолжение уже назн
 выбранного source выполняются независимо от этого правила.
 Для Sprint явная отмена представлена операциями `cancel_tasks` и `cancel`.
 
+### Terminal cleanup через native launcher
+
+Standalone `operation: cancel`, Sprint actions `cancel_tasks` и `cancel` выполняют terminal-
+переход через владельца Task и сохраняют cleanup obligation. Они не удаляют worktree/ветку и
+не превращают terminal status в решение о commit. После этого тот же session-scoped launcher
+маршрутизирует публичный `operation: cleanup` с точными `task_id`, `request_id`, authorization,
+`expected_commit` и disposition `preserved` либо `discard_authorized`.
+
+Launcher возвращает `disposition_required`, `cleanup_blocked`, `cleanup_pending` или
+`cleanup_complete`, а также точные `remaining_resources`, blocker и историю подтверждённых
+шагов. Dirty worktree остаётся заблокированным даже после фиксации disposition: его можно
+довести до clean fast-forward checkpoint той же task-ветки и продолжить новым request ID либо
+вернуть к исходному commit вне cleanup и повторить прежний пакет. Принятый checkpoint
+фиксируется в persisted cleanup history событием `worktree_checkpointed` со старым и новым
+commit и `request_id`. Основной checkout, чужие ресурсы, durable artifacts и operator backups не
+очищаются.
+
+Сохранённые ownership identity, commit/digest и версия проверяются перед каждым эффектом.
+Поэтому конкурентное изменение ветки, файла или cleanup-state даёт actionable blocker/отказ,
+а не удаление по одному имени. Повтор неизменного пакета после снятия блокировки продолжает
+persisted шаги; скрытого фонового cleanup при событии hook нет. Полный payload и правила
+commit disposition приведены в
+[пакетном workflow](../workflows/batch-work.md#уборка-ресурсов-terminal-task).
+
 ## Данные
 Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.
 

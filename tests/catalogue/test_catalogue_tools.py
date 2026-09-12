@@ -13,6 +13,23 @@ from poise.common import PoiseError
 ROOT=Path(__file__).resolve().parents[2]
 
 
+def test_shipped_editor_mutable_paths_are_project_local_and_configured():
+    project=json.loads((ROOT/'config/projects/ai-poise/project.json').read_text())
+    assert project['paths']['runtime']=='.runtime'
+    assert project['paths']['tasks']=='task'
+    assert project['paths']['sprints']=='sprint'
+    assert project['paths']['database']=='database/tasks.sqlite'
+    assert project['paths']['lock']=='database/tasks.lock'
+
+    for relative in ('config/catalogue/editor.json','config/goal-editor.json'):
+        path=ROOT/relative
+        settings=json.loads(path.read_text())
+        assert (path.parent/settings['root']).resolve()==ROOT
+        assert settings['database'].startswith('projects/ai-poise/database/')
+        assert settings['lock'].startswith('projects/ai-poise/database/')
+        assert settings['responses'].startswith('projects/ai-poise/.runtime/')
+
+
 def prepare(tmp_path):
     root=tmp_path/'home';root.mkdir()
     for name in ('process-templates','task-templates'):
@@ -77,6 +94,8 @@ def test_cli_installs_all_packs_from_stdin(tmp_path):
     assert code==repo.editor.raw['exit_codes']['success']
     result=json.loads(out.getvalue());assert result['status']=='installed'
     complete=json.loads(Path(result['response_path']).read_text());assert complete['count']==13
+    assert Path(result['response_path']).is_relative_to(root/'projects/ai-poise/.runtime')
+    assert not (root/'state').exists()
 
 
 def test_real_cli_accepts_a_batch_without_task_store(tmp_path):

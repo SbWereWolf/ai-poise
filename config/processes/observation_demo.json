@@ -1,9 +1,7 @@
 {
   "goal_type": "observation_demo",
   "route": {
-    "entry": "measure",
-    "max_transitions": 12,
-    "max_stage_visits": 4
+    "entry": "measure"
   },
   "content_contract": {
     "sections": [],

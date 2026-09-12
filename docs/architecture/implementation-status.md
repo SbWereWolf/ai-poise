@@ -91,27 +91,43 @@ Relocation проверяет source/destination, сохраняет всё де
 контракт покрыт 27 сценариями `tests/projects/test_update.py`; это число
 относится к профильному набору BUG-CONFIG-001, а не к полной регрессии репозитория.
 
-## DDD-10 result integration — 2026-09-11T23:25:02Z
+## DDD-10 result integration — 2026-09-12T21:36:11+05:00
 
-Публичный `integrate` реализует локальный lifecycle принятого результата одним декларативным
-пакетом. Неизменяемый accepted commit синхронизируется с текущим target только в owned child
-integration worktree; конфликты сохраняются для агентского разрешения там же, а проверки
-выполняются на mutable integration head. Перед compare-and-swap публикацией target читается
-повторно; drift перестраивает candidate и повторяет checks. Crash до или после публикации,
-неудачный candidate, cleanup failure и terminal replay продолжаются из persisted phase.
+Публичный `integrate` запускается из текущей установки и использует существующие task branch и
+task worktree. Accepted commit не переписывается; update, conflicts и checks продвигают только
+integration head этой ветки. Отдельные integration branch/worktree больше не создаются.
 
-Основной checkout, его staged/unstaged/untracked bytes, unresolved merge/cherry-pick и чужие
-worktrees не являются precondition или integration surface. После подтверждённой публикации
-удаляются оба owned worktree, обе owned ветки и task/integration-scoped temporary directory.
-Удаление веток проверяет ancestry относительно текущего target и использует compare-and-delete,
-не checkout `HEAD`; descendant target допускается, переписанная история сохраняет recovery
-state. Operator, deliverable и unfinished-recovery backups вне scoped directory сохраняются.
+Публикация сериализована по target и выполняется в основном checkout только через
+`git merge --ff-only`. Drift повторяет update и checks. При отказе сохраняется доказательство
+неизменности `HEAD`, binding, index, tracked/untracked content, типов, режимов и operation state.
+Crash после fast-forward согласуется по target ref без второго эффекта. Cleanup удаляет только
+task worktree, task branch и scoped temporary backups. Узкий legacy adapter восстанавливает
+сохранённый blocked-запрос `integrate-0048-1`, не меняя accepted commit и прежнюю историю.
 
-Профильный зарегистрированный набор `tests/result_integration` содержит 36 проверок и прошёл
-GREEN в task 0040. Он покрывает happy/conflict paths, repeated target drift, crash до/после
-publication, persisted failure/check/cleanup receipts, terminal no-op, cleanup replay и
-main-checkout/foreign-state fingerprints. Это не сертификация push, remote publication,
-multi-codebase integration или recovery после внешнего удаления owned Git-объектов.
+Профильные проверки task 0057 покрывают повторное использование ресурсов, conflict resolution,
+target drift с повтором checks, blocked fast-forward fingerprint, crash/replay, legacy recovery
+и installation-source routing. Это не сертификация push, remote publication или multi-codebase
+integration.
+
+## Terminal task-owned cleanup — 2026-09-12
+
+Реализован единый `TaskResourceCleanup` для standalone `cancel`, Sprint `cancel_tasks`/`cancel`,
+supersession и уборки после успешной интеграции. Terminal-переход сохраняет обязательство и
+возвращает точные ресурсы, но не выбирает судьбу commit. Публичный `cleanup` требует отдельные
+authorization, request identity, полный ожидаемый commit и disposition `preserved` либо
+`discard_authorized`; publication остаётся только в `integrate`.
+
+Состояние persisted в Task execution snapshot и содержит прогресс, blocker и историю. Реально
+проверяются точные worktree/branch identity, commit, зарегистрированные temporary resources и
+digest. Повтор после process loss идемпотентно продолжает недостающие шаги. Dirty worktree не
+удаляется: решение фиксируется, а продолжение требует clean same-branch fast-forward checkpoint
+с новым request ID либо возврата к прежнему commit. Существующая terminal Task без cleanup-state
+инициализируется только явной командой, без фоновой миграции.
+
+Реализация сохраняет main checkout, foreign resources, durable Task history/artifacts и
+operator backups; не применяет force-delete, push или скрытый fallback. Профильное покрытие
+находится в `tests/task_cleanup`, Sprint cancellation/replacement и result-integration cleanup;
+фактический GREEN подтверждается текущим verification batch, а не зафиксированным здесь числом.
 
 
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00

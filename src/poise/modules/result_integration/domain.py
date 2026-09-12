@@ -7,6 +7,11 @@ from ..foundation.errors import DomainError
 
 
 _COMMIT = re.compile(r"[0-9a-f]{40,64}")
+_SCHEMA = "existing-task-worktree-1"
+_LEGACY_FIELDS = {
+    "kind", "intent", "status", "version", "target_before", "target_after",
+    "conflicts", "resolutions", "merge", "failure", "cleanup", "history",
+}
 
 
 def _text(value, name):
@@ -26,7 +31,7 @@ def _resolution(value):
         raise DomainError("Resolution requires exact path and resolution fields")
     path = _text(value["path"], "resolution path")
     if path.startswith("/") or ".." in path.split("/"):
-        raise DomainError("Resolution path must stay inside the target worktree")
+        raise DomainError("Resolution path must stay inside the task worktree")
     return {"path": path, "resolution": _text(value["resolution"], "resolution rationale")}
 
 
@@ -77,10 +82,10 @@ class IntegrationRun:
     phase: str
     version: int
     accepted_commit: str
-    integration_branch: str
-    integration_worktree: str
+    task_branch: str
+    task_worktree: str
     temporary_backup_directory: str
-    observed_target: str | None
+    last_included_target: str | None
     integration_head: str | None
     target_after: str | None
     conflicts: tuple[str, ...]
@@ -94,66 +99,77 @@ class IntegrationRun:
     drift_retries: int
 
     @classmethod
-    def new(cls, intent, integration_branch, integration_worktree,
-            temporary_backup_directory):
+    def new(cls, intent, task_branch, task_worktree, temporary_backup_directory):
         cleanup = {
             "task_worktree": "pending",
-            "integration_worktree": "pending",
             "task_branch": "pending",
-            "integration_branch": "pending",
             "temporary_backups": "pending",
         }
         return cls(
-            intent=intent,
-            status="prepared",
-            phase="prepared",
-            version=0,
+            intent=intent, status="prepared", phase="prepared", version=0,
             accepted_commit=intent.expected_source_commit,
-            integration_branch=_text(integration_branch, "integration branch"),
-            integration_worktree=_text(integration_worktree, "integration worktree"),
+            task_branch=_text(task_branch, "task branch"),
+            task_worktree=_text(task_worktree, "task worktree"),
             temporary_backup_directory=_text(
                 temporary_backup_directory, "temporary backup directory"
             ),
-            observed_target=None,
-            integration_head=None,
-            target_after=None,
-            conflicts=(),
-            resolutions=(),
-            checks=(),
-            publication=None,
-            temporary_backups=(),
-            failure=None,
-            cleanup=cleanup,
-            history=({"status": "prepared", "phase": "prepared"},),
-            drift_retries=0,
+            last_included_target=None, integration_head=intent.expected_source_commit,
+            target_after=None, conflicts=(), resolutions=(), checks=(), publication=None,
+            temporary_backups=(), failure=None, cleanup=cleanup,
+            history=({"status": "prepared", "phase": "prepared"},), drift_retries=0,
         )
 
     @classmethod
     def restore(cls, value):
-        if not isinstance(value, dict) or value.get("kind") != "result_integration":
+        if (not isinstance(value, dict) or value.get("kind") != "result_integration"
+                or value.get("schema") != _SCHEMA):
             raise DomainError("Saved result integration state is invalid")
         intent = IntegrationIntent.parse({**value["intent"], "resolutions": []})
         return cls(
-            intent=intent,
-            status=value["status"],
-            phase=value["phase"],
-            version=value["version"],
-            accepted_commit=value["accepted_commit"],
-            integration_branch=value["integration_branch"],
-            integration_worktree=value["integration_worktree"],
+            intent=intent, status=value["status"], phase=value["phase"],
+            version=value["version"], accepted_commit=value["accepted_commit"],
+            task_branch=value["task_branch"], task_worktree=value["task_worktree"],
             temporary_backup_directory=value["temporary_backup_directory"],
-            observed_target=value["observed_target"],
-            integration_head=value["integration_head"],
-            target_after=value["target_after"],
-            conflicts=tuple(value["conflicts"]),
-            resolutions=tuple(value["resolutions"]),
-            checks=tuple(value["checks"]),
-            publication=value["publication"],
-            temporary_backups=tuple(value["temporary_backups"]),
-            failure=value["failure"],
-            cleanup=dict(value["cleanup"]),
-            history=tuple(value["history"]),
+            last_included_target=value["last_included_target"],
+            integration_head=value["integration_head"], target_after=value["target_after"],
+            conflicts=tuple(value["conflicts"]), resolutions=tuple(value["resolutions"]),
+            checks=tuple(value["checks"]), publication=value["publication"],
+            temporary_backups=tuple(value["temporary_backups"]), failure=value["failure"],
+            cleanup=dict(value["cleanup"]), history=tuple(value["history"]),
             drift_retries=value["drift_retries"],
+        )
+
+    @classmethod
+    def recover_legacy(cls, value, task_branch, task_worktree,
+                       temporary_backup_directory):
+        if (not isinstance(value, dict) or set(value) != _LEGACY_FIELDS
+                or value.get("kind") != "result_integration"
+                or value.get("status") != "blocked"):
+            raise DomainError("Saved result integration state is invalid")
+        legacy_intent = value.get("intent")
+        if (not isinstance(legacy_intent, dict)
+                or legacy_intent.get("task_id") != "0048"
+                or legacy_intent.get("request_id") != "integrate-0048-1"):
+            raise DomainError("Legacy integration state is not eligible for automatic recovery")
+        failure = value.get("failure")
+        if (not isinstance(failure, dict)
+                or failure.get("reason") != "merge_failed_without_conflicts"
+                or value.get("target_after") is not None
+                or value.get("conflicts") != [] or value.get("resolutions") != []
+                or value.get("cleanup") != {"worktree": "pending", "branch": "pending"}):
+            raise DomainError("Legacy integration state is not eligible for automatic recovery")
+        intent = IntegrationIntent.parse({**legacy_intent, "resolutions": []})
+        history = value.get("history")
+        if not isinstance(history, list):
+            raise DomainError("Legacy integration history is invalid")
+        recovered = cls.new(intent, task_branch, task_worktree, temporary_backup_directory)
+        return replace(
+            recovered, version=value["version"] + 1,
+            history=tuple(history) + ({
+                "status": "prepared", "phase": "prepared",
+                "event": "legacy_recovery_started",
+                "details": {"preserved_failure": failure},
+            },),
         )
 
     def _step(self, status, phase, event=None, details=None, **changes):
@@ -165,34 +181,22 @@ class IntegrationRun:
         return replace(self, status=status, phase=phase, version=self.version + 1,
                        history=self.history + (entry,), **changes)
 
-    def begin_candidate(self, observed_target):
-        if self.status not in ("prepared", "running") or self.phase not in (
-            "prepared", "candidate_ready", "publishing"
-        ):
-            raise DomainError("Integration cannot start a candidate from this phase")
-        target = _commit(observed_target, "observed target")
+    def begin_update(self, target):
+        if self.phase not in ("prepared", "publishing"):
+            raise DomainError("Integration cannot start a target update from this phase")
         return self._step(
-            "running",
-            "preparing_candidate",
-            "candidate_started",
-            observed_target=target,
-            integration_head=target,
-            conflicts=(),
-            resolutions=(),
-            failure=None,
-            publication=None,
+            "running", "updating", "target_update_started",
+            last_included_target=_commit(target, "included target"),
+            conflicts=(), resolutions=(), publication=None, failure=None,
         )
 
     def await_resolution(self, conflicts, receipt):
         paths = tuple(sorted(conflicts))
-        if self.phase != "preparing_candidate" or not paths:
+        if self.phase != "updating" or not paths:
             raise DomainError("A running integration requires observed conflicts")
         return self._step(
-            "awaiting_resolution",
-            "awaiting_resolution",
-            "conflicts_observed",
-            details={"receipt": receipt},
-            conflicts=paths,
+            "awaiting_resolution", "awaiting_resolution", "conflicts_observed",
+            details={"receipt": receipt}, conflicts=paths,
         )
 
     def continue_with(self, resolutions):
@@ -202,104 +206,93 @@ class IntegrationRun:
         if {item["path"] for item in parsed} != set(self.conflicts):
             raise DomainError("Provide one resolution for every observed conflict, and no unrelated paths")
         return self._step(
-            "running",
-            "preparing_candidate",
-            "resolutions_declared",
-            resolutions=parsed,
+            "running", "updating", "resolutions_declared", resolutions=parsed,
         )
 
     def candidate_ready(self, integration_head, receipt):
-        if self.phase != "preparing_candidate":
-            raise DomainError("Only a prepared candidate can record its head")
-        head = _commit(integration_head, "integration head")
+        if self.phase != "updating" or self.last_included_target is None:
+            raise DomainError("Only an updated task branch can record its head")
         return self._step(
-            "running",
-            "candidate_ready",
-            "candidate_ready",
-            details={"receipt": receipt},
-            integration_head=head,
-            failure=None,
+            "running", "candidate_ready", "candidate_ready", details={"receipt": receipt},
+            integration_head=_commit(integration_head, "integration head"), failure=None,
         )
 
     def candidate_failed(self, reason, receipt):
-        if self.phase != "preparing_candidate":
-            raise DomainError("Only a running candidate can record a failure")
-        failure = {
-            "reason": _text(reason, "candidate failure reason"),
-            "receipt": receipt,
-        }
+        if self.phase != "updating":
+            raise DomainError("Only a running target update can record a failure")
+        failure = {"reason": _text(reason, "candidate failure reason"), "receipt": receipt}
         return self._step(
-            "blocked",
-            "candidate_failed",
-            "candidate_failed",
-            details=failure,
-            failure=failure,
+            "blocked", "candidate_failed", "candidate_failed", details=failure, failure=failure,
         )
 
     def retry_candidate(self):
         if self.phase != "candidate_failed":
             raise DomainError("Only a failed candidate can be retried")
         return self._step(
-            "running",
-            "preparing_candidate",
-            "candidate_retry_started",
-            conflicts=(),
-            resolutions=(),
-            failure=None,
+            "running", "updating", "candidate_retry_started",
+            conflicts=(), resolutions=(), failure=None,
         )
 
     def checks_recorded(self, receipts):
         if self.phase != "candidate_ready":
             raise DomainError("Checks require a ready integration candidate")
         batch = tuple(receipts)
-        passed = all(item.get("passed") is True for item in batch)
         checks = self.checks + batch
-        if passed:
+        if all(item.get("passed") is True for item in batch):
             return self._step(
                 "running", "publishing", "checks_passed", checks=checks, failure=None
             )
         failure = {"reason": "checks_failed", "checks": list(batch)}
         return self._step(
-            "blocked",
-            "checks_failed",
-            "checks_failed",
-            details=failure,
-            checks=checks,
-            failure=failure,
+            "blocked", "checks_failed", "checks_failed", details=failure,
+            checks=checks, failure=failure,
+        )
+
+    def retry_checks(self):
+        if self.phase != "checks_failed":
+            raise DomainError("Only failed integration checks can be retried")
+        return self._step(
+            "running", "candidate_ready", "checks_retry_started", failure=None,
         )
 
     def drifted(self, receipt):
         if self.phase != "publishing":
             raise DomainError("Target drift is observed only during publication")
         return self._step(
-            "running",
-            "publishing",
-            "target_drifted",
-            details={"receipt": receipt},
+            "running", "publishing", "target_drifted", details={"receipt": receipt},
             drift_retries=self.drift_retries + 1,
         )
 
+    def publication_blocked(self, reason, receipt):
+        if self.phase != "publishing":
+            raise DomainError("Publication failure requires a tested candidate")
+        failure = {"reason": _text(reason, "publication failure reason"), "receipt": receipt}
+        return self._step(
+            "blocked", "publication_failed", "publication_failed",
+            details=failure, failure=failure,
+        )
+
+    def retry_publication(self):
+        if self.phase != "publication_failed":
+            raise DomainError("Only a failed publication can be retried")
+        return self._step(
+            "running", "publishing", "publication_retry_started", failure=None,
+        )
+
     def publication_confirmed(self, target_ref, receipt, *, no_op, recovered):
-        if self.phase != "publishing" or self.integration_head is None \
-                or self.observed_target is None:
+        if (self.phase != "publishing" or self.integration_head is None
+                or self.last_included_target is None):
             raise DomainError("Publication requires a tested candidate")
         publication = {
-            "status": "confirmed",
-            "target_ref": _text(target_ref, "target ref"),
+            "status": "confirmed", "target_ref": _text(target_ref, "target ref"),
             "commit": self.integration_head,
-            "observed_target": self.observed_target,
-            "no_op": bool(no_op),
-            "recovered": bool(recovered),
-            "drift_retries": self.drift_retries,
-            "receipt": receipt,
+            "last_included_target": self.last_included_target,
+            "no_op": bool(no_op), "recovered": bool(recovered),
+            "drift_retries": self.drift_retries, "receipt": receipt,
         }
         return self._step(
-            "cleanup_pending",
-            "cleanup_pending",
-            "publication_confirmed",
-            publication=publication,
-            target_after=self.integration_head,
-            failure=None,
+            "cleanup_pending", "cleanup_pending", "publication_confirmed",
+            publication=publication, target_after=self.integration_head, failure=None,
         )
 
     def cleanup_blocked(self, component, receipt):
@@ -309,92 +302,59 @@ class IntegrationRun:
         cleanup[component] = "blocked"
         details = {"component": component, "receipt": receipt}
         return self._step(
-            "cleanup_pending",
-            "cleanup_pending",
-            f"{component}_cleanup_blocked",
-            details=details,
-            cleanup=cleanup,
+            "cleanup_pending", "cleanup_pending", f"{component}_cleanup_blocked",
+            details=details, cleanup=cleanup,
         )
 
     def cleanup_completed(self, component, outcome):
-        if component not in self.cleanup:
-            raise DomainError("Cleanup step does not match the integration state")
-        if outcome not in ("removed", "deleted"):
-            raise DomainError("Cleanup outcome is invalid")
-        if self.cleanup[component] == outcome and self.phase in (
-            "cleanup_pending", "integrated"
-        ):
+        if component not in self.cleanup or outcome not in ("removed", "deleted"):
+            raise DomainError("Cleanup outcome does not match the integration state")
+        if self.cleanup[component] == outcome and self.phase in ("cleanup_pending", "integrated"):
             return self
         if self.phase != "cleanup_pending":
             raise DomainError("Cleanup step does not match the integration state")
         cleanup = dict(self.cleanup)
         cleanup[component] = outcome
         terminal = cleanup == {
-            "task_worktree": "removed",
-            "integration_worktree": "removed",
-            "task_branch": "deleted",
-            "integration_branch": "deleted",
+            "task_worktree": "removed", "task_branch": "deleted",
             "temporary_backups": "removed",
         }
         return self._step(
             "integrated" if terminal else "cleanup_pending",
             "integrated" if terminal else "cleanup_pending",
-            f"{component}_{outcome}",
-            cleanup=cleanup,
+            f"{component}_{outcome}", cleanup=cleanup,
         )
 
     def to_storage(self):
         return {
-            "kind": "result_integration",
-            "intent": self.intent.identity(),
-            "status": self.status,
-            "phase": self.phase,
-            "version": self.version,
-            "accepted_commit": self.accepted_commit,
-            "integration_branch": self.integration_branch,
-            "integration_worktree": self.integration_worktree,
+            "kind": "result_integration", "schema": _SCHEMA,
+            "intent": self.intent.identity(), "status": self.status, "phase": self.phase,
+            "version": self.version, "accepted_commit": self.accepted_commit,
+            "task_branch": self.task_branch, "task_worktree": self.task_worktree,
             "temporary_backup_directory": self.temporary_backup_directory,
-            "observed_target": self.observed_target,
-            "integration_head": self.integration_head,
-            "target_after": self.target_after,
-            "conflicts": list(self.conflicts),
-            "resolutions": list(self.resolutions),
-            "checks": list(self.checks),
-            "publication": self.publication,
-            "temporary_backups": list(self.temporary_backups),
-            "failure": self.failure,
-            "cleanup": self.cleanup,
-            "history": list(self.history),
+            "last_included_target": self.last_included_target,
+            "integration_head": self.integration_head, "target_after": self.target_after,
+            "conflicts": list(self.conflicts), "resolutions": list(self.resolutions),
+            "checks": list(self.checks), "publication": self.publication,
+            "temporary_backups": list(self.temporary_backups), "failure": self.failure,
+            "cleanup": self.cleanup, "history": list(self.history),
             "drift_retries": self.drift_retries,
         }
 
     def result(self, replayed=False):
-        value = {
-            "status": self.status,
-            "task": self.intent.task_id,
+        return {
+            "status": self.status, "task": self.intent.task_id,
             "request_id": self.intent.request_id,
             "source_commit": self.intent.expected_source_commit,
-            "accepted_commit": self.accepted_commit,
-            "integration_branch": self.integration_branch,
-            "integration_worktree": self.integration_worktree,
+            "accepted_commit": self.accepted_commit, "task_branch": self.task_branch,
+            "task_worktree": self.task_worktree,
             "temporary_backup_directory": self.temporary_backup_directory,
-            "temporary_backups": list(self.temporary_backups),
-            "phase": self.phase,
-            "observed_target": self.observed_target,
+            "temporary_backups": list(self.temporary_backups), "phase": self.phase,
+            "last_included_target": self.last_included_target,
             "integration_head": self.integration_head,
             "target_before": self.intent.expected_target_commit,
-            "target_after": self.target_after,
-            "conflicts": list(self.conflicts),
-            "resolutions": list(self.resolutions),
-            "checks": list(self.checks),
-            "publication": self.publication,
-            "cleanup": self.cleanup,
-            "merge": {
-                "conflicts": list(self.conflicts),
-                "resolutions": list(self.resolutions),
-            },
-            "failure": self.failure,
-            "history": list(self.history),
-            "replayed": replayed,
+            "target_after": self.target_after, "conflicts": list(self.conflicts),
+            "resolutions": list(self.resolutions), "checks": list(self.checks),
+            "publication": self.publication, "cleanup": self.cleanup,
+            "failure": self.failure, "history": list(self.history), "replayed": replayed,
         }
-        return value

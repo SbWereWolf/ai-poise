@@ -14,7 +14,7 @@ def new_task(task_id, stages, actor):
                                       tuple(sorted({r.name for s in stages for r in s.rules})))
     registry = CheckRegistry.from_task([], {s.stage_id: [] for s in stages}, ids)
     from poise.modules.workflow.domain import RouteDefinition
-    cfg={"route":{"entry":ids[0] if ids else "absent","max_transitions":40,"max_stage_visits":8},
+    cfg={"route":{"entry":ids[0] if ids else "absent"},
          "stages":[{"id":sid,"handler":"produce","transitions":{"complete":ids[i+1] if i+1<len(ids) else None},
                     "rework_targets":[sid],"read_only":False,"allowed_paths":[]} for i,sid in enumerate(ids)]}
     return Task.new(task_id, stages, actor, policy, registry, RouteDefinition.from_process(cfg), EvidencePlan.parse(

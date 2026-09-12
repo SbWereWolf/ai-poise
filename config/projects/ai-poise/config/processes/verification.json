@@ -86,9 +86,7 @@
   },
   "goal_type": "verification",
   "route": {
-    "entry": "planning",
-    "max_stage_visits": 12,
-    "max_transitions": 120
+    "entry": "planning"
   },
   "stages": [
     {

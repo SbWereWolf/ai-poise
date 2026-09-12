@@ -25,3 +25,9 @@ def project_config_tools(settings_path):
     from .infrastructure.projects import ProjectSettings
     settings = ProjectSettings(settings_path)
     return ProjectConfigCommands(FileProjectConfigUpdate(settings), settings.raw['max_edits'])
+
+
+def route_migration_tools(config_path):
+    from .application.route_migration import RouteMigrationCommands
+    from .infrastructure.route_migration import FileRouteCountLimitMigration
+    return RouteMigrationCommands(FileRouteCountLimitMigration(config_path))

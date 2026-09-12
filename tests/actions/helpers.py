@@ -65,7 +65,7 @@ def setup(project, kind='git_merge', conflict=True):
                        'sections':{} if handler=='publish' else {'report':'Заполнить.'},
                        'required_sections':[] if handler=='publish' else ['report'],'artifact_requirements':[]})
     process={'goal_type':'integration' if kind=='git_merge' else 'environment_remediation','benefit':{'git_categories':[], 'sections':[]},
-             'stages':stages,'route':{'entry':'apply','max_transitions':30,'max_stage_visits':5},
+             'stages':stages,'route':{'entry':'apply'},
              'content_contract':{'sections':[],'routes':[],'requirements':[]}}
     cfg=deepcopy(project['cfg']); cfg['processes']={process['goal_type']:'config/processes/action.json'};cfg['automatic_checks']=[]
     write_json(project['root']/'config/processes/action.json',process)

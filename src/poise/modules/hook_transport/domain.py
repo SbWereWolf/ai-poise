@@ -10,7 +10,7 @@ from ..tasks.domain import is_terminal_task_status
 
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
-INSTALLATION_OPERATIONS={'show','cancel','sprint'}
+INSTALLATION_OPERATIONS={'show','cancel','sprint','integrate'}
 
 
 @dataclass(frozen=True)

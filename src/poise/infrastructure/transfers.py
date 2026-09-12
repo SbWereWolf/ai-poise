@@ -109,7 +109,7 @@ class RuntimeTransfers:
         execution={r['task_id']:json.loads(r['data']) for r in tables['task_execution']}
         for tid in task_ids:
             exe=execution.get(tid)
-            if exe is None:
+            if exe is None or exe['worktree'] is None:
                 owners['worktree'][tid]=None;workspaces[tid]=None;continue
             tree=Path(exe['worktree']);owners['worktree'][tid]=str(tree)
             if h._git(tree,'symbolic-ref','--short','HEAD')!=exe['branch']:

@@ -1,9 +1,7 @@
 {
   "goal_type": "documentation",
   "route": {
-    "entry": "draft",
-    "max_transitions": 24,
-    "max_stage_visits": 5
+    "entry": "draft"
   },
   "content_contract": {
     "sections": [],

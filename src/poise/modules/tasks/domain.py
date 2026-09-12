@@ -350,7 +350,6 @@ class Task:
         return {"handler":node.handler.value, "outcome":self.progress.outcome,
                 "next_stage":next_stage, "terminal":self.progress.outcome is not None and next_stage is None,
                 "visits":dict(self.progress.visits), "transitions":self.progress.transitions,
-                "limits":{"max_transitions":self.route.max_transitions,"max_stage_visits":self.route.max_stage_visits},
                 "rework_targets":list(node.rework_targets), "feedback":feedback.context(),
                 "stage_work_template":handler(node.handler).template(), "evidence":self.evidence_context()}
 

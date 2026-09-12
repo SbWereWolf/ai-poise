@@ -13,3 +13,7 @@ dist/
 
 # Local mutable data for the configured ai-poise project
 /projects/.project-setup.lock
+/projects/ai-poise/
+
+# Generated IDE project state
+/.idea/

@@ -14,7 +14,7 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     stages=[stage('measure',kind, {'complete':'audit'} if kind=='observe' else
                  {'satisfied':'audit','not_satisfied':'audit','inconclusive':'audit'},True,[],['measure']),
             stage('audit','inspect',{'clear':None,'changes_requested':'measure'},True,[],['audit','measure'])]
-    proc={'goal_type':'verification_demo','benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'measure','max_transitions':12,'max_stage_visits':4},
+    proc={'goal_type':'verification_demo','benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'measure'},
           'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':stages}
     write_json(project['root']/'config/processes/verification_demo.json',proc)
     cfg=project['cfg']; cfg['processes']={'verification_demo':'config/processes/verification_demo.json'}
@@ -24,6 +24,10 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     code=f"from pathlib import Path; p=Path({str(counter)!r}); p.write_text(p.read_text()+'x' if p.exists() else 'x'); print('observed=3'); raise SystemExit({1 if negative else 0})"
     m={'id':'M','argv':[sys.executable,'-B','-c',code], 'cwd':'.','environment':{},
        'source_under_test':{'kind':'external','reason':'The observer records generated evidence and reads no repository source.'},
+       'verification_plan':{
+           'responsibility':'Record the external observation used by the measure stage.',
+           'change_surface':[], 'red_stages':[], 'green_stages':['measure'],
+           'red_failure':None},
        'expected_exit_code':0,'stdout_contains':['observed=3'],'stderr_contains':[]}
     task=project['task']; task.update(goal_type='verification_demo', methods=[m],
        method_inputs=[{'method_id':'M','repository_inputs':[],'future_outputs':[],

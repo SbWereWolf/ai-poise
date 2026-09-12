@@ -18,10 +18,10 @@ def intent():
 def test_run_records_conflict_and_requires_exact_resolution_set():
     run = IntegrationRun.new(
         intent(),
-        "refs/heads/integration/T1-example",
-        "/state/worktrees/T1-integration-example",
+        "refs/heads/tasks/T1",
+        "/state/worktrees/T1",
         "/state/runtime/session/result-integration/T1/example",
-    ).begin_candidate("b" * 40)
+    ).begin_update("b" * 40)
     run = run.await_resolution(["src/a.py"], {"exit_code": 1})
 
     with pytest.raises(DomainError, match="every observed conflict"):
@@ -34,27 +34,42 @@ def test_run_records_conflict_and_requires_exact_resolution_set():
     assert continued.resolutions[0]["path"] == "src/a.py"
 
 
+def test_failed_checks_can_return_to_the_same_candidate_for_retry():
+    run = IntegrationRun.new(
+        intent(), "tasks/T1", "/worktrees/T1", "/runtime/integration/T1"
+    )
+    run = run.begin_update("b" * 40)
+    run = run.candidate_ready("c" * 40, {"actual_exit_code": 0})
+    failed = run.checks_recorded([{"method": "M", "passed": False}])
+
+    retried = failed.retry_checks()
+
+    assert retried.status == "running"
+    assert retried.phase == "candidate_ready"
+    assert retried.integration_head == "c" * 40
+    assert retried.failure is None
+    assert retried.history[-1]["event"] == "checks_retry_started"
+
+
 def test_cleanup_progress_is_monotonic_and_replayable():
     run = IntegrationRun.new(
         intent(),
-        "refs/heads/integration/T1-example",
-        "/state/worktrees/T1-integration-example",
+        "refs/heads/tasks/T1",
+        "/state/worktrees/T1",
         "/state/runtime/session/result-integration/T1/example",
-    ).begin_candidate("b" * 40)
+    ).begin_update("b" * 40)
     run = run.candidate_ready("c" * 40, {"exit_code": 0})
     run = run.checks_recorded([])
     run = run.publication_confirmed(
         "refs/heads/main", {"exit_code": 0}, no_op=False, recovered=False
     )
-    pending = run.cleanup_blocked("integration_worktree", {"reason": "locked"})
+    pending = run.cleanup_blocked("task_worktree", {"reason": "locked"})
     assert pending.status == "cleanup_pending"
     assert pending.target_after == "c" * 40
 
     complete = pending
     for component, outcome in (
-        ("integration_worktree", "removed"),
         ("task_worktree", "removed"),
-        ("integration_branch", "deleted"),
         ("task_branch", "deleted"),
         ("temporary_backups", "removed"),
     ):
@@ -62,9 +77,30 @@ def test_cleanup_progress_is_monotonic_and_replayable():
     assert complete.status == "integrated"
     assert complete.cleanup == {
         "task_worktree": "removed",
-        "integration_worktree": "removed",
         "task_branch": "deleted",
-        "integration_branch": "deleted",
         "temporary_backups": "removed",
     }
     assert complete.cleanup_completed("task_branch", "deleted") == complete
+
+
+def test_legacy_recovery_is_limited_to_the_named_saved_request():
+    legacy = {
+        "kind": "result_integration",
+        "intent": intent().identity(),
+        "status": "blocked",
+        "version": 2,
+        "target_before": "b" * 40,
+        "target_after": None,
+        "conflicts": [],
+        "resolutions": [],
+        "merge": None,
+        "failure": {"reason": "merge_failed_without_conflicts", "receipt": {}},
+        "cleanup": {"worktree": "pending", "branch": "pending"},
+        "history": [],
+    }
+
+    with pytest.raises(DomainError, match="not eligible"):
+        IntegrationRun.recover_legacy(
+            legacy, "refs/heads/tasks/T1", "/state/worktrees/T1",
+            "/state/runtime/result-integration/T1/example",
+        )

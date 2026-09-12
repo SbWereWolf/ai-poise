@@ -236,19 +236,47 @@ Replay identity имеет project scope и не равен session binding: д�
 
 ## DDD-10 — интеграция принятого результата
 
-Обновлено: **2026-09-11T23:25:02Z**.
+Обновлено: **2026-09-12T21:36:11+05:00**.
 
 `ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и idempotent replay. Task остаётся единственным владельцем verified/accepted/completed lifecycle и содержательного результата: операция интеграции читает окончательный Task result, но не меняет его статус, секции или evidence. Sprint продолжает вычислять состояние из Task и не выполняет скрытый auto-merge.
 
 `ResultIntegrationCommands` — прикладная граница одного декларативного пакета. `RuntimeResultIntegration` реализует Git-наблюдения и эффекты, а сохранение выполняет через execution repository. WorkTools только маршрутизирует `integrate` и `show integration`; domain не импортирует filesystem, subprocess или SQLite.
 
-Intent до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся target commit и пользовательскую authorization. Adapter проверяет окончательный Task result и чистый source worktree, но не использует основной checkout как integration surface или precondition. Детерминированные дочерняя ветка, integration worktree и task/integration-scoped temporary-backup directory сохраняются до первого Git-эффекта; новый вызов с тем же request ID и изменённым intent отклоняется.
+Intent до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся target commit и пользовательскую authorization. Adapter проверяет окончательный Task result и чистый task worktree. Существующие task branch/worktree и task-scoped temporary-backup directory сохраняются до первого Git-эффекта; отдельные integration branch/worktree не создаются. Новый вызов с тем же request ID и изменённым intent отклоняется.
 
-Внешняя блокировка БД не удерживается во время Git. `IntegrationRun` сохраняет accepted commit, observed target, mutable integration head, конфликты и решения, check receipts, publication receipt, cleanup outcomes и историю фаз. Незавершённый merge восстанавливается по owned workspace, `MERGE_HEAD` и conflict set; неудачный merge без конфликтов сохраняет `candidate_failed`, а тот же intent запускает безопасный повтор candidate. Разрешение конфликта принимает ровно один rationale для каждого сохранённого conflict path и выполняется только в owned workspace.
+Внешняя блокировка БД не удерживается во время Git. `IntegrationRun` сохраняет accepted commit, последний включённый target, mutable integration head, конфликты и решения, check receipts, publication receipt, cleanup outcomes и историю фаз. Незавершённый merge восстанавливается по task worktree, `MERGE_HEAD` и conflict set. Разрешение принимает ровно один rationale для каждого сохранённого conflict path. Точная legacy-форма blocked-запроса `integrate-0048-1` имеет узкий adapter, сохраняющий старую историю и accepted commit; остальные неизвестные формы отклоняются.
 
-Объявленные проверки запускаются на готовом integration head. Перед публикацией adapter снова читает target ref: drift создаёт новый candidate от текущего target и повторяет проверки. Стабильный candidate публикуется compare-and-swap обновлением target; crash после эффекта распознаётся по текущему ref и не повторяет публикацию. Terminal no-op требует наблюдаемого target, уже содержащего accepted commit.
+Объявленные проверки запускаются на готовом integration head в task worktree. Публикация сериализуется общим lock по target. Под lock adapter снова читает target ref: drift обновляет ту же task branch и повторяет проверки. Стабильный candidate публикуется в основном checkout только `git merge --ff-only <task-branch>`; crash после эффекта распознаётся по текущему ref и не повторяет публикацию. При отказе сохраняется before/after fingerprint `HEAD`, binding, index, tracked/untracked content, types, modes и operation state.
 
-Только после подтверждённой публикации начинается монотонная уборка. Worktree removal предшествует branch deletion, каждый исход сохраняется, а interruption повторяет только недостающий шаг. Текущий target обязан содержать опубликованный integration head и accepted commit: descendant допускается, переписанная история сохраняет recovery state. Безопасность удаления owned-ветки не зависит от checkout `HEAD`: commit проверяется относительно явного target и ref удаляется compare-and-delete. Scoped temporary directory удаляется последним; чужие worktrees и operator/deliverable/recovery backups вне него не затрагиваются. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
+Только после подтверждённой публикации начинается монотонная уборка: task worktree removal предшествует task branch deletion, scoped temporary directory удаляется последним. Текущий target обязан содержать integration head и accepted commit; descendant допускается, переписанная история сохраняет recovery state. Ref удаляется compare-and-delete. Чужие worktrees и operator/deliverable/recovery backups не затрагиваются. Hook route относит `integrate` к installation source, поэтому устаревший accepted код не управляет завершителем. Состояние остаётся в Task execution snapshot; новая таблица не требуется.
+
+## Terminal cleanup ресурсов Task — 2026-09-12
+
+`CleanupRun` владеет неизменным cleanup intent, явным `CommitDisposition`, точным набором
+`TaskOwnedResource`, прогрессом, blocker и replay-history. `TaskResourceCleanup` координирует
+один общий путь standalone cancellation, Sprint cancellation/supersession и cleanup после
+интеграции. `RuntimeTaskResourceCleanup` только наблюдает и изменяет Git/filesystem, проверяет
+ownership и хранит registry временных ресурсов; WorkTools и Sprint/ResultIntegration являются
+composition/transport, а не вторыми владельцами уборки.
+
+Terminal lifecycle, commit disposition, publication authorization и resource cleanup — четыре
+разных решения. Публичный cleanup принимает только `preserved` или `discard_authorized`;
+`integrated` появляется только внутри подтверждённого integration lifecycle, а `no_resources`
+выводится владельцем из наблюдаемого пустого набора. Ни cancellation, ни supersession не могут
+неявно публиковать или уничтожать последнюю ссылку на уникальный commit.
+
+Ownership задаётся сохранёнными identity: точный worktree и его ветка/commit, а также только
+зарегистрированные temporary/temporary_backup пути под task-scoped runtime root и их digest.
+Основной checkout, чужой WIP, durable artifacts/history и operator backups находятся вне этой
+границы. Worktree удаляется до ветки; preserved commit получает проверенный durable bundle до
+удаления ссылок. Dirty worktree требует явного clean checkpoint в той же ветке и только как
+fast-forward terminal commit либо восстановления прежнего дерева вне cleanup.
+
+Cleanup state хранится в существующем Task execution snapshot. Каждый внешний эффект следует
+за сохранённым intent и завершается compare-and-save прогрессом; повтор продолжает только
+оставшиеся ресурсы. Existing terminal Task без state инициализируется явной cleanup-командой,
+без reader migration, новой таблицы или fallback. Изменение identity, commit, digest или версии
+останавливает операцию; force-delete, push и отдельный lifecycle writer запрещены.
 
 
 ## Проверка пилота — 2026-09-07T15:04:48+05:00

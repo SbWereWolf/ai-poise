@@ -33,6 +33,32 @@ def test_completed_result_integration_uses_live_config_without_digest_gate(proje
     assert not source_worktree.exists()
 
 
+def test_successful_integration_removes_registered_task_temporary_resources(project):
+    tools, source_worktree, source = prepare_completed_task(project, _feature)
+    cleanup = tools.runtime.cleanup_tools.adapter
+    temporary = cleanup.resource_root("T1", "temporary") / "candidate.index"
+    backup = cleanup.resource_root("T1", "temporary_backup") / "candidate.bundle.tmp"
+    temporary.parent.mkdir(parents=True, exist_ok=True)
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    temporary.write_text("owned temporary index\n", encoding="utf-8")
+    backup.write_text("owned temporary backup\n", encoding="utf-8")
+    cleanup.register("T1", "temporary", temporary)
+    cleanup.register("T1", "temporary_backup", backup)
+
+    result = tools.invoke(request("integrate", integration_input(project, source)))
+
+    assert result["status"] == "integrated"
+    assert result["cleanup"] == {
+        "task_worktree": "removed",
+        "task_branch": "deleted",
+        "temporary_backups": "removed",
+    }
+    assert not source_worktree.exists()
+    assert not temporary.exists()
+    assert not backup.exists()
+    assert not cleanup.resource_root("T1").exists()
+
+
 def test_stale_initial_target_is_rejected_without_touching_source(project):
     tools, source_worktree, source = prepare_completed_task(project, _feature)
     stale = git(project["app"], "rev-parse", "refs/heads/main")

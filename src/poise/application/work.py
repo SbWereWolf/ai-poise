@@ -60,6 +60,7 @@ class WorkTools:
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()
             elif op=='integrate':out=h.integration_tools.apply(args)
+            elif op=='cleanup':out=h.cleanup_tools.apply(args)
             elif op=='cancel':out=h.cancel(args['reason'])
             elif op=='artifacts':
                 task=h.current_task()
@@ -129,6 +130,7 @@ class WorkTools:
                        'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
             elif kind=='task':value=h.show()
             elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])
+            elif kind=='task_cleanup':value=h.cleanup_tools.query(query['task_id'],query['request_id'])
             elif kind=='messages':value=self.interactions.summary(h.current_task())
             elif kind=='content':value=h.show_content()
             elif kind=='evidence':value=h.show_evidence()

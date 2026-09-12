@@ -114,8 +114,8 @@ def test_exact_red_failure_contract_is_distinct_from_contains_markers():
         red_stages=["tests_written"],
         red_failure={
             "exit_code": 1,
-            "stdout_fullmatch": r"EXPECTED_FAILURE\n",
-            "stderr_fullmatch": "",
+            "stdout_equals": "EXPECTED_FAILURE\n",
+            "stderr_equals": "",
         },
     ))
     selected.update(expected_exit_code=1, stdout_contains=["EXPECTED_FAILURE"])

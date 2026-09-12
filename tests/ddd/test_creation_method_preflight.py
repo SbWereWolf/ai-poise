@@ -12,6 +12,7 @@ from conftest import WorkPoise as Poise
 from conftest import verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.foundation.errors import DomainError
 
 
 PROFILE = {"runner": "pytest", "parser": "positional-paths", "version": 1}
@@ -162,6 +163,20 @@ def _inline_inputs(identifier):
     }
 
 
+def _branch_process(project, *, left_scope, right_scope):
+    gate = _stage("branch_gate", allowed_paths=(), target=None)
+    gate.update(
+        handler="inspect",
+        transitions={"clear": "left_writer", "changes_requested": "right_writer"},
+    )
+    return _configure(project, [
+        gate,
+        _stage("left_writer", allowed_paths=(left_scope,), target="joined_green"),
+        _stage("right_writer", allowed_paths=(right_scope,), target="joined_green"),
+        _stage("joined_green", allowed_paths=(), target=None),
+    ])
+
+
 def _intent(task, request_id):
     candidate = deepcopy(task)
     del candidate["id"]
@@ -263,6 +278,46 @@ def test_reachable_future_output_allowed_before_first_execution_is_accepted(proj
     assert not (Path(result["worktree"]) / MISSING_TEST).exists()
 
 
+def test_public_creation_red_reproduces_early_green_for_late_docs_surface(project):
+    docs = project["app"] / "docs"
+    docs.mkdir()
+    (docs / "contract.md").write_text("baseline contract\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "-C", str(project["app"]), "add", "docs/contract.md"],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(project["app"]), "commit", "-m", "Add baseline docs"],
+        check=True,
+        capture_output=True,
+    )
+    process = _configure(project, [
+        _stage("implementation_green", allowed_paths=("src/**",), target="docs_writer"),
+        _stage("docs_writer", allowed_paths=("docs/**",), target=None),
+    ])
+    tools = WorkTools(Poise(project["config_path"], "public-early-green-red"))
+    task = _task(project, process, method_inputs=[])
+    selected = _inline_method(
+        "EARLY_DOCS_GREEN",
+        responsibility="Verify documentation before its producer runs.",
+        surface=("docs/**",),
+        green_stages=("implementation_green",),
+    )
+    selected.pop("verification_plan")
+    selected["argv"] = [sys.executable, "-m", "pytest", "-q", "docs/contract.md"]
+    selected["stdout_contains"] = []
+    task["methods"] = [selected]
+    task["method_inputs"] = _inputs(
+        baseline=("docs/contract.md",),
+        method_id="EARLY_DOCS_GREEN",
+    )
+    task["checks"] = {"implementation_green": ["EARLY_DOCS_GREEN"], "docs_writer": []}
+
+    with pytest.raises(DomainError, match="verification_plan"):
+        _bootstrap(tools, _intent(task, "public-early-green-red"))
+
+
 def test_creation_rejects_green_before_only_declared_surface_producer_atomically(project):
     process = _configure(project, [
         _stage("early_green", allowed_paths=(), target="docs_writer"),
@@ -353,6 +408,54 @@ def test_valid_behaviour_documentation_and_combined_green_split_is_accepted(proj
     result = _bootstrap(tools, _intent(task, "valid-split"))
 
     assert result["task"] == "0001"
+
+
+def test_branching_route_accepts_collective_surface_producers_on_every_path(project):
+    process = _branch_process(project, left_scope="docs/**", right_scope="docs/**")
+    tools = WorkTools(Poise(project["config_path"], "branch-valid"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [_inline_method(
+        "BRANCH_GREEN",
+        responsibility="Verify documentation after either configured writer path.",
+        surface=("docs/**",),
+        green_stages=("joined_green",),
+    )]
+    task["method_inputs"] = [_inline_inputs("BRANCH_GREEN")]
+    task["checks"] = {
+        "branch_gate": [],
+        "left_writer": [],
+        "right_writer": [],
+        "joined_green": ["BRANCH_GREEN"],
+    }
+
+    result = _bootstrap(tools, _intent(task, "branch-valid"))
+
+    assert result["task"] == "0001"
+
+
+def test_branching_route_rejects_path_that_reaches_green_without_surface_producer(project):
+    process = _branch_process(project, left_scope="docs/**", right_scope="src/**")
+    tools = WorkTools(Poise(project["config_path"], "branch-invalid"))
+    task = _task(project, process, method_inputs=[])
+    task["methods"] = [_inline_method(
+        "BRANCH_DOCS_GREEN",
+        responsibility="Verify documentation after every configured branch.",
+        surface=("docs/**",),
+        green_stages=("joined_green",),
+    )]
+    task["method_inputs"] = [_inline_inputs("BRANCH_DOCS_GREEN")]
+    task["checks"] = {
+        "branch_gate": [],
+        "left_writer": [],
+        "right_writer": [],
+        "joined_green": ["BRANCH_DOCS_GREEN"],
+    }
+
+    _assert_rejected(
+        tools,
+        _intent(task, "branch-invalid"),
+        tokens=("BRANCH_DOCS_GREEN", "joined_green", "docs/**", "allowed_paths"),
+    )
 
 
 @pytest.mark.parametrize(

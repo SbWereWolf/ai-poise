@@ -27,7 +27,7 @@ def test_canonical_workflow_documents_plan_matrix_and_early_validation():
         assert token in governance
     assert "method_additions" in additions and "verification_plan" in additions
     assert "до" in additions and "побоч" in additions
-    assert "stdout_fullmatch" in evidence and "stderr_fullmatch" in evidence
+    assert "stdout_equals" in evidence and "stderr_equals" in evidence
     assert "дополнитель" in evidence and "RED" in evidence
 
 

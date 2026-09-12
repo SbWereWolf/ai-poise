@@ -4,7 +4,6 @@ from copy import deepcopy
 import importlib
 import json
 from pathlib import Path
-import re
 import sys
 
 import pytest
@@ -64,12 +63,12 @@ def method(
             red_failure=(
                 {
                     "exit_code": expected_exit_code,
-                    "stdout_fullmatch": (
-                        re.escape(selected_stdout[0]) + r"\n"
+                    "stdout_equals": (
+                        selected_stdout[0] + "\n"
                         if len(selected_stdout) == 1
-                        else r"(?s).*"
+                        else ""
                     ),
-                    "stderr_fullmatch": "",
+                    "stderr_equals": "",
                 }
                 if expected_exit_code != 0
                 else None
@@ -385,8 +384,8 @@ def test_exact_red_predicate_accepts_declared_failure_set(project):
             red_stages=["red"],
             red_failure={
                 "exit_code": 1,
-                "stdout_fullmatch": r"EXPECTED_FAILURE\n",
-                "stderr_fullmatch": "",
+                "stdout_equals": "EXPECTED_FAILURE\n",
+                "stderr_equals": "",
             },
         ),
     )
@@ -415,8 +414,8 @@ def test_exact_red_predicate_rejects_additional_failure(project):
             red_stages=["red"],
             red_failure={
                 "exit_code": 1,
-                "stdout_fullmatch": r"EXPECTED_FAILURE\n",
-                "stderr_fullmatch": "",
+                "stdout_equals": "EXPECTED_FAILURE\n",
+                "stderr_equals": "",
             },
         ),
     )
@@ -469,8 +468,8 @@ def test_receipt_identities_change_with_expectation_and_worktree(project):
         source_under_test=external_source("No repository source is loaded."),
     )
     for selected in (first, second):
-        selected["verification_plan"]["red_failure"]["stdout_fullmatch"] = (
-            r"FIRST_FAILURE SECOND_FAILURE\n"
+        selected["verification_plan"]["red_failure"]["stdout_equals"] = (
+            "FIRST_FAILURE SECOND_FAILURE\n"
         )
     second["argv"] = shared_expectation_argv
     first_receipt = execute(

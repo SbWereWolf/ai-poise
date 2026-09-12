@@ -31,6 +31,23 @@ def write_json(path: Path, value: object) -> Path:
     return path
 
 
+def verification_plan(
+    responsibility: str,
+    change_surface: list[str],
+    *,
+    red_stages: list[str] | None = None,
+    green_stages: list[str] | None = None,
+    red_failure: dict | None = None,
+) -> dict:
+    return {
+        "responsibility": responsibility,
+        "change_surface": change_surface,
+        "red_stages": [] if red_stages is None else red_stages,
+        "green_stages": [] if green_stages is None else green_stages,
+        "red_failure": red_failure,
+    }
+
+
 def git(root: Path, *args: str) -> str:
     return subprocess.check_output(['git', '-C', str(root), *args], text=True).strip()
 
@@ -115,10 +132,25 @@ def project(tmp_path, monkeypatch):
     methods = [
         {'id': 'RED', 'argv': argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
+         'verification_plan': verification_plan(
+             'Prove the regression test fails for the declared product behaviour.',
+             ['src/**'],
+             red_stages=['tests'],
+             red_failure={
+                 'exit_code': 1,
+                 'stdout_fullmatch': '',
+                 'stderr_fullmatch': '(?s).*test_double.*AssertionError: 3 != 4.*Ran 1 test.*FAILED \\(failures=1\\)\\s*',
+             },
+         ),
          'expected_exit_code': 1,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'AssertionError: 3 != 4', 'Ran 1 test']},
         {'id': 'GREEN', 'argv': argv, 'cwd': '.', 'environment': {},
          'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
+         'verification_plan': verification_plan(
+             'Prove the implemented product behaviour and final regression remain green.',
+             ['src/**'],
+             green_stages=['implementation', 'code_review'],
+         ),
          'expected_exit_code': 0,
          'stdout_contains': [], 'stderr_contains': ['test_double', 'Ran 1 test', 'OK']},
     ]

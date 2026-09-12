@@ -132,3 +132,16 @@ class TaskQueries:
                 from .transfer_records import relocate_receipt
                 result=relocate_receipt(result,json.loads(locations['data']))
             return {'status':'read_only','task':task_id,**result}
+
+    def verification_registry(self, task_id):
+        from .tasks import SqliteTaskRepository
+        with self.database.transaction() as db:
+            registry = SqliteTaskRepository(db).load(task_id).check_registry
+            return {
+                'status': 'read_only',
+                'task': task_id,
+                'revision': registry.revision,
+                'current': [entry.to_dict() for entry in registry.entries],
+                'history': [snapshot.to_dict() for snapshot in registry.history],
+                'requests': [request.to_dict() for request in registry.requests],
+            }

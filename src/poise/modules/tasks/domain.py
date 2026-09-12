@@ -200,7 +200,8 @@ class Task:
         return Change(self, None, ())
 
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
-               commit_message: str, content_additions: dict, trace: dict, method_additions: list[dict], stage_work: dict, evidence_work: dict) -> Change:
+               commit_message: str, content_additions: dict, trace: dict,
+               method_additions: list[dict] | dict, stage_work: dict, evidence_work: dict) -> Change:
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
@@ -208,7 +209,14 @@ class Task:
         stage_handler = handler(self.route.node(self.stage.stage_id).handler)
         handling = stage_handler.evaluate(stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
-        registry = self.check_registry.extend(method_additions)
+        if isinstance(method_additions, dict):
+            if 'test_registry' not in {rule.name for rule in self.stage.rules}:
+                raise DomainError(
+                    f'{self.stage.stage_id}: изменение test_registry на этом этапе запрещено'
+                )
+            registry = self.check_registry.apply_change(method_additions).registry
+        else:
+            registry = self.check_registry.extend(method_additions)
         registry.validate_route(self.route)
         policy = replace(self.content_policy, method_ids=registry.method_ids).extend(content_additions)
         if not isinstance(sections, dict):
@@ -251,6 +259,8 @@ class Task:
             raise DomainError("Нет активного этапа для verify")
         if self.progress.stage_work is None:
             raise DomainError("Нет содержательного результата обработчика")
+        if self.route.node(self.stage.stage_id).handler == HandlerKind.INSPECT:
+            self.check_registry.validate_inspection_exit()
         handling = self._handling()
         if handling.outcome is None:
             raise DomainError("No successful receipt for current external action")
@@ -421,7 +431,12 @@ class Task:
         return {'book':self.evidence_book.to_dict(),'input':self.evidence_input,'assessment':self.evidence_assessment}
 
     def workflow_snapshot(self) -> dict:
-        return {"progress":self.progress.to_dict(),"feedback":self.feedback.to_dict(),"action_assessment":self.action_assessment}
+        return {
+            "progress": self.progress.to_dict(),
+            "feedback": self.feedback.to_dict(),
+            "action_assessment": self.action_assessment,
+            "registry": self.check_registry.to_state(),
+        }
 
     def cancel(self, actor: str, reason: str) -> Change:
         self._owned(actor)

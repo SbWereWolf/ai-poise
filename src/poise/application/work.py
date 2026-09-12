@@ -132,6 +132,7 @@ class WorkTools:
             elif kind=='messages':value=self.interactions.summary(h.current_task())
             elif kind=='content':value=h.show_content()
             elif kind=='evidence':value=h.show_evidence()
+            elif kind=='verification_registry':value=h.show_verification_registry()
             elif kind=='trace':value=h.show_trace(query['route'],query['point'],query['submission'])
             elif kind=='section':
                 value=h.show_section(query['name'],query['stage'],query['submission'])

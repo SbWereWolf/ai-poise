@@ -863,6 +863,10 @@ class Poise:
         data=self._task()
         return {'status':'read_only','task':data['id'],**self.task_queries.evidence_view(data['id'])}
 
+    def show_verification_registry(self):
+        data = self._task()
+        return self.task_queries.verification_registry(data['id'])
+
     def show_output(self,receipt_id,representation,requested):
         from .modules.work.domain import read_range
         data=self._task()

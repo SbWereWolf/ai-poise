@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+import hashlib
 import json
 from ..foundation.errors import DomainError
 from ..foundation.paths import matches_allowed_path
@@ -195,6 +196,8 @@ class RegisteredCheck:
     method_id: str
     definition: str
     stages: tuple[str, ...]
+    evidence_kind: str | None = None
+    covers: tuple[str, ...] = ()
 
     @classmethod
     def parse(
@@ -205,7 +208,11 @@ class RegisteredCheck:
         require_source: bool = False,
         require_plan: bool = False,
     ) -> RegisteredCheck:
-        exact_keys(raw, {"method", "stages"}, "registered method")
+        fields = set(raw) if isinstance(raw, dict) else set()
+        if fields not in ({"method", "stages"}, {"method", "stages", "evidence_kind", "covers"}):
+            raise DomainError(
+                "registered method: требуется точный legacy или current набор полей"
+            )
         method = raw['method']
         label = f"method {method.get('id')}" if isinstance(method, dict) and method.get('id') else 'method'
         validate_method(
@@ -226,17 +233,60 @@ class RegisteredCheck:
                     f"method {method['id']}: verification_plan schedule {declared} "
                     f"не совпадает с расписанием {scheduled}; исправьте schedule"
                 )
+        evidence_kind = raw.get('evidence_kind')
+        covers = raw.get('covers', [])
+        if evidence_kind is not None:
+            if evidence_kind != 'executable_test':
+                raise DomainError('registered method.evidence_kind: неизвестный вид evidence')
+            if (not isinstance(covers, list) or not covers
+                    or any(not isinstance(item, str) or not item for item in covers)
+                    or len(covers) != len(set(covers))):
+                raise DomainError('registered method.covers: требуется непустой список обязательств')
+        elif covers:
+            raise DomainError('registered method.covers требует evidence_kind')
         definition=json.dumps(method,sort_keys=True,ensure_ascii=False,separators=(',',':'))
-        return cls(method['id'],definition,tuple(scheduled))
+        return cls(method['id'],definition,tuple(scheduled),evidence_kind,tuple(covers))
 
     def to_dict(self) -> dict:
-        return {'method':json.loads(self.definition),'stages':list(self.stages)}
+        value = {'method':json.loads(self.definition),'stages':list(self.stages)}
+        if self.evidence_kind is not None:
+            value.update(evidence_kind=self.evidence_kind, covers=list(self.covers))
+        return value
+
+
+@dataclass(frozen=True)
+class RegistrySnapshot:
+    revision: int
+    entries: tuple[RegisteredCheck, ...]
+
+    def to_dict(self) -> dict:
+        return {'revision': self.revision, 'entries': [entry.to_dict() for entry in self.entries]}
+
+
+@dataclass(frozen=True)
+class RegistryRequest:
+    request_id: str
+    digest: str
+    revision: int
+
+    def to_dict(self) -> dict:
+        return {'request_id': self.request_id, 'digest': self.digest, 'revision': self.revision}
+
+
+@dataclass(frozen=True)
+class RegistryChangeResult:
+    registry: CheckRegistry
+    replayed: bool
 
 
 @dataclass(frozen=True)
 class CheckRegistry:
     stages: tuple[str, ...]
     entries: tuple[RegisteredCheck, ...]
+    revision: int = 0
+    history: tuple[RegistrySnapshot, ...] = ()
+    requests: tuple[RegistryRequest, ...] = ()
+    executable_obligations: tuple[str, ...] = ()
 
     @classmethod
     def from_items(
@@ -278,6 +328,20 @@ class CheckRegistry:
         _validate_relationships(registry.entries)
         return registry
 
+    def with_executable_obligations(self, obligations: tuple[str, ...]) -> CheckRegistry:
+        if (type(obligations) is not tuple
+                or any(not isinstance(item, str) or not item for item in obligations)
+                or len(obligations) != len(set(obligations))):
+            raise DomainError('Executable obligations должны быть явным уникальным tuple')
+        return CheckRegistry(
+            self.stages,
+            self.entries,
+            self.revision,
+            self.history,
+            self.requests,
+            obligations,
+        )
+
     @property
     def method_ids(self) -> tuple[str, ...]:
         return tuple(e.method_id for e in self.entries)
@@ -299,7 +363,161 @@ class CheckRegistry:
             current[e.method_id]=e
         entries=tuple(current.values())
         _validate_relationships(entries)
-        return CheckRegistry(self.stages,entries)
+        self._validate_coverage_refs(entries)
+        return CheckRegistry(
+            self.stages,
+            entries,
+            self.revision,
+            self.history,
+            self.requests,
+            self.executable_obligations,
+        )
+
+    @property
+    def current_snapshot(self) -> RegistrySnapshot:
+        return RegistrySnapshot(self.revision, self.entries)
+
+    def apply_change(self, raw: dict) -> RegistryChangeResult:
+        exact_keys(raw, {'request_id', 'expected_revision', 'operations'}, 'registry change')
+        request_id = raw['request_id']
+        expected = raw['expected_revision']
+        operations = raw['operations']
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError('registry change.request_id: требуется непустая строка')
+        if type(expected) is not int or expected < 0:
+            raise DomainError('registry change.expected_revision: требуется неотрицательный int')
+        if not isinstance(operations, list) or not operations:
+            raise DomainError('registry change.operations: требуется непустой список')
+        digest = hashlib.sha256(json.dumps(
+            raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')
+        ).encode('utf-8')).hexdigest()
+        previous = next((item for item in self.requests if item.request_id == request_id), None)
+        if previous is not None:
+            if previous.digest != digest:
+                raise DomainError('registry change.request_id уже использован с другим payload')
+            return RegistryChangeResult(self, True)
+        if expected != self.revision:
+            raise DomainError(
+                f'registry change revision conflict: expected {expected}, current {self.revision}'
+            )
+        current = {entry.method_id: entry for entry in self.entries}
+        order = list(self.method_ids)
+        touched = set()
+        for index, operation in enumerate(operations):
+            if not isinstance(operation, dict) or 'kind' not in operation or 'method_id' not in operation:
+                raise DomainError(f'registry change.operations[{index}]: требуется kind и method_id')
+            kind = operation['kind']
+            method_id = operation['method_id']
+            if not isinstance(method_id, str) or not method_id:
+                raise DomainError(f'registry change.operations[{index}].method_id: требуется строка')
+            if method_id in touched:
+                raise DomainError(f'registry change: повтор операции для {method_id}')
+            touched.add(method_id)
+            if kind in ('add', 'replace'):
+                exact_keys(operation, {'kind', 'method_id', 'registration'}, 'registry operation')
+                exists = method_id in current
+                if kind == 'add' and exists:
+                    raise DomainError(f'registry add: метод {method_id} уже существует')
+                if kind == 'replace' and not exists:
+                    raise DomainError(f'registry replace: неизвестный метод {method_id}')
+                entry = RegisteredCheck.parse(
+                    operation['registration'], self.stages, require_source=True, require_plan=True
+                )
+                if entry.method_id != method_id:
+                    raise DomainError('registry operation method_id не совпадает с registration')
+                current[method_id] = entry
+                if not exists:
+                    order.append(method_id)
+            elif kind == 'remove':
+                exact_keys(operation, {'kind', 'method_id'}, 'registry operation')
+                if method_id not in current:
+                    raise DomainError(f'registry remove: неизвестный метод {method_id}')
+                del current[method_id]
+                order.remove(method_id)
+            elif kind == 'reschedule':
+                exact_keys(operation, {'kind', 'method_id', 'stages'}, 'registry operation')
+                if method_id not in current:
+                    raise DomainError(f'registry reschedule: неизвестный метод {method_id}')
+                entry = current[method_id]
+                value = entry.to_dict()
+                stages = operation['stages']
+                if (not isinstance(stages, list) or not stages
+                        or any(not isinstance(stage, str) for stage in stages)
+                        or len(stages) != len(set(stages)) or set(stages) - set(self.stages)):
+                    raise DomainError('registry reschedule: неизвестные/повторные stages')
+                plan = value['method']['verification_plan']
+                target = 'red_stages' if plan['red_stages'] else 'green_stages'
+                plan[target] = list(stages)
+                value['stages'] = list(stages)
+                current[method_id] = RegisteredCheck.parse(
+                    value, self.stages, require_source=True, require_plan=True
+                )
+            else:
+                raise DomainError(f'registry operation: неизвестный kind {kind!r}')
+        entries = tuple(current[method_id] for method_id in order)
+        _validate_relationships(entries)
+        self._validate_coverage_refs(entries)
+        revision = self.revision + 1
+        updated = CheckRegistry(
+            self.stages,
+            entries,
+            revision,
+            self.history + (self.current_snapshot,),
+            self.requests + (RegistryRequest(request_id, digest, revision),),
+            self.executable_obligations,
+        )
+        return RegistryChangeResult(updated, False)
+
+    def _validate_coverage_refs(self, entries: tuple[RegisteredCheck, ...]) -> None:
+        if not self.executable_obligations:
+            return
+        unknown = {
+            obligation for entry in entries for obligation in entry.covers
+            if obligation not in self.executable_obligations
+        }
+        if unknown:
+            raise DomainError(f'Executable coverage ссылается на неизвестные обязательства {sorted(unknown)}')
+
+    def validate_inspection_exit(self, obligations: tuple[str, ...] | None = None) -> None:
+        required = self.executable_obligations if obligations is None else obligations
+        executable = [
+            entry for entry in self.entries
+            if entry.evidence_kind == 'executable_test'
+            and json.loads(entry.definition)['expected_exit_code'] == 0
+            and json.loads(entry.definition)['verification_plan']['green_stages']
+        ]
+        if required and not executable:
+            raise DomainError('Для выхода из inspection требуется текущий GREEN executable-test')
+        covered = {item for entry in executable for item in entry.covers}
+        missing = [item for item in required if item not in covered]
+        if missing:
+            raise DomainError(f'Текущие GREEN executable-test не покрывают {missing}')
+
+    def to_state(self) -> dict:
+        return {
+            'revision': self.revision,
+            'history': [snapshot.to_dict() for snapshot in self.history],
+            'requests': [request.to_dict() for request in self.requests],
+            'executable_obligations': list(self.executable_obligations),
+        }
+
+    def restore_state(self, raw: dict | None) -> CheckRegistry:
+        if raw is None:
+            return self
+        exact_keys(raw, {'revision', 'history', 'requests', 'executable_obligations'}, 'registry state')
+        revision = raw['revision']
+        if type(revision) is not int or revision < 0:
+            raise DomainError('registry state.revision: требуется неотрицательный int')
+        history = tuple(
+            RegistrySnapshot(
+                item['revision'],
+                CheckRegistry.from_items(item['entries'], self.stages).entries,
+            )
+            for item in raw['history']
+        )
+        requests = tuple(RegistryRequest(**item) for item in raw['requests'])
+        obligations = tuple(raw['executable_obligations'])
+        return CheckRegistry(self.stages, self.entries, revision, history, requests, obligations)
 
     def validate_route(self, route) -> None:
         if tuple(node.stage_id for node in route.nodes) != self.stages:

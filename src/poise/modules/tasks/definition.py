@@ -15,6 +15,13 @@ def path_identifier(value):
     return value
 
 
+def executable_obligations(contract):
+    return tuple(
+        [f"requirements[{index}]" for index, _ in enumerate(contract['requirements'])]
+        + [f"definition_of_done[{index}]" for index, _ in enumerate(contract['definition_of_done'])]
+    )
+
+
 def validate_creation(contract, process, automatic_checks):
     if isinstance(contract,dict) and 'method_inputs' not in contract:
         method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
@@ -36,7 +43,9 @@ def validate_creation(contract, process, automatic_checks):
             raise DomainError(f'{field}: требуются непустые уникальные строки')
     stages=tuple(s['id'] for s in process['stages'])
     route = RouteDefinition.from_process(process)
-    registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages)
+    registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
+        executable_obligations(contract)
+    )
     from .creation_preflight import CreationPreflight
     CreationPreflight.parse(contract,process)
     registry.validate_route(route)
@@ -64,7 +73,9 @@ def build_task(metadata, actor):
     policy=candidate_content_policy_from_metadata(metadata,{'goal':metadata['process']['content_contract'],
                                                             'task':metadata['contract']['content_contract']})
     route = RouteDefinition.from_process(metadata['process'])
-    registry=CheckRegistry.from_task(metadata['contract']['methods'],metadata['contract']['checks'],tuple(s.stage_id for s in stages))
+    registry=CheckRegistry.from_task(
+        metadata['contract']['methods'], metadata['contract']['checks'], tuple(s.stage_id for s in stages)
+    ).with_executable_obligations(executable_obligations(metadata['contract']))
     registry.validate_route(route)
     args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry))
     if actor is None:return Task.planned(*args)

@@ -90,7 +90,10 @@ class SqliteTaskRepository:
         items = [without_retired_method_timeout(json.loads(r[0])) for r in self.db.execute(
             "SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid", (task_id,)
         )]
-        registry = CheckRegistry.from_items(items,tuple(s['id'] for s in metadata['process']['stages']))
+        from ...modules.tasks.definition import executable_obligations
+        registry = CheckRegistry.from_items(
+            items, tuple(s['id'] for s in metadata['process']['stages'])
+        ).with_executable_obligations(executable_obligations(metadata['contract']))
         metadata['contract']['methods']=[item['method'] for item in items]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
         sections = self.db.execute("SELECT section_id,content,content_state FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY section_id ORDER BY submission_id DESC) AS n FROM section_layers WHERE task_id=?) WHERE n=1 ORDER BY section_id", (task_id,)).fetchall()
@@ -101,6 +104,7 @@ class SqliteTaskRepository:
         if saved is None:
             raise PoiseError("Нет сохранённого состояния маршрута")
         workflow = json.loads(saved[0])
+        registry = registry.restore_state(workflow.get('registry'))
         proof_row = self.db.execute("SELECT data FROM task_proofs WHERE task_id=?",(task_id,)).fetchone()
         if proof_row is None: raise PoiseError("Нет обязательного evidence state")
         proof = json.loads(proof_row[0])
@@ -160,14 +164,19 @@ class SqliteTaskRepository:
         return submission_id
 
     def _save_methods(self, task: Task) -> None:
+        current_ids = set(task.check_registry.method_ids)
+        self.db.execute(
+            "DELETE FROM task_methods WHERE task_id=? AND method_id NOT IN "
+            f"({','.join('?' for _ in current_ids)})" if current_ids else
+            "DELETE FROM task_methods WHERE task_id=?",
+            (task.state.task_id, *current_ids) if current_ids else (task.state.task_id,),
+        )
         for entry in task.check_registry.entries:
             existing = self.db.execute("SELECT data FROM task_methods WHERE task_id=? AND method_id=?",(task.state.task_id,entry.method_id)).fetchone()
             data = encode(entry.to_dict())
             if existing is None:
                 self.db.execute("INSERT INTO task_methods VALUES(?,?,?,?)",(task.state.task_id,entry.method_id,task.state.version,data))
             elif existing[0] != data:
-                if encode(without_retired_method_timeout(json.loads(existing[0]))) != data:
-                    raise PoiseError("Попытка заменить неизменный метод проверки")
                 self.db.execute(
                     "UPDATE task_methods SET version=?,data=? WHERE task_id=? AND method_id=?",
                     (task.state.version, data, task.state.task_id, entry.method_id),

@@ -89,8 +89,10 @@ Launcher возвращает `disposition_required`, `cleanup_blocked`, `cleanu
 `cleanup_complete`, а также точные `remaining_resources`, blocker и историю подтверждённых
 шагов. Dirty worktree остаётся заблокированным даже после фиксации disposition: его можно
 довести до clean fast-forward checkpoint той же task-ветки и продолжить новым request ID либо
-вернуть к исходному commit вне cleanup и повторить прежний пакет. Основной checkout, чужие
-ресурсы, durable artifacts и operator backups не очищаются.
+вернуть к исходному commit вне cleanup и повторить прежний пакет. Принятый checkpoint
+фиксируется в persisted cleanup history событием `worktree_checkpointed` со старым и новым
+commit и `request_id`. Основной checkout, чужие ресурсы, durable artifacts и operator backups не
+очищаются.
 
 Сохранённые ownership identity, commit/digest и версия проверяются перед каждым эффектом.
 Поэтому конкурентное изменение ветки, файла или cleanup-state даёт actionable blocker/отказ,

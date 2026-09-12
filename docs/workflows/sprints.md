@@ -161,7 +161,6 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
         "argv": ["python", "-m", "pytest", "-q"],
         "cwd": ".",
         "environment": {},
-        "timeout_seconds": 120,
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": []

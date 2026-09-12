@@ -48,7 +48,6 @@ def method(
         "argv": [sys.executable, "-B", "-c", "print('OK')"],
         "cwd": ".",
         "environment": {},
-        "timeout_seconds": 10,
         "expected_exit_code": expected_exit_code,
         "stdout_contains": ["OK"] if stdout_contains is None else stdout_contains,
         "stderr_contains": [],
@@ -125,6 +124,14 @@ def test_new_method_requires_explicit_source_under_test():
         [method(source_under_test=external_source())],
         {"red": ["M"], "green": []},
     )
+
+
+def test_verification_method_rejects_timeout_field():
+    selected = method(source_under_test=repository_source(cwd_binding()))
+    selected["timeout_seconds"] = 10
+
+    with pytest.raises(DomainError, match="точный набор полей"):
+        registry([selected], {"red": ["M"], "green": []})
 
 
 def test_repository_source_rejects_escape_duplicate_and_environment_collision():

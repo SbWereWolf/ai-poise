@@ -107,6 +107,42 @@ def test_queries_do_not_change_revision(project):
     assert before == after
 
 
+def test_retired_verification_timeout_is_removed_on_next_owner_save(project):
+    h, _ = bootstrap(project)
+    with h.store.transaction() as db:
+        row = db.execute(
+            "SELECT data FROM task_methods WHERE task_id='T1' AND method_id='RED'"
+        ).fetchone()
+        stored = json.loads(row[0])
+        stored["method"]["timeout_seconds"] = 10
+        db.execute(
+            "UPDATE task_methods SET data=? WHERE task_id='T1' AND method_id='RED'",
+            (json.dumps(stored, ensure_ascii=False, sort_keys=True, separators=(",", ":")),),
+        )
+
+    assert "timeout_seconds" not in h._task()["contract"]["methods"][0]
+    h.task_commands.submit(
+        "T1",
+        "S1",
+        {
+            "sections": {"report": "normalized"},
+            "artifact_paths": [],
+            "commit_message": "test: normalize method",
+            "content_additions": {"sections": [], "routes": [], "requirements": []},
+            "trace": {},
+            "method_additions": [],
+            "stage_work": {},
+            "evidence_work": {"phase": "prepare", "arguments": [], "decisions": []},
+        },
+    )
+
+    with h.store.transaction() as db:
+        normalized = json.loads(db.execute(
+            "SELECT data FROM task_methods WHERE task_id='T1' AND method_id='RED'"
+        ).fetchone()[0])
+    assert "timeout_seconds" not in normalized["method"]
+
+
 def test_verified_report_replay_cannot_substitute_another_tree(project):
     h,b=bootstrap(project); add_test(b["worktree"]); fill(b); report=h.verify()
     with h.store.unit_of_work() as uow:

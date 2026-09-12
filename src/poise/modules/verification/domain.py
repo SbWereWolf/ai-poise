@@ -1,7 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import json
-import math
 from ..foundation.errors import DomainError
 
 
@@ -11,7 +10,7 @@ def exact_keys(value: dict, keys: set[str], where: str) -> None:
 
 
 METHOD_FIELDS = {
-    'id', 'argv', 'cwd', 'environment', 'timeout_seconds',
+    'id', 'argv', 'cwd', 'environment',
     'expected_exit_code', 'stdout_contains', 'stderr_contains',
 }
 EXPECTATION_FIELDS = {'expected_exit_code', 'stdout_contains', 'stderr_contains'}
@@ -81,8 +80,6 @@ def validate_method(method: dict, where: str, *, require_source: bool = False) -
         not isinstance(k, str) or not isinstance(v, str) for k,v in method['environment'].items()
     ):
         raise DomainError(f'{where}: environment должен содержать строки')
-    if type(method['timeout_seconds']) not in (int, float) or not math.isfinite(method['timeout_seconds']) or method['timeout_seconds'] <= 0:
-        raise DomainError(f'{where}: необходим конечный положительный timeout')
     if type(method['expected_exit_code']) is not int:
         raise DomainError(f'{where}: expected_exit_code — целое число')
     for field in ('stdout_contains', 'stderr_contains'):

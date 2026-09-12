@@ -34,13 +34,13 @@ def process(kind):
 def method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
-            'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
+            'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 
 def external_method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'external','reason':'The service-state command reads no repository source.'},
-            'timeout_seconds':10,'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
+            'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 
 def submission(ctx,work):

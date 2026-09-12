@@ -21,7 +21,7 @@ from poise.runtime import Poise
 from poise.infrastructure.clock import SystemClock
 
 
-def run(root,repository,base_ref,destination,task_id,timeout):
+def run(root,repository,base_ref,destination,task_id):
     root=Path(root).resolve();repository=Path(repository).resolve()
     settings=root/'config/project-setup.json'
     setup=json.loads(settings.read_text());selected=setup['templates']['linux-reference']
@@ -39,7 +39,7 @@ def run(root,repository,base_ref,destination,task_id,timeout):
     commands=CatalogueCommands(catalogue,goal_config_tools(catalogue.editor.path),catalogue.raw['max_items'])
     selected_task=catalogue.raw['task_templates']['verification-v1']
     invocation={'id':'VERIFY','argv':[sys.executable,'-m','pytest','tests/projects','-q'],
-        'cwd':'.','environment':{'PYTHONPATH':'src'},'timeout_seconds':timeout,
+        'cwd':'.','environment':{'PYTHONPATH':'src'},
         'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
         'expected_exit_code':0,'stdout_contains':['passed'],'stderr_contains':[]}
     parameters={'identity':task_id,'membership':None,
@@ -95,6 +95,5 @@ if __name__=='__main__':
     p.add_argument('--base-ref',required=True)
     p.add_argument('--destination',required=True,help='new directory relative to Poise root')
     p.add_argument('--task-id',required=True)
-    p.add_argument('--check-seconds',type=float,required=True)
     a=p.parse_args()
-    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id,a.check_seconds),ensure_ascii=False,indent=2))
+    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id),ensure_ascii=False,indent=2))

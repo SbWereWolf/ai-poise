@@ -190,7 +190,7 @@ class RuntimePlanActions:
 
     def _method(self,data,method):
         invocation=self.h._invocations([method],Path(data['worktree']))[0]
-        receipt=self._command(data,method['argv'],Path(invocation['cwd']),invocation['environment'],method['timeout_seconds'])
+        receipt=self._command(data,method['argv'],Path(invocation['cwd']),invocation['environment'],None)
         receipt['method']=method['id']
         receipt['passed']=(not receipt['timed_out'] and receipt['actual_exit_code']==method['expected_exit_code']
                            and all(contains(Path(receipt['stdout']),v) for v in method['stdout_contains'])

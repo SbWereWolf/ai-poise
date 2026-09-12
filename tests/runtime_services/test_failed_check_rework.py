@@ -87,7 +87,6 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
             "kind": "repository",
             "bindings": [{"kind": "cwd", "path": "."}],
         },
-        "timeout_seconds": 10,
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": [],

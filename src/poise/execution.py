@@ -7,7 +7,7 @@ from pathlib import Path
 from .common import PoiseError
 
 
-def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float,
+def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float | None,
                 stdout_path: Path, stderr_path: Path) -> dict:
     """Не загружает полный вывод в память; ждёт конечного результата процесса."""
     start = time.monotonic()
@@ -21,7 +21,7 @@ def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float,
         except OSError as exc:
             raise PoiseError(f'Не удалось запустить точную команду {argv[0]}: {exc}') from exc
         try:
-            code = child.wait(timeout=timeout)
+            code = child.wait() if timeout is None else child.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
             os.killpg(child.pid, signal.SIGKILL)

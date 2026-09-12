@@ -228,8 +228,7 @@ python examples/project_pilot.py \
   --repository /absolute/git/checkout/of/poise \
   --base-ref tasks/POISE-PILOT-01 \
   --destination state/pilots/self-check \
-  --task-id SELF-PILOT \
-  --check-seconds 60
+  --task-id SELF-PILOT
 ```
 
 Нужен реальный закоммиченный revision этой версии с `tests/projects`. Имя repository/ref

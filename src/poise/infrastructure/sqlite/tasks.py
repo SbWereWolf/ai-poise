@@ -181,6 +181,9 @@ class SqliteExecutionRepository:
             raise PoiseError("Неполный/неизвестный execution snapshot")
         self.db.execute("INSERT INTO task_execution VALUES(?,?,?)",(task_id,encode(data),0))
 
+    def exists(self, task_id: str) -> bool:
+        return self.db.execute("SELECT 1 FROM task_execution WHERE task_id=?",(task_id,)).fetchone() is not None
+
     def load(self, task_id: str) -> tuple[dict,int]:
         row=self.db.execute("SELECT data,version FROM task_execution WHERE task_id=?",(task_id,)).fetchone()
         if row is None: raise PoiseError("Нет execution state задачи")

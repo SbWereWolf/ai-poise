@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 import re
 
 from ..foundation.errors import DomainError
+from ..task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 
 
 _COMMIT = re.compile(r"[0-9a-f]{40,64}")
@@ -81,13 +82,13 @@ class IntegrationRun:
     resolutions: tuple[dict, ...]
     merge: dict | None
     failure: dict | None
-    cleanup: dict
+    cleanup: CleanupRun | None
     history: tuple[dict, ...]
 
     @classmethod
     def new(cls, intent):
         return cls(intent, "prepared", 0, None, None, (), (), None, None,
-                   {"worktree": "pending", "branch": "pending"},
+                   None,
                    ({"status": "prepared"},))
 
     @classmethod
@@ -97,7 +98,9 @@ class IntegrationRun:
         intent = IntegrationIntent.parse({**value["intent"], "resolutions": []})
         return cls(intent, value["status"], value["version"], value["target_before"],
                    value["target_after"], tuple(value["conflicts"]), tuple(value["resolutions"]),
-                   value["merge"], value["failure"], dict(value["cleanup"]), tuple(value["history"]))
+                   value["merge"], value["failure"],
+                   None if value["cleanup"] is None else CleanupRun.restore(value["cleanup"]),
+                   tuple(value["history"]))
 
     def _step(self, status, event=None, details=None, **changes):
         entry = {"status": status}
@@ -135,14 +138,25 @@ class IntegrationRun:
         return self._step("running", "resolutions_declared", resolutions=parsed,
                           merge={**self.merge, "resolutions": list(parsed)})
 
-    def integrated(self, target_after, receipt):
+    def integrated(self, target_after, receipt, resources=None):
         if self.status != "running":
             raise DomainError("Only a running integration can record a target result")
         target = _commit(target_after, "integrated target")
         merge = {"receipt": receipt, "conflicts": list(self.conflicts),
                  "resolutions": list(self.resolutions)}
-        return self._step("cleanup_pending", "target_integrated", target_after=target,
-                          merge=merge, failure=None)
+        if resources is None:
+            resources = [
+                {"kind": "worktree", "identity": self.intent.task_id, "path": self.intent.task_id},
+                {"kind": "branch", "name": self.intent.task_id, "commit": self.intent.expected_source_commit},
+            ]
+        disposition = CommitDisposition("integrated", self.intent.expected_source_commit,
+                                        target, self.intent.request_id)
+        cleanup_intent = CleanupIntent(self.intent.request_id, self.intent.task_id,
+                                       self.intent.authorization, disposition)
+        cleanup = CleanupRun.new(cleanup_intent, resources)
+        status = "integrated" if cleanup.complete else "cleanup_pending"
+        return self._step(status, "target_integrated", target_after=target,
+                          merge=merge, failure=None, cleanup=cleanup)
 
     def blocked(self, reason, receipt):
         if self.status != "running":
@@ -157,30 +171,35 @@ class IntegrationRun:
         return self._step(target, "merge_retry", failure=None)
 
     def cleanup_blocked(self, component, receipt):
-        if self.status != "cleanup_pending" or component not in ("worktree", "branch"):
+        if self.status != "cleanup_pending" or component not in ("worktree", "branch") or self.cleanup is None:
             raise DomainError("Cleanup blockage does not match the integration state")
-        cleanup = dict(self.cleanup)
-        cleanup[component] = "blocked"
+        resource = next((item for item in self.cleanup.resources if item.kind == component), None)
+        if resource is None: return self
+        cleanup = self.cleanup.cleanup_blocked(resource, receipt)
         details = {"component": component, "receipt": receipt}
         return self._step("cleanup_pending", f"{component}_cleanup_blocked",
                           details=details, cleanup=cleanup)
 
     def worktree_removed(self):
-        if self.status not in ("cleanup_pending", "integrated"):
+        if self.status not in ("cleanup_pending", "integrated") or self.cleanup is None:
             raise DomainError("Worktree cleanup requires an integrated target")
-        if self.cleanup["worktree"] == "removed":
+        resource = next((item for item in self.cleanup.resources if item.kind == "worktree"), None)
+        if resource is None:
             return self
-        cleanup = dict(self.cleanup)
-        cleanup["worktree"] = "removed"
+        cleanup = self.cleanup.retry_blocked() if self.cleanup.blocker is not None else self.cleanup
+        cleanup = cleanup.resource_removed(resource)
         return self._step(self.status, "worktree_removed", cleanup=cleanup)
 
     def branch_deleted(self):
-        if self.cleanup["worktree"] != "removed":
+        if self.cleanup is None:
+            raise DomainError("Cleanup state is missing")
+        if any(item.kind == "worktree" for item in self.cleanup.resources):
             raise DomainError("Branch deletion follows worktree removal")
-        if self.cleanup["branch"] == "deleted":
+        resource = next((item for item in self.cleanup.resources if item.kind == "branch"), None)
+        if resource is None:
             return self
-        cleanup = dict(self.cleanup)
-        cleanup["branch"] = "deleted"
+        cleanup = self.cleanup.retry_blocked() if self.cleanup.blocker is not None else self.cleanup
+        cleanup = cleanup.resource_removed(resource)
         return self._step("integrated", "branch_deleted", cleanup=cleanup)
 
     def to_storage(self):
@@ -195,7 +214,7 @@ class IntegrationRun:
             "resolutions": list(self.resolutions),
             "merge": self.merge,
             "failure": self.failure,
-            "cleanup": self.cleanup,
+            "cleanup": None if self.cleanup is None else self.cleanup.to_storage(),
             "history": list(self.history),
         }
 
@@ -207,7 +226,10 @@ class IntegrationRun:
             "source_commit": self.intent.expected_source_commit,
             "target_before": self.target_before,
             "target_after": self.target_after,
-            "cleanup": self.cleanup,
+            "cleanup": None if self.cleanup is None else {
+                key:value for key,value in self.cleanup.result().items()
+                if key not in ("task", "history")
+            },
             "merge": self.merge,
             "failure": self.failure,
             "history": list(self.history),

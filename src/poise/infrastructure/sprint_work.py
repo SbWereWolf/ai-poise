@@ -20,10 +20,10 @@ class SprintWork:
             snapshot=self.commands.replacement_snapshot(packet)
             if snapshot['receipt'] is not None:return snapshot['receipt']
             fact=snapshot['fact'];status=fact['status']
-            if fact['pending'] is not None:
-                raise PoiseError('Task has a pending external outcome; resolve the pending operation before replacement')
             if status in ('completed','cancelled','superseded'):
                 raise PoiseError('Only an unfinished Task can be superseded')
+            if fact['pending'] is not None:
+                raise PoiseError('Task has a pending external outcome; resolve the pending operation before replacement')
             if status=='available':
                 if fact['claimed_by'] is not None or fact['worktree'] is not None:
                     raise PoiseError('Available Task has ambiguous WIP; preserve it through handoff before replacement')
@@ -43,12 +43,30 @@ class SprintWork:
                 if handoff is None or handoff['state']!='released':
                     raise PoiseError('Unowned Task has ambiguous WIP; preserve it through an explicit handoff before replacement')
                 safety={'kind':'released_handoff','handoff_request':handoff['request_id']}
-            preflight={**snapshot,'safety':safety}
+            run=self.h.cleanup_tools.prepare_terminal(packet['source_task'],f"{packet['request_id']}:{packet['source_task']}",packet['authorization'])
+            preflight={**snapshot,'safety':safety,'cleanup_pending':self.h.cleanup_tools.pending(run),
+                       'cleanup_result':self.h.cleanup_tools.terminal_result(run)}
+        elif isinstance(packet,dict) and packet.get('action') in ('cancel_tasks','cancel'):
+            snapshot=self.commands.cancellation_snapshot(packet)
+            if snapshot['receipt'] is not None:return snapshot['receipt']
+            prepared={}
+            for tid,item in snapshot['tasks'].items():
+                run=self.h.cleanup_tools.prepare_terminal(tid,f"{packet['request_id']}:{tid}",packet['reason'])
+                worktree=next((resource for resource in run.resources if resource.kind=='worktree'),None)
+                if worktree is not None and self.h._git(Path(worktree.path),'status','--porcelain','--untracked-files=all'):
+                    run=run.cleanup_blocked(worktree,{
+                        'reason':'dirty_worktree_requires_decision',
+                        'recovery':'Preserve the worktree changes or commit them, then provide an explicit cleanup disposition.',
+                    })
+                prepared[tid]={**item,'cleanup_pending':self.h.cleanup_tools.pending(run),
+                               'cleanup_result':self.h.cleanup_tools.terminal_result(run)}
+            preflight={**snapshot,'tasks':prepared}
         result=self.commands.apply(packet,preflight)
         # Receipt proves application exactly once; current context may have advanced.
         if isinstance(packet,dict) and packet.get('action')=='replace_task':return result
         overview=self.overview(result['sprint'])
-        return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {})}
+        return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {}),
+                **({'cleanup':result['cleanup']} if 'cleanup' in result else {})}
 
     def select(self,sprint_id):
         current=self.h.current_task()

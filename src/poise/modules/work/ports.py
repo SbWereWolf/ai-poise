@@ -24,6 +24,8 @@ class TaskOverviewPort(Protocol):
 class WorkRuntime(Protocol):
     accounting: Any
     transfer_tools:Any
+    cleanup_tools:Any
+    integration_tools:Any
     sprint_tools:SprintWorkPort
     task_queries:TaskOverviewPort
     session:str

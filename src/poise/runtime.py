@@ -98,6 +98,9 @@ class Poise:
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
         self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
+        from .application.task_cleanup import TaskResourceCleanup
+        from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup
+        self.cleanup_tools=TaskResourceCleanup(RuntimeTaskResourceCleanup(self))
 
     def _result_event(self,event,payload):
         current=self.current_task()
@@ -746,10 +749,12 @@ class Poise:
         if not isinstance(reason,str) or not reason.strip(): raise PoiseError('Нужна инструкция пользователя об отмене')
         data = self._task()
         if data['pending'] is not None: raise PoiseError('Сначала установить исход незавершённой операции')
-        self.task_commands.cancel(data['id'], self.session, reason)
+        run=self.cleanup_tools.prepare_terminal(data['id'],f"cancel-{data['_version']}",reason)
+        self.task_commands.cancel(data['id'], self.session, reason,self.cleanup_tools.pending(run))
         self.store.event(self.session,data['id'],'task.cancelled',{'reason':reason,'worktree_preserved':True})
         self._cleanup_runtime()
-        return {'status':'cancelled','task':data['id'],'worktree_preserved':True}
+        return {'status':'cancelled','task':data['id'],'worktree_preserved':True,
+                'cleanup':self.cleanup_tools.terminal_result(run)}
 
     def show(self) -> dict:
         data = self.store.current(self.session)

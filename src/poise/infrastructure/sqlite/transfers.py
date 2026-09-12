@@ -53,7 +53,14 @@ class SqliteTransferRepository:
             for row in roots:
                 SqliteTaskRepository(db).load(row['id'])
                 e=db.execute('SELECT data FROM task_execution WHERE task_id=?',(row['id'],)).fetchone()
-                if e is not None and json.loads(e[0])['pending'] is not None:raise PoiseError('Resolve pending execution before transfer')
+                if e is not None:
+                    pending=json.loads(e[0])['pending']
+                    if pending is not None:
+                        transferable=False
+                        if isinstance(pending,dict) and pending.get('kind')=='task_cleanup':
+                            from ...modules.task_cleanup.domain import CleanupRun
+                            transferable=CleanupRun.restore(pending).complete
+                        if not transferable:raise PoiseError('Resolve pending execution before transfer')
             data={table:[] for table in ALL_TABLES}
             data['tasks']=roots
             for table in ALL_TABLES:

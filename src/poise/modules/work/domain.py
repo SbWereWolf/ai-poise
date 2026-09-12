@@ -22,6 +22,7 @@ def parse_request(value, config):
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
+            'cleanup':{'request_id','task_id','commit_disposition','authorization'},
             'sprint':None,'transfer':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
@@ -43,6 +44,9 @@ def parse_request(value, config):
         if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):raise DomainError('handoff result must be an object or null')
     if op=='artifacts' and not isinstance(value['input']['items'],list):
         raise DomainError('items must be a list')
+    if op=='cleanup':
+        from ..task_cleanup.domain import CleanupIntent
+        CleanupIntent.parse(value['input'])
     if op=='show':
         queries=value['input']['queries']
         if not isinstance(queries,list) or not queries or len(queries)>config['max_items']:
@@ -52,7 +56,7 @@ def parse_request(value, config):
             if not isinstance(query,dict) or not isinstance(query.get('id'),str) or not query['id'] or query['id'] in ids:
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
-            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},
+            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')

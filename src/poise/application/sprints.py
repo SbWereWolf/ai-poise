@@ -33,6 +33,17 @@ class SprintCommands:
             except PoiseError as exc:errors.append(f"Task creation intent: {exc}")
         return errors
 
+    @staticmethod
+    def _save_cleanup(uow, task_id, pending):
+        if not uow.execution.exists(task_id):
+            uow.execution.create(task_id,{"worktree":None,"branch":None,"base":None,"attempts":0,
+                "publication":None,"pending":pending,"entry_tree":None,"last_report":None})
+            return
+        execution,version=uow.execution.load(task_id)
+        if execution['pending'] is not None:raise DomainError('External operation outcome must be resolved first')
+        execution['pending']=pending
+        uow.execution.save(task_id,execution,version)
+
     def _describe(self,uow,record):
         s=Sprint.restore(record['aggregate']);sid=s.plan.data['id'];facts=uow.sprints.facts(sid)
         resumable=tuple(i for i,f in facts.items() if f['claimed_by'] is None and f['handoff_available']
@@ -78,6 +89,28 @@ class SprintCommands:
             task=u.tasks.load(source)
             return {'receipt':None,'sprint':sid,'fact':facts[source],'task_version':task.state.version,
                     'handoff':u.handoffs.latest(source)}
+
+    def cancellation_snapshot(self,packet):
+        action=self._action(packet)
+        if action not in ('cancel_tasks','cancel'):raise DomainError('Cancellation snapshot requires cancel action')
+        identity=fingerprint(packet)
+        with self.uow() as u:
+            sid=packet['sprint_id'] if packet['sprint_id'] is not None else u.sprints.scope(self.actor)
+            path_identifier(sid);record=u.sprints.get(sid)
+            if record is None or record['project']!=self.project:raise DomainError('Unknown Sprint in this project')
+            old=u.sprints.receipt(sid,packet['request_id'],identity)
+            if old is not None:return {'receipt':old,'sprint':sid}
+            s=Sprint.restore(record['aggregate'])
+            whole=action=='cancel'
+            requested=([t['id'] for t in s.plan.data['tasks']] if s.state=='published' else []) if whole else list(s.cancellation_scope(packet['tasks'],packet['mode']))
+            facts=u.sprints.facts(sid)
+            ids=[tid for tid in requested if facts[tid]['status'] not in ('completed','cancelled')]
+            snapshots={}
+            for tid in ids:
+                if facts[tid]['pending'] is not None:raise DomainError('External operation outcome must be resolved first')
+                task=u.tasks.load(tid)
+                snapshots[tid]={'fact':facts[tid],'task_version':task.state.version}
+            return {'receipt':None,'sprint':sid,'tasks':snapshots}
 
     def apply(self,packet,preflight=None):
         action=self._action(packet)
@@ -154,6 +187,7 @@ class SprintCommands:
                               'sprint_id':sid,'goal':candidate['goal'],'config_hash':record['execution_hash']}
                     u.tasks.create(build_task(metadata,None),metadata)
                     u.tasks.save(source_task.supersede(self.actor,packet['reason']),source_task.state.version)
+                    self._save_cleanup(u,source,preflight['cleanup_pending'])
                 elif action=='waive_dependencies':
                     if not isinstance(packet['decisions'],list) or not packet['decisions']:
                         raise DomainError('A nonempty explicit decision batch is required')
@@ -168,8 +202,15 @@ class SprintCommands:
                     for tid in ids:
                         if facts[tid]['pending'] is not None:raise DomainError('External operation outcome must be resolved first')
                     for tid in ids:
-                        task=u.tasks.load(tid);change=task.cancel_from_sprint(packet['reason'])
+                        if preflight is None or tid not in preflight['tasks']:
+                            raise DomainError('Cancellation requires external resource preflight')
+                        expected=preflight['tasks'][tid]
+                        task=u.tasks.load(tid)
+                        if task.state.version!=expected['task_version'] or facts[tid]!=expected['fact']:
+                            raise VersionConflict('Task changed after cancellation preflight')
+                        change=task.cancel_from_sprint(packet['reason'])
                         u.tasks.save(change,task.state.version)
+                        self._save_cleanup(u,tid,expected['cleanup_pending'])
                     s=s.cancel(ids,packet['reason']) if whole else s.record_task_cancellation(ids,packet['reason'])
                 record={**record,'actor':self.actor,'aggregate':s.to_dict()}
                 u.sprints.save(record,prior)
@@ -180,6 +221,9 @@ class SprintCommands:
                     if preflight['fact']['claimed_by']==self.actor:u.handoffs.unbind(self.actor,packet['source_task'])
             u.sprints.bind(self.actor,sid)
             result=self._describe(u,record)
+            if action=='replace_task':result={**result,'cleanup':{packet['source_task']:preflight['cleanup_result']}}
+            elif action in ('cancel_tasks','cancel'):
+                result={**result,'cleanup':{tid:item['cleanup_result'] for tid,item in preflight['tasks'].items()}}
             if allocations:result={**result,'allocations':allocations}
             u.sprints.remember(sid,packet['request_id'],identity,result)
             return result

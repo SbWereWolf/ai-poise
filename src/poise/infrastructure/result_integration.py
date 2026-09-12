@@ -8,6 +8,7 @@ import subprocess
 
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
+from .task_cleanup import RuntimeTaskResourceCleanup
 
 
 class RuntimeResultIntegration:
@@ -15,6 +16,10 @@ class RuntimeResultIntegration:
 
     def __init__(self, runtime):
         self.h = runtime
+        self.cleanup = RuntimeTaskResourceCleanup(runtime)
+
+    def _cleanup_resources(self, task_id):
+        return self.cleanup.resources(task_id)
 
     def _target_ref(self):
         name = self.h.cfg["git"]["base_ref"]
@@ -253,7 +258,8 @@ class RuntimeResultIntegration:
             self._save(intent.task_id, started, run.version)
             run = started
             if self._run(target, "merge-base", "--is-ancestor", source, "HEAD")["actual_exit_code"] == 0:
-                merged = run.integrated(self._git(target, "rev-parse", "HEAD"), {"no_op": True})
+                merged = run.integrated(self._git(target, "rev-parse", "HEAD"), {"no_op": True},
+                                        self._cleanup_resources(intent.task_id))
                 self._save(intent.task_id, merged, run.version)
                 return merged
             env = self._prepare_index(target, intent)
@@ -305,7 +311,7 @@ class RuntimeResultIntegration:
                     incoming = self._incoming_paths(target, run.target_before, source)
                     self._sync_target_index(target, incoming)
                     self._drop_index(target, intent)
-                    recovered = run.integrated(head, {"recovered": True})
+                    recovered = run.integrated(head, {"recovered": True}, self._cleanup_resources(intent.task_id))
                     self._save(intent.task_id, recovered, run.version)
                     return recovered
                 raise PoiseError("Unknown merge outcome requires inspection")
@@ -320,7 +326,8 @@ class RuntimeResultIntegration:
             incoming = self._incoming_paths(target, run.target_before, source)
             self._sync_target_index(target, incoming)
             self._drop_index(target, intent)
-            merged = run.integrated(self._git(target, "rev-parse", "HEAD"), receipt)
+            merged = run.integrated(self._git(target, "rev-parse", "HEAD"), receipt,
+                                    self._cleanup_resources(intent.task_id))
             self._save(intent.task_id, merged, run.version)
             return merged
         return run
@@ -333,28 +340,27 @@ class RuntimeResultIntegration:
         if self._run(target, "merge-base", "--is-ancestor", run.intent.expected_source_commit,
                      run.target_after)["actual_exit_code"] != 0:
             raise PoiseError("Integrated target does not contain the accepted source")
-        source = Path(record["worktree"])
-        if run.cleanup["worktree"] != "removed":
-            if source.exists():
-                receipt = self._run(target, "worktree", "remove", str(source))
-                if receipt["actual_exit_code"] != 0:
-                    blocked = run.cleanup_blocked("worktree", receipt)
-                    self._save(run.intent.task_id, blocked, run.version)
-                    return blocked
-            removed = run.worktree_removed()
-            self._save(run.intent.task_id, removed, run.version)
-            run = removed
-        if run.cleanup["branch"] != "deleted":
-            branch_ref = f"refs/heads/{record['branch']}"
-            if self._optional_ref(target, branch_ref) is not None:
-                receipt = self._run(target, "branch", "-d", record["branch"])
-                if receipt["actual_exit_code"] != 0:
-                    blocked = run.cleanup_blocked("branch", receipt)
-                    self._save(run.intent.task_id, blocked, run.version)
-                    return blocked
-            deleted = run.branch_deleted()
-            self._save(run.intent.task_id, deleted, run.version)
-            run = deleted
+        try:
+            self.cleanup.validate(run.intent.task_id, run.cleanup)
+        except PoiseError as exc:
+            resource,receipt=self.cleanup.validation_failure(run.intent.task_id,run.cleanup,exc)
+            blocked=run.cleanup_blocked(resource.kind,receipt)
+            self._save(run.intent.task_id,blocked,run.version)
+            return blocked
+        if run.cleanup is None:
+            raise PoiseError("Integrated result has no cleanup state")
+        while run.cleanup.resources:
+            resource = run.cleanup.resources[0]
+            try:
+                receipt = self.cleanup.remove(run.intent.task_id, resource)
+            except PoiseError as exc:
+                receipt = getattr(exc, "receipt", None) or {"reason": f"{resource.kind}_cleanup_failed", "error": str(exc)}
+                blocked = run.cleanup_blocked(resource.kind, receipt)
+                self._save(run.intent.task_id, blocked, run.version)
+                return blocked
+            advanced = run.worktree_removed() if resource.kind == "worktree" else run.branch_deleted()
+            self._save(run.intent.task_id, advanced, run.version)
+            run = advanced
         return run
 
     def apply(self, intent):

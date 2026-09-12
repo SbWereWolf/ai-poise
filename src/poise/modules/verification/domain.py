@@ -19,9 +19,9 @@ EXPECTATION_FIELDS = {'expected_exit_code', 'stdout_contains', 'stderr_contains'
 
 def _repository_path(value: object, where: str) -> str:
     if not isinstance(value, str) or not value or '\x00' in value or '\\' in value:
-        raise DomainError(f'{where}: требуется repository-relative path')
+        raise DomainError(f'{where}: требуется repository-relative path, получено {value!r}; исправьте path')
     if value.startswith('/') or '..' in value.split('/'):
-        raise DomainError(f'{where}: путь должен находиться внутри repository')
+        raise DomainError(f'{where}: путь {value!r} должен находиться внутри repository; исправьте path')
     return value
 
 
@@ -166,7 +166,8 @@ class CheckRegistry:
             if not isinstance(values,list) or any(not isinstance(v,str) for v in values):
                 raise DomainError("Расписание должно содержать списки ID методов")
         for method in methods:
-            validate_method(method, 'method', require_source=True)
+            label = f"method {method.get('id')}" if isinstance(method, dict) and method.get('id') else 'method'
+            validate_method(method, label, require_source=True)
         registry=cls.from_items([{'method':m,'stages':[s for s in stages if m['id'] in checks[s]]} for m in methods],stages)
         missing={v for values in checks.values() for v in values}-set(registry.method_ids)
         if missing:

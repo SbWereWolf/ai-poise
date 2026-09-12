@@ -60,6 +60,10 @@ def missing_repository_input_intent(project, request_id, *, sprint_id=None):
         "argv": [sys.executable, "-m", "pytest", "-q", missing],
         "cwd": ".",
         "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
         "timeout_seconds": 30,
         "expected_exit_code": 0,
         "stdout_contains": [],
@@ -714,6 +718,10 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
         "argv": [sys.executable, "-m", "pytest", "-q", existing],
         "cwd": ".",
         "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
         "timeout_seconds": 30,
         "expected_exit_code": 0,
         "stdout_contains": [],

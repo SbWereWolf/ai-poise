@@ -226,6 +226,8 @@ def test_old_version_two_store_is_rejected_without_migration(project):
 
 def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_executed(project):
     import sys
+    project['task']['methods']=[]
+    project['task']['method_inputs']=[]
     project['task']['checks']={s['id']:[] for s in project['process']['stages']}
     project['cfg']['automatic_checks']=[]
     h,b=setup(project,empty(),empty()); fill(b)

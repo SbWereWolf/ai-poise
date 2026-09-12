@@ -75,6 +75,10 @@ def _method(path=MISSING_TEST):
         "argv": [sys.executable, "-m", "pytest", "-q", path],
         "cwd": ".",
         "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
         "timeout_seconds": 30,
         "expected_exit_code": 0,
         "stdout_contains": [],

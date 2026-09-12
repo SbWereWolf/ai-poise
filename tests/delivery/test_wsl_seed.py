@@ -10,6 +10,8 @@ ROOT=Path(__file__).resolve().parents[2]
 def git_repo(path):
     path.mkdir(); subprocess.run(["git","init","-b","main",str(path)],check=True,capture_output=True)
     (path/"README.md").write_text("seed test\n")
+    for relative in ("tests/projects", "tests/hook_transport", "tests/runtime_services"):
+        target=path/relative;target.mkdir(parents=True);(target/"test_seed.py").write_text("def test_seed(): pass\n")
     subprocess.run(["git","-C",str(path),"add","."],check=True)
     subprocess.run(["git","-C",str(path),"-c","user.name=Seed Test","-c","user.email=seed@example.invalid","commit","-m","baseline"],check=True,capture_output=True)
 

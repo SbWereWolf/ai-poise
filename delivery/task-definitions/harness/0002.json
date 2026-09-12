@@ -48,6 +48,21 @@
       "stderr_contains": []
     }
   ],
+  "method_inputs": [
+    {
+      "method_id": "BASELINE",
+      "repository_inputs": [
+        "tests/hook_transport",
+        "tests/runtime_services"
+      ],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "pytest",
+        "parser": "positional-paths",
+        "version": 1
+      }
+    }
+  ],
   "checks": {
     "baseline": [
       "BASELINE"

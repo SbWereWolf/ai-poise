@@ -50,6 +50,20 @@
       "stderr_contains": []
     }
   ],
+  "method_inputs": [
+    {
+      "method_id": "BASELINE",
+      "repository_inputs": [
+        "tests/projects"
+      ],
+      "future_outputs": [],
+      "reference_profile": {
+        "runner": "pytest",
+        "parser": "positional-paths",
+        "version": 1
+      }
+    }
+  ],
   "checks": {
     "baseline": [
       "BASELINE"

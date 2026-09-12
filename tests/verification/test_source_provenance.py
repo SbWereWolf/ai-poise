@@ -76,6 +76,16 @@ def task_tools(
     task = deepcopy(project["task"])
     task["id"] = task_id
     task["methods"] = [selected]
+    task["method_inputs"] = [{
+        "method_id": selected["id"],
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
+    }]
     task["checks"] = {
         stage["id"]: [selected["id"]] if stage["id"] == "tests" else []
         for stage in project["process"]["stages"]

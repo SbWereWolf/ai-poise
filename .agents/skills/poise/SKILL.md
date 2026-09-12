@@ -1,6 +1,6 @@
 ---
 name: poise-workflow
-description: Run one project-local task stage through AI poise declarative batch tools.
+description: Execute project-local AI poise task stages and hand off work between executor and reviewer through declarative batch tools.
 ---
 
 # AI poise task workflow
@@ -23,7 +23,7 @@ Do not create a worktree for read-only queries. For repository-changing work, us
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
-Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. After a verified stage, report the result and stop unless the user has explicitly delegated multi-stage autonomous continuation.
+Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. A user instruction to start a Task authorizes its executor and reviewer to continue ordinary execution, review and remediation through the harness without a new user command for each stage or review. Honor an explicit stage-only assignment or other user limit. Continue stages of your own role; at a role boundary follow the handoff procedure below. Do not bypass gates or act as your own independent reviewer.
 
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method.
 
@@ -48,6 +48,14 @@ Discover the public backup surface with `poise backup help`. Use `poise backup l
 ## Handoff and transfer
 
 For another agent in the same store, use one `handoff` package; never manually commit/copy/release task state. Read [Local handoff → Package](../../../docs/workflows/local-handoff.md#пакет).
+
+When the Task's counterpart executor/reviewer is known, apply [Direct role handoff](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) in both directions:
+
+1. Save the result, evidence and findings, complete your required checks, and confirm that public `handoff` actually released the Task.
+2. Stop Task/worktree changes, then use the available direct-message tool to notify that known counterpart. Include project/Task ID, stage and receiving role, result/findings and handoff receipt links, next action and any limits of the user's Task-start instruction. Do not ask the user to relay the message or authorize each ordinary review.
+3. The recipient must acquire through `bootstrap` and check current state before working. A message neither transfers ownership nor substitutes for a review decision. Keep messages actionable, not repetitive status chatter.
+
+If the recipient or messaging tool is unavailable, report the saved handoff to the user; do not contact unrelated agents. If handoff fails, do not announce a completed transfer. If notification fails after release, retry the notification against the same saved result or report the blocker; do not silently reclaim or repeat the work. Repeated messages require checking current Poise state, not replaying a finished stage. Stop for a harness blocker or a decision outside the existing authorization, not for a routine executor/reviewer boundary.
 
 For another store/environment, use `transfer`; do not merge task databases manually. Read [Transfer → Batch API](../../../docs/workflows/transfer.md#пакетный-api).
 

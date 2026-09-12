@@ -71,7 +71,10 @@ def test_canonical_execution_identity_changes_for_every_bound_input(project):
     changed_provenance = deepcopy(checks)
     changed_provenance[0]["source_under_test"] = {
         "kind": "repository",
-        "bindings": [{"kind": "cwd", "path": "src"}],
+        "bindings": [
+            {"kind": "cwd", "path": "."},
+            {"kind": "environment", "name": "SOURCE_ROOT", "path": "src"},
+        ],
     }
     _, provenance_key = runtime._verification_execution(
         data,

@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 from pathlib import Path
 import sys
 
@@ -398,12 +399,26 @@ def test_active_rework_rejects_a_failed_batch_with_damaged_output(
 def test_active_rework_rejects_a_failed_batch_with_malformed_digest_metadata(project):
     tools, context = _scenario(project)
     _fail_current_stage(tools, context)
-    current = tools.runtime.current_task()
-    del current["evidence"]["batches"][-1]["receipts"][0]["stdout_digest"]
-    tools.runtime.store.save(current)
+    with tools.runtime.store.transaction() as db:
+        row = db.execute(
+            "SELECT data FROM task_proofs WHERE task_id='T1'"
+        ).fetchone()
+        proof = json.loads(row[0])
+        del proof["book"]["batches"][-1]["receipts"][0]["stdout_digest"]
+        db.execute(
+            "UPDATE task_proofs SET data=? WHERE task_id='T1'",
+            (
+                json.dumps(
+                    proof,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            ),
+        )
     before = _show(tools)
 
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError, match="точного доступного failed check batch"):
         _rework(tools)
 
     assert _show(tools) == before

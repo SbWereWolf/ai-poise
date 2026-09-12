@@ -23,6 +23,8 @@ Bootstrap-настройки устанавливают root, project_config, in
 
 Сначала публикуется неизменяемый definition в config root, потом одним atomic replace обновляется hooks.json. Operational SQLite сохраняет pending/completed receipt. Одна SQL-транзакция НЕ делает файл частью SQLite; повтор сверяет фактический digest.
 
+Управляемые native-команды и session launcher запускают Python с `-B`, поэтому загрузка installation source не создаёт и не обновляет bytecode в checkout. При следующем native event точный launcher прежней управляемой формы без `-B` атомарно заменяется текущей формой; любое другое изменение launcher по-прежнему считается внешним и вызывает отказ без перезаписи. Рабочий `hooks.json` обновляется через `runtime-config`, а не одной лишь заменой генератора команд.
+
 Новый/изменённый hook требует пользовательского review/trust в Codex. Инструмент возвращает `requires_user_review` и `live_codex: not_observed`; не включает `--dangerously-bypass-hook-trust`, не правит config.toml и не выдаёт генерацию файла за активацию в приложении.
 
 ## Native события и счётчик

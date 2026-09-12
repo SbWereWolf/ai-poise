@@ -14,6 +14,7 @@ from .composition import task_tools
 from .application.runner import StageRunner
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
+from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, preview
@@ -671,7 +672,7 @@ class Poise:
         return invocations, execution_key
 
     def _intact_receipts(self, receipts):
-        if not isinstance(receipts, list):
+        if not completed_receipts(receipts):
             return False
         required = {
             'actual_exit_code',

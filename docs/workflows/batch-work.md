@@ -61,6 +61,14 @@
 содержит фактический `task`, task/worktree roots с тем же ID и квитанцию; persisted branch
 формируется из этого ID по `git.branch_template`:
 
+Для каждого executable method полный creation contract также содержит соответствующий
+`method_inputs`: существующие baseline-пути перечисляются в `repository_inputs`, а каждый
+разрешённый `future output` — в `future_outputs` вместе с producer stage. Preflight сверяет
+эти объявления с выбранным base tree, `allowed_paths`, порядком stages и явным
+runner/parser profile до allocation Task ID и подготовки worktree. Отсутствующий,
+необъявленный или недостижимый путь отклоняет весь creation intent без частичных эффектов;
+исправленный контракт отправляется с новым `request_id`.
+
 ```json
 {"allocation":{"request_id":"customer-import-creation-1","task_id":"0029","replayed":false}}
 ```

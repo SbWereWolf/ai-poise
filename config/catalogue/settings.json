@@ -5,13 +5,13 @@
     "development-v1": {
       "path": "config/catalogue/task-templates/development.json",
       "version": "1",
-      "digest": "96110332025e8e239777a79fba37898d3d3436ff046a81643334b3816c18f038",
+      "digest": "bf73337abb3b8b93e36b1d76d184c8a8fad04d5f7a09d04792ca5692a2495ffe",
       "goal_type": "development"
     },
     "test_development-v1": {
       "path": "config/catalogue/task-templates/test_development.json",
       "version": "1",
-      "digest": "32da63c04ad0b30fd43a59bcec4114f1a548a5724743d4f27c708e40a8db0ded",
+      "digest": "36f671f2fe36364af415ce1356cdd8d40b14ece061055b6f8e0e4937028cd040",
       "goal_type": "test_development"
     },
     "verification-v1": {

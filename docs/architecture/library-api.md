@@ -6,7 +6,8 @@
 - `Task`: create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel. Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.
 - `SectionBook`, `ContentPolicy`: стандартные/дополнительные секции, трассировка, pre/post gates. Контракты DDD-02 сохранены.
 - `RouteDefinition`, `RouteProgress`, `FeedbackBook`: graph и внутренний цикл осмотра/исправления DDD-03.
-- `CheckRegistry`: неизменные точные командные методы и явное расписание.
+- `CheckRegistry`: точные командные методы, явное расписание, версионируемая current
+  projection, immutable history и явная executable-классификация/покрытие.
 - `EvidencePlan.parse(raw, handlers, checks)`: полный план каждой стадии, references, writers, фазовая применимость.
 - `EvidenceBook.record_batch(stage, iteration, tree, key, receipts)`: добавить immutable наблюдение, повтор идентичного batch — no-op.
 - `EvidenceBook.precheck(...)`: структурные предусловия, обязательные prepare-аргументы и решения.
@@ -16,6 +17,15 @@
 `TaskCommands` — краткие UoW для создания, submission, content gates, workflow/evidence context, observation batch, assessment, mark_verified, accept/rework/cancel. Runtime не обращается к таблицам Task напрямую.
 
 `StageRunner` делегирует текущую механику в TaskCommands; новые методы record_observations и assess_evidence не переключают этап.
+
+`CheckRegistry.apply_change` принимает один пакет
+`request_id/expected_revision/operations/executable_obligations`, атомарно меняет current
+projection и сохраняет прежнюю revision в истории. `CheckRegistry.restore_state` проверяет
+сохранённую классификацию против полного obligation catalogue. Task авторизует изменение
+только через stage-owned `test_registry`, а inspection gate требует совокупное покрытие
+текущих executable obligations непустым GREEN-набором. Persistence не переписывает methods,
+receipts или submissions и не восстанавливает current classification из immutable creation
+metadata.
 
 `EvidenceCommands.record_receipt(task_id, actor, stage, iteration, receipt)` проверяет владельца, позицию, известные IDs методов и передаёт запись через EvidenceRepository. Это вход для наблюдающего адаптера, не для LLM. Идентичный ID не перезаписывается другим содержимым или другой задачей.
 

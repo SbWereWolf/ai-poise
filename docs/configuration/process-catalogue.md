@@ -63,8 +63,11 @@ python -m poise catalogue --settings "$PWD/config/catalogue/settings.json"
 Все использованные параметры должны быть объявлены, все объявленные — переданы явно;
 лишние значения и отсутствие значения отклоняются. Допустимый null задаётся типом параметра.
 
-Текущие параметры исходных шаблонов:
-identity, membership, goal, requirements, dod, methods, artifact_requirements, contract, evidence.
+Текущие общие параметры исходных шаблонов:
+identity, membership, goal, requirements, dod, methods, method_inputs,
+artifact_requirements, contract, evidence. Шаблоны `development` и `test_development`
+дополнительно требуют `executable_obligations`: явную классификацию только тех requirement/DoD
+refs, которым требуется executable evidence.
 Каждый шаблон сам фиксирует goal_type и расписание проверок по этапам. `methods` содержит
 **реальные точные команды**, а не символические названия проектного runner.
 `contract` позволяет добавить поэтапные требования, секции и индивидуальные цепочки трассировки;

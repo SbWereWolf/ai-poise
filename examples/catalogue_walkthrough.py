@@ -187,6 +187,8 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
           'methods':methods,'method_inputs':_method_inputs(goal,methods),
           'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
           'contract':deepcopy(EMPTY),'evidence':evidence}
+    if goal in ('development','test_development'):
+        vals['executable_obligations']=['requirements[0]']
     return commands.tasks([{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
                              'parameters':vals}],processes,[])['tasks'][0]
 
@@ -287,6 +289,18 @@ def run(directory,goal,scenario,feedback_edge=None):
         for extra in process['content_contract']['sections']:
             if sid in extra['write_stages'] and not task['checks'][sid]:
                 p['sections'][extra['id']]='Known fixture input: the service-state file is initially ready=false; reproduction follows as its own exact command. No new command result is claimed.'
+        if goal in ('development','test_development') and sid=='test_implementation':
+            method=next(item for item in task['methods'] if item['id']=='TEST_GREEN')
+            scheduled=[stage['id'] for stage in process['stages'] if method['id'] in task['checks'][stage['id']]]
+            p['method_additions']={
+                'request_id':f'{goal}-current-registry-1',
+                'expected_revision':0,
+                'operations':[{'kind':'replace','method_id':method['id'],'registration':{
+                    'method':method,'stages':scheduled,'evidence_kind':'executable_test',
+                    'covers':['requirements[0]'],
+                }}],
+                'executable_obligations':['requirements[0]'],
+            }
         p['commit_message']='catalogue: '+goal+' '+sid
         # A proposal may be made only for already delivered open findings and is
         # accepted later. It does not silently mark the original problem solved.

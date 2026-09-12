@@ -2,6 +2,24 @@
 
 Обновлено: **2026-09-12T00:00:00+05:00**.
 
+## Current verification registry — task 0055
+
+Реализована атомарная замена текущего реестра проверок на этапах, владеющих
+`test_registry`: `add`, `replace`, `reschedule`, `remove`, точная revision и idempotent
+`request_id`. Старые definitions, snapshots, execution identities, observations, receipts и
+submissions остаются адресуемыми; SQLite восстанавливает current projection отдельно.
+
+Для процессов с test-inspection gate Task creation и каждая мутация требуют явный
+`executable_obligations`. `CheckRegistry` отклоняет неизвестные refs и при выходе из
+test-inspection требует непустой текущий GREEN executable-набор с полным совокупным `covers`.
+Документационные и иные неисполняемые пункты не классифицируются скрыто; один настоящий узкий
+тест может покрыть несколько обязательств. Сохранённая классификация валидируется при
+восстановлении, migration/fallback и требование полного repository-wide suite не добавлены.
+
+Публичный маршрут и persistence/replay проверены шестью task-specific сценариями; bounded
+smoke и смежные Task/verification проверки прошли на зафиксированном дереве задачи. Это не
+объявление полного набора репозитория выполненным.
+
 ## Verification source provenance — task 0037
 
 Новые методы требуют явный `source_under_test`: repository bindings разрешаются внутри

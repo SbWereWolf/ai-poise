@@ -59,3 +59,9 @@ in `RouteDefinition`. New methods declare `change_surface`, `red_stages`, and
 `allowed_paths`. RED predicates compare complete output exactly, so additional
 failures do not pass. Preserve pre-plan snapshot restoration without adding a
 default, migration, or recursive runner-specific source inference.
+Keep current-registry mutation, revision/idempotency guards, immutable snapshots,
+and executable-obligation validation in `CheckRegistry`. Task creation and every
+stage-authorized `test_registry` mutation require explicit `executable_obligations`;
+never infer them from all requirements/DoD. Restore the current classification only
+from validated registry state, without rewriting historical methods or receipts and
+without a migration or fallback to immutable creation metadata.

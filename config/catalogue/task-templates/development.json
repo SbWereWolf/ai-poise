@@ -7,6 +7,7 @@
     "goal": "text",
     "requirements": "strings",
     "dod": "strings",
+    "executable_obligations": "strings",
     "methods": "list",
     "method_inputs": "list",
     "artifact_requirements": "list",
@@ -29,6 +30,9 @@
     },
     "definition_of_done": {
       "$input": "dod"
+    },
+    "executable_obligations": {
+      "$input": "executable_obligations"
     },
     "methods": {
       "$input": "methods"

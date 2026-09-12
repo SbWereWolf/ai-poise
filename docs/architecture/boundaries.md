@@ -6,7 +6,7 @@
 |---|---|---|
 | Task | кандидатный результат, доказательства, transition, приёмка и rework | SQL/Git/команды |
 | workflow/handlers | produce/inspect/revise/observe/check | goal-type branching, присваивание lifecycle |
-| verification/CheckRegistry | точные команды, ID, расписание, `source_under_test` и семантические конфликты | изобретение команд или разрешение filesystem paths |
+| verification/CheckRegistry | точные команды, current revision/история, расписание, `source_under_test`, executable-классификация/покрытие и семантические конфликты | изобретение команд или разрешение filesystem paths |
 | evidence | план, immutable observations/arguments/decisions, механическая достаточность | I/O, оценка истинности вместо агента |
 | application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
 | SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
@@ -21,6 +21,15 @@
 формированием digest/receipt. Execution adapter получает уже связанный cwd/environment и не
 угадывает язык, layout проекта или источник импорта. Evidence хранит наблюдение и provenance,
 но не исправляет неверный method после запуска.
+
+`CheckRegistry` также владеет атомарными `add`/`replace`/`reschedule`/`remove`, optimistic
+revision и idempotent request digest текущей проекции. Task разрешает такой пакет только на
+этапе с секцией `test_registry` и проверяет полноту текущего GREEN executable-покрытия только
+на явно выведенных test-inspection границах. Immutable snapshots и Evidence receipts остаются
+историей, а SQLite repository сохраняет и восстанавливает current registry state без их
+перезаписи. Классификация `executable_obligations` задаётся явно при создании и каждой
+мутации; при восстановлении единственным текущим источником является валидированный registry
+state, без migration или fallback к immutable creation metadata.
 
 Runtime строит invocation и `execution_key` для verify и failed-check rework одним
 каноническим путём; отдельная identity без source provenance не является поддержанным

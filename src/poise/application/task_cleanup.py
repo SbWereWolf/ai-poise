@@ -59,6 +59,10 @@ class TaskResourceCleanup:
             except PoiseError as exc:
                 details = getattr(exc, "cleanup_details", None)
                 if details is not None and details.get("reason") == "dirty_worktree_requires_decision":
+                    blocked = run.with_blocked_intent(intent)
+                    if blocked != run:
+                        run = blocked
+                        self.adapter.save(intent.task_id, self.pending(run))
                     return run.result()
                 raise
             if checkpointed != run:

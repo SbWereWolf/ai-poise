@@ -221,6 +221,25 @@ class CleanupRun:
     def retry_blocked(self) -> "CleanupRun":
         return replace(self, blocker=None, version=self.version + 1)
 
+    def with_blocked_intent(self, intent: CleanupIntent) -> "CleanupRun":
+        if self.blocker is None or self.blocker.get("reason") != "dirty_worktree_requires_decision":
+            raise DomainError("Only a dirty-worktree blocker can record a cleanup intent")
+        branch = next((item for item in self.resources if item.kind == "branch"), None)
+        if intent.task_id != self.intent.task_id or intent.commit_disposition is None:
+            raise DomainError("Blocked cleanup requires an explicit disposition for the same Task")
+        if branch is None:
+            raise DomainError("Blocked dirty worktree has no exact task branch resource")
+        if intent.commit_disposition.expected_commit != branch.commit:
+            raise DomainError("Blocked cleanup disposition must name the terminal task commit")
+        if self.intent.commit_disposition is not None:
+            if self.intent.to_dict() != intent.to_dict():
+                raise DomainError("Blocked cleanup request intent is immutable")
+            return self
+        event = {"event": "commit_disposition_recorded", "request_id": intent.request_id,
+                 "disposition": intent.commit_disposition.to_dict()}
+        return replace(self, intent=intent, version=self.version + 1,
+                       history=self.history + (event,))
+
     def checkpointed(self, branch: TaskOwnedResource, intent: CleanupIntent) -> "CleanupRun":
         if self.blocker is None or self.blocker.get("reason") != "dirty_worktree_requires_decision":
             raise DomainError("Only a dirty-worktree blocker can accept a checkpoint")

@@ -11,6 +11,19 @@ def exact_keys(value: dict, keys: set[str], where: str) -> None:
         raise DomainError(f"{where}: требуется точный набор полей {sorted(keys)}")
 
 
+def declared_executable_obligations(value, catalog, where):
+    if (not isinstance(value, list)
+            or any(not isinstance(item, str) or not item for item in value)
+            or len(value) != len(set(value))):
+        raise DomainError(f'{where}: требуется список уникальных refs')
+    unknown = set(value) - set(catalog)
+    if unknown:
+        raise DomainError(
+            f'{where} ссылается на неизвестные обязательства {sorted(unknown)}'
+        )
+    return tuple(value)
+
+
 METHOD_FIELDS = {
     'id', 'argv', 'cwd', 'environment',
     'expected_exit_code', 'stdout_contains', 'stderr_contains',
@@ -420,20 +433,11 @@ class CheckRegistry:
             raise DomainError('registry change.expected_revision: требуется неотрицательный int')
         if not isinstance(operations, list) or not operations:
             raise DomainError('registry change.operations: требуется непустой список')
-        declared = raw['executable_obligations']
-        if (not isinstance(declared, list)
-                or any(not isinstance(item, str) or not item for item in declared)
-                or len(declared) != len(set(declared))):
-            raise DomainError(
-                'registry change.executable_obligations: требуется список уникальных refs'
-            )
-        unknown = set(declared) - set(self.obligation_catalog)
-        if unknown:
-            raise DomainError(
-                'registry change.executable_obligations ссылается на неизвестные '
-                f'обязательства {sorted(unknown)}'
-            )
-        required = tuple(declared)
+        required = declared_executable_obligations(
+            raw['executable_obligations'],
+            self.obligation_catalog,
+            'registry change.executable_obligations',
+        )
         digest = hashlib.sha256(json.dumps(
             raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')
         ).encode('utf-8')).hexdigest()
@@ -564,7 +568,11 @@ class CheckRegistry:
             for item in raw['history']
         )
         requests = tuple(RegistryRequest(**item) for item in raw['requests'])
-        obligations = tuple(raw['executable_obligations'])
+        obligations = declared_executable_obligations(
+            raw['executable_obligations'],
+            self.obligation_catalog,
+            'registry state.executable_obligations',
+        )
         return CheckRegistry(
             self.stages,
             self.entries,

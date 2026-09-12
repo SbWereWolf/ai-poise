@@ -2,7 +2,11 @@
 from copy import deepcopy
 from .contracts import stages_from_process, candidate_content_policy_from_metadata, evidence_plan_from_metadata
 from .domain import Task
-from ..verification.domain import CheckRegistry, exact_keys
+from ..verification.domain import (
+    CheckRegistry,
+    declared_executable_obligations,
+    exact_keys,
+)
 from ..goal_config.domain import GoalTypeDefinition
 from ..workflow.domain import RouteDefinition
 from ..foundation.errors import DomainError
@@ -46,32 +50,13 @@ def obligation_catalog(contract):
     )
 
 
-def declared_executable_obligations(value, catalog, where):
-    if (not isinstance(value, list)
-            or any(not isinstance(item, str) or not item for item in value)
-            or len(value) != len(set(value))):
-        raise DomainError(f'{where}: требуется список уникальных refs')
-    unknown = set(value) - set(catalog)
-    if unknown:
-        raise DomainError(
-            f'{where} ссылается на неизвестные обязательства {sorted(unknown)}'
-        )
-    return tuple(value)
-
-
 def stored_executable_obligations(contract, process, registry_state):
     if not registry_inspection_stages(process):
         return ()
     catalog = obligation_catalog(contract)
-    if 'executable_obligations' in contract:
-        return declared_executable_obligations(
-            contract['executable_obligations'],
-            catalog,
-            'stored task.executable_obligations',
-        )
     if not isinstance(registry_state, dict) or 'executable_obligations' not in registry_state:
         raise DomainError(
-            'Stored Task без task.executable_obligations требует сохранённый registry state'
+            'Stored Task требует сохранённый registry state.executable_obligations'
         )
     return declared_executable_obligations(
         registry_state['executable_obligations'],

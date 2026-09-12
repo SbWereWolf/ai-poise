@@ -67,20 +67,19 @@ def test_failed_observation_batch_cannot_cross_task_owner(project):
     second_path = write_json(project['root'] / 'task-2.json', second_task)
     second = Poise(project['config_path'], 'S2')
     second.bootstrap(task_file=second_path)
-    first.task_commands.submit(
-        'T1',
-        'S1',
-        {
-            'sections': {'report': 'failed candidate'},
-            'artifact_paths': [],
-            'commit_message': 'test: candidate',
-            'content_additions': {'sections': [], 'routes': [], 'requirements': []},
-            'trace': {},
-            'method_additions': [],
-            'stage_work': {},
-            'evidence_work': {'phase': 'prepare', 'arguments': [], 'decisions': []},
-        },
-    )
+    payload = {
+        'sections': {'report': 'failed candidate'},
+        'artifact_paths': [],
+        'commit_message': 'test: candidate',
+        'content_additions': {'sections': [], 'routes': [], 'requirements': []},
+        'trace': {},
+        'method_additions': [],
+        'stage_work': {},
+        'evidence_work': {'phase': 'prepare', 'arguments': [], 'decisions': []},
+    }
+    first_submission = first.task_commands.submit('T1', 'S1', payload)
+    second_submission = second.task_commands.submit('T2', 'S2', payload)
+    assert first_submission.digest == second_submission.digest
     receipt = {
         'id': 'FAILED-RUN',
         'method': 'RED',

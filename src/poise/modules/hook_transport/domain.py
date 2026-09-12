@@ -22,6 +22,8 @@ class BoundSourceRoute:
     def decide(cls,operation,task_input,current_task,target_task):
         if operation in INSTALLATION_OPERATIONS:
             return cls('installation',None)
+        if operation=='integrate' and target_task is not None:
+            return cls('target_task',target_task['id'])
         if operation=='bootstrap':
             if target_task is not None:
                 return cls('target_task',target_task['id'])

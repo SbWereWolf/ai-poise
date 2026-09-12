@@ -104,7 +104,7 @@ class RuntimeResultIntegration:
                   / "result-integration" / intent.task_id / identity)
         return IntegrationRun.new(intent, branch, str(workspace), str(backup))
 
-    def _validate_new(self, record, intent, repository, source):
+    def _validate_source(self, record, intent, repository, source):
         if record["status"] != "completed":
             raise PoiseError("Only a completed accepted task result can be integrated")
         report = record["last_report"]
@@ -119,11 +119,32 @@ class RuntimeResultIntegration:
             raise PoiseError("Source worktree is not on the recorded task branch")
         if self._git(source, "status", "--porcelain"):
             raise PoiseError("Source worktree must be clean before integration")
+
+    def _validate_new(self, record, intent, repository, source):
+        self._validate_source(record, intent, repository, source)
         if self._git(repository, "rev-parse", self._target_ref()) \
                 != intent.expected_target_commit:
             raise PoiseError("Expected target commit changed before integration")
         if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.authorization) is None:
             raise PoiseError("Integration commit message violates the configured pattern")
+
+    def prepare_source(self, intent):
+        """Validate source identity before native child dispatch.
+
+        Terminal replay and post-publication cleanup cannot require the task
+        worktree because the owned cleanup phase may already have removed it.
+        """
+        repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
+        record, run = self._load(intent.task_id)
+        if run is None:
+            self._validate_new(record, intent, repository, Path(record["worktree"]))
+            return record
+        if not self._same_intent(run, intent) and not self._completed_replay(run, intent):
+            raise PoiseError("Task integration intent is immutable")
+        if run.status == "integrated" or run.phase == "cleanup_pending":
+            return None
+        self._validate_source(record, intent, repository, Path(record["worktree"]))
+        return record
 
     def _ensure_workspace(self, run, repository):
         workspace = Path(run.integration_worktree)

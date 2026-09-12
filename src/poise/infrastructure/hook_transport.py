@@ -80,7 +80,7 @@ class HookSettings:
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
 
     def command(self,verb,*args):
-        return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],'-m','poise',verb,'--settings',str(self.path),*args])
+        return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],'-B','-m','poise',verb,'--settings',str(self.path),*args])
 
 
 class FileHookRepository:
@@ -366,7 +366,8 @@ class HookService:
     def _execute_bound(self,h,record,req,definition,bound_facts=None,binding_path=None):
         def invoke():
             if bound_facts is not None:
-                current=h.current_task()
+                current=(h.task_queries.record(req['input']['task_id'])
+                         if req['operation']=='integrate' else h.current_task())
                 if current is None or current['id']!=bound_facts['task_id']:
                     raise PoiseError('Native binding no longer owns the bound Task source')
                 if self._task_source_facts(h,current,binding_path)!=bound_facts:

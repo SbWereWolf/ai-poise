@@ -1,6 +1,9 @@
 from copy import deepcopy
 from pathlib import Path
 
+import pytest
+
+from poise.common import PoiseError
 from runtime_services.test_failed_check_rework import (
     _fail_current_stage,
     _rework,
@@ -85,3 +88,45 @@ def test_canonical_execution_identity_changes_for_every_bound_input(project):
     )
 
     assert len({exact, method_key, expectation_key, provenance_key, tree_key}) == 5
+
+
+@pytest.mark.parametrize("changed_input", ["method", "expectation", "provenance"])
+def test_failed_rework_rejects_each_changed_bound_method_input(
+    project,
+    changed_input,
+    monkeypatch,
+):
+    tools, context = _scenario(project)
+    _fail_current_stage(tools, context)
+    runtime = tools.runtime
+    current = runtime.current_task()
+    worktree = Path(current["worktree"])
+    tree = runtime._tree(worktree)
+    selected = deepcopy(runtime._select_checks(current, runtime._changed(current, tree)))
+    method = selected[0]
+
+    if changed_input == "method":
+        method["argv"] = [
+            method["argv"][0],
+            "-c",
+            "print('CHANGED_METHOD'); raise SystemExit(1)",
+        ]
+    elif changed_input == "expectation":
+        method["expected_exit_code"] = 2
+        method["stdout_contains"] = ["EXPECTED_EXIT_TWO"]
+    else:
+        method["source_under_test"] = {
+            "kind": "repository",
+            "bindings": [
+                {"kind": "cwd", "path": "."},
+                {"kind": "environment", "name": "SOURCE_ROOT", "path": "src"},
+            ],
+        }
+
+    before = deepcopy(runtime.current_task())
+    monkeypatch.setattr(runtime, "_select_checks", lambda data, changed: selected)
+
+    with pytest.raises(PoiseError, match="точного доступного failed check batch"):
+        _rework(tools)
+
+    assert runtime.current_task() == before

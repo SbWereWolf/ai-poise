@@ -240,12 +240,13 @@ def test_uninterpretable_subject_check_can_rework_to_declared_stage(project):
     recovered = _rework(tools)
 
     after = _show(tools)
+    current = tools.runtime.current_task()
     assert recovered["stage"] == "test_remediation"
     assert recovered["iteration"] == 1
     assert after["attempts"] == 0
-    assert after["publication"] is None
-    assert after["pending"] is None
-    assert after["entry_tree"] == receipt["tree"]
+    assert current["publication"] is None
+    assert current["pending"] is None
+    assert current["entry_tree"] == receipt["tree"]
     assert after["submission_count"] == before["submission_count"] == 1
     assert after["evidence_count"] == before["evidence_count"] == 1
     assert _show(tools, "evidence")["observations"] == observations

@@ -16,11 +16,74 @@
 | sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
+| cleanup | request_id, task_id, authorization, commit_disposition | Завершить сохраняемую уборку точных ресурсов terminal Task |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
-`cancel` в этом API отменяет текущую standalone Task, сохраняет её историю, результаты и worktree, освобождает claim и записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
+`cancel` в этом API отменяет текущую standalone Task, сохраняет её историю и результаты,
+освобождает claim, записывает явную причину пользователя и создаёт сохраняемое обязательство
+уборки. Worktree и ветка остаются до отдельного явного решения о commit. Выбранные участники
+Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
+
+## Уборка ресурсов terminal Task
+
+Статус `cancelled`, superseded либо `completed` описывает lifecycle Task, но не является
+решением о судьбе commit, разрешением публикации или доказательством удаления ресурсов.
+Terminal-переход через standalone `cancel`, Sprint `cancel_tasks`/`cancel`, supersession или
+успешную интеграцию создаёт одно сохраняемое состояние cleanup у владельца Task. Для
+отменённой или superseded Task вызывающая сторона затем передаёт отдельный пакет:
+
+```json
+{
+  "operation": "cleanup",
+  "input": {
+    "request_id": "cleanup-0042-1",
+    "task_id": "0042",
+    "authorization": "Пользователь разрешил удалить точные локальные ресурсы Task 0042.",
+    "commit_disposition": {
+      "kind": "discard_authorized",
+      "expected_commit": "0123456789abcdef0123456789abcdef01234567"
+    }
+  },
+  "messages": []
+}
+```
+
+Публичны только два решения: `preserved` сначала создаёт и проверяет долговечный Git bundle,
+а `discard_authorized` разрешает удалить последние принадлежащие Task ссылки на указанный
+commit. `expected_commit` — полный наблюдённый commit точной task-ветки. Publication не
+выражается этим полем: принятый результат публикуется только отдельной операцией `integrate`,
+которая после подтверждённой публикации передаёт cleanup внутреннее решение `integrated`.
+
+Ответ всегда различает состояние обязательства:
+
+- `disposition_required` — ресурсы сохранены, требуется отдельное решение о commit;
+- `cleanup_blocked` — указан точный блокирующий ресурс, причина и действие восстановления;
+- `cleanup_pending` — часть монотонной уборки ещё не завершена;
+- `cleanup_complete` — `remaining_resources` пуст, все требуемые эффекты подтверждены.
+
+`remaining_resources` перечисляет только зарегистрированные ресурсы Task: worktree, ветку и
+зарегистрированные временные файлы/temporary backups с их точными identity, commit или digest.
+Основной checkout, чужие worktrees/ветки, история Task, артефакты и операторские backups не
+входят в эту область. Worktree удаляется раньше ветки; каждый шаг и blocker сохраняются, поэтому
+тот же неизменный запрос после сбоя или перезапуска продолжает только незавершённые шаги.
+
+Dirty worktree не очищается автоматически. Первый пакет фиксирует точный disposition, но
+остаётся `cleanup_blocked`: оператор либо убирает незакоммиченные изменения без помощи cleanup
+и повторяет тот же запрос, либо делает один clean checkpoint в той же task-ветке и отправляет
+новый `request_id` с новым `expected_commit`. Принимается только fast-forward потомок terminal
+commit. Изменившаяся ветка, digest, identity или конкурентная версия состояния блокируют
+операцию вместо удаления неизвестного ресурса.
+
+Состояние читается после перезапуска через `show`:
+
+```json
+{"operation":"show","input":{"queries":[{"id":"cleanup","kind":"task_cleanup","task_id":"0042","request_id":"cleanup-0042-1"}]},"messages":[]}
+```
+
+Для ранее созданной terminal Task без cleanup-state первый явный `cleanup` атомарно создаёт
+это состояние и продолжает обычный путь. Это не фоновая миграция и не скрытый fallback.
 
 ## Автоматическое создание Task
 

@@ -80,6 +80,26 @@ idempotent replay и cleanup остаются в одном `integrate` API. С�
 23 проверки result integration; системный дефект выбора source root проверки относится к
 отдельной задаче 0037 и не объявляется исправленным этой поставкой.
 
+## Terminal task-owned cleanup — 2026-09-12
+
+Реализован единый `TaskResourceCleanup` для standalone `cancel`, Sprint `cancel_tasks`/`cancel`,
+supersession и уборки после успешной интеграции. Terminal-переход сохраняет обязательство и
+возвращает точные ресурсы, но не выбирает судьбу commit. Публичный `cleanup` требует отдельные
+authorization, request identity, полный ожидаемый commit и disposition `preserved` либо
+`discard_authorized`; publication остаётся только в `integrate`.
+
+Состояние persisted в Task execution snapshot и содержит прогресс, blocker и историю. Реально
+проверяются точные worktree/branch identity, commit, зарегистрированные temporary resources и
+digest. Повтор после process loss идемпотентно продолжает недостающие шаги. Dirty worktree не
+удаляется: решение фиксируется, а продолжение требует clean same-branch fast-forward checkpoint
+с новым request ID либо возврата к прежнему commit. Существующая terminal Task без cleanup-state
+инициализируется только явной командой, без фоновой миграции.
+
+Реализация сохраняет main checkout, foreign resources, durable Task history/artifacts и
+operator backups; не применяет force-delete, push или скрытый fallback. Профильное покрытие
+находится в `tests/task_cleanup`, Sprint cancellation/replacement и result-integration cleanup;
+фактический GREEN подтверждается текущим verification batch, а не зафиксированным здесь числом.
+
 
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00
 

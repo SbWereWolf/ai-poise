@@ -8,12 +8,18 @@ import pytest
 from task_cleanup.tmpfs import MARKER, PREFIX, OwnedBasetemp
 
 
-def test_registered_red_uses_an_explicit_owned_linux_tmpfs(tmp_path_factory):
-    base = tmp_path_factory.getbasetemp()
+def test_registered_red_uses_an_explicit_owned_linux_tmpfs():
+    root = Path("/dev/shm").resolve(strict=True)
+    owned = OwnedBasetemp.create(root)
 
-    assert base.parent.parent.resolve() == Path("/dev/shm").resolve(strict=True)
-    assert base.parent.name.startswith(PREFIX)
-    assert (base.parent / MARKER).read_text(encoding="utf-8")
+    try:
+        assert owned.root == root
+        assert owned.owner.parent.resolve() == root
+        assert owned.owner.name.startswith(PREFIX)
+        assert (owned.owner / MARKER).read_text(encoding="utf-8") == owned.token
+    finally:
+        owned.remove()
+    assert not owned.owner.exists()
 
 
 def test_basetemp_cleanup_rejects_wrong_owner_token(tmp_path):

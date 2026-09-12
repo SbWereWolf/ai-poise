@@ -215,6 +215,34 @@ Intent до эффекта фиксирует task ID, request ID, source/target
 
 До подтверждения, что target содержит source commit, source worktree и ветка не удаляются; разрешённые непересекающиеся локальные изменения target не блокируют cleanup. Уборка монотонна: worktree removal предшествует безопасному branch deletion, каждый результат сохраняется, а interruption повторяет только недостающий шаг. Force-delete, SQL из runner и отдельный lifecycle writer не используются. Состояние хранится в принадлежащем Task execution snapshot, поэтому новая таблица и неявная миграция существующего store не требуются.
 
+## Terminal cleanup ресурсов Task — 2026-09-12
+
+`CleanupRun` владеет неизменным cleanup intent, явным `CommitDisposition`, точным набором
+`TaskOwnedResource`, прогрессом, blocker и replay-history. `TaskResourceCleanup` координирует
+один общий путь standalone cancellation, Sprint cancellation/supersession и cleanup после
+интеграции. `RuntimeTaskResourceCleanup` только наблюдает и изменяет Git/filesystem, проверяет
+ownership и хранит registry временных ресурсов; WorkTools и Sprint/ResultIntegration являются
+composition/transport, а не вторыми владельцами уборки.
+
+Terminal lifecycle, commit disposition, publication authorization и resource cleanup — четыре
+разных решения. Публичный cleanup принимает только `preserved` или `discard_authorized`;
+`integrated` появляется только внутри подтверждённого integration lifecycle, а `no_resources`
+выводится владельцем из наблюдаемого пустого набора. Ни cancellation, ни supersession не могут
+неявно публиковать или уничтожать последнюю ссылку на уникальный commit.
+
+Ownership задаётся сохранёнными identity: точный worktree и его ветка/commit, а также только
+зарегистрированные temporary/temporary_backup пути под task-scoped runtime root и их digest.
+Основной checkout, чужой WIP, durable artifacts/history и operator backups находятся вне этой
+границы. Worktree удаляется до ветки; preserved commit получает проверенный durable bundle до
+удаления ссылок. Dirty worktree требует явного clean checkpoint в той же ветке и только как
+fast-forward terminal commit либо восстановления прежнего дерева вне cleanup.
+
+Cleanup state хранится в существующем Task execution snapshot. Каждый внешний эффект следует
+за сохранённым intent и завершается compare-and-save прогрессом; повтор продолжает только
+оставшиеся ресурсы. Existing terminal Task без state инициализируется явной cleanup-командой,
+без reader migration, новой таблицы или fallback. Изменение identity, commit, digest или версии
+останавливает операцию; force-delete, push и отдельный lifecycle writer запрещены.
+
 
 ## Проверка пилота — 2026-09-07T15:04:48+05:00
 

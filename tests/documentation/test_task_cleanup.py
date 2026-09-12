@@ -11,5 +11,6 @@ def test_terminal_task_cleanup_is_documented_for_native_runtime():
         "cancel_tasks",
         "cancel",
         "конкурент",
+        "worktree_checkpointed",
     ):
         assert term in runtime

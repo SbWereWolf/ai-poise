@@ -99,7 +99,14 @@ def test_preserve_creates_verified_durable_bundle_before_ref_deletion(project):
     assert completed["disposition"]["kind"] == "preserved"
     bundle = Path(completed["disposition"]["bundle_path"])
     assert bundle.is_file()
-    assert git(project["app"], "bundle", "verify", str(bundle)) == ""
+    verification = subprocess.run(
+        ["git", "-C", str(project["app"]), "bundle", "verify", str(bundle)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert verification.returncode == 0, verification.stderr
+    assert "is okay" in verification.stderr
     assert commit in git(project["app"], "bundle", "list-heads", str(bundle))
     assert not worktree.exists() and not branch_exists(project)
     task_artifacts = tools.runtime.store.artifact_records("T1")

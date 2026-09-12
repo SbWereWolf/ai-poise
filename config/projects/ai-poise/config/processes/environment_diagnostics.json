@@ -203,9 +203,7 @@
   },
   "goal_type": "environment_diagnostics",
   "route": {
-    "entry": "framing",
-    "max_stage_visits": 12,
-    "max_transitions": 120
+    "entry": "framing"
   },
   "stages": [
     {

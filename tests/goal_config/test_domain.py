@@ -57,7 +57,7 @@ def test_multiple_bad_inputs_are_reported_together():
 @pytest.mark.parametrize("mutate", [
  lambda x:x["stages"][0]["transitions"].update(complete="missing"),
  lambda x:x["stages"][1].update(read_only=False),
- lambda x:x["route"].update(max_transitions=0),
+ lambda x:x["route"].update(depth=1),
  lambda x:x["stages"][0].update(handler="unregistered"),
  lambda x:x["stages"][0]["required_sections"].append("unknown"),
  lambda x:x.update(extends="development"),

@@ -182,9 +182,7 @@
   },
   "goal_type": "development",
   "route": {
-    "entry": "baseline",
-    "max_stage_visits": 12,
-    "max_transitions": 120
+    "entry": "baseline"
   },
   "stages": [
     {

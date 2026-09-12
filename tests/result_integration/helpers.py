@@ -39,7 +39,7 @@ def prepare_completed_task(
     cfg["git"]["push_required"] = False
     write_json(project["config_path"], cfg)
     process = {
-        "route": {"entry": "implementation", "max_transitions": 10, "max_stage_visits": 3},
+        "route": {"entry": "implementation"},
         "goal_type": "development",
         "stages": [{
             "id": "implementation",

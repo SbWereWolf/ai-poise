@@ -58,3 +58,7 @@ Record only real observed user-message/token events and preserve source/coverage
 ## Documentation references
 
 When an operational rule is owned by canonical documentation, link to and read the smallest normative section that is sufficient for that rule. Do not require an agent to load an entire large document when one section is authoritative.
+
+## Route semantics
+
+Route definitions contain an explicit `entry`; stage outcomes, targets and rework targets own transition semantics. Preserve visits and transitions only for history, identity and audit. Never impose an execution limit through route counts, depth, watchdogs, timeouts or recursion bounds. A finite graph-reachability check is structural validation, not an execution budget.

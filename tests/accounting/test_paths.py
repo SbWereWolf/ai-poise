@@ -12,7 +12,7 @@ from .test_domain import policy,sample
 
 def setup(project, clock=None):
     p={'goal_type':'development','benefit':{'git_categories':['code','documentation'],'sections':[]},
-       'route':{'entry':'write','max_transitions':20,'max_stage_visits':10},
+       'route':{'entry':'write'},
        'stages':[stage('write','produce',{'complete':None},False,['src/**','tests/**','docs/**'],['write'])],
        'content_contract':{'sections':[],'routes':[],'requirements':[]}}
     project['cfg']['schema']='ddd-accounting-11';project['cfg']['accounting']=policy()

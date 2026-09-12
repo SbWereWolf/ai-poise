@@ -90,7 +90,7 @@ def project(tmp_path, monkeypatch):
         })
     for i, stage in enumerate(stages):
         stage.update(handler="produce", transitions={"complete":stages[i+1]["id"] if i+1<len(stages) else None}, rework_targets=[stage["id"]])
-    process = {'route':{"entry":"tests","max_transitions":40,"max_stage_visits":8}, 'goal_type': 'development', 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
+    process = {'route':{"entry":"tests"}, 'goal_type': 'development', 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     write_json(poise_root / 'config/processes/development.json', process)
     cfg = {
         'schema': 'ddd-accounting-11',

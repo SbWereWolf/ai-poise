@@ -706,7 +706,18 @@ def test_completed_integrate_dispatches_accepted_task_source(project, tmp_path):
     ]
 
 
-@pytest.mark.parametrize("mutation", ["expected_source", "head", "dirty"])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "expected_source",
+        "head",
+        "head_and_expected",
+        "dirty",
+        "wrong_branch",
+        "missing_entrypoint",
+        "missing_registration",
+    ],
+)
 def test_completed_integrate_rejects_untrusted_task_source_before_dispatch(
     project, tmp_path, mutation
 ):
@@ -716,16 +727,24 @@ def test_completed_integrate_rejects_untrusted_task_source_before_dispatch(
     payload = integration_input(project, source)
     if mutation == "expected_source":
         payload["expected_source_commit"] = "f" * 40
-    elif mutation == "head":
+    elif mutation in {"head", "head_and_expected"}:
         (source_worktree / "src" / "after-acceptance.py").write_text(
             "VALUE = 'changed'\n", encoding="utf-8"
         )
         git(source_worktree, "add", "src/after-acceptance.py")
         git(source_worktree, "commit", "-m", "Mutate completed source HEAD")
-    else:
+        if mutation == "head_and_expected":
+            payload["expected_source_commit"] = git(source_worktree, "rev-parse", "HEAD")
+    elif mutation == "dirty":
         (source_worktree / "untracked-after-acceptance.txt").write_text(
             "changed\n", encoding="utf-8"
         )
+    elif mutation == "wrong_branch":
+        git(source_worktree, "branch", "-m", "unexpected-completed-source")
+    elif mutation == "missing_entrypoint":
+        (source_worktree / "src" / "poise" / "__main__.py").unlink()
+    else:
+        payload["task_id"] = "GHOST"
     target_before = git(project["app"], "rev-parse", "refs/heads/main")
 
     attempted, result = _call(launcher, request("integrate", payload))
@@ -738,14 +757,10 @@ def test_completed_integrate_rejects_untrusted_task_source_before_dispatch(
     assert source_worktree.exists()
 
 
-def _checked_out_target_fingerprint(root, protected, merge_head):
+def _checked_out_target_fingerprint(root, pinned_target, merge_head):
     return {
-        "bytes": {path: (root / path).read_bytes() for path in protected},
-        "index": git(root, "write-tree"),
+        "wip": _main_checkout_fingerprint(root, pinned_target),
         "branch": git(root, "symbolic-ref", "--short", "HEAD"),
-        "status": subprocess.check_output(
-            ["git", "-C", str(root), "status", "--porcelain=v2"], text=True
-        ),
         "merge_head": merge_head.read_bytes(),
     }
 
@@ -764,17 +779,18 @@ def test_completed_integrate_preserves_checked_out_target_main_wip(project, tmp_
     merge_head_value = git(root, "rev-parse", "HEAD")
     merge_head = root / git(root, "rev-parse", "--git-path", "MERGE_HEAD")
     merge_head.write_text(merge_head_value + "\n", encoding="utf-8")
-    protected = ["operator-staged.txt", "src/double.py", "operator-untracked.txt"]
-    before = _checked_out_target_fingerprint(root, protected, merge_head)
+    payload = integration_input(project, source)
+    pinned_target = payload["expected_target_commit"]
+    before = _checked_out_target_fingerprint(root, pinned_target, merge_head)
 
     attempted, result = _call(
         launcher,
-        request("integrate", integration_input(project, source)),
+        request("integrate", payload),
     )
 
     assert attempted.returncode == 0, attempted.stdout + attempted.stderr
     assert result["status"] == "integrated"
-    assert _checked_out_target_fingerprint(root, protected, merge_head) == before
+    assert _checked_out_target_fingerprint(root, pinned_target, merge_head) == before
 
 
 def test_completed_integrate_child_returns_after_source_worktree_cleanup(project, tmp_path):
@@ -789,12 +805,10 @@ def test_completed_integrate_child_returns_after_source_worktree_cleanup(project
     )
 
     assert attempted.returncode == 0, attempted.stdout + attempted.stderr
-    assert result["status"] == "integrated"
-    assert result["source_commit"] == source
-    assert not source_worktree.exists()
-    assert subprocess.run(
-        ["git", "-C", str(project["app"]), "rev-parse", "--verify", "--quiet", source_branch],
-        capture_output=True,
-        text=True,
-    ).returncode != 0
-    assert git(project["app"], "merge-base", "--is-ancestor", source, result["target_after"]) == ""
+    _assert_terminal_contract(
+        result,
+        source,
+        project["app"],
+        source_worktree,
+        task_branch=source_branch,
+    )

@@ -259,7 +259,7 @@ class Task:
             raise DomainError("Нет активного этапа для verify")
         if self.progress.stage_work is None:
             raise DomainError("Нет содержательного результата обработчика")
-        if self.route.node(self.stage.stage_id).handler == HandlerKind.INSPECT:
+        if self.stage.stage_id in self.check_registry.inspection_stages:
             self.check_registry.validate_inspection_exit()
         handling = self._handling()
         if handling.outcome is None:

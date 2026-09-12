@@ -90,10 +90,13 @@ class SqliteTaskRepository:
         items = [without_retired_method_timeout(json.loads(r[0])) for r in self.db.execute(
             "SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid", (task_id,)
         )]
-        from ...modules.tasks.definition import executable_obligations
+        from ...modules.tasks.definition import executable_obligations, registry_inspection_stages
         registry = CheckRegistry.from_items(
             items, tuple(s['id'] for s in metadata['process']['stages'])
-        ).with_executable_obligations(executable_obligations(metadata['contract']))
+        ).with_executable_obligations(
+            executable_obligations(metadata['contract'], metadata['process']),
+            registry_inspection_stages(metadata['process']),
+        )
         metadata['contract']['methods']=[item['method'] for item in items]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
         sections = self.db.execute("SELECT section_id,content,content_state FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY section_id ORDER BY submission_id DESC) AS n FROM section_layers WHERE task_id=?) WHERE n=1 ORDER BY section_id", (task_id,)).fetchall()

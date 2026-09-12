@@ -287,6 +287,7 @@ class CheckRegistry:
     history: tuple[RegistrySnapshot, ...] = ()
     requests: tuple[RegistryRequest, ...] = ()
     executable_obligations: tuple[str, ...] = ()
+    inspection_stages: tuple[str, ...] = ()
 
     @classmethod
     def from_items(
@@ -328,11 +329,19 @@ class CheckRegistry:
         _validate_relationships(registry.entries)
         return registry
 
-    def with_executable_obligations(self, obligations: tuple[str, ...]) -> CheckRegistry:
+    def with_executable_obligations(
+        self,
+        obligations: tuple[str, ...],
+        inspection_stages: tuple[str, ...] = (),
+    ) -> CheckRegistry:
         if (type(obligations) is not tuple
                 or any(not isinstance(item, str) or not item for item in obligations)
                 or len(obligations) != len(set(obligations))):
             raise DomainError('Executable obligations должны быть явным уникальным tuple')
+        if (type(inspection_stages) is not tuple
+                or any(stage not in self.stages for stage in inspection_stages)
+                or len(inspection_stages) != len(set(inspection_stages))):
+            raise DomainError('Executable inspection stages должны быть явным уникальным tuple')
         return CheckRegistry(
             self.stages,
             self.entries,
@@ -340,6 +349,7 @@ class CheckRegistry:
             self.history,
             self.requests,
             obligations,
+            inspection_stages,
         )
 
     @property
@@ -371,6 +381,7 @@ class CheckRegistry:
             self.history,
             self.requests,
             self.executable_obligations,
+            self.inspection_stages,
         )
 
     @property
@@ -465,6 +476,7 @@ class CheckRegistry:
             self.history + (self.current_snapshot,),
             self.requests + (RegistryRequest(request_id, digest, revision),),
             self.executable_obligations,
+            self.inspection_stages,
         )
         return RegistryChangeResult(updated, False)
 
@@ -517,7 +529,15 @@ class CheckRegistry:
         )
         requests = tuple(RegistryRequest(**item) for item in raw['requests'])
         obligations = tuple(raw['executable_obligations'])
-        return CheckRegistry(self.stages, self.entries, revision, history, requests, obligations)
+        return CheckRegistry(
+            self.stages,
+            self.entries,
+            revision,
+            history,
+            requests,
+            obligations,
+            self.inspection_stages,
+        )
 
     def validate_route(self, route) -> None:
         if tuple(node.stage_id for node in route.nodes) != self.stages:

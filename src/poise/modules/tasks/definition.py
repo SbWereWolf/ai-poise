@@ -15,7 +15,23 @@ def path_identifier(value):
     return value
 
 
-def executable_obligations(contract):
+def registry_inspection_stages(process):
+    mutable_stages = {
+        stage['id'] for stage in process['stages']
+        if 'test_registry' in stage['sections']
+    }
+    return tuple(
+        stage['id'] for stage in process['stages']
+        if (
+            stage['handler'] == 'inspect'
+            and stage['transitions']['changes_requested'] in mutable_stages
+        )
+    )
+
+
+def executable_obligations(contract, process):
+    if not registry_inspection_stages(process):
+        return ()
     return tuple(
         [f"requirements[{index}]" for index, _ in enumerate(contract['requirements'])]
         + [f"definition_of_done[{index}]" for index, _ in enumerate(contract['definition_of_done'])]
@@ -44,7 +60,7 @@ def validate_creation(contract, process, automatic_checks):
     stages=tuple(s['id'] for s in process['stages'])
     route = RouteDefinition.from_process(process)
     registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
-        executable_obligations(contract)
+        executable_obligations(contract, process), registry_inspection_stages(process)
     )
     from .creation_preflight import CreationPreflight
     CreationPreflight.parse(contract,process)
@@ -75,7 +91,10 @@ def build_task(metadata, actor):
     route = RouteDefinition.from_process(metadata['process'])
     registry=CheckRegistry.from_task(
         metadata['contract']['methods'], metadata['contract']['checks'], tuple(s.stage_id for s in stages)
-    ).with_executable_obligations(executable_obligations(metadata['contract']))
+    ).with_executable_obligations(
+        executable_obligations(metadata['contract'], metadata['process']),
+        registry_inspection_stages(metadata['process']),
+    )
     registry.validate_route(route)
     args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry))
     if actor is None:return Task.planned(*args)

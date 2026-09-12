@@ -210,6 +210,7 @@
         "templates/**",
         "examples/**",
         "delivery/**",
+        "tools/seed_wsl_tasks.py",
         "*.md"
       ],
       "artifact_requirements": [],
@@ -305,6 +306,7 @@
         "templates/**",
         "examples/**",
         "delivery/**",
+        "tools/seed_wsl_tasks.py",
         "*.md"
       ],
       "artifact_requirements": [],

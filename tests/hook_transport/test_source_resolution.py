@@ -183,6 +183,27 @@ def _completed_source(project, tmp_path, session, *, missing_entrypoint=False):
     return service, installation, launcher, binding, source_worktree, source
 
 
+def test_completed_integrate_runs_from_current_installation_source(project, tmp_path):
+    _, installation, launcher, binding, source_worktree, source = _completed_source(
+        project, tmp_path, "completed-integration"
+    )
+
+    attempted, result = _call(
+        launcher,
+        request("integrate", integration_input(project, source)),
+    )
+
+    assert attempted.returncode == 0, attempted.stdout + attempted.stderr
+    assert result["status"] == "integrated"
+    assert result["hook_session"] == binding["session_id"]
+    assert Path(result["loaded_source"]) == installation / "poise"
+    assert result["source_sentinel"] == "installation"
+    assert _work_invocations(project) == [
+        {"source": str(installation / "poise"), "operation": "integrate"}
+    ]
+    assert not source_worktree.exists()
+
+
 def _remove_work_method(package):
     transport = package / "infrastructure" / "hook_transport.py"
     tree = ast.parse(transport.read_text(encoding="utf-8"))

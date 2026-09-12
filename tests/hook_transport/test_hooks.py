@@ -74,9 +74,31 @@ def test_session_launcher_is_quoted_and_executable(project,tmp_path):
     context=native_out['hookSpecificOutput']['additionalContext']
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);assert str(path) in context and path.is_file()
+    assert ' -B -m poise hook-work ' in path.read_text()
     p=subprocess.run([str(path)],input=json.dumps(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None})),text=True,capture_output=True,timeout=15)
     assert p.returncode==0,p.stderr
     assert json.loads(p.stdout)['status']=='read_only'
+
+
+def test_existing_owned_launcher_is_upgraded_to_bytecode_safe_command(project,tmp_path):
+    s=service(project,tmp_path);out=install(s);native(s,out)
+    binding=s.latest_binding('conversation','primary')
+    path=Path(binding['launcher']);current=path.read_text()
+    legacy=current.replace(' -B -m poise ',' -m poise ')
+    assert legacy!=current
+    path.write_text(legacy);path.chmod(s.settings.raw['executable_mode'])
+    native(s,out)
+    assert path.read_text()==current
+
+
+def test_changed_existing_launcher_is_not_overwritten(project,tmp_path):
+    s=service(project,tmp_path);out=install(s);native(s,out)
+    binding=s.latest_binding('conversation','primary')
+    path=Path(binding['launcher']);changed='#!/bin/sh\necho external-change\n'
+    path.write_text(changed);path.chmod(s.settings.raw['executable_mode'])
+    with pytest.raises(PoiseError,match='Launcher was changed externally'):
+        native(s,out)
+    assert path.read_text()==changed
 
 
 def test_hooks_count_all_user_turns_once_without_prompt_text(project,tmp_path):

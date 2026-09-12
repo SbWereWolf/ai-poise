@@ -11,6 +11,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import pytest
 
 
+# The repository test command executes the sources from this exact worktree.
+_TASK_SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
+if str(_TASK_SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_TASK_SOURCE_ROOT))
+
+import poise
+
+_LOADED_POISE = Path(poise.__file__).resolve() if poise.__file__ else None
+if _LOADED_POISE is None or not _LOADED_POISE.is_relative_to(_TASK_SOURCE_ROOT.resolve()):
+    raise RuntimeError(
+        f"Tests loaded poise from {_LOADED_POISE}, expected {_TASK_SOURCE_ROOT.resolve()}"
+    )
+
+
 def write_json(path: Path, value: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

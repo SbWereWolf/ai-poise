@@ -21,14 +21,17 @@ class WorkTools:
         if isinstance(task_input,dict):
             task_id=task_input.get('id')
             if isinstance(task_id,str):target=self.task_queries.record(task_id)
+        if request['operation']=='integrate':
+            target=h.integration_tools.prepare_source(request['input'])
         current=h.current_task()
         route=BoundSourceRoute.decide(request['operation'],task_input,current,target)
         if route.source=='target_task':
-            h.bootstrap(**request['input'])
-            current=h.current_task()
-            if current is None or current['id']!=route.task_id:
-                raise PoiseError('Existing Task preparation did not bind the requested Task')
-            return route,current
+            if request['operation']=='bootstrap':
+                h.bootstrap(**request['input'])
+                target=h.current_task()
+                if target is None or target['id']!=route.task_id:
+                    raise PoiseError('Existing Task preparation did not bind the requested Task')
+            return route,target
         if route.source=='current_task':return route,current
         return route,None
 

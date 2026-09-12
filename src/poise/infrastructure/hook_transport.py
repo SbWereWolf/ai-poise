@@ -79,8 +79,16 @@ class HookSettings:
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
 
+    def _command(self,python_flags,verb,*args):
+        return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],
+                           *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
+
     def command(self,verb,*args):
-        return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],'-m','poise',verb,'--settings',str(self.path),*args])
+        return self._command(['-B'],verb,*args)
+
+    def prior_launcher_command(self,verb,*args):
+        """Exact superseded launcher form accepted only for an owned upgrade."""
+        return self._command([],verb,*args)
 
 
 class FileHookRepository:
@@ -198,8 +206,13 @@ class HookService:
         if binding.exists() and binding.read_bytes()!=raw:raise PoiseError('Binding file was changed externally')
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
         script=('#!/bin/sh\nexec '+self.settings.command('hook-work','--binding',str(binding))+'\n').encode()
-        if launcher.exists() and launcher.read_bytes()!=script:raise PoiseError('Launcher was changed externally')
-        if not launcher.exists():atomic_write(launcher,script,self.settings.raw['executable_mode'])
+        prior=('#!/bin/sh\nexec '+self.settings.prior_launcher_command(
+            'hook-work','--binding',str(binding))+'\n').encode()
+        if launcher.exists():
+            current=launcher.read_bytes()
+            if current==prior:atomic_write(launcher,script,self.settings.raw['executable_mode'])
+            elif current!=script:raise PoiseError('Launcher was changed externally')
+        else:atomic_write(launcher,script,self.settings.raw['executable_mode'])
         return definition,native,record
 
     def _record(self,path):
@@ -366,7 +379,8 @@ class HookService:
     def _execute_bound(self,h,record,req,definition,bound_facts=None,binding_path=None):
         def invoke():
             if bound_facts is not None:
-                current=h.current_task()
+                current=(h.task_queries.record(req['input']['task_id'])
+                         if req['operation']=='integrate' else h.current_task())
                 if current is None or current['id']!=bound_facts['task_id']:
                     raise PoiseError('Native binding no longer owns the bound Task source')
                 if self._task_source_facts(h,current,binding_path)!=bound_facts:

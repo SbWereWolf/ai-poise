@@ -139,9 +139,9 @@ Content pre-gate может отклонить уже сохранённый к�
 
 Persisted integration state обеспечивает crash recovery и идемпотентный повтор: отдельно сохраняются accepted commit, mutable integration head, наблюдавшийся target, conflict state, проверки, публикация и уборка. Повтор с тем же intent продолжает подтверждённую незавершённую фазу и не воспроизводит вслепую уже подтверждённые Git-эффекты.
 
-После подтверждённого fast-forward или terminal no-op эта же операция удаляет task worktree, integration worktree, дочерние локальные ветки и зарегистрированные временные backup-файлы задачи. Временные backup разрешено создавать только в task/integration-scoped каталоге настроенного runtime root; `integrated` недоступен, пока каталог не пуст. Уборка адресует только зарегистрированные объекты этой задачи: предсуществующие, чужие и долговременные операторские backup-файлы не удаляются. Backup, являющийся deliverable задачи или необходимый для recovery незавершённой интеграции, остаётся до отдельного terminal decision.
+После подтверждённого fast-forward или terminal no-op эта же операция удаляет task worktree, integration worktree, дочерние локальные ветки и зарегистрированные временные backup-файлы задачи. Безопасность удаления owned-веток проверяется относительно текущего target, а ref удаляется compare-and-delete по наблюдавшемуся commit; `HEAD` основного checkout не участвует. Потомок опубликованного integration head не блокирует уборку, но переписанная либо посторонняя история target сохраняет recovery state и завершает вызов ошибкой. Временные backup разрешено создавать только в task/integration-scoped каталоге настроенного runtime root; `integrated` недоступен, пока каталог не пуст. Уборка адресует только зарегистрированные объекты этой задачи: предсуществующие, чужие и долговременные операторские backup-файлы не удаляются. Backup, являющийся deliverable задачи или необходимый для recovery незавершённой интеграции, остаётся до отдельного terminal decision.
 
-Полный цикл выше — согласованный обязательный контракт завершителя. Текущая реализация `integrate` ещё использует checkout target-ветки и не автоматизирует stable-master retry, отдельный integration worktree/head и scoped backup cleanup; её замена должна быть выполнена отдельной formal development task с TDD. До поставки этой задачи существующий результат операции нельзя считать доказательством реализации нового контракта.
+Полный локальный цикл выше, включая stable-master retry при drift target, реализован существующей операцией `integrate` и проверен на отдельном integration worktree, конфликтах, повторном drift target, crash/replay, cleanup и terminal no-op. Контракт не включает push, удалённую публикацию или multi-codebase integration.
 
 ```json
 {
@@ -172,8 +172,8 @@ JSON
 
 - `integrated`: `master` безопасно fast-forward-нут либо terminal no-op доказан; task/integration worktrees, дочерние ветки и scoped temporary-backup directory удалены; повтор возвращает сохранённый результат с `replayed: true`;
 - `awaiting_resolution`: дочерний integration worktree оставлен в точном conflict state; исправьте только перечисленные файлы в нём и повторите тот же пакет, заменив `resolutions` на один объект для каждого conflict path;
-- `blocked`: merge или merge commit не завершился; receipt сохранён. Тот же пакет повторяет только безопасную незавершённую фазу, если HEAD, MERGE_HEAD, служебный index и сохранённый preflight подтверждают принадлежность этой интеграции;
-- `cleanup_pending`: target уже содержит проверенный integration head, но уборка worktrees, веток или scoped temporary backups не завершена. Принадлежащие recovery/deliverable backups сохраняются до отдельного terminal decision; после устранения причины тот же пакет продолжает только подтверждённую уборку.
+- `blocked`: `candidate_failed` сохраняет receipt неудачного merge без распознанных конфликтов и при том же intent повторно готовит owned candidate; `checks_failed` сохраняет все check receipts, не публикует target и не начинает cleanup;
+- `cleanup_pending`: публикация подтверждена, но уборка worktrees, веток или scoped temporary backups не завершена. Тот же пакет повторяет только недостающие шаги. Текущий target должен содержать опубликованный integration head и accepted commit; безопасный потомок допускается, переписанная история отклоняется. Принадлежащие recovery/deliverable backups сохраняются до отдельного terminal decision.
 
 Пример продолжения конфликта — все остальные поля исходного intent остаются прежними:
 
@@ -186,7 +186,7 @@ JSON
 ]
 ```
 
-Операция сама управляет staging, integration commit, повторной проверкой target, fast-forward и поэтапной уборкой внутри дочернего integration worktree. Пользователю не требуется обслуживать index или основной checkout. При конфликте повтор допускает только сохранённое состояние интеграции и объявленные conflict paths; новый посторонний эффект в integration worktree требует отдельного восстановления. Если Git не смог безопасно продолжить, accepted commit и восстановимое integration state сохраняются, успех не записывается. Force-update и force-delete не используются.
+Операция сама управляет staging, integration commit, повторной проверкой target, fast-forward и поэтапной уборкой внутри дочернего integration worktree. Пользователю не требуется обслуживать index или основной checkout. При конфликте повтор допускает только сохранённое состояние интеграции и объявленные conflict paths; новый посторонний эффект в integration worktree требует отдельного восстановления. Если Git не смог безопасно продолжить, accepted commit и восстановимое integration state сохраняются, успех не записывается. Публикация использует compare-and-swap target ref, а удаление owned-веток — compare-and-delete; force-update и безусловное удаление ref не используются.
 
 Состояние и полная история переходов читаются пакетным query после перезапуска процесса:
 
@@ -194,7 +194,7 @@ JSON
 {"operation":"show","input":{"queries":[{"id":"result","kind":"integration","task_id":"0016","request_id":"integrate-0016-1"}]},"messages":[]}
 ```
 
-Ответ сохраняет `source_commit`, `target_before`, `target_after`, merge/failure receipts, conflict resolutions, поэтапный `cleanup` и `history`. Task/Sprint history и прежний проверенный результат не переписываются.
+Ответ сохраняет `source_commit`, `accepted_commit`, `observed_target`, `integration_head`, `target_before`, `target_after`, check/failure/publication receipts, conflict resolutions, поэтапный `cleanup` и `history` переходов с merge receipts. Task/Sprint history и прежний проверенный результат не переписываются.
 
 ## Создание файлов
 ```json

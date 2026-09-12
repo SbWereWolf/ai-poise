@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from conftest import write_json
+from conftest import git, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from conftest import WorkPoise as Poise
@@ -114,6 +114,12 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
     )
     failed = verify(tools, context, "The immutable method is erroneous.")
     assert failed["status"] == "checks_failed"
+    source_worktree = Path(context["worktree"])
+    (source_worktree / "src" / "unique.py").write_text("UNIQUE = True\n", encoding="utf-8")
+    git(source_worktree, "add", "src/unique.py")
+    git(source_worktree, "commit", "-m", "test: unique superseded task result")
+    unique_commit = git(source_worktree, "rev-parse", "HEAD")
+    main_before = git(project["app"], "rev-parse", "HEAD")
     evidence_before = runtime.task_queries.evidence_view("BAD")
     history_before = runtime.task_queries.history("BAD")
     submission_before = runtime.task_queries.latest_submission("BAD", "work", 1)
@@ -124,6 +130,14 @@ def test_replacement_end_to_end_redirects_graph_and_preserves_old_evidence(sprin
 
     assert outcome["revision"] == current["revision"] + 1
     assert outcome["cleanup"]["BAD"]["status"] == "disposition_required"
+    assert outcome["cleanup"]["BAD"]["commit"] == unique_commit
+    assert outcome["cleanup"]["BAD"]["remaining_resources"] == [
+        {"kind": "worktree", "path": str(source_worktree)},
+        {"kind": "branch", "name": "tasks/BAD", "commit": unique_commit},
+    ]
+    assert source_worktree.is_dir()
+    assert git(project["app"], "branch", "--list", "tasks/BAD")
+    assert git(project["app"], "rev-parse", "HEAD") == main_before
     assert relation(outcome) | {
         "source": "BAD",
         "replacement": "BAD-2",
@@ -181,6 +195,11 @@ def test_replacement_redirects_waiver_and_current_projection(sprint):
         )
     )
     outcome = replace(tools, waived["revision"], replacement(project))
+    cleanup = outcome["cleanup"]["BAD"]
+    assert cleanup["status"] == "cleanup_complete"
+    assert cleanup["disposition"]["kind"] == "no_resources"
+    assert cleanup["remaining_resources"] == []
+    assert any(item.get("event") == "no_task_resources" for item in cleanup["history"])
     plan_record = sprint_view(tools, "plan")["aggregate"]
     assert plan_record["waivers"] == [
         {

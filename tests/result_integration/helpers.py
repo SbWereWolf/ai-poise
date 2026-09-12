@@ -13,7 +13,9 @@ def request(operation, inputs):
     return {"operation": operation, "input": inputs, "messages": []}
 
 
-def prepare_completed_task(project, change, *, task_id="T1", accept=True):
+def prepare_completed_task(
+    project, change, *, task_id="T1", accept=True, artifact_files=None
+):
     cfg = deepcopy(project["cfg"])
     cfg["automatic_checks"] = []
     cfg["git"]["push_required"] = False
@@ -66,6 +68,15 @@ def prepare_completed_task(project, change, *, task_id="T1", accept=True):
     result = deepcopy(context["result_template"])
     result["sections"]["report"] = "Accepted source result."
     result["commit_message"] = "feat: accepted source result"
+    for relative, content in ({} if artifact_files is None else artifact_files).items():
+        artifact = (
+            Path(context["task_root"])
+            / cfg["batch"]["artifact_directories"]["task"]
+            / relative
+        )
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(content, encoding="utf-8")
+        result["artifact_paths"].append(str(artifact))
     verified = tools.invoke(request("verify", {"result": result, "artifacts": []}))
     assert verified["status"] == "verified"
     if accept:

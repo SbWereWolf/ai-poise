@@ -7,7 +7,7 @@ from conftest import git
 from result_integration.helpers import prepare_completed_task
 
 
-def prepare_cancelled_task(project, *, task_id="T1"):
+def prepare_cancelled_task(project, *, task_id="T1", durable_artifact=False):
     tools, worktree, commit = prepare_completed_task(
         project,
         lambda root: (root / "src" / "cancelled.py").write_text(
@@ -15,6 +15,10 @@ def prepare_cancelled_task(project, *, task_id="T1"):
         ),
         task_id=task_id,
         accept=False,
+        artifact_files=(
+            {"durable-before-cleanup.txt": "durable task evidence\n"}
+            if durable_artifact else None
+        ),
     )
     cancelled = tools.invoke(request("cancel", {"reason": "User cancelled this exact Task."}))
     return tools, Path(worktree), commit, cancelled

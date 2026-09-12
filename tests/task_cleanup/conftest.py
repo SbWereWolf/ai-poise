@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import shutil
-import tempfile
 
 import pytest
 
+from task_cleanup.tmpfs import OwnedBasetemp
+
 
 _TMPFS = Path("/dev/shm")
-_OWNED_BASETEMPS: dict[int, Path] = {}
+_OWNED_BASETEMPS: dict[int, OwnedBasetemp] = {}
 
 
 def pytest_configure(config):
@@ -19,12 +19,12 @@ def pytest_configure(config):
         raise pytest.UsageError(
             "tests/task_cleanup requires writable /dev/shm for its registered 300-second check"
         )
-    base = Path(tempfile.mkdtemp(prefix="ai-poise-task-cleanup-", dir=_TMPFS))
-    config.option.basetemp = base
-    _OWNED_BASETEMPS[id(config)] = base
+    owned = OwnedBasetemp.create(_TMPFS)
+    config.option.basetemp = owned.path
+    _OWNED_BASETEMPS[id(config)] = owned
 
 
 def pytest_unconfigure(config):
-    base = _OWNED_BASETEMPS.pop(id(config), None)
-    if base is not None:
-        shutil.rmtree(base)
+    owned = _OWNED_BASETEMPS.pop(id(config), None)
+    if owned is not None:
+        owned.remove()

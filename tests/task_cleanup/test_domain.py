@@ -24,6 +24,7 @@ def resources():
         {"kind": "worktree", "identity": "gitdir-1", "path": "/state/worktrees/T1"},
         {"kind": "branch", "name": "tasks/T1", "commit": "a" * 40},
         {"kind": "temporary", "path": "/runtime/T1/temp", "digest": "b" * 64},
+        {"kind": "temporary_backup", "path": "/runtime/T1/backup", "digest": "c" * 64},
     ]
 
 
@@ -46,7 +47,8 @@ def test_cleanup_progress_is_monotonic_blockable_and_replayable():
     assert blocked.remaining_resources() == tuple(resources())
     resumed = blocked.retry_blocked()
     without_temp = resumed.resource_removed(resources()[2])
-    without_worktree = without_temp.resource_removed(resources()[0])
+    without_backup = without_temp.resource_removed(resources()[3])
+    without_worktree = without_backup.resource_removed(resources()[0])
     complete = without_worktree.resource_removed(resources()[1])
 
     assert complete.status == "cleanup_complete"
@@ -56,12 +58,20 @@ def test_cleanup_progress_is_monotonic_blockable_and_replayable():
 
 def test_branch_removal_requires_worktree_and_resolved_disposition():
     module = cleanup_domain()
-    run = module.CleanupRun.new(intent(module), resources())
+    unresolved = module.CleanupRun.new(intent(module), resources())
 
-    for forbidden in (resources()[1], resources()[0]):
-        try:
-            run.resource_removed(forbidden)
-        except module.DomainError:
-            pass
-        else:
-            raise AssertionError("cleanup ordering or disposition was bypassed")
+    try:
+        unresolved.resource_removed(resources()[0])
+    except module.DomainError as exc:
+        assert "disposition" in str(exc).lower()
+    else:
+        raise AssertionError("unresolved commit disposition was bypassed")
+
+    disposition = {"kind": "discard_authorized", "expected_commit": "a" * 40}
+    resolved = module.CleanupRun.new(intent(module, disposition), resources())
+    try:
+        resolved.resource_removed(resources()[1])
+    except module.DomainError as exc:
+        assert "worktree" in str(exc).lower() and "branch" in str(exc).lower()
+    else:
+        raise AssertionError("branch removal bypassed the worktree ordering rule")

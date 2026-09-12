@@ -81,7 +81,10 @@ def test_selected_sprint_cancel_uses_task_domain_and_is_atomic(project):
     }))
 
     assert overview["eligible"] == ["B"]
-    assert overview["cleanup"]["A"]["status"] == "disposition_required"
+    assert overview["cleanup"]["A"]["status"] == "cleanup_blocked"
+    assert overview["cleanup"]["A"]["blocker"]["reason"] == "dirty_worktree_requires_decision"
+    assert overview["cleanup"]["A"]["blocker"]["resource"]["kind"] == "worktree"
+    assert overview["cleanup"]["A"]["remaining_resources"]
     assert current.runtime.task_queries.record("A")["status"] == "cancelled"
     assert current.runtime.task_queries.record("A")["claimed_by"] is None
     assert current.runtime.task_queries.record("B")["status"] == "available"

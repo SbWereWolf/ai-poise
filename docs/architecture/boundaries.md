@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-12T00:00:00+05:00**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-09-12T09:06:11+05:00**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -21,6 +21,14 @@
 формированием digest/receipt. Execution adapter получает уже связанный cwd/environment и не
 угадывает язык, layout проекта или источник импорта. Evidence хранит наблюдение и provenance,
 но не исправляет неверный method после запуска.
+
+Runtime строит invocation и `execution_key` для verify и failed-check rework одним
+каноническим путём; отдельная identity без source provenance не является поддержанным
+вариантом. Evidence repository владеет полной неизменяемой записью command receipt, а batch в
+Task лишь ссылается на то же наблюдение. Перед reuse или failed-check rework runtime требует
+точного равенства этих записей, привязки к текущим invocation/tree и целостности output.
+Task применяет переход только после этих проверок. Это разделение не создаёт второго writer,
+совместимого ключа или миграции evidence.
 
 Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw capture синхронный, адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы EvidenceBook.
 

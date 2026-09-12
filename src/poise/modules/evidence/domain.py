@@ -32,6 +32,51 @@ def strings(value, where):
         raise DomainError(f'{where}: требуется список непустых строк')
 
 
+def completed_receipts(receipts):
+    """Whether persisted command receipts have complete, usable control metadata."""
+    required = {
+        'actual_exit_code',
+        'guard',
+        'id',
+        'interpretable',
+        'method',
+        'obligations',
+        'passed',
+        'timed_out',
+        'tree',
+    }
+    if not isinstance(receipts, list):
+        return False
+    for receipt in receipts:
+        if not isinstance(receipt, dict) or not required <= set(receipt):
+            return False
+        if any(
+            not isinstance(receipt[field], str) or not receipt[field].strip()
+            for field in ('id', 'method', 'tree')
+        ):
+            return False
+        if (
+            not isinstance(receipt['obligations'], list)
+            or any(
+                not isinstance(obligation, str) or not obligation.strip()
+                for obligation in receipt['obligations']
+            )
+        ):
+            return False
+        if any(
+            type(receipt[field]) is not bool
+            for field in ('guard', 'interpretable', 'passed', 'timed_out')
+        ):
+            return False
+        if (
+            receipt['timed_out'] is not False
+            or type(receipt['actual_exit_code']) is not int
+            or receipt['actual_exit_code'] < 0
+        ):
+            return False
+    return True
+
+
 @dataclass(frozen=True)
 class ArgumentRequirement:
     id: str
@@ -253,20 +298,21 @@ class EvidenceBook:
 
     def failed_batch(self, stage, iteration, submission_digest, tree, key):
         for item in reversed(self.batches):
-            batch=json.loads(item)
+            try:
+                batch=json.loads(item)
+            except (TypeError, json.JSONDecodeError):
+                return None
+            identity_fields={'id','stage','iteration','submission_digest','tree','execution_key','receipts'}
+            if not isinstance(batch,dict) or not identity_fields <= set(batch):
+                return None
             if (batch['stage'],batch['iteration'],batch.get('submission_digest'),batch['tree'],batch['execution_key']) != (
                     stage,iteration,submission_digest,tree,key):
                 continue
             receipts=batch['receipts']
-            completed=bool(receipts) and all(
-                not r['timed_out'] and
-                r['actual_exit_code'] is not None and r['actual_exit_code'] >= 0
-                for r in receipts)
-            failed=any(
+            return batch if receipts and completed_receipts(receipts) and any(
                 (r['guard'] and not r['passed']) or not r['interpretable']
                 for r in receipts
-            )
-            return batch if completed and failed else None
+            ) else None
         return None
 
     def latest_argument(self, id):

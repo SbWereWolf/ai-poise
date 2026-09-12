@@ -170,9 +170,15 @@ def _accepted_source_change(worktree):
     )
 
 
-def _completed_source(project, tmp_path, session):
+def _completed_source(project, tmp_path, session, *, missing_entrypoint=False):
     service, installed, installation = _service(project, tmp_path)
-    _, source_worktree, source = prepare_completed_task(project, _accepted_source_change)
+
+    def accepted_source_change(worktree):
+        _accepted_source_change(worktree)
+        if missing_entrypoint:
+            (Path(worktree) / "src" / "poise" / "__main__.py").unlink()
+
+    _, source_worktree, source = prepare_completed_task(project, accepted_source_change)
     launcher, binding = _launcher(service, installed, session)
     return service, installation, launcher, binding, source_worktree, source
 

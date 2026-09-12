@@ -714,6 +714,7 @@ def test_completed_integrate_dispatches_accepted_task_source(project, tmp_path):
         "head_and_expected",
         "dirty",
         "wrong_branch",
+        "foreign_common_dir",
         "missing_entrypoint",
         "missing_registration",
     ],
@@ -722,7 +723,10 @@ def test_completed_integrate_rejects_untrusted_task_source_before_dispatch(
     project, tmp_path, mutation
 ):
     service, _, launcher, _, source_worktree, source = _completed_source(
-        project, tmp_path, "untrusted-" + mutation
+        project,
+        tmp_path,
+        "untrusted-" + mutation,
+        missing_entrypoint=mutation == "missing_entrypoint",
     )
     payload = integration_input(project, source)
     if mutation == "expected_source":
@@ -741,9 +745,38 @@ def test_completed_integrate_rejects_untrusted_task_source_before_dispatch(
         )
     elif mutation == "wrong_branch":
         git(source_worktree, "branch", "-m", "unexpected-completed-source")
+    elif mutation == "foreign_common_dir":
+        source_branch = git(source_worktree, "symbolic-ref", "--short", "HEAD")
+        git(project["app"], "worktree", "remove", str(source_worktree))
+        subprocess.check_call(
+            [
+                "git",
+                "clone",
+                "--no-local",
+                "--branch",
+                source_branch,
+                str(project["app"]),
+                str(source_worktree),
+            ]
+        )
+        assert git(source_worktree, "rev-parse", "HEAD") == source
+        assert git(source_worktree, "symbolic-ref", "--short", "HEAD") == source_branch
+        assert git(source_worktree, "status", "--porcelain") == ""
+        assert git(
+            source_worktree,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-common-dir",
+        ) != git(
+            project["app"],
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-common-dir",
+        )
     elif mutation == "missing_entrypoint":
-        (source_worktree / "src" / "poise" / "__main__.py").unlink()
-    else:
+        assert not (source_worktree / "src" / "poise" / "__main__.py").exists()
+        assert git(source_worktree, "status", "--porcelain") == ""
+    elif mutation == "missing_registration":
         payload["task_id"] = "GHOST"
     target_before = git(project["app"], "rev-parse", "refs/heads/main")
 

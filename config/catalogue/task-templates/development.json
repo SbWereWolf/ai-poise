@@ -10,6 +10,7 @@
     "executable_obligations": "strings",
     "methods": "list",
     "method_inputs": "list",
+    "checks": "object",
     "artifact_requirements": "list",
     "contract": "object",
     "evidence": "object"
@@ -41,30 +42,7 @@
       "$input": "method_inputs"
     },
     "checks": {
-      "baseline": [
-        "BASELINE"
-      ],
-      "solution_planning": [],
-      "verification_planning": [],
-      "test_implementation": [
-        "TEST_RED"
-      ],
-      "test_inspection": [],
-      "test_remediation": [
-        "TEST_RED"
-      ],
-      "test_remediation_inspection": [],
-      "implementation": [
-        "TEST_GREEN"
-      ],
-      "implementation_inspection": [],
-      "implementation_remediation": [
-        "TEST_GREEN"
-      ],
-      "implementation_remediation_inspection": [],
-      "documentation": [
-        "DOC_CHECK"
-      ]
+      "$input": "checks"
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

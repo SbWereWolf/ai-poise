@@ -136,11 +136,31 @@ def _evidence(process,methods):
     return out,ids,checkers
 
 
+def _initial_checks(process, methods):
+    schedule={stage['id']:[] for stage in process['stages']}
+    declared={method['id'] for method in methods}
+    by_stage={
+        'baseline':['BASELINE'],
+        'test_implementation':['TEST_RED'],
+        'test_remediation':['TEST_RED'],
+        'implementation':['TEST_GREEN'],
+        'implementation_remediation':['TEST_GREEN'],
+        'documentation':['DOC_CHECK'],
+    }
+    for stage,method_ids in by_stage.items():
+        if stage not in schedule or not set(method_ids)<=declared:
+            raise ValueError('Development reference schedule and methods must agree')
+        schedule[stage]=method_ids
+    return schedule
+
+
 def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
     process=processes[goal];methods=_methods(goal,home)
     blueprint=repo.task_blueprint(_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'))
-    # The template fixes scheduling. Only actual invocation/environment data comes from the caller.
-    checks=blueprint.data['task']['checks']
+    # The development reference scenario supplies its concrete initial schedule. The
+    # product template neither names future methods nor invents a missing schedule.
+    checks=(_initial_checks(process,methods) if goal=='development'
+            else blueprint.data['task']['checks'])
     surfaces={
         ('development','TEST_RED'):['tests/**'],
         ('development','TEST_GREEN'):['src/**'],
@@ -189,6 +209,7 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
           'contract':deepcopy(EMPTY),'evidence':evidence}
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
+    if goal=='development':vals['checks']=checks
     return commands.tasks([{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
                              'parameters':vals}],processes,[])['tasks'][0]
 

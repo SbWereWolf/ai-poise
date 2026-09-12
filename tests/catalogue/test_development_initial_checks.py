@@ -209,16 +209,16 @@ def test_canonical_guidance_distinguishes_initial_and_planned_checks():
     assert "Пустое начальное расписание" in batch
 
 
-def _run_red() -> int:
-    _, template = _documents()
-    fixed = template["task"].get("checks")
-    old_ids = {"BASELINE", "TEST_RED", "TEST_GREEN", "DOC_CHECK"}
-    if "checks" not in template["parameters"] and any(
-        method_id in json.dumps(fixed) for method_id in old_ids
-    ):
-        print("EXPECTED_OLD_FIXED_SCHEDULE")
-        return 1
-    raise AssertionError("The exact old fixed-schedule defect was not reproduced")
+def _run_red_empty_schedule() -> int:
+    process, _ = _documents()
+    try:
+        _instantiate(_empty_schedule(process))
+    except PoiseError as error:
+        if str(error) == "observe требует subject method":
+            print("EXPECTED_EMPTY_SCHEDULE_REJECTED")
+            return 1
+        raise
+    raise AssertionError("The exact empty-schedule evidence defect was not reproduced")
 
 
 def _run_green() -> int:
@@ -240,7 +240,14 @@ def _run_documentation() -> int:
 
 
 if __name__ == "__main__":
-    modes = {"red": _run_red, "green": _run_green, "documentation": _run_documentation}
+    modes = {
+        "red-empty-schedule": _run_red_empty_schedule,
+        "green": _run_green,
+        "documentation": _run_documentation,
+    }
     if len(sys.argv) != 2 or sys.argv[1] not in modes:
-        raise SystemExit("usage: test_development_initial_checks.py red|green|documentation")
+        raise SystemExit(
+            "usage: test_development_initial_checks.py "
+            "red-empty-schedule|green|documentation"
+        )
     raise SystemExit(modes[sys.argv[1]]())

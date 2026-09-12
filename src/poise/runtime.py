@@ -392,9 +392,8 @@ class Poise:
                         raise PoiseError('Неизвестен исход прерванной проверки; rework запрещён')
                     worktree=Path(data['worktree'])
                     checks=self._select_checks(data,self._changed(data,entry_tree))
-                    invocations=self._invocations(checks,worktree,require_source=True)
-                    execution_key=digest({'stage':self._stage(data)['id'],'iteration':data['iteration'],
-                                          'tree':entry_tree,'invocations':invocations})
+                    invocations,execution_key=self._verification_execution(
+                        data,entry_tree,checks,worktree)
                     batch=self.task_commands.failed_observation_batch(data['id'],entry_tree,execution_key)
                     if batch is None or not self._intact_receipts(batch['receipts']):
                         raise PoiseError('Нет точного доступного failed check batch текущего результата')
@@ -546,9 +545,9 @@ class Poise:
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         checks = self._select_checks(data, changed)
-        invocations = self._invocations(checks, worktree, require_source=True)
-        execution_key = digest({'stage':stage['id'],'iteration':data['iteration'],'tree':tree,
-                                'invocations':invocations})
+        invocations, execution_key = self._verification_execution(
+            data, tree, checks, worktree
+        )
         # Env values participate only in the digest; they are not persisted in receipts.
         batch = self.task_commands.observation_batch(data['id'],tree,execution_key)
         usable = batch is not None and self._usable_receipts(batch['receipts'])
@@ -661,13 +660,47 @@ class Poise:
             invocations.append(invocation)
         return invocations
 
+    def _verification_execution(self, data, tree, checks, worktree):
+        invocations = self._invocations(checks, worktree, require_source=True)
+        execution_key = digest({
+            'stage': self._stage(data)['id'],
+            'iteration': data['iteration'],
+            'tree': tree,
+            'invocations': invocations,
+        })
+        return invocations, execution_key
+
     def _intact_receipts(self, receipts):
+        if not isinstance(receipts, list):
+            return False
+        required = {
+            'actual_exit_code',
+            'interpretable',
+            'stderr',
+            'stderr_digest',
+            'stdout',
+            'stdout_digest',
+            'timed_out',
+        }
         for r in receipts:
-            if not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0:
+            if not isinstance(r, dict) or not required <= set(r):
+                return False
+            if (
+                r['interpretable'] is not True
+                or r['timed_out'] is not False
+                or type(r['actual_exit_code']) is not int
+                or r['actual_exit_code'] < 0
+            ):
                 return False
             for name in ('stdout','stderr'):
-                path=Path(r[name])
-                if not path.is_file() or file_digest(path)!=r[name+'_digest']:
+                path_value = r[name]
+                digest_value = r[name + '_digest']
+                if not isinstance(path_value, str) or not path_value:
+                    return False
+                if not isinstance(digest_value, str) or not digest_value:
+                    return False
+                path=Path(path_value)
+                if not path.is_file() or file_digest(path)!=digest_value:
                     return False
         return True
 

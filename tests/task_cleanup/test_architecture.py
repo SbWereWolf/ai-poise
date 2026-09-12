@@ -47,7 +47,7 @@ def assigns_constructed_owner(tree, target, constructor):
             node.targets if isinstance(node, ast.Assign) else [node.target]
         ))
         and isinstance(node.value, ast.Call)
-        and dotted_name(node.value.func).endswith(constructor)
+        and dotted_name(node.value.func).split(".")[-1] == constructor
         for node in ast.walk(tree)
     )
 

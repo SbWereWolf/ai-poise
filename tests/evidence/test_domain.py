@@ -167,7 +167,7 @@ def test_completed_uninterpretable_subject_batch_is_available_only_for_explicit_
 @pytest.mark.parametrize(
     'changes',
     [
-        {'timed_out':True,'actual_exit_code':None},
+        {'timed_out':True,'actual_exit_code':1},
         {'actual_exit_code':None},
         {'actual_exit_code':-9},
     ],

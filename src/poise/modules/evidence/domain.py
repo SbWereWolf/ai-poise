@@ -159,8 +159,6 @@ class EvidencePlan:
                 known_arguments[a['id']] = stage
             if kind == 'check' and not cfg['subject_methods'] and not args:
                 raise DomainError('check требует subject method или аргумент')
-            if kind == 'observe' and not cfg['subject_methods']:
-                raise DomainError('observe требует subject method')
             result.append(StageEvidence(stage,kind,tuple(cfg['subject_methods']),
                                         tuple((mid,canonical(rule)) for mid,rule in cfg['subject_methods'].items()),tuple(args),
                                         tuple(cfg['review_arguments']),tuple(checks[stage])))

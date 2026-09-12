@@ -13,7 +13,7 @@ import uuid
 from ..application.actions import PlanCommands
 from ..modules.actions.domain import PlanSpec, Publication, parse_apply_work
 from ..common import PoiseError, descendant, digest, file_digest
-from ..execution import run_command, contains
+from ..execution import method_passed, run_command
 
 
 class RuntimePlanActions:
@@ -192,9 +192,7 @@ class RuntimePlanActions:
         invocation=self.h._invocations([method],Path(data['worktree']))[0]
         receipt=self._command(data,method['argv'],Path(invocation['cwd']),invocation['environment'],None)
         receipt['method']=method['id']
-        receipt['passed']=(not receipt['timed_out'] and receipt['actual_exit_code']==method['expected_exit_code']
-                           and all(contains(Path(receipt['stdout']),v) for v in method['stdout_contains'])
-                           and all(contains(Path(receipt['stderr']),v) for v in method['stderr_contains']))
+        receipt['passed']=method_passed(method, receipt)
         return receipt
 
     def _commands(self,data,run):

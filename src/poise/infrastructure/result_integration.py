@@ -9,7 +9,7 @@ import subprocess
 import uuid
 
 from ..common import descendant, file_digest
-from ..execution import contains, preview, run_command
+from ..execution import method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
 
@@ -284,14 +284,7 @@ class RuntimeResultIntegration:
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
-            passed = (
-                not result["timed_out"]
-                and result["actual_exit_code"] == method["expected_exit_code"]
-                and all(contains(Path(result["stdout"]), text)
-                        for text in method["stdout_contains"])
-                and all(contains(Path(result["stderr"]), text)
-                        for text in method["stderr_contains"])
-            )
+            passed = method_passed(method, result)
             receipts.append({
                 **result, "id": check_id, "method": method["id"],
                 "argv": method["argv"], "cwd": str(cwd),

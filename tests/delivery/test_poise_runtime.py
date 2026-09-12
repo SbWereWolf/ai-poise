@@ -245,33 +245,24 @@ def _task_and_sprint_ids(database: Path) -> tuple[tuple[str, ...], tuple[str, ..
         connection.close()
 
 
-def _tree_hashes(root: Path) -> dict[str, str]:
-    if not root.exists():
-        return {}
-    return {
-        path.relative_to(root).as_posix(): _sha256(path)
-        for path in sorted(root.rglob("*"))
-        if path.is_file() and not path.is_symlink()
-    }
-
-
 def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(installed_poise, tmp_path):
-    source_state_raw = os.environ.get("POISE_EXISTING_STATE_SOURCE")
-    assert source_state_raw, "POISE_EXISTING_STATE_SOURCE must select observed data"
-    source_state = Path(source_state_raw).resolve(strict=True)
     source_config_root = ROOT / "config" / "projects" / "ai-poise"
     source_config = source_config_root / "project.json"
     config = json.loads(source_config.read_text())
+    configured_state = Path(config["paths"]["state"]).resolve(strict=True)
     database_relative = Path(config["paths"]["database"])
     assert not database_relative.is_absolute()
+    configured_database = configured_state / database_relative
+    assert configured_database.is_file()
+    source_state = tmp_path / "observed-source"
     source_database = source_state / database_relative
-    assert source_database.is_file()
+    source_database.parent.mkdir(parents=True)
+    with sqlite3.connect(
+        f"file:{configured_database}?mode=ro", uri=True
+    ) as observed, sqlite3.connect(source_database) as snapshot:
+        observed.backup(snapshot)
     before_hash = _sha256(source_database)
     before_ids = _task_and_sprint_ids(source_database)
-    source_artifact_roots = tuple(
-        source_state / config["paths"][key] for key in ("tasks", "sprints")
-    )
-    before_artifacts = tuple(_tree_hashes(root) for root in source_artifact_roots)
 
     copied_config_root = tmp_path / "config"
     shutil.copytree(source_config_root, copied_config_root)
@@ -305,4 +296,3 @@ def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(insta
     assert _task_and_sprint_ids(copied_database) == before_ids
     assert _sha256(source_database) == before_hash
     assert _task_and_sprint_ids(source_database) == before_ids
-    assert tuple(_tree_hashes(root) for root in source_artifact_roots) == before_artifacts

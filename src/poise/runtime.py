@@ -409,7 +409,7 @@ class Poise:
                     execution_key=digest({'stage':self._stage(data)['id'],'iteration':data['iteration'],
                                           'tree':entry_tree,'invocations':invocations})
                     batch=self.task_commands.failed_observation_batch(data['id'],entry_tree,execution_key)
-                    if batch is None or not self._intact_receipts(batch['receipts']):
+                    if batch is None or not self._completed_intact_receipts(batch['receipts']):
                         raise PoiseError('Нет точного доступного failed check batch текущего результата')
                     self.runner.rework_failed(
                         data['id'],self.session,feedback,entry_tree,execution_key,rework_stage)
@@ -676,15 +676,20 @@ class Poise:
             invocations.append(invocation)
         return invocations
 
-    def _intact_receipts(self, receipts):
+    def _completed_intact_receipts(self, receipts):
         for r in receipts:
-            if not r['interpretable'] or r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0:
+            if r['timed_out'] or r['actual_exit_code'] is None or r['actual_exit_code'] < 0:
                 return False
             for name in ('stdout','stderr'):
                 path=Path(r[name])
                 if not path.is_file() or file_digest(path)!=r[name+'_digest']:
                     return False
         return True
+
+    def _intact_receipts(self, receipts):
+        return self._completed_intact_receipts(receipts) and all(
+            r['interpretable'] for r in receipts
+        )
 
     def _usable_receipts(self, receipts):
         return self._intact_receipts(receipts) and all(not r['guard'] or r['passed'] for r in receipts)

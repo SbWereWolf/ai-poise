@@ -258,11 +258,15 @@ class EvidenceBook:
                     stage,iteration,submission_digest,tree,key):
                 continue
             receipts=batch['receipts']
-            known=bool(receipts) and all(
-                r['interpretable'] and not r['timed_out'] and
+            completed=bool(receipts) and all(
+                not r['timed_out'] and
                 r['actual_exit_code'] is not None and r['actual_exit_code'] >= 0
                 for r in receipts)
-            return batch if known and any(r['guard'] and not r['passed'] for r in receipts) else None
+            failed=any(
+                (r['guard'] and not r['passed']) or not r['interpretable']
+                for r in receipts
+            )
+            return batch if completed and failed else None
         return None
 
     def latest_argument(self, id):

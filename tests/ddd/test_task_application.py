@@ -1,8 +1,9 @@
 import json
 import sqlite3
+from copy import deepcopy
 from pathlib import Path
 import pytest
-from conftest import add_test, fill
+from conftest import add_test, fill, write_json
 from conftest import Poise
 from poise.common import PoiseError
 
@@ -57,6 +58,43 @@ def test_section_lookup_cannot_cross_task_or_stage(project):
     row=h.task_queries.section("T1","tests","report",None)
     with pytest.raises(PoiseError): h.task_queries.section("OTHER","tests","report",row["submission"])
     with pytest.raises(PoiseError): h.task_queries.section("T1","test_review","report",row["submission"])
+
+
+def test_failed_observation_batch_cannot_cross_task_owner(project):
+    first, _ = bootstrap(project)
+    second_task = deepcopy(project['task'])
+    second_task['id'] = 'T2'
+    second_path = write_json(project['root'] / 'task-2.json', second_task)
+    second = Poise(project['config_path'], 'S2')
+    second.bootstrap(task_file=second_path)
+    payload = {
+        'sections': {'report': 'failed candidate'},
+        'artifact_paths': [],
+        'commit_message': 'test: candidate',
+        'content_additions': {'sections': [], 'routes': [], 'requirements': []},
+        'trace': {},
+        'method_additions': [],
+        'stage_work': {},
+        'evidence_work': {'phase': 'prepare', 'arguments': [], 'decisions': []},
+    }
+    first_submission = first.task_commands.submit('T1', 'S1', payload)
+    second_submission = second.task_commands.submit('T2', 'S2', payload)
+    assert first_submission.digest == second_submission.digest
+    receipt = {
+        'id': 'FAILED-RUN',
+        'method': 'RED',
+        'obligations': ['RED'],
+        'passed': False,
+        'timed_out': False,
+        'actual_exit_code': 1,
+        'tree': 'TREE',
+        'guard': True,
+        'interpretable': True,
+    }
+    first.runner.record_observations('T1', 'S1', 'TREE', 'KEY', [receipt])
+
+    assert first.task_commands.failed_observation_batch('T1', 'TREE', 'KEY') is not None
+    assert second.task_commands.failed_observation_batch('T2', 'TREE', 'KEY') is None
 
 
 def test_failed_batch_is_atomic_and_foreign_keys_enabled(project):

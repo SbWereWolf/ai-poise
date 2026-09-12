@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from conftest import write_json
+from conftest import verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from conftest import WorkPoise as Poise
@@ -32,7 +32,7 @@ def _stage(stage_id, allowed_paths):
 
 
 def _scenario(project, *, passing_continuation=False, historical_observation=False,
-              closed_revise_target=False):
+              closed_revise_target=False, uninterpretable_subject=False):
     configure(project)
     project["cfg"]["accounting"]["time_mode"] = "reported"
     stages = [
@@ -54,7 +54,7 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         stages.extend((closed, inspection))
         stages[1]["transitions"] = {"complete": "closed_finding_remediation"}
         stages[0]["rework_targets"].append("closed_finding_remediation")
-    if passing_continuation or historical_observation:
+    if passing_continuation or historical_observation or uninterpretable_subject:
         stages[0]["handler"] = "check"
         stages[0]["transitions"] = {
             "satisfied": "test_remediation",
@@ -87,6 +87,11 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
             "kind": "repository",
             "bindings": [{"kind": "cwd", "path": "."}],
         },
+        "verification_plan": verification_plan(
+            "Verify the exact failed-check recovery scenario.",
+            ["src/**"],
+            green_stages=["implementation"],
+        ),
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": [],
@@ -125,7 +130,13 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
                     "stdout_contains": [],
                     "stderr_contains": [],
                 }
-            } if historical_observation else {}),
+            } if historical_observation else ({
+                "CHECK": {
+                    "exit_codes": [1],
+                    "stdout_contains": ["DOC_RULES_OBSERVED"],
+                    "stderr_contains": [],
+                }
+            } if uninterpretable_subject else {})),
             "arguments": [{
                 "id": "CONTINUE",
                 "kind": "logical",
@@ -226,6 +237,38 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     completed = verify(tools, result(recovered, "recovered through the declared route"))
     assert completed["status"] == "verified"
     assert completed["stage"] == "test_remediation"
+
+
+def test_uninterpretable_subject_check_can_rework_to_declared_stage(project):
+    tools, context = _scenario(project, uninterpretable_subject=True)
+    failed = _fail_current_stage(tools, context, "DOC_RULES-like subject failed without marker")
+    receipt = failed["checks"][0]
+    before = _show(tools)
+    observations = _show(tools, "evidence")["observations"]
+
+    assert receipt["guard"] is False
+    assert receipt["interpretable"] is False
+    assert receipt["timed_out"] is False
+    assert receipt["actual_exit_code"] == 1
+
+    recovered = _rework(tools)
+
+    after = _show(tools)
+    current = tools.runtime.current_task()
+    assert recovered["stage"] == "test_remediation"
+    assert recovered["iteration"] == 1
+    assert after["attempts"] == 0
+    assert current["publication"] is None
+    assert current["pending"] is None
+    assert current["entry_tree"] == receipt["tree"]
+    assert after["submission_count"] == before["submission_count"] == 1
+    assert after["evidence_count"] == before["evidence_count"] == 1
+    assert _show(tools, "evidence")["observations"] == observations
+    assert any(
+        event.get("event") == "user_failed_check_rework"
+        and event.get("reason") == "Repair the failed verification through the declared test route."
+        for event in after["history"]
+    )
 
 
 def test_checks_failed_rework_does_not_bypass_target_allowed_paths(project):
@@ -373,10 +416,23 @@ def test_active_rework_rejects_an_unknown_pending_check_outcome(project):
     assert _show(tools) == before
 
 
-def test_active_rework_rejects_a_failed_batch_with_missing_output(project):
+@pytest.mark.parametrize(
+    ('stream','mutation'),
+    [
+        ('stdout','missing'),
+        ('stderr','missing'),
+        ('stdout','modified'),
+        ('stderr','modified'),
+    ],
+)
+def test_active_rework_rejects_a_failed_batch_with_unavailable_output(project, stream, mutation):
     tools, context = _scenario(project)
     failed = _fail_current_stage(tools, context)
-    Path(failed["checks"][0]["stdout"]).unlink()
+    output = Path(failed["checks"][0][stream])
+    if mutation == 'missing':
+        output.unlink()
+    else:
+        output.write_text('modified after receipt\n', encoding='utf-8')
     before = _show(tools)
 
     with pytest.raises(PoiseError):

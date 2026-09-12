@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-12T01:38:13+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
+Обновлено: **2026-09-12T09:06:11+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -123,7 +123,24 @@ Content pre-gate может отклонить уже сохранённый к�
 }
 ```
 
-Такой переход допустим только для текущих stage, iteration, submission digest, Git tree и execution key. Сохранённый batch должен содержать хотя бы один неуспешный guard; все receipts должны иметь известный неотрицательный exit code, не быть timeout и оставаться интерпретируемыми, а их `stdout`/`stderr` — существовать с сохранёнными digest. `pending` должен быть null. Поэтому отсутствующий batch или batch без неуспешного guard, прерванный/неизвестный исход, удалённый либо изменённый output и evidence другого stage, iteration, submission, tree или запуска не дают права на rework.
+Такой переход допустим только для текущих stage, iteration, submission digest, Git tree и
+`execution_key`. Verify и этот поиск failed batch получают invocation и ключ через один
+канонический builder: точный метод с ожиданиями и observation rules, cwd/env и разрешённая
+source provenance участвуют в одной identity. Source-less или совместимого второго ключа нет.
+
+Сохранённый batch должен содержать хотя бы один неуспешный guard. Каждый receipt обязан
+полностью совпадать со своей неизменяемой записью evidence ledger, точно соответствовать
+текущему invocation и tree, иметь известный неотрицательный exit code, не быть timeout и
+оставаться интерпретируемым; его `stdout`/`stderr` должны существовать с сохранёнными digest.
+`pending` должен быть null. Поэтому отсутствующий batch или ledger receipt, batch без
+неуспешного guard, прерванный/неизвестный исход, изменённые method/expectations/provenance,
+повреждённый receipt, удалённый либо изменённый output и evidence другого stage, iteration,
+submission, tree или запуска не дают права на rework. Отказ происходит до изменения route,
+lifecycle и execution state.
+
+Поиск не использует fallback, dual key, legacy alias или tolerant reconstruction. Старые
+неканонические receipts и ключи не мигрируются и не получают совместимое прочтение: они явно
+не подходят под точный контракт.
 
 `feedback` обязателен и сохраняется в истории. `rework_stage` должен входить в `rework_targets` текущего этапа; null означает сам текущий этап. Цель с обработчиком `revise` допустима только при наличии открытых findings: иначе Task отклоняет переход до изменения route, lifecycle или execution state, потому что такому этапу нечего исправлять. Task применяет обычный `Route.enter`, поэтому `max_transitions`, `max_stage_visits` и `allowed_paths` целевого этапа продолжают действовать. Проверка `pending`, доменный переход Task и очистка execution state согласованы в одном UoW: отказ предшествует любому изменению lifecycle или execution.
 

@@ -262,7 +262,6 @@ def run(directory,goal,scenario,feedback_edge=None):
     counts={};reports=[];accepted=[];traversed=[];read_only_checks=0;feedback_cycles=0;counter=0
     while True:
         counter+=1
-        if counter>process['route']['max_transitions']+1:raise AssertionError('Walkthrough exceeded declared transition bound')
         sid=ctx['stage'];stage=next(s for s in process['stages'] if s['id']==sid);kind=stage['handler']
         counts[sid]=counts.get(sid,0)+1;wt=Path(ctx['worktree']);before=git(wt,'rev-parse','HEAD^{tree}')
         current=ctx['workflow']['feedback'];pending=current['pending_resolutions'];open_findings=current['open_findings']

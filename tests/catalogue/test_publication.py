@@ -30,7 +30,7 @@ def setup(project):
     publish=deepcopy(stage);publish.update(id='publish',handler='publish',sections={},required_sections=[],
         transitions={'complete':None},rework_targets=['draft'])
     p=deepcopy(project['process']);p.update(goal_type='planning',stages=[stage,review,publish],
-        route={'entry':'draft','max_transitions':30,'max_stage_visits':6})
+        route={'entry':'draft'})
     write_json(project['root']/'config/processes/planning.json',p)
     cfg=deepcopy(project['cfg']);cfg['processes']['planning']='config/processes/planning.json';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)

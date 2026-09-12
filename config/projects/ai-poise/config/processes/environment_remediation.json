@@ -106,9 +106,7 @@
   },
   "goal_type": "environment_remediation",
   "route": {
-    "entry": "framing",
-    "max_stage_visits": 12,
-    "max_transitions": 120
+    "entry": "framing"
   },
   "stages": [
     {

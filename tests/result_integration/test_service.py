@@ -50,9 +50,7 @@ def test_successful_integration_removes_registered_task_temporary_resources(proj
     assert result["status"] == "integrated"
     assert result["cleanup"] == {
         "task_worktree": "removed",
-        "integration_worktree": "removed",
         "task_branch": "deleted",
-        "integration_branch": "deleted",
         "temporary_backups": "removed",
     }
     assert not source_worktree.exists()

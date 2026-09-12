@@ -65,7 +65,7 @@ def values():
 
 
 def process():
-    return {'goal_type':'custom','route':{'entry':'draft','max_transitions':5,'max_stage_visits':3},
+    return {'goal_type':'custom','route':{'entry':'draft'},
             'content_contract':{'sections':[],'routes':[],'requirements':[]},
             'benefit':{'git_categories':[],'sections':['note']},'stages':[{
             'id':'draft','handler':'produce','instruction':'Write a note and report.',

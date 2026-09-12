@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 from poise.application.work import WorkTools
 from conftest import WorkPoise as Poise
@@ -37,7 +40,7 @@ def prepare_completed_task(
     cfg["git"]["push_required"] = False
     write_json(project["config_path"], cfg)
     process = {
-        "route": {"entry": "implementation", "max_transitions": 10, "max_stage_visits": 3},
+        "route": {"entry": "implementation"},
         "goal_type": "development",
         "stages": [{
             "id": "implementation",
@@ -111,12 +114,78 @@ def prepare_completed_task(
     return tools, source_worktree, verified["commit"]
 
 
-def integration_input(project, source_commit, request_id="integrate-1", resolutions=()):
+def integration_input(
+    project, source_commit, request_id="integrate-1", resolutions=(), task_id="T1"
+):
     return {
         "request_id": request_id,
-        "task_id": "T1",
+        "task_id": task_id,
         "expected_source_commit": source_commit,
         "expected_target_commit": git(project["app"], "rev-parse", "refs/heads/main"),
         "authorization": "The user accepted the completed task result.",
         "resolutions": list(resolutions),
     }
+
+
+def optional_ref(root: Path, ref: str) -> str | None:
+    result = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", ref],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode in (0, 1)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def integration_guard_method() -> dict:
+    return {
+        "id": "INTEGRATION_GUARD",
+        "argv": [
+            sys.executable,
+            "-c",
+            (
+                "import pathlib,subprocess;"
+                "print('cwd='+str(pathlib.Path.cwd()));"
+                "print('branch='+subprocess.check_output("
+                "['git','symbolic-ref','--short','HEAD'],text=True).strip());"
+                "print('head='+subprocess.check_output("
+                "['git','rev-parse','HEAD'],text=True).strip())"
+            ),
+        ],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+            "kind": "repository",
+            "bindings": [{"kind": "cwd", "path": "."}],
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": ["cwd=", "branch=", "head="],
+        "stderr_contains": [],
+    }
+
+
+def source_change(tree: Path) -> None:
+    (tree / "src" / "feature.py").write_text("VALUE = 1\n")
+
+
+def conflicting_source_change(tree: Path) -> None:
+    (tree / "src" / "double.py").write_text("VALUE = 'source'\n")
+
+
+def advance_ref_with_same_tree(root: Path, parent: str, message: str) -> str:
+    tree = git(root, "rev-parse", f"{parent}^{{tree}}")
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "Drift fixture",
+        "GIT_AUTHOR_EMAIL": "drift@example.invalid",
+        "GIT_COMMITTER_NAME": "Drift fixture",
+        "GIT_COMMITTER_EMAIL": "drift@example.invalid",
+    }
+    commit = subprocess.check_output(
+        ["git", "-C", str(root), "commit-tree", tree, "-p", parent, "-m", message],
+        text=True,
+        env=env,
+    ).strip()
+    git(root, "update-ref", "refs/heads/main", commit, parent)
+    return commit

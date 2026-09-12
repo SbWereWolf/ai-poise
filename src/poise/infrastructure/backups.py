@@ -8,7 +8,7 @@ import sqlite3
 import stat
 import tempfile
 
-from ..common import configured_root, descendant, load_config
+from ..common import configured_root, descendant, read_json
 from ..modules.backups.domain import BackupCopy, BackupEntry
 from ..modules.foundation.errors import PoiseError
 
@@ -49,9 +49,14 @@ def _is_pending_name(name: str) -> bool:
 
 class LocalTaskDatabaseBackups:
     def __init__(self, config_path: Path):
-        root, config, _ = load_config(Path(config_path))
-        state = configured_root(root, config["paths"]["state"])
-        self.database = descendant(state, config["paths"]["database"])
+        path = Path(config_path).resolve()
+        root, config = path.parent, read_json(path)
+        try:
+            paths = config["paths"]
+            state = configured_root(root, paths["state"])
+            self.database = descendant(state, paths["database"])
+        except (KeyError, TypeError) as exc:
+            raise PoiseError(f"Incomplete project manifest for Task DB backup: {exc}") from exc
         self.directory = self.database.parent / "backups"
 
     @property

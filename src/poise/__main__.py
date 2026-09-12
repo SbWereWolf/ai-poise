@@ -46,6 +46,8 @@ def parser():
     restore=actions.add_parser('restore')
     restore.add_argument('--config',type=Path,required=True)
     restore.add_argument('backup_name')
+    migration=sub.add_parser('route-migrate',help='Remove retired route count limits from one project')
+    migration.add_argument('--config',type=Path,required=True)
     return p
 
 
@@ -95,6 +97,9 @@ def main():
             getattr(args,'backup_name',None),
             sys.stdout,
         )
+    if args.command=='route-migrate':
+        from .interfaces.route_migration import execute
+        return execute(args.config,sys.stdout)
     for name in ('POISE_CONFIG','POISE_SESSION'):
         if name not in os.environ or not os.environ[name]:
             print(f'Не задан {name}: выберите конфигурацию проекта и сессию.',file=sys.stderr)

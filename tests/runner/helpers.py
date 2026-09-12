@@ -8,7 +8,7 @@ from poise.modules.verification.domain import CheckRegistry
 EMPTY = {"sections": [], "routes": [], "requirements": []}
 
 def process(goal="writing"):
-    return {"goal_type":goal, "benefit":{"git_categories":["code","documentation"],"sections":[]}, "route":{"entry":"draft","max_transitions":12,"max_stage_visits":4},
+    return {"goal_type":goal, "benefit":{"git_categories":["code","documentation"],"sections":[]}, "route":{"entry":"draft"},
       "content_contract":copy.deepcopy(EMPTY), "stages":[
        stage("draft","produce",{"complete":"audit"},False,["docs/**","src/**"],["draft"]),
        stage("audit","inspect",{"clear":None,"changes_requested":"amend"},True,[],["audit","draft"]),

@@ -67,8 +67,6 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
     process = {
         "route": {
             "entry": "implementation",
-            "max_transitions": 20,
-            "max_stage_visits": 4,
         },
         "goal_type": "development",
         "stages": stages,

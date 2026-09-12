@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-12T04:43:01+05:00.
+Updated: 2026-09-12T21:36:11+05:00.
 
 ## Declarative, reusable tools
 
@@ -19,6 +19,8 @@ Document and respect the responsibility boundaries of libraries and data owners.
 For every new trace requirement, ensure that its due stages intersect the referenced point's `write_stages`. Apply this rule to new goal-type and Task candidates, Sprint publication, and new active-Task additions before persistence or external effects. Restore stored contracts without retroactive rejection or rewriting, but validate every genuinely new requirement added to them. Keep immutable early evidence writable only at its owning stage; include that stage among the requirement's due stages instead of making the evidence writable later.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.
+
+`ResultIntegration` keeps the accepted commit immutable and advances only the existing task branch in its existing task worktree. Run update, conflict resolution, and checks there; do not create an integration branch or worktree. Serialize publication per target, reread it under that lock, repeat update and checks on drift, and publish only through `git merge --ff-only <task-branch>` in the main checkout. On a blocked fast-forward, record proof that the checkout state is unchanged. The hook route for `integrate` is installation-owned so the finisher runs current installed source. Persist replay phases and limit cleanup to the task worktree, task branch, and scoped temporary backups.
 
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type defines its own process; it does not require a new execution engine.
 

@@ -1,9 +1,7 @@
 {
   "goal_type": "profiling",
   "route": {
-    "entry": "framing",
-    "max_transitions": 120,
-    "max_stage_visits": 12
+    "entry": "framing"
   },
   "content_contract": {
     "sections": [

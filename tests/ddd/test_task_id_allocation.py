@@ -430,7 +430,7 @@ def _planning_process(project):
     process.update(
         goal_type="planning",
         stages=[stage, review, publish],
-        route={"entry": "draft", "max_transitions": 30, "max_stage_visits": 6},
+        route={"entry": "draft"},
     )
     return process
 

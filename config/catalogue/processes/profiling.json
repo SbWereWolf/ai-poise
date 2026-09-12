@@ -191,9 +191,7 @@
   },
   "goal_type": "profiling",
   "route": {
-    "entry": "framing",
-    "max_stage_visits": 12,
-    "max_transitions": 120
+    "entry": "framing"
   },
   "stages": [
     {

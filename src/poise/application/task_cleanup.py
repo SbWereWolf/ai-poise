@@ -53,6 +53,17 @@ class TaskResourceCleanup:
             raise PoiseError("Task has an incompatible pending external operation")
         else:
             run = CleanupRun.restore(value)
+        if run.blocker is not None and run.blocker.get("reason") == "dirty_worktree_requires_decision":
+            try:
+                checkpointed = self.adapter.checkpoint(intent.task_id, run, intent)
+            except PoiseError as exc:
+                details = getattr(exc, "cleanup_details", None)
+                if details is not None and details.get("reason") == "dirty_worktree_requires_decision":
+                    return run.result()
+                raise
+            if checkpointed != run:
+                run = checkpointed
+                self.adapter.save(intent.task_id, self.pending(run))
         if run.complete and run.intent.commit_disposition.kind == "no_resources":
             if (run.intent.request_id, run.intent.task_id, run.intent.authorization) != (
                     intent.request_id, intent.task_id, intent.authorization):

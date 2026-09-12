@@ -9,7 +9,7 @@ import subprocess
 
 from ..artifacts import inspect_paths
 from ..modules.foundation.errors import PoiseError
-from ..modules.task_cleanup.domain import CleanupRun, TaskOwnedResource
+from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, TaskOwnedResource
 
 
 class CleanupEffectError(PoiseError):
@@ -185,36 +185,65 @@ class RuntimeTaskResourceCleanup:
     def _branch(self, run):
         return next((item for item in run.resources if item.kind == "branch"), None)
 
-    def validate(self, task_id: str, run: CleanupRun):
+    def _validate_worktree(self, task_id: str, run: CleanupRun):
         worktree = next((item for item in run.resources if item.kind == "worktree"), None)
-        if worktree is not None and Path(worktree.path).exists():
-            path = Path(worktree.path)
-            expected = (self.h.state / self.h.paths["worktrees"] / task_id).resolve()
-            if path.is_symlink() or path.resolve() != expected:
-                error = PoiseError("owned worktree path changed after terminal transition")
-                error.cleanup_resource = worktree
-                error.cleanup_details = {
-                    "reason": "owned_resource_changed",
-                    "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
-                }
-                raise error
-            identity = str(Path(self._git(path, "rev-parse", "--git-dir")).resolve())
-            if identity != worktree.identity:
-                error = PoiseError("owned worktree identity changed after terminal transition")
-                error.cleanup_resource = worktree
-                error.cleanup_details = {
-                    "reason": "owned_resource_changed",
-                    "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
-                }
-                raise error
-            if self._git(path, "status", "--porcelain", "--untracked-files=all"):
-                error = PoiseError("owned worktree contains uncommitted changes")
-                error.cleanup_resource = worktree
-                error.cleanup_details = {
-                    "reason": "dirty_worktree_requires_decision",
-                    "recovery": "Preserve or commit the worktree changes, then replay this cleanup request.",
-                }
-                raise error
+        if worktree is None or not Path(worktree.path).exists():
+            return worktree
+        path = Path(worktree.path)
+        expected = (self.h.state / self.h.paths["worktrees"] / task_id).resolve()
+        if path.is_symlink() or path.resolve() != expected:
+            error = PoiseError("owned worktree path changed after terminal transition")
+            error.cleanup_resource = worktree
+            error.cleanup_details = {
+                "reason": "owned_resource_changed",
+                "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
+            }
+            raise error
+        identity = str(Path(self._git(path, "rev-parse", "--git-dir")).resolve())
+        if identity != worktree.identity:
+            error = PoiseError("owned worktree identity changed after terminal transition")
+            error.cleanup_resource = worktree
+            error.cleanup_details = {
+                "reason": "owned_resource_changed",
+                "recovery": "Restore the exact task worktree ownership before replaying cleanup.",
+            }
+            raise error
+        if self._git(path, "status", "--porcelain", "--untracked-files=all"):
+            error = PoiseError("owned worktree contains uncommitted changes")
+            error.cleanup_resource = worktree
+            error.cleanup_details = {
+                "reason": "dirty_worktree_requires_decision",
+                "recovery": (
+                    "Commit all worktree changes and submit a new cleanup request whose disposition "
+                    "names that checkpoint commit, or discard the changes and replay the existing request."
+                ),
+            }
+            raise error
+        return worktree
+
+    def checkpoint(self, task_id: str, run: CleanupRun, intent: CleanupIntent) -> CleanupRun:
+        worktree = self._validate_worktree(task_id, run)
+        branch = self._branch(run)
+        if worktree is None or branch is None:
+            raise PoiseError("Dirty-worktree checkpoint requires the exact worktree and branch resources")
+        path = Path(worktree.path)
+        actual_branch = self._git(path, "symbolic-ref", "--quiet", "--short", "HEAD")
+        if actual_branch != branch.name:
+            raise PoiseError("Checkpoint worktree is not on the exact task branch")
+        actual_commit = self._git(path, "rev-parse", "HEAD")
+        disposition = intent.commit_disposition
+        if disposition is None or disposition.expected_commit != actual_commit:
+            raise PoiseError("Checkpoint cleanup disposition must name the current task branch commit")
+        if actual_commit == branch.commit:
+            return run
+        ancestry = self._run(path, "merge-base", "--is-ancestor", branch.commit, actual_commit)
+        if ancestry["actual_exit_code"] != 0:
+            raise PoiseError("Checkpoint commit must be a fast-forward descendant of the terminal commit")
+        checkpoint = TaskOwnedResource("branch", name=branch.name, commit=actual_commit)
+        return run.checkpointed(checkpoint, intent)
+
+    def validate(self, task_id: str, run: CleanupRun):
+        self._validate_worktree(task_id, run)
         branch = self._branch(run)
         if branch is None: return
         repository = Path(self.h.cfg["git"]["repository"])

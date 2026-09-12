@@ -221,6 +221,27 @@ class CleanupRun:
     def retry_blocked(self) -> "CleanupRun":
         return replace(self, blocker=None, version=self.version + 1)
 
+    def checkpointed(self, branch: TaskOwnedResource, intent: CleanupIntent) -> "CleanupRun":
+        if self.blocker is None or self.blocker.get("reason") != "dirty_worktree_requires_decision":
+            raise DomainError("Only a dirty-worktree blocker can accept a checkpoint")
+        previous = next((item for item in self.resources if item.kind == "branch"), None)
+        if previous is None or branch.kind != "branch" or branch.name != previous.name:
+            raise DomainError("Checkpoint must preserve the exact task branch identity")
+        if branch.commit == previous.commit:
+            raise DomainError("Checkpoint must advance the terminal task commit")
+        if intent.task_id != self.intent.task_id or intent.commit_disposition is None:
+            raise DomainError("Checkpoint requires an explicit disposition for the same Task")
+        if intent.commit_disposition.expected_commit != branch.commit:
+            raise DomainError("Checkpoint disposition must name the exact checkpoint commit")
+        if self.intent.commit_disposition is not None and intent.request_id == self.intent.request_id:
+            raise DomainError("A changed checkpoint commit requires a new cleanup request identity")
+        resources = tuple(branch if item == previous else item for item in self.resources)
+        event = {"event": "worktree_checkpointed", "branch": branch.name,
+                 "previous_commit": previous.commit, "commit": branch.commit,
+                 "request_id": intent.request_id}
+        return replace(self, intent=intent, resources=resources, blocker=None,
+                       version=self.version + 1, history=self.history + (event,))
+
     def resource_removed(self, resource: dict | TaskOwnedResource, receipt: dict | None = None) -> "CleanupRun":
         if self.intent.commit_disposition is None:
             raise DomainError("Commit disposition must be resolved before cleanup")

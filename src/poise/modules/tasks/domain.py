@@ -23,6 +23,17 @@ class TaskStatus(StrEnum):
     SUPERSEDED = "superseded"
 
 
+TERMINAL_TASK_STATUSES = frozenset({
+    TaskStatus.COMPLETED,
+    TaskStatus.CANCELLED,
+    TaskStatus.SUPERSEDED,
+})
+
+
+def is_terminal_task_status(status: str | TaskStatus) -> bool:
+    return status in TERMINAL_TASK_STATUSES
+
+
 def identifier(value: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise DomainError("Идентификатор обязан быть непустой строкой")

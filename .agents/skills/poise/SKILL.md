@@ -15,6 +15,8 @@ For this local ai-poise installation, use [the concrete launcher and configurati
 
 Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required content, worktree, findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
+When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.
+
 Do not create a worktree for read-only queries. For repository-changing work, use the worktree supplied by AI poise and read the target repository's applicable `AGENTS.md` before edits.
 
 ## Complete the current stage

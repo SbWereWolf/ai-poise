@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-12T01:38:13+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
+Обновлено: **2026-09-12T06:43:45+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -21,6 +21,26 @@
 `cancel` в этом API отменяет текущую standalone Task, сохраняет её историю, результаты и worktree, освобождает claim и записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
+
+### Просмотр терминальной Task
+
+`bootstrap` с адресом существующей Task в статусе `completed`, `cancelled` или
+`superseded` возвращает `terminal inspection snapshot`: обычный контекст с
+`result_template=null` и сохранённые проекции `content`, `evidence`, `history`. Это чтение не
+возобновляет и не захватывает Task, не требует её worktree и не оставляет её текущей для
+сессии. Если сессия уже владеет Task в статусе `active`, `verified` или `accepted`, просмотр
+другой терминальной Task отклоняется до изменения binding.
+
+Native hook выполняет такой адресный просмотр через installation source. Сразу после него
+безадресный `bootstrap` возвращает `read_only`, а `verify` с `result=null` и `artifacts=[]` —
+`read_only_verified`. Дополнительный `show` для получения terminal data не нужен: полный
+snapshot уже возвращён адресным `bootstrap`.
+
+До исправления от **2026-09-12** адресный просмотр мог оставить `stale current-task binding`:
+следующий taskless bootstrap снова показывал завершённую Task, а null-result verify
+отклонялся. Инцидент воспроизведён и закрыт задачей 0050. Исправление не вводит критериев
+успеха для аварийной отмены: `cancelled` может не иметь evidence, а просмотр возвращает ровно
+то, что было сохранено до отмены.
 
 ## Автоматическое создание Task
 

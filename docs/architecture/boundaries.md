@@ -120,6 +120,17 @@ interface только переносит результат выбранног�
 предусмотрено задачей 0026. Task-owned snapshots сохраняются; хеш остаётся диагностическим
 provenance. Это не отменяет проверок binding, source, ownership и revisions.
 
+Адресный `terminal inspection snapshot` для `completed`, `cancelled` и `superseded` проходит
+через installation source: терминальная Task не обязана иметь доступную worktree и не может
+становиться владельцем session source. `BoundSourceRoute` выбирает эту транспортную границу,
+а `WorkTools` координирует вызов; ни один из них не меняет Task lifecycle.
+
+Task остаётся владельцем terminal status и освобождённого claim. Runtime составляет проекцию
+из сохранённых Task context, content, evidence и audit history через существующие owner/query
+API, после чего гарантирует отсутствие current-task binding. Активные `active`, `verified` и
+`accepted` ownership guards проверяются до такого чтения. Пустая evidence-проекция
+аварийно отменённой Task допустима и не интерпретируется как незавершённая проверка.
+
 
 ## Accounting ownership — DDD-08
 

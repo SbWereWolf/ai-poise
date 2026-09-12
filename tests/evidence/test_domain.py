@@ -145,3 +145,63 @@ def test_nonzero_signal_is_not_a_product_disproof():
     b=EvidenceBook.empty().record_batch('measure',1,'TREE','KEY',[r])
     result=b.assess(plan(),'measure',1,'TREE','KEY',{'phase':'prepare','arguments':[],'decisions':[]})
     assert not result.ready and not result.needs_continuation
+
+
+def failed_rework_batch(value):
+    return EvidenceBook.empty().record_submission_batch(
+        'implementation', 1, 'TREE', 'KEY', 'SUBMISSION', [value]
+    )
+
+
+def test_completed_uninterpretable_subject_batch_is_available_only_for_explicit_rework():
+    value=receipt(False)
+    value.update(guard=False,interpretable=False,actual_exit_code=1)
+    book=failed_rework_batch(value)
+
+    selected=book.failed_batch('implementation',1,'SUBMISSION','TREE','KEY')
+
+    assert selected is not None
+    assert selected['receipts'] == [value]
+
+
+@pytest.mark.parametrize(
+    'changes',
+    [
+        {'timed_out':True,'actual_exit_code':None},
+        {'actual_exit_code':None},
+        {'actual_exit_code':-9},
+    ],
+)
+def test_uninterpretable_subject_batch_with_uncertain_execution_is_not_available_for_rework(changes):
+    value=receipt(False)
+    value.update(guard=False,interpretable=False,actual_exit_code=1)
+    value.update(changes)
+    book=failed_rework_batch(value)
+
+    assert book.failed_batch('implementation',1,'SUBMISSION','TREE','KEY') is None
+
+
+def test_interpretable_negative_subject_is_not_misclassified_as_failed_check_rework():
+    value=receipt(False)
+    value.update(guard=False,interpretable=True,actual_exit_code=1)
+    book=failed_rework_batch(value)
+
+    assert book.failed_batch('implementation',1,'SUBMISSION','TREE','KEY') is None
+
+
+@pytest.mark.parametrize(
+    'identity',
+    [
+        ('other',1,'SUBMISSION','TREE','KEY'),
+        ('implementation',2,'SUBMISSION','TREE','KEY'),
+        ('implementation',1,'OTHER','TREE','KEY'),
+        ('implementation',1,'SUBMISSION','OTHER','KEY'),
+        ('implementation',1,'SUBMISSION','TREE','OTHER'),
+    ],
+)
+def test_failed_rework_batch_requires_exact_stage_iteration_submission_tree_and_execution(identity):
+    value=receipt(False)
+    value.update(guard=False,interpretable=False,actual_exit_code=1)
+    book=failed_rework_batch(value)
+
+    assert book.failed_batch(*identity) is None

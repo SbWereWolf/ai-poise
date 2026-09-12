@@ -287,6 +287,31 @@ def public_tools(project: dict, session: str):
     return WorkTools(WorkPoise(project["config_path"], session))
 
 
+def focused_product_registration(project: dict, covers: tuple[str, ...]) -> dict:
+    focused = deepcopy(next(item for item in project["task"]["methods"] if item["id"] == "GREEN"))
+    focused["argv"] = [
+        focused["argv"][0],
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_double.py",
+        "-v",
+    ]
+    focused["verification_plan"]["responsibility"] = (
+        "Execute the focused double(n) regression test for the declared requirement and DoD."
+    )
+    return {
+        "method": focused,
+        "stages": ["implementation"],
+        "evidence_kind": "executable_test",
+        "covers": list(covers),
+    }
+
+
 def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_history(project):
     from conftest import add_test
     from tests.batch.helpers import bootstrap, request, result, verify
@@ -298,9 +323,9 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
     payload = result(boot)
     payload["method_additions"] = change(
         operation(
-            "add",
-            "FOCUSED_GREEN",
-            registration=registration("FOCUSED_GREEN", "focused-green"),
+            "replace",
+            "GREEN",
+            registration=focused_product_registration(project, OBLIGATIONS),
         )
     )
     first = verify(tools, payload)
@@ -420,22 +445,25 @@ def test_public_work_api_allows_only_stages_with_test_registry_section(project):
 
     configure_public_registry_case(project)
     cases = {
-        "zero": [],
+        "zero": [
+            operation("remove", "GREEN"),
+            operation("remove", "CLEANUP_FULL_GREEN"),
+        ],
         "partial": [
             operation(
-                "add",
-                "FOCUSED_GREEN",
-                registration=registration(
-                    "FOCUSED_GREEN", "partial", covers=("requirements[0]",)
-                ),
-            )
+                "replace",
+                "GREEN",
+                registration=focused_product_registration(project, ("requirements[0]",)),
+            ),
+            operation("remove", "CLEANUP_FULL_GREEN"),
         ],
         "complete": [
             operation(
-                "add",
-                "FOCUSED_GREEN",
-                registration=registration("FOCUSED_GREEN", "complete"),
-            )
+                "replace",
+                "GREEN",
+                registration=focused_product_registration(project, OBLIGATIONS),
+            ),
+            operation("remove", "CLEANUP_FULL_GREEN"),
         ],
     }
     for case, additions in cases.items():
@@ -446,8 +474,6 @@ def test_public_work_api_allows_only_stages_with_test_registry_section(project):
         add_test(boot["worktree"])
         prepared = result(boot)
         prepared["method_additions"] = change(
-            operation("remove", "GREEN"),
-            operation("remove", "CLEANUP_FULL_GREEN"),
             *additions,
             request_id=f"registry-{case}",
         )
@@ -473,7 +499,7 @@ def test_public_work_api_allows_only_stages_with_test_registry_section(project):
         else:
             forbidden = deepcopy(inspected)
             forbidden["method_additions"] = change(
-                operation("remove", "FOCUSED_GREEN"),
+                operation("remove", "GREEN"),
                 request_id="inspection-forbidden",
                 revision=1,
             )

@@ -288,6 +288,7 @@ class CheckRegistry:
     requests: tuple[RegistryRequest, ...] = ()
     executable_obligations: tuple[str, ...] = ()
     inspection_stages: tuple[str, ...] = ()
+    obligation_catalog: tuple[str, ...] = ()
 
     @classmethod
     def from_items(
@@ -333,6 +334,7 @@ class CheckRegistry:
         self,
         obligations: tuple[str, ...],
         inspection_stages: tuple[str, ...] = (),
+        obligation_catalog: tuple[str, ...] | None = None,
     ) -> CheckRegistry:
         if (type(obligations) is not tuple
                 or any(not isinstance(item, str) or not item for item in obligations)
@@ -342,6 +344,12 @@ class CheckRegistry:
                 or any(stage not in self.stages for stage in inspection_stages)
                 or len(inspection_stages) != len(set(inspection_stages))):
             raise DomainError('Executable inspection stages должны быть явным уникальным tuple')
+        catalog = obligations if obligation_catalog is None else obligation_catalog
+        if (type(catalog) is not tuple
+                or any(not isinstance(item, str) or not item for item in catalog)
+                or len(catalog) != len(set(catalog))
+                or set(obligations) - set(catalog)):
+            raise DomainError('Executable obligation catalog должен содержать явные уникальные refs')
         return CheckRegistry(
             self.stages,
             self.entries,
@@ -350,6 +358,7 @@ class CheckRegistry:
             self.requests,
             obligations,
             inspection_stages,
+            catalog,
         )
 
     @property
@@ -382,6 +391,7 @@ class CheckRegistry:
             self.requests,
             self.executable_obligations,
             self.inspection_stages,
+            self.obligation_catalog,
         )
 
     @property
@@ -389,7 +399,13 @@ class CheckRegistry:
         return RegistrySnapshot(self.revision, self.entries)
 
     def apply_change(self, raw: dict) -> RegistryChangeResult:
-        exact_keys(raw, {'request_id', 'expected_revision', 'operations'}, 'registry change')
+        fields = set(raw) if isinstance(raw, dict) else set()
+        base_fields = {'request_id', 'expected_revision', 'operations'}
+        if fields not in (base_fields, base_fields | {'executable_obligations'}):
+            raise DomainError(
+                'registry change: требуется точный набор полей request_id, '
+                'expected_revision, operations и optional executable_obligations'
+            )
         request_id = raw['request_id']
         expected = raw['expected_revision']
         operations = raw['operations']
@@ -399,6 +415,22 @@ class CheckRegistry:
             raise DomainError('registry change.expected_revision: требуется неотрицательный int')
         if not isinstance(operations, list) or not operations:
             raise DomainError('registry change.operations: требуется непустой список')
+        required = self.executable_obligations
+        if 'executable_obligations' in raw:
+            declared = raw['executable_obligations']
+            if (not isinstance(declared, list)
+                    or any(not isinstance(item, str) or not item for item in declared)
+                    or len(declared) != len(set(declared))):
+                raise DomainError(
+                    'registry change.executable_obligations: требуется список уникальных refs'
+                )
+            unknown = set(declared) - set(self.obligation_catalog)
+            if unknown:
+                raise DomainError(
+                    'registry change.executable_obligations ссылается на неизвестные '
+                    f'обязательства {sorted(unknown)}'
+                )
+            required = tuple(declared)
         digest = hashlib.sha256(json.dumps(
             raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')
         ).encode('utf-8')).hexdigest()
@@ -475,17 +507,18 @@ class CheckRegistry:
             revision,
             self.history + (self.current_snapshot,),
             self.requests + (RegistryRequest(request_id, digest, revision),),
-            self.executable_obligations,
+            required,
             self.inspection_stages,
+            self.obligation_catalog,
         )
         return RegistryChangeResult(updated, False)
 
     def _validate_coverage_refs(self, entries: tuple[RegisteredCheck, ...]) -> None:
-        if not self.executable_obligations:
+        if not self.obligation_catalog:
             return
         unknown = {
             obligation for entry in entries for obligation in entry.covers
-            if obligation not in self.executable_obligations
+            if obligation not in self.obligation_catalog
         }
         if unknown:
             raise DomainError(f'Executable coverage ссылается на неизвестные обязательства {sorted(unknown)}')
@@ -498,7 +531,7 @@ class CheckRegistry:
             and json.loads(entry.definition)['expected_exit_code'] == 0
             and json.loads(entry.definition)['verification_plan']['green_stages']
         ]
-        if required and not executable:
+        if not executable:
             raise DomainError('Для выхода из inspection требуется текущий GREEN executable-test')
         covered = {item for entry in executable for item in entry.covers}
         missing = [item for item in required if item not in covered]
@@ -537,6 +570,7 @@ class CheckRegistry:
             requests,
             obligations,
             self.inspection_stages,
+            self.obligation_catalog,
         )
 
     def validate_route(self, route) -> None:

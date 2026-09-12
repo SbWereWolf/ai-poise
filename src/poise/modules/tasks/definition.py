@@ -32,6 +32,10 @@ def registry_inspection_stages(process):
 def executable_obligations(contract, process):
     if not registry_inspection_stages(process):
         return ()
+    return obligation_catalog(contract)
+
+
+def obligation_catalog(contract):
     return tuple(
         [f"requirements[{index}]" for index, _ in enumerate(contract['requirements'])]
         + [f"definition_of_done[{index}]" for index, _ in enumerate(contract['definition_of_done'])]
@@ -60,7 +64,9 @@ def validate_creation(contract, process, automatic_checks):
     stages=tuple(s['id'] for s in process['stages'])
     route = RouteDefinition.from_process(process)
     registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
-        executable_obligations(contract, process), registry_inspection_stages(process)
+        executable_obligations(contract, process),
+        registry_inspection_stages(process),
+        obligation_catalog(contract),
     )
     from .creation_preflight import CreationPreflight
     CreationPreflight.parse(contract,process)
@@ -94,6 +100,7 @@ def build_task(metadata, actor):
     ).with_executable_obligations(
         executable_obligations(metadata['contract'], metadata['process']),
         registry_inspection_stages(metadata['process']),
+        obligation_catalog(metadata['contract']),
     )
     registry.validate_route(route)
     args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry))

@@ -141,6 +141,7 @@ class TaskQueries:
                 'status': 'read_only',
                 'task': task_id,
                 'revision': registry.revision,
+                'executable_obligations': list(registry.executable_obligations),
                 'current': [entry.to_dict() for entry in registry.entries],
                 'history': [snapshot.to_dict() for snapshot in registry.history],
                 'requests': [request.to_dict() for request in registry.requests],

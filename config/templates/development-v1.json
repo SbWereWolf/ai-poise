@@ -1,9 +1,7 @@
 {
   "goal_type": "development",
   "route": {
-    "entry": "tests",
-    "max_transitions": 40,
-    "max_stage_visits": 6
+    "entry": "tests"
   },
   "content_contract": {
     "sections": [],

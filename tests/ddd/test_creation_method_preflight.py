@@ -40,7 +40,7 @@ def _configure(project, stages):
     process.update(
         goal_type="documentation",
         stages=stages,
-        route={"entry": stages[0]["id"], "max_transitions": 30, "max_stage_visits": 6},
+        route={"entry": stages[0]["id"]},
     )
     write_json(project["root"] / "config/processes/documentation.json", process)
     cfg = deepcopy(project["cfg"])

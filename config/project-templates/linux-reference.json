@@ -311,55 +311,55 @@
   "process_sources": {
     "analysis": {
       "path": "config/catalogue/processes/analysis.json",
-      "digest": "fbac9bf5e231d7f3b04cef7fbfa266bfb46cc3639b2401fa0f9fc2d5f96af9d6"
+      "digest": "3cc4223353331f447c2b8574c1d73efd09151cbe559ce7193ed21f014e1dda01"
     },
     "design": {
       "path": "config/catalogue/processes/design.json",
-      "digest": "054f2e4f90923c6547114bb4613f9a6db3ca3f8dc418a6341e0cdcd817b741e9"
+      "digest": "aba7bd76a825c43c7b68fb28e3b7c5ac7ae0c682b5f61b1a3c7c361b774e275b"
     },
     "development": {
       "path": "config/catalogue/processes/development.json",
-      "digest": "96529f2b01f43dfd0c33d2e67c42a84a095ce6a1bf5afc293d36fd71d519dc01"
+      "digest": "9fc6a758328babacda8f1601a185b80f4d6ab5aa1c0b17b03d073fc890f12487"
     },
     "documentation": {
       "path": "config/catalogue/processes/documentation.json",
-      "digest": "a4aa34a1c9677acb18531013bf15092169d943887b3bffa81d80bbcb6a5ce37f"
+      "digest": "572ee0ea1fc2faa19eb311e910d24ebdf7a4b80a74f7445960e8c90b122bcae9"
     },
     "environment_diagnostics": {
       "path": "config/catalogue/processes/environment_diagnostics.json",
-      "digest": "acc9a929351f3c0694364969889c3d0a39402f1c7596ba0bdc5707b66608aeba"
+      "digest": "7a8ee559182a21aec7e0600305b726e8fc932a7588450982dfbb353d620b3375"
     },
     "environment_remediation": {
       "path": "config/catalogue/processes/environment_remediation.json",
-      "digest": "ab2bd89371225f2444e6e5306977472fd7d123ce609026053a91ae8756878d99"
+      "digest": "92cf3d8d4ffc6aeca57bf923b5b4e9f3851e11aad77300b8665b07edb75241a3"
     },
     "integration": {
       "path": "config/catalogue/processes/integration.json",
-      "digest": "32fcd08135b1e0aa7ff9b0e615312eda75d827f787ee4ceed69b7276788bee64"
+      "digest": "bbee13301a4248f899104dc19fee3329285803d70920f1fda1bb2590dd5d2ef7"
     },
     "profiling": {
       "path": "config/catalogue/processes/profiling.json",
-      "digest": "145346612a41d2779f08c86b2e2ad664a9e44bc2f96a89656445e85acc731e97"
+      "digest": "92c0a7d18ff60209afd9d4a1798e94f07f43353f7792c17194c94b4f16f3c856"
     },
     "review": {
       "path": "config/catalogue/processes/review.json",
-      "digest": "035e2e21bf251589e03e8f91dbcff44cd4298c746e114aa5d0856e581010d4e1"
+      "digest": "4c6cdd3cb745735618024b5bfbf1cced6a476103bdd9c23c5c7c4931b9f38da8"
     },
     "sprint_planning": {
       "path": "config/catalogue/processes/sprint_planning.json",
-      "digest": "c0837c583c26914beae73e68efce3043fe0658699f10096ebabb52a91097121f"
+      "digest": "01d4c95ce771a10accf5cc1bffd63d04de4c07e70fa756af4056b94535e98348"
     },
     "task_planning": {
       "path": "config/catalogue/processes/task_planning.json",
-      "digest": "58951f18e284eb8766d8f86ae7abc3dde09a6a8a52fa70cf46332a2b38e69f6c"
+      "digest": "a3230166c8732cc113f82af9cec26e42de7f578cbdb653542b00615e78a81003"
     },
     "test_development": {
       "path": "config/catalogue/processes/test_development.json",
-      "digest": "dc200fced654bb2b5f037025f230496e69bb73e71eb95ac48eb5543e1d62da45"
+      "digest": "61ecf72d9fc551128b87f7c900d1a71d6b796ae0667618fbb1ce16208cbf3e35"
     },
     "verification": {
       "path": "config/catalogue/processes/verification.json",
-      "digest": "a0f6965c42d4e5095152208d59c07d3a8a239f82e225f77787b0f27b9574855e"
+      "digest": "ea79879ae0b7c8f6d48141b3c995117fe683cc4c98be6f23932e40990d1f4cf3"
     }
   }
 }

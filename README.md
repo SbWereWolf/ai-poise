@@ -59,6 +59,7 @@ JSON
 ## Документация
 
 - [Резервные копии Task DB](docs/task-db-backups.md) — создание, просмотр и безопасное восстановление копий базы задач.
+- [Миграция route](docs/route-count-limit-migration.md) — удаление устаревших ограничений переходов из процессов и task snapshots.
 - [Настройка проекта](docs/configuration/project-setup.md) — публикация конфигурации и локальная установка.
 - [API работы](docs/workflows/batch-work.md) — bootstrap, результаты этапов и артефакты.
 - [Спринты](docs/workflows/sprints.md) — задачи, зависимости и принятие результатов.

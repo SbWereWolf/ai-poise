@@ -13,7 +13,7 @@ from ..content_requirements.domain import ContentPolicy
 PROCESS_FIELDS = frozenset({"goal_type", "stages", "content_contract", "route", "benefit"})
 STAGE_FIELDS = frozenset({"id", "instruction", "read_only", "allowed_paths", "normalization",
     "sections", "required_sections", "artifact_requirements", "handler", "transitions", "rework_targets"})
-ROUTE_FIELDS = frozenset({"entry", "max_transitions", "max_stage_visits"})
+ROUTE_FIELDS = frozenset({"entry"})
 GROUPS = {"stage": "stages", "section": "sections", "trace_route": "routes", "requirement": "requirements"}
 
 

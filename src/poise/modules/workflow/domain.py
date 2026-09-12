@@ -58,8 +58,6 @@ class RouteNode:
 class RouteDefinition:
     entry: str
     nodes: tuple[RouteNode, ...]
-    max_transitions: int
-    max_stage_visits: int
 
     def __post_init__(self):
         if not self.nodes or len({n.stage_id for n in self.nodes}) != len(self.nodes):
@@ -67,9 +65,6 @@ class RouteDefinition:
         names = {n.stage_id for n in self.nodes}
         if self.entry not in names:
             raise DomainError("Неизвестная входная точка маршрута")
-        for number in (self.max_transitions, self.max_stage_visits):
-            if type(number) is not int or number <= 0:
-                raise DomainError("Лимиты переходов и посещений должны быть положительными целыми")
         for target in (n for n in self.nodes if n.handler == HandlerKind.PUBLISH):
             if target.stage_id == self.entry or not target.read_only:
                 raise DomainError("publish requires a read-only stage after inspection")
@@ -126,7 +121,7 @@ class RouteDefinition:
     def from_process(cls, process: dict) -> RouteDefinition:
         try:
             cfg = process["route"]
-            exact(cfg, {"entry", "max_transitions", "max_stage_visits"}, "route")
+            exact(cfg, {"entry"}, "route")
             nodes = []
             for stage in process["stages"]:
                 kind = HandlerKind(stage["handler"])
@@ -145,7 +140,7 @@ class RouteDefinition:
                     stage["read_only"],
                     tuple(stage["allowed_paths"]),
                 ))
-            return cls(cfg["entry"], tuple(nodes), cfg["max_transitions"], cfg["max_stage_visits"])
+            return cls(cfg["entry"], tuple(nodes))
         except (KeyError, TypeError, ValueError) as exc:
             raise DomainError(f"Неполный/неверный маршрут: {exc}") from exc
 
@@ -161,10 +156,6 @@ class RouteDefinition:
     def enter(self, progress: RouteProgress, target: str) -> RouteProgress:
         self.node(target)
         visits = dict(progress.visits)
-        if progress.transitions >= self.max_transitions:
-            raise DomainError("Лимит route.max_transitions достигнут; требуется решение пользователя")
-        if visits[target] >= self.max_stage_visits:
-            raise DomainError(f"Лимит route.max_stage_visits достигнут для {target}; требуется решение пользователя")
         visits[target] += 1
         return RouteProgress(tuple(visits.items()), progress.transitions + 1, None, None)
 

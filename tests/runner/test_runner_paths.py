@@ -143,19 +143,6 @@ def test_explicit_return_preserves_feedback_and_earlier_reports(project):
     assert h.bootstrap()["workflow"]["visits"]["draft"]==2
 
 
-def test_route_limit_survives_reload_and_keeps_verified_result(project):
-    h=setup_project(project,"documentation")
-    path=project["root"]/"config/processes/documentation.json"
-    cfg=json.loads(path.read_text());cfg["route"]["max_transitions"]=1;write_json(path,cfg)
-    h=Poise(project["config_path"],"S1");ctx=h.bootstrap(task_file=project["task_path"])
-    edit(ctx,"documentation","draft\n");result(ctx,{});h.verify()
-    ctx=h.bootstrap(decision="continue");result(ctx,inspect([finding()]));h.verify()
-    h=Poise(project["config_path"],"S1")
-    with pytest.raises(PoiseError,match="[Лл]имит"): h.bootstrap(decision="continue")
-    assert h.show()["status"]=="verified" and h.show()["stage"]=="audit"
-    assert h.cancel("Пользователь отменил работу")["status"]=="cancelled"
-
-
 def test_content_obligation_is_enforced_inside_feedback_route(project):
     h=setup_project(project,"documentation");ctx=h.bootstrap(task_file=project["task_path"])
     edit(ctx,"documentation","draft\n");result(ctx,{})

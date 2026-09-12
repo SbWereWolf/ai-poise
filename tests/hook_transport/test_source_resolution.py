@@ -227,6 +227,32 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
     ]
 
 
+def test_terminal_task_bootstrap_uses_installation_source_without_binding(project, tmp_path):
+    service, installed, installation = _service(project, tmp_path)
+    owner_launcher, _ = _launcher(service, installed, "terminal-owner")
+    started, context = _call(owner_launcher, _bootstrap(project["task"]))
+    assert started.returncode == 0, started.stdout + started.stderr
+    cancelled, report = _call(
+        owner_launcher,
+        request("cancel", {"reason": "Prepare a terminal source-resolution fixture."}),
+    )
+    assert cancelled.returncode == 0, cancelled.stdout + cancelled.stderr
+    assert report["status"] == "cancelled"
+
+    reader_launcher, binding = _launcher(service, installed, "terminal-reader")
+    prompt = event("UserPromptSubmit", session="terminal-reader", turn="terminal-turn")
+    prompt["cwd"] = str(service.settings.root)
+    service.event(installed["definition_path"], prompt)
+
+    inspected, terminal = _call(reader_launcher, _bootstrap({"id": "T1"}))
+
+    assert inspected.returncode == 0, inspected.stdout + inspected.stderr
+    assert terminal["status"] == "cancelled"
+    assert Path(terminal["loaded_source"]) == installation / "poise"
+    assert terminal["session"] == binding["session_id"]
+    assert service.bound_runtime(binding["binding_path"]).current_task() is None
+
+
 @pytest.mark.parametrize("config_changed", [False, True])
 @pytest.mark.parametrize("state", ["active", "verified", "accepted"])
 def test_assigned_session_continuation_loads_current_task_source_in_each_resumable_state(

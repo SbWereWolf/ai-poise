@@ -22,6 +22,10 @@ def run_one(directory: Path, goal: str, feedback: bool):
         task = json.loads((home / 'task.json').read_text())
         task['artifact_requirements'] = []
         task['checks'] = {s['id']: ['RED'] if s['id'] in ('tests', 'test_fix') else ['GREEN'] if s['id'] in ('implementation', 'code_review', 'code_fix', 'code_recheck') else [] for s in process['stages']}
+        task['methods'][0]['verification_plan']['red_stages'] = ['tests', 'test_fix']
+        task['methods'][1]['verification_plan']['green_stages'] = [
+            'implementation', 'code_review', 'code_fix', 'code_recheck',
+        ]
     else:
         task = json.loads((SOURCE / 'examples/documentation-task.example.json').read_text())
         task['methods'][0]['argv'][0] = sys.executable

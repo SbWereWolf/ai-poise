@@ -53,3 +53,9 @@ own explicit timeout contracts.
 Reject semantic duplicates and conflicting methods before execution. Accept RED evidence only
 when the declared failure predicate matches and the recorded source provenance is valid; an
 import error or execution against another checkout is not a valid RED.
+Keep `verification_plan` validation in `CheckRegistry` and route scope ownership
+in `RouteDefinition`. New methods declare `change_surface`, `red_stages`, and
+`green_stages`; every required GREEN path must be covered by configured
+`allowed_paths`. RED predicates compare complete output exactly, so additional
+failures do not pass. Preserve pre-plan snapshot restoration without adding a
+default, migration, or recursive runner-specific source inference.

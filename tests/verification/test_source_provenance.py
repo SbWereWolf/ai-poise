@@ -57,7 +57,7 @@ def method(
     if plan is ...:
         value["verification_plan"] = verification_plan(
             "Verify the declared repository behaviour.",
-            ["src/**"],
+            ["tests/**"],
             red_stages=["red"] if expected_exit_code != 0 else [],
             green_stages=[] if expected_exit_code != 0 else ["green"],
             red_failure=(
@@ -83,7 +83,16 @@ def method(
 
 def registry(methods: list[dict], checks: dict | None = None) -> CheckRegistry:
     schedule = {"red": [], "green": []} if checks is None else checks
-    return CheckRegistry.from_task(methods, schedule, STAGES)
+    selected = [deepcopy(method_value) for method_value in methods]
+    for method_value in selected:
+        plan = method_value.get("verification_plan")
+        if plan is None:
+            continue
+        stages = [stage for stage in STAGES if method_value["id"] in schedule[stage]]
+        is_red = method_value["expected_exit_code"] != 0
+        plan["red_stages"] = stages if is_red else []
+        plan["green_stages"] = [] if is_red else stages
+    return CheckRegistry.from_task(selected, schedule, STAGES)
 
 
 def task_tools(

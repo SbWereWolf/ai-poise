@@ -62,7 +62,10 @@ def test_verification_plan_requires_exact_actionable_fields(mutate, token):
     )
     mutate(plan)
     with pytest.raises(DomainError, match=token):
-        registry(method(plan=plan), tuple(dict.fromkeys(plan["red_stages"] + plan["green_stages"])))
+        registry(method(plan=plan), tuple(
+            stage for stage in dict.fromkeys(plan["red_stages"] + plan["green_stages"])
+            if stage in STAGES
+        ))
 
 
 def test_schedule_must_equal_declared_red_and_green_stages():

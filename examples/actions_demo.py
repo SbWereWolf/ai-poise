@@ -34,6 +34,9 @@ def process(kind):
 def method(mid,code):
     return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
+            'verification_plan':{'responsibility':'Verify the integrated source result.',
+                'change_surface':['src/**'],'red_stages':[],
+                'green_stages':['apply','inspect','correct','followup'],'red_failure':None},
             'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]}
 
 

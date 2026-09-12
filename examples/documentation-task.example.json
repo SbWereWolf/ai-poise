@@ -29,6 +29,20 @@
           }
         ]
       },
+      "verification_plan": {
+        "responsibility": "Verify the generated guide across drafting and review.",
+        "change_surface": [
+          "docs/**"
+        ],
+        "red_stages": [],
+        "green_stages": [
+          "draft",
+          "editorial",
+          "amend",
+          "editorial_followup"
+        ],
+        "red_failure": null
+      },
       "expected_exit_code": 0,
       "stdout_contains": [
         "DOC_OK"

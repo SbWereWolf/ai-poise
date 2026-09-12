@@ -229,3 +229,6 @@ Intent до эффекта фиксирует task ID, request ID, accepted sour
 супервизор использует существующий command executor. Пример continuation вызывает WorkTools,
 не пишет SQL/config и не присваивает lifecycle-поля. Контроль источников включает tools.
 Статус процесса и факт наличия XML отделены от содержательного итога проверок.
+`CheckRegistry` владеет структурой `verification_plan` и сопоставляет
+`change_surface` с route-путями. `RouteDefinition` предоставляет настроенные
+`allowed_paths`; отдельного планировщика или анализа исходников теста нет.

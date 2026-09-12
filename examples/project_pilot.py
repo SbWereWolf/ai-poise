@@ -40,7 +40,9 @@ def run(root,repository,base_ref,destination,task_id):
     selected_task=catalogue.raw['task_templates']['verification-v1']
     invocation={'id':'VERIFY','argv':[sys.executable,'-m','pytest','tests/projects','-q'],
         'cwd':'.','environment':{'PYTHONPATH':'src'},
-        'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
+        'source_under_test':{'kind':'external','reason':'The pilot verifies the separately selected source repository, not files produced in its Task worktree.'},
+        'verification_plan':{'responsibility':'Verify the selected external source revision during execution.',
+            'change_surface':[],'red_stages':[],'green_stages':['execution'],'red_failure':None},
         'expected_exit_code':0,'stdout_contains':['passed'],'stderr_contains':[]}
     parameters={'identity':task_id,'membership':None,
         'goal':'Plan the verification of declarative project setup on the real Poise revision.',
@@ -73,6 +75,13 @@ def run(root,repository,base_ref,destination,task_id):
     readiness={**invocation,'id':'PLANNING_READINESS',
         'argv':[sys.executable,'-m','pytest',
                 'tests/projects/test_reference.py::test_installed_reference_template_builds_all_thirteen_processes','-q']}
+    readiness['verification_plan']={
+        'responsibility':'Confirm external source readiness during planning.',
+        'change_surface':[],
+        'red_stages':[],
+        'green_stages':['planning'],
+        'red_failure':None,
+    }
     result['method_additions']=[{'method':readiness,'stages':['planning']}]
     artifact={'scope':'task','path':'setup-receipt.json','source':{'kind':'text','text':json.dumps(setup_result,ensure_ascii=False,indent=2)}}
     report=call('verify',{'result':result,'artifacts':[artifact]})

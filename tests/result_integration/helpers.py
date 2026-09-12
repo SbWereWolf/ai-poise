@@ -22,6 +22,15 @@ def prepare_completed_task(
     methods=(),
     checks=(),
 ):
+    methods = [deepcopy(method) for method in methods]
+    for method in methods:
+        method.setdefault("verification_plan", {
+            "responsibility": "Verify the source result before integration.",
+            "change_surface": ["src/**"],
+            "red_stages": [],
+            "green_stages": ["implementation"],
+            "red_failure": None,
+        })
     cfg = deepcopy(project["cfg"])
     cfg["automatic_checks"] = []
     cfg["git"]["push_required"] = False

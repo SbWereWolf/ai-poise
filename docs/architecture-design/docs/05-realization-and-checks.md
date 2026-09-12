@@ -91,6 +91,6 @@
 
 Принятый новый инвариант: DDD и доменные API обязательны для будущей реализации. Уточнены владельцы task/sprint data, общий код tools, repositories/query access, границы SQLite/filesystem и обработчиков.
 
-Не меняются 13 независимых процессов, семь семейств handler, 98 узлов и 34 именованных feedback-перехода. Не меняются path-only artifacts, один этап на пользовательский рабочий цикл, exact verification commands, Linux/Python, отсутствие defaults/fallbacks/migrations без санкции.
+Не меняются 13 независимых процессов, семь семейств handler, 98 узлов и 34 именованных feedback-перехода. Не меняются path-only artifacts, отдельный проверяемый stage-вызов для каждого этапа, exact verification commands, Linux/Python, отсутствие defaults/fallbacks/migrations без санкции. Действующее поручение исполнителю может покрывать несколько последовательных `executor`-этапов; `reviewer`, acceptance, publication и integration требуют отдельного явного полномочия.
 
 [Карта этапов](../stage-library-map.md) показывает, какие библиотеки вызываются на каждом узле. Это проверка полноты проектного сопоставления, не выполнение продуктовых сценариев.

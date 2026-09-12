@@ -102,7 +102,7 @@ commit и `request_id`. Основной checkout, чужие ресурсы, du
 а не удаление по одному имени. Повтор неизменного пакета после снятия блокировки продолжает
 persisted шаги; скрытого фонового cleanup при событии hook нет. Полный payload и правила
 commit disposition приведены в
-[пакетном workflow](../workflows/batch-work.md#уборка-ресурсов-terminal-task).
+[пакетном workflow](../workflows/batch-work.md#интеграция-принятого-результата).
 
 ## Данные
 Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.
@@ -129,7 +129,7 @@ Taskless read-only bootstrap не блокируется отсутствующ�
 1. В своём WSL убедиться, что выбранный CPython 3.13 и Git запускаются. Подготовить project manifest с явным `batch.message_source` текущего hook-источника (`mode=runtime_event`). Не включать одновременно JSONL importer для тех же сообщений.
 2. В одном пакете `runtime-setup` указать свои фактические пути и definition. Для JetBrains взять **реальную** команду из Copy Stdio Config IDE, сохранить точные argv/environment. В `required_tools` указывать только инструментальные имена реально используемого IDE; для проверки привязки задавать read-only call и JSON predicate с `${workspace}`. Не вставлять инструменты из тестового mcp_fixture.
 3. Запустить Codex из AI poise root и через его `/hooks` проверить и разрешить собственные команды. Инструмент не меняет trust/permissions и не устанавливает разрешение вместо пользователя.
-4. В новом основном разговоре проверить получение launcher, запустить из него пакет bootstrap и один этап. Принятие результата и следующую работу разрешать отдельной инструкцией. Считать фактические UserPromptSubmit, а не количество WorkTools calls.
+4. В новом основном разговоре проверить получение launcher, запустить из него пакет bootstrap и один этап. Действующее поручение исполнителю использовать для последовательных `executor`-этапов без отдельных команд «дальше»; переход к `reviewer`, acceptance, publication и integration разрешать отдельной явной инструкцией. Считать фактические UserPromptSubmit, а не количество WorkTools calls.
 5. После этого сохранить receipt реального probe и результат короткого маршрута. До такого прогона поддержка провайдера имеет статус `not_observed`, даже когда локальный протокольный стенд прошёл.
 
 Установка выбранных hooks не перехватывает все native инструменты Codex и не создаёт hooks в ChatGPT. Read-only smoke доказывает исполнение только конкретной команды/операции. Он не доказывает correctness rename/format без их отдельных испытаний. Live JetBrains endpoint, OAuth/HTTP/SSE и Gmail находятся вне текущего среза.

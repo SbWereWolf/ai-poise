@@ -400,11 +400,16 @@ class CheckRegistry:
 
     def apply_change(self, raw: dict) -> RegistryChangeResult:
         fields = set(raw) if isinstance(raw, dict) else set()
-        base_fields = {'request_id', 'expected_revision', 'operations'}
-        if fields not in (base_fields, base_fields | {'executable_obligations'}):
+        required_fields = {
+            'request_id',
+            'expected_revision',
+            'operations',
+            'executable_obligations',
+        }
+        if fields != required_fields:
             raise DomainError(
                 'registry change: требуется точный набор полей request_id, '
-                'expected_revision, operations и optional executable_obligations'
+                'expected_revision, operations и executable_obligations'
             )
         request_id = raw['request_id']
         expected = raw['expected_revision']
@@ -415,22 +420,20 @@ class CheckRegistry:
             raise DomainError('registry change.expected_revision: требуется неотрицательный int')
         if not isinstance(operations, list) or not operations:
             raise DomainError('registry change.operations: требуется непустой список')
-        required = self.executable_obligations
-        if 'executable_obligations' in raw:
-            declared = raw['executable_obligations']
-            if (not isinstance(declared, list)
-                    or any(not isinstance(item, str) or not item for item in declared)
-                    or len(declared) != len(set(declared))):
-                raise DomainError(
-                    'registry change.executable_obligations: требуется список уникальных refs'
-                )
-            unknown = set(declared) - set(self.obligation_catalog)
-            if unknown:
-                raise DomainError(
-                    'registry change.executable_obligations ссылается на неизвестные '
-                    f'обязательства {sorted(unknown)}'
-                )
-            required = tuple(declared)
+        declared = raw['executable_obligations']
+        if (not isinstance(declared, list)
+                or any(not isinstance(item, str) or not item for item in declared)
+                or len(declared) != len(set(declared))):
+            raise DomainError(
+                'registry change.executable_obligations: требуется список уникальных refs'
+            )
+        unknown = set(declared) - set(self.obligation_catalog)
+        if unknown:
+            raise DomainError(
+                'registry change.executable_obligations ссылается на неизвестные '
+                f'обязательства {sorted(unknown)}'
+            )
+        required = tuple(declared)
         digest = hashlib.sha256(json.dumps(
             raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')
         ).encode('utf-8')).hexdigest()

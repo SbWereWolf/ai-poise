@@ -32,7 +32,11 @@ def registry_inspection_stages(process):
 def executable_obligations(contract, process):
     if not registry_inspection_stages(process):
         return ()
-    return obligation_catalog(contract)
+    return declared_executable_obligations(
+        contract['executable_obligations'],
+        obligation_catalog(contract),
+        'task.executable_obligations',
+    )
 
 
 def obligation_catalog(contract):
@@ -42,14 +46,51 @@ def obligation_catalog(contract):
     )
 
 
+def declared_executable_obligations(value, catalog, where):
+    if (not isinstance(value, list)
+            or any(not isinstance(item, str) or not item for item in value)
+            or len(value) != len(set(value))):
+        raise DomainError(f'{where}: требуется список уникальных refs')
+    unknown = set(value) - set(catalog)
+    if unknown:
+        raise DomainError(
+            f'{where} ссылается на неизвестные обязательства {sorted(unknown)}'
+        )
+    return tuple(value)
+
+
+def stored_executable_obligations(contract, process, registry_state):
+    if not registry_inspection_stages(process):
+        return ()
+    catalog = obligation_catalog(contract)
+    if 'executable_obligations' in contract:
+        return declared_executable_obligations(
+            contract['executable_obligations'],
+            catalog,
+            'stored task.executable_obligations',
+        )
+    if not isinstance(registry_state, dict) or 'executable_obligations' not in registry_state:
+        raise DomainError(
+            'Stored Task без task.executable_obligations требует сохранённый registry state'
+        )
+    return declared_executable_obligations(
+        registry_state['executable_obligations'],
+        catalog,
+        'stored registry state.executable_obligations',
+    )
+
+
 def validate_creation(contract, process, automatic_checks):
     if isinstance(contract,dict) and 'method_inputs' not in contract:
         method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
         raise DomainError(
             f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
         )
-    exact_keys(contract,{'id','sprint_id','goal_type','goal','requirements','definition_of_done',
-        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan'},'task')
+    fields={'id','sprint_id','goal_type','goal','requirements','definition_of_done',
+        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan'}
+    if registry_inspection_stages(process):
+        fields.add('executable_obligations')
+    exact_keys(contract,fields,'task')
     path_identifier(contract['id'])
     if contract['sprint_id'] is not None:path_identifier(contract['sprint_id'])
     GoalTypeDefinition.parse(process)

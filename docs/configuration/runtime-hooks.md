@@ -76,6 +76,7 @@ source внутри её `Task worktree`. Продолжение уже назн
 конфигурацию и сохранённые Task-owned process/contract/method snapshots; изменение конфига
 не переписывает эти снимки и не перезапускает задачу. Проверки native binding и границ
 выбранного source выполняются независимо от этого правила.
+Для Sprint явная отмена представлена операциями `cancel_tasks` и `cancel`.
 
 ## Данные
 Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.

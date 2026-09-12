@@ -256,12 +256,10 @@ def _tree_hashes(root: Path) -> dict[str, str]:
 
 
 def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(installed_poise, tmp_path):
-    source_state_raw = os.environ.get("POISE_EXISTING_STATE_SOURCE")
-    assert source_state_raw, "POISE_EXISTING_STATE_SOURCE must select observed data"
-    source_state = Path(source_state_raw).resolve(strict=True)
     source_config_root = ROOT / "config" / "projects" / "ai-poise"
     source_config = source_config_root / "project.json"
     config = json.loads(source_config.read_text())
+    source_state = Path(config["paths"]["state"]).resolve(strict=True)
     database_relative = Path(config["paths"]["database"])
     assert not database_relative.is_absolute()
     source_database = source_state / database_relative

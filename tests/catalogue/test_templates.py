@@ -49,14 +49,15 @@ def tiny():
     return {'schema':'task-blueprint-1','goal_type':'custom','parameters':
             {'identity':'text','membership':'nullable_text','goal':'text','requirements':'strings',
              'dod':'strings','methods':'list','method_inputs':'list','contract':'object','evidence':'object',
-             'stage_contracts':'list'},
+             'stage_contracts':'list','decomposition':'object'},
             'task':{'id':{'$input':'identity'},'sprint_id':{'$input':'membership'},'goal_type':'custom',
                     'goal':{'$input':'goal'},'requirements':{'$input':'requirements'},
                     'definition_of_done':{'$input':'dod'},'methods':{'$input':'methods'},
                     'method_inputs':{'$input':'method_inputs'},
                     'checks':{'draft':[]},'artifact_requirements':[],
                     'content_contract':{'$input':'contract'},'evidence_plan':{'$input':'evidence'},
-                    'stage_contracts':{'$input':'stage_contracts'}}}
+                    'stage_contracts':{'$input':'stage_contracts'},
+                    'decomposition':{'$input':'decomposition'}}}
 
 
 def values():
@@ -65,7 +66,15 @@ def values():
             'contract':{'sections':[],'routes':[],'requirements':[]},
             'evidence':{'draft':{'subject_methods':{},'arguments':[],'review_arguments':[]}},
             'stage_contracts':[{'stage_id':'draft','allowed_paths':[],
-                'entry_requirements':[],'exit_requirements':[]}]}
+                'entry_requirements':[],'exit_requirements':[]}],
+            'decomposition':{'kind':'ordinary','phases':[
+                {'stage':'draft','skills':['workflow'],'areas':[]}],
+                'integration':None}}
+
+
+def decomposition_policy():
+    return {'skills':[{'id':'workflow','class':'meta','responsibility':None}],
+            'areas':[{'path':'src/**','responsibility':'application'}]}
 
 
 def process():
@@ -80,7 +89,9 @@ def process():
 
 def test_typed_instantiation_preserves_exact_command_and_does_not_mutate_template():
     source=tiny();before=deepcopy(source)
-    created=TaskBlueprint.parse(source).instantiate(values(),process(),[])
+    created=TaskBlueprint.parse(source).instantiate(
+        values(),process(),[],decomposition_policy()
+    )
     assert created['id']=='T' and created['sprint_id'] is None
     assert source==before
     created['requirements'].append('R2')
@@ -91,7 +102,9 @@ def test_typed_instantiation_preserves_exact_command_and_does_not_mutate_templat
                                   lambda p:p.update(identity=12),lambda p:p.update(requirements='R')])
 def test_missing_extra_or_wrong_parameter_is_rejected_without_fallback(change):
     p=values();change(p)
-    with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(p,process(),[])
+    with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(
+        p,process(),[],decomposition_policy()
+    )
 
 
 def test_unknown_placeholder_is_rejected():
@@ -101,9 +114,13 @@ def test_unknown_placeholder_is_rejected():
 
 def test_exact_method_reference_is_validated_by_existing_task_owner():
     raw=tiny();raw['task']['checks']['draft']=['NO_SUCH_METHOD']
-    with pytest.raises(PoiseError):TaskBlueprint.parse(raw).instantiate(values(),process(),[])
+    with pytest.raises(PoiseError):TaskBlueprint.parse(raw).instantiate(
+        values(),process(),[],decomposition_policy()
+    )
 
 
 def test_mismatched_process_identity_is_not_reclassified():
     p=process();p['goal_type']='other'
-    with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(values(),p,[])
+    with pytest.raises(PoiseError):TaskBlueprint.parse(tiny()).instantiate(
+        values(),p,[],decomposition_policy()
+    )

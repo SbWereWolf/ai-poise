@@ -38,6 +38,14 @@ def setup(project):
         checks={s['id']:[] for s in p['stages']},evidence_plan={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']},
         stage_contracts=[{'stage_id':s['id'],'allowed_paths':list(s['allowed_paths']),
             'entry_requirements':[],'exit_requirements':[]} for s in p['stages']])
+    task['decomposition'] = {
+        'kind': 'ordinary',
+        'phases': [
+            {'stage': stage['id'], 'skills': ['task-domain'], 'areas': []}
+            for stage in p['stages']
+        ],
+        'integration': None,
+    }
     child=deepcopy(project['task']);child['id']='CHILD'
     h=Poise(project['config_path'],'PLANNER');ctx=start(h,task)
     return h,ctx,child

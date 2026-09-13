@@ -66,11 +66,16 @@ def run(root,repository,base_ref,destination,task_id):
         'artifact_requirements':[],
         'contract':{'sections':[],'routes':[],'requirements':[]},
         'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in processes['verification']['stages']},
-        'stage_contracts':_stage_contracts(processes['verification'])}
+        'stage_contracts':_stage_contracts(processes['verification']),
+        'decomposition':{'kind':'ordinary','phases':[
+            {'stage':stage['id'],'skills':['workflow'],'areas':[]}
+            for stage in processes['verification']['stages']],
+            'integration':None}}
     parameters['evidence']['execution']['subject_methods']={
         'VERIFY':{'exit_codes':[0],'stdout_contains':['passed'],'stderr_contains':[]}}
     task=commands.tasks([{'template':{'id':'verification-v1','version':selected_task['version'],'digest':selected_task['digest']},
-                           'parameters':parameters}],processes,cfg['automatic_checks'])['tasks'][0]
+                           'parameters':parameters}],processes,cfg['automatic_checks'],
+                         cfg['task_decomposition'])['tasks'][0]
     h=Poise(setup_result['config_path'],task_id,SystemClock());work=WorkTools(h)
     def call(op,args):return work.invoke({'operation':op,'input':args,'messages':[]})
     context=call('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})

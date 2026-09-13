@@ -42,7 +42,11 @@ def task(tid,kind,command):
        'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in ('write','inspect','amend','confirm')},
        'stage_contracts':[{'stage_id':item['id'],'allowed_paths':list(item['allowed_paths']),
                            'entry_requirements':[],'exit_requirements':[]}
-                          for item in process(kind)['stages']]}
+                          for item in process(kind)['stages']],
+       'decomposition':{'kind':'ordinary','phases':[
+           {'stage':item['id'],'skills':['workflow'],'areas':[]}
+           for item in process(kind)['stages']],
+           'integration':None}}
 
 
 def run(directory):

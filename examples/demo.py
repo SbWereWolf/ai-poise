@@ -46,6 +46,14 @@ def create(directory: Path):
     cfg['sprint'] = json.loads((SOURCE / 'config/sprint.example.json').read_text())
     cfg['runtime_services'] = json.loads((SOURCE / 'config/runtime.example.json').read_text())
     cfg['batch'] = json.loads((SOURCE / 'config/batch.example.json').read_text())
+    cfg['task_decomposition'] = {
+        'skills': [{'id': 'workflow', 'class': 'meta', 'responsibility': None}],
+        'areas': [
+            {'path': 'src/**', 'responsibility': 'application'},
+            {'path': 'tests/**', 'responsibility': 'application'},
+            {'path': 'docs/**', 'responsibility': 'documentation'},
+        ],
+    }
     save(home / 'project.json', cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     red_argv = [sys.executable, '-B', '-c', "import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"]
@@ -65,6 +73,14 @@ def create(directory: Path):
         for stage in stages
     ]
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in stages}
+    task['decomposition'] = {
+        'kind': 'ordinary',
+        'phases': [
+            {'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
+            for stage in stages
+        ],
+        'integration': None,
+    }
     save(home / 'task.json', task)
     return home
 

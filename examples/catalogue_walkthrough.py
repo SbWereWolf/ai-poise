@@ -36,6 +36,27 @@ def _stage_contracts(process):
             for stage in process['stages']]
 
 
+def _decomposition(process, goal):
+    integration = None
+    kind = 'ordinary'
+    if goal == 'integration':
+        kind = 'integration'
+        integration = {
+            'component_inputs': ['left accepted component', 'right accepted component'],
+            'combined_result': 'one verified integrated result',
+            'integration_checks': ['COMBINED'],
+            'allowed_paths': ['src/**'],
+        }
+    return {
+        'kind': kind,
+        'phases': [
+            {'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
+            for stage in process['stages']
+        ],
+        'integration': integration,
+    }
+
+
 def coverage():
     reference=json.loads((SOURCE/'config/catalogue/reference.json').read_text())
     actual={(g['id'],s['id']) for g in reference['goal_types'] for s in g['stages']}
@@ -164,7 +185,10 @@ def _initial_checks(process, methods):
     return schedule
 
 
-def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
+def prepare_task(
+    repo, commands, processes, decomposition_policy, goal, task_id, home,
+    membership=None,
+):
     process=processes[goal];methods=_methods(goal,home)
     blueprint=repo.task_blueprint(_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'))
     # The development reference scenario supplies its concrete initial schedule. The
@@ -217,12 +241,15 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
           'methods':methods,'method_inputs':_method_inputs(goal,methods),
           'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
           'contract':deepcopy(EMPTY),'evidence':evidence,
-          'stage_contracts':_stage_contracts(process)}
+          'stage_contracts':_stage_contracts(process),
+          'decomposition':_decomposition(process, goal)}
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
     if goal=='development':vals['checks']=checks
-    return commands.tasks([{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
-                             'parameters':vals}],processes,[])['tasks'][0]
+    return commands.tasks(
+        [{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
+          'parameters':vals}], processes, [], decomposition_policy
+    )['tasks'][0]
 
 
 def _seed(app,home,goal,scenario):
@@ -257,13 +284,21 @@ def run(directory,goal,scenario,feedback_edge=None):
     save(home/'project.json',cfg)
     _,_,processes=load_config(home/'project.json');process=processes[goal]
     base,sources=_seed(app,home,goal,scenario)
-    task=prepare_task(repo,commands,processes,goal,'MAIN',home)
+    task=prepare_task(
+        repo,commands,processes,cfg['task_decomposition'],goal,'MAIN',home
+    )
     children=[];sprint_body=None
     if goal in ('task_planning','sprint_planning'):
         sid=None if goal=='task_planning' else 'PUBLISHED-SPRINT'
-        children=[prepare_task(repo,commands,processes,'review','CHILD-A',home,sid)]
+        children=[prepare_task(
+            repo,commands,processes,cfg['task_decomposition'],
+            'review','CHILD-A',home,sid
+        )]
         if sid is not None:
-            children.append(prepare_task(repo,commands,processes,'review','CHILD-B',home,sid))
+            children.append(prepare_task(
+                repo,commands,processes,cfg['task_decomposition'],
+                'review','CHILD-B',home,sid
+            ))
             sprint_body={'sprint_id':sid,'template':{'id':'basic','version':'1'},'changes':[
                 {'kind':'purpose','goal':'Review two scoped results.','requirements':['Inspect both results.'],'definition_of_done':['Two valid review tasks can start in dependency order.']},
                 {'kind':'sections','values':{'plan':'Review CHILD-A first; CHILD-B then uses the accepted review context.'}},

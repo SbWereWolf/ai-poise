@@ -19,6 +19,13 @@ TEMPLATE_PATH = ROOT / "config/catalogue/task-templates/development.json"
 PROCESS_PATH = ROOT / "config/catalogue/process-templates/development.json"
 
 
+def _policy() -> dict:
+    return {
+        "skills": [{"id": "workflow", "class": "meta", "responsibility": None}],
+        "areas": [{"path": "src/**", "responsibility": "application"}],
+    }
+
+
 def _documents() -> tuple[dict, dict]:
     process = json.loads(PROCESS_PATH.read_text())
     template = json.loads(TEMPLATE_PATH.read_text())
@@ -112,6 +119,14 @@ def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) 
             "entry_requirements": [],
             "exit_requirements": [],
         } for stage in process["stages"]],
+        "decomposition": {
+            "kind": "ordinary",
+            "phases": [
+                {"stage": stage, "skills": ["workflow"], "areas": []}
+                for stage in stages
+            ],
+            "integration": None,
+        },
     }
 
 
@@ -122,6 +137,7 @@ def _instantiate(checks: dict, methods: list[dict] | None = None) -> dict:
         _parameters(process, checks, methods),
         parsed_process,
         [],
+        _policy(),
     )
 
 
@@ -165,6 +181,7 @@ def test_development_template_does_not_default_missing_checks():
             parameters,
             GoalTypeDefinition.parse(process).data,
             [],
+            _policy(),
         )
 
 
@@ -195,6 +212,7 @@ def _instantiate_active_subjectless_observe() -> dict:
         parameters,
         GoalTypeDefinition.parse(process).data,
         [],
+        _policy(),
     )
 
 
@@ -225,6 +243,7 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
         catalogue,
         CatalogueCommands(catalogue, None, catalogue.raw["max_items"]),
         {"development": process},
+        _policy(),
         "development",
         "REAL-CONSUMER",
         ROOT,

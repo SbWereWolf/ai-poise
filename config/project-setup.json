@@ -5,7 +5,7 @@
     "linux-reference": {
       "path": "config/project-templates/linux-reference.json",
       "version": "1",
-      "digest": "8a86dfc249cb8d43f41a07103bc953b48f4d6f174d84e47e05df4a50733a8053"
+      "digest": "33b632b141ae47b191d5e3a9c161a8b722a60a2d103dc2ecd95496fccc3a089a"
     },
     "wsl-system": {
       "path": "config/project-templates/wsl-system.json",
@@ -15,7 +15,7 @@
     "wsl-poise": {
       "path": "config/project-templates/wsl-poise.json",
       "version": "2",
-      "digest": "7a92d2780ced9741792d439d8837aa88c4a74c8bfd327ea1e94925352f5f19a7"
+      "digest": "fab7ae91ff93f278315b1225a6d068f5697d149c2c2ecfecf71ccd4700e5239c"
     }
   },
   "manifest": "project.json",

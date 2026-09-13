@@ -15,6 +15,13 @@ from poise.modules.verification.domain import exact_keys as domain_keys
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def decomposition_policy():
+    return {
+        "skills": [{"id": "workflow", "class": "meta", "responsibility": None}],
+        "areas": [{"path": "src/**", "responsibility": "application"}],
+    }
+
+
 def rejected(call, error_type):
     try:
         call()
@@ -83,6 +90,14 @@ def creation_fixture():
             "entry_requirements": [],
             "exit_requirements": [],
         } for stage in process["stages"]],
+        "decomposition": {
+            "kind": "ordinary",
+            "phases": [
+                {"stage": stage, "skills": ["workflow"], "areas": []}
+                for stage in stages
+            ],
+            "integration": None,
+        },
     }
     return {"request_id": "schema-diagnostic-creation", "task": task}, process
 
@@ -91,7 +106,10 @@ def test_automatic_missing_obligations():
     intent, process = creation_fixture()
     del intent["task"]["executable_obligations"]
     before = deepcopy(intent)
-    message = rejected(lambda: validate_creation_intent(intent, process, []), DomainError)
+    message = rejected(
+        lambda: validate_creation_intent(intent, process, [], decomposition_policy()),
+        DomainError,
+    )
     check_delta(message, ["executable_obligations"], [], "task")
     assert "'id'" not in message, message
     assert intent == before
@@ -119,12 +137,14 @@ def test_valid_shapes_preserve_input():
 def test_valid_automatic_and_explicit_creation():
     intent, process = creation_fixture()
     before = deepcopy(intent)
-    metadata = validate_creation_intent(intent, process, [])
+    metadata = validate_creation_intent(intent, process, [], decomposition_policy())
     assert metadata["contract"]["id"] == intent["request_id"]
     contract, receipt = materialize_contract(intent, "0099")
     assert contract["id"] == "0099"
     assert receipt["request_id"] == intent["request_id"]
-    assert validate_creation_intent(contract, process, [])["contract"] == contract
+    assert validate_creation_intent(
+        contract, process, [], decomposition_policy()
+    )["contract"] == contract
     assert intent == before
     assert "id" not in intent["task"]
 
@@ -134,7 +154,12 @@ def test_automatic_caller_id_still_forbidden():
         intent, process = creation_fixture()
         intent["task"]["id"] = identity
         before = deepcopy(intent)
-        message = rejected(lambda: validate_creation_intent(intent, process, []), DomainError)
+        message = rejected(
+            lambda: validate_creation_intent(
+                intent, process, [], decomposition_policy()
+            ),
+            DomainError,
+        )
         assert "without id" in message, message
         assert intent == before
 

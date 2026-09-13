@@ -30,6 +30,19 @@ def run_one(directory: Path, goal: str, feedback: bool):
         task = json.loads((SOURCE / 'examples/documentation-task.example.json').read_text())
         task['methods'][0]['argv'][0] = sys.executable
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in process['stages']}
+    task['stage_contracts'] = [
+        {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
+         'entry_requirements': [], 'exit_requirements': []}
+        for stage in process['stages']
+    ]
+    task['decomposition'] = {
+        'kind': 'ordinary',
+        'phases': [
+            {'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
+            for stage in process['stages']
+        ],
+        'integration': None,
+    }
     save(home / 'task.json', task)
     env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'runner-demo'}
     calls = []

@@ -439,6 +439,25 @@ class Task:
             raise DomainError("Для rework требуется замечание пользователя")
         if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED, TaskStatus.COMPLETED):
             raise DomainError("Rework открывает ранее предъявленный результат")
+        pending_resolutions = self.feedback.pending_resolutions
+        if pending_resolutions:
+            inspection_stage = self.route.node(self.stage.stage_id).target(
+                self.progress.outcome
+            )
+            if (inspection_stage is None or
+                    self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
+                raise DomainError(
+                    "Rework недоступен: маршрут не определяет обязательный этап "
+                    "осмотра ожидающих исправлений"
+                )
+            resolution_ids = ", ".join(
+                resolution.id for resolution in pending_resolutions
+            )
+            raise DomainError(
+                f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
+                f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
+                "исправление."
+            )
         destination = self.stage.stage_id if target is None else target
         if destination not in self.route.node(self.stage.stage_id).rework_targets:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")

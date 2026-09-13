@@ -16,6 +16,7 @@ from conftest import Poise
 from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.inspection.domain import FeedbackBook
 from runner.helpers import finding, inspect, resolution
 from runner.test_runner_paths import edit, result, setup_project
 
@@ -105,11 +106,20 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         edit(context, "development", "resolved\n")
         result(context, {"resolutions": [resolution()]})
         verified = runtime.verify()
-        active = runtime.bootstrap(
-            decision="rework",
-            feedback="Accidental empty rework before inspection.",
-            rework_stage="amend",
-        )
+        # Reproduce a state persisted by the product version before the
+        # pending-resolution rework guard existed. The current public path
+        # must reject creating this state; recovery still has to read it.
+        with self.monkeypatch.context() as legacy_product:
+            legacy_product.setattr(
+                FeedbackBook,
+                "pending_resolutions",
+                property(lambda _book: ()),
+            )
+            active = runtime.bootstrap(
+                decision="rework",
+                feedback="Accidental empty rework before inspection.",
+                rework_stage="amend",
+            )
         self._handoff(runtime)
         return runtime, verified, active
 

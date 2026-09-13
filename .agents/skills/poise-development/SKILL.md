@@ -31,6 +31,11 @@ definitions and proof records immutable, and bind the first mutation/replay to o
 identity. Structural registry edits remain owned by `test_registry`. Read the exact invariants in
 [Evidence → stale observation replacement](../../../docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения).
 
+Keep the pending-resolution rework guard in the Task aggregate, before route or execution mutation.
+Its error must identify only unresolved resolution IDs and the exact next inspection stage; clean
+rework remains unchanged. Do not replace this invariant with a workaround Task or direct Task DB
+repair. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013).
+
 ## Project-local configuration
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).

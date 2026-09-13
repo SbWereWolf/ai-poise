@@ -110,3 +110,5 @@ When an operational rule is owned by canonical documentation, link to and read t
 ## Route semantics
 
 Route definitions contain an explicit `entry`; stage outcomes, targets and rework targets own transition semantics. Preserve visits and transitions only for history, identity and audit. Never impose an execution limit through route counts, depth, watchdogs, timeouts or recursion bounds. A finite graph-reachability check is structural validation, not an execution budget.
+
+Do not request rework while a pending resolution still requires independent inspection. Follow the exact inspection stage reported by Poise, decide every pending resolution there, and only then retry an authorized rework target. The rejection is state-preserving; do not create a workaround Task or edit the Task DB. Use `recover_empty_rework` only for a legacy task already stranded by the former defect. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013).

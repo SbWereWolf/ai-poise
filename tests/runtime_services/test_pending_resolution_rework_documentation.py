@@ -17,3 +17,5 @@ def test_pending_resolution_rework_policy_is_documented_for_humans_and_agents():
     assert "pending resolution" in workflow_skill.lower()
     assert "pending resolution" in development_skill.lower()
     assert "recover_empty_rework" in workflow
+    assert "RD-013" in workflow
+    assert 'task_id="0077"' in workflow

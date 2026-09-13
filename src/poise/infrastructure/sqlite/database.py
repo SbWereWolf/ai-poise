@@ -130,18 +130,21 @@ class Database:
                 "SELECT id FROM sessions WHERE task_id=? ORDER BY id", (task_id,)
             )]
             task = db.execute(
-                "SELECT claimed_by FROM tasks WHERE id=?", (task_id,)
+                "SELECT status,claimed_by FROM tasks WHERE id=?", (task_id,)
             ).fetchone()
             retained = None if task is None else task["claimed_by"]
-            if retained not in owners:
+            if retained in owners:
+                db.execute(
+                    "UPDATE sessions SET task_id=NULL WHERE task_id=? AND id<>?",
+                    (task_id, retained),
+                )
+            elif task is not None and task["status"] in ("completed", "cancelled", "superseded") and retained is None:
+                db.execute("UPDATE sessions SET task_id=NULL WHERE task_id=?", (task_id,))
+            else:
                 raise PoiseError(
                     "Ownership schema upgrade cannot choose a worktree owner for Task "
                     f"{task_id}; repair the Task claim before retrying"
                 )
-            db.execute(
-                "UPDATE sessions SET task_id=NULL WHERE task_id=? AND id<>?",
-                (task_id, retained),
-            )
 
         db.execute("CREATE UNIQUE INDEX tasks_single_claimant ON tasks(claimed_by) WHERE claimed_by IS NOT NULL")
         db.execute("CREATE UNIQUE INDEX sessions_single_worktree_owner ON sessions(task_id) WHERE task_id IS NOT NULL")

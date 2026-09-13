@@ -171,6 +171,30 @@ def test_v12_ownership_upgrade_refuses_an_ambiguous_task_owner(tmp_path):
         assert db.execute("SELECT COUNT(*) FROM tasks WHERE claimed_by='owner'").fetchone()[0] == 2
 
 
+def test_v12_ownership_upgrade_releases_stale_terminal_worktree_bindings(tmp_path):
+    from poise.infrastructure.sqlite.database import Database
+
+    path = tmp_path / "terminal-worktree.sqlite"
+    lock = tmp_path / "terminal-worktree.lock"
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        db.execute("DROP INDEX tasks_single_claimant")
+        db.execute("DROP INDEX sessions_single_worktree_owner")
+        db.execute(
+            "INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?)",
+            ("TERMINAL", "completed", 0, 1, None, 1, None, "{}"),
+        )
+        db.executemany(
+            "INSERT INTO sessions(id,task_id) VALUES(?,?)",
+            [("stale-a", "TERMINAL"), ("stale-b", "TERMINAL")],
+        )
+        db.execute("PRAGMA user_version=12")
+
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM sessions WHERE task_id='TERMINAL'").fetchone()[0] == 0
+
+
 def test_four_combinations_and_task_type_dependency(project):
     packs = sorted((ROOT / "config/processes").glob("*.json"))
     packs += sorted((ROOT / "config/projects/ai-poise/config/processes").glob("*.json"))

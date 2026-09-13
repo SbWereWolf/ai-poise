@@ -432,6 +432,10 @@ class TaskCommands:
                 return result
             task = build_task(metadata, None)
             uow.tasks.promote_newborn(task, metadata, newborn.version)
+            if (newborn.sprint_id is None and newborn.restart_history
+                    and restart_base is not None):
+                from ..application.ownership import release_dependent_worktree_in
+                release_dependent_worktree_in(uow, actor, task_id)
             result = {
                 'status':'available','task':task_id,'revision':newborn.version + 1,
                 'sprint':newborn.sprint_id,'claimed_by':None,'goal_type':contract['goal_type'],

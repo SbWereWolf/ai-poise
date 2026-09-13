@@ -13,6 +13,13 @@ def _conflict(owner, liveness):
     raise PoiseError(f"Owner {owner} has uncertain live status; ownership was not stolen")
 
 
+def release_dependent_worktree_in(uow, actor, task_id):
+    snapshot = uow.ownership.snapshot(actor)
+    if (uow.ownership.worktree_required(task_id)
+            and snapshot.worktree_task_id == task_id):
+        uow.ownership.bind_worktree(actor, None)
+
+
 def _release_task_in(uow, actor, task_id, reason=None):
     if uow.tasks.is_newborn(task_id):
         if reason is not None:
@@ -22,10 +29,7 @@ def _release_task_in(uow, actor, task_id, reason=None):
     task = uow.tasks.load(task_id)
     change = task.handoff(actor, reason) if reason is not None else task.release_ownership(actor)
     uow.tasks.save(change, task.state.version)
-    snapshot = uow.ownership.snapshot(actor)
-    if (uow.ownership.worktree_required(task_id)
-            and snapshot.worktree_task_id == task_id):
-        uow.ownership.bind_worktree(actor, None)
+    release_dependent_worktree_in(uow, actor, task_id)
 
 
 def release_task_in(uow, actor, task_id, reason=None):

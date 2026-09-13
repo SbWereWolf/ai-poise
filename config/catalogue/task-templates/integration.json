@@ -12,7 +12,8 @@
     "artifact_requirements": "list",
     "contract": "object",
     "evidence": "object",
-    "stage_contracts": "list"
+    "stage_contracts": "list",
+    "decomposition": "object"
   },
   "task": {
     "id": {
@@ -64,6 +65,9 @@
     },
     "stage_contracts": {
       "$input": "stage_contracts"
+    },
+    "decomposition": {
+      "$input": "decomposition"
     }
   }
 }

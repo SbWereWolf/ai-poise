@@ -5,79 +5,79 @@
     "development-v1": {
       "path": "config/catalogue/task-templates/development.json",
       "version": "1",
-      "digest": "545aa103548d44b8862a1326a7b8992297aad3ac23389a76c8251fdccc2af702",
+      "digest": "06b957cfc0f7c18306d1e7a2c888f7a41a855bcc030884666f1b83e48251a894",
       "goal_type": "development"
     },
     "test_development-v1": {
       "path": "config/catalogue/task-templates/test_development.json",
       "version": "1",
-      "digest": "2b9d0b12502307ba8317fa622e2276d25676ec02b4fb32075218c205c96cd66a",
+      "digest": "f017df4bc219a4af6da3d4f25598d0ee434b6e0a09ee0dfe87ce41cfe8394aab",
       "goal_type": "test_development"
     },
     "verification-v1": {
       "path": "config/catalogue/task-templates/verification.json",
       "version": "1",
-      "digest": "20e7a8558212998aa69c05f965daa0252a28cfb176c407052b38a30477ae1d6f",
+      "digest": "942920627c3137a2837d8c0d33052986d5cd5c6d38003903216a6c13b39d6423",
       "goal_type": "verification"
     },
     "review-v1": {
       "path": "config/catalogue/task-templates/review.json",
       "version": "1",
-      "digest": "44733c1296cfd5904707d25ba3da4c871ac799b9f94bc07d361e96e129baa87c",
+      "digest": "1679e06a68834c1b03d0de6ca29c3bd3ce0246f575fd8d8be08df42f5e6a527a",
       "goal_type": "review"
     },
     "design-v1": {
       "path": "config/catalogue/task-templates/design.json",
       "version": "1",
-      "digest": "e06a75fb799a4999a3736b11abcac5c8656060482ee8812e9d67a685880657e4",
+      "digest": "bcf2c60dbbf08aeb11bc0312993dff4fddc0d897cb80733ca247af2ffda3a2eb",
       "goal_type": "design"
     },
     "analysis-v1": {
       "path": "config/catalogue/task-templates/analysis.json",
       "version": "1",
-      "digest": "5a63b27ae9dcfab2da9dfa8fd4d0a3d6c80c1d797f1c8f570596fd811bc0f2ea",
+      "digest": "5a2f6f42a8c6abe786eb19cb03b8666f56ab7699f3964e2c910528f195fa122f",
       "goal_type": "analysis"
     },
     "profiling-v1": {
       "path": "config/catalogue/task-templates/profiling.json",
       "version": "1",
-      "digest": "443c14f365b0d8f64766bd1a18f66f763fb02285baea27f8408dccb707dca2b5",
+      "digest": "404738d407dd38db47a2f03678b7368abd30bab023c43ed8f8962ef9a1214d38",
       "goal_type": "profiling"
     },
     "environment_diagnostics-v1": {
       "path": "config/catalogue/task-templates/environment_diagnostics.json",
       "version": "1",
-      "digest": "9da017a9901a6edd81fef0249245068fd93eb51742fa292e0a3f3094a2063901",
+      "digest": "d73b50e65f8dc7e9e84abba6b9555cb5fe671d360575e25fe43d9c97d9f327d7",
       "goal_type": "environment_diagnostics"
     },
     "environment_remediation-v1": {
       "path": "config/catalogue/task-templates/environment_remediation.json",
       "version": "1",
-      "digest": "e3cf5d231431718e6326e75de5b5cfa05597576d99b02d9a69485d792ebc79d7",
+      "digest": "a7f367d0ef30c27e43189f69cbb8efb74b423043071e2404afe9b86a83bc70d4",
       "goal_type": "environment_remediation"
     },
     "documentation-v1": {
       "path": "config/catalogue/task-templates/documentation.json",
       "version": "1",
-      "digest": "c4ecc074a7d2a837aa1b22d37ad059724be91a58114e681e9561c45f68212835",
+      "digest": "fe3f5987af31a8a87d80dc3d399baca98b94a15e64271e6ee7cef9407f8db353",
       "goal_type": "documentation"
     },
     "task_planning-v1": {
       "path": "config/catalogue/task-templates/task_planning.json",
       "version": "1",
-      "digest": "2141c043744d84f033a301e916c29276d0297b3fad11c113e05e806c9c0308b6",
+      "digest": "64ecb7fe966e90472bbd26a34148ea95b7a0db030d41ffc9c91c5957a25f3f7c",
       "goal_type": "task_planning"
     },
     "sprint_planning-v1": {
       "path": "config/catalogue/task-templates/sprint_planning.json",
       "version": "1",
-      "digest": "448a7a8ca581c28bf46e89197d759948c2b72ae532123bd480c2cf23c58c4096",
+      "digest": "0a9aa0b4fa0276acdb18b7a59d74c26b508f5cc5b01d3480ee633a93019cd7a1",
       "goal_type": "sprint_planning"
     },
     "integration-v1": {
       "path": "config/catalogue/task-templates/integration.json",
       "version": "1",
-      "digest": "8a7ad110a7f183173fded6d74107fdc28634a51b48fb21ed06c12e3974cc8c9d",
+      "digest": "815d546e8bbeef64727faf706b5d12b9adf60fb4967bb0e689f5e49ecf5b9c08",
       "goal_type": "integration"
     }
   },

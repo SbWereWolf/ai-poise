@@ -43,6 +43,25 @@
     "week_start": 0
   },
   "automatic_checks": [],
+  "task_decomposition": {
+    "skills": [
+      {"id": "poise-workflow", "class": "meta", "responsibility": null},
+      {"id": "poise-development", "class": "general", "responsibility": null},
+      {"id": "ast-index", "class": "general", "responsibility": null},
+      {"id": "task-domain", "class": "narrow", "responsibility": "tasks"},
+      {"id": "sprint-domain", "class": "narrow", "responsibility": "sprints"},
+      {"id": "verification-domain", "class": "narrow", "responsibility": "verification"},
+      {"id": "project-config-domain", "class": "narrow", "responsibility": "project-configuration"}
+    ],
+    "areas": [
+      {"path": "src/**", "responsibility": "ai-poise"},
+      {"path": "tests/**", "responsibility": "ai-poise"},
+      {"path": "config/**", "responsibility": "project-configuration"},
+      {"path": "docs/**", "responsibility": "documentation"},
+      {"path": ".agents/**", "responsibility": "agent-instructions"},
+      {"path": "AGENTS.md", "responsibility": "agent-instructions"}
+    ]
+  },
   "batch": {
     "artifact_directories": {
       "runtime": "generated",

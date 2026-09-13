@@ -71,6 +71,19 @@
       }
     }
   ],
+  "task_decomposition": {
+    "skills": [
+      {"id": "workflow", "class": "meta", "responsibility": null},
+      {"id": "general", "class": "general", "responsibility": null},
+      {"id": "backend", "class": "narrow", "responsibility": "backend"},
+      {"id": "frontend", "class": "narrow", "responsibility": "frontend"}
+    ],
+    "areas": [
+      {"path": "src/**", "responsibility": "application"},
+      {"path": "tests/**", "responsibility": "application"},
+      {"path": "docs/**", "responsibility": "documentation"}
+    ]
+  },
   "batch": {
     "max_input_bytes": 1048576,
     "max_items": 1000,

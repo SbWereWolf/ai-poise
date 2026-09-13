@@ -6,6 +6,7 @@ import sys
 import pytest
 
 from poise.common import PoiseError, digest
+from poise.modules.evidence.domain import identity
 from tests.evidence.test_paths import arg, input_result, setup
 
 
@@ -228,11 +229,32 @@ def test_rework_keeps_old_evidence_receipt_and_records_new_execution(project):
     old_batch = deepcopy(old_proof["book"]["batches"][0])
     old_receipt = old_batch["receipts"][0]
 
+    assert old_proof["book"]["arguments"]
+    assert old_proof["assessment"] is not None
     assert old_receipt["argv"] == old_registry["method"]["argv"]
-    assert old_receipt["source_provenance"]["kind"] == "external"
+    assert old_receipt["source_provenance"] == old_registry["method"][
+        "source_under_test"
+    ]
     assert old_receipt["provenance_digest"] == digest(
-        old_receipt["source_provenance"]
+        old_registry["method"]["source_under_test"]
     )
+    assert old_receipt["expectation_digest"] == digest({
+        "expected_exit_code": old_registry["method"]["expected_exit_code"],
+        "stdout_contains": old_registry["method"]["stdout_contains"],
+        "stderr_contains": old_registry["method"]["stderr_contains"],
+        "red_failure": old_registry["method"]["verification_plan"]["red_failure"],
+    })
+    assert old_receipt["tree"] == old_batch["tree"]
+    identity_parts = [
+        old_batch["stage"],
+        old_batch["iteration"],
+        old_batch["tree"],
+        old_batch["execution_key"],
+        [old_receipt["id"]],
+    ]
+    if "submission_digest" in old_batch:
+        identity_parts.append(old_batch["submission_digest"])
+    assert old_batch["id"] == identity(identity_parts)
 
     context = runtime.bootstrap(
         decision="rework",
@@ -255,7 +277,9 @@ def test_rework_keeps_old_evidence_receipt_and_records_new_execution(project):
     assert after_replacement["book"] == old_proof["book"]
     assert old_proof in proof_layers
     assert after_replacement in proof_layers
-    assert _registry(runtime)["history"][0]["entries"][0] == old_registry
+    historical_registry = _registry(runtime)["history"][0]
+    assert historical_registry["revision"] == 0
+    assert historical_registry["entries"][0] == old_registry
 
     input_result(context)
     context["result_template"]["method_additions"] = _change(project)
@@ -273,6 +297,17 @@ def test_rework_keeps_old_evidence_receipt_and_records_new_execution(project):
     assert Path(old["stdout"]).read_bytes() == old_stdout
     assert second["checks"][0]["stdout_digest"] == old["stdout_digest"]
     with runtime.store.unit_of_work() as unit:
-        batches = unit.tasks.load("T1").evidence_snapshot()["book"]["batches"]
-    assert batches[0] == old_batch
-    assert batches[1]["receipts"][0]["argv"] == _replacement(project)["method"]["argv"]
+        final_proof = unit.tasks.load("T1").evidence_snapshot()
+    with runtime.store.transaction() as database:
+        final_layers = [
+            json.loads(row[0])
+            for row in database.execute(
+                "SELECT data FROM task_proof_layers WHERE task_id='T1' ORDER BY version"
+            )
+        ]
+    assert old_proof in final_layers
+    assert final_proof["book"]["batches"][0] == old_batch
+    assert final_proof["book"]["arguments"][0] == old_proof["book"]["arguments"][0]
+    assert final_proof["book"]["batches"][1]["receipts"][0]["argv"] == (
+        _replacement(project)["method"]["argv"]
+    )

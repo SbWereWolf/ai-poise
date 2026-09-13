@@ -14,6 +14,7 @@ from ..content_requirements.domain import ContentPolicy, ContentSnapshot, TraceV
 
 
 class TaskStatus(StrEnum):
+    NEWBORN = "newborn"
     AVAILABLE = "available"
     ACTIVE = "active"
     VERIFIED = "verified"

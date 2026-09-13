@@ -24,6 +24,15 @@ the recipient acquires through bootstrap before working, under existing Task aut
 
 Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required content, worktree, findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
+Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has
+a permanent identity and history, uses the shared ownership API, and preserves no route entry before goal_type selection.
+`create`, `edit`, and `ready` require stable request IDs; preserve exact
+replay and reject foreign live ownership. A ready standalone Task becomes available, while a
+Sprint member remains newborn until publication. Use Sprint `materialize_tasks` to convert
+legacy embedded definitions while preserving partial edits, history, graph aliases, membership,
+and source Task traceability. Do not introduce a broad migration or replace direct complete
+Task creation.
+
 If a lawful external process publication leaves the goal-config editor head stale, first use
 the read-only `goal-config-status-1` diagnostic and establish the provenance of the live file.
 Adopt it only through an exact `goal-config-reconcile-1` request with the observed managed and

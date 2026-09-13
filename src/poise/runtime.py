@@ -134,6 +134,30 @@ class Poise:
         self.accounting.close_cycle()
         return result
 
+    def task_action(self, args):
+        action = args['action']
+        self._identifier(args['request_id'])
+        self._identifier(args['task_id'])
+        if action == 'create':
+            if args['sprint_id'] is not None:
+                self._identifier(args['sprint_id'])
+            return self.task_commands.create_newborn(
+                args['task_id'], args['sprint_id'], self.session, self.config_hash,
+                args['request_id'],
+            )
+        if action == 'edit':
+            return self.task_commands.edit_newborn(
+                args['task_id'], self.session, args['expected_revision'], args['patch'],
+                self.processes, self.config_hash, args['request_id'],
+            )
+        if action == 'ready':
+            return self.task_commands.ready_newborn(
+                args['task_id'], self.session, args['expected_revision'],
+                self.cfg['automatic_checks'], self.config_hash, args['request_id'],
+                self._creation_base,
+            )
+        raise PoiseError('Unknown Task action')
+
     def recover_empty_rework(self, task_id: str, reason: str) -> dict:
         return self._recover_empty_transition(task_id, reason, "rework")
 
@@ -382,6 +406,9 @@ class Poise:
                 return self.sprint_tools.select(task['id'])
             selected=self.task_queries.record(task['id'])
             if selected is None:raise PoiseError('Неизвестный task/sprint ID')
+            if selected['status']=='newborn':
+                self.ownership.acquire_task(selected['id'])
+                return self.task_queries.record(selected['id'])
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
             if is_terminal_task_status(selected['status']):
                 if current and not is_terminal_task_status(current['status']):
@@ -425,12 +452,20 @@ class Poise:
                     ),
                     self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
-                data=self.task_queries.record(allocation.task_id)
-                if allocation.replayed and data['claimed_by'] not in (None,self.session):
-                    return {**self._context(data,data['status']=='active'),
-                            'allocation':allocation_receipt}
-                self._reconcile_task_worktree(data)
-                data=self.task_queries.record(allocation.task_id)
+                if allocation.replayed:
+                    data=self.task_queries.record(allocation.task_id)
+                    if data['claimed_by'] not in (None,self.session):
+                        return {**self._context(data,data['status']=='active'),
+                                'allocation':allocation_receipt}
+                    self._reconcile_task_worktree(data)
+                    data=self.task_queries.record(allocation.task_id)
+                    self.ownership.acquire_task(data['id'])
+                    current=self.store.current(self.session)
+                    result=self._context(current,current['status']=='active')
+                    return {**result,'allocation':allocation_receipt}
+                started = self.sprint_tools.start(allocation.task_id)
+                return {**started, **({'allocation':allocation_receipt}
+                                      if allocation_receipt is not None else {})}
             self.ownership.acquire_task(data['id'])
             current = self.store.current(self.session)
         if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
@@ -903,6 +938,13 @@ class Poise:
         data = self.store.current(self.session)
         if data is None:
             return {'status':'read_only','project':self.cfg['project'],'tasks':self.task_queries.summary()}
+        if data['status']=='newborn':
+            return {'task':data['id'],'status':'newborn','revision':data['revision'],
+                    'sprint':data['sprint_id'],'claimed_by':data['claimed_by'],
+                    'goal_type':data['goal_type'],'route_entry':data['route_entry'],
+                    'ready':data['ready'],'draft':deepcopy(data['draft']),
+                    'history':self.task_queries.history(data['id']),
+                    'token_usage':'unavailable'}
         submissions, evidence = self.store.counts(data['id'])
         return {'task':data['id'],'status':data['status'],'stage':self._stage(data)['id'],
                 'iteration':data['iteration'],'attempts':data['attempts'],

@@ -11,7 +11,7 @@ from ..tasks.domain import is_terminal_task_status
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 INSTALLATION_OPERATIONS={
-    'show', 'cancel', 'sprint', 'integrate',
+    'show', 'cancel', 'task', 'sprint', 'integrate',
     'recover_empty_rework', 'recover_empty_advance'
 }
 
@@ -31,6 +31,8 @@ class BoundSourceRoute:
         if operation=='bootstrap':
             if target_task is not None:
                 if is_terminal_task_status(target_task['status']):
+                    return cls('installation',None)
+                if target_task['status'] == 'newborn':
                     return cls('installation',None)
                 if (target_task.get('worktree') is None
                         and target_task['process']['worktree_required'] is False):

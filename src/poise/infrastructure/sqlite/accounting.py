@@ -19,6 +19,10 @@ def timestamp(text):
 
 def binding(task):
     if task is None:return {'task':None,'sprint':None,'goal_type':None,'stage':None,'iteration':None}
+    if task['status'] == 'newborn':
+        return {'task':task['id'],'sprint':task['sprint_id'],
+                'goal_type':task.get('goal_type') or 'newborn',
+                'stage':'newborn','iteration':1}
     return {'task':task['id'],'sprint':task['sprint_id'],'goal_type':task['contract']['goal_type'],
             'stage':task['process']['stages'][task['stage_index']]['id'],'iteration':task['iteration']}
 

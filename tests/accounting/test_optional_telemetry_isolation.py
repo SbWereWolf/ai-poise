@@ -267,30 +267,24 @@ def _accounting_request(telemetry=None):
 
 
 def test_production_worktools_envelope_persists_once_across_restart(project):
-    from poise.application.telemetry import OptionalTelemetry
+    from poise.application.telemetry import OptionalTelemetry, TelemetryEnvelope
     from poise.infrastructure.telemetry import AsyncTelemetryDispatcher
     from poise.runtime import Poise
     from poise.application.work import WorkTools
-
-    captured = []
-
-    class Capture:
-        def submit(self, envelope):
-            captured.append(envelope)
-            return True
 
     task = _configure_production_accounting(project)
     runtime = Poise(project["config_path"], "original-session", clock=_Clock())
     assert isinstance(runtime.telemetry, OptionalTelemetry)
     assert isinstance(runtime.telemetry.dispatcher, AsyncTelemetryDispatcher)
-    runtime.telemetry.dispatcher.close()
-    runtime.telemetry.dispatcher = Capture()
 
     result = WorkTools(runtime).invoke(_bootstrap_request(task))
     assert result["status"] == "active"
-    assert len(captured) == 1
-    envelope = captured[0]
-    data = envelope.data
+    # Drain the dispatcher selected by the production composition root.  The
+    # persisted row below therefore proves its callback wiring, not just type.
+    runtime.telemetry.dispatcher.close()
+    stored = runtime.accounting.port.repo.snapshot()["telemetry"]
+    assert len(stored) == 1
+    data = json.loads(stored[0]["data"])
     assert data["operation"] == "bootstrap"
     assert data["session"] == "original-session"
     expected_turn = runtime.interactions.prepare(
@@ -332,14 +326,11 @@ def test_production_worktools_envelope_persists_once_across_restart(project):
     }
     assert "elapsed" not in data and "duration" not in data
 
-    first = AsyncTelemetryDispatcher(runtime.accounting.port.process, max_pending=4)
-    assert first.submit(envelope) is True
-    assert first.submit(envelope) is True
-    first.close()
-
     restarted = Poise(project["config_path"], "restart-session", clock=_Clock())
     restarted.telemetry.dispatcher.close()
+    envelope = TelemetryEnvelope(identity=stored[0]["id"], data=data)
     second = AsyncTelemetryDispatcher(restarted.accounting.port.process, max_pending=4)
+    assert second.submit(envelope) is True
     assert second.submit(envelope) is True
     second.close()
 
@@ -350,6 +341,7 @@ def test_production_worktools_envelope_persists_once_across_restart(project):
     assert "elapsed" not in stored_data and "duration" not in stored_data
 
     report = WorkTools(restarted).invoke(_accounting_request())["results"][0]["value"]
+    restarted.telemetry.dispatcher.close()
     assert report["totals"]["model_tokens"] == 8
     assert report["totals"]["active_seconds"] == 2.0
 

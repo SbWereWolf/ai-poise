@@ -15,6 +15,7 @@
 | show | queries | Прочитать коллекцию объектов текущей задачи |
 | sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
+| recover_empty_rework | task_id, reason | Вернуть освобождённую пустую rework-итерацию к непосредственно предшествующему verified result |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
@@ -219,6 +220,46 @@ lifecycle и execution state.
 `feedback` обязателен и сохраняется в истории. `rework_stage` должен входить в `rework_targets` текущего этапа; null означает сам текущий этап. Цель с обработчиком `revise` допустима только при наличии открытых findings: иначе Task отклоняет переход до изменения route, lifecycle или execution state, потому что такому этапу нечего исправлять. Task применяет обычный `Route.enter`: история переходов и посещений увеличивается, но не ограничивает исполнение; `allowed_paths` целевого этапа продолжает действовать. Проверка `pending`, доменный переход Task и очистка execution state согласованы в одном UoW: отказ предшествует любому изменению lifecycle или execution.
 
 Успех сохраняет Task ID, worktree, branch, task/process contracts, прежние submissions, историю и failed receipts. Создаётся новый visit целевого этапа с его iteration, записываются feedback и событие `user_failed_check_rework`, а заброшенное retry-состояние очищается: `attempts=0`, `publication=null`, `pending=null`, `entry_tree` становится текущим деревом. Операция не отменяет и не пересоздаёт Task и не является SQL-восстановлением или обходом конфигурационного hash. Для verified/accepted/completed результатов действует прежний rework предъявленного результата; этот путь относится именно к активному submitted этапу с точным failed batch.
+
+## Восстановление ошибочно открытой пустой rework-итерации
+
+`recover_empty_rework` — узкая публичная аварийная операция, а не общий rollback. Она нужна,
+когда после verified result по ошибке уже открыт следующий `user_rework`, но в новой итерации
+ещё нет submission или иных результатов и Task освобождена штатным handoff. Операция запускается
+из текущего installation source до выбора старой Task, поэтому не зависит от исходного кода в её
+worktree.
+
+```json
+{
+  "operation": "recover_empty_rework",
+  "input": {
+    "task_id": "0082",
+    "reason": "Пользователь разрешил убрать ошибочно открытую пустую итерацию и вернуть предыдущий verified result к осмотру."
+  },
+  "messages": []
+}
+```
+
+Вызов допустим только из сессии без текущей Task. Адресованная Task должна оставаться `active`,
+не иметь владельца и иметь последний released handoff именно пустой итерации. Версия Task должна
+точно следовать версии этого handoff; его stage, iteration и tree обязаны совпадать с текущими.
+`pending` и `publication` равны null, `attempts=0`, `entry_tree` и неизменившееся фактическое Git
+tree совпадают с `verified_tree` непосредственно предшествующего сохранённого отчёта.
+
+Предыдущая точка восстанавливается только из неизменяемых записей одного latest verified
+submission: result, workflow layer и proof layer. Её версия должна непосредственно предшествовать
+точному событию `user_rework`; сохранённые feedback и evidence не могли измениться. Обработчики
+внешних действий `apply_plan` и `publish` этим путём не восстанавливаются. Уже созданный submission,
+изменённое дерево, занятая Task, другой lifecycle event, потерянный proof, несколько одинаковых
+submission digest или любое другое неоднозначное состояние дают отказ до записи.
+
+Успех атомарно возвращает прежние stage, iteration, status=`verified`, route progress, feedback,
+evidence и ссылку на точный current submission. Новая пустая итерация не удаляется из истории:
+добавляется событие `empty_rework_recovered`, а использованный handoff получает состояние
+`recovered`, чтобы следующий проверяющий приобрёл Task обычным bootstrap без попытки возобновить
+устаревший handoff. Прежние submissions, task results, receipts, findings и resolutions не
+переписываются. Повтор после подтверждённого успеха ничего не откатывает ещё раз и получает отказ
+об отсутствии released handoff; фактический статус следует проверить публичным чтением Task.
 
 ## Интеграция принятого результата
 

@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-from tempfile import TemporaryDirectory
 import subprocess
+from tempfile import TemporaryDirectory
 import unittest
 
 import pytest
@@ -12,15 +10,14 @@ import pytest
 import conftest
 from batch.helpers import request
 from conftest import project as project_fixture
-from conftest import Poise
-from conftest import WorkPoise
+from conftest import Poise, WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runner.helpers import finding, inspect, resolution
 from runner.test_runner_paths import edit, result, setup_project
 
 
-class EmptyReworkRecoveryTests(unittest.TestCase):
+class EmptyAdvanceRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.monkeypatch = pytest.MonkeyPatch()
@@ -41,13 +38,13 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
             stderr=subprocess.DEVNULL,
         ).strip()
 
-    def _handoff(self, runtime, request_id="empty-rework-handoff", payload=None):
+    def _handoff(self, runtime, request_id, payload=None):
         return WorkTools(runtime).invoke(
             request(
                 "handoff",
                 {
                     "request_id": request_id,
-                    "reason": "recover the accidentally opened empty rework",
+                    "reason": "release the accidental empty stage",
                     "result": payload,
                     "commit_message": None,
                     "artifact_paths": [],
@@ -55,77 +52,47 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
             )
         )
 
-    def _recover(self, task_id="T1"):
-        runtime = Poise(self.project["config_path"], "RECOVERY")
+    def _recover(self):
         try:
-            return WorkTools(runtime).invoke(
+            return WorkTools(WorkPoise(self.project["config_path"], "RECOVERY")).invoke(
                 request(
-                    "recover_empty_rework",
+                    "recover_empty_advance",
                     {
-                        "task_id": task_id,
-                        "reason": "User authorized recovery of the accidental empty iteration.",
+                        "task_id": "T1",
+                        "reason": "User authorized recovery of the accidental empty advance.",
                     },
                 )
             )
         except PoiseError as exc:
-            if str(exc) in (
-                "Unknown work operation",
-                "Recovery requires the exact preceding user_rework event",
-            ):
-                self.fail(f"public recovery behavior is missing: {exc}")
+            if str(exc) == "Unknown work operation":
+                self.fail("public recover_empty_advance operation is missing")
             raise
 
-    def _simple_empty_rework(self, *, release=True):
+    def _empty_advance(self, *, release=True):
         runtime = setup_project(self.project, "development")
         context = runtime.bootstrap(task_file=self.project["task_path"])
         edit(context, "development", "verified\n")
         result(context, {})
+        runtime.verify()
+        inspection = runtime.bootstrap(decision="continue")
+        result(inspection, inspect([finding()]))
         verified = runtime.verify()
-        active = runtime.bootstrap(
-            decision="rework",
-            feedback="Accidental empty rework.",
-            rework_stage="draft",
-        )
+        active = runtime.bootstrap(decision="continue")
         if release:
-            self._handoff(runtime)
+            self._handoff(runtime, "empty-advance-handoff")
         return runtime, verified, active
 
-    def _pending_resolution_rework(self):
-        runtime = setup_project(self.project, "development")
-        context = runtime.bootstrap(task_file=self.project["task_path"])
-        edit(context, "development", "initial\n")
-        result(context, {})
-        runtime.verify()
-
-        context = runtime.bootstrap(decision="continue")
-        result(context, inspect([finding()]))
-        runtime.verify()
-
-        context = runtime.bootstrap(decision="continue")
-        edit(context, "development", "resolved\n")
-        result(context, {"resolutions": [resolution()]})
-        verified = runtime.verify()
-        active = runtime.bootstrap(
-            decision="rework",
-            feedback="Accidental empty rework before inspection.",
-            rework_stage="amend",
-        )
-        self._handoff(runtime)
-        return runtime, verified, active
-
-    def test_recovers_released_empty_rework(self):
-        runtime, verified, active = self._simple_empty_rework()
+    def test_recovers_empty_advance_to_verified_inspection(self):
+        runtime, verified, active = self._empty_advance()
 
         recovered = self._recover()
 
         self.assertEqual(recovered["status"], "recovered")
-        self.assertEqual(recovered["task"], "T1")
-        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["stage"], "audit")
         self.assertEqual(recovered["iteration"], verified["iteration"])
-        self.assertEqual(active["iteration"], verified["iteration"] + 1)
+        self.assertEqual(active["stage"], "amend")
         stored = runtime.task_queries.record("T1")
         self.assertEqual(stored["status"], "verified")
-        self.assertIsNone(stored["claimed_by"])
         reviewer = WorkTools(WorkPoise(self.project["config_path"], "REVIEWER")).invoke(
             request(
                 "bootstrap",
@@ -137,41 +104,14 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
                 },
             )
         )
-        self.assertEqual(reviewer["status"], "verified")
-        self.assertEqual(reviewer["iteration"], verified["iteration"])
-
-    def test_preserves_pending_resolution_and_history(self):
-        runtime, verified, active = self._pending_resolution_rework()
-        submissions_before = runtime.store.counts("T1")[0]
-        history_before = runtime.task_queries.history("T1")
-
-        recovered = self._recover()
-
-        stored = runtime.task_queries.record("T1")
-        self.assertEqual(recovered["status"], "recovered")
-        self.assertEqual(stored["status"], "verified")
-        self.assertEqual(stored["iteration"], verified["iteration"])
-        self.assertEqual(active["iteration"], verified["iteration"] + 1)
-        self.assertEqual(runtime.store.counts("T1")[0], submissions_before)
-        history_after = runtime.task_queries.history("T1")
-        self.assertEqual(history_after[:-1], history_before)
-        self.assertEqual(history_after[-1]["event"], "empty_rework_recovered")
-        reviewer = WorkTools(WorkPoise(self.project["config_path"], "REVIEWER")).invoke(
-            request(
-                "bootstrap",
-                {
-                    "task": {"id": "T1"},
-                    "decision": None,
-                    "feedback": None,
-                    "rework_stage": None,
-                },
-            )
+        self.assertEqual(reviewer["stage"], "audit")
+        self.assertEqual(
+            [item["id"] for item in reviewer["workflow"]["feedback"]["open_findings"]],
+            ["F1"],
         )
-        pending = reviewer["workflow"]["feedback"]["pending_resolutions"]
-        self.assertEqual([item["id"] for item in pending], ["R1"])
 
     def test_recovers_across_ownership_only_handoff_suffix(self):
-        _, verified, active = self._simple_empty_rework()
+        _, verified, active = self._empty_advance()
         for number in (1, 2):
             reviewer = WorkPoise(
                 self.project["config_path"], f"INTERMEDIATE-REVIEWER-{number}"
@@ -201,7 +141,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered["iteration"], verified["iteration"])
 
     def test_rejects_non_ownership_suffix_without_changing_task_state(self):
-        runtime, _, active = self._simple_empty_rework()
+        runtime, _, _ = self._empty_advance()
         reviewer = WorkPoise(self.project["config_path"], "INTERMEDIATE-REVIEWER")
         WorkTools(reviewer).invoke(
             request(
@@ -219,9 +159,9 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         event = json.dumps(
             {
                 "event": "verified",
-                "iteration": active["iteration"],
+                "iteration": 1,
                 "reason": None,
-                "stage": active["stage"],
+                "stage": "amend",
                 "submission": None,
             },
             sort_keys=True,
@@ -246,36 +186,35 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         self.assertEqual(runtime.task_queries.record("T1"), stored)
         self.assertEqual(runtime.task_queries.history("T1"), history)
 
-    def test_rejects_claimed_task(self):
-        self._simple_empty_rework(release=False)
-
-        with self.assertRaisesRegex(PoiseError, "released"):
-            self._recover()
-
     def test_rejects_changed_tree(self):
-        _, _, active = self._simple_empty_rework()
+        _, _, active = self._empty_advance()
         edit(active, "development", "changed after handoff\n")
 
         with self.assertRaisesRegex(PoiseError, "tree|changed"):
             self._recover()
 
-    def test_rejects_submitted_iteration(self):
-        runtime, _, active = self._simple_empty_rework(release=False)
-        result(active, {})
-        self._handoff(runtime, request_id="submitted-rework-handoff", payload=active["result_template"])
+    def test_rejects_submitted_advanced_stage(self):
+        runtime, _, active = self._empty_advance(release=False)
+        result(active, {"resolutions": [resolution()]})
+        self._handoff(runtime, "submitted-advance-handoff", active["result_template"])
 
         with self.assertRaisesRegex(PoiseError, "empty|submission"):
             self._recover()
 
-    def test_rejects_non_rework_last_event(self):
+    def test_rejects_rework_origin(self):
         runtime = setup_project(self.project, "development")
         context = runtime.bootstrap(task_file=self.project["task_path"])
         edit(context, "development", "verified\n")
         result(context, {})
         runtime.verify()
-        self._handoff(runtime, request_id="verified-result-handoff")
+        runtime.bootstrap(
+            decision="rework",
+            feedback="This is rework, not advance.",
+            rework_stage="draft",
+        )
+        self._handoff(runtime, "rework-origin-handoff")
 
-        with self.assertRaisesRegex(PoiseError, "user_rework"):
+        with self.assertRaisesRegex(PoiseError, "user_accept_and_continue"):
             self._recover()
 
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -14,15 +16,50 @@ from sprints.helpers import bootstrap as sprint_bootstrap
 from sprints.helpers import draft, publish, setup as setup_sprint, task as sprint_task
 
 
-def restart(client, task_id, version, request_id="restart-broken-task"):
+def restart(client, task_id, version, request_id="restart-broken-task", *,
+            reason="The saved execution contract cannot reach its next stage.",
+            authorization="User authorized recovery of this unfinished Task."):
     return client.invoke(request("task", {
         "action": "restart",
         "request_id": request_id,
         "task_id": task_id,
         "expected_version": version,
-        "reason": "The saved execution contract cannot reach its next stage.",
-        "authorization": "User authorized recovery of this unfinished Task.",
+        "reason": reason,
+        "authorization": authorization,
     }))
+
+
+def git(path, *args):
+    return subprocess.check_output(
+        ["git", "-C", str(path), *args], text=True,
+    ).strip()
+
+
+def execution(runtime, task_id):
+    with runtime.store.unit_of_work() as unit:
+        return deepcopy(unit.execution.load(task_id)[0])
+
+
+def task_state(runtime, task_id, actors=()):
+    return {
+        "task": deepcopy(runtime.task_queries.record(task_id)),
+        "execution": execution(runtime, task_id),
+        "ownership": {
+            actor: runtime.ownership.snapshot(actor) for actor in actors
+        },
+    }
+
+
+def wip_state(worktree):
+    root = Path(worktree)
+    return {
+        "head": git(root, "rev-parse", "HEAD"),
+        "index": git(root, "write-tree"),
+        "status": git(root, "status", "--porcelain=v1", "--untracked-files=all"),
+        "tracked": (root / "src" / "double.py").read_bytes(),
+        "staged": (root / "tests" / "restart-staged.txt").read_bytes(),
+        "untracked": (root / "restart-untracked.txt").read_bytes(),
+    }
 
 
 def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(project):
@@ -35,9 +72,20 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
         "rework_stage": None,
     }))
     task_id = context["task"]
+    worktree = Path(context["worktree"])
+    (worktree / "src" / "double.py").write_text(
+        "def double(value):\n    return value * 3\n", encoding="utf-8",
+    )
+    (worktree / "tests" / "restart-staged.txt").write_text(
+        "staged WIP\n", encoding="utf-8",
+    )
+    git(worktree, "add", "tests/restart-staged.txt")
+    (worktree / "restart-untracked.txt").write_text(
+        "untracked WIP\n", encoding="utf-8",
+    )
+    git_before = wip_state(worktree)
     before = executor.runtime.task_queries.record(task_id)
-    with executor.runtime.store.unit_of_work() as unit:
-        execution_before, _ = unit.execution.load(task_id)
+    execution_before = execution(executor.runtime, task_id)
 
     restarted = restart(executor, task_id, before["version"])
 
@@ -60,11 +108,82 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
         item["event"] for item in before["history"]
     ]
     assert after["history"][-1]["event"] == "restarted_newborn"
+    assert wip_state(worktree) == git_before
+
+    ready = executor.invoke(request("task", {
+        "action": "ready",
+        "request_id": "ready-restarted-standalone",
+        "task_id": task_id,
+        "expected_revision": restarted["revision"],
+    }))
+    assert ready["status"] == "available"
+    resumed = executor.invoke(request("bootstrap", {
+        "task": {"id": task_id},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert resumed["worktree"] == str(worktree)
+    assert wip_state(worktree) == git_before
 
     replay = restart(executor, task_id, before["version"])
     assert {key: value for key, value in replay.items() if key != "interaction"} == {
         key: value for key, value in restarted.items() if key != "interaction"
     } | {"replayed": True}
+
+
+def test_restart_rejects_live_foreign_owner_without_any_task_state_change(project):
+    configure(project)
+    owner = WorkTools(Poise(project["config_path"], "owner"))
+    context = owner.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    contender = WorkTools(Poise(project["config_path"], "contender"))
+    before = task_state(owner.runtime, context["task"], ("owner", "contender"))
+
+    with pytest.raises(PoiseError, match="owned.*another|handoff"):
+        restart(
+            contender,
+            context["task"],
+            before["task"]["version"],
+            request_id="foreign-restart",
+        )
+
+    assert task_state(owner.runtime, context["task"], ("owner", "contender")) == before
+
+
+def test_restart_rejects_stale_version_and_conflicting_replay_without_mutation(project):
+    configure(project)
+    tools = WorkTools(Poise(project["config_path"], "owner"))
+    context = tools.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    current = tools.runtime.task_queries.record(context["task"])
+    with pytest.raises(PoiseError, match="version"):
+        restart(
+            tools,
+            context["task"],
+            current["version"] + 1,
+            request_id="stale-restart",
+        )
+    assert tools.runtime.task_queries.record(context["task"]) == current
+
+    restart(tools, context["task"], current["version"])
+    after = deepcopy(tools.runtime.task_queries.record(context["task"]))
+    with pytest.raises(PoiseError, match="request.*conflict|intent"):
+        restart(
+            tools,
+            context["task"],
+            current["version"],
+            reason="A different restart intent must not replay.",
+        )
+    assert tools.runtime.task_queries.record(context["task"]) == after
 
 
 def test_restarted_published_sprint_member_becomes_available_under_same_id(project):

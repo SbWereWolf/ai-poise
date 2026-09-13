@@ -623,7 +623,24 @@ class TaskCommands:
                     "progression": progression,
                     "step": step,
                 }
-            state = self._accept_in_uow(uow, task, actor, True, entry_tree)
+            report = execution["last_report"]
+            if report is None:
+                raise DomainError("Stage progression requires a verified report")
+            if not isinstance(entry_tree, str) or not entry_tree:
+                raise DomainError("Stage progression requires an observable entry_tree")
+            if entry_tree != report["verified_tree"]:
+                raise DomainError(
+                    "The result changed after verification; use explicit rework"
+                )
+            change = task.progress_stage(actor, step.next_stage)
+            uow.tasks.save(change, task.state.version)
+            uow.execution.patch(task_id, {
+                "entry_tree": entry_tree,
+                "attempts": 0,
+                "publication": None,
+                "pending": None,
+            })
+            state = change.task.state
             if state.stage_index == task.route.index(target_stage):
                 uow.tasks.finish_progression(task_id, actor, request_id, target_stage)
                 progression = {**progression, "status": "reached"}

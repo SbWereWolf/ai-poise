@@ -92,6 +92,7 @@ def test_progression_pause_statuses_are_business_incomplete():
     assert {
         "progression_work_required",
         "role_handoff_required",
+        "user_acceptance_required",
     } <= BUSINESS_INCOMPLETE_STATUSES
 
 
@@ -104,9 +105,9 @@ def bootstrap(tools, task):
     }))
 
 
-def handoff(tools):
+def handoff(tools, request_id="executor-to-reviewer"):
     return tools.invoke(request("handoff", {
-        "request_id": "executor-to-reviewer",
+        "request_id": request_id,
         "reason": "The requested progression reached its reviewer boundary.",
         "result": None,
         "commit_message": None,
@@ -148,6 +149,13 @@ def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(pro
         "target_stage": "code_review",
         "status": "active",
     }
+    progressed = state_snapshot(executor.runtime, ("executor",))
+    assert progressed["execution"][0]["last_report"]["status"] == "verified"
+    assert progressed["task"]["history"][-1]["event"] == "stage_progressed"
+    assert not any(
+        item["event"].startswith("user_accept")
+        for item in progressed["task"]["history"]
+    )
     Path(implementation["worktree"], "src/double.py").write_text(
         "def double(n):\n    return n * 2\n", encoding="utf-8",
     )
@@ -304,3 +312,76 @@ def test_progression_request_identity_rejects_a_different_target(project):
 
     with pytest.raises(PoiseError, match="request.*conflict|another.*target"):
         advance(tools, target="implementation")
+
+
+def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
+    stages = configure_progression(project)
+    publication = deepcopy(stages[-1])
+    publication.update(
+        id="publication",
+        handler="publish",
+        transitions={"complete": None},
+        rework_targets=[],
+        read_only=True,
+        allowed_paths=[],
+    )
+    project["process"]["stages"][-1]["transitions"]["clear"] = "publication"
+    project["process"]["stages"].append(publication)
+    write_json(
+        project["root"] / "config/processes/development.json",
+        project["process"],
+    )
+    project["cfg"]["automatic_checks"][0]["by_stage"]["publication"] = []
+    write_json(project["config_path"], project["cfg"])
+    project["task"]["checks"]["publication"] = []
+    project["task"]["evidence_plan"]["publication"] = {
+        "subject_methods": {},
+        "arguments": [],
+        "review_arguments": [],
+    }
+    project["task"]["stage_contracts"].append({
+        "stage_id": "publication",
+        "allowed_paths": [],
+        "entry_requirements": [],
+        "exit_requirements": [],
+    })
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    first = bootstrap(executor, project["task"])
+    add_test(first["worktree"])
+    assert verify(executor, result(first))["status"] == "verified"
+    implementation = advance(executor, target="publication")
+    Path(implementation["worktree"], "src/double.py").write_text(
+        "def double(n):\n    return n * 2\n", encoding="utf-8",
+    )
+    assert verify(executor, result(implementation))["status"] == "verified"
+    assert advance(executor, target="publication")["status"] == "role_handoff_required"
+    handoff(executor)
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    bootstrap(reviewer, {"id": "T1"})
+    review = advance(reviewer, target="publication")
+    assert review["status"] == "progression_work_required"
+    review_result = result(review)
+    review_result["stage_work"]["coverage"] = "Reviewed the implementation result."
+    assert verify(reviewer, review_result)["status"] == "verified"
+    assert advance(reviewer, target="publication")["status"] == "role_handoff_required"
+    handoff(reviewer, "reviewer-to-publisher")
+    publisher = WorkTools(Poise(project["config_path"], "publisher"))
+    bootstrap(publisher, {"id": "T1"})
+
+    blocked = advance(publisher, target="publication")
+
+    assert blocked["status"] == "user_acceptance_required"
+    assert publisher.runtime.current_task()["stage_index"] == 2
+    record = publisher.runtime.task_queries.record("T1")
+    assert record["status"] == "verified"
+    assert not any(item["event"].startswith("user_accept") for item in record["history"])
+    entered = publisher.invoke(request("bootstrap", {
+        "task": None,
+        "decision": "continue",
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert entered["stage"] == "publication"
+    assert publisher.runtime.task_queries.record("T1")["history"][-1]["event"] == (
+        "user_accept_and_continue"
+    )

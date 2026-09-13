@@ -51,6 +51,15 @@ def progression_step(task: Task, target_stage: str, crossed_role_boundary: bool)
             current_role,
             following_role,
         )
+    if task.route.node(following).handler == HandlerKind.PUBLISH:
+        return ProgressionStep(
+            "user_acceptance_required",
+            current,
+            target_stage,
+            following,
+            current_role,
+            following_role,
+        )
     return ProgressionStep(
         "advance",
         current,

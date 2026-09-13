@@ -258,6 +258,17 @@ class Poise:
                     "the named counterpart with this progression target."
                 ),
             }
+        if outcome["kind"] == "user_acceptance_required":
+            step = outcome["step"]
+            return {
+                **self._context(current, False),
+                "status": "user_acceptance_required",
+                "progression": progression,
+                "next_stage": step.next_stage,
+                "next_work": (
+                    "Obtain the separately controlled user acceptance before entering publish."
+                ),
+            }
         status = (
             "progression_target_reached"
             if outcome["kind"] == "target_reached"

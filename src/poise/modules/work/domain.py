@@ -21,6 +21,7 @@ BUSINESS_INCOMPLETE_STATUSES = frozenset({
     'observations_stale',
     'progression_work_required',
     'role_handoff_required',
+    'user_acceptance_required',
 })
 
 

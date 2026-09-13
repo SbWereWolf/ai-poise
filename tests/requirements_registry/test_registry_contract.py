@@ -393,6 +393,72 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
         self.assertNotIn("requirements_agreement", cleaned)
         self.assertEqual(recovered, original)
 
+        class RestartedNewborn:
+            version = 7
+            claimed_by = "session"
+            process = {}
+            sprint_id = None
+            restart_history = ({"reason": "repair"},)
+            draft = intent
+
+        class Execution:
+            def exists(self, task_id):
+                return False
+
+        class FirstTasks:
+            def action_receipt(self, task_id, request_id, identity):
+                return None
+
+            def load_newborn(self, task_id):
+                return RestartedNewborn()
+
+            def restart_context(self, task_id):
+                return {"config_hash": "saved-config"}
+
+        class SecondTasks:
+            def action_receipt(self, task_id, request_id, identity):
+                return {"status": "available", "task": task_id, "replayed": True}
+
+        class Uow:
+            def __init__(self, tasks):
+                self.tasks = tasks
+                self.execution = Execution()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+        units = iter((Uow(FirstTasks()), Uow(SecondTasks())))
+        commands = CONTRACT["TaskCommands"](lambda: next(units), object(), gate)
+        prepared = {}
+
+        def prepare_creation(
+            candidate,
+            process,
+            automatic_checks,
+            base_revision,
+            historical_requirements=False,
+        ):
+            prepared["historical_requirements"] = historical_requirements
+            prepared["intent"] = candidate
+            return object()
+
+        commands.prepare_creation = prepare_creation
+        ready = commands.ready_newborn(
+            "TASK-RESTART",
+            "session",
+            7,
+            [],
+            "current-config",
+            "ready-restarted-task",
+            lambda: "base-revision",
+        )
+        self.assertTrue(prepared["historical_requirements"])
+        self.assertEqual(prepared["intent"]["requirements_snapshot"], plan["snapshot"])
+        self.assertTrue(ready["replayed"])
+
     def test_exact_automatic_creation_replay_skips_live_preflight(self):
         class Allocation:
             request_id = "create-task-1"
@@ -522,18 +588,31 @@ def run(mode: str) -> int:
         return 1
     suite = unittest.TestSuite()
     loader = unittest.defaultTestLoader
-    for case in (
-        RequirementsRegistryDomainTests,
-        RequirementsRegistryStorageAndApiTests,
-    ):
-        suite.addTests(loader.loadTestsFromTestCase(case))
+    if mode == "--recovery-red":
+        for name in (
+            "test_historical_task_context_survives_later_live_registry_change",
+            "test_exact_automatic_creation_replay_skips_live_preflight",
+        ):
+            suite.addTest(RequirementsRegistryStorageAndApiTests(name))
+    else:
+        for case in (
+            RequirementsRegistryDomainTests,
+            RequirementsRegistryStorageAndApiTests,
+        ):
+            suite.addTests(loader.loadTestsFromTestCase(case))
     if mode == "--delivery":
         suite.addTests(loader.loadTestsFromTestCase(RequirementsRegistryDeliveryTests))
     stream = io.StringIO()
     result = unittest.TextTestRunner(stream=stream, verbosity=2).run(suite)
     if not result.wasSuccessful():
+        if mode == "--recovery-red":
+            print("REQUIREMENTS_REGISTRY_RECOVERY_NOT_IMPLEMENTED")
+            return 1
         sys.stderr.write(stream.getvalue())
         return 1
+    if mode == "--recovery-red":
+        print("REQUIREMENTS_REGISTRY_RECOVERY_OK")
+        return 0
     print(
         "REQUIREMENTS_REGISTRY_DELIVERY_OK"
         if mode == "--delivery"
@@ -544,6 +623,8 @@ def run(mode: str) -> int:
 
 if __name__ == "__main__":
     selected = sys.argv[1] if len(sys.argv) == 2 else None
-    if selected not in ("--core", "--delivery"):
-        raise SystemExit("usage: test_registry_contract.py --core|--delivery")
+    if selected not in ("--core", "--delivery", "--recovery-red"):
+        raise SystemExit(
+            "usage: test_registry_contract.py --core|--delivery|--recovery-red"
+        )
     raise SystemExit(run(selected))

@@ -35,7 +35,7 @@ def create(client, task_id, sprint_id=None, request_id=None):
     )
 
 
-def edit(client, task_id, revision, patch, request_id):
+def edit(client, task_id, revision, patch, request_id, remove=()):
     return task_action(
         client,
         action="edit",
@@ -43,6 +43,7 @@ def edit(client, task_id, revision, patch, request_id):
         task_id=task_id,
         expected_revision=revision,
         patch=patch,
+        remove=list(remove),
     )
 
 
@@ -134,6 +135,123 @@ def test_newborn_standalone_edit_and_ready(project):
         "newborn_edited",
     ]
     assert "became_available" in [item["event"] for item in record["history"]]
+
+
+def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
+    integration = deepcopy(project["process"])
+    integration["goal_type"] = "integration"
+    integration_path = project["root"] / "config/processes/integration.json"
+    write_json(integration_path, integration)
+    project["cfg"]["processes"]["integration"] = "config/processes/integration.json"
+
+    creator = tools(project, "type-editor")
+    born = create(creator, "TYPE-CHANGE")
+    development = complete_patch(project, "TYPE-CHANGE") | {
+        "goal_type": "development",
+        "executable_obligations": ["requirements[0]"],
+    }
+    assembled = edit(
+        creator,
+        "TYPE-CHANGE",
+        born["revision"],
+        development,
+        "assemble-development-draft",
+    )
+
+    changed = edit(
+        creator,
+        "TYPE-CHANGE",
+        assembled["revision"],
+        {"goal_type": "integration"},
+        "switch-type-and-remove-forbidden-field",
+        ["executable_obligations"],
+    )
+    replay = edit(
+        creator,
+        "TYPE-CHANGE",
+        assembled["revision"],
+        {"goal_type": "integration"},
+        "switch-type-and-remove-forbidden-field",
+        ["executable_obligations"],
+    )
+    assert replay == changed
+    assert changed["task"] == "TYPE-CHANGE"
+    assert changed["sprint"] is None
+    assert changed["claimed_by"] == "type-editor"
+    assert changed["goal_type"] == "integration"
+    assert "executable_obligations" not in changed["draft"]
+
+    record = creator.runtime.task_queries.record("TYPE-CHANGE")
+    stable_revision = changed["revision"]
+    stable_history = deepcopy(record["history"])
+    stable_draft = deepcopy(record["newborn"]["draft"])
+    stable_process = deepcopy(record["process"])
+
+    rejected = [
+        (
+            assembled["revision"],
+            {},
+            ["executable_obligations"],
+            "stale-removal",
+            "revision",
+        ),
+        (
+            stable_revision,
+            {},
+            ["unknown_field"],
+            "unknown-removal",
+            "known|field",
+        ),
+        (
+            stable_revision,
+            {"goal": "conflict"},
+            ["goal"],
+            "conflicting-removal",
+            "conflict|patch",
+        ),
+        (
+            stable_revision,
+            {},
+            ["goal"],
+            "required-removal",
+            "required|goal",
+        ),
+        (
+            stable_revision,
+            {},
+            ["id"],
+            "immutable-removal",
+            "immutable|identity",
+        ),
+    ]
+    for revision, patch, remove, request_id, message in rejected:
+        with pytest.raises(PoiseError, match=message):
+            edit(
+                creator,
+                "TYPE-CHANGE",
+                revision,
+                patch,
+                request_id,
+                remove,
+            )
+        current = creator.runtime.task_queries.record("TYPE-CHANGE")
+        assert current["version"] == stable_revision
+        assert current["history"] == stable_history
+        assert current["newborn"]["draft"] == stable_draft
+        assert current["process"] == stable_process
+
+    ready = task_action(
+        creator,
+        action="ready",
+        request_id="ready-integration-after-removal",
+        task_id="TYPE-CHANGE",
+        expected_revision=stable_revision,
+    )
+    assert ready["status"] == "available"
+    final = creator.runtime.task_queries.record("TYPE-CHANGE")
+    assert final["contract"]["goal_type"] == "integration"
+    assert "executable_obligations" not in final["contract"]
+    assert final["process"]["goal_type"] == "integration"
 
 
 def test_newborn_ownership_and_switching(project):

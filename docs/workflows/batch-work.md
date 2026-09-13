@@ -186,6 +186,35 @@ intent и никогда не выбирает номер сам.
 статус `newborn`. `edit` требует `expected_revision` и применяет patch к сохраняемому draft.
 `ready` проверяет ту же полную creation/DoR-схему и repository inputs, что и обычное создание.
 
+Публичная форма `edit` всегда содержит оба явных поля `patch` и `remove`. `patch` — объект
+заменяемых значений, `remove` — список уникальных имён известных полей; один из них может быть
+пустым, но не оба одновременно. `null` не означает удаление, отсутствующее поле не получает
+скрытого default. Полный intent, включая `remove`, входит в digest `request_id`:
+
+```json
+{
+  "operation": "task",
+  "input": {
+    "action": "edit",
+    "request_id": "change-0110-to-integration",
+    "task_id": "0110",
+    "expected_revision": 4,
+    "patch": {"goal_type": "integration"},
+    "remove": ["executable_obligations"]
+  },
+  "messages": []
+}
+```
+
+При смене `goal_type` допустимые и обязательные поля определяет целевой process snapshot.
+Поле, запрещённое целевым типом, вызывающая сторона удаляет в том же запросе; без явного
+`remove` edit отклоняется и draft не меняется. Неизвестные и повторные имена, отсутствующее
+поле, пересечение `patch`/`remove`, удаление `id` или `sprint_id` и удаление поля, обязательного
+для целевого типа, отклоняются до сохранения. Успех одной транзакцией сохраняет прежние Task
+identity, Sprint membership и history, выбирает целевой process, увеличивает revision и
+оставляет обычные ownership/optimistic guards. Точный replay возвращает исходный результат;
+другой список `remove` с тем же `request_id` считается другим intent и отклоняется.
+
 Создатель получает newborn Task через общий ownership API. Переключение на другую Task
 освобождает прежний Task claim, но не снимает независимо принадлежащий worktree; запись
 чужого живого владельца отклоняется; до выбора `goal_type` маршрут отсутствует. После выбора

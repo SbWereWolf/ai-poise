@@ -343,13 +343,16 @@ class TaskCommands:
             task._require_stage_contracts()
             return uow.tasks.stage_contract_context(task_id)
 
-    def edit_newborn(self, task_id, actor, expected_revision, patch, processes, config_hash,
-                     request_id):
+    def edit_newborn(self, task_id, actor, expected_revision, patch, remove, processes,
+                     config_hash, request_id):
         from ..application.ownership import release_task_in
         if type(expected_revision) is not int:
             raise DomainError('Newborn edit requires expected_revision')
         identity = _action_digest("edit", {
-            "task_id": task_id, "expected_revision": expected_revision, "patch": patch,
+            "task_id": task_id,
+            "expected_revision": expected_revision,
+            "patch": patch,
+            "remove": remove,
         })
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
@@ -364,7 +367,7 @@ class TaskCommands:
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
                 release_task_in(uow, actor, before.task_id)
-            changed = newborn.edit(patch, processes, actor)
+            changed = newborn.edit(patch, remove, processes, actor)
             uow.tasks.save_newborn(changed, newborn.version, config_hash, 'newborn_edited')
             result = changed.describe()
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)

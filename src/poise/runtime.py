@@ -195,7 +195,7 @@ class Poise:
         if action == 'edit':
             return self.task_commands.edit_newborn(
                 args['task_id'], self.session, args['expected_revision'], args['patch'],
-                self.processes, self.config_hash, args['request_id'],
+                args['remove'], self.processes, self.config_hash, args['request_id'],
             )
         if action == 'ready':
             return self.task_commands.ready_newborn(

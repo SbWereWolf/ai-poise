@@ -144,9 +144,23 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     write_json(integration_path, integration)
     project["cfg"]["processes"]["integration"] = "config/processes/integration.json"
 
+    setup_sprint(project)
     creator = tools(project, "type-editor")
-    born = create(creator, "TYPE-CHANGE")
-    development = complete_patch(project, "TYPE-CHANGE") | {
+    drafted = creator.invoke(request("sprint", {
+        "action": "draft",
+        "sprint_id": "TYPE-CHANGE-SPRINT",
+        "request_id": "draft-type-change-sprint",
+        "expected_revision": None,
+        "template": {"id": "basic", "version": "1"},
+        "changes": sprint_changes([]),
+    }))
+    assert drafted["status"] == "draft"
+    born = create(creator, "TYPE-CHANGE", "TYPE-CHANGE-SPRINT")
+    development = complete_patch(
+        project,
+        "TYPE-CHANGE",
+        "TYPE-CHANGE-SPRINT",
+    ) | {
         "goal_type": "development",
         "executable_obligations": ["requirements[0]"],
     }
@@ -157,6 +171,21 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
         development,
         "assemble-development-draft",
     )
+
+    before_switch = creator.runtime.task_queries.record("TYPE-CHANGE")
+    with pytest.raises(PoiseError, match="executable_obligations|known-field|точный набор"):
+        edit(
+            creator,
+            "TYPE-CHANGE",
+            assembled["revision"],
+            {"goal_type": "integration"},
+            "switch-type-without-explicit-removal",
+        )
+    after_rejected_switch = creator.runtime.task_queries.record("TYPE-CHANGE")
+    assert after_rejected_switch["version"] == before_switch["version"]
+    assert after_rejected_switch["history"] == before_switch["history"]
+    assert after_rejected_switch["newborn"] == before_switch["newborn"]
+    assert after_rejected_switch["process"] == before_switch["process"]
 
     changed = edit(
         creator,
@@ -176,16 +205,33 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     )
     assert replay == changed
     assert changed["task"] == "TYPE-CHANGE"
-    assert changed["sprint"] is None
+    assert changed["sprint"] == "TYPE-CHANGE-SPRINT"
     assert changed["claimed_by"] == "type-editor"
     assert changed["goal_type"] == "integration"
     assert "executable_obligations" not in changed["draft"]
 
     record = creator.runtime.task_queries.record("TYPE-CHANGE")
+    assert record["history"][:-1] == before_switch["history"]
+    assert record["history"][-1]["event"] == "newborn_edited"
     stable_revision = changed["revision"]
     stable_history = deepcopy(record["history"])
     stable_draft = deepcopy(record["newborn"]["draft"])
     stable_process = deepcopy(record["process"])
+
+    with pytest.raises(PoiseError, match="request|digest|different|belongs"):
+        edit(
+            creator,
+            "TYPE-CHANGE",
+            assembled["revision"],
+            {"goal_type": "integration"},
+            "switch-type-and-remove-forbidden-field",
+            [],
+        )
+    after_digest_conflict = creator.runtime.task_queries.record("TYPE-CHANGE")
+    assert after_digest_conflict["version"] == stable_revision
+    assert after_digest_conflict["history"] == stable_history
+    assert after_digest_conflict["newborn"]["draft"] == stable_draft
+    assert after_digest_conflict["process"] == stable_process
 
     rejected = [
         (
@@ -247,8 +293,21 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
         task_id="TYPE-CHANGE",
         expected_revision=stable_revision,
     )
-    assert ready["status"] == "available"
+    assert ready["status"] == "newborn"
+    assert ready["ready"] is True
+    published = creator.invoke(request("sprint", {
+        "action": "publish",
+        "sprint_id": None,
+        "request_id": "publish-type-change-sprint",
+        "expected_revision": born["sprint_revision"],
+    }))
+    assert published["status"] == "planned"
+    assert [
+        (item["id"], item["status"])
+        for item in published["tasks"]
+    ] == [("TYPE-CHANGE", "available")]
     final = creator.runtime.task_queries.record("TYPE-CHANGE")
+    assert final["sprint_id"] == "TYPE-CHANGE-SPRINT"
     assert final["contract"]["goal_type"] == "integration"
     assert "executable_obligations" not in final["contract"]
     assert final["process"]["goal_type"] == "integration"

@@ -44,6 +44,8 @@ class OwnershipCommands:
 
     def _preflight(self, actor, task_id):
         with self.uow() as uow:
+            if not uow.tasks.is_newborn(task_id):
+                uow.tasks.load(task_id)._require_stage_contracts()
             observed = uow.ownership.preflight(actor, task_id)
         self.after_preflight(observed)
         return observed

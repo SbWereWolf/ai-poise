@@ -72,6 +72,12 @@ def setup(project, kind='git_merge', conflict=True):
     write_json(project['config_path'],cfg)
     task=deepcopy(project['task']);task['goal_type']=process['goal_type'];task['id']='INTEGRATE';task['methods']=[];task['method_inputs']=[]
     task['checks']={s['id']:[] for s in stages};task['evidence_plan']={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}
+    task['stage_contracts']=[{
+        'stage_id':stage['id'],
+        'allowed_paths':list(stage['allowed_paths']),
+        'entry_requirements':[],
+        'exit_requirements':[],
+    } for stage in stages]
     if kind=='git_merge':
         task['methods']=[method('COMBINED','from src.double import double; assert double(4)==8; print("combined OK")')]
         task['method_inputs']=[{'method_id':'COMBINED','repository_inputs':[],'future_outputs':[],

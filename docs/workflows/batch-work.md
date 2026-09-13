@@ -69,7 +69,8 @@ snapshot уже возвращён адресным `bootstrap`.
         "executable_obligations": ["requirements[0]"],
         "artifact_requirements": [],
         "content_contract": {"sections": [], "routes": [], "requirements": []},
-        "evidence_plan": {}
+        "evidence_plan": {},
+        "stage_contracts": []
       }
     },
     "decision": null,
@@ -81,7 +82,7 @@ snapshot уже возвращён адресным `bootstrap`.
 ```
 
 Это точная форма envelope и creation intent, но вложенные `methods`, `checks`,
-`content_contract` и `evidence_plan` должны быть полным контрактом выбранного `goal_type`;
+`content_contract`, `evidence_plan` и `stage_contracts` должны быть полным контрактом выбранного `goal_type`;
 пустые значения примера не объявляются универсально исполнимой задачей. Успешный ответ
 содержит фактический `task`, task/worktree roots с тем же ID и квитанцию; persisted branch
 формируется из этого ID по `git.branch_template`:
@@ -295,10 +296,9 @@ worktree.
 ```
 
 Вызов допустим только из сессии без текущей Task. Адресованная Task должна оставаться `active`,
-не иметь владельца и иметь последний сохранённый handoff именно пустой итерации. Handoff может
-оставаться `released` либо быть `resumed`, если после возобновления Task снова освобождена обычной
-ownership-операцией и весь последующий event suffix состоит только из разрешённых ownership
-events. Его stage, iteration и tree обязаны совпадать с текущими.
+не иметь владельца, а весь event suffix после исходного пустого перехода должен состоять только
+из разрешённых ownership events. Освобождение может быть выполнено handoff либо обычной
+ownership-операцией; отдельный handoff пустой итерации для recovery не обязателен.
 `pending` и `publication` равны null, `attempts=0`, `entry_tree` и неизменившееся фактическое Git
 tree совпадают с `verified_tree` непосредственно предшествующего сохранённого отчёта.
 
@@ -311,7 +311,7 @@ tree совпадают с `verified_tree` непосредственно пре
 
 Предыдущая точка восстанавливается только из неизменяемых записей одного latest verified
 submission: result, workflow layer и proof layer. Исходным переходом служит последнее точное событие
-`user_rework`; после него и до версии финального handoff разрешены только `handed_off`,
+`user_rework`; после него и до текущей версии Task разрешены только `handed_off`,
 `handoff_resumed`, `ownership_acquired` и `ownership_released`. Поэтому повторные циклы передачи
 не мешают восстановлению, но любой другой lifecycle event после исходного перехода приводит к
 отказу без изменения Task. Сохранённые feedback и evidence также не могли измениться. Обработчики
@@ -321,11 +321,12 @@ submission: result, workflow layer и proof layer. Исходным перехо
 
 Успех атомарно возвращает прежние stage, iteration, status=`verified`, route progress, feedback,
 evidence и ссылку на точный current submission. Новая пустая итерация не удаляется из истории:
-добавляется событие `empty_rework_recovered`, а использованный handoff получает состояние
-`recovered`, чтобы следующий проверяющий приобрёл Task обычным bootstrap без попытки возобновить
-устаревший handoff — независимо от того, был кандидат `released` или уже `resumed`. Прежние submissions, task results, receipts, findings и resolutions не
+добавляется событие `empty_rework_recovered`. Если пустой итерации соответствует сохранённый
+handoff со статусом `released` или `resumed`, он получает состояние `recovered`, чтобы следующий
+проверяющий не пытался возобновить устаревшую передачу. Несовпадающий более ранний handoff не
+используется как источник истины и не блокирует recovery. Прежние submissions, task results, receipts, findings и resolutions не
 переписываются. Повтор после подтверждённого успеха ничего не откатывает ещё раз и получает отказ
-об отсутствии сохранённого кандидата recovery; фактический статус следует проверить публичным чтением Task.
+из-за уже восстановленного состояния Task; фактический статус следует проверить публичным чтением Task.
 
 Для уже застрявшей Task 0077 сначала применяется этот узкий legacy-recovery: Task должна быть
 освобождена, её ошибочно открытая rework-итерация должна оставаться пустой, а

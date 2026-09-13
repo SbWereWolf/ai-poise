@@ -44,6 +44,12 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
     t['method_inputs']=[{'method_id':'CHECK','repository_inputs':[],'future_outputs':[],
         'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}]
     t['checks']={'work':['CHECK']};t['evidence_plan']={'work':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+    t['stage_contracts']=[{
+        'stage_id':'work',
+        'allowed_paths':list(project['process']['stages'][0]['allowed_paths']),
+        'entry_requirements':[],
+        'exit_requirements':[],
+    }]
     return t
 
 

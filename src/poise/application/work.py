@@ -62,6 +62,8 @@ class WorkTools:
             elif op=='handoff':out=h.handoff(args)
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
+            elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
+            elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='verify':out=self._verify(args)
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()
@@ -115,7 +117,11 @@ class WorkTools:
         prepared=factory.prepare(args['artifacts'])
         # Paths can be known before file creation; Task checks only semantic input.
         payload['artifact_paths']=list(dict.fromkeys(payload['artifact_paths']+[str(x.path) for x in prepared]))
+        gate = h.validate_stage_entry(data)
+        if not gate['passed']:
+            raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'],payload)
+        h.validate_stage_scope(data)
         # Validate existing path-only inputs before producing any new file.
         h.validate_artifact_paths(args['result']['artifact_paths'],data)
         factory.materialize(prepared)

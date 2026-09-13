@@ -206,6 +206,12 @@ def project(tmp_path, monkeypatch):
         'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']},
      "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     task['evidence_plan'] = {s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}
+    task['stage_contracts'] = [{
+        'stage_id': stage['id'],
+        'allowed_paths': list(stage['allowed_paths']),
+        'entry_requirements': [],
+        'exit_requirements': [],
+    } for stage in stages]
     task_path = write_json(poise_root / 'task.json', task)
     return {'root': poise_root, 'config_path': cfg_path, 'cfg': cfg, 'process': process,
             'task_path': task_path, 'task': task, 'app': app, 'remote': remote}

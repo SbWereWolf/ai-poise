@@ -198,7 +198,7 @@ class EmptyAdvanceRecoveryTests(unittest.TestCase):
         result(active, {"resolutions": [resolution()]})
         self._handoff(runtime, "submitted-advance-handoff", active["result_template"])
 
-        with self.assertRaisesRegex(PoiseError, "empty|submission"):
+        with self.assertRaisesRegex(PoiseError, "empty|submission|non-ownership"):
             self._recover()
 
     def test_rejects_rework_origin(self):

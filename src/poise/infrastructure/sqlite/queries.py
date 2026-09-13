@@ -131,7 +131,7 @@ class TaskQueries:
         return {**metadata, **execution, "id":row["id"],
                 "status":row["status"],"stage_index":row["stage_index"],"iteration":row["iteration"],
                 "claimed_by":row["claimed_by"],"result_commit":None if report is None else report["commit"],
-                "_version":row["version"],"_execution_version":row["execution_version"],
+                "version":row["version"],"_version":row["version"],"_execution_version":row["execution_version"],
                 "history":history}
 
     def history(self, task_id: str) -> list[dict]:

@@ -6,6 +6,10 @@ from ..foundation.errors import DomainError
 
 SPRINT_OVERVIEW_STATUSES = frozenset({'planned','active','completed','cancelled','blocked'})
 STANDALONE_TASK_STATUSES = frozenset({'newborn','available','active','verified','accepted','completed','cancelled'})
+STAGE_CONTRACT_OPERATIONS = frozenset({
+    'initialize_stage_contracts',
+    'revise_stage_contract',
+})
 
 
 def status_filter(value, allowed, name):
@@ -25,6 +29,12 @@ def parse_request(value, config):
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},
+            'initialize_stage_contracts':{
+                'request_id','task_id','expected_version','contracts','reason','authorization'
+            },
+            'revise_stage_contract':{
+                'request_id','task_id','expected_version','stage_id','contract','reason','authorization'
+            },
             'task':None,'sprint':None,'transfer':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:

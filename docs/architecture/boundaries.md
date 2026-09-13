@@ -89,6 +89,13 @@ compatibility read. Одинаковый `request_id` с тем же intent во
 изменённый intent, повреждённый audit или drift отклоняются. Время audit поступает через
 обязательный `Clock`; production composition явно предоставляет `SystemClock`.
 
+Schema `task-process-migration-2` имеет отдельный compile-time scope ровно из Task `0082` и
+не меняет авторизованный набор schema 1. Для 0082 domain строит новый process из сохранённого
+legacy snapshot, добавляя только отсутствующий `worktree_required` из совпадающего configured
+goal type. Storage сохраняет все lifecycle/result/content/evidence/ownership/Git поля и меняет
+только process внутри metadata; после commit работоспособность доказывается обычным reviewer
+bootstrap сохранённой verified Task.
+
 ## Пакетный декларативный вход
 
 Обновлено: **2026-09-06T22:58:21+05:00**. Task/config/artifact/interaction-вход реализован в DDD-04A/04B; Sprint использует тот же вход в DDD-05.

@@ -238,6 +238,29 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered["stage"], verified["stage"])
         self.assertEqual(recovered["iteration"], verified["iteration"])
 
+    def test_recovers_after_resumed_handoff_and_plain_ownership_release(self):
+        _, verified, active = self._simple_empty_rework()
+        reviewer = WorkPoise(self.project["config_path"], "FINAL-REVIEWER")
+        context = WorkTools(reviewer).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "T1"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+        self.assertEqual(context["iteration"], active["iteration"])
+        reviewer.ownership.release_task("T1")
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
+
     def test_rejects_non_ownership_suffix_without_changing_task_state(self):
         runtime, _, active = self._simple_empty_rework()
         reviewer = WorkPoise(self.project["config_path"], "INTERMEDIATE-REVIEWER")

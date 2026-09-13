@@ -385,11 +385,13 @@ class TaskCommands:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
-            handoff = uow.handoffs.latest(task_id)
-            if handoff is None or handoff["state"] != "released":
-                raise DomainError("Empty rework recovery requires a released handoff")
-            if task.state.version != handoff["version"] + 1:
-                raise DomainError("Task changed after the released empty rework handoff")
+            handoff = uow.handoffs.latest_recovery_candidate(task_id)
+            if handoff is None:
+                raise DomainError(
+                    "Empty rework recovery requires a preserved handoff"
+                )
+            if task.state.version < handoff["version"] + 1:
+                raise DomainError("Task predates the preserved empty rework handoff")
             if handoff["receipt"]["verified"] is not False:
                 raise DomainError(
                     "Empty rework recovery requires an active handoff after user_rework"
@@ -413,7 +415,7 @@ class TaskCommands:
             ):
                 raise DomainError("Execution state is not an unchanged empty rework")
             point = uow.tasks.empty_rework_recovery_point(
-                task_id, handoff["version"], execution["last_report"], transition_event
+                task_id, task.state.version, execution["last_report"], transition_event
             )
             if point.evidence_input is None:
                 raise DomainError("Previous verified submission has no evidence input")

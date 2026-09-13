@@ -10,6 +10,12 @@ class SqliteHandoffRepository:
     def latest(self,task_id):
         row=self.db.execute("SELECT data FROM handoffs WHERE task_id=? AND state='released' ORDER BY seq DESC LIMIT 1",(task_id,)).fetchone()
         return None if row is None else json.loads(row[0])
+    def latest_recovery_candidate(self,task_id):
+        row=self.db.execute(
+            "SELECT data FROM handoffs WHERE task_id=? AND state IN ('released','resumed') "
+            "ORDER BY seq DESC LIMIT 1",(task_id,)
+        ).fetchone()
+        return None if row is None else json.loads(row[0])
     def insert(self,record):
         self.db.execute('INSERT INTO handoffs(actor,request_id,task_id,state,data) VALUES(?,?,?,?,?)',
             (record['actor'],record['request_id'],record['task_id'],record['state'],encoded(record)))

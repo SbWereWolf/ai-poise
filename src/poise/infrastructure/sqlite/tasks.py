@@ -133,15 +133,40 @@ class SqliteTaskRepository:
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"])
 
     def empty_rework_recovery_point(
-        self, task_id: str, rework_version: int, last_report: dict,
+        self, task_id: str, handoff_version: int, last_report: dict,
         transition_event: str = "user_rework",
     ) -> EmptyReworkRecoveryPoint:
         events = self.db.execute(
-            "SELECT data FROM task_events WHERE task_id=? AND version=? ORDER BY seq",
-            (task_id, rework_version),
+            "SELECT version,data FROM task_events "
+            "WHERE task_id=? AND version<=? ORDER BY seq",
+            (task_id, handoff_version),
         ).fetchall()
-        if len(events) != 1 or json.loads(events[0]["data"])["event"] != transition_event:
+        parsed = [
+            (row["version"], json.loads(row["data"])["event"])
+            for row in events
+        ]
+        transitions = [
+            version for version, event in parsed if event == transition_event
+        ]
+        if not transitions:
             raise PoiseError(f"Recovery requires the exact preceding {transition_event} event")
+        transition_version = transitions[-1]
+        ownership_events = {
+            "handed_off",
+            "handoff_resumed",
+            "ownership_acquired",
+            "ownership_released",
+        }
+        unexpected = [
+            event
+            for version, event in parsed
+            if transition_version < version <= handoff_version
+            and event not in ownership_events
+        ]
+        if unexpected:
+            raise PoiseError(
+                f"Recovery event suffix contains non-ownership events: {unexpected}"
+            )
         row = self.db.execute(
             "SELECT s.stage,s.iteration,s.digest,s.data,w.data AS workflow,r.data AS result "
             "FROM submissions s "
@@ -172,7 +197,7 @@ class SqliteTaskRepository:
         proof_row = self.db.execute(
             "SELECT data FROM task_proof_layers WHERE task_id=? AND version<? "
             "ORDER BY version DESC LIMIT 1",
-            (task_id, rework_version),
+            (task_id, transition_version),
         ).fetchone()
         if proof_row is None:
             raise PoiseError("Recovery requires the previous immutable proof snapshot")

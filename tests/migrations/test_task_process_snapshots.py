@@ -16,7 +16,7 @@ from conftest import Poise, write_json
 from tests.backups.helpers import backup_commands, backup_directory, run_cli
 
 
-TASKS = ("0077", "0081", "0079", "0078", "0074")
+TASKS = ("0077", "0081", "0079", "0078", "0074", "0063")
 FIXED_NOW = datetime(2026, 9, 13, 8, 0, tzinfo=timezone.utc)
 
 
@@ -55,7 +55,7 @@ def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
     expected = {}
     with db.transaction() as connection:
         for index, task_id in enumerate((*TASKS, "CONTROL")):
-            goal_type = "documentation" if task_id == "0074" else "development"
+            goal_type = "documentation" if task_id in {"0074", "0063"} else "development"
             process = deepcopy(processes[goal_type])
             process.pop("worktree_required")
             metadata = {
@@ -110,6 +110,37 @@ def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
             "INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
             ("0077", '{"worktree":null,"marker":"preserve"}', 3),
         )
+        submission_0063 = connection.execute(
+            "INSERT INTO submissions(task_id,stage,iteration,digest,data) VALUES(?,?,?,?,?)",
+            ("0063", "framing", 1, "submission-0063-digest", '{"report":"preserve-0063"}'),
+        ).lastrowid
+        connection.execute(
+            "UPDATE tasks SET current_submission_id=? WHERE id='0063'", (submission_0063,)
+        )
+        connection.execute(
+            "INSERT INTO task_workflows(task_id,data) VALUES(?,?)",
+            ("0063", '{"history":["preserve-0063"]}'),
+        )
+        connection.execute(
+            "INSERT INTO workflow_layers(submission_id,task_id,data) VALUES(?,?,?)",
+            (submission_0063, "0063", '{"transition":"preserve-0063"}'),
+        )
+        connection.execute(
+            "INSERT INTO task_results(task_id,submission_id,data) VALUES(?,?,?)",
+            ("0063", submission_0063, '{"result":"preserve-0063"}'),
+        )
+        connection.execute(
+            "INSERT INTO evidence(id,task_id,stage,iteration,data) VALUES(?,?,?,?,?)",
+            ("evidence-0063", "0063", "framing", 1, '{"proof":"preserve-0063"}'),
+        )
+        connection.execute(
+            "INSERT INTO task_events(task_id,version,at,data) VALUES(?,?,?,?)",
+            ("0063", 12, "2026-09-13T08:01:00+00:00", '{"event":"preserve-0063"}'),
+        )
+        connection.execute(
+            "INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
+            ("0063", '{"worktree":null,"marker":"preserve-0063"}', 4),
+        )
         connection.execute(
             "INSERT INTO sprints(id,project,state,revision,data) VALUES(?,?,?,?,?)",
             ("MIGRATION-FIXTURE", "demo", "active", 1, '{"marker":"preserve"}'),
@@ -131,7 +162,7 @@ def _request(backup_name: str, **changes: object) -> dict:
         "request_id": "migrate-chain-processes-1",
         "backup_name": backup_name,
         "task_ids": list(TASKS),
-        "authorization": "User authorized migration of 0077, 0081, 0079, 0078 and 0074.",
+        "authorization": "User authorized migration of 0077, 0081, 0079, 0078, 0074 and 0063.",
     }
     value.update(changes)
     return value
@@ -190,7 +221,7 @@ def test_domain_plans_only_missing_field_for_exact_batch():
     plan = ProcessSnapshotMigration.plan(request, rows, processes)
 
     assert tuple(item.task_id for item in plan.updates) == TASKS
-    assert [item.process["worktree_required"] for item in plan.updates] == [False, True, True, True, True]
+    assert [item.process["worktree_required"] for item in plan.updates] == [False, True, True, True, True, True]
     assert all(set(item.process) == {"goal_type", "route", "worktree_required"} for item in plan.updates)
 
 
@@ -213,14 +244,15 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert result["request_id"] == "migrate-chain-processes-1"
     assert result["backup_name"] == backup["name"]
     assert [item["task_id"] for item in result["tasks"]] == list(TASKS)
-    assert [item["worktree_required"] for item in result["tasks"]] == [True, True, True, True, False]
+    assert [item["worktree_required"] for item in result["tasks"]] == [True, True, True, True, False, False]
     expected_tasks = []
     for task_id in TASKS:
         old_process = expected_metadata[task_id]["process"]
-        new_process = {**old_process, "worktree_required": task_id != "0074"}
+        worktree_required = expected_metadata[task_id]["contract"]["goal_type"] != "documentation"
+        new_process = {**old_process, "worktree_required": worktree_required}
         expected_tasks.append({
             "task_id": task_id,
-            "worktree_required": task_id != "0074",
+            "worktree_required": worktree_required,
             "old_process_digest": _digest(old_process),
             "new_process_digest": _digest(new_process),
         })
@@ -245,17 +277,20 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
             "FROM tasks ORDER BY id"
         ).fetchall()
     assert [row[0] for row in rows] == sorted((*TASKS, "CONTROL"))
+    submission_by_task = {row[1]: row[0] for row in before["submissions"]}
     for row in rows:
         task_id, status, stage_index, iteration, claimed_by, version, submission, raw = row
         index = (*TASKS, "CONTROL").index(task_id)
-        expected_submission = before["submissions"][0][0] if task_id == "0077" else None
+        expected_submission = submission_by_task.get(task_id)
         assert (status, stage_index, iteration, claimed_by, version, submission) == (
             "available", 0, 1, None, 7 + index, expected_submission
         )
         metadata = json.loads(raw)
         expected = deepcopy(expected_metadata[task_id])
         if task_id in TASKS:
-            expected["process"]["worktree_required"] = task_id != "0074"
+            expected["process"]["worktree_required"] = (
+                expected["contract"]["goal_type"] != "documentation"
+            )
         assert metadata == expected
         if task_id in TASKS:
             route = BoundSourceRoute.decide("bootstrap", {"id": task_id}, None, {

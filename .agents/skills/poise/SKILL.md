@@ -74,6 +74,14 @@ Do not batch a dependent read until its identifier or range is known. One packet
 cross-read-model SQL snapshot, and no token saving has been measured or may be claimed. Follow
 [Evidence-based review → Batched subject reads](../../../docs/workflows/evidence-based-review.md#пакетное-чтение-предмета).
 
+Let the exact process schema decide whether Task creation contains
+`executable_obligations`. A schema with a `test_registry` inspection route requires the field,
+including an explicit empty list; a schema without it must omit the field and receives an empty
+public registry classification without requirement/DoD inference. For repository verification,
+an empty `change_surface` represents only a pre-existing baseline guard with no RED and sole
+GREEN at the route-entry `baseline`. Produced-result GREEN methods require a non-empty surface
+covered by their stage. Follow [Batch work → Current verification registry](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
+
 When a current observation command has become stale, do not recreate the Task or edit its
 database. Read the current registry with one `show` query of kind `verification_registry`, then
 submit one guarded `method_additions` change from the current `observe` stage. Replace only a

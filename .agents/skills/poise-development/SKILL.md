@@ -24,6 +24,13 @@ For review, apply the incident-derived [evidence-based checklist](../../../docs/
 
 For a development Task, pass the complete initial checks schedule explicitly; `{}` is valid and must not trigger template defaults. Design and register the actual RED/GREEN methods, schedules and future-output provenance at `verification_planning`, once their source paths are known.
 
+Keep executable-obligation field presence schema-driven: process schemas with a
+`test_registry` inspection route require the explicit field, while schemas without it reject
+the field and initialize an empty registry classification. Permit an empty repository
+`change_surface` only for a no-RED baseline guard whose sole GREEN is the route-entry
+`baseline`; every produced-result GREEN needs a non-empty surface covered by its stage. Keep
+the canonical semantics in [Batch work → Current verification registry](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
+
 Public non-newborn `bootstrap` and current-Task `show` projections expose the exact current Task version as `version`. The private `_version` name is never part of the public DTO. Taskless responses omit `version`, and newborn Tasks use `revision`. Pass this value unchanged as `expected_version` for guarded `restart` or stage-contract repair; on a version conflict, refresh through public `bootstrap`/`show` instead of guessing.
 
 Tools are batch-oriented and declarative: if two or more required mechanical actions have no reasoning decision between them, expose one operation that ensures the requested result through owning APIs. Do not add hidden defaults, compatibility readers or migrations without direct user authorization. Read [Declarative tools → architectural invariant](../../../docs/architecture/declarative-tools.md#1-архитектурный-инвариант) for the corresponding contract section available in the current revision.

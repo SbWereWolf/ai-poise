@@ -231,10 +231,11 @@ Persisted integration state обеспечивает crash recovery и идем�
 }
 ```
 
-Команда выполняется через уже выбранные `POISE_CONFIG` и `POISE_SESSION`:
+Команда выполняется через уже выбранный session-scoped launcher; прямой CLI при отсутствии
+native Codex identity использует `POISE_CONFIG` и сохраняемый `POISE_CALLER_BINDING`:
 
 ```bash
-poise work <<'JSON'
+bash "${AI_POISE_WORK:?Set the launcher path supplied by the native hook}" <<'JSON'
 {"operation":"integrate","input":{"request_id":"integrate-0016-1","task_id":"0016","expected_source_commit":"0123456789abcdef0123456789abcdef01234567","expected_target_commit":"89abcdef0123456789abcdef0123456789abcdef","authorization":"Integrate accepted task 0016","resolutions":[]},"messages":[]}
 JSON
 ```

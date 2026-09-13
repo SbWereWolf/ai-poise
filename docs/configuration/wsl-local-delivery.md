@@ -64,11 +64,12 @@ Approved future requirements находятся в `delivery/requirements-bootst
 
 ## Начало работы над задачей
 
-Выберите project config и session identity:
+Выберите project config и сохраняемую caller identity (родительский каталог создаётся явно):
 
 ```bash
 export POISE_CONFIG="$PWD/projects/poise/project.json"
-export POISE_SESSION="agent-$(date +%s)"
+mkdir -p "$PWD/projects/poise/caller-bindings"
+export POISE_CALLER_BINDING="$PWD/projects/poise/caller-bindings/agent.json"
 ```
 
 Bootstrap Sprint:

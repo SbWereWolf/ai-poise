@@ -30,6 +30,11 @@ Do not embed literals that determine the workflow, task format, acceptance condi
 
 AI poise must be configurable without editing its source code. Missing required configuration is an error: do not supply hidden defaults, fallback values or guessed settings.
 
+Route every public work composition through `SessionEstablisher`. Prefer the native Codex
+identity; otherwise require an explicit persistent `POISE_CALLER_BINDING`. An agent must not
+substitute a caller-chosen session value. Persist identity initialization without creating a
+Task/Sprint for read-only work, and never derive workflow authority from identity origin.
+
 Do not preserve backward compatibility merely to read earlier formats. Do not design or run data migrations without a direct user instruction; request permission when a migration is necessary.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.

@@ -11,6 +11,11 @@ Read the repository `AGENTS.md` and `src/AGENTS.md` first. Work in a dedicated `
 
 Identify the domain owner before implementation. Task, Sprint, content, evidence, artifacts, project configuration and runtime state change only through their owning APIs. Reuse the common runner and stage-handler families rather than creating a goal-specific engine. Read [Architecture boundaries → owners and dependencies](../../../docs/architecture/boundaries.md#ddd-04b--новые-владельцы-и-зависимости).
 
+Keep caller-to-session establishment in `SessionEstablisher` for every public work composition.
+Use native identity when available and an explicit persistent `POISE_CALLER_BINDING` otherwise;
+callers and agents must not substitute an arbitrary session value. Identity origin is provenance,
+not authorization, and read-only establishment must not create a business subject.
+
 ## Development method
 
 For repository changes follow TDD: contract/check design → tests → honest RED → test inspection → implementation → GREEN → code inspection → fixes → reinspection → documentation. Read [Development rules → TDD and inspection](../../../docs/governance/development-rules.md#tdd-и-осмотр) when working on implementation behaviour.

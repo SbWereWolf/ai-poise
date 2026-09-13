@@ -87,7 +87,12 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
 
 Обновлено: **2026-09-07T00:07:53+05:00**.
 - `RuntimeIdentity.parse` — чистая идентичность; `validate_inventory` — явные capability факты.
-- `RuntimeAdapter.invoke` — transport composition над WorkTools, а не новый domain API.
+- `SessionEstablisher.establish` — общий application-owner caller → session для direct work,
+  runtime adapter и hook transport. Он повторно использует неизменяемую запись
+  `runtime_bindings`, атомарно резервирует уникальную сессию и повторяет generated-кандидат при
+  коллизии. Origin сохраняет provenance, но не предоставляет дополнительных прав; generated
+  binding не является anti-tamper credential.
+- `RuntimeAdapter.invoke` — transport composition над `SessionEstablisher` и WorkTools, а не новый domain API.
 - `CodexTranscript.read` — bounded JSONL источник и позиция, без хранения prompt body.
 - `OutputPolicy.parse/select` — чистая схема известных/unknown parser profiles.
 - `OutputParser.render(primary|materialize)` — один парсер над неизменным receipt.

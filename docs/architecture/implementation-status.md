@@ -176,6 +176,17 @@ operator backups; не применяет force-delete, push или скрыты
 фактический GREEN подтверждается текущим verification batch, а не зафиксированным здесь числом.
 
 
+# Project listing — Task 0097 — 2026-09-14
+
+Существующий `poise project` поддерживает read-only действие `list`, сохраняя прежнее создание
+без позиционного действия. Один явный `configured-project-registry-1` используется batch и
+interactive публикацией, точным replay после сбоя регистрации и списком. Выдача сортирует
+пригодные проекты и явные missing/invalid ошибки; отдельного CLI, discovery-сервиса или
+directory scan нет. Реальный `config/project-setup.json` указывает на поставляемый registry с
+проектом `ai-poise`. Актуальный GREEN подтверждается verification evidence Task, а не
+зафиксированным в документе числом.
+
+
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00
 
 Реализованы `project`/`project-init`: batch creation, явные templates, back/change/keep/abort,

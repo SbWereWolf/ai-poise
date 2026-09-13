@@ -98,9 +98,13 @@ def _validate_plan(method: dict, where: str, stage_ids: tuple[str, ...] | None =
     for path in surface:
         _repository_path(path, f'{where}.verification_plan.change_surface')
     source = method.get('source_under_test')
-    if not surface and (not isinstance(source, dict) or source.get('kind') != 'external'):
+    if (not surface and not (
+            isinstance(source, dict)
+            and source.get('kind') in ('external', 'repository')
+    )):
         raise DomainError(
-            f'{where}.verification_plan.change_surface: пустая поверхность допустима только для external source'
+            f'{where}.verification_plan.change_surface: пустая поверхность требует '
+            'explicit external source либо repository baseline guard'
         )
     planned = []
     for field in ('red_stages', 'green_stages'):
@@ -134,6 +138,12 @@ def _validate_plan(method: dict, where: str, stage_ids: tuple[str, ...] | None =
         raise DomainError(f'{where}.verification_plan.red_failure должен быть null без red_stages')
     if plan['green_stages'] and method['expected_exit_code'] != 0:
         raise DomainError(f'{where}.verification_plan.green_stages требуют expected_exit_code=0')
+    if (not surface and isinstance(source, dict) and source.get('kind') == 'repository'
+            and (plan['red_stages'] or plan['green_stages'] != ['baseline'])):
+        raise DomainError(
+            f'{where}.verification_plan.change_surface: repository baseline guard '
+            'требует единственный GREEN stage baseline как route entry и не допускает RED'
+        )
 
 
 def validate_method(
@@ -636,7 +646,16 @@ class CheckRegistry:
         for entry in self.entries:
             method = entry.to_dict()['method']
             plan = method.get('verification_plan')
-            if plan is None or not plan['green_stages'] or not plan['change_surface']:
+            if plan is None or not plan['green_stages']:
+                continue
+            if not plan['change_surface']:
+                source = method.get('source_under_test')
+                if (isinstance(source, dict) and source.get('kind') == 'repository'
+                        and plan['green_stages'] != [route.entry]):
+                    raise DomainError(
+                        f"method {entry.method_id}: repository baseline guard with empty "
+                        f"change_surface must run only at route entry {route.entry}"
+                    )
                 continue
             for green_stage in plan['green_stages']:
                 self._validate_green_paths(entry.method_id, green_stage, plan['change_surface'], route)

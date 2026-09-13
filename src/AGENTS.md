@@ -113,12 +113,16 @@ import error or execution against another checkout is not a valid RED.
 Keep `verification_plan` validation in `CheckRegistry` and route scope ownership
 in `RouteDefinition`. New methods declare `change_surface`, `red_stages`, and
 `green_stages`; every required GREEN path must be covered by configured
-`allowed_paths`. RED predicates compare complete output exactly, so additional
+`allowed_paths`. Allow an empty repository surface only for a pre-existing baseline
+guard with no RED and sole GREEN at the route-entry `baseline`; produced-result GREEN
+methods require a non-empty covered surface. RED predicates compare complete output exactly, so additional
 failures do not pass. Preserve pre-plan snapshot restoration without adding a
 default, migration, or recursive runner-specific source inference.
 Keep current-registry mutation, revision/idempotency guards, immutable snapshots,
-and executable-obligation validation in `CheckRegistry`. Task creation and every
-stage-authorized `test_registry` mutation require explicit `executable_obligations`;
-never infer them from all requirements/DoD. Restore the current classification only
+and executable-obligation validation in `CheckRegistry`. Task creation requires explicit
+`executable_obligations` when the process schema owns `test_registry`; a schema without
+that field must omit it and initializes an explicitly empty registry classification.
+Every stage-authorized `test_registry` mutation supplies the full explicit list; never
+infer it from all requirements/DoD. Restore the current classification only
 from validated registry state, without rewriting historical methods or receipts and
 without a migration or fallback to immutable creation metadata.

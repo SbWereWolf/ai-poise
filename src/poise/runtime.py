@@ -598,6 +598,7 @@ class Poise:
                         name=section['id']
                         payload['sections'][name]=(content['sections_current'][name] if name in content['sections_current'] else section['template'])
         return {'session': self.session, 'task': data['id'], 'goal': data['goal'], 'status': data['status'],
+                'version': data['version'],
                 'stage': stage['id'], 'iteration': data['iteration'], 'worktree': data['worktree'],
                 'instruction': stage['instruction'], 'requirements': data['contract']['requirements'],
                 'definition_of_done': data['contract']['definition_of_done'],
@@ -801,7 +802,7 @@ class Poise:
                 data = self.task_queries.record(data['id'])
                 if state.status == 'completed':
                     self._cleanup_runtime()
-                    return data['last_report']
+                    return {**data['last_report'], 'version': data['version']}
             else:
                 if data['status']=='active' and self._stage(data)['handler'] in ('apply_plan','publish'):
                     self.plan_actions.rework_failed(data,feedback,rework_stage,entry_tree)
@@ -941,6 +942,7 @@ class Poise:
         result = {
             'status': 'broken',
             'task': data['id'],
+            'version': data['version'],
             'stage': self._stage(data)['id'] if stage_id is None else stage_id,
             'failure': {
                 'kind': 'content_requirements_failed',
@@ -1014,7 +1016,8 @@ class Poise:
         if (data['worktree'] is not None
                 and self._git(worktree,'symbolic-ref','--short','HEAD') != data['branch']):
             raise PoiseError('В worktree другая ветка')
-        if data['pending'] is not None:
+        pending_checks = data['pending'] == 'checks'
+        if data['pending'] is not None and not pending_checks:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
@@ -1035,8 +1038,19 @@ class Poise:
         tree = scope_state['tree']
         changed = scope_state['changed']
         scope = scope_state['allowed_paths']
-        submitted = self.runner.submit(data['id'], self.session, payload)
-        data = self._task()
+        if pending_checks:
+            submitted_digest = self.runner.matching_submission_digest(
+                data['id'], self.session, payload
+            )
+            if submitted_digest is None:
+                raise PoiseError(
+                    'Восстановление pending=checks требует точного повтора '
+                    'текущего submitted результата'
+                )
+            submitted = None
+        else:
+            submitted = self.runner.submit(data['id'], self.session, payload)
+            data = self._task()
         if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
             raise PoiseError('Сообщение коммита не соответствует правилу проекта')
         roots = self._roots(data)
@@ -1062,10 +1076,34 @@ class Poise:
             data, tree, checks, worktree
         )
         # Env values participate only in the digest; they are not persisted in receipts.
-        batch = self.task_commands.observation_batch(data['id'],tree,execution_key)
-        usable = batch is not None and self._usable_receipts(
+        current_submission_digest = (
+            submitted_digest if submitted is None else submitted.digest
+        )
+        if pending_checks:
+            batch = self.task_commands.submission_observation_batch(
+                data['id'],current_submission_digest,tree,execution_key
+            )
+        else:
+            batch = self.task_commands.observation_batch(
+                data['id'],tree,execution_key
+            )
+        intact = batch is not None and self._intact_receipts(
             data['id'], batch['receipts'], invocations, tree
         )
+        usable = intact and self._usable_receipts(
+            data['id'], batch['receipts'], invocations, tree
+        )
+        if pending_checks:
+            if not intact:
+                raise PoiseError(
+                    'Неизвестен исход прерванной проверки; не запускаем '
+                    'повтор вслепую. Смотрите журнал.'
+                )
+            self.runner.recover_pending_checks(
+                data['id'], self.session, submitted_digest, tree,
+                execution_key, batch['receipts']
+            )
+            data = self._task()
         if payload['evidence_work']['phase']=='continue' and not usable:
             return {'status':'observations_stale','task':data['id'],'stage':stage['id'],
                     'reason':'Нужен PREPARE: точные входы наблюдения изменились или receipt недоступен.',
@@ -1074,12 +1112,12 @@ class Poise:
         if missing:
             return {'status':'evidence_requirements_failed','task':data['id'],'stage':stage['id'],
                     'missing':list(missing),'checks':[],'context':self._context(data,True)}
-        payload_hash = submitted.digest
+        payload_hash = current_submission_digest
         publication = data['publication']
         if (publication is not None and publication['tree']==tree and publication['payload_hash']==payload_hash
                 and publication['execution_key']==execution_key and usable):
             return self._publish(data, publication)
-        if usable:
+        if intact:
             receipts = batch['receipts']
             attempt = data['attempts']
         else:
@@ -1350,7 +1388,8 @@ class Poise:
                     'history':self.task_queries.history(data['id']),
                     'token_usage':'unavailable'}
         submissions, evidence = self.store.counts(data['id'])
-        return {'task':data['id'],'status':data['status'],'stage':self._stage(data)['id'],
+        return {'task':data['id'],'status':data['status'],'version':data['version'],
+                'stage':self._stage(data)['id'],
                 'iteration':data['iteration'],'attempts':data['attempts'],
                 'submission_count':submissions,'evidence_count':evidence,
                 'history':self.task_queries.history(data['id']), 'workflow':self.runner.context(data['id']), 'token_usage':'unavailable'}

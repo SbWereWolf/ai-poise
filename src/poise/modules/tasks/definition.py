@@ -33,6 +33,11 @@ def registry_inspection_stages(process):
     )
 
 
+def has_executable_obligations_field(process):
+    """Whether this exact process schema requires the Task classification field."""
+    return bool(registry_inspection_stages(process))
+
+
 def creation_fields(process):
     fields = {
         'id',
@@ -49,13 +54,13 @@ def creation_fields(process):
         'evidence_plan',
         'stage_contracts',
     }
-    if registry_inspection_stages(process):
+    if has_executable_obligations_field(process):
         fields.add('executable_obligations')
     return frozenset(fields)
 
 
 def executable_obligations(contract, process):
-    if not registry_inspection_stages(process):
+    if not has_executable_obligations_field(process):
         return ()
     return declared_executable_obligations(
         contract['executable_obligations'],

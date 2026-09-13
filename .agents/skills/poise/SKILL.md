@@ -24,6 +24,15 @@ the recipient acquires through bootstrap before working, under existing Task aut
 
 Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required content, worktree, findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
+Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has
+a permanent identity and history, uses the shared ownership API, and preserves no route entry before goal_type selection.
+`create`, `edit`, and `ready` require stable request IDs; preserve exact
+replay and reject foreign live ownership. A ready standalone Task becomes available, while a
+Sprint member remains newborn until publication. Use Sprint `materialize_tasks` to convert
+legacy embedded definitions while preserving partial edits, history, graph aliases, membership,
+and source Task traceability. Do not introduce a broad migration or replace direct complete
+Task creation.
+
 When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.
 
 Do not create a worktree for read-only queries. For repository-changing work, use the worktree supplied by AI poise and read the target repository's applicable `AGENTS.md` before edits.

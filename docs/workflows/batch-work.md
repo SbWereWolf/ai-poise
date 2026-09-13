@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-13T05:25:07+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
+Обновлено: **2026-09-13T08:10:00+05:00**. Контракт реализованного API и явно отмеченных согласованных расширений, а не дополнительный workflow DSL.
 
 ## Ответственность
 `WorkTools.invoke(packet)` — один прикладной вход. Чистая грамматика проверяет пакет; Task принимает содержательные изменения; ArtifactFactory создаёт файлы; InteractionLedger проверяет уникальные события. Нативные операции над кодом/тестами приложения не заменены.
@@ -10,6 +10,7 @@
 | operation | Обязательные поля input | Эффект |
 |---|---|---|
 | bootstrap | task, decision, feedback, rework_stage | Для создания — intent с `request_id` и полным task без `id`; для выбора существующей работы — объект только с `id`; затем null |
+| task | Поля выбранного action `create`/`edit`/`ready` | Создать, изменить или подготовить реальную newborn Task |
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
@@ -119,6 +120,29 @@ intent и никогда не выбирает номер сам.
 чистоту: совпавшее частичное состояние завершается, неизвестное изменённое состояние
 отклоняется и сохраняется без reset/удаления. Missing/invalid `task_ids` и исчерпанный namespace
 дают явную ошибку; скрытого диапазона или fallback к caller-side нумерации нет.
+
+## Жизненный цикл newborn Task
+
+`operation: task` создаёт и редактирует реальную Task до её готовности к запуску. Действия
+`create`, `edit` и `ready` всегда получают уникальный `request_id`; точный повтор возвращает
+тот же результат, а другой intent с тем же ID отклоняется. `create` немедленно закрепляет
+постоянный `task_id`, создаёт историю и при необходимости членство в Sprint, но оставляет
+статус `newborn`. `edit` требует `expected_revision` и применяет patch к сохраняемому draft.
+`ready` проверяет ту же полную creation/DoR-схему и repository inputs, что и обычное создание.
+
+Создатель получает newborn Task через общий ownership API. Переключение на другую Task
+освобождает прежний Task claim, но не снимает независимо принадлежащий worktree; запись
+чужого живого владельца отклоняется; до выбора `goal_type` маршрут отсутствует. После выбора
+сохраняется snapshot соответствующего процесса и появляется его entry route, но Task остаётся
+`newborn`, пока контракт не пройдёт readiness. Standalone Task после `ready` становится
+`available`; готовый участник draft Sprint остаётся newborn до атомарной публикации Sprint.
+
+Это дополнительный путь подготовки, а не второй вид Task: одна identity, история и ownership
+сохраняются при переходе. Поддержанная прямая полная creation остаётся без изменений и сразу
+создаёт `available` Task после type-specific DoR. Массовой миграции прежних записей нет.
+Legacy embedded Sprint definitions превращаются в реальные newborn Task только явной
+Sprint-операцией `materialize_tasks`; relation с исходной source Task при replacement и
+creation request остаются частью traceability.
 
 ## Verify
 
@@ -398,7 +422,7 @@ Query не поддерживает pagination и не обещает один c
 
 
 ## Sprint в DDD-05
-Обновлено: **2026-09-11T16:25:00+05:00**. `operation: sprint` принимает actions `draft`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint создаются публикацией и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+Обновлено: **2026-09-13T08:10:00+05:00**. `operation: sprint` принимает actions `draft`, `materialize_tasks`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint materialize получают ID до публикации и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
 
 `replace_task` требует `sprint_id`, `request_id`, `expected_revision`, `source_task`, полный `replacement`, `reason` и `authorization`. Успешный receipt содержит новую revision, `replacements` с old/new relation и safety facts, а также актуальные `tasks`, `eligible` и `blocked`. Идентичный replay возвращает тот же receipt без повторного preflight/мутации; конфликтующий intent с тем же `request_id` отклоняется.
 

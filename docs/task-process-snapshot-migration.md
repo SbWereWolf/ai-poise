@@ -91,12 +91,14 @@ drift и отклоняет весь пакет.
 точно `task_ids: ["0082"]` и не расширяет разрешение `task-process-migration-1`: смешанный
 набор, пустой набор, другой ID или несколько Task отклоняются до изменения данных. Этот путь
 добавляет в сохранённый process snapshot 0082 только отсутствующий boolean
-`worktree_required`, взятый из настроенного process того же immutable `goal_type`. Если первый
-запуск уже добавил совпадающий boolean, recovery сохраняет этот process без изменений.
-Остальные поля старого snapshot не заменяются актуальным process целиком.
+`worktree_required`, взятый из настроенного process того же immutable `goal_type`. Уже выданный
+старый receipt schema 2 остаётся точно replayable; этот опубликованный контракт не меняется.
 
-Та же атомарная операция инициализирует отсутствующий `stage_contracts` в Task contract.
-Она создаёт один contract на каждый сохранённый process stage в исходном порядке, переносит
+Корректирующая `task-process-migration-3` принимает тот же точный набор Task. Если schema 2 уже
+добавила совпадающий boolean, schema 3 сохраняет process без изменений; если boolean ещё нет,
+она добавляет его, не заменяя остальные поля старого snapshot актуальным process целиком.
+Та же атомарная операция инициализирует отсутствующий `stage_contracts` в Task contract. Она
+создаёт один contract на каждый сохранённый process stage в исходном порядке, переносит
 его `allowed_paths` и назначает entry/exit gates из сохранённых process/task content requirements
 по их stage и phase. Уже существующий `stage_contracts` либо несовпадающий boolean означает,
 что точечный recovery неприменим, и весь запрос отклоняется. Обе правки выполняются одним
@@ -107,8 +109,8 @@ metadata update без изменения lifecycle columns, Task version и rel
 
 ```json
 {
-  "schema": "task-process-migration-2",
-  "request_id": "migrate-task-0082-process-1",
+  "schema": "task-process-migration-3",
+  "request_id": "migrate-task-0082-stage-contracts-2",
   "backup_name": "BACKUP_NAME",
   "task_ids": ["0082"],
   "authorization": "User authorized process snapshot recovery for Task 0082."

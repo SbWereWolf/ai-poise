@@ -61,11 +61,12 @@ A stable existing claim does not block that authorized migration and must remain
 any claim creation, release, or replacement after the named backup or preflight is drift
 that rejects the complete batch.
 The separately authorized `task-process-migration-2` accepts exactly Task `0082`; it does
-not widen schema 1. It may add only the missing explicit `worktree_required` value to the
-stored legacy process and initialize exact stage contracts from that preserved process and its
-content requirements. Apply both metadata changes without changing Task version, lifecycle,
-released handoff, result, evidence, ownership, or Git state, then require a native reviewer
-bootstrap of the preserved verified Task.
+not widen schema 1 and its issued receipt remains exactly replayable. Corrective
+`task-process-migration-3` has the same exact Task scope. It preserves an already migrated
+matching `worktree_required`, or adds the missing explicit value, and initializes exact stage
+contracts from that preserved process and its content requirements. Apply schema 3 metadata
+changes without changing Task version, lifecycle, released handoff, result, evidence, ownership,
+or Git state, then require a native reviewer bootstrap of the preserved verified Task.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 

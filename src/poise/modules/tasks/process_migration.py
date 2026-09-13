@@ -17,6 +17,7 @@ TASK_0082_AUTHORIZED_IDS = ("0082",)
 AUTHORIZED_TASK_IDS_BY_SCHEMA = {
     "task-process-migration-1": AUTHORIZED_TASK_IDS,
     "task-process-migration-2": TASK_0082_AUTHORIZED_IDS,
+    "task-process-migration-3": TASK_0082_AUTHORIZED_IDS,
 }
 NONTERMINAL_STATUSES = frozenset({"available", "active", "verified", "accepted"})
 
@@ -157,7 +158,7 @@ class ProcessSnapshotMigration:
             if worktree_required_added:
                 candidate["worktree_required"] = worktree_required
             elif (
-                request.schema != "task-process-migration-2"
+                request.schema != "task-process-migration-3"
                 or type(candidate["worktree_required"]) is not bool
                 or candidate["worktree_required"] != worktree_required
             ):
@@ -167,7 +168,7 @@ class ProcessSnapshotMigration:
             migrated_contract = None
             old_contract_digest = None
             new_contract_digest = None
-            if request.schema == "task-process-migration-2":
+            if request.schema == "task-process-migration-3":
                 if "stage_contracts" in contract:
                     raise DomainError(
                         f"Task {task_id} already has stage_contracts; exact recovery is not applicable"

@@ -91,10 +91,11 @@ compatibility read. Одинаковый `request_id` с тем же intent во
 обязательный `Clock`; production composition явно предоставляет `SystemClock`.
 
 Schema `task-process-migration-2` имеет отдельный compile-time scope ровно из Task `0082` и
-не меняет авторизованный набор schema 1. Для 0082 domain строит новый process из сохранённого
-legacy snapshot, добавляя только отсутствующий `worktree_required` из совпадающего configured
-goal type. В той же plan строится точный отсутствующий stage contract каждого сохранённого route
-stage: scope берётся из stage, gates — из сохранённых content requirements по phase. Storage
+не меняет авторизованный набор schema 1. Она сохраняет опубликованный контракт первой операции:
+domain добавляет к legacy process только отсутствующий `worktree_required`, а её старый receipt
+остаётся replayable. Корректирующая schema `task-process-migration-3` имеет тот же точный scope,
+сохраняет уже добавленный совпадающий boolean и строит отсутствующий stage contract каждого route
+stage: scope берётся из сохранённого stage, gates — из сохранённых content requirements по phase. Storage
 меняет только process и contract snapshots внутри metadata; Task version, lifecycle/result/
 content/evidence/ownership/Git поля и released handoff остаются прежними. После commit
 работоспособность доказывается обычным reviewer bootstrap сохранённой verified Task.

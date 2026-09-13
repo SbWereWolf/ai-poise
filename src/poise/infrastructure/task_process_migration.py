@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from contextlib import closing
-from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sqlite3
@@ -10,6 +9,7 @@ from typing import Callable
 
 from ..common import configured_root, descendant, digest, encoded, load_config
 from ..modules.foundation.errors import PoiseError
+from ..modules.accounting.clock import Clock, ClockObservation
 from ..modules.tasks.process_migration import MigrationRequest, ProcessSnapshotMigration
 from .locking import exclusive_lock
 
@@ -43,12 +43,12 @@ class SqliteTaskProcessMigration:
     def __init__(
         self,
         config_path: Path,
-        clock: Callable[[], datetime] | None = None,
+        clock: Clock,
         after_update: Callable[[str], None] | None = None,
         after_preflight: Callable[[], None] | None = None,
     ):
         self.config_path = Path(config_path).resolve()
-        self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self.clock = clock
         self.after_update = after_update or (lambda task_id: None)
         self.after_preflight = after_preflight or (lambda: None)
 
@@ -146,7 +146,7 @@ class SqliteTaskProcessMigration:
                     connection.execute(
                         "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
                         (
-                            self.clock().isoformat(),
+                            self._audit_utc(),
                             "task-process-migrate",
                             None,
                             "task_process_snapshot_migrated",
@@ -175,12 +175,71 @@ class SqliteTaskProcessMigration:
             audit = json.loads(row[0])
             if not isinstance(audit, dict):
                 raise PoiseError("Stored Task process migration audit is incompatible")
+            if set(audit) != {"request_digest", "request_id", "result"}:
+                raise PoiseError("Stored Task process migration audit structure is incompatible")
             if audit.get("request_id") != request.request_id:
                 continue
             if audit.get("request_digest") != request.digest:
                 raise PoiseError("Task process migration request_id belongs to a different intent")
             result = audit.get("result")
-            if not isinstance(result, dict):
-                raise PoiseError("Stored Task process migration receipt is incompatible")
+            SqliteTaskProcessMigration._validate_replay_result(connection, request, result)
             return {**result, "replayed": True}
         return None
+
+    def _audit_utc(self) -> str:
+        observation = self.clock.observe()
+        if not isinstance(observation, ClockObservation):
+            raise PoiseError("Clock.observe must return ClockObservation")
+        return observation.audit_utc
+
+    @staticmethod
+    def _validate_replay_result(
+        connection: sqlite3.Connection, request: MigrationRequest, result: object
+    ) -> None:
+        fields = {"status", "replayed", "request_id", "backup_name", "tasks", "receipt"}
+        if not isinstance(result, dict) or set(result) != fields:
+            raise PoiseError("Stored Task process migration audit result is incompatible")
+        if (
+            result["status"] != "migrated"
+            or result["replayed"] is not False
+            or result["request_id"] != request.request_id
+            or result["backup_name"] != request.backup_name
+            or not isinstance(result["tasks"], list)
+        ):
+            raise PoiseError("Stored Task process migration audit identity is incompatible")
+        summaries = []
+        for task_id, item in zip(request.task_ids, result["tasks"], strict=False):
+            item_fields = {
+                "task_id", "worktree_required", "old_process_digest", "new_process_digest"
+            }
+            if not isinstance(item, dict) or set(item) != item_fields or item["task_id"] != task_id:
+                raise PoiseError("Stored Task process migration audit Task summary is incompatible")
+            row = connection.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if row is None:
+                raise PoiseError("Stored Task process migration audit references a missing Task")
+            metadata = json.loads(row[0])
+            process = metadata.get("process") if isinstance(metadata, dict) else None
+            if not isinstance(process, dict) or type(process.get("worktree_required")) is not bool:
+                raise PoiseError("Stored Task process migration audit process is incompatible")
+            old_process = dict(process)
+            worktree_required = old_process.pop("worktree_required")
+            expected = {
+                "task_id": task_id,
+                "worktree_required": worktree_required,
+                "old_process_digest": digest(old_process),
+                "new_process_digest": digest(process),
+            }
+            if item != expected:
+                raise PoiseError("Stored Task process migration audit digest is incompatible")
+            summaries.append(expected)
+        if len(summaries) != len(request.task_ids) or len(result["tasks"]) != len(request.task_ids):
+            raise PoiseError("Stored Task process migration audit Task batch is incompatible")
+        expected_receipt = digest(
+            {
+                "request_digest": request.digest,
+                "backup_name": request.backup_name,
+                "tasks": summaries,
+            }
+        )
+        if result["receipt"] != expected_receipt:
+            raise PoiseError("Stored Task process migration audit receipt is incompatible")

@@ -35,5 +35,6 @@ def route_migration_tools(config_path):
 
 def task_process_migration_tools(config_path):
     from .application.task_process_migration import TaskProcessMigrationCommands
+    from .infrastructure.clock import SystemClock
     from .infrastructure.task_process_migration import SqliteTaskProcessMigration
-    return TaskProcessMigrationCommands(SqliteTaskProcessMigration(config_path))
+    return TaskProcessMigrationCommands(SqliteTaskProcessMigration(config_path, SystemClock()))

@@ -193,12 +193,28 @@
   ],
   "areas": [
     {
+      "path": "app/Domain/**",
+      "responsibility": "domain-design"
+    },
+    {
+      "path": "app/Jobs/**",
+      "responsibility": "queues"
+    },
+    {
+      "path": "app/MoonShine/**",
+      "responsibility": "laravel-admin"
+    },
+    {
       "path": "app/**",
       "responsibility": "laravel-backend"
     },
     {
       "path": "database/**",
       "responsibility": "database"
+    },
+    {
+      "path": "infrastructure/**",
+      "responsibility": "infrastructure"
     },
     {
       "path": "resources/css/**",
@@ -219,6 +235,10 @@
     {
       "path": "tests/Feature/**",
       "responsibility": "system-tests"
+    },
+    {
+      "path": "tests/Frontend/**",
+      "responsibility": "frontend-tests"
     },
     {
       "path": "tests/Unit/**",

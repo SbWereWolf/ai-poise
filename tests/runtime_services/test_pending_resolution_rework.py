@@ -5,8 +5,10 @@ from dataclasses import replace
 
 import pytest
 
+from conftest import write_json
 from poise.common import PoiseError
 from poise.modules.foundation.errors import DomainError
+from poise.modules.tasks.domain import TaskStageContracts
 from runner.helpers import decision, finding, inspect, process, resolution, task, verify
 from runner.test_runner_paths import edit, result, setup_project
 
@@ -19,6 +21,17 @@ EXPECTED_ERROR = (
 
 def pending_runtime(project):
     runtime = setup_project(project, "development")
+    configured = runtime.processes["development"]
+    project["task"]["stage_contracts"] = [
+        {
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        }
+        for stage in configured["stages"]
+    ]
+    write_json(project["task_path"], project["task"])
     context = runtime.bootstrap(task_file=project["task_path"])
     edit(context, "development", "initial\n")
     result(context, {})
@@ -35,8 +48,27 @@ def pending_runtime(project):
     return runtime
 
 
+def task_with_contracts(route=None):
+    configured = process() if route is None else route
+    current = task(configured)
+    contracts = TaskStageContracts.parse(
+        [
+            {
+                "stage_id": stage["id"],
+                "allowed_paths": list(stage["allowed_paths"]),
+                "entry_requirements": [],
+                "exit_requirements": [],
+            }
+            for stage in configured["stages"]
+        ],
+        current.route,
+        current.content_policy,
+    )
+    return replace(current, stage_contracts=contracts)
+
+
 def pending_task(route=None):
-    current = verify(task(route), {}).accept("S", True).task
+    current = verify(task_with_contracts(route), {}).accept("S", True).task
     current = verify(current, inspect([finding()])).accept("S", True).task
     return verify(current, {"resolutions": [resolution()]})
 
@@ -115,7 +147,7 @@ def test_failed_check_rework_rejects_pending_resolution_before_state_change():
 
 
 def test_failed_check_rework_rejects_foreign_owner_before_state_change():
-    current = task()
+    current = task_with_contracts()
     current = current.submit(
         "S",
         {"report": "Failed owned candidate."},
@@ -185,7 +217,7 @@ def test_mixed_history_reports_only_unresolved_resolution():
     route["stages"][3]["id"] = "resolution_audit"
     route["stages"][3]["rework_targets"] = ["resolution_audit", "draft"]
 
-    current = verify(task(route), {}).accept("S", True).task
+    current = verify(task_with_contracts(route), {}).accept("S", True).task
     current = verify(current, inspect([finding("F1")])).accept("S", True).task
     current = verify(
         current,
@@ -223,7 +255,7 @@ def test_mixed_history_reports_only_unresolved_resolution():
 
 
 def test_clean_rework_remains_available():
-    current = verify(task(), {})
+    current = verify(task_with_contracts(), {})
 
     changed = current.rework("S", "Уточнить чистый результат.", "draft")
 

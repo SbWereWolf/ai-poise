@@ -251,10 +251,14 @@ def test_failed_check_can_rework_to_declared_revise_stage_without_finding(projec
         "status": git(Path(worktree), "status", "--porcelain=v1"),
         "content": wip.read_text(encoding="utf-8"),
     } == git_before
-    assert any(
-        event.get("reason") == "Repair the failed verification through the declared test route."
-        for event in after["history"]
-    )
+    assert after["history"][:-1] == before["history"]
+    assert after["history"][-1] == {
+        "event": "user_failed_check_rework",
+        "stage": "implementation",
+        "iteration": 1,
+        "reason": "Repair the failed verification through the declared test route.",
+        "submission": None,
+    }
 
     tests = Path(worktree) / "tests"
     tests.mkdir(exist_ok=True)

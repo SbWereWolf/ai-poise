@@ -124,6 +124,10 @@ def project(tmp_path, monkeypatch):
         ],
     }
     cfg['accounting']=json.loads((Path(__file__).resolve().parents[1]/'config/accounting.example.json').read_text())
+    cfg['accounting']['storage'] = {
+        'database': 'fixture-telemetry/events.sqlite',
+        'lock': 'fixture-telemetry/events.lock',
+    }
     cfg['runtime_services']=json.loads((Path(__file__).resolve().parents[1]/'config/runtime.example.json').read_text())
     cfg['batch']=json.loads((Path(__file__).resolve().parents[1]/'config/batch.example.json').read_text())
     cfg['sprint']=json.loads((Path(__file__).resolve().parents[1]/'config/sprint.example.json').read_text())

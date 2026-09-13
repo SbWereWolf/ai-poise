@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import sqlite3
+import shutil
 import sys
 from tempfile import mkdtemp
 from threading import Event, Thread, local
@@ -155,6 +156,9 @@ def test_real_optional_write_does_not_block_current_next_or_accounting_work(proj
     assert report["telemetry"]["pending"] >= 1
     assert optional.path.resolve() != authoritative.path.resolve()
     assert optional.lock.resolve() != authoritative.lock.resolve()
+    selected = runtime.cfg['accounting']['storage']
+    assert optional.path.resolve() == (runtime.state / selected['database']).resolve()
+    assert optional.lock.resolve() == (runtime.state / selected['lock']).resolve()
     assert not authoritative_accesses, authoritative_accesses
     # The test would otherwise pass if the wired worker silently discarded work.
     stored = runtime.accounting.port.repo.snapshot()["telemetry"]
@@ -280,9 +284,47 @@ def test_one_rejected_capture_counts_as_one_loss(mode):
         dispatcher.close()
 
 
+def _finish_run(directory, output, errors, *, expected, marker, exit_code):
+    if expected:
+        # This exact mkdtemp directory belongs to this invocation only.
+        shutil.rmtree(directory)
+        print(marker)
+        return exit_code
+    (directory / "pytest.txt").write_text(output)
+    (directory / "errors.json").write_text(json.dumps(errors, indent=2))
+    print(output)
+    print(f"Unexpected verification outcome; preserved diagnostics: {directory}", file=sys.stderr)
+    return 2
+
+
+@pytest.mark.parametrize("exit_code,marker", [(0, "GREEN"), (1, "RED")])
+def test_runner_cleans_only_its_expected_workspace(tmp_path, capsys, exit_code, marker):
+    owned = Path(mkdtemp(dir=tmp_path))
+    (owned / "data.txt").write_text("scratch")
+    foreign = tmp_path / "foreign.txt"
+    foreign.write_text("preserve")
+    assert _finish_run(owned, "output", {}, expected=True, marker=marker, exit_code=exit_code) == exit_code
+    assert not owned.exists()
+    assert foreign.read_text() == "preserve"
+    captured = capsys.readouterr()
+    assert captured.out == marker + "\n" and captured.err == ""
+
+
+def test_runner_surfaces_and_preserves_unexpected_workspace(tmp_path, capsys):
+    owned = Path(mkdtemp(dir=tmp_path))
+    (owned / "data.txt").write_text("failed-state")
+    assert _finish_run(owned, "failure", {"case": "unexpected"}, expected=False, marker="", exit_code=0) == 2
+    assert (owned / "data.txt").read_text() == "failed-state"
+    assert (owned / "pytest.txt").read_text() == "failure"
+    assert json.loads((owned / "errors.json").read_text()) == {"case": "unexpected"}
+    assert str(owned) in capsys.readouterr().err
+
+
 def main(mode, evidence_root):
-    # Keep every failing workspace and log, including expected RED. Never let
-    # pytest reuse/delete an earlier diagnostic directory.
+    if mode not in {"red", "green", "guard"}:
+        raise ValueError("explicit verification mode required")
+    # Unexpected runs retain an explicitly surfaced directory. Expected RED is
+    # a successful verification outcome and leaves no opaque runtime tree.
     directory = Path(mkdtemp(prefix="0082-storage-", dir=evidence_root))
     captured = io.StringIO()
     reports, errors = [], {}
@@ -297,24 +339,28 @@ def main(mode, evidence_root):
             if call.excinfo is not None:
                 errors[item.name] = (call.when, call.excinfo.typename, str(call.excinfo.value))
 
+    source = Path(__file__).resolve()
+    config_tests = source.with_name("test_storage_config.py")
+    selection = ([str(config_tests) + "::test_explicit_storage_policy_accepts_operator_paths"] if mode == "red"
+                 else [str(source), "-k", "test_runner_"] if mode == "guard"
+                 else [str(source), str(config_tests)])
     with redirect_stdout(captured), redirect_stderr(captured):
-        code = pytest.main([str(Path(__file__).resolve()), "-q", "--basetemp", str(directory / "pytest")], plugins=[Results()])
-    (directory / "pytest.txt").write_text(captured.getvalue())
-    (directory / "errors.json").write_text(json.dumps(errors, indent=2))
+        code = pytest.main([*selection, "-q", "--basetemp", str(directory / "pytest")], plugins=[Results()])
     expected = {
-        "test_real_optional_write_does_not_block_current_next_or_accounting_work": ("call", "StorageCoupling", "successful work was replaced by optional lock timeout"),
-        "test_failed_handoff_preserves_legacy_cycle_and_replay_closes_it_atomically": ("call", "NonAtomicRelease", "failed handoff changed the legacy accounting row"),
+        "test_explicit_storage_policy_accepts_operator_paths": (
+            "call", "DomainError",
+            "accounting config: required explicit fields ['causes', 'max_blob_bytes', 'max_events', 'max_files', 'path_categories', 'sources', 'time_mode', 'timezone', 'tokenizer', 'week_start']",
+        ),
     }
     calls = [report for report in reports if report.when == "call"]
-    if mode == "red" and code == pytest.ExitCode.TESTS_FAILED and errors == expected and len(calls) == 5 and sum(report.passed for report in calls) == 3:
-        print("EXPECTED_STORAGE_CONTENTION_AND_NONATOMIC_HANDOFF")
-        return 1
-    if mode == "green" and code == pytest.ExitCode.OK and len(calls) == 5 and all(report.passed for report in calls):
-        print("TELEMETRY_STORAGE_GREEN")
-        return 0
-    print(captured.getvalue())
-    print(f"Unexpected {mode} outcome; preserved diagnostics: {directory}", file=sys.stderr)
-    return 2
+    matched = (code == pytest.ExitCode.TESTS_FAILED and errors == expected and len(calls) == 1
+               if mode == "red" else code == pytest.ExitCode.OK and not errors
+               and len(calls) == (3 if mode == "guard" else 37)
+               and all(report.passed for report in calls))
+    marker = {"red": "EXPECTED_EXPLICIT_TELEMETRY_STORAGE_CONTRACT_MISSING",
+              "green": "TELEMETRY_STORAGE_GREEN", "guard": "TELEMETRY_RUNNER_GREEN"}[mode]
+    return _finish_run(directory, captured.getvalue(), errors, expected=matched,
+                       marker=marker, exit_code=1 if mode == "red" else 0)
 
 
 if __name__ == "__main__":

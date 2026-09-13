@@ -24,6 +24,18 @@ For a development Task, pass the complete initial checks schedule explicitly; `{
 
 Tools are batch-oriented and declarative: if two or more required mechanical actions have no reasoning decision between them, expose one operation that ensures the requested result through owning APIs. Do not add hidden defaults, compatibility readers or migrations without direct user authorization. Read [Declarative tools → architectural invariant](../../../docs/architecture/declarative-tools.md#1-архитектурный-инвариант) for the corresponding contract section available in the current revision.
 
+Keep stale observation recovery inside the existing verification owner. An `observe` stage may
+replace only one of its current `evidence_plan.subject_methods` through the guarded registry
+change contract. Preserve its schedule, executable classification and coverage, keep historical
+definitions and proof records immutable, and bind the first mutation/replay to one durable audit
+identity. Structural registry edits remain owned by `test_registry`. Read the exact invariants in
+[Evidence → stale observation replacement](../../../docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения).
+
+Keep the pending-resolution rework guard in the Task aggregate, before route or execution mutation.
+Its error must identify only unresolved resolution IDs and the exact next inspection stage; clean
+rework remains unchanged. Do not replace this invariant with a workaround Task or direct Task DB
+repair. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013).
+
 ## Project-local configuration
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).

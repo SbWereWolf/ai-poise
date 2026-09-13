@@ -104,6 +104,7 @@ class SubmissionReceipt:
     created: bool
     version: int
     digest: str
+    registry_change: dict | None = None
 
 
 class TaskCommands:
@@ -370,7 +371,8 @@ class TaskCommands:
             if submission_id is None:
                 raise DomainError("Нарушен контракт сохранения submission")
             return SubmissionReceipt(submission_id, change.submission is not None,
-                                     change.task.state.version, change.task.state.submission_digest)
+                                     change.task.state.version, change.task.state.submission_digest,
+                                     change.registry_change)
 
     def validate_submission(self, task_id: str, actor: str, payload: dict) -> None:
         """Pure candidate validation before ArtifactFactory external side effects."""
@@ -480,24 +482,14 @@ class TaskCommands:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
-            handoff = uow.handoffs.latest(task_id)
-            if handoff is None or handoff["state"] != "released":
-                raise DomainError("Empty rework recovery requires a released handoff")
-            if task.state.version != handoff["version"] + 1:
-                raise DomainError("Task changed after the released empty rework handoff")
-            if handoff["receipt"]["verified"] is not False:
-                raise DomainError(
-                    "Empty rework recovery requires an active handoff after user_rework"
-                )
+            handoff = uow.handoffs.latest_recovery_candidate(task_id)
+            point = uow.tasks.empty_rework_recovery_point(
+                task_id, task.state.version, execution["last_report"], transition_event
+            )
+            if point.evidence_input is None:
+                raise DomainError("Previous verified submission has no evidence input")
             if task.state.submission_digest is not None:
                 raise DomainError("Current rework iteration is not empty: submission exists")
-            if (
-                handoff["receipt"]["stage"] != task.stage.stage_id
-                or handoff["receipt"]["iteration"] != task.state.iteration
-            ):
-                raise DomainError("Released handoff does not identify the current empty iteration")
-            if handoff["receipt"]["tree"] != tree:
-                raise DomainError("Released handoff tree changed")
             if (
                 execution["pending"] is not None
                 or execution["publication"] is not None
@@ -507,11 +499,6 @@ class TaskCommands:
                 or execution["last_report"].get("verified_tree") != tree
             ):
                 raise DomainError("Execution state is not an unchanged empty rework")
-            point = uow.tasks.empty_rework_recovery_point(
-                task_id, handoff["version"], execution["last_report"], transition_event
-            )
-            if point.evidence_input is None:
-                raise DomainError("Previous verified submission has no evidence input")
             change = task.recover_empty_transition(reason, point, recovery_event)
             uow.tasks.save(change, task.state.version)
             if transition_event == "user_accept_and_continue":
@@ -519,7 +506,13 @@ class TaskCommands:
                     task_id,
                     {"last_report": {**execution["last_report"], "status": "verified"}},
                 )
-            uow.handoffs.replace({**handoff, "state": "recovered"})
+            if (handoff is not None
+                    and task.state.version >= handoff["version"] + 1
+                    and handoff["receipt"]["verified"] is False
+                    and handoff["receipt"]["stage"] == task.stage.stage_id
+                    and handoff["receipt"]["iteration"] == task.state.iteration
+                    and handoff["receipt"]["tree"] == tree):
+                uow.handoffs.replace({**handoff, "state": "recovered"})
             return {
                 "status": "recovered",
                 "task": task_id,

@@ -47,6 +47,15 @@ Do not create a worktree for read-only queries. For repository-changing work, us
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
+When a current observation command has become stale, do not recreate the Task or edit its
+database. Read the current registry with one `show` query of kind `verification_registry`, then
+submit one guarded `method_additions` change from the current `observe` stage. Replace only a
+method owned by that stage's `evidence_plan.subject_methods`; provide the exact current revision,
+a new idempotent request ID and unchanged stages, `evidence_kind`, `covers` and
+`executable_obligations`. Add/remove/reschedule and guard or classification changes still require
+a `test_registry` stage. Preserve the returned audit receipt; a replay must return its original
+identity without another event. Follow [Evidence → stale observation replacement](../../../docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения).
+
 Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user instruction to start a Task authorizes its executor and reviewer to continue ordinary execution, review and remediation through the harness without a new user command for each stage or review. Honor an explicit stage-only assignment or other user limit. Continue stages of your own role; at a role boundary follow the handoff procedure below. Do not bypass gates or act as your own independent reviewer. Stop for a real blocker, a new required decision, or separately controlled acceptance/publication/integration.
 
 Poise isolates the temporary Git index for every repository snapshot invocation and cleans only that invocation's owned directory. Never delete `snapshot.index.lock` manually or remove a sibling snapshot directory: preserve a genuine Git conflict diagnostic and let the owning lifecycle recover it. See the canonical [snapshot index contract](../../../docs/workflows/batch-work.md#изоляция-временного-git-index).
@@ -101,3 +110,5 @@ When an operational rule is owned by canonical documentation, link to and read t
 ## Route semantics
 
 Route definitions contain an explicit `entry`; stage outcomes, targets and rework targets own transition semantics. Preserve visits and transitions only for history, identity and audit. Never impose an execution limit through route counts, depth, watchdogs, timeouts or recursion bounds. A finite graph-reachability check is structural validation, not an execution budget.
+
+Do not request rework while a pending resolution still requires independent inspection. Follow the exact inspection stage reported by Poise, decide every pending resolution there, and only then retry an authorized rework target. The rejection is state-preserving; do not create a workaround Task or edit the Task DB. Use `recover_empty_rework` only for a legacy task already stranded by the former defect. Recovery requires an unowned Task and an ownership-only event suffix, not a synthetic handoff. A cleaned worktree is recoverable only when Poise proves the saved commit is integrated into the configured base and has the exact verified tree; never recreate that worktree manually. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013) and [empty rework recovery](../../../docs/workflows/batch-work.md#восстановление-ошибочно-открытой-пустой-rework-итерации) (Task 0063 RD-008).

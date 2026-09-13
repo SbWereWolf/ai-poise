@@ -277,6 +277,7 @@ class Change:
     task: Task
     submission: Submission | None
     events: tuple[TaskEvent, ...]
+    registry_change: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -424,8 +425,88 @@ class Task:
         event = TaskEvent(kind, self.stage.stage_id, self.state.iteration, reason)
         return Change(replace(self, state=state), submission, (event,))
 
-    def _unchanged(self) -> Change:
-        return Change(self, None, ())
+    def _unchanged(self, registry_change: dict | None = None) -> Change:
+        return Change(self, None, (), registry_change)
+
+    def _observe_registry_change(self, raw: dict):
+        subject_methods = set(
+            self.evidence_plan.stage(self.stage.stage_id).subject_methods
+        )
+        if (isinstance(raw, dict)
+                and set(raw) == {
+                    'request_id', 'expected_revision', 'operations',
+                    'executable_obligations',
+                }
+                and isinstance(raw['operations'], list)
+                and not any(
+                    request.request_id == raw['request_id']
+                    for request in self.check_registry.requests
+                )
+                and raw['expected_revision'] == self.check_registry.revision):
+            for operation in raw['operations']:
+                if isinstance(operation, dict) and operation.get('kind') != 'replace':
+                    raise DomainError(
+                        'observe registry change permits only exact method replacement'
+                    )
+                if (isinstance(operation, dict)
+                        and operation.get('kind') == 'replace'
+                        and operation.get('method_id') in self.check_registry.method_ids
+                        and isinstance(operation.get('registration'), dict)
+                        and operation['registration'].get('stages') != list(next(
+                            entry.stages for entry in self.check_registry.entries
+                            if entry.method_id == operation['method_id']
+                        ))):
+                    raise DomainError('observe registry change cannot reschedule a method')
+        result = self.check_registry.apply_change(raw)
+        if tuple(raw['executable_obligations']) != self.check_registry.executable_obligations:
+            raise DomainError(
+                'observe registry change cannot alter executable_obligations'
+            )
+        current = {entry.method_id: entry for entry in self.check_registry.entries}
+        updated = {entry.method_id: entry for entry in result.registry.entries}
+        for operation in raw['operations']:
+            method_id = operation['method_id']
+            if operation['kind'] != 'replace':
+                raise DomainError('observe registry change permits only exact method replacement')
+            if method_id not in subject_methods:
+                raise DomainError(
+                    'observe registry change requires a current subject method'
+                )
+            if updated[method_id].stages != current[method_id].stages:
+                raise DomainError('observe registry change cannot reschedule a method')
+            if (updated[method_id].evidence_kind != current[method_id].evidence_kind
+                    or updated[method_id].covers != current[method_id].covers):
+                raise DomainError(
+                    'observe registry change cannot alter evidence_kind or covers'
+                )
+        return result
+
+    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool):
+        request = next(
+            request for request in registry.requests
+            if request.request_id == raw['request_id']
+        )
+        if replayed:
+            if request.audit is None:
+                raise DomainError('registry change replay has no durable audit receipt')
+            return registry, {**json.loads(request.audit), 'replayed': True}
+        audit = {
+            'actor': actor,
+            'methods': [operation['method_id'] for operation in raw['operations']],
+            'new_revision': request.revision,
+            'previous_revision': raw['expected_revision'],
+            'request_id': raw['request_id'],
+            'stage': self.stage.stage_id,
+            'iteration': self.state.iteration,
+            'task': self.state.task_id,
+        }
+        receipt_id = hashlib.sha256(json.dumps(
+            audit, sort_keys=True, ensure_ascii=False, separators=(',', ':')
+        ).encode('utf-8')).hexdigest()
+        durable = {**audit, 'receipt_id': receipt_id}
+        return registry.bind_request_audit(raw['request_id'], durable), {
+            **durable, 'replayed': False,
+        }
 
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
                commit_message: str, content_additions: dict, trace: dict,
@@ -438,12 +519,35 @@ class Task:
         stage_handler = handler(self.route.node(self.stage.stage_id).handler)
         handling = stage_handler.evaluate(stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
+        registry_change = None
+        registry_event = None
         if isinstance(method_additions, dict):
-            if 'test_registry' not in {rule.name for rule in self.stage.rules}:
+            owns_test_registry = 'test_registry' in {rule.name for rule in self.stage.rules}
+            observes_evidence = (
+                self.route.node(self.stage.stage_id).handler == HandlerKind.OBSERVE
+            )
+            if owns_test_registry:
+                result = self.check_registry.apply_change(method_additions)
+            elif observes_evidence:
+                result = self._observe_registry_change(method_additions)
+                observe_registry, registry_change = self._registry_change_audit(
+                    method_additions, result.registry, actor, result.replayed
+                )
+                result = replace(result, registry=observe_registry)
+                if not result.replayed:
+                    durable = {key: value for key, value in registry_change.items()
+                               if key != 'replayed'}
+                    registry_event = TaskEvent(
+                        'verification_registry_changed',
+                        self.stage.stage_id,
+                        self.state.iteration,
+                        json.dumps(durable, sort_keys=True, ensure_ascii=False),
+                    )
+            else:
                 raise DomainError(
                     f'{self.stage.stage_id}: изменение test_registry на этом этапе запрещено'
                 )
-            registry = self.check_registry.apply_change(method_additions).registry
+            registry = result.registry
         else:
             registry = self.check_registry.extend(method_additions)
         registry.validate_route(self.route)
@@ -467,10 +571,12 @@ class Task:
                                 json.dumps(method_additions,sort_keys=True,ensure_ascii=False), work_json,
                                 json.dumps(evidence_work,sort_keys=True,ensure_ascii=False))
         if submission.digest == self.state.submission_digest:
-            return self._unchanged()
+            return self._unchanged(registry_change)
         change = self._change("submitted", None, submission, submission_digest=submission.digest)
+        events = change.events + (() if registry_event is None else (registry_event,))
         return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, stage_contracts=contracts, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
-                       progress=replace(change.task.progress, outcome=handling.outcome, stage_work=work_json)))
+                       progress=replace(change.task.progress, outcome=handling.outcome, stage_work=work_json)),
+                       events=events, registry_change=registry_change)
 
     def assess_content(self, phase: str, artifacts: tuple[ArtifactFact, ...]) -> Assessment:
         contract = self._require_stage_contracts().stage(self.stage.stage_id)
@@ -547,6 +653,25 @@ class Task:
             raise DomainError("Для rework требуется замечание пользователя")
         if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED, TaskStatus.COMPLETED):
             raise DomainError("Rework открывает ранее предъявленный результат")
+        pending_resolutions = self.feedback.pending_resolutions
+        if pending_resolutions:
+            inspection_stage = self.route.node(self.stage.stage_id).target(
+                self.progress.outcome
+            )
+            if (inspection_stage is None or
+                    self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
+                raise DomainError(
+                    "Rework недоступен: маршрут не определяет обязательный этап "
+                    "осмотра ожидающих исправлений"
+                )
+            resolution_ids = ", ".join(
+                resolution.id for resolution in pending_resolutions
+            )
+            raise DomainError(
+                f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
+                f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
+                "исправление."
+            )
         destination = self.stage.stage_id if target is None else target
         if destination not in self.route.node(self.stage.stage_id).rework_targets:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")

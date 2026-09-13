@@ -37,9 +37,15 @@ def _configured_processes(project: dict) -> dict[str, dict]:
     documentation["worktree_required"] = False
     documentation_path = project["root"] / "config/processes/documentation.json"
     write_json(documentation_path, documentation)
+    analysis = deepcopy(development)
+    analysis["goal_type"] = "analysis"
+    analysis["worktree_required"] = True
+    analysis_path = project["root"] / "config/processes/analysis.json"
+    write_json(analysis_path, analysis)
     config["processes"]["documentation"] = "config/processes/documentation.json"
+    config["processes"]["analysis"] = "config/processes/analysis.json"
     write_json(project["config_path"], config)
-    return {"development": development, "documentation": documentation}
+    return {"development": development, "documentation": documentation, "analysis": analysis}
 
 
 def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
@@ -55,7 +61,11 @@ def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
     expected = {}
     with db.transaction() as connection:
         for index, task_id in enumerate((*TASKS, "CONTROL")):
-            goal_type = "documentation" if task_id in {"0074", "0063"} else "development"
+            goal_type = (
+                "analysis" if task_id == "0063"
+                else "documentation" if task_id == "0074"
+                else "development"
+            )
             process = deepcopy(processes[goal_type])
             process.pop("worktree_required")
             metadata = {
@@ -140,6 +150,14 @@ def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
         connection.execute(
             "INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
             ("0063", '{"worktree":null,"marker":"preserve-0063"}', 4),
+        )
+        connection.execute(
+            "INSERT INTO artifacts(id,owner,scope,path,digest) VALUES(?,?,?,?,?)",
+            ("artifact-0063", "0063", "task", "deliverables/0063.md", "artifact-digest-0063"),
+        )
+        connection.execute(
+            "INSERT INTO task_artifacts(task_id,artifact_id) VALUES(?,?)",
+            ("0063", "artifact-0063"),
         )
         connection.execute(
             "INSERT INTO sprints(id,project,state,revision,data) VALUES(?,?,?,?,?)",
@@ -244,7 +262,7 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert result["request_id"] == "migrate-chain-processes-1"
     assert result["backup_name"] == backup["name"]
     assert [item["task_id"] for item in result["tasks"]] == list(TASKS)
-    assert [item["worktree_required"] for item in result["tasks"]] == [True, True, True, True, False, False]
+    assert [item["worktree_required"] for item in result["tasks"]] == [True, True, True, True, False, True]
     expected_tasks = []
     for task_id in TASKS:
         old_process = expected_metadata[task_id]["process"]

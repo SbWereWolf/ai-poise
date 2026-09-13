@@ -48,6 +48,10 @@ def parser():
     restore.add_argument('backup_name')
     migration=sub.add_parser('route-migrate',help='Remove retired route count limits from one project')
     migration.add_argument('--config',type=Path,required=True)
+    task_process_migration=sub.add_parser(
+        'task-process-migrate', help='Migrate one explicitly authorized Task process-snapshot batch'
+    )
+    task_process_migration.add_argument('--config',type=Path,required=True)
     return p
 
 
@@ -100,6 +104,9 @@ def main():
     if args.command=='route-migrate':
         from .interfaces.route_migration import execute
         return execute(args.config,sys.stdout)
+    if args.command=='task-process-migrate':
+        from .interfaces.task_process_migration import execute
+        return execute(args.config,sys.stdin.buffer,sys.stdout)
     if not os.environ.get('POISE_CONFIG'):
         print('Не задан POISE_CONFIG: выберите конфигурацию проекта.',file=sys.stderr)
         return 2

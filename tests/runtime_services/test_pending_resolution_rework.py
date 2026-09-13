@@ -6,7 +6,7 @@ import pytest
 
 from poise.common import PoiseError
 from poise.modules.foundation.errors import DomainError
-from runner.helpers import decision, finding, inspect, resolution, task, verify
+from runner.helpers import decision, finding, inspect, process, resolution, task, verify
 from runner.test_runner_paths import edit, result, setup_project
 
 
@@ -74,19 +74,43 @@ def test_exact_rework_retry_is_idempotent():
 
 
 def test_mixed_history_reports_only_unresolved_resolution():
-    current = pending_task().accept("S", True).task
+    route = process()
+    route["stages"][2]["transitions"]["complete"] = "resolution_audit"
+    route["stages"][3]["id"] = "resolution_audit"
+    route["stages"][3]["rework_targets"] = ["resolution_audit", "draft"]
+
+    current = verify(task(route), {}).accept("S", True).task
+    current = verify(current, inspect([finding("F1")])).accept("S", True).task
     current = verify(
         current,
-        inspect([finding("F2")], [decision("R1")]),
+        {"resolutions": [resolution("R1", "F1")]},
     ).accept("S", True).task
-    current = verify(current, {"resolutions": [resolution("R2", "F2")]})
+    current = verify(
+        current,
+        inspect(
+            [finding("F2"), finding("F3")],
+            [decision("R1")],
+        ),
+    ).accept("S", True).task
+    current = verify(
+        current,
+        {
+            "resolutions": [
+                resolution("R2", "F2"),
+                resolution("R3", "F3"),
+            ]
+        },
+    )
+    before = current
 
     with pytest.raises(DomainError) as caught:
         current.rework("S", "Не обходить второй осмотр.", "amend")
 
     message = str(caught.value)
-    assert "R2" in message
+    assert "исправления R2, R3" in message
+    assert "этап resolution_audit" in message
     assert "R1" not in message
+    assert current == before
     context = current.workflow_context()["feedback"]
     assert context["decisions"][0]["resolution_id"] == "R1"
     assert context["decisions"][0]["decision"] == "accepted"

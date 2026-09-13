@@ -11,7 +11,7 @@ import tempfile
 
 from ..common import configured_root, descendant, digest, load_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
-from ..modules.goal_config.domain import GoalTypeDefinition
+from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
 from .goal_config import atomic_write, read_document
 from .locking import exclusive_lock
@@ -61,6 +61,39 @@ class FileProjectConfigUpdate:
 
     def _receipt(self, root, relative):
         return descendant(root, relative)
+
+    def _source(self, config_path, updates):
+        try:
+            return load_config(config_path)
+        except BatchValidationError as failure:
+            config = read_document(config_path)
+            if not isinstance(config.get("processes"), dict) or not config["processes"]:
+                raise failure
+            root = config_path.parent
+            processes = {}
+            legacy = set()
+            legacy_fields = PROCESS_FIELDS - {"worktree_required"}
+            for goal, relative in config["processes"].items():
+                process = read_document(descendant(root, relative))
+                if set(process) == legacy_fields and process.get("goal_type") == goal:
+                    legacy.add(goal)
+                else:
+                    GoalTypeDefinition.parse(process)
+                processes[goal] = process
+            explicit = {
+                item.get("goal_type")
+                for item in updates
+                if isinstance(item, dict)
+                and any(
+                    isinstance(change, dict)
+                    and change.get("op") == "set_worktree_required"
+                    and type(change.get("value")) is bool
+                    for change in item.get("changes", ())
+                )
+            }
+            if not legacy or not legacy <= explicit:
+                raise failure
+            return root, config, processes
 
     def _known_revisions(self, root):
         known = set()
@@ -199,7 +232,9 @@ class FileProjectConfigUpdate:
     def apply(self, request):
         settings = self.settings
         config_path = self._config_path(request["config_path"])
-        root, live_config, live_processes = load_config(config_path)
+        root, live_config, live_processes = self._source(
+            config_path, request["process_updates"]
+        )
         receipt_path = self._receipt(settings.root, request["receipt_path"])
         pending_path = receipt_path.with_name(receipt_path.name + ".pending")
         request_digest = digest(request)
@@ -220,7 +255,9 @@ class FileProjectConfigUpdate:
                     if pending.get("request_digest") != request_digest:
                         raise VersionConflict("Different request uses the pending request receipt")
                     replayed = True
-                root, live_config, live_processes = load_config(config_path)
+                root, live_config, live_processes = self._source(
+                    config_path, request["process_updates"]
+                )
                 current_revision = digest({"config": live_config, "processes": live_processes})
                 if request["expected_revision"] not in self._known_revisions(root):
                     raise VersionConflict("External project revision is not known")

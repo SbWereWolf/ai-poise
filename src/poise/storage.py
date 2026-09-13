@@ -33,8 +33,9 @@ class Store:
 
     def current(self, session: str) -> dict | None:
         with self.transaction() as db:
-            row=db.execute('SELECT task_id FROM sessions WHERE id=?',(session,)).fetchone()
-            return None if row is None or row[0] is None else self.queries.record_in(db,row[0])
+            rows=db.execute('SELECT id FROM tasks WHERE claimed_by=? ORDER BY id',(session,)).fetchall()
+            if len(rows)>1:raise PoiseError(f'Session {session} owns more than one Task')
+            return None if not rows else self.queries.record_in(db,rows[0][0])
 
     def save(self, data: dict) -> None:
         # Runner can persist ONLY execution bookkeeping; never lifecycle or content.

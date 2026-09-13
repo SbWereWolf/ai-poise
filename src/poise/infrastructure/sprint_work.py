@@ -117,15 +117,12 @@ class SprintWork:
         if record is None:raise PoiseError('Task does not exist')
         sid=record['sprint_id']
         if sid is not None and not self.known(sid):raise PoiseError('Task is not a published sprint member')
-        current=h.current_task()
-        if current is not None and current['status'] not in ('completed','cancelled','superseded') and current['id']!=task_id:
-            raise PoiseError('Сначала завершить/передать текущую задачу')
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise PoiseError('Task is not eligible: '+str(state['blocked']))
         base=h._creation_base()
-        execution=h._execution_reservation(task_id,base)
+        execution=h._execution_reservation(task_id,base,record['process']['worktree_required'])
         h.task_commands.start(task_id,h.session,execution)
         h._reconcile_task_worktree(h.task_queries.record(task_id))
-        h.store.bind(h.session,task_id)
+        h.ownership.acquire_task(task_id)
         if sid is not None:self.commands.select(sid)
         return h._context(h._task(),True)

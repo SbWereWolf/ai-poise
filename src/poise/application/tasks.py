@@ -131,6 +131,7 @@ class TaskCommands:
                 base_metadata,
             )
             uow.tasks.create(task, metadata)
+            uow.tasks.save(task.release_ownership(actor), task.state.version)
             if not allocation.replayed:
                 snapshot = execution(allocation.task_id)
                 uow.execution.create(allocation.task_id, snapshot)
@@ -141,6 +142,8 @@ class TaskCommands:
             task=uow.tasks.load(task_id)
             change=task.start(actor)
             uow.tasks.save(change,task.state.version)
+            started=change.task
+            uow.tasks.save(started.release_ownership(actor),started.state.version)
             uow.execution.create(task_id,execution)
 
     def submit(self, task_id: str, actor: str, payload: dict) -> SubmissionReceipt:

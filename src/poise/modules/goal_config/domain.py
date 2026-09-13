@@ -10,7 +10,9 @@ from ..content.domain import SectionRule
 from ..content_requirements.domain import ContentPolicy
 
 # Structural protocol vocabulary, not task-stage policy or runtime defaults.
-PROCESS_FIELDS = frozenset({"goal_type", "stages", "content_contract", "route", "benefit"})
+PROCESS_FIELDS = frozenset({
+    "goal_type", "stages", "content_contract", "route", "benefit", "worktree_required"
+})
 STAGE_FIELDS = frozenset({"id", "instruction", "read_only", "allowed_paths", "normalization",
     "sections", "required_sections", "artifact_requirements", "handler", "transitions", "rework_targets"})
 ROUTE_FIELDS = frozenset({"entry"})
@@ -85,6 +87,8 @@ def validate_process(data):
             raise DomainError("goal_type: непустое имя")
         if not isinstance(data["stages"], list) or not data["stages"]:
             raise DomainError("Нужен непустой список этапов")
+        if type(data["worktree_required"]) is not bool:
+            raise DomainError("worktree_required: нужен явный bool")
     except DomainError as exc:
         raise BatchValidationError([problem("process", "shape", str(exc))]) from exc
     from ..accounting.domain import BenefitDefinition
@@ -168,7 +172,13 @@ class GoalTypeDefinition:
                 if not isinstance(change, dict) or not isinstance(change.get("op"), str):
                     raise DomainError("Нужна именованная предметная операция")
                 op = change["op"]
-                if op == "set_benefit":
+                if op == "set_worktree_required":
+                    require_shape(change, {"op", "value"}, op)
+                    if type(change["value"]) is not bool:
+                        raise DomainError("worktree_required: нужен явный bool")
+                    kind = key = "worktree_required"
+                    marks = {(kind, key, "*")}
+                elif op == "set_benefit":
                     require_shape(change,{"op","value"},op)
                     from ..accounting.domain import BenefitDefinition
                     BenefitDefinition.parse(change["value"])
@@ -215,7 +225,9 @@ class GoalTypeDefinition:
                 groups[kind][key] = deepcopy(change["value"])
         for label, change, kind, key in prepared:
             op = change["op"]
-            if op == "set_benefit":
+            if op == "set_worktree_required":
+                data["worktree_required"] = change["value"]
+            elif op == "set_benefit":
                 data["benefit"]=deepcopy(change["value"])
             elif op == "patch_route":
                 if not isinstance(data.get("route"), dict):

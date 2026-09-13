@@ -81,6 +81,14 @@ class Poise:
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
         )
         self.task_commands, self.task_queries = task_tools(self.store, repository_tree)
+        from .application.ownership import BoundOwnership, OwnershipCommands
+        from .modules.ownership.domain import Liveness
+        ownership_commands = OwnershipCommands(
+            self.store.unit_of_work,
+            lambda actor: Liveness.UNCERTAIN,
+            lambda observed: None,
+        )
+        self.ownership = BoundOwnership(ownership_commands, self.session)
         self.runner = StageRunner(self.task_commands)
         self.evidence_commands = EvidenceCommands(self.store.unit_of_work)
         from .infrastructure.sqlite.interactions import InteractionStore
@@ -254,7 +262,10 @@ class Poise:
         repository=Path(self.cfg['git']['repository']).resolve(strict=True)
         return self._git(repository,'rev-parse','--verify',self.cfg['git']['base_ref']+'^{commit}')
 
-    def _execution_reservation(self, task_id, base):
+    def _execution_reservation(self, task_id, base, worktree_required=True):
+        if not worktree_required:
+            return {'worktree':None,'branch':None,'base':base,'attempts':0,
+                    'publication':None,'pending':None,'entry_tree':None,'last_report':None}
         branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
         worktree=descendant(self.state,self.paths['worktrees'])/task_id
         pending={'kind':'worktree_setup','worktree':str(worktree),'branch':branch,'base':base}
@@ -330,7 +341,6 @@ class Poise:
                 if current and not is_terminal_task_status(current['status']):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
                 result = self._terminal_context(selected)
-                self.store.bind(self.session, None)
                 return result
             task=deepcopy(selected['contract'])
         if task is not None:
@@ -347,17 +357,13 @@ class Poise:
                 if contract.get('goal_type') not in self.processes:
                     raise PoiseError('Неизвестный goal_type')
                 selected_process = self.processes[contract['goal_type']]
-            if current and not is_terminal_task_status(current['status']):
-                same_automatic=(automatic and current.get('creation_request',{}).get('request_id')==intent.get('request_id'))
-                if not same_automatic and current['id'] != contract.get('id'):
-                    raise PoiseError('Сначала прекратить/передать текущую задачу')
             if existing is not None:
                 data = existing
-                if data['claimed_by'] not in (None, self.session):
-                    raise PoiseError('Задача уже связана с другой сессией')
                 if data['claimed_by'] is None and not is_terminal_task_status(data['status']):
-                    self.handoff_tools.resume(data)
-                    data=self.task_queries.record(data['id'])
+                    released = self.handoff_tools.commands.latest(data['id'])
+                    if released is not None:
+                        self.handoff_tools.resume(data)
+                        data=self.task_queries.record(data['id'])
                 self._reconcile_task_worktree(data)
                 data=self.task_queries.record(data['id'])
             else:
@@ -368,7 +374,9 @@ class Poise:
                 allocation=self.task_commands.create(
                     intent,self.session,selected_process,self.cfg['automatic_checks'],
                     {'config_hash':self.config_hash},
-                    lambda task_id:self._execution_reservation(task_id,base),
+                    lambda task_id:self._execution_reservation(
+                        task_id,base,selected_process['worktree_required']
+                    ),
                     self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
                 data=self.task_queries.record(allocation.task_id)
@@ -377,17 +385,15 @@ class Poise:
                             'allocation':allocation_receipt}
                 self._reconcile_task_worktree(data)
                 data=self.task_queries.record(allocation.task_id)
-            self.store.bind(self.session, data['id'])
+            self.ownership.acquire_task(data['id'])
             current = self.store.current(self.session)
         if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
-            self.store.bind(self.session, None)
             current = None
         if decision is None and task is None and current is None:
             sprint=self.sprint_tools.overview(None)
             if sprint is not None:return sprint
         if current is None:
             self.runtime.mkdir(parents=True, exist_ok=True)
-            self.store.bind(self.session, None)
             return {'session': self.session, 'status':'read_only', 'project':self.cfg['project'],
                     'task':None,'result_template':None,'runtime_root':str(self.runtime),
                     'next_work':'передать task object через work bootstrap; сводка — batch show'}

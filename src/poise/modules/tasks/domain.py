@@ -152,8 +152,9 @@ class Task:
             raise DomainError("Завершённая задача не может оставаться занятой")
 
     @classmethod
-    def new(cls, task_id: str, stages: tuple[StageSpec, ...], actor: str, content_policy: ContentPolicy, check_registry: CheckRegistry, route: RouteDefinition, evidence_plan: EvidencePlan) -> Task:
-        identifier(actor)
+    def new(cls, task_id: str, stages: tuple[StageSpec, ...], actor: str | None, content_policy: ContentPolicy, check_registry: CheckRegistry, route: RouteDefinition, evidence_plan: EvidencePlan) -> Task:
+        if actor is not None:
+            identifier(actor)
         return cls(TaskState(task_id, route.index(route.entry), 1, TaskStatus.ACTIVE, actor, 0, None), stages, content_policy, ContentSnapshot((), ()), check_registry, route, RouteProgress.initial(route), FeedbackBook.empty(), evidence_plan, EvidenceBook.empty(), None, None, None)
 
     @classmethod
@@ -162,8 +163,9 @@ class Task:
                    stages,content_policy,ContentSnapshot((),()),check_registry,route,
                    RouteProgress.initial(route),FeedbackBook.empty(),evidence_plan,EvidenceBook.empty(),None,None,None)
 
-    def start(self, actor):
-        identifier(actor)
+    def start(self, actor=None):
+        if actor is not None:
+            identifier(actor)
         if self.state.status != TaskStatus.AVAILABLE:
             raise DomainError("Only an available task can be started")
         return self._change("started",None,None,status=TaskStatus.ACTIVE,claimed_by=actor)
@@ -181,6 +183,20 @@ class Task:
         if self.state.claimed_by is not None or self.state.status not in (TaskStatus.ACTIVE,TaskStatus.VERIFIED,TaskStatus.ACCEPTED):
             raise DomainError("Only unowned preserved work can be resumed")
         return self._change("handoff_resumed",None,None,claimed_by=actor)
+
+    def acquire_ownership(self, actor: str) -> Change:
+        identifier(actor)
+        if self.state.claimed_by is not None or self.state.status not in (
+                TaskStatus.ACTIVE, TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
+            raise DomainError("Only an unowned unfinished Task can be acquired")
+        return self._change("ownership_acquired", None, None, claimed_by=actor)
+
+    def release_ownership(self, actor: str) -> Change:
+        self._owned(actor)
+        if self.state.claimed_by != actor or self.state.status not in (
+                TaskStatus.ACTIVE, TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
+            raise DomainError("Only an owned unfinished Task can be released")
+        return self._change("ownership_released", None, None, claimed_by=None)
 
     @property
     def stage(self) -> StageSpec:

@@ -1,5 +1,6 @@
 {
   "goal_type": "documentation",
+  "worktree_required": true,
   "route": {
     "entry": "draft"
   },

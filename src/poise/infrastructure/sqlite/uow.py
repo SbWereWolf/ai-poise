@@ -3,6 +3,7 @@ from .actions import SqliteActionRepository
 from .sprints import SqliteSprintRepository
 from .evidence import SqliteEvidenceRepository
 from .tasks import SqliteTaskRepository, SqliteExecutionRepository
+from .ownership import SqliteOwnershipRepository
 
 
 class SqliteUnitOfWork:
@@ -19,6 +20,7 @@ class SqliteUnitOfWork:
         self.tasks = SqliteTaskRepository(connection)
         self.execution = SqliteExecutionRepository(connection)
         self.evidence = SqliteEvidenceRepository(connection)
+        self.ownership = SqliteOwnershipRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

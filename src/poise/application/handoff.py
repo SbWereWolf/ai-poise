@@ -26,6 +26,7 @@ class HandoffCommands:
             return record
 
     def release(self,actor,request_id,receipt):
+        from .ownership import release_task_in
         with self.uow() as uow:
             record=uow.handoffs.get(actor,request_id)
             if record is None:raise PoiseError('No prepared handoff')
@@ -34,9 +35,8 @@ class HandoffCommands:
                 return
             task=uow.tasks.load(record['task_id'])
             if task.state.version!=record['version']:raise PoiseError('Task changed during handoff')
-            uow.tasks.save(task.handoff(actor,record['plan']['reason']),task.state.version)
+            release_task_in(uow, actor, record['task_id'], record['plan']['reason'])
             uow.handoffs.replace({**record,'state':'released','receipt':receipt})
-            uow.handoffs.unbind(actor,record['task_id'])
 
     def resume(self,task_id,actor,request_actor,request_id):
         with self.uow() as uow:
@@ -46,5 +46,10 @@ class HandoffCommands:
             task=uow.tasks.load(task_id)
             if task.state.version!=record['version']+1:raise PoiseError('Task changed after preserved handoff')
             uow.tasks.save(task.resume_handoff(actor),task.state.version)
+            if uow.ownership.worktree_required(task_id):
+                target=uow.ownership.preflight(actor,task_id)
+                if target.worktree_owner not in (None,request_actor,actor):
+                    raise PoiseError('Handoff worktree is owned by another session')
+                if target.worktree_owner==request_actor:uow.ownership.bind_worktree(request_actor,None)
+                uow.ownership.bind_worktree(actor,task_id)
             uow.handoffs.replace({**record,'state':'resumed'})
-            uow.handoffs.bind(actor,task_id)

@@ -32,6 +32,6 @@ def setup_case(project):
         'template':{'id':'selected','version':'1','digest':digest(blueprint)},
         'edits':[{'path':['project'],'value':'pilot'},
                  {'path':['git','repository'],'value':str(project['app'])},
-                 {'path':['git','push_required'],'value':True}],
+                 {'path':['git','push_required'],'value':False}],
         'probe_repository':True}
     return settings_path,blueprint,request

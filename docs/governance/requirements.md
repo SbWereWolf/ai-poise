@@ -60,13 +60,13 @@ AI poise — отдельное CLI-приложение и кодовая ба�
 
 ### HR-012. Матрица адаптеров и честная доступность
 
-У каждого runtime profile явно заданы CLI transport, session/cycle binding, tool inventory transport, hook surface, executor, IDE binding, remote Git transport, durable transport, token/time telemetry. Статус capability: observed-ready, observed-unavailable или unknown; required неизвестная/недоступная capability блокирует соответствующий этап до записи кода. ChatGPT: Linux CLI через доступный execution tool, generated scoped launcher при отсутствии hooks; model-visible integration вызывается только агентом через реально предоставленный connector, а не из Python по предположению. Codex WSL: explicit CLI/hooks adapter и scoped launcher с проверенным payload. Ни один профиль не обещает native ChatGPT hooks, сеть или Gmail attachments без smoke. Core actions и controlled command output работают через CLI в обеих средах; недоступные native hooks не эмулируются скрыто. Недоступность required push/IDE не превращается в успешный этап или автоматическую замену инструментом.
+У каждого runtime profile явно заданы CLI transport, session/cycle binding, tool inventory transport, hook surface, executor, IDE binding, durable transport и token/time telemetry. Статус capability: observed-ready, observed-unavailable или unknown; required неизвестная/недоступная capability блокирует соответствующий этап до записи кода. Git push не является capability: он запрещён всем профилям. ChatGPT: Linux CLI через доступный execution tool, generated scoped launcher при отсутствии hooks; model-visible integration вызывается только агентом через реально предоставленный connector, а не из Python по предположению. Codex WSL: explicit CLI/hooks adapter и scoped launcher с проверенным payload. Ни один профиль не обещает native ChatGPT hooks, сеть или Gmail attachments без smoke. Core actions и controlled command output работают через CLI в обеих средах; недоступные native hooks не эмулируются скрыто.
 
 <a id="HR-013"></a>
 
 ### HR-013. Внешнее действие через агента
 
-Для model-only capability composite action создаёт pending external action: operation ID, неизменный package/commit digest, exact target, ожидаемый receipt и probe, replay policy. Один ответ содержит весь запрос действия. Агент выполняет его имеющимся tool и возвращает receipt в том же submission/continuation; kernel проверяет receipt/probe и продолжает pending operation. Слова агента «отправлено/запушено» не являются receipt. Если tool не принимает нужный attachment/path/remote, действие blocked с исполнимой инструкцией пользователю. Gmail — только backup/handoff transport, не DB; его доступность и ограничения проверяются фактически. Сохраняющий копию транспорт не заменяет обязательный push без scoped user waiver.
+Для model-only capability composite action создаёт pending external action: operation ID, неизменный package/commit digest, exact target, ожидаемый receipt и probe, replay policy. Один ответ содержит весь запрос действия. Агент выполняет его имеющимся tool и возвращает receipt в том же submission/continuation; kernel проверяет receipt/probe и продолжает pending operation. Слова агента «отправлено» не являются receipt. Если tool не принимает нужный attachment/path/target, действие blocked с исполнимой инструкцией пользователю. Gmail — только backup/handoff transport, не DB; его доступность и ограничения проверяются фактически. Внешний транспорт не заменяет локальную Git-интеграцию и не разрешает `git push`.
 
 <a id="HR-014"></a>
 
@@ -160,7 +160,7 @@ Rework сохраняет feedback, предъявленный result и реш�
 
 ### HR-035. Задача без спринта и ad-hoc
 
-Standalone formal task имеет sprint=None явно, собственный root/process и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, Git commit/push и reusable result в session-owned durable deliverable root вне runtime. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.
+Standalone formal task имеет sprint=None явно, собственный root/process и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, локальный Git commit и reusable result в session-owned durable deliverable root вне runtime. Git push запрещён. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.
 
 <a id="HR-036"></a>
 
@@ -262,19 +262,19 @@ Cancel predecessor удаляет его из работы, но не удовл
 
 ### HR-051. Согласованность проверенного и опубликованного кода
 
-Verify фиксирует полный candidate tree vector по codebases с учётом предназначенных deliverables. В execution receipts хранится tested tree vector. После mutating checks/formatters/native hooks — повторное сравнение; significant change делает evidence stale и запускает bounded stabilization по exact contracts. До remote публикации tree каждого final commit должен совпасть с проверенным tree для этой codebase; post-commit/hook changes не игнорируются. Pre-push side effect, меняющий workspace, не меняет уже указанный immutable commit, но блокирует завершение/вызывает reconciliation; pushed ref проверяется на точный expected SHA. Нельзя пометить tested A как доказательство A+B. Сообщение commit составляет агент; отсутствие нужного сообщения выявляется до дорогих checks.
+Verify фиксирует полный candidate tree vector по codebases с учётом предназначенных deliverables. В execution receipts хранится tested tree vector. После mutating checks/formatters/native hooks — повторное сравнение; significant change делает evidence stale и запускает bounded stabilization по exact contracts. Перед локальной интеграцией tree каждого final commit должен совпасть с проверенным tree для этой codebase; post-commit/hook changes не игнорируются. Git push и pre-push effects запрещены. Нельзя пометить tested A как доказательство A+B. Сообщение commit составляет агент; отсутствие нужного сообщения выявляется до дорогих checks.
 
 <a id="HR-052"></a>
 
-### HR-052. Commit/push и вектор нескольких codebases
+### HR-052. Commit и вектор нескольких codebases
 
-Каждый successful Git write-stage создаёт/reuses verified commit и публикует собственную task branch в явно заданный remote/ref. Remote origin не подразумевается. Чистый stage/no-op не создаёт artificial commit; указанный message допускается как запасённое содержательное поле, но не используется для пустого commit. Multi-codebase result — vector {codebase: base, tested tree, commit, remote/ref, observed SHA/receipt}. Stage verified лишь при всех обязательных components. A pushed/B failed — partial_publication, tests и commit A сохранены, repeat дополняет B без duplicate A. Глобальный rollback независимых remotes не обещается. Required push недоступен — blocked, не local-only success без user waiver. Push private branch при продвижении main допустим, non-fast-forward той же remote branch — sync issue, не автоматически merge conflict.
+Каждый successful Git write-stage создаёт или повторно использует локальный verified commit в собственной task branch. `git push` запрещён для всех codebases и не может быть включён authority или waiver. Чистый stage/no-op не создаёт artificial commit; указанный message допускается как запасённое содержательное поле, но не используется для пустого commit. Multi-codebase result — vector `{codebase: base, tested tree, commit}`. Stage verified лишь при всех обязательных components. Локальная интеграция каждого принятого компонента выполняется соответствующим публичным lifecycle через exact fast-forward; внешний durable transport остаётся отдельным действием и не изменяет Git remote refs.
 
 <a id="HR-053"></a>
 
 ### HR-053. Интеграция и точная граница target ref
 
-Integration объединяет объявленные exact sources с target baseline в private worktree. Git operation создаёт conflict observations до агентских resolution proposals; при конфликте возвращается awaiting_agent в той же stage iteration, и continuation не повторяет начатый merge/cherry-pick. Interim private commit/push не меняют target ref. Target publication — механический gate после принятых verification/inspection, при отдельной однозначной publish authority. Accept-and-stop запрещает publication. Gate повторно проверяет tested tree, current evidence, expected target old SHA и выполняет exact FF update или доказанный no-op; создаёт receipt и closure без новой содержательной iteration/второго acceptance. Drift не исправляется force push и не выполняет незаявленный rebase. Source→integrated mapping хранится для materialization, но не заменяет проверку availability successor.
+Integration объединяет объявленные exact sources с target baseline в private worktree. Git operation создаёт conflict observations до агентских resolution proposals; при конфликте возвращается awaiting_agent в той же stage iteration, и continuation не повторяет начатый merge/cherry-pick. Interim private commits не меняют target ref; push запрещён. После принятых verification/inspection и отдельной authority публичный `integrate` повторно проверяет tested tree, current evidence и expected target old SHA, затем выполняет локальный exact `git merge --ff-only` либо доказанный no-op; создаёт receipt и closure без новой содержательной iteration/второго acceptance. Drift не исправляется force update и не выполняет незаявленный rebase. Source→integrated mapping хранится для materialization, но не заменяет проверку availability successor.
 
 <a id="HR-054"></a>
 
@@ -536,7 +536,7 @@ development.documentation (content_stage): Выполнить прямо пре�
 
 ### GP-TST. Полный профиль test_development
 
-Независимый process test_development: Тесты и тестовые fixtures как самостоятельный конечный продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, commits/push подтверждены. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый process test_development: Тесты и тестовые fixtures как самостоятельный конечный продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, локальные commits подтверждены. Git push запрещён. Closure не требует второй приёмки механической локальной интеграции; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-TST-01"></a>
 
@@ -1438,7 +1438,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | tests, fixtures; production delta текущего этапа запрещена |
 | Проверки | Precheck новых exact commands в candidate; stage-entry delta только tests/fixtures; все applicable registered RED/unchanged и applicable auto checks; HR-056. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | test tree+selected IDs+collection+failure signatures; verified commit/push. |
+| Доказательства | test tree+selected IDs+collection+failure signatures; verified local commit, без push. |
 | Final fields / conditions | {"test_registry":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["test_registry","artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of development.test_implementation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -1523,7 +1523,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Автоматические выходы | artifacts, evidence, traceability, resolution_bindings |
 | Разрешённые изменения | tests, fixtures |
 | Проверки | Resolution precheck; affected exact RED methods и mapped tests; no production delta. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | resolution evidence и test commit/push. |
+| Доказательства | resolution evidence и локальный test commit; push запрещён. |
 | Final fields / conditions | {"finding_resolutions":"always","test_registry":"always","artifacts":"always","evidence":"always","traceability":"always","resolution_bindings":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["finding_resolutions","test_registry","artifacts","evidence","traceability","resolution_bindings"],"subject":"exact candidate subject vector","evidence":"current required obligations of development.test_remediation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -1610,8 +1610,8 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Условие continuation | none: post-observation fields отсутствуют; механические фазы проходят одним вызовом. |
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | production code; изменение тестового oracle требует user-directed возврата к test stage |
-| Проверки | Stage-entry changes code; тесты/fixtures не переписываются здесь; registered after-GREEN+applicable auto checks; trees равны commit/push. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | exact executions, tree vector, commit/push receipts. |
+| Проверки | Stage-entry changes code; тесты/fixtures не переписываются здесь; registered after-GREEN+applicable auto checks; trees равны локальному commit. Git push запрещён. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Доказательства | exact executions, tree vector и receipt локального commit; push receipts не создаются. |
 | Final fields / conditions | {"artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of development.implementation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -1695,7 +1695,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Условие continuation | none: post-observation fields отсутствуют; механические фазы проходят одним вызовом. |
 | Автоматические выходы | artifacts, evidence, traceability, resolution_bindings |
 | Разрешённые изменения | production code; неверный test contract возвращается на test stage |
-| Проверки | Resolution record до checks; registered applicable tests+project impact; tree/push equality. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Проверки | Resolution record до checks; registered applicable tests+project impact; tree/local-commit equality; push запрещён. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
 | Доказательства | каждое исправление имеет exact evidence и commit. |
 | Final fields / conditions | {"finding_resolutions":"always","artifacts":"always","evidence":"always","traceability":"always","resolution_bindings":"always"} |
 | Когда нужен CONTINUE | never |
@@ -1784,7 +1784,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | declared docs; код не меняется |
 | Проверки | Только declared docs paths; exact documentation validators; unchanged code не вызывает придуманный full suite. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | validated docs artifact/revision, self-check и commit/push. |
+| Доказательства | validated docs artifact/revision, self-check и локальный commit; push запрещён. |
 | Final fields / conditions | {"result":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["result","artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of development.documentation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -2038,7 +2038,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | tests, fixtures |
 | Проверки | Только tests/fixtures; exact final outcome (включая ожидаемый RED) и auto checks; collection проверена. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | run evidence и commit/push tests/fixtures. |
+| Доказательства | run evidence и локальный commit tests/fixtures; push запрещён. |
 | Final fields / conditions | {"test_registry":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["test_registry","artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of test_development.test_implementation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -2163,7 +2163,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 | Автоматические выходы | artifacts, evidence, traceability, resolution_bindings |
 | Разрешённые изменения | tests, fixtures |
 | Проверки | Resolution data before run; exact affected final/sensitivity methods, tests/fixtures only. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | resolution runs+commit/push. |
+| Доказательства | resolution runs и локальный commit; push запрещён. |
 | Final fields / conditions | {"finding_resolutions":"always","test_registry":"always","artifacts":"always","evidence":"always","traceability":"always","resolution_bindings":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["finding_resolutions","test_registry","artifacts","evidence","traceability","resolution_bindings"],"subject":"exact candidate subject vector","evidence":"current required obligations of test_development.remediation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -2268,7 +2268,7 @@ metrics-contract.json и fixtures/metrics-golden.json задают все bytes,
 }
 ```
 
-**Completion:** Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, commits/push подтверждены. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+**Completion:** Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, локальные commits подтверждены. Git push запрещён. Closure не требует второй приёмки механической локальной интеграции; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 **Польза:** Final tests+fixtures delta; production=0.
 
@@ -3042,7 +3042,7 @@ Solution rationale не inline в независимом inspection; досту�
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | declared design documents/schemas/diagram sources, не production |
 | Проверки | Typed design dimensions resolved; allowed design paths; declared schema check commands. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | design content+contract validation; commit/push при Git artifacts. |
+| Доказательства | design content+contract validation; локальный commit при Git artifacts, без push. |
 | Final fields / conditions | {"design":"always","interfaces_contracts":"always","impact_analysis":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["design","interfaces_contracts","impact_analysis","artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of design.detailed_design","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -4577,7 +4577,7 @@ Solution rationale не inline в независимом inspection; досту�
 | Условие continuation | none: post-observation fields отсутствуют; механические фазы проходят одним вызовом. |
 | Автоматические выходы | execution_results, observed_state, evidence, artifacts, traceability |
 | Разрешённые изменения | declared external environment effects; declared Git config/scripts |
-| Проверки | Execute only next safe deterministic bundle; при неизвестном исходе probe/needs_resolution, не повтор. Verify selected state probes; Git config scripts commit/push при наличии. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Проверки | Execute only next safe deterministic bundle; при неизвестном исходе probe/needs_resolution, не повтор. Verify selected state probes; Git config scripts могут создавать локальный commit, но не push. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
 | Доказательства | before/after/action receipts. |
 | Final fields / conditions | {"execution_results":"always","observed_state":"always","evidence":"always","artifacts":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
@@ -4847,7 +4847,7 @@ User-executed instruction фиксируется как external action и по�
 | content | final document refs/digests либо Markdown content; requirement→section mapping; не полный duplicate Git file в DB. |
 | examples_commands | document locator, exact executable method, sandbox/mutation bounds, expected outcome, evidence refs. |
 | verification_plan | Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен. |
-| publication_target | codebase/path или task artifact, формат и правила delivery; явная push/transport policy. |
+| publication_target | codebase/path или task artifact, формат и правила delivery; явная transport policy при абсолютном запрете Git push. |
 | assumptions | список id, statement, justification, impact_if_false, evidence/ref status; explicit none. |
 | constraints | список id, predicate/statement, source, область и способ проверки; explicit empty с причиной. |
 | artifacts | Generated AI poise index: artifact id, owner, native/logical ref, bytes, digest, provenance, lifetime/retention. Агент не вводит эти наблюдения; смысловые требования — artifact_declarations. |
@@ -4971,7 +4971,7 @@ User-executed instruction фиксируется как external action и по�
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | declared documentation paths или task artifacts |
 | Проверки | Allowed docs paths only; exact новых examples в candidate; syntax/refs checks по plan, no code modification. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | document digest/revision и commit/push. |
+| Доказательства | document digest/revision и локальный commit; push запрещён. |
 | Final fields / conditions | {"content":"always","examples_commands":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["content","examples_commands","artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of documentation.drafting","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -5099,7 +5099,7 @@ User-executed instruction фиксируется как external action и по�
 | Автоматические выходы | artifacts, evidence, traceability, resolution_bindings |
 | Разрешённые изменения | declared documentation |
 | Проверки | Required resolution records; affected exact validations; docs scope only. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | new document + evidence + commit/push. |
+| Доказательства | new document + evidence + локальный commit; push запрещён. |
 | Final fields / conditions | {"content":"always","finding_resolutions":"always","artifacts":"always","evidence":"always","traceability":"always","resolution_bindings":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["content","finding_resolutions","artifacts","evidence","traceability","resolution_bindings"],"subject":"exact candidate subject vector","evidence":"current required obligations of documentation.remediation","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -6293,7 +6293,7 @@ User-executed instruction фиксируется как external action и по�
 
 **GP-INT. Назначение:** Объединить существующие результаты с target codebase и доказать integrated result без новой самостоятельной функциональности.
 
-**Создание:** goal/scope, integration_target exact old SHA/ref и private branch, integration_sources exact SHAs/result refs, task requirements/DoD сохранения source behavior, baseline required, exact declared targeted commands и push authority. Нормативный required creation field set приведён ниже; только он и явные применимости, без будущих stage outputs. Exact future invocations не требуют ещё не полученных hashes/receipts.
+**Создание:** goal/scope, integration_target exact old SHA/ref и private branch, integration_sources exact SHAs/result refs, task requirements/DoD сохранения source behavior, baseline required, exact declared targeted commands и authority локальной интеграции. Push authority не существует: `git push` запрещён. Нормативный required creation field set приведён ниже; только он и явные применимости, без будущих stage outputs. Exact future invocations не требуют ещё не полученных hashes/receipts.
 
 **Обязательные данные при создании:** `goal`, `scope`, `integration_target`, `integration_sources`, `product_requirements`, `task_requirements`, `definition_of_done`.
 
@@ -6435,7 +6435,7 @@ User-executed instruction фиксируется как external action и по�
 | Условие continuation | actual conflict set nonempty; proposals ссылаются только на IDs этого receipt; дерево может измениться при разрешении, это ожидаемый continuation, а не повтор merge. |
 | Автоматические выходы | conflicts, artifacts, evidence, traceability |
 | Разрешённые изменения | private integration worktree; code/tests/docs only to preserve source contracts |
-| Проверки | После решений: unmerged index пуст, каждый conflict имеет proposal+rationale; exact targeted checks относятся к разрешённому дереву; private commit/push при успехе; target ref не изменять. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Проверки | После решений: unmerged index пуст, каждый conflict имеет proposal+rationale; exact targeted checks относятся к разрешённому дереву; private local commit при успехе; Git push запрещён; target ref не изменять. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
 | Доказательства | integrated tree, conflict decisions, exact tests/private publication. |
 | Final fields / conditions | {"conflicts":"always","artifacts":"always","evidence":"always","traceability":"always","conflict_resolutions":"actual_conflicts_nonempty"} |
 | Когда нужен CONTINUE | actual_conflicts_nonempty |
@@ -6562,7 +6562,7 @@ User-executed instruction фиксируется как external action и по�
 | Условие continuation | none: post-observation fields отсутствуют; механические фазы проходят одним вызовом. |
 | Автоматические выходы | artifacts, evidence, traceability, resolution_bindings |
 | Разрешённые изменения | private integration result |
-| Проверки | Affected checks+new tree private commit/push, no target publication; если нужна новая цель — отдельный development по пользователю. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Проверки | Affected checks+new tree private local commit, без push и target publication; если нужна новая цель — отдельный development по пользователю. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
 | Доказательства | resolution evidence/receipts. |
 | Final fields / conditions | {"finding_resolutions":"always","conflict_resolutions":"always","artifacts":"always","evidence":"always","traceability":"always","resolution_bindings":"always"} |
 | Когда нужен CONTINUE | never |
@@ -6650,7 +6650,7 @@ User-executed instruction фиксируется как external action и по�
 | Условие continuation | none: post-observation fields отсутствуют; механические фазы проходят одним вызовом. |
 | Автоматические выходы | result, evidence, artifacts, traceability |
 | Разрешённые изменения | только exact target ref publication; рабочий tree уже проверен |
-| Проверки | Accepted inspection, all required predicates current, expected target old SHA; FF update verified new SHA либо exact no-op containment. Drift → blocked/new user-authorized iteration; no force push. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
+| Проверки | Accepted inspection, all required predicates current, expected target old SHA; локальный FF update verified new SHA либо exact no-op containment. Drift → blocked/new user-authorized iteration; никакого push или force update. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
 | Доказательства | Exact candidate publication receipt, target identity/digest; operation эффект выполнен не более одного раза при известном receipt. |
 | Final fields / conditions | {"result":"always","evidence":"always","artifacts":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |

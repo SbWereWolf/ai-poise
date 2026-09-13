@@ -4,12 +4,13 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from .common import PoiseError
+from .common import PoiseError, prohibit_git_push
 
 
 def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float | None,
                 stdout_path: Path, stderr_path: Path) -> dict:
     """Не загружает полный вывод в память; ждёт конечного результата процесса."""
+    prohibit_git_push(argv)
     start = time.monotonic()
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
     stderr_path.parent.mkdir(parents=True, exist_ok=True)

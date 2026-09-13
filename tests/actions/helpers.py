@@ -79,7 +79,15 @@ def setup(project, kind='git_merge', conflict=True):
         'exit_requirements':[],
     } for stage in stages]
     if kind=='git_merge':
-        task['methods']=[method('COMBINED','from src.double import double; assert double(4)==8; print("combined OK")')]
+        combined=method('COMBINED','from src.double import double; assert double(4)==8; print("combined OK")')
+        combined['verification_plan']={
+            'responsibility':'Verify the combined integration result.',
+            'change_surface':['src/**'],
+            'red_stages':[],
+            'green_stages':['apply','review','fix','recheck'],
+            'red_failure':None,
+        }
+        task['methods']=[combined]
         task['method_inputs']=[{'method_id':'COMBINED','repository_inputs':[],'future_outputs':[],
             'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}]
         for s in ('apply','review','fix','recheck'):task['checks'][s]=['COMBINED']

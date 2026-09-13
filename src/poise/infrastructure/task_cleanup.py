@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 
 from ..artifacts import inspect_paths
+from ..common import prohibit_git_push
 from ..modules.foundation.errors import PoiseError
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, TaskOwnedResource
 
@@ -23,6 +24,7 @@ class RuntimeTaskResourceCleanup:
         self.h = runtime
 
     def _run(self, cwd, *args, env=None):
+        prohibit_git_push(["git", *args])
         try:
             result = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True,
                                     text=True, timeout=self.h.cfg["limits"]["git_seconds"],

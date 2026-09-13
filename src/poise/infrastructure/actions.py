@@ -11,8 +11,15 @@ import re
 import subprocess
 import uuid
 from ..application.actions import PlanCommands
-from ..modules.actions.domain import PlanSpec, Publication, parse_apply_work
-from ..common import PoiseError, descendant, digest, file_digest
+from ..modules.actions.domain import parse_apply_work
+from ..common import (
+    PoiseError,
+    descendant,
+    digest,
+    file_digest,
+    prohibit_git_push,
+    prohibit_remote_git_publication,
+)
 from ..execution import method_passed, run_command
 
 
@@ -48,11 +55,7 @@ class RuntimePlanActions:
                 from ..modules.catalogue.publication import DataPublication
                 DataPublication.parse(work)
                 return
-            spec=Publication.parse(work)
-            wt=Path(data['worktree'])
-            self.h._git(wt,'check-ref-format',spec.target_ref)
-            if spec.target_ref=='refs/heads/'+data['branch']:
-                raise PoiseError('Target publication must not masquerade as private-branch backup')
+            prohibit_remote_git_publication()
 
     def rework_failed(self,data,feedback,target,entry_tree):
         if self._read_optional_ref(Path(data['worktree']),'MERGE_HEAD') is not None:
@@ -76,6 +79,7 @@ class RuntimePlanActions:
 
     def _git_effect(self,data,*args):
         wt=Path(data['worktree'])
+        prohibit_git_push(['git', *args])
         return self._command(data,['git','-C',str(wt),*args],wt,self._actor(),self.h.cfg['limits']['git_seconds'])
 
     def _read_optional_ref(self,wt,ref):
@@ -225,44 +229,4 @@ class RuntimePlanActions:
                 h.cfg['task_decomposition'],h.config_hash,h.cfg['batch']['max_items'],
                 h.task_commands.prepare_creation,h._creation_base)
             return self._summary(service.publish(data['id'],h.session,payload['stage_work']))
-        wt=Path(data['worktree']);spec=Publication.parse(payload['stage_work'])
-        candidate=h._git(wt,'rev-parse','HEAD')
-        if h._git(wt,'status','--porcelain') or self._read_optional_ref(wt,'MERGE_HEAD') is not None:
-            raise PoiseError('Only a clean reviewed commit can be published')
-        if not self._ancestor(wt,spec.expected_commit,candidate):
-            raise PoiseError('Publication cannot remove target history')
-        plan=PlanSpec.parse({'kind':'git_publish','intent':spec.to_dict(),'candidate':candidate},1)
-        run=self._obtain(data,plan)
-        remote=h.cfg['git']['remote']
-        def observed():
-            raw=h._git(wt,'ls-remote','--refs',remote,spec.target_ref)
-            return None if not raw else raw.split()[0]
-        actual=observed()
-        if run.status=='complete':return self._summary(run)
-        if run.status=='failed':return self._summary(run)
-        if run.status=='blocked':
-            prior=json.loads(run.current)
-            if prior['reason']!='target_push_not_confirmed' and actual!=candidate:
-                return self._summary(run)
-        if run.status=='prepared':
-            run=self._save(data,run,run.start(0,{'target':actual,'candidate':candidate}))
-        elif actual==spec.expected_commit:
-            run=self._save(data,run,run.retry_publication(actual,h.cfg['limits']['verify_attempts']))
-        elif run.status=='blocked' and actual==candidate:
-            # Reconciliation is not another effect; don't consume an extra attempt.
-            from dataclasses import replace
-            run=self._save(data,run,replace(run,status='running',version=run.version+1))
-        if actual==candidate:
-            run=self._save(data,run,run.record('ready',{'target_ref':spec.target_ref,'commit':candidate,'effect':'confirmed_at_remote'}))
-        elif actual!=spec.expected_commit:
-            run=self._save(data,run,run.record('blocked',{'reason':'target_changed','actual_commit':actual,'expected_commit':spec.expected_commit}))
-        else:
-            # Ancestry checked above; the explicit lease adds exact old-ref CAS,
-            # not permission to discard history. No blanket --force is used.
-            receipt=self._git_effect(data,'push',f'--force-with-lease={spec.target_ref}:{spec.expected_commit}',
-                                     remote,f'{candidate}:{spec.target_ref}')
-            actual=observed()
-            if actual==candidate:
-                run=self._save(data,run,run.record('ready',{'target_ref':spec.target_ref,'commit':candidate,'push':receipt}))
-            else:run=self._save(data,run,run.record('blocked',{'reason':'target_push_not_confirmed','actual_commit':actual,'push':receipt}))
-        return self._summary(run)
+        prohibit_remote_git_publication()

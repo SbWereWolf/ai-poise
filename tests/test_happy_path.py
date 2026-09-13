@@ -7,7 +7,7 @@ from poise.runtime import PoiseError
 from conftest import Poise
 
 
-def test_full_tdd_flow_commit_push_and_stop(project):
+def test_full_tdd_flow_commits_without_remote_push_and_stops(project):
     h = Poise(project['config_path'], 'SESSION-A')
     b = h.bootstrap(task_file=project['task_path'])
     assert b['stage'] == 'tests'
@@ -18,7 +18,7 @@ def test_full_tdd_flow_commit_push_and_stop(project):
     assert v['checks'][0]['actual_exit_code'] == 1
     assert v['checks'][0]['passed'] is True
     assert git(Path(b['worktree']), 'status', '--porcelain') == ''
-    assert git(project['app'], 'rev-parse', 'refs/remotes/backup/tasks/T1') == v['commit']
+    assert git(project['remote'], 'for-each-ref', '--format=%(refname)', 'refs/heads/tasks/T1') == ''
     assert h.bootstrap()['stage'] == 'tests'  # no implicit advance
     assert h.verify()['replayed'] is True
     assert not Path(b['runtime_root']).exists()
@@ -135,18 +135,6 @@ def test_config_missing_value_not_defaulted(project):
     write_json(project['config_path'], project['cfg'])
     with pytest.raises(PoiseError, match='verify_attempts'):
         Poise(project['config_path'], 'S-A')
-
-
-def test_push_retry_preserves_successful_checks(project):
-    h = Poise(project['config_path'], 'S-A'); b = h.bootstrap(task_file=project['task_path'])
-    add_test(b['worktree']); fill(b)
-    git(project['app'], 'remote', 'set-url', 'backup', str(project['root']/'not-a-remote'))
-    with pytest.raises(PoiseError, match='Git push'): h.verify()
-    count = h.show()['evidence_count']
-    git(project['app'], 'remote', 'set-url', 'backup', str(project['remote']))
-    r = h.verify()
-    assert r['status']=='verified' and r['attempt']==1
-    assert h.show()['evidence_count']==count
 
 
 def test_accept_does_not_automatically_start_next_stage(project):

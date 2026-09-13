@@ -112,7 +112,7 @@ def project(tmp_path, monkeypatch):
             'branch_template': 'tasks/{task_id}',
             'commit_pattern': '.+',
             'author_name': 'Agent fixture', 'author_email': 'agent@example.invalid',
-            'push_required': True,
+            'push_required': False,
         },
         'processes': {'development': 'config/processes/development.json'},
         'environment_names': ['PATH', 'HOME', 'LANG'],

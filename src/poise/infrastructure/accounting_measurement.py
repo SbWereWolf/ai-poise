@@ -5,7 +5,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from ..common import PoiseError,encoded,digest
+from ..common import PoiseError,encoded,digest,prohibit_git_push
 from ..modules.accounting.domain import BenefitDefinition,line_delta
 
 
@@ -22,6 +22,7 @@ class PayloadMeasurer:
         t=self.policy['tokenizer']
         if t['kind']=='unavailable':return [None for _ in texts]
         c=t['command']
+        prohibit_git_push(c['argv'])
         try:
             p=subprocess.run(c['argv'],input=encoded({'texts':texts}).encode(),cwd=c['cwd'],env=c['environment'],
                              capture_output=True,timeout=c['timeout_seconds'])

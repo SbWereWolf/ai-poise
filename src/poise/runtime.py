@@ -9,7 +9,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from .common import PoiseError, descendant, configured_root, digest, encoded, exact_keys, load_config, read_json, validate_method, file_digest
+from .common import PoiseError, descendant, configured_root, digest, encoded, exact_keys, load_config, read_json, validate_method, file_digest, prohibit_git_push
 from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
@@ -520,6 +520,7 @@ class Poise:
         return value
 
     def _git(self, cwd: Path, *args: str, env: dict | None = None) -> str:
+        prohibit_git_push(['git', *args])
         execution_env = dict(os.environ) if env is None else env
         try:
             r = subprocess.run(['git', '-C', str(cwd), *args], env=execution_env,
@@ -1343,12 +1344,7 @@ class Poise:
             publication['commit'] = sha; data['publication'] = publication; self.store.save(data)
             if self._git(worktree,'rev-parse','HEAD^{tree}') != tree or self._tree(worktree) != tree:
                 self.store.event(self.session,data['id'],'incident.tree_changed_during_commit',{'commit':sha,'tested_tree':tree})
-                raise PoiseError('Коммит/hook изменил проверенное дерево; push не выполнен')
-            if self.cfg['git']['push_required']:
-                self._git(worktree,'push',self.cfg['git']['remote'],f"HEAD:refs/heads/{data['branch']}")
-                published = self._git(worktree,'ls-remote',self.cfg['git']['remote'],f"refs/heads/{data['branch']}")
-                if not published or published.split()[0] != sha:
-                    raise PoiseError('Remote не подтвердил опубликованный commit')
+                raise PoiseError('Коммит/hook изменил проверенное дерево; remote publication не выполнялась')
         # Только task/sprint links переживают cleanup. Runtime пути остаются временными.
         permanent = [r for r in publication['artifacts'] if r['scope']!='runtime']
         self.store.link_artifacts(data['id'], permanent)

@@ -15,7 +15,7 @@
 | `runtime.py: Harness.verify` | Кандидатный payload, команды, evidence, finalization | `VerifyStage`, TaskCommands, verification, FinalizationCoordinator | Не переносить весь большой метод в `BaseHandler` |
 | `runtime.py: _tree/_changed` | Наблюдение Git без регистрации файлов моделью | SQLite-independent WorkspacePort/Git adapter | Не заставлять агента сообщать изменённые файлы |
 | `runtime.py: _select_checks` | Объединение явно определённых методов | verification + execution policy | Не добавлять автоматическое угадывание команд по проекту |
-| `runtime.py: _publish` | Сверка дерева, commit/private push, receipt | Workspace publisher + FinalizationCoordinator | Не смешивать private push и integration target publish |
+| `runtime.py: _publish` | Сверка дерева, локальный commit, receipt; push запрещён | Workspace publisher + FinalizationCoordinator | Локальную фиксацию не смешивать с отдельной `integrate` target publication |
 | `runtime.py: accept/cancel` | Простейшие бизнес-переходы | Task aggregate методы + use cases | Не оставлять прямые правки dict статуса в CLI |
 | `storage.py: Store.transaction` | Внешний flock и короткий SQL commit | SqliteUnitOfWork | Не брать lock на всю длительность тестов |
 | `storage.py: Store.save/current` | Сохранение/чтение task JSON | TaskRepository и Query adapters | Не считать giant JSON задач окончательной DDD-моделью |
@@ -79,7 +79,7 @@
 
 **Приёмка.** `accept-only` и `accept+continue` дают разные действия при одинаковом принятом результате. Для последовательного `executor`-участка действующее поручение исполнителю позволяет повторять `accept+continue` без сообщения «дальше»; `reviewer` и отдельно регулируемая publication требуют новой явной команды.
 
-**Сбой внешнего действия.** После неизвестного результата push возвращается controlled state; следующий вызов проверяет receipt. При отсутствии надёжного probe допускается конкретная остановка без ложного успеха. Не нужен универсальный recovery framework до появления практики.
+**Сбой внешнего действия.** После неизвестного результата разрешённого transport возвращается controlled state; следующий вызов проверяет receipt. Git push отклоняется до эффекта и неизвестного исхода не создаёт. При отсутствии надёжного probe допускается конкретная остановка без ложного успеха.
 
 ## 5. Что сознательно не строим
 

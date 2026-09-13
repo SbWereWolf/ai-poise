@@ -49,7 +49,7 @@ def test_conflicting_request_does_not_replace_existing_project(project):
     assert Path(r['config_path']).read_bytes()==before
 
 
-@pytest.mark.parametrize('failure',['schema','process','revision','repository','branch','remote','escape','symlink','missing_policy'])
+@pytest.mark.parametrize('failure',['schema','process','revision','repository','branch','escape','symlink','missing_policy'])
 def test_failed_preflight_publishes_no_project(project,failure):
     settings,raw,req=setup_case(project)
     if failure=='schema':req['schema']='old-format'
@@ -57,7 +57,6 @@ def test_failed_preflight_publishes_no_project(project,failure):
     if failure=='revision':req['template']['digest']='0'*64
     if failure=='repository':req['edits'][1]['value']=str(project['root']/'missing')
     if failure=='branch':req['edits'].append({'path':['git','base_ref'],'value':'absent'})
-    if failure=='remote':req['edits'].append({'path':['git','remote'],'value':'missing'})
     if failure=='escape':req['destination']='../outside'
     if failure=='symlink':
         (project['root']/'configured').symlink_to(project['app'],target_is_directory=True)
@@ -66,6 +65,16 @@ def test_failed_preflight_publishes_no_project(project,failure):
     with pytest.raises(PoiseError):project_tools(settings).apply(req)
     assert not (project['root']/'configured/pilot').exists()
     assert not (project['app']/'pilot').exists()
+
+
+def test_push_disabled_setup_does_not_require_configured_remote(project):
+    settings,_,req=setup_case(project)
+    req['edits'].append({'path':['git','remote'],'value':'missing'})
+
+    result=project_tools(settings).apply(req)
+
+    assert result['readiness']['remote']=='not_required'
+    assert json.loads(Path(result['config_path']).read_text())['git']['push_required'] is False
 
 
 def test_repo_probe_can_be_skipped_only_explicitly_and_is_reported(project):

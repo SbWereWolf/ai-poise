@@ -35,7 +35,9 @@ Task creation.
 
 Read task_decomposition from the selected project's project-specific routing. Declare every process phase before an ordinary or integration Task is made ready. Each phase names its
 skills and areas; the phase set must exactly match the selected process snapshot. Meta and general skills do not split a Task; peer narrow responsibilities do. Phase boundaries cannot
-hide a cross-responsibility ordinary Task. Use integration only when its declaration names
+hide a cross-responsibility ordinary Task. Across every phase, each area routed to a policy-owned
+narrow responsibility must match a declared narrow-skill responsibility; an area whose route is
+not owned by a narrow skill does not become narrow through phase placement. Use integration only when its declaration names
 component inputs, one combined result, integration checks, and allowed paths covering all
 phase areas. Treat validation as declaration consistency, not proof that the inventory or
 declared scope is factually complete.

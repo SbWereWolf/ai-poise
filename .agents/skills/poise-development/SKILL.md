@@ -45,7 +45,9 @@ AI poise is a separate application. Each configured project owns its Task DB and
 Keep target-project skill inventory and area routing out of AI poise source. Read the selected
 project's `task_decomposition` policy and require every process phase to declare skills and
 areas before readiness. Ordinary Tasks cannot combine peer narrow responsibilities. An integration Task names component_inputs, combined_result, integration_checks, and allowed_paths.
-Its allowed paths cover every declared phase area. Validation does not prove factual completeness of declared skills or boundaries.
+Every area routed to a policy-owned narrow responsibility must match a declared narrow-skill
+responsibility regardless of phase; routes outside the policy's narrow responsibilities remain
+non-narrow. Integration allowed paths cover every declared phase area. Validation does not prove factual completeness of declared skills or boundaries.
 
 When another authorized owner has replaced a managed process file, diagnose the exact head
 and live revisions with `goal-config-status-1`, then adopt validated content only with an exact

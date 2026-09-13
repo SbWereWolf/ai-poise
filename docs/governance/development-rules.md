@@ -81,10 +81,13 @@ DoD недостижим или следующий DoR сломан, Task пол
 
 ### Фокус декомпозиции
 
-В creation contract `ordinary` и `integration` классифицируются до проверки фокуса.
+В creation contract ordinary и integration классифицируются до проверки фокуса.
 Каждая фаза объявляет используемые skills и areas, а их классы и маршруты читаются из
-`task_decomposition` выбранного проекта. `meta` и `general` не требуют разделения, `narrow` следует responsibility boundary: одна ordinary Task не соединяет peer responsibilities
-или несвязанные области, в том числе через разные фазы.
+`task_decomposition` выбранного проекта. meta и general не требуют разделения, narrow следует responsibility boundary: одна ordinary Task не соединяет peer responsibilities
+или несвязанные области, в том числе через разные фазы. Все объявленные areas, чьи маршруты
+принадлежат narrow responsibilities политики, должны соответствовать responsibilities
+объявленных narrow skills независимо от расположения по фазам. Маршруты иных responsibilities
+не становятся narrow из-за фазы или соседнего skill.
 
 Integration Task является явным исключением для сборки нескольких компонентов. Она называет
 component inputs, единый combined result, integration checks и allowed paths, покрывающие

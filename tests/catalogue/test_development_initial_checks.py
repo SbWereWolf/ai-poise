@@ -176,6 +176,27 @@ def test_development_template_reuses_exact_task_schedule_validation(mutation):
         _instantiate(checks)
 
 
+def _instantiate_active_subjectless_observe() -> dict:
+    process, template = _documents()
+    parameters = _parameters(process, _empty_schedule(process))
+    parameters["evidence"]["baseline"]["arguments"] = [{
+        "id": "ACTIVE_WITHOUT_SUBJECT",
+        "kind": "logical",
+        "phase": "prepare",
+        "observation_methods": [],
+    }]
+    return TaskBlueprint.parse(template).instantiate(
+        parameters,
+        GoalTypeDefinition.parse(process).data,
+        [],
+    )
+
+
+def test_active_observe_still_requires_a_subject_method():
+    with pytest.raises(PoiseError, match="active observe требует subject method"):
+        _instantiate_active_subjectless_observe()
+
+
 def test_catalogue_identity_reference_and_example_use_explicit_checks():
     from poise.application.catalogue import CatalogueCommands
     from poise.infrastructure.catalogue import FileCatalogue
@@ -224,20 +245,8 @@ def test_canonical_guidance_distinguishes_initial_and_planned_checks():
 
 
 def _run_red_active_observe() -> int:
-    process, template = _documents()
-    parameters = _parameters(process, _empty_schedule(process))
-    parameters["evidence"]["baseline"]["arguments"] = [{
-        "id": "ACTIVE_WITHOUT_SUBJECT",
-        "kind": "logical",
-        "phase": "prepare",
-        "observation_methods": [],
-    }]
     try:
-        TaskBlueprint.parse(template).instantiate(
-            parameters,
-            GoalTypeDefinition.parse(process).data,
-            [],
-        )
+        _instantiate_active_subjectless_observe()
     except PoiseError as error:
         if str(error) == "active observe требует subject method":
             print("EXPECTED_ACTIVE_OBSERVE_REJECTED")
@@ -253,6 +262,7 @@ def _run_green() -> int:
     test_development_template_does_not_default_missing_checks()
     for mutation in ("missing_stage", "extra_stage", "unknown_method"):
         test_development_template_reuses_exact_task_schedule_validation(mutation)
+    test_active_observe_still_requires_a_subject_method()
     test_catalogue_identity_reference_and_example_use_explicit_checks()
     print("INITIAL_CHECKS_GREEN")
     return 0

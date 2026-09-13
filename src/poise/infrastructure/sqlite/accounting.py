@@ -251,25 +251,34 @@ class SqliteAccounting:
 
     def snapshot(self):
         with self.database.transaction() as db:
-            accounts=[dict(r) for r in db.execute('SELECT * FROM accounting_accounts WHERE project=?',(self.project,))]
-            tasks={r['id']:TaskQueries.record_in(db,r['id']) for r in db.execute('SELECT id FROM tasks')}
-            cycles=[];telemetry=[]
-            for original in db.execute(
-                'SELECT * FROM accounting_cycles WHERE project=? ORDER BY rowid',
-                (self.project,),
-            ):
-                row=dict(original);data=json.loads(row['data'])
-                if data.get('kind')=='telemetry_envelope':
-                    row['data']=encoded(data['envelope']);telemetry.append(row)
-                else:cycles.append(row)
-            return {'accounts':accounts,'tasks':tasks,
-                'usage':[dict(r) for r in db.execute('SELECT * FROM accounting_usage WHERE project=?',(self.project,))],
-                'cycles':cycles,'telemetry':telemetry,
-                'credits':[dict(r) for r in db.execute('SELECT * FROM accounting_credits WHERE project=? ORDER BY seq',(self.project,))],
-                'messages':[dict(r) for r in db.execute('SELECT e.*,b.task_id,b.sprint_id,b.goal_type,b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b ON b.event_id=e.id WHERE e.project=?',(self.project,))],
-                'reports':[dict(r) for r in db.execute('SELECT * FROM interaction_reports')],
-                'quality':[dict(r) for r in db.execute('SELECT * FROM accounting_findings')],
-                'workflows':{r['task_id']:json.loads(r['data']) for r in db.execute('SELECT * FROM task_workflows')}}
+            return self._snapshot_in(db)
+
+    def snapshot_nonblocking(self):
+        reader=getattr(self.database,'read_transaction',None)
+        if reader is None:return self.snapshot()
+        with reader() as db:return self._snapshot_in(db)
+
+    def _snapshot_in(self,db):
+        accounts=[dict(r) for r in db.execute('SELECT * FROM accounting_accounts WHERE project=?',(self.project,))]
+        tasks={r['id']:TaskQueries.record_in(db,r['id']) for r in db.execute('SELECT id FROM tasks')}
+        cycles=[];telemetry=[]
+        for original in db.execute(
+            'SELECT * FROM accounting_cycles WHERE project=? ORDER BY rowid',
+            (self.project,),
+        ):
+            row=dict(original);data=json.loads(row['data'])
+            if data.get('kind')=='telemetry_envelope':
+                row['data']=encoded(data['envelope']);telemetry.append(row)
+            else:cycles.append(row)
+        return {'accounts':accounts,'tasks':tasks,
+            'usage':[dict(r) for r in db.execute('SELECT * FROM accounting_usage WHERE project=?',(self.project,))],
+            'cycles':cycles,'telemetry':telemetry,
+            'credits':[dict(r) for r in db.execute('SELECT * FROM accounting_credits WHERE project=? ORDER BY seq',(self.project,))],
+            'messages':[dict(r) for r in db.execute('SELECT e.*,b.task_id,b.sprint_id,b.goal_type,b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b ON b.event_id=e.id WHERE e.project=?',(self.project,))],
+            'reports':[dict(r) for r in db.execute('SELECT * FROM interaction_reports')],
+            'quality':[dict(r) for r in db.execute('SELECT * FROM accounting_findings')],
+            'workflows':{r['task_id']:json.loads(r['data']) for r in db.execute('SELECT * FROM task_workflows')},
+            'events':[dict(r) for r in db.execute('SELECT * FROM task_events ORDER BY seq')]}
 
     def latest_credit(self,tid):
         with self.database.transaction() as db:

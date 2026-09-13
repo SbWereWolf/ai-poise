@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
+import sqlite3
 from threading import Condition, Lock, Thread
 
 from .sqlite.database import Database
@@ -30,6 +31,31 @@ class TelemetryDatabase:
     def transaction(self):
         with self._ready().transaction() as db:
             yield db
+
+    @contextmanager
+    def read_transaction(self):
+        """Read the last committed SQLite snapshot without the writer flock."""
+        database=None
+        try:
+            database=sqlite3.connect(
+                self.path.resolve().as_uri()+'?mode=ro',
+                uri=True,
+                timeout=0,
+                isolation_level=None,
+                autocommit=True,
+            )
+            database.row_factory=sqlite3.Row
+            database.execute('PRAGMA query_only=ON')
+            database.execute('BEGIN')
+            yield database
+            database.execute('COMMIT')
+        except BaseException:
+            if database is not None and database.in_transaction:
+                database.execute('ROLLBACK')
+            raise
+        finally:
+            if database is not None:
+                database.close()
 
 
 class _ThreadCapture:

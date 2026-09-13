@@ -1,10 +1,10 @@
 """Composition adapter; observes existing work, never drives its business lifecycle."""
 from copy import deepcopy
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
-from ..modules.accounting.domain import MetricPolicy,BenefitDefinition,parse_telemetry
+from ..modules.accounting.domain import MetricPolicy,BenefitDefinition,parse_telemetry,identity
 from ..modules.accounting.clock import ClockObservation
-from ..common import PoiseError
-from .sqlite.accounting import SqliteAccounting,timestamp
+from ..common import PoiseError,encoded
+from .sqlite.accounting import SqliteAccounting,timestamp,binding
 from .accounting_measurement import PayloadMeasurer,zero_measure
 from .accounting_queries import AccountingQueries
 
@@ -13,6 +13,7 @@ def _empty_snapshot():
     return {
         'accounts':[], 'tasks':{}, 'usage':[], 'cycles':[], 'telemetry':[],
         'credits':[], 'messages':[], 'reports':[], 'quality':[], 'workflows':{},
+        'events':[],
     }
 
 
@@ -21,12 +22,33 @@ class _SnapshotRepository:
     def snapshot(self):return deepcopy(self.data)
 
 
+class _AccountingRepositories:
+    """One read projection over authoritative facts and optional observations."""
+
+    def __init__(self,authoritative,telemetry):
+        self.authoritative,self.telemetry=authoritative,telemetry
+        self.database=telemetry.database
+
+    def __getattr__(self,name):return getattr(self.authoritative,name)
+
+    def snapshot(self):
+        result=self.authoritative.snapshot()
+        optional=self.telemetry.snapshot_nonblocking()
+        for key in ('usage','cycles','telemetry'):
+            result[key]=[*result[key],*optional[key]]
+        return result
+
+
 class RuntimeAccounting:
     def __init__(self,h,database):
         self.h=h;self.policy=MetricPolicy.parse(h.cfg['accounting'])
         try:ZoneInfo(self.policy.data['timezone'])
         except ZoneInfoNotFoundError as exc:raise PoiseError('Unknown accounting timezone') from exc
-        self.repo=SqliteAccounting(database,h.cfg['project'],self.policy)
+        self.telemetry_repo=SqliteAccounting(database,h.cfg['project'],self.policy)
+        self.repo=_AccountingRepositories(
+            SqliteAccounting(h.store.database,h.cfg['project'],self.policy),
+            self.telemetry_repo,
+        )
         self.measurer=PayloadMeasurer(h)
         self._last_snapshot=_empty_snapshot()
 
@@ -60,10 +82,9 @@ class RuntimeAccounting:
         data=envelope.data
         started=self._observation(data['started']);finished=self._observation(data['finished'])
         raw=data['telemetry'];prepared=None if raw is None else self.prepare(raw)
-        if not self.repo.store_telemetry(envelope):return
+        if not self.telemetry_repo.store_telemetry(envelope):return
         selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
-        if prepared is not None:self.repo.ingest_binding(prepared,data['session'],selected,False)
-        self._last_snapshot=self.repo.snapshot()
+        if prepared is not None:self.telemetry_repo.ingest_binding(prepared,data['session'],selected,False)
 
     def reconcile(self,observation):
         data=self.repo.snapshot()
@@ -85,6 +106,7 @@ class RuntimeAccounting:
 
     def report(self,query):
         snapshot=self._snapshot()
+        self._project_terminal_credits(snapshot)
         return AccountingQueries(_SnapshotRepository(snapshot),self.policy,self.h.cfg['project']).report(query)
 
     def telemetry_summary(self,runtime):
@@ -94,14 +116,37 @@ class RuntimeAccounting:
         return result
 
     def _snapshot(self):
-        if getattr(self.h,'telemetry',None) is not None:
-            try:
-                if self.h.telemetry.summary().get('pending',0):
-                    return deepcopy(self._last_snapshot)
-            except Exception:
-                return deepcopy(self._last_snapshot)
+        authoritative=self.repo.authoritative.snapshot()
         try:
-            self._last_snapshot=self.repo.snapshot()
+            optional=self.telemetry_repo.snapshot_nonblocking()
         except Exception:
-            pass
-        return deepcopy(self._last_snapshot)
+            optional=_empty_snapshot()
+        for key in ('usage','cycles','telemetry'):
+            authoritative[key]=[*authoritative[key],*optional[key]]
+        self._last_snapshot=authoritative
+        return deepcopy(authoritative)
+
+    def _project_terminal_credits(self,snapshot):
+        credited={row['task_id'] for row in snapshot['credits']}
+        event_times={}
+        for event in snapshot['events']:
+            event_times[event['task_id']]=event['at']
+        for task_id,task in snapshot['tasks'].items():
+            if task_id in credited or task['status'] not in ('completed','cancelled','superseded'):
+                continue
+            definition=BenefitDefinition.parse(task['process']['benefit'])
+            baseline={'git_base':task['base'],'sections':{name:'' for name in definition.sections},
+                'benefit':task['process']['benefit'],'policy':self.policy.data,'origin':'task_start'}
+            if task['status']=='completed':
+                try:measurement=self.measurer.measure(task,baseline)
+                except PoiseError as exc:
+                    measurement=zero_measure(False)
+                    measurement.update(changed_lines=None,changed_bytes=None,changed_tokens=None,
+                        coverage='unavailable',measurement_error=str(exc))
+            else:measurement=zero_measure(self.policy.data['tokenizer']['kind']!='unavailable')
+            fields=('changed_lines','changed_bytes','changed_tokens')
+            data={'marker':identity([task_id,task['_version'],task['status']]),
+                'state':task['status'],'binding':binding(task),'measurement':measurement,
+                'delta':{key:measurement[key] for key in fields}}
+            snapshot['credits'].append({'task_id':task_id,'project':self.h.cfg['project'],
+                'at':event_times.get(task_id,'1970-01-01T00:00:00+00:00'),'data':encoded(data)})

@@ -1,6 +1,7 @@
 """Real storage contention and atomic ownership-release regressions for Task 0082."""
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from copy import deepcopy
+import fcntl
 import io
 import json
 from pathlib import Path
@@ -25,7 +26,7 @@ from poise.modules.accounting.domain import MetricPolicy
 from poise.runtime import Poise
 from tests.batch.helpers import request
 from tests.accounting.test_optional_telemetry_isolation import _raw_telemetry
-from tests.accounting.test_paths import metrics, setup
+from tests.accounting.test_paths import finish, metrics, setup
 
 
 class StorageCoupling(AssertionError):
@@ -258,6 +259,45 @@ def test_accounting_read_returns_with_closed_optional_processor_gate(project):
     assert outcome["result"]["telemetry"]["pending"] >= 1
 
 
+def test_accounting_read_does_not_take_external_optional_writer_lock(project):
+    runtime, work, _ = setup(project)
+    runtime.telemetry.flush()
+    runtime.telemetry.dispatcher.close()
+    lock_path = runtime.accounting.port.repo.database.lock
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+b") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        thread, outcome, done = _start(lambda: metrics(work))
+        try:
+            assert done.wait(1), "accounting read waited for the optional writer flock"
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            thread.join(15)
+    assert not thread.is_alive()
+    assert "error" not in outcome, outcome
+    assert outcome["result"]["telemetry"]["coverage"] == "partial"
+
+
+def test_report_merges_authoritative_task_messages_and_terminal_benefit(project):
+    runtime, work, started = setup(project)
+    packet = _show()
+    packet["messages"] = [{
+        "conversation_id": "merged-report",
+        "message_id": "authoritative-message",
+        "occurred_at": "2026-09-13T00:00:00+00:00",
+        "reason": "continue",
+        "subject": None,
+    }]
+    work.invoke(packet)
+    finish(work, started, Path(started["worktree"]))
+
+    report = metrics(work)
+
+    assert [task["task"] for task in report["tasks"]] == ["T1"]
+    assert report["totals"]["user_messages_count"] == 1
+    assert report["totals"]["benefit"]["changed_lines"] == 3
+
+
 @pytest.mark.parametrize("mode", ["closed", "full"])
 def test_one_rejected_capture_counts_as_one_loss(mode):
     entered, release = Event(), Event()
@@ -359,7 +399,7 @@ def main(mode, evidence_root):
     calls = [report for report in reports if report.when == "call"]
     matched = (code == pytest.ExitCode.TESTS_FAILED and errors == expected and len(calls) == 1
                if mode == "red" else code == pytest.ExitCode.OK and not errors
-               and len(calls) == (3 if mode == "guard" else 51)
+               and len(calls) == (3 if mode == "guard" else 53)
                and all(report.passed for report in calls))
     marker = {"red": "EXPECTED_EXPLICIT_TELEMETRY_STORAGE_CONTRACT_MISSING",
               "green": "TELEMETRY_STORAGE_GREEN", "guard": "TELEMETRY_RUNNER_GREEN"}[mode]

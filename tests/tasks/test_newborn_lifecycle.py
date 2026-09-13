@@ -136,6 +136,69 @@ def test_newborn_standalone_edit_and_ready(project):
     assert "became_available" in [item["event"] for item in record["history"]]
 
 
+def test_newborn_ready_rejects_unreachable_pre_trace_gate(project):
+    creator = tools(project, "creator")
+    born = create(creator, "UNREACHABLE-PRE")
+    assembled = complete_patch(project, "UNREACHABLE-PRE")
+    assembled.pop("goal")
+    assembled["content_contract"] = {
+        "sections": [],
+        "routes": [{
+            "id": "delivery",
+            "requirements": assembled["requirements"],
+            "points": [{
+                "id": "method",
+                "kind": "method",
+                "fields": {},
+                "write_stages": ["tests"],
+            }],
+        }],
+        "requirements": [{
+            "id": "method-too-late",
+            "kind": "trace",
+            "route": "delivery",
+            "point": "method",
+            "stages": ["tests"],
+            "phase": "pre",
+            "field_equals": {},
+        }],
+    }
+    edited = edit(
+        creator,
+        "UNREACHABLE-PRE",
+        born["revision"],
+        assembled | {"goal_type": "development"},
+        "complete-unreachable-pre",
+    )
+
+    try:
+        task_action(
+            creator,
+            action="ready",
+            request_id="ready-unreachable-pre",
+            task_id="UNREACHABLE-PRE",
+            expected_revision=edited["revision"],
+        )
+    except PoiseError as error:
+        failure = error
+    else:
+        pytest.fail("TASK_0119_NEWBORN_PRE_GATE_ACCEPTED")
+
+    message = str(failure)
+    for expected in (
+        "method-too-late",
+        "delivery",
+        "method",
+        "pre",
+        "write_stages",
+        "tests",
+    ):
+        assert expected in message
+    record = creator.runtime.task_queries.record("UNREACHABLE-PRE")
+    assert record["status"] == "newborn"
+    assert record["claimed_by"] == "creator"
+
+
 def test_newborn_ownership_and_switching(project):
     owner = tools(project, "owner")
     create(owner, "FIRST")

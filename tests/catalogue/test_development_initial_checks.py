@@ -64,6 +64,23 @@ def _baseline_method() -> dict:
 def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) -> dict:
     selected_methods = [] if methods is None else methods
     stages = [stage["id"] for stage in process["stages"]]
+    evidence = {
+        stage: {"subject_methods": {}, "arguments": [], "review_arguments": []}
+        for stage in stages
+    }
+    methods_by_id = {method["id"]: method for method in selected_methods}
+    for stage in process["stages"]:
+        if stage["handler"] not in ("observe", "check"):
+            continue
+        for method_id in checks.get(stage["id"], []):
+            if method_id not in methods_by_id:
+                continue
+            method = methods_by_id[method_id]
+            evidence[stage["id"]]["subject_methods"][method_id] = {
+                "exit_codes": [method["expected_exit_code"]],
+                "stdout_contains": method["stdout_contains"],
+                "stderr_contains": method["stderr_contains"],
+            }
     return {
         "identity": "DEVELOPMENT-CHECKS",
         "membership": None,
@@ -88,10 +105,7 @@ def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) 
         "checks": checks,
         "artifact_requirements": [],
         "contract": {"sections": [], "routes": [], "requirements": []},
-        "evidence": {
-            stage: {"subject_methods": {}, "arguments": [], "review_arguments": []}
-            for stage in stages
-        },
+        "evidence": evidence,
     }
 
 
@@ -209,16 +223,27 @@ def test_canonical_guidance_distinguishes_initial_and_planned_checks():
     assert "Пустое начальное расписание" in batch
 
 
-def _run_red_empty_schedule() -> int:
-    process, _ = _documents()
+def _run_red_active_observe() -> int:
+    process, template = _documents()
+    parameters = _parameters(process, _empty_schedule(process))
+    parameters["evidence"]["baseline"]["arguments"] = [{
+        "id": "ACTIVE_WITHOUT_SUBJECT",
+        "kind": "logical",
+        "phase": "prepare",
+        "observation_methods": [],
+    }]
     try:
-        _instantiate(_empty_schedule(process))
+        TaskBlueprint.parse(template).instantiate(
+            parameters,
+            GoalTypeDefinition.parse(process).data,
+            [],
+        )
     except PoiseError as error:
-        if str(error) == "observe требует subject method":
-            print("EXPECTED_EMPTY_SCHEDULE_REJECTED")
+        if str(error) == "active observe требует subject method":
+            print("EXPECTED_ACTIVE_OBSERVE_REJECTED")
             return 1
         raise
-    raise AssertionError("The exact empty-schedule evidence defect was not reproduced")
+    raise AssertionError("The active subjectless observe guard was not enforced")
 
 
 def _run_green() -> int:
@@ -241,13 +266,13 @@ def _run_documentation() -> int:
 
 if __name__ == "__main__":
     modes = {
-        "red-empty-schedule": _run_red_empty_schedule,
+        "red-active-observe": _run_red_active_observe,
         "green": _run_green,
         "documentation": _run_documentation,
     }
     if len(sys.argv) != 2 or sys.argv[1] not in modes:
         raise SystemExit(
             "usage: test_development_initial_checks.py "
-            "red-empty-schedule|green|documentation"
+            "red-active-observe|green|documentation"
         )
     raise SystemExit(modes[sys.argv[1]]())

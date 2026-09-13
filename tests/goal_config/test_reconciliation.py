@@ -48,6 +48,7 @@ def test_exact_reconcile_adopts_valid_external_revision_and_next_update_succeeds
     before = target.read_bytes()
 
     adopted = api.reconcile(_reconcile(first, live_revision))
+    after_reconcile = target.read_bytes()
     updated = api.apply_batch(
         request("update", "writing", live_revision, additions(), "ordinary-next-edit")
     )
@@ -56,6 +57,7 @@ def test_exact_reconcile_adopts_valid_external_revision_and_next_update_succeeds
     assert adopted["previous_revision"] == first["revision"]
     assert adopted["revision"] == live_revision
     assert adopted["config_unchanged"] is True
+    assert after_reconcile == before
     assert before != target.read_bytes()
     assert updated["previous_revision"] == live_revision
 
@@ -88,6 +90,11 @@ def test_reconcile_rejects_wrong_managed_or_live_digest_without_mutation(tmp_pat
         packet = _reconcile(first, live_revision, f"wrong-{field}")
         packet[field] = "0" * 64
         with pytest.raises(PoiseError, match="revision"):
+            api.reconcile(packet)
+    for field in ("reason", "authorization"):
+        packet = _reconcile(first, live_revision, f"empty-{field}")
+        packet[field] = " "
+        with pytest.raises(PoiseError, match=field):
             api.reconcile(packet)
 
     assert target.read_bytes() == before
@@ -146,8 +153,28 @@ def test_cli_dispatches_reconcile_and_identical_request_replays(tmp_path):
 
     assert first_result["status"] == "reconciled"
     assert replay["replayed"] is True
+    for observed in (first_result, replay):
+        assert observed["reason"] == packet["reason"]
+        assert observed["authorization"] == packet["authorization"]
+        assert observed["previous_revision"] == first["revision"]
+        assert observed["revision"] == live_revision
+        assert observed["validated_revision"] == live_revision
+        assert observed["config_path"] == first["config_path"]
+        assert observed["config_unchanged"] is True
     with sqlite3.connect(tmp_path / "state/config-editor.sqlite") as database:
         assert database.execute(
             "SELECT count(*) FROM config_operations WHERE request_id='cli-adopt'"
         ).fetchone()[0] == 1
+        durable = json.loads(
+            database.execute(
+                "SELECT receipt FROM config_operations WHERE request_id='cli-adopt'"
+            ).fetchone()[0]
+        )
 
+    assert durable["reason"] == packet["reason"]
+    assert durable["authorization"] == packet["authorization"]
+    assert durable["previous_revision"] == first["revision"]
+    assert durable["revision"] == live_revision
+    assert durable["validated_revision"] == live_revision
+    assert durable["config_path"] == first["config_path"]
+    assert durable["config_unchanged"] is True

@@ -90,6 +90,15 @@ def prepare_completed_task(
             "entry_requirements": [],
             "exit_requirements": [],
         }],
+        "decomposition": {
+            "kind": "ordinary",
+            "phases": [{
+                "stage": "implementation",
+                "skills": ["task-domain"],
+                "areas": [],
+            }],
+            "integration": None,
+        },
     }
     runtime = Poise(project["config_path"], "worker")
     tools = WorkTools(runtime)

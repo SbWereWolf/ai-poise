@@ -1,5 +1,6 @@
 {
   "goal_type": "task_planning",
+  "worktree_required": true,
   "route": {
     "entry": "framing"
   },

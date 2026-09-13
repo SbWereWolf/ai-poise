@@ -1,5 +1,6 @@
 {
   "goal_type": "environment_diagnostics",
+  "worktree_required": true,
   "route": {
     "entry": "framing"
   },

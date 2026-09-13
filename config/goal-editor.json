@@ -25,12 +25,12 @@
     "development-v1": {
       "path": "config/templates/development-v1.json",
       "version": "1",
-      "digest": "2680fb00c2575a5001beda95b40e51a77b229628c603c9a2235f0bccfef77165"
+      "digest": "ec44d6c66feb8cace646f539c46aa0dc44c6cc1948c13bba6439cb284ef3dc93"
     },
     "documentation-v1": {
       "path": "config/templates/documentation-v1.json",
       "version": "1",
-      "digest": "6c35f4b539badb8ccdeb2c1bccaa3c950829d5a369f114f5104ae7bf06a287c6"
+      "digest": "e35e3219ded880aed9b0bb9b164e61a2db66c1d02476378495741a4b5d268c13"
     }
   }
 }

@@ -13,6 +13,15 @@ For this local ai-poise installation, use [the concrete launcher and configurati
 
 ## Start or resume work
 
+Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
+at most one Task and one worktree per session, independently owned. The process snapshot
+defines a dependent worktree; release it with its Task but preserve independent ownership.
+Acquire the complete set through the public owner, recognizing self-ownership and replacing
+old same-kind claims atomically. Never steal an uncertain live claim. Claims do not change
+WIP, cwd or launch roots and do not authorize cleanup or integration. At a role boundary,
+the sender saves results, confirms public release, then directly messages the known counterpart;
+the recipient acquires through bootstrap before working, under existing Task authorization.
+
 Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required content, worktree, findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
 When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.
@@ -53,10 +62,14 @@ When the Task's counterpart executor/reviewer is known, apply [Direct role hando
 
 1. Save the result, evidence and findings, complete your required checks, and confirm that public `handoff` actually released the Task.
 2. Stop Task/worktree changes, then use the available direct-message tool to notify that known counterpart. Include project/Task ID, stage and receiving role, result/findings and handoff receipt links, next action and any limits of the user's Task-start instruction. Do not ask the user to relay the message or authorize each ordinary review.
-3. After successful notification, end your turn. Do not wait for a reply, poll the counterpart's status, read its conversation to track progress, or schedule background monitoring. This applies to both roles. A new incoming assignment starts the next work cycle; do not keep this turn open until it arrives. Finish your own already-started commands and save/handoff operations before ending the turn.
+3. After successful notification, check your own pending assignments and immediately continue actionable work or the authorized stage/Task chain in the same turn. Keep received assignments in the working plan until completed, cancelled or explicitly transferred; preserve them and their blockers across checkpoints and compaction. Acknowledging a message does not discharge it. New messages add work unless they explicitly change the assignment. Do not poll the counterpart's status, read its conversation for progress or schedule background monitoring.
 4. The recipient must acquire through `bootstrap` and check current state before working. A message neither transfers ownership nor substitutes for a review decision. Keep messages actionable, not repetitive status chatter.
 
 If the recipient or messaging tool is unavailable, report the saved handoff to the user; do not contact unrelated agents. If handoff fails, do not announce a completed transfer. If notification fails after release, retry the notification against the same saved result or report the blocker; do not silently reclaim or repeat the work. Repeated messages require checking current Poise state, not replaying a finished stage. Stop for a harness blocker or a decision outside the existing authorization, not for a routine executor/reviewer boundary.
+
+For multiple incoming review handoffs, follow the linked direct-handoff rule: if idle, acquire and start immediately; otherwise finish the review already started, save, release and notify, then take the next already-received actionable Task in the same turn. A new handoff does not interrupt the current review or claim a second Task. For example, after reviewing 0082, start pending 0076 immediately rather than ending with "0076 is next".
+
+Before a final answer, account for every received assignment and continue any authorized actionable work. End the turn only when none remains; preserve the next action and concrete blocker for each pending assignment. A blocker on one Task does not stop other assigned work when ownership permits switching. Complete your own already-started operations. Never rely on another message to restart work that has already been assigned; duplicate notifications do not require repeating completed work.
 
 For another store/environment, use `transfer`; do not merge task databases manually. Read [Transfer → Batch API](../../../docs/workflows/transfer.md#пакетный-api).
 

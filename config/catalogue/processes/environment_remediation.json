@@ -105,6 +105,7 @@
     ]
   },
   "goal_type": "environment_remediation",
+  "worktree_required": true,
   "route": {
     "entry": "framing"
   },

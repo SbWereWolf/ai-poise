@@ -42,6 +42,36 @@ Task применяет переход только после этих пров
 Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw capture синхронный, адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы EvidenceBook.
 
 
+## WorkOwnership
+
+Обновлено: 2026-09-13. Реализованный срез Task 0076,
+[HR-037](../governance/requirements.md#HR-037).
+
+`OwnershipState`/`OwnershipSet` в `modules/ownership` владеют чистыми правилами полного
+набора, замены, эксклюзивности и зависимого освобождения. `OwnershipCommands` координирует
+preflight, liveness и повторную проверку в UoW. SQLite adapter сохраняет `tasks.claimed_by`
+(владелец Task) и `sessions.task_id` (независимая привязка worktree) одной транзакцией под
+существующим writer lock. Нельзя выводить владение Task только из `sessions.task_id`.
+Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
+
+Process snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork
+и handoff компонуют API владельца, не реализуют отдельные алгоритмы захвата. Native hook
+registry предоставляет подтверждённые события liveness: `SessionEnd` означает DEAD,
+незавершённая наблюдаемая сессия — LIVE, недостающая запись — UNCERTAIN. Runtime без
+наблюдателя не получает скрытого разрешения на перехват. Сами claims не выполняют Git,
+filesystem cleanup, chdir или смену launch root.
+
+Для Task без worktree runtime использует настроенный repository как среду проверок,
+сохраняет закреплённую базу и результат без ветки. Handoff receipt имеет null worktree
+и bundle; resume проверяет сохранённые факты, не создаёт искусственное дерево.
+Accounting не измеряет несуществующий Git delta, но продолжает измерять объявленные
+полезные секции относительно их baseline. Это не изменение Clock или полноты телеметрии.
+
+Существующие terminal cleanup (0048) и result integration (0057) остаются у своих
+владельцев; освобождение claims не удаляет worktree и не публикует коммиты. Интеграция
+принятого результата по-прежнему использует текущую установку и существующее дерево Task.
+Атомарность SQL claims не обещает транзакцию, охватывающую Git или внешние команды.
+
 ## Пакетный декларативный вход
 
 Обновлено: **2026-09-06T22:58:21+05:00**. Task/config/artifact/interaction-вход реализован в DDD-04A/04B; Sprint использует тот же вход в DDD-05.

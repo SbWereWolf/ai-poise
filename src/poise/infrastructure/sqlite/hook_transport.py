@@ -69,3 +69,15 @@ class HookRegistry:
         matches=[r for r in matches if r['external_session']==external and r['agent_id']==agent]
         if len(matches)!=1:raise PoiseError('No unique hook binding for this external identity')
         return matches[0]
+
+    def liveness(self, binding):
+        from ...modules.ownership.domain import Liveness
+        with self.transaction() as db:
+            known=db.execute('SELECT 1 FROM bindings WHERE id=?',(binding,)).fetchone()
+            if known is None:return Liveness.UNCERTAIN
+            row=db.execute(
+                'SELECT event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
+                (binding,),
+            ).fetchone()
+        if row is None:return Liveness.UNCERTAIN
+        return Liveness.DEAD if row[0]=='SessionEnd' else Liveness.LIVE

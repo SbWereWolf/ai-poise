@@ -181,6 +181,7 @@
     "sections": []
   },
   "goal_type": "development",
+  "worktree_required": true,
   "route": {
     "entry": "baseline"
   },

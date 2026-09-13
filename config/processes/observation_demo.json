@@ -1,5 +1,6 @@
 {
   "goal_type": "observation_demo",
+  "worktree_required": true,
   "route": {
     "entry": "measure"
   },

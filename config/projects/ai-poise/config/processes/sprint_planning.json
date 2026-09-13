@@ -229,6 +229,7 @@
     "sections": []
   },
   "goal_type": "sprint_planning",
+  "worktree_required": true,
   "route": {
     "entry": "framing"
   },

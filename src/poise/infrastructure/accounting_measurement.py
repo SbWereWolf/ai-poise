@@ -75,7 +75,9 @@ class PayloadMeasurer:
         result=zero_measure(self.policy['tokenizer']['kind']!='unavailable')
         result.update(baseline=baseline['git_base'],tokenizer=self.policy['tokenizer']['identity'])
         records=[];added=[];removed=[]
-        if definition.git_categories:
+        # A Task without a worktree has no authored Git delta; its useful sections
+        # are still measured below against the captured section baseline.
+        if definition.git_categories and task['worktree'] is not None:
             revision=task['last_report']['commit']
             if not revision:raise PoiseError('Completed Git result has no exact commit')
             result['result']=revision

@@ -237,6 +237,7 @@ def _configure_production_accounting(project):
 
     process = {
         "goal_type": "development",
+        "worktree_required": True,
         "benefit": {"git_categories": ["code", "documentation"], "sections": []},
         "route": {"entry": "write"},
         "stages": [

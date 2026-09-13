@@ -190,6 +190,7 @@
     ]
   },
   "goal_type": "profiling",
+  "worktree_required": true,
   "route": {
     "entry": "framing"
   },

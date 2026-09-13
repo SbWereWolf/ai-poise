@@ -34,6 +34,7 @@ class TaskUnitOfWork(Protocol):
     tasks: TaskRepository
     execution: ExecutionRepository
     evidence: EvidenceRepository
+    ownership: object
     def __enter__(self) -> TaskUnitOfWork: ...
     def __exit__(self, exc_type, exc, traceback) -> bool: ...
 

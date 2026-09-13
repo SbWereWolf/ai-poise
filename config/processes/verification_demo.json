@@ -1,5 +1,6 @@
 {
   "goal_type": "verification_demo",
+  "worktree_required": true,
   "route": {
     "entry": "measure"
   },

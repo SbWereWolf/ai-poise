@@ -30,6 +30,15 @@ Count observed user messages without inventing missing messages or token usage. 
 
 ## Shared agent policy
 
+Keep at most one Task and one worktree per session, with independent claims and all
+four combinations. Acquire the complete set atomically through its owner; never steal
+an uncertain live claim. The process snapshot determines a dependent worktree, which
+is released with its Task; preserve an independent worktree and all WIP, cwd and launch
+roots. Claim replacement is not completion, cleanup or integration authority. Follow
+the canonical [ownership rule](docs/governance/development-rules.md#владение-task-и-worktree).
+At a role boundary the sender saves results, confirms public release, then directly messages the known counterpart;
+the recipient acquires before mutation. Existing user Task authorization covers ordinary review and remediation.
+
 The canonical policy is [Development rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2). Keep this English projection and its Russian source consistent in the same change.
 
 - Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`, `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
@@ -37,7 +46,8 @@ The canonical policy is [Development rules](docs/governance/development-rules.md
 - Read applicable nested agent rules before working on their surface. Use specific rules within root constraints, subject to higher-priority platform and user instructions. Load only skills and reference sections needed for the active phase.
 - Continue authorized work to its stated outcome, without expanding scope. Do not delegate to sub-agents without explicit user authorization in the current request. Ask only for a genuinely blocking decision; use existing authorization for routine work.
 - For a user-started Task, known executor/reviewer counterparts continue autonomously within harness gates and user limits. In both directions, save results, confirm public Task release, then send the counterpart a direct handoff message; the recipient acquires before working. No per-review user command is required. Follow [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим); messaging never replaces ownership or independent review.
-- After saving results, confirming Task release and notifying the counterpart, end the turn. Neither executor nor reviewer waits for replies or monitors the other agent through status polling, progress-reading of its conversation or background observation. Resume on a new incoming assignment; complete your own already-started operations before ending the turn. See [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
+- Keep received assignments as outstanding obligations until completed, cancelled or explicitly transferred. New messages add to the working plan unless they explicitly change an assignment; preserve pending work and blockers across checkpoints and compaction. Reading or acknowledging a message does not complete its assignment.
+- After saving results, confirming Task release and notifying the counterpart, immediately continue the next already-received actionable assignment or authorized stage/Task chain in the same turn. An idle reviewer starts on a received handoff; otherwise finish the review already started before taking the next Task. Incoming handoffs do not interrupt that review or claim a second Task. End the turn only when no authorized actionable work remains; first account for every pending assignment and its blocker. Finish your own already-started operations. Do not poll counterpart status, read its conversation for progress or schedule background monitoring; checking your own pending assignments is required. See [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 - Inspect Git state before the first write. Preserve unrelated changes. If a modified or untracked path's ownership is unclear, obtain an explicit user decision before altering it. Never reset, restore, stage or commit unrelated files.
 - Do not create a new top-level repository directory without explicit user authorization naming its path and purpose. Keep temporary runtime files and managed task/sprint evidence in the configured AI poise locations, under the explicitly configured state root. For this ai-poise installation, the user authorized `projects/ai-poise/` inside the repository; it is ignored by Git.
 - File extensions must match content and purpose. Environment templates end in `.env` and contain `example`, such as `app.example.env`. Format parallel lists vertically for stable diffs. Invoke repository `.sh` entry points explicitly through Bash.

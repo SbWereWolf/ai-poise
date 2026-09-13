@@ -18,11 +18,13 @@ def fingerprint(value):
 
 class SprintCommands:
     def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
-                 automatic_checks,execution_hash,prepare_creation,creation_base):
+                 automatic_checks,decomposition_policy,execution_hash,
+                 prepare_creation,creation_base):
         self.uow=unit_of_work;self.project=project;self.actor=actor
         self.policy=SprintPolicy.parse(policy);self.processes=deepcopy(processes)
         self.task_id_policy=task_id_policy
         self.automatic_checks=deepcopy(automatic_checks);self.execution_hash=execution_hash
+        self.decomposition_policy=deepcopy(decomposition_policy)
         self.prepare_creation=prepare_creation;self.creation_base=creation_base
 
     def _errors(self,record,facts=None):
@@ -40,14 +42,20 @@ class SprintCommands:
                     body={'id':t,'sprint_id':s.plan.data['id'],**deepcopy(fact['_newborn_draft'])}
                     process=fact['_newborn_process']
                     if process is None:raise DomainError('Unknown goal_type')
-                    validate_creation(body,process,record['automatic_checks'])
+                    validate_creation(
+                        body, process, record['automatic_checks'],
+                        record['task_decomposition'],
+                    )
                     if not fact.get('ready',False):
                         raise DomainError('Newborn Sprint member is not type-ready')
                     continue
                 body=t['task'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t
                 kind=body.get('goal_type')
                 if not isinstance(kind,str) or kind not in record['processes']:raise DomainError('Unknown goal_type')
-                validate_creation_intent(t,record['processes'][kind],record['automatic_checks'])
+                validate_creation_intent(
+                    t, record['processes'][kind], record['automatic_checks'],
+                    record['task_decomposition'],
+                )
             except PoiseError as exc:errors.append(f"Task creation intent: {exc}")
         return errors
 
@@ -128,7 +136,10 @@ class SprintCommands:
                     process=newborn.process
                     if process is None:raise DomainError('Unknown goal_type')
                     body={'id':task_id,'sprint_id':sid,**deepcopy(newborn.draft)}
-                    validate_creation(body,process,self.automatic_checks)
+                    validate_creation(
+                        body, process, self.automatic_checks,
+                        self.decomposition_policy,
+                    )
                 except PoiseError:
                     pass
                 else:
@@ -229,7 +240,8 @@ class SprintCommands:
                 if newborn.claimed_by not in (None,self.actor):
                     raise DomainError('Newborn Sprint member is owned by another session')
                 creation=self.prepare_creation(
-                    body,newborn.process,automatic_checks,base
+                    body,newborn.process,automatic_checks,base,
+                    record['task_decomposition'],
                 )
                 if not newborn.ready:
                     raise DomainError('Newborn Sprint member is not type-ready')
@@ -240,7 +252,8 @@ class SprintCommands:
                 continue
             body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
             prepared.append({'creation':self.prepare_creation(
-                intent,processes[body['goal_type']],automatic_checks,base
+                intent,processes[body['goal_type']],automatic_checks,base,
+                record['task_decomposition'],
             ),'newborn':None})
         return {'record':snapshot,'prepared':prepared}
 
@@ -270,6 +283,7 @@ class SprintCommands:
                     s=Sprint(s.plan.apply(changes,s.policy),s.policy,s.revision,s.state,s.waivers,s.decisions)
                     record={'project':self.project,'actor':self.actor,'aggregate':s.to_dict(),
                             'processes':deepcopy(self.processes),'automatic_checks':deepcopy(self.automatic_checks),
+                            'task_decomposition':deepcopy(self.decomposition_policy),
                             'execution_hash':self.execution_hash}
                 else:
                     if type(expected) is not int or expected!=record['aggregate']['revision']:
@@ -310,7 +324,10 @@ class SprintCommands:
                             if (not newborn.ready or prepared.intent!=contract
                                     or newborn!=item['newborn']):
                                 raise VersionConflict('Newborn Sprint member changed after creation preflight')
-                            metadata=validate_creation(contract,newborn.process,record['automatic_checks'])
+                            metadata=validate_creation(
+                                contract, newborn.process, record['automatic_checks'],
+                                record['task_decomposition'],
+                            )
                             metadata.update(sprint_id=sid,goal=contract['goal'],config_hash=record['execution_hash'])
                             if newborn.creation_request is not None:
                                 metadata['creation_request']=deepcopy(newborn.creation_request)

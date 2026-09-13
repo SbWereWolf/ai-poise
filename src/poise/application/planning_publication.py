@@ -12,9 +12,10 @@ from .tasks import (create_planned_in_uow, creation_batch_reservations, creation
 
 class PlanningPublications:
     def __init__(self,uow,project,processes,automatic_checks,sprint_policy,task_id_policy,
-                 execution_hash,max_items,prepare_creation,creation_base):
+                 decomposition_policy,execution_hash,max_items,prepare_creation,creation_base):
         self.uow,self.project,self.processes=uow,project,deepcopy(processes)
         self.automatic_checks=deepcopy(automatic_checks)
+        self.decomposition_policy=deepcopy(decomposition_policy)
         self.policy=SprintPolicy.parse(sprint_policy)
         self.task_id_policy=task_id_policy
         self.execution_hash,self.max_items=execution_hash,max_items
@@ -75,7 +76,8 @@ class PlanningPublications:
             goal=body_contract.get('goal_type') if isinstance(body_contract,dict) else None
             if goal not in self.processes:raise DomainError('Unknown child goal type')
             candidate=self.prepare_creation(
-                intent,self.processes[goal],self.automatic_checks,base
+                intent,self.processes[goal],self.automatic_checks,base,
+                self.decomposition_policy,
             )
             alias=creation_intent_alias(intent)
             if alias in aliases:raise DomainError('Duplicate child creation identity')
@@ -128,7 +130,10 @@ class PlanningPublications:
                 body_contract=intent.get('task') if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
                 goal=body_contract.get('goal_type') if isinstance(body_contract,dict) else None
                 if goal not in self.processes:raise DomainError('Unknown child goal type')
-                validate_creation_intent(intent,self.processes[goal],self.automatic_checks)
+                validate_creation_intent(
+                    intent, self.processes[goal], self.automatic_checks,
+                    self.decomposition_policy,
+                )
                 alias=creation_intent_alias(intent)
                 if alias in aliases:raise DomainError('Duplicate child creation identity')
                 if prepared.intent!=intent:
@@ -158,6 +163,7 @@ class PlanningPublications:
                 )
                 record={'project':self.project,'actor':actor,'aggregate':sprint.to_dict(),
                         'processes':deepcopy(self.processes),'automatic_checks':deepcopy(self.automatic_checks),
+                        'task_decomposition':deepcopy(self.decomposition_policy),
                         'execution_hash':self.execution_hash}
                 u.sprints.save(record,None);u.sprints.publish_members(record)
             run=ActionRun.new(plan)

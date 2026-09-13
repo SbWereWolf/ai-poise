@@ -9,7 +9,8 @@ class SprintWork:
         self.h=runtime
         self.commands=SprintCommands(runtime.store.unit_of_work,runtime.cfg['project'],runtime.session,
             runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.processes,
-            runtime.cfg['automatic_checks'],runtime.config_hash,
+            runtime.cfg['automatic_checks'],runtime.cfg['task_decomposition'],
+            runtime.config_hash,
             runtime.task_commands.prepare_creation,runtime._creation_base)
 
     def known(self,sprint_id):return self.commands.known(sprint_id)

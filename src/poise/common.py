@@ -73,7 +73,8 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     root = path.resolve().parent
     cfg = read_json(path)
     keys = {'schema','project','paths','limits','git','processes','environment_names',
-            'automatic_checks','batch','sprint','runtime_services','accounting'}
+            'automatic_checks','batch','sprint','runtime_services','accounting',
+            'task_decomposition'}
     exact_keys(cfg, keys | ({'task_ids'} if 'task_ids' in cfg else set()), 'project config')
     if cfg['schema'] != 'ddd-accounting-12':
         raise PoiseError('Версия конфигурации не поддерживается; автоматических миграций нет')
@@ -153,6 +154,8 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     if 'task_ids' in cfg:
         from .modules.tasks.allocation import TaskIdPolicy
         TaskIdPolicy.parse(cfg['task_ids'])
+    from .modules.tasks.decomposition import FocusedDecomposition
+    FocusedDecomposition.validate_policy(cfg['task_decomposition'])
     from .modules.work.domain import validate_config
     validate_config(cfg['batch'])
     processes = {}

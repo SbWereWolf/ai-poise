@@ -69,11 +69,11 @@ class TaskBlueprint:
             raise DomainError('Task template has a different goal identity')
         return cls(json.dumps(raw,ensure_ascii=False,sort_keys=True,allow_nan=False))
 
-    def instantiate(self,values,process,automatic_checks):
+    def instantiate(self,values,process,automatic_checks,decomposition_policy):
         raw=self.data
         exact_keys(values,set(raw['parameters']),'task template parameters')
         for key,kind in raw['parameters'].items():_parameter(values[key],kind,key)
         contract=_render(raw['task'],values)
         # Reuse the exact same owner as standalone/sprint creation. No second schema.
-        validate_creation(contract,process,automatic_checks)
+        validate_creation(contract,process,automatic_checks,decomposition_policy)
         return contract

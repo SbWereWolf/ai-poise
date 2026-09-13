@@ -131,6 +131,20 @@ def project(tmp_path, monkeypatch):
     cfg['runtime_services']=json.loads((Path(__file__).resolve().parents[1]/'config/runtime.example.json').read_text())
     cfg['batch']=json.loads((Path(__file__).resolve().parents[1]/'config/batch.example.json').read_text())
     cfg['sprint']=json.loads((Path(__file__).resolve().parents[1]/'config/sprint.example.json').read_text())
+    cfg['task_decomposition'] = {
+        'skills': [
+            {'id': 'workflow', 'class': 'meta', 'responsibility': None},
+            {'id': 'python', 'class': 'general', 'responsibility': None},
+            {'id': 'task-domain', 'class': 'narrow', 'responsibility': 'tasks'},
+            {'id': 'sprint-domain', 'class': 'narrow', 'responsibility': 'sprints'},
+            {'id': 'task-storage', 'class': 'narrow', 'responsibility': 'tasks'},
+        ],
+        'areas': [
+            {'path': 'src/poise/modules/tasks/**', 'responsibility': 'tasks'},
+            {'path': 'src/poise/modules/sprints/**', 'responsibility': 'sprints'},
+            {'path': 'docs/**', 'responsibility': 'documentation'},
+        ],
+    }
     cfg_path = write_json(poise_root / 'project.json', cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     red_argv = [
@@ -204,7 +218,15 @@ def project(tmp_path, monkeypatch):
             },
         ],
         'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']},
-     "content_contract": {"sections":[],"routes":[],"requirements":[]}}
+     "content_contract": {"sections":[],"routes":[],"requirements":[]},
+     'decomposition': {
+         'kind': 'ordinary',
+         'phases': [
+             {'stage': stage['id'], 'skills': ['task-domain'], 'areas': []}
+             for stage in stages
+         ],
+         'integration': None,
+     }}
     task['evidence_plan'] = {s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}
     task['stage_contracts'] = [{
         'stage_id': stage['id'],

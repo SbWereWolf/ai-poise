@@ -65,7 +65,7 @@ def stored_executable_obligations(contract, process, registry_state):
     )
 
 
-def validate_creation(contract, process, automatic_checks):
+def validate_creation(contract, process, automatic_checks, decomposition_policy):
     if isinstance(contract,dict) and 'method_inputs' not in contract:
         method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
         raise DomainError(
@@ -73,7 +73,7 @@ def validate_creation(contract, process, automatic_checks):
         )
     fields={'id','sprint_id','goal_type','goal','requirements','definition_of_done',
         'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan',
-        'stage_contracts'}
+        'stage_contracts','decomposition'}
     if registry_inspection_stages(process):
         fields.add('executable_obligations')
     exact_keys(contract,fields,'task')
@@ -89,6 +89,10 @@ def validate_creation(contract, process, automatic_checks):
         if not isinstance(v,list) or not v or any(not isinstance(s,str) or not s.strip() for s in v) or len(v)!=len(set(v)):
             raise DomainError(f'{field}: требуются непустые уникальные строки')
     stages=tuple(s['id'] for s in process['stages'])
+    from .decomposition import FocusedDecomposition
+    FocusedDecomposition.parse(contract['decomposition'], stages).validate(
+        decomposition_policy
+    )
     route = RouteDefinition.from_process(process)
     registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
         executable_obligations(contract, process),

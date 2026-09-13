@@ -50,6 +50,11 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
         'entry_requirements':[],
         'exit_requirements':[],
     }]
+    t['decomposition'] = {
+        'kind': 'ordinary',
+        'phases': [{'stage': 'work', 'skills': ['task-domain'], 'areas': []}],
+        'integration': None,
+    }
     return t
 
 

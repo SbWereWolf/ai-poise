@@ -27,11 +27,16 @@ def _action_digest(action: str, payload: dict) -> str:
     ).encode()).hexdigest()
 
 
-def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata):
+def _creation_values(
+    intent, allocation, actor, process, automatic_checks, decomposition_policy,
+    base_metadata,
+):
     from ..modules.tasks.allocation import materialize_contract
     from ..modules.tasks.definition import build_task, validate_creation
     contract, creation_request = materialize_contract(intent, allocation.task_id)
-    metadata = validate_creation(contract, process, automatic_checks)
+    metadata = validate_creation(
+        contract, process, automatic_checks, decomposition_policy
+    )
     metadata.update(base_metadata)
     metadata.update(sprint_id=contract['sprint_id'], goal=contract['goal'])
     if creation_request is not None:
@@ -44,6 +49,7 @@ class PreparedCreation:
     intent: dict
     process: dict
     automatic_checks: list
+    decomposition_policy: dict
 
 
 def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=()):
@@ -53,11 +59,13 @@ def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=())
     intent = deepcopy(prepared.intent)
     process = deepcopy(prepared.process)
     automatic_checks = deepcopy(prepared.automatic_checks)
+    decomposition_policy = deepcopy(prepared.decomposition_policy)
     request_id, _, _ = creation_parts(intent)
     parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
     allocation = uow.tasks.allocate(intent, parsed_policy, reserved_ids)
     task, metadata, contract = _creation_values(
-        intent, allocation, None, process, automatic_checks, base_metadata
+        intent, allocation, None, process, automatic_checks, decomposition_policy,
+        base_metadata
     )
     uow.tasks.create(task, metadata)
     return allocation, contract
@@ -86,11 +94,11 @@ def rewrite_task_plan(plan, contracts_by_alias):
     return data
 
 
-def validate_creation_intent(intent, process, automatic_checks):
+def validate_creation_intent(intent, process, automatic_checks, decomposition_policy):
     from ..modules.tasks.allocation import creation_alias, materialize_contract
     from ..modules.tasks.definition import validate_creation
     contract, _ = materialize_contract(intent, creation_alias(intent))
-    return validate_creation(contract, process, automatic_checks)
+    return validate_creation(contract, process, automatic_checks, decomposition_policy)
 
 
 def creation_intent_alias(intent):
@@ -109,11 +117,14 @@ class SubmissionReceipt:
 
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
-    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader):
+    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork],
+                 repository_tree: RepositoryTreeReader):
         self.unit_of_work = unit_of_work
         self.repository_tree = repository_tree
 
-    def prepare_creation(self, intent, process, automatic_checks, base_revision):
+    def prepare_creation(
+        self, intent, process, automatic_checks, base_revision, decomposition_policy
+    ):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
@@ -121,7 +132,9 @@ class TaskCommands:
         try:
             preflight = CreationPreflight.parse(candidate, process)
         except KeyError as exc:
-            validate_creation(candidate, process, automatic_checks)
+            validate_creation(
+                candidate, process, automatic_checks, decomposition_policy
+            )
             raise DomainError(
                 f"Task creation preflight requires field {exc.args[0]!r}"
             ) from exc
@@ -130,19 +143,23 @@ class TaskCommands:
         preflight.validate_base(
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
-        validate_creation(candidate, process, automatic_checks)
+        validate_creation(candidate, process, automatic_checks, decomposition_policy)
         return PreparedCreation(
             deepcopy(intent),
             deepcopy(process),
             deepcopy(automatic_checks),
+            deepcopy(decomposition_policy),
         )
 
     def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
-               base_metadata: dict, execution, policy, base_revision):
+               base_metadata: dict, execution, policy, base_revision,
+               decomposition_policy):
         from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
         request_id, _, _ = creation_parts(intent)
         parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
-        prepared = self.prepare_creation(intent, process, automatic_checks, base_revision)
+        prepared = self.prepare_creation(
+            intent, process, automatic_checks, base_revision, decomposition_policy
+        )
         with self.unit_of_work() as uow:
             allocation = uow.tasks.allocate(intent, parsed_policy)
             task, metadata, _ = _creation_values(
@@ -151,6 +168,7 @@ class TaskCommands:
                 None,
                 prepared.process,
                 prepared.automatic_checks,
+                prepared.decomposition_policy,
                 base_metadata,
             )
             if not allocation.replayed:
@@ -369,8 +387,8 @@ class TaskCommands:
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
 
-    def ready_newborn(self, task_id, actor, expected_revision, automatic_checks, config_hash,
-                      request_id, creation_base):
+    def ready_newborn(self, task_id, actor, expected_revision, automatic_checks,
+                      decomposition_policy, config_hash, request_id, creation_base):
         if type(expected_revision) is not int:
             raise DomainError('Newborn ready requires expected_revision')
         identity = _action_digest("ready", {
@@ -393,6 +411,7 @@ class TaskCommands:
             context = uow.tasks.restart_context(task_id)
             effective_hash = context['config_hash'] if newborn.restart_history else config_hash
             effective_checks = automatic_checks
+            effective_decomposition = decomposition_policy
             restart_base = None
             if newborn.restart_history and uow.execution.exists(task_id):
                 restart_base = uow.execution.load(task_id)[0]['base']
@@ -401,11 +420,13 @@ class TaskCommands:
                 if sprint is None or sprint['aggregate']['state'] != 'published':
                     raise DomainError('Restarted Sprint Task requires its published Sprint')
                 effective_checks = sprint['automatic_checks']
+                effective_decomposition = sprint['task_decomposition']
         prepared = self.prepare_creation(
             contract,
             snapshot.process,
             effective_checks,
             restart_base if restart_base is not None else creation_base(),
+            effective_decomposition,
         )
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
@@ -414,7 +435,10 @@ class TaskCommands:
             newborn = uow.tasks.load_newborn(task_id)
             if newborn != snapshot:
                 raise VersionConflict('Newborn Task changed after creation preflight')
-            metadata = validate_creation(prepared.intent, newborn.process, effective_checks)
+            metadata = validate_creation(
+                prepared.intent, newborn.process, effective_checks,
+                effective_decomposition,
+            )
             metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
             if newborn.creation_request is not None:
                 metadata['creation_request'] = deepcopy(newborn.creation_request)

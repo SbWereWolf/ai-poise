@@ -200,7 +200,8 @@ class Poise:
         if action == 'ready':
             return self.task_commands.ready_newborn(
                 args['task_id'], self.session, args['expected_revision'],
-                self.cfg['automatic_checks'], self.config_hash, args['request_id'],
+                self.cfg['automatic_checks'], self.cfg['task_decomposition'],
+                self.config_hash, args['request_id'],
                 self._creation_base,
             )
         if action == 'restart':
@@ -620,7 +621,9 @@ class Poise:
 
     def _validate_task(self, task: dict, process: dict) -> dict:
         from .modules.tasks.definition import validate_creation
-        validate_creation(task,process,self.cfg['automatic_checks'])
+        validate_creation(
+            task, process, self.cfg['automatic_checks'], self.cfg['task_decomposition']
+        )
         return process
 
     def _creation_base(self):
@@ -747,12 +750,12 @@ class Poise:
                 if not automatic and self.sprint_tools.known(contract['id']):raise PoiseError('Task/sprint ID collision')
                 base=self._creation_base()
                 allocation=self.task_commands.create(
-                    intent,self.session,selected_process,self.cfg['automatic_checks'],
+                intent,self.session,selected_process,self.cfg['automatic_checks'],
                     {'config_hash':self.config_hash},
                     lambda task_id:self._execution_reservation(
                         task_id,base,selected_process['worktree_required']
                     ),
-                    self.cfg.get('task_ids'),base)
+                self.cfg.get('task_ids'),base,self.cfg['task_decomposition'])
                 allocation_receipt=allocation.receipt()
                 if allocation.replayed:
                     data=self.task_queries.record(allocation.task_id)

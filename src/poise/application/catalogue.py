@@ -37,13 +37,16 @@ class CatalogueCommands:
         for request in prepared:results.append(self.editor.apply_batch(request))
         return {'status':'installed','results':results,'count':len(results)}
 
-    def tasks(self,items,processes,automatic_checks):
+    def tasks(self,items,processes,automatic_checks,decomposition_policy):
         self._batch(items);tasks=[];ids=set()
         for item in items:
             exact_keys(item,{'template','parameters'},'catalogue task item')
             blueprint=self.repository.task_blueprint(item['template'])
             if blueprint.goal_type not in processes:raise DomainError('Goal is not in the selected project')
-            contract=blueprint.instantiate(item['parameters'],processes[blueprint.goal_type],automatic_checks)
+            contract=blueprint.instantiate(
+                item['parameters'],processes[blueprint.goal_type],automatic_checks,
+                decomposition_policy,
+            )
             if contract['id'] in ids:raise DomainError('Duplicate task identity in batch')
             ids.add(contract['id']);tasks.append(contract)
         return {'status':'prepared','tasks':tasks,'count':len(tasks)}

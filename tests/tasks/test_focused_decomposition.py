@@ -670,7 +670,7 @@ def test_sprint_publish_rejects_unfocused_plan(project):
         request_id="focused-sprint-fix",
     )
     published = publish(client, revised["revision"], request_id="focused-sprint-publish")
-    assert published["status"] == "active"
+    assert published["status"] == "planned"
 
 
 def test_focused_decomposition_contract():

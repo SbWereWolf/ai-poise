@@ -25,6 +25,7 @@ NEWBORN_FIELDS = frozenset({
     "evidence_plan",
     "executable_obligations",
     "stage_contracts",
+    "decomposition",
 })
 
 

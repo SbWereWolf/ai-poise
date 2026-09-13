@@ -16,7 +16,16 @@ def execute(settings_path, stream, output):
         if len(raw)>settings.raw['max_input_bytes']:
             raise PoiseError('Превышен max_input_bytes; ни одно изменение не принято')
         request=strict_json(raw.decode('utf-8'))
-        result=goal_config_tools(settings_path).apply_batch(request)
+        tools=goal_config_tools(settings_path)
+        schema=request.get('schema') if isinstance(request,dict) else None
+        if schema == 'goal-config-batch-1':
+            result=tools.apply_batch(request)
+        elif schema == 'goal-config-status-1':
+            result=tools.status(request)
+        elif schema == 'goal-config-reconcile-1':
+            result=tools.reconcile(request)
+        else:
+            raise PoiseError('Неподдерживаемая schema goal-config')
         category='success'
     except (PoiseError,UnicodeError) as exc:
         category='pending' if isinstance(exc,PublicationPending) else 'rejected'

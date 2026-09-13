@@ -598,6 +598,7 @@ class Poise:
                         name=section['id']
                         payload['sections'][name]=(content['sections_current'][name] if name in content['sections_current'] else section['template'])
         return {'session': self.session, 'task': data['id'], 'goal': data['goal'], 'status': data['status'],
+                'version': data['version'],
                 'stage': stage['id'], 'iteration': data['iteration'], 'worktree': data['worktree'],
                 'instruction': stage['instruction'], 'requirements': data['contract']['requirements'],
                 'definition_of_done': data['contract']['definition_of_done'],
@@ -801,7 +802,7 @@ class Poise:
                 data = self.task_queries.record(data['id'])
                 if state.status == 'completed':
                     self._cleanup_runtime()
-                    return data['last_report']
+                    return {**data['last_report'], 'version': data['version']}
             else:
                 if data['status']=='active' and self._stage(data)['handler'] in ('apply_plan','publish'):
                     self.plan_actions.rework_failed(data,feedback,rework_stage,entry_tree)
@@ -941,6 +942,7 @@ class Poise:
         result = {
             'status': 'broken',
             'task': data['id'],
+            'version': data['version'],
             'stage': self._stage(data)['id'] if stage_id is None else stage_id,
             'failure': {
                 'kind': 'content_requirements_failed',
@@ -1350,7 +1352,8 @@ class Poise:
                     'history':self.task_queries.history(data['id']),
                     'token_usage':'unavailable'}
         submissions, evidence = self.store.counts(data['id'])
-        return {'task':data['id'],'status':data['status'],'stage':self._stage(data)['id'],
+        return {'task':data['id'],'status':data['status'],'version':data['version'],
+                'stage':self._stage(data)['id'],
                 'iteration':data['iteration'],'attempts':data['attempts'],
                 'submission_count':submissions,'evidence_count':evidence,
                 'history':self.task_queries.history(data['id']), 'workflow':self.runner.context(data['id']), 'token_usage':'unavailable'}

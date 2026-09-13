@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
+import json
 from pathlib import Path
-from tempfile import TemporaryDirectory
 import subprocess
+from tempfile import TemporaryDirectory
 import unittest
 
 import pytest
@@ -107,6 +109,82 @@ class EmptyAdvanceRecoveryTests(unittest.TestCase):
             [item["id"] for item in reviewer["workflow"]["feedback"]["open_findings"]],
             ["F1"],
         )
+
+    def test_recovers_across_ownership_only_handoff_suffix(self):
+        _, verified, active = self._empty_advance()
+        for number in (1, 2):
+            reviewer = WorkPoise(
+                self.project["config_path"], f"INTERMEDIATE-REVIEWER-{number}"
+            )
+            context = WorkTools(reviewer).invoke(
+                request(
+                    "bootstrap",
+                    {
+                        "task": {"id": "T1"},
+                        "decision": None,
+                        "feedback": None,
+                        "rework_stage": None,
+                    },
+                )
+            )
+            self.assertEqual(context["status"], "active")
+            self.assertEqual(context["iteration"], active["iteration"])
+            self._handoff(
+                reviewer,
+                request_id=f"ownership-only-handoff-{number}",
+            )
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
+
+    def test_rejects_non_ownership_suffix_without_changing_task_state(self):
+        runtime, _, _ = self._empty_advance()
+        reviewer = WorkPoise(self.project["config_path"], "INTERMEDIATE-REVIEWER")
+        WorkTools(reviewer).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "T1"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+        self._handoff(reviewer, request_id="ownership-only-handoff")
+        handoff_version = runtime.task_queries.record("T1")["_version"] - 1
+        event = json.dumps(
+            {
+                "event": "verified",
+                "iteration": 1,
+                "reason": None,
+                "stage": "amend",
+                "submission": None,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        with runtime.store.transaction() as database:
+            database.execute(
+                "INSERT INTO task_events(task_id,version,at,data) VALUES(?,?,?,?)",
+                (
+                    "T1",
+                    handoff_version,
+                    datetime.now(timezone.utc).isoformat(),
+                    event,
+                ),
+            )
+        stored = runtime.task_queries.record("T1")
+        history = runtime.task_queries.history("T1")
+
+        with self.assertRaisesRegex(PoiseError, "non-ownership"):
+            self._recover()
+
+        self.assertEqual(runtime.task_queries.record("T1"), stored)
+        self.assertEqual(runtime.task_queries.history("T1"), history)
 
     def test_rejects_changed_tree(self):
         _, _, active = self._empty_advance()

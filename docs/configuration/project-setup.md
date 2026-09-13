@@ -286,7 +286,7 @@ Task, multi-codebase, настройка живого IDE/Gmail и устано�
 
 Native launcher всегда исполняет AI poise из настроенного `installation source`. Существующая
 или уже назначенная Task не исполняется из собственного `worktree/src`: эта директория остаётся
-предметом разработки, проверки и project-bound probes. Поэтому старая копия harness не может
+предметом разработки, проверки и project-bound probes. Поэтому старая копия AI poise source не может
 заблокировать чтение текущей конфигурации, `bootstrap`, `verify` или `handoff`. Выбор source не
 изменяет project manifest или binding.
 

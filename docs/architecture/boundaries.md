@@ -188,9 +188,9 @@ RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands мен
 
 Уточнено **2026-09-13**: session-scoped launcher исполняет каждый work-пакет только из явно
 настроенного `installation source`. `Task worktree` является предметом разработки и проверок,
-но не поставщиком исполняемого harness. Иначе старая или изменяемая вместе с продуктом копия
+но не поставщиком исполняемого AI poise runtime. Иначе старая или изменяемая вместе с продуктом копия
 AI poise должна была прочитать текущую конфигурацию и Task DB, что создавало циклическую
-зависимость: обновление harness могло заблокировать собственные `bootstrap`, `verify` и
+зависимость: обновление AI poise runtime могло заблокировать собственные `bootstrap`, `verify` и
 `handoff` ещё до выполнения публичной операции.
 
 `native binding` остаётся владельцем session/message provenance. Launcher не записывает

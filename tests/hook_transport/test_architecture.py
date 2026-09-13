@@ -19,7 +19,7 @@ def test_native_hook_transport_changes_work_only_through_worktools():
     assert 'dangerously-bypass' not in source
 
 
-def test_task_work_never_selects_or_dispatches_a_task_owned_harness():
+def test_task_work_never_selects_or_dispatches_a_task_owned_runtime():
     domain=(ROOT/'modules/hook_transport/domain.py').read_text()
     tree=ast.parse(domain)
     imports=[]

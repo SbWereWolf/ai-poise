@@ -71,7 +71,7 @@ Task worktree остаётся рабочей областью кода и works
 Его собственные `poise.__main__`, `HookService.work` и поддерживаемые схемы не являются
 предусловиями lifecycle-вызова. Launcher не запускает дочерний интерпретатор из Task source и
 не использует fallback: единственный runtime source уже задан в hook settings. Поэтому старая
-Task может быть продолжена после обновления конфигурационной схемы установленного harness без
+Task может быть продолжена после обновления конфигурационной схемы AI poise runtime без
 изменения её проверенного commit/tree. Параллельные bindings разделяют установленный код, но
 сохраняют разные session identity, ownership и worktrees.
 

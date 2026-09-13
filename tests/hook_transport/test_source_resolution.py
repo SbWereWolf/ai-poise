@@ -228,11 +228,11 @@ def test_existing_task_bootstrap_uses_installation_source_without_rebinding(proj
     ]
 
 
-def test_existing_task_continuation_uses_installation_when_task_harness_is_incompatible(
+def test_existing_task_continuation_uses_installation_when_task_runtime_is_incompatible(
     project, tmp_path
 ):
     service, installed, installation = _service(project, tmp_path)
-    launcher, binding = _launcher(service, installed, "incompatible-task-harness")
+    launcher, binding = _launcher(service, installed, "incompatible-task-runtime")
     started, context = _call(launcher, _bootstrap(project["task"]))
     assert started.returncode == 0, started.stdout + started.stderr
 

@@ -182,7 +182,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
             "switch-type-without-explicit-removal",
         )
     after_rejected_switch = creator.runtime.task_queries.record("TYPE-CHANGE")
-    assert after_rejected_switch["version"] == before_switch["version"]
+    assert after_rejected_switch["revision"] == before_switch["revision"]
     assert after_rejected_switch["history"] == before_switch["history"]
     assert after_rejected_switch["newborn"] == before_switch["newborn"]
     assert after_rejected_switch["process"] == before_switch["process"]
@@ -228,7 +228,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
             [],
         )
     after_digest_conflict = creator.runtime.task_queries.record("TYPE-CHANGE")
-    assert after_digest_conflict["version"] == stable_revision
+    assert after_digest_conflict["revision"] == stable_revision
     assert after_digest_conflict["history"] == stable_history
     assert after_digest_conflict["newborn"]["draft"] == stable_draft
     assert after_digest_conflict["process"] == stable_process
@@ -281,7 +281,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
                 remove,
             )
         current = creator.runtime.task_queries.record("TYPE-CHANGE")
-        assert current["version"] == stable_revision
+        assert current["revision"] == stable_revision
         assert current["history"] == stable_history
         assert current["newborn"]["draft"] == stable_draft
         assert current["process"] == stable_process

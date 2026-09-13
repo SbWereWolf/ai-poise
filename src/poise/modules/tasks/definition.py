@@ -33,6 +33,27 @@ def registry_inspection_stages(process):
     )
 
 
+def creation_fields(process):
+    fields = {
+        'id',
+        'sprint_id',
+        'goal_type',
+        'goal',
+        'requirements',
+        'definition_of_done',
+        'methods',
+        'method_inputs',
+        'checks',
+        'artifact_requirements',
+        'content_contract',
+        'evidence_plan',
+        'stage_contracts',
+    }
+    if registry_inspection_stages(process):
+        fields.add('executable_obligations')
+    return frozenset(fields)
+
+
 def executable_obligations(contract, process):
     if not registry_inspection_stages(process):
         return ()
@@ -71,12 +92,7 @@ def validate_creation(contract, process, automatic_checks):
         raise DomainError(
             f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
         )
-    fields={'id','sprint_id','goal_type','goal','requirements','definition_of_done',
-        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan',
-        'stage_contracts'}
-    if registry_inspection_stages(process):
-        fields.add('executable_obligations')
-    exact_keys(contract,fields,'task')
+    exact_keys(contract, creation_fields(process), 'task')
     path_identifier(contract['id'])
     if contract['sprint_id'] is not None:path_identifier(contract['sprint_id'])
     GoalTypeDefinition.parse(process)

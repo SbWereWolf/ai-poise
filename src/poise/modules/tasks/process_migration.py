@@ -9,7 +9,7 @@ from ..backups.domain import exact_backup_name
 from ..foundation.errors import DomainError
 
 
-AUTHORIZED_TASK_IDS = ("0077", "0081", "0079", "0078", "0074")
+AUTHORIZED_TASK_IDS = ("0077", "0081", "0079", "0078", "0074", "0063")
 NONTERMINAL_STATUSES = frozenset({"available", "active", "verified", "accepted"})
 
 
@@ -34,7 +34,7 @@ class MigrationRequest:
         backup_name = exact_backup_name(value["backup_name"])
         if not isinstance(value["task_ids"], list) or tuple(value["task_ids"]) != AUTHORIZED_TASK_IDS:
             raise DomainError(
-                "Task process migration accepts exactly 0077, 0081, 0079, 0078 and 0074 in that order"
+                "Task process migration accepts exactly 0077, 0081, 0079, 0078, 0074 and 0063 in that order"
             )
         normalized = {
             "schema": value["schema"],
@@ -91,6 +91,8 @@ class ProcessSnapshotMigration:
             if not isinstance(contract, dict) or not isinstance(process, dict):
                 raise DomainError(f"Task {task_id} process definition is incompatible")
             goal_type = contract.get("goal_type")
+            if not isinstance(goal_type, str) or not goal_type:
+                raise DomainError(f"Task {task_id} immutable goal_type is incompatible")
             if process.get("goal_type") != goal_type:
                 raise DomainError(f"Task {task_id} goal_type does not match its immutable contract")
             configured = processes.get(goal_type)

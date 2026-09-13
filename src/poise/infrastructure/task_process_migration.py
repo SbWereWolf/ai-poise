@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 from typing import Callable
 
-from ..common import configured_root, descendant, digest, encoded, load_config, read_json
+from ..common import configured_root, descendant, digest, encoded, load_config
 from ..modules.foundation.errors import PoiseError
 from ..modules.tasks.process_migration import MigrationRequest, ProcessSnapshotMigration
 from .locking import exclusive_lock
@@ -173,6 +173,8 @@ class SqliteTaskProcessMigration:
         ).fetchall()
         for row in rows:
             audit = json.loads(row[0])
+            if not isinstance(audit, dict):
+                raise PoiseError("Stored Task process migration audit is incompatible")
             if audit.get("request_id") != request.request_id:
                 continue
             if audit.get("request_digest") != request.digest:

@@ -473,6 +473,27 @@ def _valid_integration_decomposition(stages):
     }
 
 
+def _lifecycle_state(client, project):
+    tables = (
+        "tasks",
+        "task_execution",
+        "sessions",
+        "journal",
+        "sprints",
+        "sprint_members",
+        "sprint_requests",
+    )
+    with client.runtime.store.transaction() as database:
+        rows = {
+            table: [tuple(row) for row in database.execute(f"SELECT * FROM {table}")]
+            for table in tables
+        }
+    rows["worktree_paths"] = sorted(
+        path.name for path in (project["root"] / "worktrees").glob("*")
+    )
+    return rows
+
+
 def test_automatic_task_creation_rejects_unfocused_plan(project):
     from batch.helpers import configure, request
     from conftest import WorkPoise
@@ -486,7 +507,7 @@ def test_automatic_task_creation_rejects_unfocused_plan(project):
     contract["decomposition"] = _peer_decomposition(
         [stage["id"] for stage in project["process"]["stages"]]
     )
-    before = client.runtime.task_queries.summary()
+    before = _lifecycle_state(client, project)
     with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
         client.invoke(
             request(
@@ -499,7 +520,7 @@ def test_automatic_task_creation_rejects_unfocused_plan(project):
                 },
             )
         )
-    assert client.runtime.task_queries.summary() == before
+    assert _lifecycle_state(client, project) == before
 
     valid = deepcopy(project["task"])
     valid["id"] = "FOCUSED-VALID"
@@ -557,6 +578,7 @@ def test_newborn_ready_rejects_unfocused_plan(project):
             },
         )
     )
+    before = _lifecycle_state(client, project)
     with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
         client.invoke(
             request(
@@ -569,10 +591,7 @@ def test_newborn_ready_rejects_unfocused_plan(project):
                 },
             )
         )
-    with client.runtime.store.unit_of_work() as uow:
-        preserved = uow.tasks.load_newborn(born["task"])
-    assert preserved.version == edited["revision"]
-    assert preserved.ready is False
+    assert _lifecycle_state(client, project) == before
 
     valid_born = client.invoke(
         request(
@@ -630,13 +649,10 @@ def test_sprint_publish_rejects_unfocused_plan(project):
     valid["decomposition"] = _valid_integration_decomposition(["work"])
     child["decomposition"] = _peer_decomposition(["work"])
     sprint = draft(client, [child])
-    with client.runtime.store.unit_of_work() as uow:
-        before = deepcopy(uow.sprints.get("S"))
+    before = _lifecycle_state(client, project)
     with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
         publish(client, sprint["revision"])
-    assert client.runtime.task_queries.summary() == []
-    with client.runtime.store.unit_of_work() as uow:
-        assert uow.sprints.get("S") == before
+    assert _lifecycle_state(client, project) == before
 
     revised = draft(
         client,

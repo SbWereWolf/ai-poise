@@ -9,7 +9,7 @@
       "database": "tasks.sqlite",
       "lock": "tasks.lock",
       "runtime": "runtime",
-      "tasks": "artifacts/tasks",
+      "standalone_tasks": "artifacts/standalone",
       "sprints": "artifacts/sprints",
       "worktrees": "worktrees",
       "git_index": "snapshot.index",

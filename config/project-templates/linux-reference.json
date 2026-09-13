@@ -9,7 +9,7 @@
       "database": "state.sqlite",
       "lock": "state.lock",
       "runtime": "runtime",
-      "tasks": "tasks",
+      "standalone_tasks": "standalone",
       "sprints": "sprints",
       "worktrees": "worktrees",
       "git_index": "snapshot.index",

@@ -101,6 +101,16 @@ Bootstrap the sprint to get the eligible set instead of calculating dependencies
 
 Treat result dependencies as readiness plus `result_provenance`, not Git ancestry. Every new successor worktree starts from the current configured base ref; AI poise does not use or merge predecessor result commits as its branch base.
 
+Inter-task dependencies exist only inside one Sprint; a standalone Task or a member of another
+Sprint cannot be an endpoint. Use draft `adopt_tasks` atomically only for Tasks with
+`status=available, claimed_by=null, worktree=null, pending=null, last_report=null, and attempts=0`.
+Use published `extract_tasks` only for the same eligible member with no incoming or outgoing dependency.
+Identity, immutable history, goal, contract, and readiness are preserved. A
+successful conversion changes membership, graph, revision, and the request receipt together;
+rejection changes none of them, and a retry after rejection is not a replay. Draft
+`remove_tasks` remains the pre-publication correction route, and draft cancellation atomically
+detaches both newborn and adopted Tasks.
+
 ## Capabilities
 
 Treat configured inventory and actually probed capability as different facts. Use only capabilities reported for the current project/worktree. For the current probe semantics, read [Runtime hooks → Capability checks](../../../docs/configuration/runtime-hooks.md#проверки-capabilities).

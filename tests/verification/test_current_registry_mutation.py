@@ -273,6 +273,13 @@ def configure_public_registry_case(project: dict) -> None:
         "The operator-facing workflow documentation is synchronized."
     )
     project["task"]["executable_obligations"] = list(OBLIGATIONS)
+    project["task"]["decomposition"] = {
+        **project["task"]["decomposition"],
+        "phases": [
+            {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
+            for stage in stages
+        ],
+    }
 
     methods = {item["id"]: item for item in project["task"]["methods"]}
     methods["RED"]["verification_plan"]["red_stages"] = ["test_implementation"]

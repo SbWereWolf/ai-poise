@@ -156,6 +156,32 @@ def test_target_drift_reupdates_same_branch_and_reruns_checks(project, monkeypat
     assert not task_worktree.exists()
 
 
+def test_multistage_integration_runs_current_green_checks_before_publication():
+    method = integration_guard_method()
+    record = {
+        "stage_index": 1,
+        "process": {
+            "stages": [
+                {"id": "implementation"},
+                {"id": "documentation"},
+            ],
+        },
+        "contract": {
+            "methods": [method],
+            "checks": {
+                "implementation": [method["id"]],
+                "documentation": [],
+            },
+        },
+    }
+
+    selected = RuntimeResultIntegration._select_checks(object(), record)
+
+    assert [item["id"] for item in selected] == [method["id"]], (
+        "integration omitted current produced-result GREEN checks"
+    )
+
+
 def test_blocked_ff_only_proves_all_main_worktree_state_unchanged(project):
     tools, task_worktree, accepted = prepare_completed_task(project, source_change)
     root = project["app"]

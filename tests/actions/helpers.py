@@ -71,6 +71,13 @@ def setup(project, kind='git_merge', conflict=True):
     write_json(project['root']/'config/processes/action.json',process)
     write_json(project['config_path'],cfg)
     task=deepcopy(project['task']);task['goal_type']=process['goal_type'];task['id']='INTEGRATE';task['methods']=[];task['method_inputs']=[]
+    task['decomposition']={
+        **task['decomposition'],
+        'phases':[
+            {'stage':stage['id'],'skills':['task-domain'],'areas':[]}
+            for stage in stages
+        ],
+    }
     task['checks']={s['id']:[] for s in stages};task['evidence_plan']={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}
     task['stage_contracts']=[{
         'stage_id':stage['id'],

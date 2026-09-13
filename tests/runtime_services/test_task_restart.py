@@ -13,8 +13,8 @@ import sys
 
 import pytest
 
-from batch.helpers import configure, request
-from conftest import WorkPoise as Poise
+from batch.helpers import configure, request, result, verify
+from conftest import WorkPoise as Poise, add_test
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import DomainError, PoiseError
 from poise.modules.tasks.domain import TaskStatus
@@ -55,6 +55,27 @@ def task_state(runtime, task_id, actors=()):
             actor: runtime.ownership.snapshot(actor) for actor in actors
         },
     }
+
+
+def immutable_audit_rows(runtime, task_id):
+    tables = ("submissions", "task_results", "evidence", "task_events")
+    with runtime.store.transaction() as database:
+        return {
+            table: [tuple(row) for row in database.execute(
+                f"SELECT * FROM {table} WHERE task_id=? ORDER BY rowid",
+                (task_id,),
+            )]
+            for table in tables
+        }
+
+
+def work_packet_rows(runtime, task_id):
+    with runtime.store.transaction() as database:
+        return [tuple(row) for row in database.execute(
+            "SELECT task_id,stage,iteration,digest FROM work_packets "
+            "WHERE task_id=? ORDER BY stage,iteration",
+            (task_id,),
+        )]
 
 
 def wip_state(worktree):
@@ -143,6 +164,123 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
     assert {key: value for key, value in replay.items() if key != "interaction"} == {
         key: value for key, value in restarted.items() if key != "interaction"
     } | {"replayed": True}
+
+
+def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(project):
+    configure(project)
+    owner = WorkTools(Poise(project["config_path"], "packet-owner"))
+    context = owner.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    add_test(context["worktree"])
+    first_payload = result(context, "verified before restart")
+    first = verify(owner, first_payload)
+    assert first["status"] == "verified"
+    task_id = first["task"]
+    audit_before = immutable_audit_rows(owner.runtime, task_id)
+    packet_before = work_packet_rows(owner.runtime, task_id)
+    assert len(packet_before) == 1
+
+    current = owner.runtime.task_queries.record(task_id)
+    newborn = restart(
+        owner,
+        task_id,
+        current["version"],
+        request_id="restart-after-verified-packet",
+    )
+    assert work_packet_rows(owner.runtime, task_id) == [], (
+        "Verified packet cannot be replaced after restart because the old "
+        "work-packet identity is still current"
+    )
+    ready = owner.invoke(request("task", {
+        "action": "ready",
+        "request_id": "ready-after-verified-packet",
+        "task_id": task_id,
+        "expected_revision": newborn["revision"],
+    }))
+    assert ready["status"] == "available"
+
+    successor = WorkTools(Poise(project["config_path"], "packet-successor"))
+    resumed = successor.invoke(request("bootstrap", {
+        "task": {"id": task_id},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    fresh_payload = result(resumed, "fresh verified result after restart")
+    fresh = verify(successor, fresh_payload)
+    assert fresh["status"] == "verified"
+    packet_after = work_packet_rows(successor.runtime, task_id)
+    assert len(packet_after) == 1
+    assert packet_after[0][3] != packet_before[0][3]
+    audit_after = immutable_audit_rows(successor.runtime, task_id)
+    for table, rows in audit_before.items():
+        assert all(row in audit_after[table] for row in rows)
+    assert len(audit_after["submissions"]) > len(audit_before["submissions"])
+    assert len(audit_after["task_results"]) > len(audit_before["task_results"])
+
+
+def test_verified_result_replay_is_idempotent_and_different_result_is_domain_error(project):
+    configure(project)
+    tools = WorkTools(Poise(project["config_path"], "replay-owner"))
+    context = tools.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    add_test(context["worktree"])
+    payload = result(context, "verified replay source")
+    first = verify(tools, payload)
+    exact = verify(tools, payload)
+    assert exact["replayed"] is True
+    assert exact["checks"] == first["checks"]
+
+    different = deepcopy(payload)
+    different["sections"]["report"] = "different verified replay"
+    with pytest.raises(PoiseError, match="Different result after delivery requires rework"):
+        verify(tools, different)
+
+
+def test_restart_packet_invalidation_rolls_back_with_restart(project):
+    configure(project)
+    tools = WorkTools(Poise(project["config_path"], "rollback-owner"))
+    context = tools.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    add_test(context["worktree"])
+    assert verify(tools, result(context, "rollback source"))["status"] == "verified"
+    task_id = context["task"]
+    before = task_state(tools.runtime, task_id, ("rollback-owner",))
+    packets_before = work_packet_rows(tools.runtime, task_id)
+    audit_before = immutable_audit_rows(tools.runtime, task_id)
+    with tools.runtime.store.transaction() as database:
+        database.execute(
+            "CREATE TRIGGER fail_work_packet_invalidation BEFORE DELETE ON work_packets "
+            f"WHEN OLD.task_id='{task_id}' BEGIN SELECT "
+            "RAISE(ABORT,'work-packet-invalidation-rollback'); END"
+        )
+
+    with pytest.raises(
+        sqlite3.IntegrityError,
+        match="work-packet-invalidation-rollback",
+    ):
+        restart(
+            tools,
+            task_id,
+            before["task"]["version"],
+            request_id="restart-packet-rollback",
+        )
+
+    assert task_state(tools.runtime, task_id, ("rollback-owner",)) == before
+    assert work_packet_rows(tools.runtime, task_id) == packets_before
+    assert immutable_audit_rows(tools.runtime, task_id) == audit_before
 
 
 def test_ready_restarted_standalone_rolls_back_when_dependent_worktree_release_fails(project):
@@ -474,3 +612,21 @@ def test_restart_and_broken_task_contract_is_documented_for_humans_and_agents():
         assert "broken" in text
     assert "`replace_task` больше не является публичным action" in sprints
     assert "restart the same Task to newborn" in skill
+
+
+def test_restart_work_packet_contract_is_documented_for_humans_and_agents():
+    root = Path(__file__).parents[2]
+    batch = (root / "docs/workflows/batch-work.md").read_text(encoding="utf-8")
+    skill = (root / ".agents/skills/poise/SKILL.md").read_text(encoding="utf-8")
+
+    for token in (
+        "work-packet identity",
+        "task_results",
+        "evidence",
+        "history",
+        "PoiseError",
+    ):
+        assert token in batch
+        assert token in skill
+    assert "свеж" in batch and "перезапуск" in batch
+    assert "fresh" in skill and "restart" in skill

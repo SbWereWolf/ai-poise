@@ -220,6 +220,8 @@ def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomi
     assert data["closed_by"] == "handoff_at_last_observation"
     other = deepcopy(project["task"])
     other.update(id="T2", methods=[], method_inputs=[], checks={"write": []},
+                 stage_contracts=[{"stage_id": "write", "allowed_paths": ["src/**", "tests/**", "docs/**"],
+                                   "entry_requirements": [], "exit_requirements": []}],
                  evidence_plan={"write": {"subject_methods": {}, "arguments": [], "review_arguments": []}})
     result = work.invoke(request("bootstrap", {"task": other, "decision": None, "feedback": None, "rework_stage": None}))
     assert result["status"] == "active"

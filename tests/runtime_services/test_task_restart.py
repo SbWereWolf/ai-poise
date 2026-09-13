@@ -279,6 +279,7 @@ def test_restart_contract_rejects_terminal_work(status, project):
             "User authorized recovery.",
             metadata["restart_history"],
             metadata["creation_request"],
+            metadata["stage_contract_history"],
         )
 
 

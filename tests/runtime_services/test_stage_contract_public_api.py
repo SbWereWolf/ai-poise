@@ -246,6 +246,43 @@ def test_public_revise_replay_survives_restart_and_records_history(project):
     assert {"old", "new", "reason", "authorization"} <= set(history[-1])
 
 
+def test_stage_contract_audit_and_replay_survive_task_restart_and_ready(project):
+    tools, context = _boot(project, inspection=True)
+    task = _configure(project)
+    current = tools.runtime.task_queries.record("T1")
+    contract = deepcopy(task["stage_contracts"][1])
+    contract["allowed_paths"] = ["docs/restart-fix/**"]
+    packet = _revise(
+        "T1",
+        current["version"],
+        contract["stage_id"],
+        contract,
+        request_id="revision-before-task-restart",
+    )
+    first = tools.invoke(packet)
+    history_before = tools.runtime.stage_contract_context("T1")["history"]
+    restarted = tools.invoke(request("task", {
+        "action": "restart",
+        "request_id": "restart-after-stage-contract-revision",
+        "task_id": "T1",
+        "expected_version": first["version"],
+        "reason": "The revised execution contract still needs newborn correction.",
+        "authorization": "The user authorized recovery of this unfinished Task.",
+    }))
+    tools.invoke(request("task", {
+        "action": "ready",
+        "request_id": "ready-after-stage-contract-revision",
+        "task_id": "T1",
+        "expected_revision": restarted["revision"],
+    }))
+
+    assert tools.runtime.stage_contract_context("T1")["history"] == history_before
+    replay = tools.invoke(packet)
+    assert {key: value for key, value in replay.items() if key != "interaction"} == {
+        key: value for key, value in first.items() if key != "interaction"
+    } | {"replayed": True}
+
+
 def test_reviewer_can_repair_released_inspection_gate_without_bootstrap(project):
     owner, context = _boot(project, session="executor", inspection=True)
     owner.invoke(request("handoff", {

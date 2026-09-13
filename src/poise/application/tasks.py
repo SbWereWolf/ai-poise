@@ -224,6 +224,7 @@ class TaskCommands:
                 authorization,
                 context["restart_history"],
                 context["creation_request"],
+                context["stage_contract_history"],
             )
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
@@ -419,6 +420,10 @@ class TaskCommands:
                 metadata['creation_request'] = deepcopy(newborn.creation_request)
             if newborn.restart_history:
                 metadata['restart_history'] = list(deepcopy(newborn.restart_history))
+            if newborn.stage_contract_history:
+                metadata['stage_contract_history'] = list(
+                    deepcopy(newborn.stage_contract_history)
+                )
             if newborn.sprint_id is not None and not newborn.restart_history:
                 ready = newborn.mark_ready()
                 uow.tasks.save_newborn(ready, newborn.version, effective_hash, 'newborn_ready')

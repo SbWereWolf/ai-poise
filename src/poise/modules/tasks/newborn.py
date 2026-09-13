@@ -41,6 +41,7 @@ class NewbornTask:
     ready: bool
     creation_request: dict | None = None
     restart_history: tuple[dict, ...] = ()
+    stage_contract_history: tuple[dict, ...] = ()
 
     @classmethod
     def create(cls, task_id: str, sprint_id: str | None, actor: str):
@@ -48,7 +49,7 @@ class NewbornTask:
         if sprint_id is not None:
             path_identifier(sprint_id)
         path_identifier(actor)
-        return cls(task_id, sprint_id, actor, 0, {}, None, False, None, ())
+        return cls(task_id, sprint_id, actor, 0, {}, None, False, None, (), ())
 
     @classmethod
     def restart(
@@ -62,6 +63,7 @@ class NewbornTask:
         authorization: str,
         history: list[dict],
         creation_request: dict | None,
+        stage_contract_history: list[dict],
     ):
         path_identifier(actor)
         if task.state.status not in (
@@ -102,6 +104,7 @@ class NewbornTask:
             False,
             deepcopy(creation_request),
             tuple(deepcopy(history)) + (audit,),
+            tuple(deepcopy(stage_contract_history)),
         )
 
     @classmethod
@@ -131,9 +134,15 @@ class NewbornTask:
             not isinstance(item, dict) for item in restart_history
         ):
             raise DomainError("Newborn Task restart history must be a list of records")
+        stage_contract_history = metadata.get("stage_contract_history", [])
+        if not isinstance(stage_contract_history, list) or any(
+            not isinstance(item, dict) for item in stage_contract_history
+        ):
+            raise DomainError("Newborn Task stage contract history must be a list of records")
         return cls(task_id, metadata["sprint_id"], claimed_by, version,
                    deepcopy(draft), deepcopy(process), ready, deepcopy(creation_request),
-                   tuple(deepcopy(restart_history)))
+                   tuple(deepcopy(restart_history)),
+                   tuple(deepcopy(stage_contract_history)))
 
     def edit(self, patch: dict, processes: dict, actor: str):
         if self.ready:
@@ -215,6 +224,8 @@ class NewbornTask:
             value["creation_request"] = deepcopy(self.creation_request)
         if self.restart_history:
             value["restart_history"] = list(deepcopy(self.restart_history))
+        if self.stage_contract_history:
+            value["stage_contract_history"] = list(deepcopy(self.stage_contract_history))
         return value
 
     def describe(self) -> dict:

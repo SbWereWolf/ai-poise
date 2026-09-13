@@ -224,6 +224,9 @@ class SqliteTaskRepository:
             "process": deepcopy(metadata["process"]),
             "restart_history": deepcopy(metadata.get("restart_history", [])),
             "sprint_id": metadata["sprint_id"],
+            "stage_contract_history": deepcopy(
+                metadata.get("stage_contract_history", [])
+            ),
         }
 
     def restart_newborn(

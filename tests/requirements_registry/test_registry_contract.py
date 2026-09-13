@@ -353,6 +353,97 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             )
         self.assertTrue(gate.called)
 
+    def test_historical_task_context_survives_later_live_registry_change(self):
+        live = {"registry": populated_registry()}
+        gate = CONTRACT["TaskRequirementsGate"].enabled(lambda: live["registry"])
+        task_requirements = [
+            {
+                "text": "Task must preserve registry provenance.",
+                "applications": ["APP-1"],
+            }
+        ]
+        plan = live["registry"].plan_task(task_requirements)
+        intent = {
+            "requirements": ["Task must preserve registry provenance."],
+            "requirements_snapshot": plan["snapshot"],
+            "requirements_agreement": {
+                "accepted": True,
+                "chains": plan["chains"],
+            },
+        }
+
+        _, original = gate.prepare_contract(intent)
+        live["registry"] = live["registry"].apply(
+            [
+                put(
+                    requirement(
+                        "SYS-1",
+                        "system",
+                        "obsolete",
+                        "Changed after Task publication.",
+                    )
+                )
+            ],
+            max_items=20,
+        )
+        with self.assertRaisesRegex(Exception, "snapshot"):
+            gate.prepare_contract(intent)
+        cleaned, recovered = gate.prepare_contract(intent, historical=True)
+        self.assertNotIn("requirements_snapshot", cleaned)
+        self.assertNotIn("requirements_agreement", cleaned)
+        self.assertEqual(recovered, original)
+
+    def test_exact_automatic_creation_replay_skips_live_preflight(self):
+        class Allocation:
+            request_id = "create-task-1"
+            task_id = "TASK-1"
+            digest = "stored-digest"
+            replayed = True
+
+        class Tasks:
+            def allocate(self, intent, policy, reserved_ids=()):
+                return Allocation()
+
+        class Uow:
+            tasks = Tasks()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+        class ChangedLiveGate:
+            def prepare_contract(self, intent):
+                raise AssertionError("exact replay must not revalidate the live registry")
+
+        class Tree:
+            def existing_paths(self, revision, paths):
+                raise AssertionError("exact replay must not repeat repository preflight")
+
+        commands = CONTRACT["TaskCommands"](lambda: Uow(), Tree(), ChangedLiveGate())
+        replay = commands.create(
+            {
+                "request_id": "create-task-1",
+                "task": {
+                    "goal_type": "development",
+                },
+            },
+            actor="session",
+            process={},
+            automatic_checks=[],
+            base_metadata={},
+            execution=None,
+            policy={
+                "namespace": {"minimum": 1, "maximum": 9},
+                "width": 1,
+                "progression": {"first": 1, "step": 1},
+            },
+            base_revision="base",
+        )
+        self.assertTrue(replay.replayed)
+        self.assertEqual(replay.task_id, "TASK-1")
+
 
 class RequirementsRegistryDeliveryTests(unittest.TestCase):
     def test_project_config_requires_and_resolves_distinct_requirements_storage(self):

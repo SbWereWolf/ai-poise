@@ -18,7 +18,7 @@ def stage(name,kind,next_steps,readonly,paths):
 
 def process(kind):
     paths=['src/**'] if kind=='development' else ['docs/**']
-    return {'goal_type':kind,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'write'},
+    return {'goal_type':kind,'worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'write'},
        'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':[
        stage('write','produce',{'complete':'inspect'},False,paths),
        stage('inspect','inspect',{'clear':None,'changes_requested':'amend'},True,[]),

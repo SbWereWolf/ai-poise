@@ -27,7 +27,7 @@ def process(kind):
             stage('correct','revise' if integration else 'apply_plan',{'complete':'followup'},False,['src/**','docs/**']),
             stage('followup','inspect',{'clear':end,'changes_requested':'correct'},True,[])]
     if integration:stages.append(stage('publish','publish',{'complete':None},True,[]))
-    return {'goal_type':kind,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'apply'},
+    return {'goal_type':kind,'worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'apply'},
             'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':stages}
 
 

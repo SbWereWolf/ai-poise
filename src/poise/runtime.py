@@ -417,7 +417,7 @@ class Poise:
             entry_tree = self._current_tree(data)
             if decision == 'continue':
                 state = self.runner.accept(data['id'], self.session, True, entry_tree)
-                data = self._task()
+                data = self.task_queries.record(data['id'])
                 if state.status == 'completed':
                     self._cleanup_runtime()
                     return data['last_report']

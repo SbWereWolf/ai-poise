@@ -242,6 +242,54 @@ class TaskCommands:
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
             return change.task.state
 
+    def recover_empty_rework(self, task_id: str, reason: str, tree: str) -> dict:
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            execution, _ = uow.execution.load(task_id)
+            handoff = uow.handoffs.latest(task_id)
+            if handoff is None or handoff["state"] != "released":
+                raise DomainError("Empty rework recovery requires a released handoff")
+            if task.state.version != handoff["version"] + 1:
+                raise DomainError("Task changed after the released empty rework handoff")
+            if handoff["receipt"]["verified"] is not False:
+                raise DomainError(
+                    "Empty rework recovery requires an active handoff after user_rework"
+                )
+            if task.state.submission_digest is not None:
+                raise DomainError("Current rework iteration is not empty: submission exists")
+            if (
+                handoff["receipt"]["stage"] != task.stage.stage_id
+                or handoff["receipt"]["iteration"] != task.state.iteration
+            ):
+                raise DomainError("Released handoff does not identify the current empty iteration")
+            if handoff["receipt"]["tree"] != tree:
+                raise DomainError("Released handoff tree changed")
+            if (
+                execution["pending"] is not None
+                or execution["publication"] is not None
+                or execution["attempts"] != 0
+                or execution["entry_tree"] != tree
+                or execution["last_report"] is None
+                or execution["last_report"].get("verified_tree") != tree
+            ):
+                raise DomainError("Execution state is not an unchanged empty rework")
+            point = uow.tasks.empty_rework_recovery_point(
+                task_id, handoff["version"], execution["last_report"]
+            )
+            if point.evidence_input is None:
+                raise DomainError("Previous verified submission has no evidence input")
+            change = task.recover_empty_rework(reason, point)
+            uow.tasks.save(change, task.state.version)
+            uow.handoffs.replace({**handoff, "state": "recovered"})
+            return {
+                "status": "recovered",
+                "task": task_id,
+                "stage": change.task.stage.stage_id,
+                "iteration": change.task.state.iteration,
+                "commit": execution["last_report"]["commit"],
+                "verified_tree": tree,
+            }
+
     def rework_failed(self, task_id: str, actor: str, feedback: str, entry_tree: str,
                       execution_key: str, target: str | None = None) -> TaskState:
         if not isinstance(entry_tree,str) or not entry_tree or not isinstance(execution_key,str) or not execution_key:

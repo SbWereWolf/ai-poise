@@ -97,6 +97,18 @@ class TaskEvent:
 
 
 @dataclass(frozen=True)
+class EmptyReworkRecoveryPoint:
+    stage_id: str
+    iteration: int
+    submission_digest: str
+    progress: RouteProgress
+    feedback: FeedbackBook
+    evidence_book: EvidenceBook
+    evidence_input: str
+    evidence_assessment: str | None
+
+
+@dataclass(frozen=True)
 class Change:
     task: Task
     submission: Submission | None
@@ -325,6 +337,48 @@ class Task:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")
         progress = self.route.enter(self.progress, destination)
         return self._enter("user_rework", feedback, actor, destination, progress)
+
+    def recover_empty_rework(self, reason: str, point: EmptyReworkRecoveryPoint) -> Change:
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Empty rework recovery requires an explicit reason")
+        if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by is not None:
+            raise DomainError("Empty rework recovery requires released active work")
+        if self.state.submission_digest is not None:
+            raise DomainError("Current rework iteration is not empty: submission exists")
+        if self.progress.outcome is not None or self.progress.stage_work is not None:
+            raise DomainError("Current rework iteration contains work")
+        if not isinstance(point, EmptyReworkRecoveryPoint):
+            raise DomainError("Exact previous verified recovery point is required")
+        if self.route.node(point.stage_id).handler in (HandlerKind.APPLY_PLAN, HandlerKind.PUBLISH):
+            raise DomainError("External-action results cannot use empty rework recovery")
+        if self.route.enter(point.progress, self.stage.stage_id) != self.progress:
+            raise DomainError("Current iteration is not the single empty transition after the verified result")
+        if dict(point.progress.visits)[point.stage_id] != point.iteration:
+            raise DomainError("Previous verified recovery point has inconsistent iteration")
+        if self.feedback != point.feedback or self.evidence_book != point.evidence_book:
+            raise DomainError("Feedback or evidence changed after the verified result")
+        state = replace(
+            self.state,
+            stage_index=self.route.index(point.stage_id),
+            iteration=point.iteration,
+            status=TaskStatus.VERIFIED,
+            version=self.state.version + 1,
+            submission_digest=point.submission_digest,
+        )
+        recovered = replace(
+            self,
+            state=state,
+            progress=point.progress,
+            feedback=point.feedback,
+            evidence_book=point.evidence_book,
+            evidence_input=point.evidence_input,
+            evidence_assessment=point.evidence_assessment,
+            action_assessment=None,
+        )
+        event = TaskEvent(
+            "empty_rework_recovered", self.stage.stage_id, self.state.iteration, reason
+        )
+        return Change(recovered, None, (event,))
 
     def rework_failed(self, actor: str, feedback: str, tree: str, execution_key: str,
                       target: str | None = None) -> Change:

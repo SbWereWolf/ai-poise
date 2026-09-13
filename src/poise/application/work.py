@@ -56,6 +56,7 @@ class WorkTools:
             elif op=='bootstrap':
                 out=h.bootstrap(**args)
             elif op=='handoff':out=h.handoff(args)
+            elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='verify':out=self._verify(args)
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()

@@ -133,6 +133,20 @@ class Poise:
         self.accounting.close_cycle()
         return result
 
+    def recover_empty_rework(self, task_id: str, reason: str) -> dict:
+        self._identifier(task_id)
+        if not isinstance(reason, str) or not reason.strip():
+            raise PoiseError('Empty rework recovery reason is required')
+        if self.current_task() is not None:
+            raise PoiseError('Empty rework recovery requires an idle session')
+        data = self.task_queries.record(task_id)
+        if data is None:
+            raise PoiseError('Unknown Task for empty rework recovery')
+        if data['claimed_by'] is not None:
+            raise PoiseError('Empty rework recovery requires released work')
+        tree = self._current_tree(data)
+        return self.task_commands.recover_empty_rework(task_id, reason, tree)
+
     def current_task(self):
         return self.store.current(self.session)
 

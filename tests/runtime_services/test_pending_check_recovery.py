@@ -58,6 +58,30 @@ def _snapshot(tools):
     }
 
 
+def _assert_only_recovery_delta(before, after):
+    before_task = deepcopy(before["task"])
+    after_task = deepcopy(after["task"])
+    assert before_task.pop("pending") == "checks"
+    assert after_task.pop("pending") is None
+    assert after_task.pop("version") == before_task.pop("version") + 1
+    assert after_task == before_task
+
+    before_public = deepcopy(before["public_task"])
+    after_public = deepcopy(after["public_task"])
+    before_history = before_public.pop("history")
+    after_history = after_public.pop("history")
+    assert after_public == before_public
+    assert after_history[:-1] == before_history
+    assert after_history[-1] == {
+        "event": "pending_checks_recovered",
+        "iteration": before["task"]["iteration"],
+        "reason": None,
+        "stage": before["task"]["process"]["stages"][before["task"]["stage_index"]]["id"],
+        "submission": None,
+    }
+    assert after["evidence"] == before["evidence"]
+
+
 def _mutate_latest_batch(tools, mutation):
     with tools.runtime.store.transaction() as database:
         row = database.execute(
@@ -85,8 +109,8 @@ def test_exact_verify_replay_recovers_complete_failed_batch_without_rerun(
     payload = result(context, "failed candidate")
     failed = verify(tools, deepcopy(payload))
     assert failed["status"] == "checks_failed"
-    before = _snapshot(tools)
     _mark_pending(tools)
+    before = _snapshot(tools)
     _forbid_check_execution(tools, monkeypatch)
 
     try:
@@ -100,10 +124,7 @@ def test_exact_verify_replay_recovers_complete_failed_batch_without_rerun(
     assert tools.runtime.current_task()["pending"] is None
     assert len(_recovery_events(tools)) == 1
     recovered_state = _snapshot(tools)
-    assert recovered_state["task"]["attempts"] == before["task"]["attempts"]
-    assert recovered_state["public_task"]["submission_count"] == before["public_task"]["submission_count"]
-    assert recovered_state["public_task"]["evidence_count"] == before["public_task"]["evidence_count"]
-    assert recovered_state["evidence"] == before["evidence"]
+    _assert_only_recovery_delta(before, recovered_state)
 
     replay = verify(tools, deepcopy(payload))
     assert replay == recovered
@@ -117,8 +138,8 @@ def test_exact_verify_replay_recovers_complete_passing_batch_into_evidence_flow(
     payload = result(context, "passing observation awaiting evidence")
     awaiting = verify(tools, deepcopy(payload))
     assert awaiting["status"] == "awaiting_continuation"
-    before = _snapshot(tools)
     _mark_pending(tools)
+    before = _snapshot(tools)
     _forbid_check_execution(tools, monkeypatch)
 
     try:
@@ -132,10 +153,7 @@ def test_exact_verify_replay_recovers_complete_passing_batch_into_evidence_flow(
     assert tools.runtime.current_task()["pending"] is None
     assert len(_recovery_events(tools)) == 1
     recovered_state = _snapshot(tools)
-    assert recovered_state["task"]["attempts"] == before["task"]["attempts"]
-    assert recovered_state["public_task"]["submission_count"] == before["public_task"]["submission_count"]
-    assert recovered_state["public_task"]["evidence_count"] == before["public_task"]["evidence_count"]
-    assert recovered_state["evidence"] == before["evidence"]
+    _assert_only_recovery_delta(before, recovered_state)
 
     replay = verify(tools, deepcopy(payload))
     assert replay == recovered
@@ -147,14 +165,12 @@ def test_pending_checks_without_complete_batch_is_rejected_without_mutation(proj
     payload = result(context, "submitted without observations")
     tools.runtime.task_commands.submit("T1", tools.runtime.session, deepcopy(payload))
     _mark_pending(tools)
-    before = deepcopy(tools.runtime.current_task())
-    history = deepcopy(_show(tools)["history"])
+    before = _snapshot(tools)
 
     with pytest.raises(PoiseError, match="Неизвестен исход прерванной проверки"):
         verify(tools, deepcopy(payload))
 
-    assert tools.runtime.current_task() == before
-    assert _show(tools)["history"] == history
+    assert _snapshot(tools) == before
 
 
 def test_pending_checks_rejects_a_different_submission_without_mutation(project):
@@ -162,8 +178,7 @@ def test_pending_checks_rejects_a_different_submission_without_mutation(project)
     payload = result(context, "original failed candidate")
     assert verify(tools, deepcopy(payload))["status"] == "checks_failed"
     _mark_pending(tools)
-    before = deepcopy(tools.runtime.current_task())
-    history = deepcopy(_show(tools)["history"])
+    before = _snapshot(tools)
 
     changed = result(context, "different candidate")
     with pytest.raises(
@@ -172,8 +187,7 @@ def test_pending_checks_rejects_a_different_submission_without_mutation(project)
     ):
         verify(tools, changed)
 
-    assert tools.runtime.current_task() == before
-    assert _show(tools)["history"] == history
+    assert _snapshot(tools) == before
 
 
 @pytest.mark.parametrize("corruption", ("duplicate", "provenance", "output"))

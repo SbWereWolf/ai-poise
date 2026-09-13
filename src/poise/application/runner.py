@@ -12,6 +12,9 @@ class StageRunner:
     def submit(self, task_id, actor, payload):
         return self.tasks.submit(task_id, actor, payload)
 
+    def matching_submission_digest(self, task_id, actor, payload):
+        return self.tasks.matching_submission_digest(task_id, actor, payload)
+
     def verified(self, task_id, actor, digest, report, artifacts):
         return self.tasks.mark_verified(task_id, actor, digest, report, artifacts)
 
@@ -26,6 +29,13 @@ class StageRunner:
 
     def record_observations(self, task_id, actor, tree, execution_key, receipts):
         return self.tasks.record_observations(task_id,actor,tree,execution_key,receipts)
+
+    def recover_pending_checks(
+        self, task_id, actor, submission_digest, tree, execution_key, receipts
+    ):
+        return self.tasks.recover_pending_checks(
+            task_id, actor, submission_digest, tree, execution_key, receipts
+        )
 
     def assess_evidence(self, task_id, actor, tree, execution_key):
         return self.tasks.assess_evidence(task_id,actor,tree,execution_key)

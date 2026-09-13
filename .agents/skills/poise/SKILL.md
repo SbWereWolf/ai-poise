@@ -42,6 +42,13 @@ pending external outcome before mutation. Resolve pending uncertainty through it
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
 action. Historical replacement relations remain read-only provenance.
 
+When an interrupted invocation leaves `pending=checks`, retry only the exact current submitted
+`verify` packet. The runtime may reconcile it without rerunning checks only when every terminal
+receipt is present and exactly matches the current stage, iteration, submission, tree, execution
+key, invocation, ledger record, and persisted output digests. Treat incomplete, mismatched,
+duplicated, unknown, or output-corrupt receipts as unresolved external outcomes and make no Task
+or execution mutation.
+
 Public non-newborn `bootstrap` and current-Task `show` projections expose the exact current Task version as `version`. The private `_version` name is never part of the public DTO. Taskless responses omit `version`, and newborn Tasks use `revision`. Pass this value unchanged as `expected_version` for guarded `restart` or stage-contract repair; on a version conflict, refresh through public `bootstrap`/`show` instead of guessing.
 
 Use the installation-owned `recover_missing_worktree` operation only for a nonterminal

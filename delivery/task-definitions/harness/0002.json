@@ -72,13 +72,13 @@
     }
   ],
   "checks": {
-    "baseline": [
-      "BASELINE"
-    ],
+    "baseline": [],
     "solution_planning": [],
     "verification_planning": [],
     "test_implementation": [],
-    "test_inspection": [],
+    "test_inspection": [
+      "BASELINE"
+    ],
     "test_remediation": [],
     "test_remediation_inspection": [],
     "implementation": [],
@@ -153,15 +153,7 @@
   },
   "evidence_plan": {
     "baseline": {
-      "subject_methods": {
-        "BASELINE": {
-          "exit_codes": [
-            0
-          ],
-          "stdout_contains": [],
-          "stderr_contains": []
-        }
-      },
+      "subject_methods": {},
       "arguments": [],
       "review_arguments": []
     },

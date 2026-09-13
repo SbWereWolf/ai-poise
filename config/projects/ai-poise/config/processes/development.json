@@ -181,7 +181,6 @@
     "sections": []
   },
   "goal_type": "development",
-  "worktree_required": true,
   "route": {
     "entry": "baseline"
   },
@@ -570,7 +569,11 @@
     },
     {
       "allowed_paths": [
-        "docs/**"
+        "docs/**",
+        ".agents/**",
+        "AGENTS.md",
+        "config/**",
+        "examples/**"
       ],
       "artifact_requirements": [],
       "handler": "produce",
@@ -604,5 +607,6 @@
         "complete": null
       }
     }
-  ]
+  ],
+  "worktree_required": true
 }

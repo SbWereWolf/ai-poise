@@ -20,6 +20,7 @@
   },
   "manifest": "project.json",
   "receipt": "setup-receipt.json",
+  "registry": "config/project-registry.json",
   "lock": "projects/.project-setup.lock",
   "file_mode": 384,
   "directory_mode": 448,

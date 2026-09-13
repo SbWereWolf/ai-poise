@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 import stat
 import subprocess
-from threading import Barrier
+from threading import Barrier, Lock
 
 import pytest
 
@@ -17,6 +17,9 @@ from conftest import WorkPoise as Poise, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.goal_config.domain import BatchValidationError, validate_process
+from sprints.helpers import changes as sprint_changes
+from sprints.helpers import setup as setup_sprint
+from sprints.helpers import task as sprint_task
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,6 +60,11 @@ def _ownership_rows(runtime):
             for row in db.execute("SELECT id,task_id FROM sessions ORDER BY id")
         }
     return tasks, worktrees
+
+
+def _actor_ownership(rows, actor):
+    tasks, worktrees = rows
+    return tuple(task_id for task_id, owner in tasks.items() if owner == actor), worktrees.get(actor)
 
 
 def _fingerprint(path):
@@ -122,6 +130,37 @@ def test_four_combinations_and_task_type_dependency(project):
     assert workspace.ownership.snapshot("neither").task_id is None
     assert workspace.ownership.snapshot("neither").worktree_task_id is None
 
+    setup_sprint(project)
+    planner = WorkTools(Poise(project["config_path"], "sprint-planner"))
+    contract = sprint_task(project, "SPRINT-OWNED")
+    contract["sprint_id"] = "OWNERSHIP-SPRINT"
+    drafted = planner.invoke(request("sprint", {
+        "action": "draft",
+        "sprint_id": "OWNERSHIP-SPRINT",
+        "request_id": "draft-ownership-sprint",
+        "expected_revision": None,
+        "template": {"id": "basic", "version": "1"},
+        "changes": sprint_changes([contract]),
+    }))
+    planner.invoke(request("sprint", {
+        "action": "publish",
+        "sprint_id": None,
+        "request_id": "publish-ownership-sprint",
+        "expected_revision": drafted["revision"],
+    }))
+    sprint_executor = WorkTools(Poise(project["config_path"], "sprint-executor"))
+    sprint_context = sprint_executor.invoke(request("bootstrap", {
+        "task": {"id": "SPRINT-OWNED"},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    task_claims, worktree_claims = _ownership_rows(sprint_executor.runtime)
+    assert sprint_context["task"] == "SPRINT-OWNED"
+    assert Path(sprint_context["worktree"]).is_dir()
+    assert task_claims["SPRINT-OWNED"] == "sprint-executor"
+    assert worktree_claims["sprint-executor"] == "SPRINT-OWNED"
+
 
 def test_complete_set_acquisition_replaces_same_kind_atomically(project):
     _configure_process(project, True)
@@ -165,11 +204,25 @@ def test_self_acquisition_is_idempotent_and_live_owner_is_rejected(project):
     from poise.modules.ownership.domain import Liveness
 
     barrier = Barrier(2)
+    observed_lock = Lock()
+    observations = []
+    before_race = _ownership_rows(contender.runtime)
+
+    def after_preflight(observed):
+        assert observed.task_id == "RACE"
+        assert observed.task_owner is None
+        assert observed.worktree_owner is None
+        with observed_lock:
+            observations.append(observed.actor)
+        barrier.wait()
 
     def compete(actor):
         runtime = Poise(project["config_path"], actor)
-        commands = OwnershipCommands(runtime.store.unit_of_work, lambda _: Liveness.LIVE)
-        barrier.wait()
+        commands = OwnershipCommands(
+            runtime.store.unit_of_work,
+            lambda _: Liveness.LIVE,
+            after_preflight,
+        )
         try:
             commands.acquire_task(actor, "RACE")
         except PoiseError as exc:
@@ -182,10 +235,14 @@ def test_self_acquisition_is_idempotent_and_live_owner_is_rejected(project):
     failures = [error for _, error in results if error is not None]
     assert len(winners) == 1
     assert len(failures) == 1
-    tasks, worktrees = _ownership_rows(contender.runtime)
+    assert sorted(observations) == ["racer-a", "racer-b"]
+    rows = _ownership_rows(contender.runtime)
+    tasks, worktrees = rows
+    loser = next(actor for actor, error in results if error is not None)
     assert tasks["RACE"] == winners[0]
     assert worktrees[winners[0]] == "RACE"
     assert list(worktrees.values()).count("RACE") == 1
+    assert _actor_ownership(rows, loser) == _actor_ownership(before_race, loser)
 
 
 def test_partial_acquisition_rolls_back(project):
@@ -243,6 +300,7 @@ def test_dead_owner_recovery_requires_definitive_liveness(project):
     dead = OwnershipCommands(
         contender.store.unit_of_work,
         lambda session: Liveness.DEAD if session == "old" else Liveness.LIVE,
+        lambda _: None,
     )
     recovered = dead.acquire_task("new", "TARGET")
     assert recovered.recovered_sessions == ("old",)

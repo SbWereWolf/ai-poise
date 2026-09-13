@@ -13,6 +13,15 @@ For this local ai-poise installation, use [the concrete launcher and configurati
 
 ## Start or resume work
 
+Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
+at most one Task and one worktree per session, independently owned. The process snapshot
+defines a dependent worktree; release it with its Task but preserve independent ownership.
+Acquire the complete set through the public owner, recognizing self-ownership and replacing
+old same-kind claims atomically. Never steal an uncertain live claim. Claims do not change
+WIP, cwd or launch roots and do not authorize cleanup or integration. At a role boundary,
+the sender saves results, confirms public release, then directly messages the known counterpart;
+the recipient acquires through bootstrap before working, under existing Task authorization.
+
 Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required content, worktree, findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
 When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.

@@ -30,6 +30,15 @@ Count observed user messages without inventing missing messages or token usage. 
 
 ## Shared agent policy
 
+Keep at most one Task and one worktree per session, with independent claims and all
+four combinations. Acquire the complete set atomically through its owner; never steal
+an uncertain live claim. The process snapshot determines a dependent worktree, which
+is released with its Task; preserve an independent worktree and all WIP, cwd and launch
+roots. Claim replacement is not completion, cleanup or integration authority. Follow
+the canonical [ownership rule](docs/governance/development-rules.md#владение-task-и-worktree).
+At a role boundary the sender saves results, confirms public release, then directly messages the known counterpart;
+the recipient acquires before mutation. Existing user Task authorization covers ordinary review and remediation.
+
 The canonical policy is [Development rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2). Keep this English projection and its Russian source consistent in the same change.
 
 - Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`, `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.

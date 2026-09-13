@@ -12,6 +12,14 @@ Do not duplicate existing tools. Compose their calls or simplify their inputs an
 
 ## Domain ownership
 
+Keep one Task and one worktree independently claimable per session. Follow the canonical
+[ownership rule](../docs/governance/development-rules.md#владение-task-и-worktree).
+Reuse OwnershipCommands and its transactional repository for complete-set acquisition,
+same-kind replacement and release; never steal an uncertain live claim. Derive the
+dependent worktree from the explicit process snapshot, not a caller flag. Release it
+with its Task while preserving independent worktree ownership. Ownership must not
+change cwd, launch roots, Git or WIP, and must not absorb cleanup or result integration.
+
 Apply domain-driven design throughout the codebase, not just to stage handlers. Identify the owner of each business rule before adding behaviour.
 
 Document and respect the responsibility boundaries of libraries and data owners. Change Task, Sprint, content, evidence, configuration and artifact state only through their owning APIs. CLI adapters, runners and hooks must not bypass those APIs with direct lifecycle assignments or table updates.

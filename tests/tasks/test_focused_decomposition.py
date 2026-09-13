@@ -74,6 +74,29 @@ ERP_NARROW_RESPONSIBILITIES = {
     "vue-pinia-best-practices": "vue-frontend",
     "vue-router-best-practices": "vue-frontend",
 }
+ERP_META_SKILLS = {
+    "exec-task",
+    "grilling",
+    "preflight",
+    "release-gate",
+    "remediation",
+    "remediation-review",
+    "review",
+    "safe-commit",
+    "self-review",
+    "sprint-design",
+}
+ERP_GENERAL_SKILLS = ERP_MIGRATED_SKILLS - set(ERP_NARROW_RESPONSIBILITIES) - ERP_META_SKILLS
+ERP_AREA_ROUTES = {
+    "app/**": "laravel-backend",
+    "database/**": "database",
+    "resources/css/**": "frontend-design",
+    "resources/js/**": "vue-frontend",
+    "routes/**": "backend-contracts",
+    "tests/Browser/**": "browser-tests",
+    "tests/Feature/**": "system-tests",
+    "tests/Unit/**": "backend-tests",
+}
 
 
 def _policy():
@@ -341,9 +364,18 @@ def run_documentation_contract():
                 "responsibility": ERP_NARROW_RESPONSIBILITIES[skill_id],
             }
         else:
-            assert item["class"] in {"meta", "general"}
-            assert item["responsibility"] is None
-    routed = {item["responsibility"] for item in erp["areas"]}
+            assert item == {
+                "id": skill_id,
+                "class": "meta" if skill_id in ERP_META_SKILLS else "general",
+                "responsibility": None,
+            }
+    assert set(by_id) == (
+        set(ERP_NARROW_RESPONSIBILITIES) | ERP_META_SKILLS | ERP_GENERAL_SKILLS
+    )
+    assert {
+        item["path"]: item["responsibility"] for item in erp["areas"]
+    } == ERP_AREA_ROUTES
+    routed = set(ERP_AREA_ROUTES.values())
     assert set(ERP_NARROW_RESPONSIBILITIES.values()) <= routed
 
     documents = [
@@ -357,28 +389,35 @@ def run_documentation_contract():
     required_by_file = {
         "docs/workflows/batch-work.md": (
             "Каждая фаза процесса явно объявляет skills и areas",
+            "Классы skills — meta, general и narrow",
             "обычная Task не объединяет разные narrow responsibilities",
             "integration Task обязана объявить component_inputs, combined_result, integration_checks и allowed_paths",
+            "Порядок деклараций не влияет на решение или диагностику",
         ),
         "docs/configuration/project-setup.md": (
             "task_decomposition хранит project-specific routing",
             "неизвестный skill или неразмеченная area отклоняют план",
+            "ERP inventory и его классификация принадлежат конфигурации ERP, а не AI poise",
         ),
         "docs/governance/development-rules.md": (
             "ordinary и integration классифицируются до проверки фокуса",
             "валидатор проверяет декларацию, но не доказывает её фактическую полноту",
+            "meta и general не требуют разделения, narrow следует responsibility boundary",
         ),
         ".agents/skills/poise/SKILL.md": (
             "Read task_decomposition from the selected project's project-specific routing.",
             "Declare every process phase before an ordinary or integration Task is made ready.",
+            "Meta and general skills do not split a Task; peer narrow responsibilities do.",
         ),
         ".agents/skills/poise-development/SKILL.md": (
             "An integration Task names component_inputs, combined_result, integration_checks, and allowed_paths.",
             "Validation does not prove factual completeness of declared skills or boundaries.",
+            "Keep target-project skill inventory and area routing out of AI poise source.",
         ),
         "AGENTS.md": (
             "Read skill classes and responsibility boundaries from project-specific routing.",
             "Decomposition validation does not prove factual completeness.",
+            "Ordinary Tasks cannot combine peer narrow responsibilities; integration Tasks require explicit integration fields.",
         ),
     }
     for path in documents:
@@ -400,6 +439,37 @@ def _peer_decomposition(stages):
             for index, stage in enumerate(stages)
         ],
         "integration": None,
+    }
+
+
+def _valid_decomposition(stages):
+    return {
+        "kind": "ordinary",
+        "phases": [
+            {"stage": stage, "skills": ["task-domain"], "areas": []}
+            for stage in stages
+        ],
+        "integration": None,
+    }
+
+
+def _valid_integration_decomposition(stages):
+    return {
+        "kind": "integration",
+        "phases": [
+            {
+                "stage": stage,
+                "skills": ["task-domain", "sprint-domain"],
+                "areas": [],
+            }
+            for stage in stages
+        ],
+        "integration": {
+            "component_inputs": ["Task component", "Sprint component"],
+            "combined_result": "Published Sprint tasks",
+            "integration_checks": ["Sprint publication preflight"],
+            "allowed_paths": ["src/poise/modules/**"],
+        },
     }
 
 
@@ -433,6 +503,9 @@ def test_automatic_task_creation_rejects_unfocused_plan(project):
 
     valid = deepcopy(project["task"])
     valid["id"] = "FOCUSED-VALID"
+    valid["decomposition"] = _valid_decomposition(
+        [stage["id"] for stage in project["process"]["stages"]]
+    )
     started = client.invoke(
         request(
             "bootstrap",
@@ -501,6 +574,48 @@ def test_newborn_ready_rejects_unfocused_plan(project):
     assert preserved.version == edited["revision"]
     assert preserved.ready is False
 
+    valid_born = client.invoke(
+        request(
+            "task",
+            {
+                "action": "create",
+                "request_id": "focused-valid-newborn-create",
+                "task_id": "FOCUSED-VALID-NEWBORN",
+                "sprint_id": None,
+            },
+        )
+    )
+    valid_contract = deepcopy(project["task"])
+    valid_contract.pop("id")
+    valid_contract.pop("sprint_id")
+    valid_contract["decomposition"] = _valid_decomposition(
+        [stage["id"] for stage in project["process"]["stages"]]
+    )
+    valid_edited = client.invoke(
+        request(
+            "task",
+            {
+                "action": "edit",
+                "request_id": "focused-valid-newborn-edit",
+                "task_id": valid_born["task"],
+                "expected_revision": valid_born["revision"],
+                "patch": valid_contract,
+            },
+        )
+    )
+    ready = client.invoke(
+        request(
+            "task",
+            {
+                "action": "ready",
+                "request_id": "focused-valid-newborn-ready",
+                "task_id": valid_born["task"],
+                "expected_revision": valid_edited["revision"],
+            },
+        )
+    )
+    assert ready["status"] == "available"
+
 
 def test_sprint_publish_rejects_unfocused_plan(project):
     from conftest import WorkPoise
@@ -512,11 +627,16 @@ def test_sprint_publish_rejects_unfocused_plan(project):
     client = WorkTools(WorkPoise(configured["config_path"], "focused-sprint"))
     child = task(configured)
     valid = deepcopy(child)
+    valid["decomposition"] = _valid_integration_decomposition(["work"])
     child["decomposition"] = _peer_decomposition(["work"])
     sprint = draft(client, [child])
+    with client.runtime.store.unit_of_work() as uow:
+        before = deepcopy(uow.sprints.get("S"))
     with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
         publish(client, sprint["revision"])
     assert client.runtime.task_queries.summary() == []
+    with client.runtime.store.unit_of_work() as uow:
+        assert uow.sprints.get("S") == before
 
     revised = draft(
         client,

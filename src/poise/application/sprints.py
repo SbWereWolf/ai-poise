@@ -3,8 +3,9 @@ from copy import deepcopy
 import hashlib
 import json
 from dataclasses import replace
-from ..modules.sprints.domain import SprintPolicy, SprintPlan, Sprint
+from ..modules.sprints.domain import SprintPolicy, SprintPlan, Sprint, task_identity
 from ..modules.tasks.definition import build_task, path_identifier, validate_creation
+from ..modules.tasks.newborn import NewbornTask
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
 from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
@@ -24,10 +25,19 @@ class SprintCommands:
         self.automatic_checks=deepcopy(automatic_checks);self.execution_hash=execution_hash
         self.prepare_creation=prepare_creation;self.creation_base=creation_base
 
-    def _errors(self,record):
+    def _errors(self,record,facts=None):
         s=Sprint.restore(record['aggregate']);errors=s.plan.content_errors(s.policy)+s.plan.graph_errors(s.policy)
+        if facts is None:
+            with self.uow() as uow:
+                facts=uow.sprints.facts(s.plan.data['id'])
         for t in s.plan.data['tasks']:
             try:
+                if isinstance(t,str):
+                    fact=facts.get(t)
+                    if fact is None:raise DomainError('Newborn Sprint member does not exist')
+                    if fact['status']!='newborn' or not fact.get('ready',False):
+                        raise DomainError('Newborn Sprint member is not type-ready')
+                    continue
                 body=t['task'] if isinstance(t,dict) and set(t)=={'request_id','task'} else t
                 kind=body.get('goal_type')
                 if not isinstance(kind,str) or kind not in record['processes']:raise DomainError('Unknown goal_type')
@@ -46,6 +56,38 @@ class SprintCommands:
         execution['pending']=pending
         uow.execution.save(task_id,execution,version)
 
+    def _materialize_draft_changes(self,uow,sid,changes,processes,execution_hash):
+        """Replace complete draft definitions with real ready newborn Task members."""
+        from ..modules.tasks.allocation import materialize_contract
+        prepared=deepcopy(changes);members=[]
+        for change in prepared:
+            if change.get('kind')!='upsert_tasks':continue
+            normalized=[]
+            for intent in change['tasks']:
+                if isinstance(intent,str):
+                    newborn=uow.tasks.load_newborn(intent)
+                    if newborn.sprint_id!=sid:
+                        raise DomainError('Newborn Task belongs to another Sprint')
+                    normalized.append(intent);continue
+                request_id=None
+                if isinstance(intent,dict) and set(intent)=={'request_id','task'}:
+                    allocation=uow.tasks.allocate(intent,self.task_id_policy,(sid,*normalized))
+                    contract,_=materialize_contract(intent,allocation.task_id)
+                    request_id=allocation.request_id
+                else:
+                    contract=deepcopy(intent)
+                kind=contract.get('goal_type') if isinstance(contract,dict) else None
+                if kind not in processes:raise DomainError('Unknown goal_type')
+                validate_creation(contract,processes[kind],self.automatic_checks)
+                newborn=NewbornTask.create(contract['id'],sid,self.actor)
+                draft={k:deepcopy(v) for k,v in contract.items() if k not in ('id','sprint_id')}
+                newborn=newborn.edit(draft,processes,self.actor).mark_ready()
+                newborn=replace(newborn,claimed_by=None)
+                uow.tasks.create_newborn(newborn,execution_hash)
+                members.append(contract['id']);normalized.append(contract['id'])
+            change['tasks']=normalized
+        return prepared,members
+
     def _describe(self,uow,record):
         s=Sprint.restore(record['aggregate']);sid=s.plan.data['id'];facts=uow.sprints.facts(sid)
         resumable=tuple(i for i,f in facts.items() if f['claimed_by'] is None and f['handoff_available']
@@ -54,9 +96,10 @@ class SprintCommands:
         replacements=[{k:v for k,v in d.items() if k!='kind'} for d in s.decisions if d.get('kind')=='task_replacement']
         return {**status,'resumable':list(resumable),'sprint':sid,'goal':s.plan.data['goal'],'revision':s.revision,
             'replacements':replacements,
+            'dependencies':deepcopy(s.plan.data['dependencies']),
             'tasks':[{'id':i,**v} for i,v in facts.items()],
             'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('available','active','verified','accepted','completed','cancelled')},
-            'errors':self._errors(record) if s.state=='draft' else [],
+            'errors':self._errors(record,facts) if s.state=='draft' else [],
             'next_work':'Исправить draft и опубликовать одним пакетом' if s.state=='draft' else
                         'Выбрать одну доступную задачу; выполнить один этап и доложить',
             'active_task':None}
@@ -65,6 +108,7 @@ class SprintCommands:
     def _action(packet):
         shapes={'draft':{'action','sprint_id','request_id','expected_revision','template','changes'},
                 'publish':{'action','sprint_id','request_id','expected_revision'},
+                'materialize_tasks':{'action','sprint_id','request_id','expected_revision'},
                 'dependencies':{'action','sprint_id','request_id','expected_revision','items','reason'},
                 'cancel_tasks':{'action','sprint_id','request_id','tasks','mode','reason'},
                 'cancel':{'action','sprint_id','request_id','reason'},
@@ -104,7 +148,7 @@ class SprintCommands:
             if old is not None:return {'receipt':old,'sprint':sid}
             s=Sprint.restore(record['aggregate'])
             whole=action=='cancel'
-            requested=([t['id'] for t in s.plan.data['tasks']] if s.state=='published' else []) if whole else list(s.cancellation_scope(packet['tasks'],packet['mode']))
+            requested=([task_identity(t) for t in s.plan.data['tasks']] if s.state=='published' else []) if whole else list(s.cancellation_scope(packet['tasks'],packet['mode']))
             facts=u.sprints.facts(sid)
             ids=[tid for tid in requested if facts[tid]['status'] not in ('completed','cancelled')]
             snapshots={}
@@ -123,7 +167,7 @@ class SprintCommands:
             if u.sprints.receipt(sid,packet['request_id'],identity) is not None:return None
             if type(packet['expected_revision']) is not int or packet['expected_revision']!=record['aggregate']['revision']:
                 raise VersionConflict('Publish revision changed')
-            errors=self._errors(record)
+            errors=self._errors(record,u.sprints.facts(sid))
             if errors:raise DomainError('; '.join(errors))
             intents=deepcopy(Sprint.restore(record['aggregate']).plan.data['tasks'])
             processes=deepcopy(record['processes'])
@@ -132,6 +176,15 @@ class SprintCommands:
         base=self.creation_base()
         prepared=[]
         for intent in intents:
+            if isinstance(intent,str):
+                with self.uow() as u:
+                    newborn,body=u.tasks.newborn_creation(intent)
+                if not newborn.ready:
+                    raise DomainError('Newborn Sprint member is not type-ready')
+                prepared.append(self.prepare_creation(
+                    body,newborn.process,automatic_checks,base
+                ))
+                continue
             body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
             prepared.append(self.prepare_creation(
                 intent,processes[body['goal_type']],automatic_checks,base
@@ -156,8 +209,11 @@ class SprintCommands:
                 expected=packet['expected_revision']
                 if record is None:
                     if expected is not None:raise VersionConflict('New sprint requires explicit null revision')
+                    changes,members=self._materialize_draft_changes(
+                        u,sid,packet['changes'],self.processes,self.execution_hash
+                    )
                     s=Sprint.draft(SprintPlan.create(sid,packet['template'],self.policy),self.policy)
-                    s=Sprint(s.plan.apply(packet['changes'],s.policy),s.policy,s.revision,s.state,s.waivers,s.decisions)
+                    s=Sprint(s.plan.apply(changes,s.policy),s.policy,s.revision,s.state,s.waivers,s.decisions)
                     record={'project':self.project,'actor':self.actor,'aggregate':s.to_dict(),
                             'processes':deepcopy(self.processes),'automatic_checks':deepcopy(self.automatic_checks),
                             'execution_hash':self.execution_hash}
@@ -165,25 +221,36 @@ class SprintCommands:
                     if type(expected) is not int or expected!=record['aggregate']['revision']:
                         raise VersionConflict('Draft revision changed')
                     if packet['template'] is not None:raise DomainError('Edit uses saved template/policy; explicit null required')
-                    s=Sprint.restore(record['aggregate']);s=s.revise(s.plan.apply(packet['changes'],s.policy))
+                    changes,members=self._materialize_draft_changes(
+                        u,sid,packet['changes'],record['processes'],record['execution_hash']
+                    )
+                    s=Sprint.restore(record['aggregate']);s=s.revise(s.plan.apply(changes,s.policy))
                     record={**record,'actor':self.actor,'aggregate':s.to_dict()}
                 u.sprints.save(record,expected)
+                for member in members:u.sprints.add_draft_member(sid,member)
             else:
                 if record is None:raise DomainError('Sprint does not exist')
                 s=Sprint.restore(record['aggregate']);prior=s.revision
                 if action=='publish':
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Publish revision changed')
-                    errors=self._errors(record)
+                    errors=self._errors(record,u.sprints.facts(sid))
                     if errors:raise DomainError('; '.join(errors))
                     if publication is None or fingerprint(record)!=publication['record']:
                         raise VersionConflict('Sprint changed after creation preflight')
                     s=s.publish()
-                    reservations=creation_batch_reservations(
-                        s.plan.data['tasks'],(s.plan.data['id'],)
-                    )
+                    reservations=(frozenset() if all(isinstance(item,str) for item in s.plan.data['tasks'])
+                                  else creation_batch_reservations(s.plan.data['tasks'],(s.plan.data['id'],)))
                     created={}
                     for intent,prepared in zip(s.plan.data['tasks'],publication['prepared'],strict=True):
+                        if isinstance(intent,str):
+                            newborn,contract=u.tasks.newborn_creation(intent)
+                            if not newborn.ready or prepared.intent!=contract:
+                                raise VersionConflict('Newborn Sprint member changed after creation preflight')
+                            metadata=validate_creation(contract,newborn.process,record['automatic_checks'])
+                            metadata.update(sprint_id=sid,goal=contract['goal'],config_hash=record['execution_hash'])
+                            u.tasks.promote_newborn(build_task(metadata,None),metadata,newborn.version)
+                            continue
                         body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
                         if prepared.intent!=intent:
                             raise VersionConflict('Sprint Task intent changed after creation preflight')
@@ -193,7 +260,29 @@ class SprintCommands:
                         alias=allocation.request_id if allocation.request_id is not None else contract['id']
                         created[alias]=contract
                         if allocation.receipt() is not None:allocations.append(allocation.receipt())
-                    s=replace(s,plan=SprintPlan(rewrite_task_plan(s.plan.data,created)))
+                    if created:
+                        s=replace(s,plan=SprintPlan(rewrite_task_plan(s.plan.data,created)))
+                elif action=='materialize_tasks':
+                    if s.state!='draft':raise DomainError('Only a legacy Sprint draft can materialize Tasks')
+                    if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
+                        raise VersionConflict('Materialization revision changed')
+                    legacy=list(s.plan.data['tasks'])
+                    if not legacy or any(isinstance(item,str) for item in legacy):
+                        raise DomainError('Sprint draft has no legacy embedded Task definitions')
+                    ids=[]
+                    for intent in legacy:
+                        body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
+                        kind=body.get('goal_type')
+                        if kind not in record['processes']:raise DomainError('Unknown goal_type')
+                        validate_creation(body,record['processes'][kind],record['automatic_checks'])
+                        newborn=NewbornTask.create(body['id'],sid,self.actor)
+                        draft={k:deepcopy(v) for k,v in body.items() if k not in ('id','sprint_id')}
+                        newborn=newborn.edit(draft,record['processes'],self.actor).mark_ready()
+                        u.tasks.create_newborn(newborn,record['execution_hash'])
+                        u.sprints.add_draft_member(sid,body['id'])
+                        ids.append(body['id'])
+                    plan=deepcopy(s.plan.data);plan['tasks']=sorted(ids)
+                    s=replace(s,plan=SprintPlan(plan),revision=prior+1)
                 elif action=='dependencies':
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Dependency revision changed')
@@ -227,7 +316,7 @@ class SprintCommands:
                     whole=action=='cancel'
                     if s.state not in ('draft','published'):raise DomainError('Sprint already cancelled')
                     if not whole and s.state!='published':raise DomainError('Only published members may be cancelled')
-                    requested=([t['id'] for t in s.plan.data['tasks']] if s.state=='published' else []) if whole else list(s.cancellation_scope(packet['tasks'],packet['mode']))
+                    requested=([task_identity(t) for t in s.plan.data['tasks']] if s.state=='published' else []) if whole else list(s.cancellation_scope(packet['tasks'],packet['mode']))
                     facts=u.sprints.facts(sid)
                     ids=[tid for tid in requested if facts[tid]['status'] not in ('completed','cancelled')]
                     for tid in ids:
@@ -252,6 +341,7 @@ class SprintCommands:
                     if preflight['fact']['claimed_by']==self.actor:u.handoffs.unbind(self.actor,packet['source_task'])
             u.sprints.bind(self.actor,sid)
             result=self._describe(u,record)
+            if action=='materialize_tasks':result={**result,'materialized':sorted(ids)}
             if action=='replace_task':result={**result,'cleanup':{packet['source_task']:preflight['cleanup_result']}}
             elif action in ('cancel_tasks','cancel'):
                 result={**result,'cleanup':{tid:item['cleanup_result'] for tid,item in preflight['tasks'].items()}}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 import json
+from dataclasses import replace
+from copy import deepcopy
 from datetime import datetime, timezone
 from ...modules.tasks.domain import (
     Change,
@@ -17,6 +19,7 @@ from ...modules.workflow.domain import RouteDefinition, RouteProgress
 from ...modules.inspection.domain import FeedbackBook
 from ...modules.evidence.domain import EvidenceBook
 from ...modules.foundation.errors import PoiseError, VersionConflict
+from ...modules.tasks.newborn import NewbornTask
 
 
 def encode(value: object) -> str:
@@ -43,6 +46,152 @@ class SqliteTaskRepository:
 
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
+
+    def is_newborn(self, task_id):
+        row = self.db.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        return row[0] == TaskStatus.NEWBORN.value
+
+    def create_newborn(self, newborn: NewbornTask, config_hash: str) -> None:
+        if self.exists(newborn.task_id):
+            raise PoiseError("Task ID already exists; newborn creation cannot replace it")
+        if self.db.execute("SELECT 1 FROM sprints WHERE id=?", (newborn.task_id,)).fetchone():
+            raise PoiseError("Task/sprint ID collision")
+        self.db.execute(
+            "INSERT INTO tasks VALUES(?,?,?,?,?,?,NULL,?)",
+            (
+                newborn.task_id,
+                TaskStatus.NEWBORN.value,
+                0,
+                1,
+                newborn.claimed_by,
+                newborn.version,
+                encode(newborn.metadata(config_hash)),
+            ),
+        )
+        self._event(newborn.task_id, newborn.version, {
+            "event": "created_newborn",
+            "stage": "newborn",
+            "iteration": 1,
+        })
+
+    def load_newborn(self, task_id: str) -> NewbornTask:
+        row = self.db.execute(
+            "SELECT status,claimed_by,version,metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        if row["status"] != TaskStatus.NEWBORN.value:
+            raise PoiseError("Task is not newborn")
+        return NewbornTask.restore(
+            task_id, row["claimed_by"], row["version"], json.loads(row["metadata"])
+        )
+
+    def newborn_creation(self, task_id: str):
+        newborn = self.load_newborn(task_id)
+        if newborn.process is None:
+            raise PoiseError('Newborn Task has no selected goal_type')
+        return newborn, {
+            'id':task_id,
+            'sprint_id':newborn.sprint_id,
+            **deepcopy(newborn.draft),
+        }
+
+    def save_newborn(self, newborn: NewbornTask, expected_version: int,
+                     config_hash: str, event: str) -> None:
+        if newborn.version == expected_version:
+            return
+        if newborn.version != expected_version + 1:
+            raise VersionConflict("Недопустимый шаг версии newborn Task")
+        updated = self.db.execute(
+            "UPDATE tasks SET claimed_by=?,version=?,metadata=? "
+            "WHERE id=? AND status=? AND version=?",
+            (
+                newborn.claimed_by,
+                newborn.version,
+                encode(newborn.metadata(config_hash)),
+                newborn.task_id,
+                TaskStatus.NEWBORN.value,
+                expected_version,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict("Конфликт версии newborn Task")
+        self._event(newborn.task_id, newborn.version, {
+            "event": event,
+            "stage": "newborn",
+            "iteration": 1,
+        })
+
+    def acquire_newborn(self, task_id: str, actor: str) -> None:
+        newborn = self.load_newborn(task_id)
+        changed = newborn.acquire(actor)
+        metadata = json.loads(self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()[0])
+        self.save_newborn(
+            changed, newborn.version, metadata['config_hash'], 'ownership_acquired'
+        )
+
+    def release_newborn(self, task_id: str, actor: str) -> None:
+        newborn = self.load_newborn(task_id)
+        changed = newborn.release(actor)
+        metadata = json.loads(self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()[0])
+        self.save_newborn(
+            changed, newborn.version, metadata['config_hash'], 'ownership_released'
+        )
+
+    def promote_newborn(self, task: Task, metadata: dict, expected_version: int) -> None:
+        if not self.is_newborn(task.state.task_id):
+            raise PoiseError("Only a newborn Task can become available")
+        promoted = replace(
+            task,
+            state=replace(
+                task.state,
+                version=expected_version + 1,
+                status=TaskStatus.AVAILABLE,
+                claimed_by=None,
+            ),
+        )
+        s = promoted.state
+        updated = self.db.execute(
+            "UPDATE tasks SET status=?,stage_index=?,iteration=?,claimed_by=?,version=?,metadata=? "
+            "WHERE id=? AND status=? AND version=?",
+            (
+                s.status.value,
+                s.stage_index,
+                s.iteration,
+                s.claimed_by,
+                s.version,
+                encode(metadata),
+                s.task_id,
+                TaskStatus.NEWBORN.value,
+                expected_version,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict("Конфликт версии newborn Task")
+        self.db.execute(
+            "INSERT INTO content_contracts VALUES(?,?,?)",
+            (s.task_id, s.version, encode(promoted.content_policy.to_layers())),
+        )
+        self.db.execute(
+            "INSERT INTO task_workflows VALUES(?,?)",
+            (s.task_id, encode(promoted.workflow_snapshot())),
+        )
+        self._save_methods(promoted)
+        self.db.execute(
+            "INSERT INTO task_proofs VALUES(?,?)",
+            (s.task_id, encode(promoted.evidence_snapshot())),
+        )
+        self._event(s.task_id, s.version, {
+            "event": "became_available",
+            "stage": promoted.stage.stage_id,
+            "iteration": s.iteration,
+        })
 
     def allocate(self, intent, policy, reserved_ids=()):
         from ...modules.tasks.allocation import Allocation, creation_parts

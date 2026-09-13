@@ -9,6 +9,8 @@ from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_me
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError
+from ..modules.tasks.newborn import NewbornTask
+from ..modules.tasks.definition import build_task, validate_creation
 
 
 def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata):
@@ -125,17 +127,86 @@ class TaskCommands:
             task, metadata, _ = _creation_values(
                 prepared.intent,
                 allocation,
-                actor,
+                None,
                 prepared.process,
                 prepared.automatic_checks,
                 base_metadata,
             )
-            uow.tasks.create(task, metadata)
-            uow.tasks.save(task.release_ownership(actor), task.state.version)
             if not allocation.replayed:
-                snapshot = execution(allocation.task_id)
-                uow.execution.create(allocation.task_id, snapshot)
+                newborn = NewbornTask.create(allocation.task_id, None, actor)
+                uow.tasks.create_newborn(newborn, base_metadata['config_hash'])
+                uow.tasks.promote_newborn(task, metadata, newborn.version)
             return allocation
+
+    def create_newborn(self, task_id, sprint_id, actor, config_hash):
+        from ..application.ownership import release_task_in
+        from ..modules.sprints.domain import Sprint
+        newborn = NewbornTask.create(task_id, sprint_id, actor)
+        with self.unit_of_work() as uow:
+            before = uow.ownership.snapshot(actor)
+            if before.task_id not in (None, task_id):
+                release_task_in(uow, actor, before.task_id)
+            sprint_revision = None
+            if sprint_id is not None:
+                record = uow.sprints.get(sprint_id)
+                if record is None:
+                    raise DomainError('Unknown Sprint for newborn membership')
+                sprint = Sprint.restore(record['aggregate']).add_newborn_member(task_id)
+                record = {**record, 'actor':actor, 'aggregate':sprint.to_dict()}
+                uow.tasks.create_newborn(newborn, config_hash)
+                uow.sprints.save(record, sprint.revision - 1)
+                uow.sprints.add_draft_member(sprint_id, task_id)
+                sprint_revision = sprint.revision
+            else:
+                uow.tasks.create_newborn(newborn, config_hash)
+            uow.ownership.bind_worktree(actor, None)
+            return newborn.describe() | ({'sprint_revision':sprint_revision} if sprint_id is not None else {})
+
+    def edit_newborn(self, task_id, actor, expected_revision, patch, processes, config_hash):
+        from ..application.ownership import release_task_in
+        if type(expected_revision) is not int:
+            raise DomainError('Newborn edit requires expected_revision')
+        with self.unit_of_work() as uow:
+            newborn = uow.tasks.load_newborn(task_id)
+            if newborn.version != expected_revision:
+                from ..modules.foundation.errors import VersionConflict
+                raise VersionConflict('Newborn Task revision changed')
+            if newborn.claimed_by not in (None, actor):
+                raise DomainError('Newborn Task is owned by another session')
+            before = uow.ownership.snapshot(actor)
+            if before.task_id not in (None, task_id):
+                release_task_in(uow, actor, before.task_id)
+            changed = newborn.edit(patch, processes, actor)
+            uow.tasks.save_newborn(changed, newborn.version, config_hash, 'newborn_edited')
+            uow.ownership.bind_worktree(actor, None)
+            return changed.describe()
+
+    def ready_newborn(self, task_id, actor, expected_revision, automatic_checks, config_hash):
+        if type(expected_revision) is not int:
+            raise DomainError('Newborn ready requires expected_revision')
+        with self.unit_of_work() as uow:
+            newborn = uow.tasks.load_newborn(task_id)
+            if newborn.version != expected_revision:
+                from ..modules.foundation.errors import VersionConflict
+                raise VersionConflict('Newborn Task revision changed')
+            if newborn.claimed_by != actor:
+                raise DomainError('Newborn ready requires current ownership')
+            if newborn.process is None:
+                raise DomainError('Select goal_type before ready')
+            contract = {'id':task_id, 'sprint_id':newborn.sprint_id, **deepcopy(newborn.draft)}
+            metadata = validate_creation(contract, newborn.process, automatic_checks)
+            metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=config_hash)
+            if newborn.sprint_id is not None:
+                ready = newborn.mark_ready()
+                uow.tasks.save_newborn(ready, newborn.version, config_hash, 'newborn_ready')
+                return ready.describe()
+            task = build_task(metadata, None)
+            uow.tasks.promote_newborn(task, metadata, newborn.version)
+            return {
+                'status':'available','task':task_id,'revision':newborn.version + 1,
+                'sprint':None,'claimed_by':None,'goal_type':contract['goal_type'],
+                'route_entry':newborn.process['route']['entry'],'ready':True,
+            }
 
     def start(self, task_id, actor, execution):
         with self.unit_of_work() as uow:

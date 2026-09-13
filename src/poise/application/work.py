@@ -51,7 +51,8 @@ class WorkTools:
         h.accounting.begin(op,bound_before,telemetry,events[-1].identity if events else None)
         try:
             if telemetry is not None and op!='bootstrap':h.accounting.receive(telemetry,before)
-            if op=='sprint':out=h.sprint_tools.apply(args)
+            if op=='task':out=h.task_action(args)
+            elif op=='sprint':out=h.sprint_tools.apply(args)
             elif op=='transfer':out=h.transfer_tools.apply(args)
             elif op=='bootstrap':
                 out=h.bootstrap(**args)

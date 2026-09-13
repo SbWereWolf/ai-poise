@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import subprocess
+import unittest
+
+import pytest
+
+import conftest
+from batch.helpers import request
+from conftest import project as project_fixture
+from conftest import Poise
+from poise.application.work import WorkTools
+from poise.common import PoiseError
+from runner.helpers import finding, inspect, resolution
+from runner.test_runner_paths import edit, result, setup_project
+
+
+class EmptyReworkRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = TemporaryDirectory()
+        self.monkeypatch = pytest.MonkeyPatch()
+        self.monkeypatch.setattr(conftest, "git", self._quiet_git)
+        self.project = project_fixture.__wrapped__(
+            Path(self.temporary.name), self.monkeypatch
+        )
+
+    def tearDown(self):
+        self.monkeypatch.undo()
+        self.temporary.cleanup()
+
+    @staticmethod
+    def _quiet_git(root, *args):
+        return subprocess.check_output(
+            ["git", "-C", str(root), *args],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+
+    def _handoff(self, runtime, request_id="empty-rework-handoff", payload=None):
+        return WorkTools(runtime).invoke(
+            request(
+                "handoff",
+                {
+                    "request_id": request_id,
+                    "reason": "recover the accidentally opened empty rework",
+                    "result": payload,
+                    "commit_message": None,
+                    "artifact_paths": [],
+                },
+            )
+        )
+
+    def _recover(self, task_id="T1"):
+        runtime = Poise(self.project["config_path"], "RECOVERY")
+        try:
+            return WorkTools(runtime).invoke(
+                request(
+                    "recover_empty_rework",
+                    {
+                        "task_id": task_id,
+                        "reason": "User authorized recovery of the accidental empty iteration.",
+                    },
+                )
+            )
+        except PoiseError as exc:
+            if str(exc) == "Unknown work operation":
+                self.fail("public recover_empty_rework operation is missing")
+            raise
+
+    def _simple_empty_rework(self, *, release=True):
+        runtime = setup_project(self.project, "development")
+        context = runtime.bootstrap(task_file=self.project["task_path"])
+        edit(context, "development", "verified\n")
+        result(context, {})
+        verified = runtime.verify()
+        active = runtime.bootstrap(
+            decision="rework",
+            feedback="Accidental empty rework.",
+            rework_stage="draft",
+        )
+        if release:
+            self._handoff(runtime)
+        return runtime, verified, active
+
+    def _pending_resolution_rework(self):
+        runtime = setup_project(self.project, "development")
+        context = runtime.bootstrap(task_file=self.project["task_path"])
+        edit(context, "development", "initial\n")
+        result(context, {})
+        runtime.verify()
+
+        context = runtime.bootstrap(decision="continue")
+        result(context, inspect([finding()]))
+        runtime.verify()
+
+        context = runtime.bootstrap(decision="continue")
+        edit(context, "development", "resolved\n")
+        result(context, {"resolutions": [resolution()]})
+        verified = runtime.verify()
+        active = runtime.bootstrap(
+            decision="rework",
+            feedback="Accidental empty rework before inspection.",
+            rework_stage="amend",
+        )
+        self._handoff(runtime)
+        return runtime, verified, active
+
+    def test_recovers_released_empty_rework(self):
+        runtime, verified, active = self._simple_empty_rework()
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["task"], "T1")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
+        self.assertEqual(active["iteration"], verified["iteration"] + 1)
+        stored = runtime.task_queries.record("T1")
+        self.assertEqual(stored["status"], "verified")
+        self.assertIsNone(stored["claimed_by"])
+        reviewer = WorkTools(Poise(self.project["config_path"], "REVIEWER")).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "T1"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+        self.assertEqual(reviewer["status"], "verified")
+        self.assertEqual(reviewer["iteration"], verified["iteration"])
+
+    def test_preserves_pending_resolution_and_history(self):
+        runtime, verified, active = self._pending_resolution_rework()
+        submissions_before = runtime.store.counts("T1")[0]
+        history_before = runtime.task_queries.history("T1")
+
+        recovered = self._recover()
+
+        stored = runtime.task_queries.record("T1")
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(stored["status"], "verified")
+        self.assertEqual(stored["iteration"], verified["iteration"])
+        self.assertEqual(active["iteration"], verified["iteration"] + 1)
+        self.assertEqual(runtime.store.counts("T1")[0], submissions_before)
+        history_after = runtime.task_queries.history("T1")
+        self.assertEqual(history_after[:-1], history_before)
+        self.assertEqual(history_after[-1]["event"], "empty_rework_recovered")
+        reviewer = WorkTools(Poise(self.project["config_path"], "REVIEWER")).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "T1"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+        pending = reviewer["workflow"]["feedback"]["pending_resolutions"]
+        self.assertEqual([item["id"] for item in pending], ["R1"])
+
+    def test_rejects_claimed_task(self):
+        self._simple_empty_rework(release=False)
+
+        with self.assertRaisesRegex(PoiseError, "released"):
+            self._recover()
+
+    def test_rejects_changed_tree(self):
+        _, _, active = self._simple_empty_rework()
+        edit(active, "development", "changed after handoff\n")
+
+        with self.assertRaisesRegex(PoiseError, "tree|changed"):
+            self._recover()
+
+    def test_rejects_submitted_iteration(self):
+        runtime, _, active = self._simple_empty_rework(release=False)
+        result(active, {})
+        self._handoff(runtime, request_id="submitted-rework-handoff", payload=active["result_template"])
+
+        with self.assertRaisesRegex(PoiseError, "empty|submission"):
+            self._recover()
+
+    def test_rejects_non_rework_last_event(self):
+        runtime = setup_project(self.project, "development")
+        context = runtime.bootstrap(task_file=self.project["task_path"])
+        edit(context, "development", "verified\n")
+        result(context, {})
+        runtime.verify()
+        self._handoff(runtime, request_id="verified-result-handoff")
+
+        with self.assertRaisesRegex(PoiseError, "user_rework"):
+            self._recover()
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -282,17 +282,19 @@ def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_reques
     request = update_request(
         config_path,
         created["revision"],
-        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+        manifest_edits=[{"path": ["git", "remote"], "value": "changed"}],
         probe_repository=True,
     )
 
     result = update_tools(settings).apply(request)
 
     _, config, processes = load_config(config_path)
+    assert config["git"]["remote"] == "changed"
     assert config["git"]["push_required"] is False
     assert processes["development"] == before_process
     assert result["prior_revision"] == created["revision"]
     assert result["revision"] == project_revision(config_path)
+    assert result["changed"] is True
     assert result["readiness"]["repository"] == "verified"
     assert result["readiness"]["remote"] == "not_required"
     assert Path(result["receipt_path"]).is_file()
@@ -326,12 +328,14 @@ def test_superseded_task_does_not_block_quiescent_manifest_update(project):
     update = update_request(
         config_path,
         created["revision"],
-        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+        manifest_edits=[{"path": ["git", "remote"], "value": "changed"}],
     )
 
     result = update_tools(settings).apply(update)
 
     assert result["status"] == "updated"
+    assert result["changed"] is True
+    assert json.loads(config_path.read_text())["git"]["remote"] == "changed"
     assert json.loads(config_path.read_text())["git"]["push_required"] is False
 
 

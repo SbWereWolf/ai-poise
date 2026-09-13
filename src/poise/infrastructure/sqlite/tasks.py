@@ -71,6 +71,27 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
+    def ownership_event_suffix(
+        self, task_id: str, after_version: int, through_version: int
+    ) -> tuple[str, ...]:
+        rows = self.db.execute(
+            "SELECT version,data FROM task_events "
+            "WHERE task_id=? AND version>? AND version<=? ORDER BY version",
+            (task_id, after_version, through_version),
+        ).fetchall()
+        if [row["version"] for row in rows] != list(
+            range(after_version + 1, through_version + 1)
+        ):
+            return ()
+        events = tuple(json.loads(row["data"])["event"] for row in rows)
+        ownership_events = {
+            "handed_off",
+            "handoff_resumed",
+            "ownership_acquired",
+            "ownership_released",
+        }
+        return events if set(events) <= ownership_events else ()
+
     def is_newborn(self, task_id):
         row = self.db.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
         if row is None:

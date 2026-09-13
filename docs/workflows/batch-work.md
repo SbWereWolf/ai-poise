@@ -248,11 +248,13 @@ worktree.
 tree совпадают с `verified_tree` непосредственно предшествующего сохранённого отчёта.
 
 Предыдущая точка восстанавливается только из неизменяемых записей одного latest verified
-submission: result, workflow layer и proof layer. Её версия должна непосредственно предшествовать
-точному событию `user_rework`; сохранённые feedback и evidence не могли измениться. Обработчики
-внешних действий `apply_plan` и `publish` этим путём не восстанавливаются. Уже созданный submission,
-изменённое дерево, занятая Task, другой lifecycle event, потерянный proof, несколько одинаковых
-submission digest или любое другое неоднозначное состояние дают отказ до записи.
+submission: result, workflow layer и proof layer. Исходным переходом служит последнее точное событие
+`user_rework`; после него разрешены только `handed_off`, `handoff_resumed`, `ownership_acquired` и
+`ownership_released`, поэтому повторные циклы передачи не мешают восстановлению. Сохранённые
+feedback и evidence не могли измениться. Обработчики внешних действий `apply_plan` и `publish` этим
+путём не восстанавливаются. Уже созданный submission, изменённое дерево, занятая Task, любой другой
+lifecycle event после исходного перехода, потерянный proof, несколько одинаковых submission digest
+или любое другое неоднозначное состояние дают отказ до записи.
 
 Успех атомарно возвращает прежние stage, iteration, status=`verified`, route progress, feedback,
 evidence и ссылку на точный current submission. Новая пустая итерация не удаляется из истории:
@@ -267,7 +269,9 @@ evidence и ссылку на точный current submission. Новая пус
 `recover_empty_advance` использует те же запреты на занятую Task, submission, изменение tree,
 pending execution, внешнее действие и неоднозначную историю, но требует точное исходное событие
 `user_accept_and_continue`. Операции не взаимозаменяемы: rework-origin отвергается advance-вызовом,
-а continue-origin — rework-вызовом.
+а continue-origin — rework-вызовом. Поиск выбирает последнее такое содержательное событие, а после
+него допускает только тот же точный набор ownership events. Поэтому повторные `resume` и `handoff`
+без новой работы разрешены, но любой иной lifecycle event приводит к отказу без изменения Task.
 
 ```json
 {

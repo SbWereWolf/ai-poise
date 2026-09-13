@@ -583,12 +583,18 @@ class Task:
                        events=events, registry_change=registry_change)
 
     def assess_content(self, phase: str, artifacts: tuple[ArtifactFact, ...]) -> Assessment:
-        contract = self._require_stage_contracts().stage(self.stage.stage_id)
+        return self.assess_stage_content(self.stage.stage_id, phase, artifacts)
+
+    def assess_stage_content(
+        self, stage_id: str, phase: str, artifacts: tuple[ArtifactFact, ...]
+    ) -> Assessment:
+        self.route.node(stage_id)
+        contract = self._require_stage_contracts().stage(stage_id)
         requirement_ids = (
             contract.entry_requirements if phase == "pre" else contract.exit_requirements
         )
         return self.content_policy.evaluate(
-            self.stage.stage_id,
+            stage_id,
             phase,
             self.content_snapshot,
             artifacts,
@@ -642,6 +648,26 @@ class Task:
         if self.state.status == TaskStatus.ACCEPTED:
             return self._unchanged()
         return self._change("user_accept", None, None, status=TaskStatus.ACCEPTED)
+
+    def progress_stage(self, actor: str, target: str) -> Change:
+        """Enter an ordinary next stage without recording user acceptance."""
+        self._owned(actor)
+        if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
+            raise DomainError("Stage progression requires a verified result")
+        if self.progress.outcome is None:
+            raise DomainError("Stage progression requires an exact verified outcome")
+        expected = self.route.node(self.stage.stage_id).target(self.progress.outcome)
+        if expected is None or target != expected:
+            raise DomainError("Stage progression requires the ordinary next stage")
+        if self.route.node(target).handler == HandlerKind.PUBLISH:
+            raise DomainError("Publish entry requires separate user acceptance")
+        return self._enter(
+            "stage_progressed",
+            None,
+            actor,
+            target,
+            self.route.enter(self.progress, target),
+        )
 
     def _enter(self, event: str, reason: str | None, actor: str, target: str, progress: RouteProgress) -> Change:
         state = replace(self.state, version=self.state.version + 1,

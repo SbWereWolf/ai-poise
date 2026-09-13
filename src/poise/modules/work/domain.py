@@ -19,6 +19,9 @@ BUSINESS_INCOMPLETE_STATUSES = frozenset({
     'content_requirements_failed',
     'evidence_requirements_failed',
     'observations_stale',
+    'progression_work_required',
+    'role_handoff_required',
+    'user_acceptance_required',
 })
 
 
@@ -36,6 +39,7 @@ def parse_request(value, config):
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
             'recover_empty_rework':{'task_id','reason'},
             'recover_empty_advance':{'task_id','reason'},
+            'advance':{'request_id','task_id','target_stage'},
             'recover_missing_worktree':{'task_id','reason'},
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,

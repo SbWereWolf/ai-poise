@@ -27,6 +27,29 @@ def encode(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def progression_view(db, task_id: str, request_id: str | None = None) -> dict | None:
+    actions = [json.loads(row[0]) for row in db.execute(
+        "SELECT data FROM journal WHERE task_id=? AND event='progression.started' "
+        "ORDER BY seq",
+        (task_id,),
+    )]
+    if request_id is not None:
+        actions = [item for item in actions if item["request_id"] == request_id]
+    if not actions:
+        return None
+    action = actions[-1]
+    reached = db.execute(
+        "SELECT 1 FROM journal WHERE task_id=? AND event='progression.reached' "
+        "AND json_extract(data,'$.request_id')=? LIMIT 1",
+        (task_id, action["request_id"]),
+    ).fetchone()
+    return {
+        "request_id": action["request_id"],
+        "target_stage": action["target_stage"],
+        "status": "reached" if reached is not None else "active",
+    }
+
+
 def without_retired_method_timeout(value: dict) -> dict:
     normalized = {**value, "method": dict(value["method"])}
     normalized["method"].pop("timeout_seconds", None)
@@ -186,6 +209,69 @@ class SqliteTaskRepository:
                 "digest": digest,
                 "result": deepcopy(result),
             })),
+        )
+
+    def begin_progression(
+        self, task_id: str, actor: str, request_id: str, digest: str,
+        target_stage: str,
+    ) -> dict:
+        if not isinstance(request_id, str) or not request_id:
+            raise PoiseError("Progression request_id is required")
+        existing = progression_view(self.db, task_id, request_id)
+        if existing is not None:
+            row = self.db.execute(
+                "SELECT data FROM journal WHERE task_id=? AND event='progression.started' "
+                "AND json_extract(data,'$.request_id')=? ORDER BY seq DESC LIMIT 1",
+                (task_id, request_id),
+            ).fetchone()
+            saved = json.loads(row[0])
+            if saved["digest"] != digest:
+                raise PoiseError("Progression request conflict: request_id has another target")
+            return existing
+        active = progression_view(self.db, task_id)
+        if active is not None and active["status"] == "active":
+            raise PoiseError(
+                "Task already has an active progression target; resume its exact request"
+            )
+        data = {
+            "actor": actor,
+            "digest": digest,
+            "request_id": request_id,
+            "target_stage": target_stage,
+        }
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (
+                datetime.now(timezone.utc).isoformat(),
+                actor,
+                task_id,
+                "progression.started",
+                encode(data),
+            ),
+        )
+        return {
+            "request_id": request_id,
+            "target_stage": target_stage,
+            "status": "active",
+        }
+
+    def finish_progression(
+        self, task_id: str, actor: str, request_id: str, stage_id: str
+    ) -> None:
+        current = progression_view(self.db, task_id, request_id)
+        if current is None:
+            raise PoiseError("Unknown progression request")
+        if current["status"] == "reached":
+            return
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (
+                datetime.now(timezone.utc).isoformat(),
+                actor,
+                task_id,
+                "progression.reached",
+                encode({"request_id": request_id, "stage": stage_id}),
+            ),
         )
 
     def load_newborn(self, task_id: str) -> NewbornTask:

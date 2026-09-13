@@ -297,6 +297,29 @@ Replay identity имеет project scope и не равен session binding: д�
 тот же allocation receipt, но не крадёт существующий claim.
 
 
+## Граница продвижения по этапам
+
+`Task` остаётся единственным владельцем lifecycle и route transitions. Чистый
+`progression_step` определяет достижение цели, необходимость реальной работы и границу ролей;
+`TaskCommands` координирует persisted progression intent, проверку `pending`, preflight
+следующего stage, отдельный `Task.progress_stage` без пользовательской приёмки и сохранение в одной UoW. `WorkTools` только разбирает
+точный пакет `advance`, runtime наблюдает Git tree и формирует публичный ответ.
+
+Цель и request identity сохраняются событиями существующего Task journal; отдельная таблица,
+reader migration и второй lifecycle не нужны. До начала progression неизвестная либо
+недостижимая цель, чужой owner и pending outcome не оставляют записи. После начала непройденный
+entry gate сохраняет цель для correction/restart, но не меняет Task, execution и ownership.
+Достигнутая цель идемпотентна.
+
+Обычный переход записывает `stage_progressed`, сохраняет предыдущий report как `verified` и
+никогда не пишет `user_accept*`. Вход в `publish` этим путём запрещён: после необходимой смены
+роли `advance` возвращает `user_acceptance_required`, а этап открывается только отдельным
+публичным решением пользователя.
+
+Граница `executor`/`reviewer` выводится только из handler сохранённого route: `inspect` принадлежит
+reviewer, остальные семейства — executor. Переход через неё разрешён лишь после public handoff,
+release и bootstrap другой сессии; операция не отправляет сообщение и не исполняет работу этапа.
+
 ## DDD-10 — интеграция принятого результата
 
 Обновлено: **2026-09-12T21:36:11+05:00**.

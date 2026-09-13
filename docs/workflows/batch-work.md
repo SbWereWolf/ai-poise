@@ -16,6 +16,7 @@
 | show | queries | Прочитать коллекцию объектов текущей задачи |
 | sprint | Поля выбранного action | Создать или изменить Sprint и его зависимости/отмены |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
+| advance | request_id, task_id, target_stage | Сохранить цель продвижения и пройти обычные переходы до работы, границы ролей, ворот или целевого этапа |
 | recover_empty_rework | task_id, reason | Вернуть освобождённую пустую rework-итерацию к непосредственно предшествующему verified result |
 | recover_empty_advance | task_id, reason | Вернуть освобождённый пустой этап после ошибочного `continue` к предшествующему verified result |
 | recover_missing_worktree | task_id, reason | Восстановить точный удалённый worktree verified/accepted Task из уже интегрированного commit |
@@ -23,6 +24,39 @@
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
 `cancel` в этом API отменяет текущую standalone Task, сохраняет её историю, результаты и worktree, освобождает claim и записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через пакетный Sprint API, а не серией standalone-вызовов.
+
+### Продвижение к этапу
+
+`advance` принимает устойчивый `request_id`, существующий `task_id` и точный
+`target_stage` сохранённого route. Операция сохраняет progression intent в журнале и использует
+обычный доменный переход Task; отдельного lifecycle и скрытого autoaccept нет. Точный replay
+после остановки процесса или исправления продолжает ту же цель. Изменённая цель с тем же
+`request_id`, неизвестный или недостижимый этап, чужой owner и неизвестный `pending` outcome
+отклоняются до изменения Task, execution, ownership и progression-журнала.
+
+```json
+{"operation":"advance","input":{"request_id":"reach-code-review-1","task_id":"0078","target_stage":"code_review"},"messages":[]}
+```
+
+Verified этапы одной роли переходятся последовательно. После каждого перехода
+`progression_work_required` останавливает вызов на реальной работе нового этапа. Перед сменой
+`executor`/`reviewer` возвращается `role_handoff_required`: текущий этап и ownership не
+изменяются. Отправитель сохраняет результат и выполняет публичный `handoff`, получатель из
+другой сессии захватывает Task через `bootstrap` и повторяет тот же пакет; только подтверждённая
+передача разрешает следующий переход. Когда цель становится текущей, возвращается
+`progression_target_reached`; replay не увеличивает версию.
+
+Обычный переход записывает `stage_progressed`, не меняет verified report на `accepted` и не
+создаёт событий `user_accept*`. Перед входом в `publish` операция возвращает
+`user_acceptance_required` и сохраняет текущий verified этап: продолжить может только отдельное
+публичное решение пользователя. Этот статус, как и остановки на работе и передаче роли,
+является business-incomplete, а не успехом.
+
+Перед переходом проверяется `pre`-контракт целевого этапа. Неуспех возвращает `broken` с
+`blocked_transition` и сохраняет progression target, но не меняет этап, execution или
+ownership. После законного rework/restart и исправления входа тот же request продолжает путь.
+Операция не исполняет работу этапа, не отправляет сообщения другому агенту и не выдаёт
+полномочия на отдельно регулируемые приёмку, публикацию или интеграцию.
 
 Из bootstrap возвращается готовый `result_template`, включающий sections, content additions, trace updates, verification methods, stage_work, evidence_work, commit_message и artifact_paths по действующему контракту. Вычисляемые ID/task/stage/hash агент повторно не передаёт. Прежний transport через редактируемый result_path удалён.
 

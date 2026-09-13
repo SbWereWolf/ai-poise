@@ -20,6 +20,13 @@ class TaskRepository(Protocol):
     ) -> None: ...
     def remember_action(self, task_id: str, actor: str, request_id: str,
                         digest: str, result: dict) -> None: ...
+    def begin_progression(
+        self, task_id: str, actor: str, request_id: str, digest: str,
+        target_stage: str,
+    ) -> dict: ...
+    def finish_progression(
+        self, task_id: str, actor: str, request_id: str, stage_id: str
+    ) -> None: ...
     def empty_rework_recovery_point(
         self, task_id: str, handoff_version: int, last_report: dict,
         transition_event: str = "user_rework",

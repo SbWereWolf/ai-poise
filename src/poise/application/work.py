@@ -3,6 +3,7 @@ from copy import deepcopy
 from ..modules.work.domain import parse_request,read_range
 from ..modules.tasks.domain import is_terminal_task_status
 from ..modules.work.ports import WorkRuntime
+from ..modules.foundation.errors import PoiseError
 
 
 class WorkTools:

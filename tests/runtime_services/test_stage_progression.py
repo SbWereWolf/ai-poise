@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from batch.helpers import request, result, verify
-from conftest import WorkPoise as Poise, add_test, write_json
+from conftest import WorkPoise as Poise, add_test, git, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.modules.tasks.progression import stage_role
@@ -118,14 +118,22 @@ def handoff(tools, request_id="executor-to-reviewer"):
 def state_snapshot(runtime, actors=("owner", "contender")):
     with runtime.store.unit_of_work() as unit:
         execution = deepcopy(unit.execution.load("T1"))
+        evidence = deepcopy(unit.evidence.list_for("T1"))
     with runtime.store.transaction() as database:
         progression = [tuple(row) for row in database.execute(
             "SELECT event,data FROM journal WHERE task_id='T1' "
             "AND event LIKE 'progression.%' ORDER BY seq"
         )]
+    task = deepcopy(runtime.task_queries.record("T1"))
+    worktree = Path(task["worktree"])
     return {
-        "task": deepcopy(runtime.task_queries.record("T1")),
+        "task": task,
         "execution": execution,
+        "evidence": evidence,
+        "git": {
+            "head": git(worktree, "rev-parse", "HEAD"),
+            "tree": git(worktree, "rev-parse", "HEAD^{tree}"),
+        },
         "ownership": {
             actor: runtime.ownership.snapshot(actor) for actor in actors
         },
@@ -189,6 +197,74 @@ def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(pro
     version = reviewer.runtime.current_task()["version"]
     assert advance(reviewer)["status"] == "progression_target_reached"
     assert reviewer.runtime.current_task()["version"] == version
+
+
+def test_resumed_reviewer_crosses_boundary_after_ownership_only_suffix(project):
+    configure_progression(project)
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    first = bootstrap(executor, project["task"])
+    add_test(first["worktree"])
+    assert verify(executor, result(first))["status"] == "verified"
+    implementation = advance(executor)
+    Path(implementation["worktree"], "src/double.py").write_text(
+        "def double(n):\n    return n * 2\n", encoding="utf-8",
+    )
+    assert verify(executor, result(implementation))["status"] == "verified"
+    boundary = advance(executor)
+    assert boundary["status"] == "role_handoff_required"
+    assert handoff(executor)["status"] == "handed_off"
+
+    first_reviewer = WorkTools(Poise(project["config_path"], "first-reviewer"))
+    resumed = bootstrap(first_reviewer, {"id": "T1"})
+    assert resumed["progression"] == boundary["progression"]
+    before_suffix = state_snapshot(
+        first_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+    first_reviewer.runtime.ownership.release_task("T1")
+    second_reviewer = WorkTools(Poise(project["config_path"], "second-reviewer"))
+    acquired = bootstrap(second_reviewer, {"id": "T1"})
+    after_suffix = state_snapshot(
+        second_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+
+    assert acquired["progression"] == boundary["progression"]
+    assert after_suffix["execution"] == before_suffix["execution"]
+    assert after_suffix["progression_journal"] == before_suffix["progression_journal"]
+    assert after_suffix["evidence"] == before_suffix["evidence"]
+    assert after_suffix["git"] == before_suffix["git"]
+    for field in ("status", "stage_index", "iteration", "last_report"):
+        assert after_suffix["task"][field] == before_suffix["task"][field]
+
+    reached = advance(second_reviewer)
+
+    if reached["status"] == "role_handoff_required":
+        pytest.fail("ENDLESS_ROLE_HANDOFF_REQUIRED")
+    assert reached["status"] == "progression_target_reached"
+    assert reached["stage"] == "code_review"
+    assert reached["progression"] == {
+        **boundary["progression"],
+        "status": "reached",
+    }
+    completed = state_snapshot(
+        second_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+    assert completed["execution"][0]["last_report"] == (
+        after_suffix["execution"][0]["last_report"]
+    )
+    assert completed["evidence"] == after_suffix["evidence"]
+    assert completed["git"] == after_suffix["git"]
+    before_replay = state_snapshot(
+        second_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+    assert advance(second_reviewer)["status"] == "progression_target_reached"
+    assert state_snapshot(
+        second_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    ) == before_replay
 
 
 def test_progression_checks_next_entry_gate_before_transition_and_resumes_after_fix(project):

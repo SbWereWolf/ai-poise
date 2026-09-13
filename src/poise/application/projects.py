@@ -23,6 +23,9 @@ class ProjectCommands:
         validate_request(request)
         return self.port.apply(request)
 
+    def list(self):
+        return self.port.list()
+
     def questionnaire(self,request):
         from ..modules.projects.domain import Survey
         validate_request(request)

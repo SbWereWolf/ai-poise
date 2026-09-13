@@ -60,7 +60,7 @@ def test_import_transaction_failure_leaves_no_partial_task_and_can_retry(project
 
 def test_task_file_symlink_is_not_followed_during_export(project,tmp_path):
     h,a,c,payload=prepared(project);export(a,handoff=handoff_args(payload))
-    root=h.state/h.paths['tasks']/'T1';outside=tmp_path/'secret';outside.write_text('not task data')
+    root=h.state/h.paths['standalone_tasks']/'T1';outside=tmp_path/'secret';outside.write_text('not task data')
     (root/'outside').symlink_to(outside)
     with pytest.raises(PoiseError,match='symlink|regular'):
         export(a,ids=['T1'],request_id='symlink')

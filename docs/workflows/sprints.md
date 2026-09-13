@@ -1,6 +1,6 @@
 # Sprint API — DDD-05
 
-Обновлено: **2026-09-13T08:10:00+05:00**. Исполняемый срез; не заявление о выполнении всех нормативных процессов.
+Обновлено: **2026-09-14**. Исполняемый срез; не заявление о выполнении всех нормативных процессов.
 
 ## Владелец и основные гарантии
 Sprint владеет планом, принадлежностью задач, внутриспринтовым DAG, решениями об отмене/waiver. Task владеет своим содержимым и жизненным циклом. `SprintCommands` координирует их в одной короткой UoW. Отдельного процесса/scheduler и отдельной базы для Sprint нет.
@@ -49,6 +49,7 @@ Draft ещё не рабочий Sprint. Неполный дочерний ко�
 | `purpose` | Полные goal, requirements, definition_of_done |
 | `sections` | Пакет текстов `values`; можно добавить именованную дополнительную секцию |
 | `upsert_tasks` | Пакет полных creation intents: automatic `{request_id, task без id}` либо поддержанный explicit task; объект заменяет прежнюю draft-редакцию того же alias |
+| `adopt_tasks` | Пакет `ids` существующих eligible standalone Task |
 | `remove_tasks` | Список `ids`; оставшиеся зависимости проверяются по конечному состоянию |
 | `dependencies` | Полный желаемый список `items` |
 
@@ -72,6 +73,59 @@ type-specific readiness проверяется позднее через `ready`
 newborn Task атомарно становятся `available`, а dependency graph и result projection используют
 ту же identity. Отдельная прямая полная creation Task остаётся поддержанным путём и не требует
 предварительного Sprint draft.
+
+## Преобразование standalone Task и участника Sprint
+
+Самостоятельная Task не может быть predecessor или successor межзадачной зависимости.
+Весь связный компонент зависимостей принадлежит одному Sprint, а этот Sprint владеет всеми
+рёбрами: endpoint другого Sprint или standalone endpoint отклоняется до изменения состояния.
+
+Draft-change `adopt_tasks` принимает пакет `ids` уже существующих standalone Task. Каждый
+кандидат обязан иметь `status=available, claimed_by=null, worktree=null, pending=null, last_report=null и attempts=0`;
+любая начатая execution, worktree, внешний pending, результат, claim или другая Sprint
+membership отклоняет весь пакет. identity, immutable history, goal, contract и readiness
+сохраняются. В одном draft-пакете можно совместить `adopt_tasks` и полный `dependencies`:
+membership, граф, revision и request receipt записываются атомарно либо не меняются вовсе.
+
+```json
+{
+  "operation": "sprint",
+  "input": {
+    "action": "draft",
+    "sprint_id": "MIGRATION",
+    "request_id": "adopt-0097-0098",
+    "expected_revision": 1,
+    "template": null,
+    "changes": [
+      {"kind": "adopt_tasks", "ids": ["0097", "0098"]},
+      {"kind": "dependencies", "items": [
+        {"predecessor": "0097", "successor": "0098", "kind": "result"}
+      ]}
+    ]
+  },
+  "messages": []
+}
+```
+
+Это поддержанный путь миграции Tasks 0097 и 0098 в один Sprint с result-зависимостью
+`0097 -> 0098`; после успешного adoption Sprint публикуют обычным `publish` с полученной
+revision.
+
+Action `extract_tasks` действует только для published Sprint и принимает непустой уникальный
+список `task_ids` и `expected_revision`. Извлекаемая available Task должна удовлетворять той
+же eligibility и иметь ноль входящих и исходящих зависимостей; Sprint должен сохранить хотя
+бы одного участника. Успех удаляет Task из плана и membership, задаёт `sprint_id=null` и
+возвращает её в standalone overview без старта или пересоздания. `remove_tasks` сохраняет
+прежний путь удаления draft-newborn и также служит допубликационной коррекцией adoption.
+Отмена draft атомарно отсоединяет как newborn, так и adopted участников.
+
+```json
+{"operation":"sprint","input":{"action":"extract_tasks","sprint_id":"MIGRATION","request_id":"extract-0098","expected_revision":3,"task_ids":["0098"]},"messages":[]}
+```
+
+Любой отказ сохраняет Task states, Sprint plan, membership, граф, revision и request receipt
+без изменений; повтор после отказа не считается replay и снова исполняет актуальную
+валидацию. Только успешный точный запрос получает неизменяемый replay receipt.
 
 Редактирование: `sprint_id: null` означает выбранный Sprint; `expected_revision` — полученная revision, новый `request_id`, `template: null`. Полный список ошибок публикационной готовности возвращается вместе с draft. Ошибка draft ещё не превращается в исполняемые задачи.
 
@@ -140,6 +194,7 @@ newborn Task атомарно становятся `available`, а dependency gr
 | action | Остальные поля |
 |---|---|
 | `materialize_tasks` | request_id, expected_revision; превращает legacy embedded definitions в реальные newborn Task |
+| `extract_tasks` | request_id, expected_revision, task_ids; возвращает изолированных eligible участников в standalone |
 | `dependencies` | request_id, expected_revision, items, reason |
 | `cancel_tasks` | request_id, tasks (список ID), mode (`single`/`cascade`), reason |
 | `cancel` | request_id, reason |
@@ -150,7 +205,7 @@ newborn Task атомарно становятся `available`, а dependency gr
 `cancel_tasks` отменяет **незавершённых** выбранных участников через Task domain; уже
 completed/cancelled не переписываются. `cancel` отменяет Sprint целиком: у published Sprint
 отменяет всех незавершённых участников, сохраняет completed/cancelled, результаты, историю и
-артефакты; у draft меняет состояние Sprint без создания Task. Для каждой затронутой Task тот
+артефакты; у draft отсоединяет newborn и adopted участников без создания Task. Для каждой затронутой Task тот
 же владелец создаёт persisted cleanup obligation. Сам terminal-переход не удаляет worktree,
 не публикует commit и не выдаёт WIP за проверенный результат.
 

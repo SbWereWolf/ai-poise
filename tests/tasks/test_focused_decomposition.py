@@ -617,6 +617,7 @@ def test_newborn_ready_rejects_unfocused_plan(project):
                 "task_id": born["task"],
                 "expected_revision": born["revision"],
                 "patch": contract,
+                "remove": [],
             },
         )
     )
@@ -661,6 +662,7 @@ def test_newborn_ready_rejects_unfocused_plan(project):
                 "task_id": valid_born["task"],
                 "expected_revision": valid_born["revision"],
                 "patch": valid_contract,
+                "remove": [],
             },
         )
     )

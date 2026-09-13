@@ -4,8 +4,8 @@
   "templates": {
     "linux-reference": {
       "path": "config/project-templates/linux-reference.json",
-      "version": "1",
-      "digest": "33b632b141ae47b191d5e3a9c161a8b722a60a2d103dc2ecd95496fccc3a089a"
+      "version": "2",
+      "digest": "5de02e0f1597ca73adc5ec363740b36c24b5e80edaf89ccd1a16bbf517eff4b2"
     },
     "wsl-system": {
       "path": "config/project-templates/wsl-system.json",
@@ -14,12 +14,13 @@
     },
     "wsl-poise": {
       "path": "config/project-templates/wsl-poise.json",
-      "version": "2",
-      "digest": "fab7ae91ff93f278315b1225a6d068f5697d149c2c2ecfecf71ccd4700e5239c"
+      "version": "4",
+      "digest": "2e31f67622bae28b80856ee4541abd884710a35ac9be395ac861be22ad464107"
     }
   },
   "manifest": "project.json",
   "receipt": "setup-receipt.json",
+  "registry": "config/project-registry.json",
   "lock": "projects/.project-setup.lock",
   "file_mode": 384,
   "directory_mode": 448,

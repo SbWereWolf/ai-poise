@@ -14,7 +14,7 @@ def batch_config():
 
 
 def configure(project):
-    project['cfg']['schema']='ddd-accounting-12'
+    project['cfg']['schema']='ddd-accounting-11'
     project['cfg']['batch']=batch_config()
     project['cfg']['paths'].pop('result',None)  # fixture evolution, not product migration
     write_json(project['config_path'],project['cfg'])

@@ -30,9 +30,9 @@ class _Interactions:
         return {"coverage": "unavailable"}
 
 
-class _LegacyAccountingMustNotDriveWork:
+class _SynchronousAccountingMustNotDriveWork:
     def __getattr__(self, name):
-        raise AssertionError(f"authoritative work called legacy accounting.{name}")
+        raise AssertionError(f"authoritative work called synchronous accounting.{name}")
 
 
 class _Runtime:
@@ -40,7 +40,7 @@ class _Runtime:
         self.cfg = {"batch": {"max_items": 16}}
         self.session = "original-session"
         self.interactions = _Interactions(foreground_progress)
-        self.accounting = _LegacyAccountingMustNotDriveWork()
+        self.accounting = _SynchronousAccountingMustNotDriveWork()
         self.telemetry = telemetry
         self.work_resources = object()
         self.task_queries = object()
@@ -257,7 +257,7 @@ def _configure_production_accounting(project):
         ],
         "content_contract": {"sections": [], "routes": [], "requirements": []},
     }
-    project["cfg"]["schema"] = "ddd-accounting-12"
+    project["cfg"]["schema"] = "ddd-accounting-11"
     project["cfg"]["accounting"] = policy()
     project["cfg"]["automatic_checks"] = []
     write_json(project["root"] / "config/processes/development.json", process)

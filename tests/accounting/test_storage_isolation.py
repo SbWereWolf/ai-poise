@@ -165,16 +165,20 @@ def test_real_optional_write_does_not_block_current_next_or_accounting_work(proj
     assert any(json.loads(row["data"])["telemetry"] == _raw_telemetry() for row in stored)
 
 
-def test_failed_handoff_preserves_legacy_cycle_and_replay_closes_it_atomically(project):
+def test_failed_handoff_preserves_authoritative_cycle_and_replay_closes_it_atomically(project):
     runtime, work, _ = setup(project)
     runtime.telemetry.flush()
-    # This is deliberately the authoritative legacy store, even after optional
-    # telemetry moves elsewhere. No migration/copy of historical cycles.
-    legacy = SqliteAccounting(runtime.store.database, runtime.cfg["project"], MetricPolicy.parse(runtime.cfg["accounting"]))
+    # Task-cycle accounting remains authoritative and is never copied into the
+    # separate optional telemetry store.
+    authoritative_cycles = SqliteAccounting(
+        runtime.store.database,
+        runtime.cfg["project"],
+        MetricPolicy.parse(runtime.cfg["accounting"]),
+    )
     first = ClockObservation("2026-09-13T00:00:00+00:00", 10, "handoff-boot")
     last = ClockObservation("2026-09-13T00:00:01+00:00", 1_000_000_010, "handoff-boot")
-    legacy.start(runtime.session, runtime.current_task(), first, "same-native-turn")
-    legacy.touch(runtime.session, last)
+    authoritative_cycles.start(runtime.session, runtime.current_task(), first, "same-native-turn")
+    authoritative_cycles.touch(runtime.session, last)
 
     def row():
         with runtime.store.transaction() as db:
@@ -183,9 +187,9 @@ def test_failed_handoff_preserves_legacy_cycle_and_replay_closes_it_atomically(p
     before = row()
     packet = request("handoff", {
         "request_id": "atomic-cycle-release",
-        "reason": "verify ownership and legacy accounting atomicity",
+        "reason": "verify ownership and authoritative accounting atomicity",
         "result": None,
-        "commit_message": "test: preserve legacy ownership cycle",
+        "commit_message": "test: preserve authoritative ownership cycle",
         "artifact_paths": [],
     })
     with runtime.store.transaction() as db:
@@ -197,7 +201,7 @@ def test_failed_handoff_preserves_legacy_cycle_and_replay_closes_it_atomically(p
         with runtime.store.transaction() as db:
             after = dict(db.execute("SELECT * FROM accounting_cycles WHERE id=?", (before["id"],)).fetchone())
         if after != before:
-            raise NonAtomicRelease("failed handoff changed the legacy accounting row")
+            raise NonAtomicRelease("failed handoff changed the authoritative accounting row")
     finally:
         with runtime.store.transaction() as db:
             db.execute("DROP TRIGGER fail_handoff")
@@ -217,7 +221,7 @@ def test_failed_handoff_preserves_legacy_cycle_and_replay_closes_it_atomically(p
                  evidence_plan={"write": {"subject_methods": {}, "arguments": [], "review_arguments": []}})
     result = work.invoke(request("bootstrap", {"task": other, "decision": None, "feedback": None, "rework_stage": None}))
     assert result["status"] == "active"
-    legacy.start(runtime.session, runtime.current_task(), last, "same-native-turn")
+    authoritative_cycles.start(runtime.session, runtime.current_task(), last, "same-native-turn")
     replay = work.invoke(packet)
     assert replay["replayed"] is True
     assert runtime.current_task()["id"] == "T2"
@@ -355,7 +359,7 @@ def main(mode, evidence_root):
     calls = [report for report in reports if report.when == "call"]
     matched = (code == pytest.ExitCode.TESTS_FAILED and errors == expected and len(calls) == 1
                if mode == "red" else code == pytest.ExitCode.OK and not errors
-               and len(calls) == (3 if mode == "guard" else 54)
+               and len(calls) == (3 if mode == "guard" else 46)
                and all(report.passed for report in calls))
     marker = {"red": "EXPECTED_EXPLICIT_TELEMETRY_STORAGE_CONTRACT_MISSING",
               "green": "TELEMETRY_STORAGE_GREEN", "guard": "TELEMETRY_RUNNER_GREEN"}[mode]

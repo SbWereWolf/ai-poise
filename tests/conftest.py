@@ -93,7 +93,7 @@ def project(tmp_path, monkeypatch):
     process = {'route':{"entry":"tests"}, 'goal_type': 'development', 'worktree_required': True, 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     write_json(poise_root / 'config/processes/development.json', process)
     cfg = {
-        'schema': 'ddd-accounting-12',
+        'schema': 'ddd-accounting-11',
         'project': 'demo',
         'paths': {
             'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock',

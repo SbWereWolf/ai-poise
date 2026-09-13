@@ -11,7 +11,7 @@ def test_test_remediation_reuses_handlers_with_red_contract(project):
     root=Path(__file__).resolve().parents[2]
     proc=json.loads((root/'config/processes/development.json').read_text())
     write_json(project['root']/'config/processes/development.json',proc)
-    cfg=project['cfg'];cfg['schema']='ddd-accounting-12';cfg['automatic_checks']=[]
+    cfg=project['cfg'];cfg['schema']='ddd-accounting-11';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
     task=project['task']
     task['checks']={s['id']: (['RED'] if s['id'] in ('tests','test_fix') else ['GREEN'] if s['id'] in ('implementation','code_review','code_fix','code_recheck') else []) for s in proc['stages']}

@@ -1,5 +1,4 @@
-"""Operator-selected telemetry paths; no implicit file, lock or migration."""
-import json
+"""One current operator-selected telemetry storage contract; no migration."""
 import os
 from pathlib import Path
 
@@ -8,7 +7,7 @@ import pytest
 from conftest import DeterministicClock, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError, configured_root, load_config
-from poise.composition import project_config_tools, project_tools
+from poise.composition import project_tools
 from poise.modules.accounting.domain import MetricPolicy
 from poise.runtime import Poise
 from tests.accounting.test_domain import policy
@@ -25,11 +24,10 @@ def test_explicit_storage_policy_accepts_operator_paths():
     assert parsed.data["storage"] == selected
 
 
-def test_schema11_rejects_storage_instead_of_accepting_a_mixed_source(project):
-    project["cfg"]["schema"] = "ddd-accounting-11"
-    assert "storage" in project["cfg"]["accounting"]
+def test_unpublished_schema_alias_is_rejected(project):
+    project["cfg"]["schema"] = "ddd-accounting-12"
     write_json(project["config_path"], project["cfg"])
-    with pytest.raises(PoiseError, match="schema|storage"):
+    with pytest.raises(PoiseError, match="Версия конфигурации"):
         load_config(project["config_path"])
 
 
@@ -151,40 +149,12 @@ def test_production_composition_uses_exact_configured_paths(project, absolute_st
 
 
 def _initial_setup(project):
-    project["cfg"]["schema"] = "ddd-accounting-12"
+    project["cfg"]["schema"] = "ddd-accounting-11"
     project["cfg"]["accounting"] = policy()
     settings, _, create = setup_case(project)
     published = project_tools(settings).apply(create)
     selected = project["cfg"]["accounting"]["storage"]
     return settings, Path(published["config_path"]), published, selected
-
-
-def _legacy_setup(project):
-    project["cfg"]["schema"] = "ddd-accounting-11"
-    del project["cfg"]["accounting"]["storage"]
-    settings, _, create = setup_case(project)
-    published = project_tools(settings).apply(create)
-    return settings, Path(published["config_path"]), published
-
-
-def _activation_request(config_path, revision, storage, request_id="activate-telemetry-storage"):
-    return {
-        "schema": "project-config-update-2",
-        "request_id": request_id,
-        "config_path": str(config_path),
-        "expected_revision": revision,
-        "manifest_edits": [],
-        "process_updates": [],
-        "state_relocation": None,
-        "storage_activation": {
-            "from_schema": "ddd-accounting-11",
-            "to_schema": "ddd-accounting-12",
-            "storage": storage,
-        },
-        "probe_repository": False,
-        "receipt_path": "operations/activate-telemetry-storage.json",
-    }
-
 
 def _observe_once(config_path, session):
     runtime = Poise(config_path, session, DeterministicClock())
@@ -196,7 +166,7 @@ def _observe_once(config_path, session):
     return runtime
 
 
-def test_public_initial_setup_activates_only_explicit_selected_storage(project):
+def test_public_initial_setup_uses_only_explicit_selected_storage(project):
     _, config_path, published, chosen = _initial_setup(project)
     assert published["status"] == "created"
     root, cfg, _ = load_config(config_path)
@@ -206,130 +176,3 @@ def test_public_initial_setup_activates_only_explicit_selected_storage(project):
     runtime = _observe_once(config_path, "initial-observer")
     assert runtime.accounting.port.repo.database.path == state / chosen["database"]
     assert runtime.accounting.port.repo.database.lock == state / chosen["lock"]
-
-
-def test_public_quiescent_update_replay_selects_new_store_without_migrating_old(project):
-    settings, config_path, published = _legacy_setup(project)
-    before = config_path.read_bytes()
-    chosen = {"database": "after-update/telemetry.sqlite", "lock": "after-update/telemetry.lock"}
-    packet = _activation_request(config_path, published["revision"], chosen)
-    result = project_config_tools(settings).apply(packet)
-    assert result["status"] == "updated"
-    assert result["revision"] != result["prior_revision"]
-    replay = project_config_tools(settings).apply(packet)
-    assert replay["replayed"] is True and replay["revision"] == result["revision"]
-    runtime = _observe_once(config_path, "after-update")
-    assert runtime.accounting.port.repo.database.path == runtime.state / chosen["database"]
-    assert runtime.accounting.port.repo.database.lock == runtime.state / chosen["lock"]
-    assert before != config_path.read_bytes()
-    assert json.loads(config_path.read_text())["schema"] == "ddd-accounting-12"
-    with runtime.store.transaction() as db:
-        assert db.execute("SELECT count(*) FROM tasks").fetchone()[0] == 0
-
-
-def test_public_update_rejects_collision_without_publishing_or_mutating_old_store(project):
-    settings, config_path, published = _legacy_setup(project)
-    before = config_path.read_bytes()
-    _, old_config, _ = load_config(config_path)
-    chosen = {"database": old_config["paths"]["database"], "lock": "separate.lock"}
-    packet = _activation_request(config_path, published["revision"], chosen)
-    with pytest.raises(PoiseError, match="storage"):
-        project_config_tools(settings).apply(packet)
-    assert config_path.read_bytes() == before
-
-
-def test_active_schema11_task_remains_operable_until_quiescent_activation(project):
-    settings, config_path, published = _legacy_setup(project)
-    runtime = Poise(config_path, "legacy-owner", DeterministicClock())
-    work = WorkTools(runtime)
-    started = work.invoke(request("bootstrap", {
-        "task": project["task"],
-        "decision": None,
-        "feedback": None,
-        "rework_stage": None,
-    }))
-    assert started["status"] == "active"
-    packet = _activation_request(
-        config_path,
-        published["revision"],
-        {"database": "activated/events.sqlite", "lock": "activated/events.lock"},
-    )
-    before = config_path.read_bytes()
-    with pytest.raises(PoiseError, match="quiescent|active"):
-        project_config_tools(settings).apply(packet)
-    assert config_path.read_bytes() == before
-    # Rejected activation cannot strand the already-running schema-11 source.
-    assert work.invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))["status"] == "read_only"
-    work.invoke(request("cancel", {"reason": "Make activation test project quiescent"}))
-    runtime.telemetry.dispatcher.close()
-    activated = project_config_tools(settings).apply(packet)
-    assert activated["status"] == "updated"
-    assert load_config(config_path)[1]["schema"] == "ddd-accounting-12"
-    after = Poise(config_path, "after-activation", DeterministicClock())
-    try:
-        assert after.task_queries.record(project["task"]["id"])["status"] == "cancelled"
-        assert after.accounting.port.repo.database.path == after.state / "activated/events.sqlite"
-    finally:
-        after.telemetry.dispatcher.close()
-
-
-def test_schema11_runtime_disables_optional_capture_and_persistence(project):
-    _, config_path, _ = _legacy_setup(project)
-    runtime = Poise(config_path, "legacy-isolated", DeterministicClock())
-    assert "storage" not in runtime.cfg["accounting"]
-    assert runtime.telemetry.summary() == {
-        "coverage": "unavailable",
-        "submitted": 0,
-        "processed": 0,
-        "duplicates": 0,
-        "failed": 0,
-        "dropped": 0,
-        "pending": 0,
-    }
-    packet = request("show", {"queries": [{"id": "task", "kind": "task"}]})
-    packet["telemetry"] = _raw_telemetry()
-    result = WorkTools(runtime).invoke(packet)
-    runtime.telemetry.dispatcher.close()
-    assert runtime.telemetry.summary() == {
-        "coverage": "unavailable",
-        "submitted": 0,
-        "processed": 0,
-        "duplicates": 0,
-        "failed": 0,
-        "dropped": 0,
-        "pending": 0,
-    }
-    with runtime.store.transaction() as database:
-        envelopes = database.execute(
-            "SELECT count(*) FROM accounting_cycles WHERE json_extract(data,'$.kind')='telemetry_envelope'"
-        ).fetchone()[0]
-    assert envelopes == 0
-    assert result["interaction"]["coverage"] in {"unavailable", "partial"}
-
-
-@pytest.mark.parametrize("case", ["wrong_from", "wrong_to", "missing_field", "extra_field"])
-def test_invalid_activation_is_atomic_and_keeps_schema11_source_operable(project, case):
-    settings, config_path, published = _legacy_setup(project)
-    packet = _activation_request(
-        config_path,
-        published["revision"],
-        {"database": "valid/events.sqlite", "lock": "valid/events.lock"},
-        request_id=f"invalid-activation-{case}",
-    )
-    if case == "wrong_from":
-        packet["storage_activation"]["from_schema"] = "ddd-accounting-10"
-    elif case == "wrong_to":
-        packet["storage_activation"]["to_schema"] = "ddd-accounting-13"
-    elif case == "missing_field":
-        del packet["storage_activation"]["storage"]
-    else:
-        packet["storage_activation"]["fallback"] = True
-    before = config_path.read_bytes()
-    with pytest.raises(PoiseError):
-        project_config_tools(settings).apply(packet)
-    assert config_path.read_bytes() == before
-    runtime = Poise(config_path, f"legacy-after-{case}", DeterministicClock())
-    try:
-        assert WorkTools(runtime).invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))["status"] == "read_only"
-    finally:
-        runtime.telemetry.dispatcher.close()

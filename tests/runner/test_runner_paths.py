@@ -11,7 +11,7 @@ from .helpers import process, inspect, finding, resolution, decision
 
 
 def setup_project(project, goal):
-    cfg=project["cfg"]; cfg["schema"]="ddd-accounting-12"
+    cfg=project["cfg"]; cfg["schema"]="ddd-accounting-11"
     cfg["automatic_checks"]=[]
     cfg["processes"]={goal:f"config/processes/{goal}.json"}
     proc=process(goal)

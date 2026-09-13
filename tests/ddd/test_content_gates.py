@@ -16,7 +16,7 @@ def empty():
 
 
 def setup(project, goal, extra):
-    project['cfg']['schema']='ddd-accounting-12'
+    project['cfg']['schema']='ddd-accounting-11'
     project['process']['content_contract']=goal
     project['task']['content_contract']=extra
     write_json(project['config_path'],project['cfg'])

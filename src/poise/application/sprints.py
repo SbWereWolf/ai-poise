@@ -110,6 +110,25 @@ class SprintCommands:
             upsert['tasks']=[*upsert['tasks'],*adoption]
         return prepared,snapshots
 
+    def _detach_draft_members(self,uow,sid,task_ids):
+        adopted={}
+        newborn=[]
+        for task_id in task_ids:
+            if uow.tasks.is_newborn(task_id):
+                newborn.append(task_id)
+                continue
+            snapshot=uow.tasks.membership_snapshot(task_id)
+            self._available_membership(snapshot,sid)
+            adopted[task_id]=snapshot
+        for task_id in newborn:
+            uow.tasks.detach_newborn(task_id,sid)
+        for task_id,snapshot in adopted.items():
+            uow.tasks.change_sprint_membership(
+                task_id,sid,None,snapshot['version']
+            )
+        for task_id in task_ids:
+            uow.sprints.remove_draft_member(sid,task_id)
+
     def _materialize_draft_changes(self,uow,sid,changes,processes,execution_hash):
         """Replace embedded definitions with editable real newborn Task members."""
         from ..modules.tasks.allocation import TaskIdPolicy, materialize_contract
@@ -362,13 +381,9 @@ class SprintCommands:
                         task_id,None,sid,snapshot['version']
                     )
                 current_members={item for item in s.plan.data['tasks'] if isinstance(item,str)}
-                for member in sorted(previous_members-current_members):
-                    if not u.tasks.is_newborn(member):
-                        raise DomainError(
-                            'An adopted Task cannot use draft newborn removal'
-                        )
-                    u.tasks.detach_newborn(member,sid)
-                    u.sprints.remove_draft_member(sid,member)
+                self._detach_draft_members(
+                    u,sid,sorted(previous_members-current_members)
+                )
                 u.sprints.save(record,expected)
                 for task_id in adoptions:
                     u.sprints.add_draft_member(sid,task_id)
@@ -478,10 +493,7 @@ class SprintCommands:
                         change=task.cancel_from_sprint(packet['reason'])
                         u.tasks.save(change,task.state.version)
                         self._save_cleanup(u,tid,expected['cleanup_pending'])
-                    for tid in draft_members:
-                        if u.tasks.is_newborn(tid):
-                            u.tasks.detach_newborn(tid,sid)
-                            u.sprints.remove_draft_member(sid,tid)
+                    self._detach_draft_members(u,sid,draft_members)
                     s=s.cancel(ids,packet['reason']) if whole else s.record_task_cancellation(ids,packet['reason'])
                 record={**record,'actor':self.actor,'aggregate':s.to_dict()}
                 u.sprints.save(record,prior)

@@ -44,7 +44,19 @@
       },
       "expected_exit_code": 0,
       "stdout_contains": [],
-      "stderr_contains": []
+      "stderr_contains": [],
+      "verification_plan": {
+        "responsibility": "Preserve the legacy BASELINE command and tested hook/runtime surface; run it at test_inspection, the earliest legal GREEN stage in the current process.",
+        "change_surface": [
+          "tests/hook_transport/**",
+          "tests/runtime_services/**"
+        ],
+        "red_stages": [],
+        "green_stages": [
+          "test_inspection"
+        ],
+        "red_failure": null
+      }
     }
   ],
   "method_inputs": [
@@ -63,13 +75,13 @@
     }
   ],
   "checks": {
-    "baseline": [
-      "BASELINE"
-    ],
+    "baseline": [],
     "solution_planning": [],
     "verification_planning": [],
     "test_implementation": [],
-    "test_inspection": [],
+    "test_inspection": [
+      "BASELINE"
+    ],
     "test_remediation": [],
     "test_remediation_inspection": [],
     "implementation": [],
@@ -144,15 +156,7 @@
   },
   "evidence_plan": {
     "baseline": {
-      "subject_methods": {
-        "BASELINE": {
-          "exit_codes": [
-            0
-          ],
-          "stdout_contains": [],
-          "stderr_contains": []
-        }
-      },
+      "subject_methods": {},
       "arguments": [],
       "review_arguments": []
     },
@@ -211,5 +215,128 @@
       "arguments": [],
       "review_arguments": []
     }
-  }
+  },
+  "executable_obligations": [
+    "requirements[1]",
+    "requirements[2]",
+    "requirements[3]",
+    "requirements[4]",
+    "requirements[5]",
+    "requirements[6]",
+    "requirements[8]",
+    "definition_of_done[0]"
+  ],
+  "stage_contracts": [
+    {
+      "stage_id": "baseline",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "solution_planning",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "verification_planning",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "verification_planning-input-solution_plan",
+        "task-red-method-before-test-code",
+        "task-green-method-before-production-code"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "test_implementation",
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "entry_requirements": [
+        "test_implementation-input-verification_plan",
+        "task-red-method-before-test-code"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "test_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "test_inspection-input-verification_plan",
+        "test_inspection-input-test_registry"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "test_remediation",
+      "allowed_paths": [
+        "tests/**",
+        "fixtures/**"
+      ],
+      "entry_requirements": [
+        "test_remediation-input-verification_plan"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "test_remediation_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "test_remediation_inspection-input-test_registry"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "implementation",
+      "allowed_paths": [
+        "src/**"
+      ],
+      "entry_requirements": [
+        "implementation-input-solution_plan",
+        "implementation-input-verification_plan",
+        "implementation-input-test_registry",
+        "task-green-method-before-production-code"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "implementation_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "implementation_inspection-input-solution_plan"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "implementation_remediation",
+      "allowed_paths": [
+        "src/**"
+      ],
+      "entry_requirements": [
+        "implementation_remediation-input-solution_plan",
+        "implementation_remediation-input-verification_plan",
+        "implementation_remediation-input-test_registry"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "implementation_remediation_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "documentation",
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "entry_requirements": [
+        "documentation-input-documentation_plan"
+      ],
+      "exit_requirements": []
+    }
+  ]
 }

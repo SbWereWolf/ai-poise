@@ -830,6 +830,12 @@ class Task:
         return replace(change,task=replace(change.task,evidence_book=book,evidence_assessment=None,
                                            progress=replace(self.progress,outcome=base.outcome)))
 
+    def recover_pending_checks(self, actor):
+        self._owned(actor)
+        if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
+            raise DomainError("Check recovery requires the current active submission")
+        return self._change("pending_checks_recovered", None, None)
+
     def assess_evidence(self, actor, tree, execution_key):
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.evidence_input is None:

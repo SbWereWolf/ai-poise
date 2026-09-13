@@ -8,7 +8,7 @@ import zipfile
 
 import pytest
 
-from conftest import WorkPoise as Poise, write_json
+from conftest import WorkPoise as Poise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.artifacts import inspect_paths
 from poise.common import PoiseError, load_config
@@ -23,6 +23,13 @@ from transfer.helpers import (
     restore,
 )
 from batch.helpers import request
+from result_integration.helpers import (
+    integration_guard_method,
+    integration_input,
+    prepare_completed_task,
+    source_change,
+)
+from task_cleanup.helpers import cleanup_input, prepare_cancelled_task
 
 
 def configured(project, *, standalone_tasks="standalone"):
@@ -93,19 +100,82 @@ def test_task_root_selects_standalone_or_sprint_membership(project):
     assert Path(receipt["response_path"]).is_relative_to(state / "standalone" / "T1" / "runs")
 
 
-def test_all_task_artifact_consumers_use_the_shared_resolver():
-    root = Path(__file__).resolve().parents[2]
-    consumers = {
-        "src/poise/runtime.py",
-        "src/poise/interfaces/work.py",
-        "src/poise/infrastructure/result_integration.py",
-        "src/poise/infrastructure/transfers.py",
-    }
-    forbidden = ('paths["tasks"]', "paths['tasks']")
-    for relative in consumers:
-        source = (root / relative).read_text(encoding="utf-8")
-        assert "task_root" in source, relative
-        assert not any(value in source for value in forbidden), relative
+def test_runtime_evidence_query_artifact_and_handoff_receipts_are_standalone(project):
+    configured(project)
+    runtime = Poise(project["config_path"], "consumer")
+    tools = WorkTools(runtime)
+    context = tools.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    expected = project["root"] / "state" / "standalone" / "T1"
+
+    artifacts = tools.invoke(request("artifacts", {"items": [{
+        "scope": "task",
+        "path": "consumer.txt",
+        "source": {"kind": "text", "text": "owned by standalone task"},
+    }]}))["artifact_paths"]
+    assert Path(artifacts[0]).is_relative_to(expected / "artifacts")
+
+    add_test(context["worktree"])
+    payload = deepcopy(context["result_template"])
+    payload["sections"]["report"] = "Exercise evidence placement through the public verifier."
+    payload["artifact_paths"] = artifacts
+    payload["commit_message"] = "test: exercise standalone consumers"
+    verified = tools.invoke(request("verify", {"result": payload, "artifacts": []}))
+    assert verified["status"] == "verified"
+    assert Path(verified["checks"][0]["stdout"]).is_relative_to(expected / "runs")
+    assert Path(verified["checks"][0]["stderr"]).is_relative_to(expected / "runs")
+
+    output = io.StringIO()
+    execute(
+        Poise(project["config_path"], "consumer"),
+        io.BytesIO(json.dumps(request("show", {
+            "queries": [{"id": "current", "kind": "task"}],
+        })).encode()),
+        output,
+    )
+    query_receipt = json.loads(output.getvalue())
+    assert Path(query_receipt["response_path"]).is_relative_to(expected / "runs")
+
+    handed_off = tools.invoke(request("handoff", {
+        "request_id": "standalone-consumer-handoff",
+        "reason": "Prove receipt ownership.",
+        "result": None,
+        "commit_message": None,
+        "artifact_paths": [],
+    }))
+    assert Path(handed_off["receipt_path"]).is_relative_to(expected / "handoffs")
+    assert Path(handed_off["bundle_path"]).is_relative_to(expected / "handoffs")
+
+
+def test_cleanup_preservation_uses_the_standalone_owner_root(project):
+    configured(project)
+    tools, _, commit, _ = prepare_cancelled_task(project)
+    cleaned = tools.invoke(request("cleanup", cleanup_input(commit, kind="preserved")))
+    expected = project["root"] / "state" / "standalone" / "T1"
+
+    assert cleaned["status"] == "cleanup_complete"
+    assert Path(cleaned["disposition"]["bundle_path"]).is_relative_to(expected)
+
+
+def test_result_integration_check_receipts_use_the_standalone_owner_root(project):
+    configured(project)
+    guard = integration_guard_method()
+    tools, _, source = prepare_completed_task(
+        project,
+        source_change,
+        methods=[guard],
+        checks=[guard["id"]],
+    )
+    integrated = tools.invoke(request("integrate", integration_input(project, source)))
+    expected = project["root"] / "state" / "standalone" / "T1"
+
+    assert integrated["status"] == "integrated"
+    assert Path(integrated["checks"][0]["stdout"]).is_relative_to(expected / "runs")
+    assert Path(integrated["checks"][0]["stderr"]).is_relative_to(expected / "runs")
 
 
 def test_published_sprint_task_bootstrap_and_response_are_nested(project):

@@ -7,14 +7,11 @@ from pathlib import Path
 
 
 from .modules.foundation.errors import PoiseError
+from .modules.foundation.validation import validate_exact_keys
 
 
 def exact_keys(value: dict, keys: set[str], where: str) -> None:
-    if not isinstance(value, dict):
-        raise PoiseError(f'{where}: ожидается объект')
-    missing, extra = keys - value.keys(), value.keys() - keys
-    if missing or extra:
-        raise PoiseError(f'{where}: отсутствуют {sorted(missing)}; неизвестные поля {sorted(extra)}')
+    validate_exact_keys(value, keys, where, PoiseError)
 
 
 def read_json(path: Path) -> dict:

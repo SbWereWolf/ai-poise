@@ -85,8 +85,11 @@ class WorkTools:
         self.interactions.delivered(current,out)
         if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,current)
         h.accounting.finish(op,before,current,out)
-        if current is not None and current['sprint_id'] is not None and h.sprint_tools.known(current['sprint_id']) and op in ('verify','accept','cancel'):
-            out={**out,'sprint':h.sprint_tools.overview(current['sprint_id'])}
+        sprint_subject = current if current is not None else before
+        if (sprint_subject is not None and sprint_subject['sprint_id'] is not None
+                and h.sprint_tools.known(sprint_subject['sprint_id'])
+                and op in ('verify','accept','cancel')):
+            out={**out,'sprint':h.sprint_tools.overview(sprint_subject['sprint_id'])}
         return {**out,'interaction':self.interactions.summary(h.report_task(out))}
 
     def _verify(self,args):

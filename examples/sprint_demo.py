@@ -39,7 +39,10 @@ def task(tid,kind,command):
                         'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}],
        'checks':{name:['CHECK'] for name in ('write','inspect','amend','confirm')},
        'artifact_requirements':[],'content_contract':{'sections':[],'routes':[],'requirements':[]},
-       'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in ('write','inspect','amend','confirm')}}
+       'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in ('write','inspect','amend','confirm')},
+       'stage_contracts':[{'stage_id':item['id'],'allowed_paths':list(item['allowed_paths']),
+                           'entry_requirements':[],'exit_requirements':[]}
+                          for item in process(kind)['stages']]}
 
 
 def run(directory):

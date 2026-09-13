@@ -246,6 +246,33 @@ def test_public_revise_replay_survives_restart_and_records_history(project):
     assert {"old", "new", "reason", "authorization"} <= set(history[-1])
 
 
+def test_reviewer_can_repair_released_inspection_gate_without_bootstrap(project):
+    owner, context = _boot(project, session="executor", inspection=True)
+    owner.invoke(request("handoff", {
+        "request_id": "release-broken-inspection",
+        "reason": "The reviewer must repair the blocked inspection contract.",
+        "result": None,
+        "commit_message": None,
+        "artifact_paths": [],
+    }))
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    current = reviewer.runtime.task_queries.record("T1")
+    contract = deepcopy(current["contract"]["stage_contracts"][0])
+    contract["entry_requirements"] = []
+
+    revised = reviewer.invoke(_revise(
+        "T1",
+        current["version"],
+        context["stage"],
+        contract,
+        request_id="repair-released-inspection",
+    ))
+
+    assert revised["status"] == "stage_contract_revised"
+    assert reviewer.runtime.task_queries.record("T1")["claimed_by"] == "reviewer"
+    assert reviewer.runtime.ownership.snapshot("reviewer").worktree_task_id == "T1"
+
+
 def test_public_entry_gate_failure_returns_projection_without_claim(project):
     _feature()
     task = _configure(project)
@@ -266,9 +293,9 @@ def test_public_entry_gate_failure_returns_projection_without_claim(project):
     result = tools.invoke(request("bootstrap", {
         "task": task, "decision": None, "feedback": None, "rework_stage": None,
     }))
-    assert result["status"] == "content_requirements_failed"
+    assert result["status"] == "broken"
     assert result["stage"] == first
-    assert result["content_requirements"]["phase"] == "pre"
+    assert result["failure"]["content_requirements"]["phase"] == "pre"
     assert tools.runtime.current_task() is None
 
 

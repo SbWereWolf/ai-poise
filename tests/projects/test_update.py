@@ -3,18 +3,19 @@ import json
 import subprocess
 import sys
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from poise.common import digest, load_config
 from poise.modules.foundation.errors import PoiseError, VersionConflict
+from poise.modules.tasks.domain import Change, TaskEvent, TaskStatus
 from poise.runtime import Poise
 from poise.application.work import WorkTools
 from tests.conftest import DeterministicClock, write_json
 from batch.helpers import request
 from sprints.helpers import (
-    bootstrap as bootstrap_sprint,
     draft as draft_sprint,
     publish as publish_sprint,
 )
@@ -301,26 +302,27 @@ def test_superseded_task_does_not_block_quiescent_manifest_update(project):
     settings, config_path, created = installed_project(project)
     original = deepcopy(project["task"])
     original.update(id="BAD", sprint_id="S", goal="Replace this fixture")
-    replacement = deepcopy(original)
-    replacement.update(id="BAD-2", goal="Replacement fixture")
     planner = WorkTools(Poise(config_path, "replacement-planner", DeterministicClock()))
     planned = draft_sprint(planner, [original])
-    published = publish_sprint(planner, planned["revision"])
-    planner.invoke(request("sprint", {
-        "action": "replace_task",
-        "sprint_id": None,
-        "request_id": "replace-before-project-update",
-        "expected_revision": published["revision"],
-        "source_task": "BAD",
-        "replacement": replacement,
-        "reason": "Replace the unfinished test fixture task",
-        "authorization": "The test explicitly authorizes this replacement",
-    }))
-    worker = WorkTools(Poise(config_path, "replacement-worker", DeterministicClock()))
-    bootstrap_sprint(worker, "BAD-2")
-    worker.invoke(request("cancel", {"reason": "Leave the project quiescent"}))
+    publish_sprint(planner, planned["revision"])
+    # Persist the state shape written by the retired pre-0079 replacement action.
+    with planner.runtime.store.unit_of_work() as unit:
+        task = unit.tasks.load("BAD")
+        historical = replace(
+            task,
+            state=replace(
+                task.state,
+                status=TaskStatus.SUPERSEDED,
+                version=task.state.version + 1,
+            ),
+        )
+        unit.tasks.save(Change(historical, None, (TaskEvent(
+            "superseded",
+            task.stage.stage_id,
+            task.state.iteration,
+            "Historical replacement fixture.",
+        ),)), task.state.version)
     assert planner.runtime.task_queries.record("BAD")["status"] == "superseded"
-    assert planner.runtime.task_queries.record("BAD-2")["status"] == "cancelled"
     update = update_request(
         config_path,
         created["revision"],

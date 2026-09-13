@@ -128,11 +128,17 @@ Sprint владеет планом/графом/решениями; Task вла�
 
 `modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem. `infrastructure/sprint_work` вычисляет eligibility, формирует `result_provenance`, наблюдает текущий commit явно настроенного Git `base_ref` для новой Task и делегирует Task API. Result commits предшественников остаются provenance и не выбирают branch base. Точный наблюдённый base SHA сохраняется в reservation до Task start; recovery использует его повторно, а resume/handoff существующего worktree не наблюдают ref заново и не пересоздают workspace. База сериализует короткие записи; проверки/commit/push параллельных worktrees не держат общий DB lock.
 
-Замена ошибочной незавершённой Task остаётся координацией этих владельцев, а не новым lifecycle writer. `SprintWork` до транзакции наблюдает pending/ownership/handoff и чистоту worktree. `SprintCommands` в короткой UoW повторно сверяет Sprint revision, Task version и снимок preflight, валидирует полный replacement через сохранённый process, вызывает `Sprint.replace_task` для графа/relation и `Task.supersede` для состояния источника. Инфраструктурный адаптер не присваивает lifecycle напрямую.
+Восстановлением ошибочной незавершённой Task владеет общий Task lifecycle. Application-команда
+`restart` проверяет optimistic version, ownership и terminal boundary; Task domain строит newborn
+с тем же ID, Sprint membership, process/contract snapshot и append-only restart audit. Task и
+execution repositories одной UoW сохраняют смену состояния и сбрасывают только текущие attempts,
+publication, pending и last_report, не изменяя worktree/branch/base/entry tree и Git WIP.
 
-Replay receipt проверяется до внешнего preflight. При новом intent весь Task/Sprint write-set — создание replacement, supersession источника, новый plan/layer, membership/dependencies, relation и receipt — фиксируется одной UoW; fault injection подтверждает общий rollback. Старый membership нужен для принадлежности исторического Task, но current facts фильтруются сохранённым Sprint plan. Contract/submissions/evidence/artifacts/handoff старой Task не переносятся и не переписываются.
-
-Relation хранится в Sprint decision snapshot и revision layers, а idempotency — в существующем `sprint_requests`; отдельная таблица или миграция схемы не понадобились. Чтение идёт через прежние Sprint/Task projections. Accounting лишь отображает `superseded` как terminal outcome и не становится владельцем Task state.
+Pending external outcome блокирует restart до выполнения его явного recovery protocol. Replay
+receipt проверяется до мутации; conflicting intent отклоняется. `ready` повторно валидирует
+сохранённый process, а `start` возобновляет прежнее execution/worktree. Public Sprint correction
+action `replace_task` удалён. Существующие `task_replacement` decisions, revision layers и
+`superseded` Task остаются читаемыми historical data через прежние projections.
 
 ### Публичный обзор работ — 2026-09-11
 

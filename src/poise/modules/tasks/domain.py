@@ -363,15 +363,19 @@ class Task:
         self, actor: str, stage_id: str, replacement: TaskStageContract
     ) -> Change:
         contracts = self._require_stage_contracts()
-        self._owned(actor)
-        if self.state.claimed_by != actor:
-            raise DomainError("Stage contract revision requires current ownership")
+        identifier(actor)
+        if self.state.claimed_by not in (None, actor):
+            raise DomainError("Stage contract revision requires released or current ownership")
         if self.route.node(self.stage.stage_id).handler != HandlerKind.INSPECT:
             raise DomainError("Stage contract revision requires the current inspection stage")
         revised = contracts.replace(stage_id, replacement)
         revised = TaskStageContracts.parse(revised.to_list(), self.route, self.content_policy)
         change = self._change("stage_contract_revised", None, None)
-        return replace(change, task=replace(change.task, stage_contracts=revised))
+        return replace(change, task=replace(
+            change.task,
+            stage_contracts=revised,
+            state=replace(change.task.state, claimed_by=actor),
+        ))
 
     def start(self, actor=None):
         self._require_stage_contracts()
@@ -868,16 +872,3 @@ class Task:
         if self.state.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
             return self._unchanged()
         return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)
-
-    def supersede(self, actor: str, reason: str) -> Change:
-        self._owned(actor)
-        if not isinstance(reason, str) or not reason.strip():
-            raise DomainError("Task replacement reason is required")
-        if self.state.status not in (
-            TaskStatus.AVAILABLE,
-            TaskStatus.ACTIVE,
-            TaskStatus.VERIFIED,
-            TaskStatus.ACCEPTED,
-        ):
-            raise DomainError("Only an unfinished Task can be superseded")
-        return self._change("superseded", reason, None, status=TaskStatus.SUPERSEDED, claimed_by=None)

@@ -15,6 +15,7 @@ from ..modules.capabilities.domain import positive,nonempty
 from ..modules.goal_config.domain import GoalTypeDefinition
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
+from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from ..application.capabilities import CapabilityChecks
 from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
@@ -368,10 +369,9 @@ class HookService:
             result=read_document(path)
         if not isinstance(result,dict) or not isinstance(result.get('status'),str):
             raise PoiseError('Bound Task source returned an invalid result')
-        incomplete={'capabilities_unavailable','checks_failed','content_requirements_failed',
-            'evidence_requirements_failed','observations_stale','action_failed','action_blocked'}
         expected=(self.settings.raw['exit_codes']['rejected'] if result['status']=='rejected'
-                  else self.settings.raw['exit_codes']['incomplete'] if result['status'] in incomplete
+                  else self.settings.raw['exit_codes']['incomplete']
+                  if result['status'] in BUSINESS_INCOMPLETE_STATUSES
                   else self.settings.raw['exit_codes']['success'])
         if completed.returncode!=expected:
             raise PoiseError('Bound Task source exit code does not match its result status')

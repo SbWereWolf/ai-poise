@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 
 from ..foundation.errors import DomainError
 from .definition import path_identifier
+from .domain import Task, TaskStatus
 
 
 NEWBORN_FIELDS = frozenset({
@@ -39,6 +40,7 @@ class NewbornTask:
     process: dict | None
     ready: bool
     creation_request: dict | None = None
+    restart_history: tuple[dict, ...] = ()
 
     @classmethod
     def create(cls, task_id: str, sprint_id: str | None, actor: str):
@@ -46,7 +48,61 @@ class NewbornTask:
         if sprint_id is not None:
             path_identifier(sprint_id)
         path_identifier(actor)
-        return cls(task_id, sprint_id, actor, 0, {}, None, False, None)
+        return cls(task_id, sprint_id, actor, 0, {}, None, False, None, ())
+
+    @classmethod
+    def restart(
+        cls,
+        task: Task,
+        contract: dict,
+        process: dict,
+        sprint_id: str | None,
+        actor: str,
+        reason: str,
+        authorization: str,
+        history: list[dict],
+        creation_request: dict | None,
+    ):
+        path_identifier(actor)
+        if task.state.status not in (
+            TaskStatus.AVAILABLE,
+            TaskStatus.ACTIVE,
+            TaskStatus.VERIFIED,
+            TaskStatus.ACCEPTED,
+        ):
+            raise DomainError("Only unfinished, unintegrated Task work can restart")
+        if task.state.claimed_by not in (None, actor):
+            raise DomainError("Task is owned by another session; handoff is required")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Task restart reason is required")
+        if not isinstance(authorization, str) or not authorization.strip():
+            raise DomainError("Task restart authorization is required")
+        if not isinstance(contract, dict) or contract.get("id") != task.state.task_id:
+            raise DomainError("Task restart requires its exact stored contract")
+        if contract.get("sprint_id") != sprint_id:
+            raise DomainError("Task restart cannot change Sprint membership")
+        draft = {
+            key: deepcopy(value)
+            for key, value in contract.items()
+            if key not in {"id", "sprint_id"}
+        }
+        audit = {
+            "authorization": authorization,
+            "from_status": task.state.status.value,
+            "from_version": task.state.version,
+            "reason": reason,
+        }
+        return cls(
+            task.state.task_id,
+            sprint_id,
+            actor,
+            task.state.version + 1,
+            draft,
+            deepcopy(process),
+            False,
+            deepcopy(creation_request),
+            tuple(deepcopy(history)) + (audit,),
+        )
 
     @classmethod
     def restore(cls, task_id: str, claimed_by: str | None, version: int, metadata: dict):
@@ -70,8 +126,14 @@ class NewbornTask:
             or not all(isinstance(value, str) and value for value in creation_request.values())
         ):
             raise DomainError("Newborn Task creation request must be immutable")
+        restart_history = metadata.get("restart_history", [])
+        if not isinstance(restart_history, list) or any(
+            not isinstance(item, dict) for item in restart_history
+        ):
+            raise DomainError("Newborn Task restart history must be a list of records")
         return cls(task_id, metadata["sprint_id"], claimed_by, version,
-                   deepcopy(draft), deepcopy(process), ready, deepcopy(creation_request))
+                   deepcopy(draft), deepcopy(process), ready, deepcopy(creation_request),
+                   tuple(deepcopy(restart_history)))
 
     def edit(self, patch: dict, processes: dict, actor: str):
         if self.ready:
@@ -151,6 +213,8 @@ class NewbornTask:
             value["process"] = deepcopy(self.process)
         if self.creation_request is not None:
             value["creation_request"] = deepcopy(self.creation_request)
+        if self.restart_history:
+            value["restart_history"] = list(deepcopy(self.restart_history))
         return value
 
     def describe(self) -> dict:

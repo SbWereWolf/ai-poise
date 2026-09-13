@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
+import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
 
 from batch.helpers import configure, request
 from conftest import WorkPoise as Poise
 from poise.application.work import WorkTools
-from poise.modules.foundation.errors import PoiseError
+from poise.modules.foundation.errors import DomainError, PoiseError
+from poise.modules.tasks.domain import TaskStatus
+from poise.modules.tasks.newborn import NewbornTask
 from sprints.helpers import bootstrap as sprint_bootstrap
 from sprints.helpers import draft, publish, setup as setup_sprint, task as sprint_task
 
@@ -215,6 +221,7 @@ def test_restarted_published_sprint_member_becomes_available_under_same_id(proje
 
     assert ready["status"] == "available"
     assert ready["task"] == "BROKEN"
+    assert ready["sprint"] == "S"
     current = reviewer.runtime.sprint_tools.overview("S")
     assert [item["id"] for item in current["tasks"]] == ["BROKEN"]
     assert current["tasks"][0]["status"] == "available"
@@ -253,15 +260,26 @@ def test_restart_contract_rejects_terminal_work(status, project):
         "feedback": None,
         "rework_stage": None,
     }))
-    with tools.runtime.store.transaction() as database:
-        database.execute(
-            "UPDATE tasks SET status=?,claimed_by=NULL WHERE id=?",
-            (status, context["task"]),
-        )
-    record = tools.runtime.task_queries.record(context["task"])
+    with tools.runtime.store.unit_of_work() as unit:
+        task = unit.tasks.load(context["task"])
+        metadata = unit.tasks.restart_context(context["task"])
+    terminal = replace(
+        task,
+        state=replace(task.state, status=TaskStatus(status), claimed_by=None),
+    )
 
-    with pytest.raises(PoiseError, match="unfinished|unintegrated"):
-        restart(tools, context["task"], record["version"])
+    with pytest.raises(DomainError, match="unfinished|unintegrated"):
+        NewbornTask.restart(
+            terminal,
+            metadata["contract"],
+            metadata["process"],
+            metadata["sprint_id"],
+            "executor",
+            "The execution contract is broken.",
+            "User authorized recovery.",
+            metadata["restart_history"],
+            metadata["creation_request"],
+        )
 
 
 def test_failed_next_stage_entry_is_reported_as_broken(project):
@@ -309,3 +327,86 @@ def test_failed_next_stage_entry_is_reported_as_broken(project):
         "repair_stage_contract",
         "restart_task",
     }
+
+
+def test_broken_result_is_reported_as_business_incomplete_by_cli(project):
+    configure(project)
+    requirement = {
+        "id": "missing-input",
+        "kind": "artifact",
+        "stages": [project["process"]["stages"][0]["id"]],
+        "phase": "pre",
+        "scope": "task",
+        "pattern": "inputs/missing.txt",
+        "minimum": 1,
+        "maximum": 1,
+        "source": {"kind": "preexisting"},
+    }
+    task = deepcopy(project["task"])
+    task["content_contract"]["requirements"] = [requirement]
+    task["stage_contracts"][0]["entry_requirements"] = [requirement["id"]]
+    packet = request("bootstrap", {
+        "task": task,
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    })
+    inherited = {
+        key: value for key, value in os.environ.items()
+        if key not in {
+            "CODEX_SESSION_ID",
+            "CODEX_THREAD_ID",
+            "POISE_SESSION",
+            "POISE_CALLER_BINDING",
+        }
+    }
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "poise", "work"],
+        input=json.dumps(packet),
+        text=True,
+        capture_output=True,
+        env={
+            **inherited,
+            "PYTHONPATH": str(Path(__file__).parents[2] / "src"),
+            "POISE_CONFIG": str(project["config_path"]),
+            "POISE_CALLER_BINDING": str(project["root"] / ".restart-cli-caller.json"),
+        },
+        timeout=15,
+    )
+
+    assert completed.returncode == 1
+    assert json.loads(completed.stdout)["status"] == "broken"
+
+
+def test_sprint_task_replacement_is_no_longer_a_public_correction_action(project):
+    setup_sprint(project)
+    planner = WorkTools(Poise(project["config_path"], "planner"))
+    planned = draft(planner, [sprint_task(project, "BROKEN")])
+    publish(planner, planned["revision"])
+
+    with pytest.raises(DomainError, match="Unknown sprint action"):
+        planner.invoke(request("sprint", {
+            "action": "replace_task",
+            "sprint_id": "S",
+            "request_id": "obsolete-replacement",
+            "expected_revision": planned["revision"] + 1,
+            "source_task": "BROKEN",
+            "replacement": sprint_task(project, "BROKEN-2"),
+            "reason": "The old correction path must be unavailable.",
+            "authorization": "Test authorization.",
+        }))
+
+
+def test_restart_and_broken_task_contract_is_documented_for_humans_and_agents():
+    root = Path(__file__).parents[2]
+    batch = (root / "docs/workflows/batch-work.md").read_text(encoding="utf-8")
+    sprints = (root / "docs/workflows/sprints.md").read_text(encoding="utf-8")
+    rules = (root / "docs/governance/development-rules.md").read_text(encoding="utf-8")
+    skill = (root / ".agents/skills/poise/SKILL.md").read_text(encoding="utf-8")
+
+    for text in (batch, rules):
+        assert "restart" in text
+        assert "broken" in text
+    assert "`replace_task` больше не является публичным action" in sprints
+    assert "restart the same Task to newborn" in skill

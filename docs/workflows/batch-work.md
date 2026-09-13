@@ -10,11 +10,11 @@
 | operation | Обязательные поля input | Эффект |
 |---|---|---|
 | bootstrap | task, decision, feedback, rework_stage | Для создания — intent с `request_id` и полным task без `id`; для выбора существующей работы — объект только с `id`; затем null |
-| task | Поля выбранного action `create`/`edit`/`ready` | Создать, изменить или подготовить реальную newborn Task |
+| task | Поля выбранного action `create`/`edit`/`ready`/`restart` | Создать, изменить, подготовить либо вернуть сломанную незавершённую Task в newborn |
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
-| sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
+| sprint | Поля выбранного action | Создать или изменить Sprint и его зависимости/отмены |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
 | recover_empty_rework | task_id, reason | Вернуть освобождённую пустую rework-итерацию к непосредственно предшествующему verified result |
 | recover_empty_advance | task_id, reason | Вернуть освобождённый пустой этап после ошибочного `continue` к предшествующему verified result |
@@ -126,7 +126,7 @@ intent и никогда не выбирает номер сам.
 ## Жизненный цикл newborn Task
 
 `operation: task` создаёт и редактирует реальную Task до её готовности к запуску. Действия
-`create`, `edit` и `ready` всегда получают уникальный `request_id`; точный повтор возвращает
+`create`, `edit`, `ready` и `restart` всегда получают уникальный `request_id`; точный повтор возвращает
 тот же результат, а другой intent с тем же ID отклоняется. `create` немедленно закрепляет
 постоянный `task_id`, создаёт историю и при необходимости членство в Sprint, но оставляет
 статус `newborn`. `edit` требует `expected_revision` и применяет patch к сохраняемому draft.
@@ -139,12 +139,40 @@ intent и никогда не выбирает номер сам.
 `newborn`, пока контракт не пройдёт readiness. Standalone Task после `ready` становится
 `available`; готовый участник draft Sprint остаётся newborn до атомарной публикации Sprint.
 
+Если сохранённый контракт исполнения не позволяет достичь DoD либо следующий stage не
+проходит собственный DoR, результат обозначается `status: broken`, а не успешным завершением.
+Ответ содержит точную failure phase и два явных пути: reviewer исправляет только дефектный
+stage contract через `repair_stage_contract`, либо владелец выполняет `operation: task` с
+`action: restart`, `expected_version`, непустыми `reason` и `authorization`. Restart разрешён
+только для незавершённой неинтегрированной Task (`available`, `active`, `verified`, `accepted`),
+сохраняет её ID, Sprint membership, immutable history, branch, worktree и tracked,
+staged/untracked WIP. Текущее исполнение сбрасывается согласованно: attempts становится нулём,
+publication и last_report очищаются. Task возвращается в `newborn`, после `edit`/`ready`
+возобновляется в прежнем worktree. Чужой живой owner, terminal status, stale version и pending
+external outcome отклоняют операцию до мутации; pending сначала завершается своим явным
+recovery protocol. Идентичный replay возвращает первоначальный receipt.
+
+```json
+{
+  "operation": "task",
+  "input": {
+    "action": "restart",
+    "request_id": "restart-0079-v1",
+    "task_id": "0079",
+    "expected_version": 12,
+    "reason": "The saved execution contract cannot reach the next stage.",
+    "authorization": "The user authorized recovery of this unfinished Task."
+  },
+  "messages": []
+}
+```
+
 Это дополнительный путь подготовки, а не второй вид Task: одна identity, история и ownership
 сохраняются при переходе. Поддержанная прямая полная creation остаётся без изменений и сразу
 создаёт `available` Task после type-specific DoR. Массовой миграции прежних записей нет.
 Legacy embedded Sprint definitions превращаются в реальные newborn Task только явной
-Sprint-операцией `materialize_tasks`; relation с исходной source Task при replacement и
-creation request остаются частью traceability.
+Sprint-операцией `materialize_tasks`; сохранённые historical replacement relations и creation
+request остаются читаемой частью traceability, но новые replacement relations не создаются.
 
 ## Verify
 
@@ -499,11 +527,9 @@ Query не поддерживает pagination и не обещает один c
 
 
 ## Sprint в DDD-05
-Обновлено: **2026-09-13T08:10:00+05:00**. `operation: sprint` принимает actions `draft`, `materialize_tasks`, `publish`, `dependencies`, `replace_task`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint materialize получают ID до публикации и выбираются по ID. Остальной прямой stage-result/артефактный интерфейс сохранён.
+Обновлено: **2026-09-13T08:10:00+05:00**. `operation: sprint` принимает actions `draft`, `materialize_tasks`, `publish`, `dependencies`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint materialize получают ID до публикации и выбираются по ID. Сломанная опубликованная Task исправляется под тем же ID через `operation: task`, `action: restart`.
 
-`replace_task` требует `sprint_id`, `request_id`, `expected_revision`, `source_task`, полный `replacement`, `reason` и `authorization`. Успешный receipt содержит новую revision, `replacements` с old/new relation и safety facts, а также актуальные `tasks`, `eligible` и `blocked`. Идентичный replay возвращает тот же receipt без повторного preflight/мутации; конфликтующий intent с тем же `request_id` отклоняется.
-
-Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и view `current`, `plan` либо `history` показывает текущий граф, сохранённый process/plan snapshot и revision layers; при отсутствии другой активной Task адресный bootstrap старого ID возвращает terminal read-only context `superseded`, после чего `show` с `kind: evidence` читает его прежнее evidence. Старые submissions, artifacts и handoff receipts остаются у прежнего Task owner.
+Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и view `current`, `plan` либо `history` показывает текущий граф, сохранённый process/plan snapshot, revision layers и historical replacement relations. Публичный action `replace_task` удалён; старые `superseded` Task и их evidence по-прежнему доступны для read-only inspection.
 
 ## DDD-06: внешние планы в том же пакете
 `stage_work` обработчика apply_plan принимает plan, phase, resolutions и finding_resolutions. Publish принимает target_ref, expected_commit и authorization. `awaiting_action_continuation` возвращает template для CONTINUE; `action_failed/action_blocked` возвращают nonzero business outcome, а не фиктивный PASS. Подробности: [Actions](actions.md).

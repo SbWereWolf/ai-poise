@@ -1,10 +1,12 @@
 from pathlib import Path
+from dataclasses import replace
 
 import pytest
 
 from conftest import WorkPoise as Poise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.tasks.domain import Change, TaskEvent, TaskStatus
 from sprints.helpers import (
     bootstrap as sprint_bootstrap,
     draft,
@@ -35,23 +37,24 @@ def _create_terminal_task(project, state):
     if state == "superseded":
         source = sprint_task(project, identifier)
         planned = draft(owner, [source])
-        current = publish(owner, planned["revision"])
-        replacement = sprint_task(project, f"{identifier}-replacement")
-        owner.invoke(
-            request(
-                "sprint",
-                {
-                    "action": "replace_task",
-                    "sprint_id": None,
-                    "request_id": f"replace-{identifier}",
-                    "expected_revision": current["revision"],
-                    "source_task": identifier,
-                    "replacement": replacement,
-                    "reason": "The fixture records a superseded terminal Task.",
-                    "authorization": "The test contract authorizes this isolated replacement.",
-                },
+        publish(owner, planned["revision"])
+        # Historical fixture from the retired pre-0079 replacement writer.
+        with owner.runtime.store.unit_of_work() as unit:
+            task = unit.tasks.load(identifier)
+            changed = replace(
+                task,
+                state=replace(
+                    task.state,
+                    status=TaskStatus.SUPERSEDED,
+                    version=task.state.version + 1,
+                ),
             )
-        )
+            unit.tasks.save(Change(changed, None, (TaskEvent(
+                "superseded",
+                task.stage.stage_id,
+                task.state.iteration,
+                "Historical replacement fixture.",
+            ),)), task.state.version)
     else:
         context = owner.invoke(
             request(

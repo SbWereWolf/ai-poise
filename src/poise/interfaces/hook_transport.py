@@ -5,6 +5,7 @@ import uuid
 from ..common import PoiseError,exact_keys,load_config
 from ..infrastructure.hook_transport import HookService
 from ..infrastructure.goal_config import strict_json,atomic_write
+from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from .work import write_result
 
 
@@ -34,8 +35,7 @@ def execute(command,args,stream,output,error):
         if command=='hook-work':
             result=service.work(args.binding,packet)
             write_result(service.runtime,result,output)
-            bad=result['status'] in {'capabilities_unavailable','checks_failed','content_requirements_failed',
-                'evidence_requirements_failed','observations_stale','action_failed','action_blocked'}
+            bad = result['status'] in BUSINESS_INCOMPLETE_STATUSES
             return cfg['exit_codes']['incomplete' if bad else 'success']
         exact_keys(packet,{'operation','input'},'runtime-config packet')
         if packet['operation']=='install':

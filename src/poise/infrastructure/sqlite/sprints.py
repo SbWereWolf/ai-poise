@@ -49,11 +49,6 @@ class SqliteSprintRepository:
         self.db.executemany('INSERT INTO sprint_dependencies VALUES(?,?,?,?)',
             [(sid,e['predecessor'],e['successor'],e['kind']) for e in plan['dependencies']])
 
-    def add_replacement_member(self,record,replacement):
-        plan=record['aggregate']['plan'];sid=plan['id']
-        self.db.execute('INSERT INTO sprint_members VALUES(?,?)',(sid,replacement))
-        self.replace_dependencies(record)
-
     def receipt(self,sprint_id,request_id,digest):
         row=self.db.execute('SELECT digest,data FROM sprint_requests WHERE sprint_id=? AND request_id=?',(sprint_id,request_id)).fetchone()
         if row is None:return None

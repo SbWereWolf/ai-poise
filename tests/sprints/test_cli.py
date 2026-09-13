@@ -49,21 +49,18 @@ def test_sprint_demo_happy_and_feedback_paths(tmp_path):
     assert out['planning_feedback'] and out['implementation_feedback'] and out['result_dependency_received']
 
 
-def test_cli_replaces_published_task_with_exact_revisioned_packet(project):
+def test_cli_rejects_retired_task_replacement_packet(project):
     setup(project)
     raw=request('sprint',{'action':'draft','sprint_id':'S','request_id':'d','expected_revision':None,
         'template':{'id':'basic','version':'1'},'changes':changes([task(project,'BAD')])})
     _,drafted=call(project,raw)
     _,published=call(project,request('sprint',{'action':'publish','sprint_id':None,
         'request_id':'p','expected_revision':drafted['revision']}))
-    candidate=task(project,'BAD-2')
     packet=request('sprint',{'action':'replace_task','sprint_id':'S','request_id':'replace-BAD',
-        'expected_revision':published['revision'],'source_task':'BAD','replacement':candidate,
+        'expected_revision':published['revision'],'source_task':'BAD','replacement':task(project,'BAD-2'),
         'reason':'Исправить ошибочный метод','authorization':'Пользователь разрешил замену'})
 
     result,body=call(project,packet)
 
-    assert result.returncode==0
-    assert body['revision']==published['revision']+1
-    assert body['replacements'][0]['source']=='BAD'
-    assert body['replacements'][0]['replacement']=='BAD-2'
+    assert result.returncode==2
+    assert body=={'status':'rejected','reason':'Unknown sprint action'}

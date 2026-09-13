@@ -1,6 +1,22 @@
 # Статус реализации
 
-Обновлено: **2026-09-12T00:00:00+05:00**.
+Обновлено: **2026-09-13T00:00:00+05:00**.
+
+## Broken Task recovery — task 0079
+
+Публичный Task action `restart` возвращает ту же незавершённую неинтегрированную Task в
+`newborn`. Он сохраняет ID, append-only history, Sprint membership, contract/process snapshot,
+worktree, branch, base, entry tree и Git WIP; сбрасывает только состояние текущей попытки.
+Optimistic version, immutable request identity, foreign ownership, terminal status и pending
+external outcome проверяются до фиксации изменений. Участник уже опубликованного Sprint после
+повторного `ready` снова становится `available` под тем же ID.
+
+Невыполнимый контракт и отказ следующего DoR возвращаются как `broken` с точной причиной и
+явными recovery routes: локальная правка дефектного inspection gate проверяющим либо restart
+для изменения immutable Task contract. Старый публичный Sprint action `replace_task` удалён;
+ранее сохранённые replacement relations и `superseded` Task остаются читаемой историей.
+Путь проверен профильными runtime, Task, Sprint, ownership и terminal-inspection сценариями;
+полный набор репозитория этим утверждением не объявляется пройденным.
 
 ## Current verification registry — task 0055
 

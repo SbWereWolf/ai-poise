@@ -94,23 +94,26 @@ class TaskQueries:
             newborn = NewbornTask.restore(
                 row['id'], row['claimed_by'], row['version'], metadata
             )
+            restarted = bool(newborn.restart_history)
+            execution = (
+                {"worktree":None,"branch":None,"base":None,"attempts":0,
+                 "publication":None,"pending":None,"entry_tree":None,"last_report":None}
+                if row["execution"] is None else json.loads(row["execution"])
+            )
+            visible_execution = execution if restarted else {
+                "worktree":None,"branch":None,"base":None,"attempts":0,
+                "publication":None,"pending":None,"entry_tree":None,"last_report":None,
+            }
             return {
                 **metadata,
                 **newborn.describe(),
+                **visible_execution,
                 'id':row['id'],
                 'sprint_id':newborn.sprint_id,
                 'stage_index':0,
                 'iteration':1,
                 '_version':row['version'],
-                '_execution_version':None,
-                'worktree':None,
-                'branch':None,
-                'base':None,
-                'attempts':0,
-                'publication':None,
-                'pending':None,
-                'entry_tree':None,
-                'last_report':None,
+                '_execution_version':row['execution_version'] if restarted else None,
                 'result_commit':None,
                 'history':history,
             }

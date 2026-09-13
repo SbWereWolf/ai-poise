@@ -1,4 +1,5 @@
 """Operator-selected telemetry paths; no implicit file, lock or migration."""
+import json
 import os
 from pathlib import Path
 
@@ -14,7 +15,6 @@ from tests.accounting.test_domain import policy
 from tests.accounting.test_optional_telemetry_isolation import _raw_telemetry
 from tests.batch.helpers import request
 from tests.projects.helpers import setup_case
-from tests.projects.test_update import update_request
 
 
 def test_explicit_storage_policy_accepts_operator_paths():
@@ -81,21 +81,47 @@ def test_optional_database_and_lock_must_be_distinct(project):
 
 
 @pytest.mark.parametrize("kind", ["symlink", "hardlink"])
-def test_storage_rejects_physical_alias_even_with_different_names(project, kind):
+@pytest.mark.parametrize("optional_field", ["database", "lock"])
+@pytest.mark.parametrize("authoritative_field", ["database", "lock"])
+def test_storage_rejects_physical_authoritative_aliases(
+    project, kind, optional_field, authoritative_field,
+):
     state = configured_root(project["root"], project["cfg"]["paths"]["state"])
     state.mkdir(parents=True)
-    main = state / project["cfg"]["paths"]["database"]
-    main.write_bytes(b"preserved operator database")
-    alias = state / "alias.sqlite"
+    authoritative = state / project["cfg"]["paths"][authoritative_field]
+    authoritative.write_bytes(b"preserved authoritative file")
+    alias = state / f"alias-{optional_field}-{authoritative_field}"
     if kind == "symlink":
-        alias.symlink_to(main)
+        alias.symlink_to(authoritative)
     else:
-        os.link(main, alias)
-    project["cfg"]["accounting"]["storage"]["database"] = alias.name
+        os.link(authoritative, alias)
+    project["cfg"]["accounting"]["storage"][optional_field] = alias.name
     write_json(project["config_path"], project["cfg"])
     with pytest.raises(PoiseError):
         load_config(project["config_path"])
-    assert main.read_bytes() == b"preserved operator database"
+    assert authoritative.read_bytes() == b"preserved authoritative file"
+
+
+@pytest.mark.parametrize("kind", ["symlink", "hardlink"])
+@pytest.mark.parametrize("alias_field,target_field", [("database", "lock"), ("lock", "database")])
+def test_optional_database_and_lock_reject_physical_aliases(
+    project, kind, alias_field, target_field,
+):
+    state = configured_root(project["root"], project["cfg"]["paths"]["state"])
+    state.mkdir(parents=True)
+    target = state / project["cfg"]["accounting"]["storage"][target_field]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b"preserved optional file")
+    alias = state / f"optional-{alias_field}-alias"
+    if kind == "symlink":
+        alias.symlink_to(target)
+    else:
+        os.link(target, alias)
+    project["cfg"]["accounting"]["storage"][alias_field] = alias.name
+    write_json(project["config_path"], project["cfg"])
+    with pytest.raises(PoiseError):
+        load_config(project["config_path"])
+    assert target.read_bytes() == b"preserved optional file"
 
 
 @pytest.mark.parametrize("absolute_state", [False, True])
@@ -117,12 +143,39 @@ def test_production_composition_uses_exact_configured_paths(project, absolute_st
 
 
 def _initial_setup(project):
+    project["cfg"]["schema"] = "ddd-accounting-12"
     project["cfg"]["accounting"] = policy()
     settings, _, create = setup_case(project)
-    selected = {"database": "initial/raw.sqlite", "lock": "initial/raw.lock"}
-    create["edits"].append({"path": ["accounting", "storage"], "value": selected})
     published = project_tools(settings).apply(create)
+    selected = project["cfg"]["accounting"]["storage"]
     return settings, Path(published["config_path"]), published, selected
+
+
+def _legacy_setup(project):
+    project["cfg"]["schema"] = "ddd-accounting-11"
+    del project["cfg"]["accounting"]["storage"]
+    settings, _, create = setup_case(project)
+    published = project_tools(settings).apply(create)
+    return settings, Path(published["config_path"]), published
+
+
+def _activation_request(config_path, revision, storage, request_id="activate-telemetry-storage"):
+    return {
+        "schema": "project-config-update-2",
+        "request_id": request_id,
+        "config_path": str(config_path),
+        "expected_revision": revision,
+        "manifest_edits": [],
+        "process_updates": [],
+        "state_relocation": None,
+        "storage_activation": {
+            "from_schema": "ddd-accounting-11",
+            "to_schema": "ddd-accounting-12",
+            "storage": storage,
+        },
+        "probe_repository": False,
+        "receipt_path": "operations/activate-telemetry-storage.json",
+    }
 
 
 def _observe_once(config_path, session):
@@ -148,13 +201,10 @@ def test_public_initial_setup_activates_only_explicit_selected_storage(project):
 
 
 def test_public_quiescent_update_replay_selects_new_store_without_migrating_old(project):
-    settings, config_path, published, _ = _initial_setup(project)
-    old = _observe_once(config_path, "before-update")
-    old_path = old.accounting.port.repo.database.path
-    old_bytes = old_path.read_bytes()
+    settings, config_path, published = _legacy_setup(project)
+    before = config_path.read_bytes()
     chosen = {"database": "after-update/telemetry.sqlite", "lock": "after-update/telemetry.lock"}
-    packet = update_request(config_path, published["revision"], request_id="telemetry-storage-update",
-                            manifest_edits=[{"path": ["accounting", "storage"], "value": chosen}])
+    packet = _activation_request(config_path, published["revision"], chosen)
     result = project_config_tools(settings).apply(packet)
     assert result["status"] == "updated"
     assert result["revision"] != result["prior_revision"]
@@ -163,21 +213,96 @@ def test_public_quiescent_update_replay_selects_new_store_without_migrating_old(
     runtime = _observe_once(config_path, "after-update")
     assert runtime.accounting.port.repo.database.path == runtime.state / chosen["database"]
     assert runtime.accounting.port.repo.database.lock == runtime.state / chosen["lock"]
-    assert old_path.read_bytes() == old_bytes  # No copying/deleting/migrating old observations.
+    assert before != config_path.read_bytes()
+    assert json.loads(config_path.read_text())["schema"] == "ddd-accounting-12"
     with runtime.store.transaction() as db:
         assert db.execute("SELECT count(*) FROM tasks").fetchone()[0] == 0
 
 
 def test_public_update_rejects_collision_without_publishing_or_mutating_old_store(project):
-    settings, config_path, published, _ = _initial_setup(project)
-    runtime = _observe_once(config_path, "before-invalid-update")
+    settings, config_path, published = _legacy_setup(project)
     before = config_path.read_bytes()
-    database = runtime.accounting.port.repo.database.path
-    before_data = database.read_bytes()
-    chosen = {"database": runtime.cfg["paths"]["database"], "lock": "separate.lock"}
-    packet = update_request(config_path, published["revision"],
-                            manifest_edits=[{"path": ["accounting", "storage"], "value": chosen}])
+    _, old_config, _ = load_config(config_path)
+    chosen = {"database": old_config["paths"]["database"], "lock": "separate.lock"}
+    packet = _activation_request(config_path, published["revision"], chosen)
     with pytest.raises(PoiseError, match="storage"):
         project_config_tools(settings).apply(packet)
     assert config_path.read_bytes() == before
-    assert database.read_bytes() == before_data
+
+
+def test_active_schema11_task_remains_operable_until_quiescent_activation(project):
+    settings, config_path, published = _legacy_setup(project)
+    runtime = Poise(config_path, "legacy-owner", DeterministicClock())
+    work = WorkTools(runtime)
+    started = work.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert started["status"] == "active"
+    packet = _activation_request(
+        config_path,
+        published["revision"],
+        {"database": "activated/events.sqlite", "lock": "activated/events.lock"},
+    )
+    before = config_path.read_bytes()
+    with pytest.raises(PoiseError, match="quiescent|active"):
+        project_config_tools(settings).apply(packet)
+    assert config_path.read_bytes() == before
+    # Rejected activation cannot strand the already-running schema-11 source.
+    assert work.invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))["status"] == "read_only"
+    work.invoke(request("cancel", {"reason": "Make activation test project quiescent"}))
+    runtime.telemetry.dispatcher.close()
+    activated = project_config_tools(settings).apply(packet)
+    assert activated["status"] == "updated"
+    assert load_config(config_path)[1]["schema"] == "ddd-accounting-12"
+    after = Poise(config_path, "after-activation", DeterministicClock())
+    try:
+        assert after.task_queries.record(project["task"]["id"])["status"] == "cancelled"
+        assert after.accounting.port.repo.database.path == after.state / "activated/events.sqlite"
+    finally:
+        after.telemetry.dispatcher.close()
+
+
+def test_schema11_runtime_never_writes_optional_envelope_into_authoritative_database(project):
+    _, config_path, _ = _legacy_setup(project)
+    runtime = Poise(config_path, "legacy-isolated", DeterministicClock())
+    packet = request("show", {"queries": [{"id": "task", "kind": "task"}]})
+    packet["telemetry"] = _raw_telemetry()
+    result = WorkTools(runtime).invoke(packet)
+    runtime.telemetry.dispatcher.close()
+    with runtime.store.transaction() as database:
+        envelopes = database.execute(
+            "SELECT count(*) FROM accounting_cycles WHERE json_extract(data,'$.kind')='telemetry_envelope'"
+        ).fetchone()[0]
+    assert envelopes == 0
+    assert result["interaction"]["coverage"] in {"unavailable", "partial"}
+
+
+@pytest.mark.parametrize("case", ["wrong_from", "wrong_to", "missing_field", "extra_field"])
+def test_invalid_activation_is_atomic_and_keeps_schema11_source_operable(project, case):
+    settings, config_path, published = _legacy_setup(project)
+    packet = _activation_request(
+        config_path,
+        published["revision"],
+        {"database": "valid/events.sqlite", "lock": "valid/events.lock"},
+        request_id=f"invalid-activation-{case}",
+    )
+    if case == "wrong_from":
+        packet["storage_activation"]["from_schema"] = "ddd-accounting-10"
+    elif case == "wrong_to":
+        packet["storage_activation"]["to_schema"] = "ddd-accounting-13"
+    elif case == "missing_field":
+        del packet["storage_activation"]["storage"]
+    else:
+        packet["storage_activation"]["fallback"] = True
+    before = config_path.read_bytes()
+    with pytest.raises(PoiseError):
+        project_config_tools(settings).apply(packet)
+    assert config_path.read_bytes() == before
+    runtime = Poise(config_path, f"legacy-after-{case}", DeterministicClock())
+    try:
+        assert WorkTools(runtime).invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))["status"] == "read_only"
+    finally:
+        runtime.telemetry.dispatcher.close()

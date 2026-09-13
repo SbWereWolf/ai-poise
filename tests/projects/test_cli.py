@@ -21,12 +21,12 @@ def test_duplicate_json_keys_rejected_before_any_write(project):
 
 def test_interactive_back_change_keep_and_publish(project):
     settings,_,req=setup_case(project);req['edits']=[]
-    answers=io.StringIO('set "first"\nkeep\nback\nkeep\nset false\nback\nset true\npublish\n')
+    answers=io.StringIO('set "first"\nkeep\nback\nkeep\nset true\nback\nset false\npublish\n')
     out=io.StringIO();prompts=io.StringIO()
     code=interactive(settings,req,answers,out,prompts)
     assert code==0,prompts.getvalue()+out.getvalue()
     cfg=json.loads(Path(json.loads(out.getvalue())['config_path']).read_text())
-    assert cfg['project']=='first' and cfg['git']['push_required'] is True
+    assert cfg['project']=='first' and cfg['git']['push_required'] is False
     assert 'Repository' in prompts.getvalue()
 
 

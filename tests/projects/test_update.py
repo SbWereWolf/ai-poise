@@ -267,13 +267,13 @@ def test_manifest_change_is_rejected_while_task_work_is_active(project):
     request = update_request(
         config_path,
         created["revision"],
-        manifest_edits=[{"path": ["git", "push_required"], "value": False}],
+        manifest_edits=[{"path": ["git", "remote"], "value": "changed"}],
     )
 
     with pytest.raises(PoiseError, match="active|актив"):
         update_tools(settings).apply(request)
 
-    assert json.loads(config_path.read_text())["git"]["push_required"] is True
+    assert json.loads(config_path.read_text())["git"]["remote"] == "backup"
 
 
 def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_request(project):

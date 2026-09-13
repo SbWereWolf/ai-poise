@@ -45,6 +45,7 @@ SCHEMA = (
     "CREATE TABLE task_proofs(task_id TEXT PRIMARY KEY REFERENCES tasks(id), data TEXT NOT NULL)",
     "CREATE TABLE task_proof_layers(task_id TEXT NOT NULL REFERENCES tasks(id), version INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY(task_id,version))",
     "CREATE TABLE tasks(id TEXT PRIMARY KEY, status TEXT NOT NULL, stage_index INTEGER NOT NULL, iteration INTEGER NOT NULL, claimed_by TEXT, version INTEGER NOT NULL, current_submission_id INTEGER, metadata TEXT NOT NULL, FOREIGN KEY(current_submission_id,id) REFERENCES submissions(seq,task_id) DEFERRABLE INITIALLY DEFERRED)",
+    "CREATE TABLE task_requirements_snapshots(task_id TEXT PRIMARY KEY, data TEXT NOT NULL)",
     "CREATE TABLE task_workflows(task_id TEXT PRIMARY KEY REFERENCES tasks(id), data TEXT NOT NULL)",
     "CREATE TABLE task_execution(task_id TEXT PRIMARY KEY REFERENCES tasks(id), data TEXT NOT NULL, version INTEGER NOT NULL)",
     "CREATE TABLE sessions(id TEXT PRIMARY KEY, task_id TEXT REFERENCES tasks(id))",

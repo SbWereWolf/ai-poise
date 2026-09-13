@@ -27,11 +27,14 @@ def _action_digest(action: str, payload: dict) -> str:
     ).encode()).hexdigest()
 
 
-def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata):
+def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata,
+                     requirements_snapshot=None):
     from ..modules.tasks.allocation import materialize_contract
     from ..modules.tasks.definition import build_task, validate_creation
     contract, creation_request = materialize_contract(intent, allocation.task_id)
     metadata = validate_creation(contract, process, automatic_checks)
+    if requirements_snapshot is not None:
+        metadata['requirements_snapshot'] = deepcopy(requirements_snapshot)
     metadata.update(base_metadata)
     metadata.update(sprint_id=contract['sprint_id'], goal=contract['goal'])
     if creation_request is not None:
@@ -44,6 +47,7 @@ class PreparedCreation:
     intent: dict
     process: dict
     automatic_checks: list
+    requirements_snapshot: dict | None
 
 
 def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=()):
@@ -57,7 +61,8 @@ def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=())
     parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
     allocation = uow.tasks.allocate(intent, parsed_policy, reserved_ids)
     task, metadata, contract = _creation_values(
-        intent, allocation, None, process, automatic_checks, base_metadata
+        intent, allocation, None, process, automatic_checks, base_metadata,
+        prepared.requirements_snapshot,
     )
     uow.tasks.create(task, metadata)
     return allocation, contract
@@ -109,14 +114,17 @@ class SubmissionReceipt:
 
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
-    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader):
+    def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader,
+                 requirements_gate):
         self.unit_of_work = unit_of_work
         self.repository_tree = repository_tree
+        self.requirements_gate = requirements_gate
 
     def prepare_creation(self, intent, process, automatic_checks, base_revision):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
+        intent, requirements_snapshot = self.requirements_gate.prepare_contract(intent)
         candidate, _ = materialize_contract(intent, creation_alias(intent))
         try:
             preflight = CreationPreflight.parse(candidate, process)
@@ -135,7 +143,14 @@ class TaskCommands:
             deepcopy(intent),
             deepcopy(process),
             deepcopy(automatic_checks),
+            deepcopy(requirements_snapshot),
         )
+
+    def publish_requirements(self, task_id, task_requirements, agreement):
+        return self.requirements_gate.publish(task_id, task_requirements, agreement)
+
+    def requirements_snapshot(self, task_id):
+        return self.requirements_gate.snapshot(task_id)
 
     def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
                base_metadata: dict, execution, policy, base_revision):
@@ -152,6 +167,7 @@ class TaskCommands:
                 prepared.process,
                 prepared.automatic_checks,
                 base_metadata,
+                prepared.requirements_snapshot,
             )
             if not allocation.replayed:
                 newborn = NewbornTask.create(allocation.task_id, None, actor)
@@ -415,6 +431,8 @@ class TaskCommands:
             if newborn != snapshot:
                 raise VersionConflict('Newborn Task changed after creation preflight')
             metadata = validate_creation(prepared.intent, newborn.process, effective_checks)
+            if prepared.requirements_snapshot is not None:
+                metadata['requirements_snapshot'] = deepcopy(prepared.requirements_snapshot)
             metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
             if newborn.creation_request is not None:
                 metadata['creation_request'] = deepcopy(newborn.creation_request)

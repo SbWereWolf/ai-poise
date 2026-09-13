@@ -1,9 +1,31 @@
 from .application.tasks import TaskCommands
 
 
-def task_tools(store, repository_tree):
+def task_tools(store, repository_tree, requirements_gate):
     """Explicit composition for the extracted Task slice; no service locator."""
-    return TaskCommands(store.unit_of_work, repository_tree), store.queries
+    return TaskCommands(store.unit_of_work, repository_tree, requirements_gate), store.queries
+
+
+def requirements_tools(config_path):
+    from .application.requirements_registry import RequirementsCommands
+    from .common import configured_root, descendant, load_config
+    from .infrastructure.requirements_registry import RequirementsStore
+    root, config, _ = load_config(config_path)
+    paths = config['paths']
+    if 'requirements_database' not in paths:
+        from .modules.foundation.errors import PoiseError
+        raise PoiseError('Requirements Registry не настроен для проекта')
+    state = configured_root(root, paths['state'])
+    limits = config['limits']
+    return RequirementsCommands(
+        RequirementsStore(
+            descendant(state, paths['requirements_database']),
+            descendant(state, paths['requirements_lock']),
+            limits['lock_seconds'],
+            limits['lock_poll_seconds'],
+        ),
+        config['batch']['max_items'],
+    ), config
 
 
 def goal_config_tools(settings_path):

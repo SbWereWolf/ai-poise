@@ -1,0 +1,1 @@
+"""Pure Requirements Registry domain."""

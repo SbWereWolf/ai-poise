@@ -5,13 +5,6 @@ from ..application.work import WorkTools
 from ..common import PoiseError,descendant
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
-from ..infrastructure.task_paths import sprint_root, task_root
-
-
-def _task_root(h, task):
-    saved = h.task_queries.record(task['id'])
-    sprint_id = task.get('sprint_id') if saved is None else saved['sprint_id']
-    return task_root(h.state, h.paths, h._identifier(task['id']), sprint_id)
 
 
 def execute(runtime,stream,output):
@@ -23,11 +16,11 @@ def execute(runtime,stream,output):
             raise PoiseError('Packet exceeds configured max_input_bytes')
         request=parse_request(strict_json(raw.decode('utf-8')),h.cfg['batch'])
         current=h.current_task()
-        root=h.runtime if current is None else _task_root(h, current)
+        root=h.runtime if current is None else descendant(h.state,h.paths['tasks'])/current['id']
         if request['operation']=='bootstrap' and request['input']['task'] is not None:
             task=request['input']['task']
             if 'id' in task:
-                root=_task_root(h, task)
+                root=descendant(h.state,h.paths['tasks'])/h._identifier(task['id'])
         predicted=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
         minimal={'status':'content_requirements_failed','response_path':str(predicted)}
         if len(json.dumps(minimal,ensure_ascii=False,separators=(',',':'))+'\n')>h.cfg['limits']['output_chars']:
@@ -52,9 +45,7 @@ def write_result(h,result,output):
     text=json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n'
     response=None
     if current is not None or isinstance(result.get('sprint'),str) or len(text)>h.cfg['limits']['output_chars']:
-        root = (_task_root(h, current) if current is not None else
-                (sprint_root(h.state, h.paths, h._identifier(result['sprint']))
-                 if isinstance(result.get('sprint'), str) else h.runtime))
+        root=(descendant(h.state,h.paths['sprints'])/h._identifier(result['sprint'])) if isinstance(result.get('sprint'),str) else ((descendant(h.state,h.paths['tasks'])/current['id']) if current is not None else h.runtime)
         response=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
         atomic_write(response,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
         view={**result,'response_path':str(response)}

@@ -20,17 +20,9 @@ def inspect_paths(paths: list[str], roots: dict[str, Path], owners: dict[str,str
             raise PoiseError(f'Артефакт не существует: {raw}') from exc
         if not path.is_file():
             raise PoiseError(f'Артефакт должен быть обычным файлом: {raw}')
-        candidates = [
-            (scope, root.resolve())
-            for scope, root in roots.items()
-            if path.is_relative_to(root.resolve())
-        ]
-        if not candidates:
-            raise PoiseError(f'Путь вне разрешённых областей runtime/task/sprint: {raw}')
-        depth = max(len(root.parts) for _, root in candidates)
-        scopes = [scope for scope, root in candidates if len(root.parts) == depth]
+        scopes = [scope for scope, root in roots.items() if path.is_relative_to(root.resolve())]
         if len(scopes) != 1:
-            raise PoiseError(f'Путь принадлежит нескольким областям одного уровня: {raw}')
+            raise PoiseError(f'Путь вне разрешённых областей runtime/task/sprint: {raw}')
         scope = scopes[0]
         key = (scope, str(path))
         found[key] = {'id': str(uuid.uuid5(uuid.NAMESPACE_URL, f'{scope}:{owners[scope]}:{path.relative_to(roots[scope].resolve()).as_posix()}')),

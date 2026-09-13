@@ -16,7 +16,6 @@ from ..modules.result_integration.domain import IntegrationRun
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 from .locking import exclusive_lock
 from .task_cleanup import RuntimeTaskResourceCleanup
-from .task_paths import task_root
 
 
 class RuntimeResultIntegration:
@@ -274,12 +273,7 @@ class RuntimeResultIntegration:
     def _run_checks(self, record, run):
         worktree = Path(run.task_worktree).resolve(strict=True)
         receipts = []
-        owner_root = task_root(
-            self.h.state,
-            self.h.paths,
-            run.intent.task_id,
-            record["sprint_id"],
-        )
+        task_root = descendant(self.h.state, self.h.paths["tasks"]) / run.intent.task_id
         for method in self._select_checks(record):
             cwd = (worktree / method["cwd"]).resolve()
             if not cwd.is_relative_to(worktree) or not cwd.is_dir():
@@ -291,7 +285,7 @@ class RuntimeResultIntegration:
                 environment[name] = os.environ[name]
             environment.update(method["environment"])
             check_id = str(uuid.uuid4())
-            run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            run_dir = descendant(task_root, self.h.paths["runs"]) / check_id
             result = run_command(
                 method["argv"], cwd, environment, None,
                 descendant(run_dir, self.h.paths["stdout"]),

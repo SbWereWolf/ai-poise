@@ -14,11 +14,6 @@ from .sqlite.transfer_records import relocate_path, relocate_receipt
 from .sqlite.database import SCHEMA_VERSION
 from .goal_config import atomic_write
 from .locking import exclusive_lock
-from .task_paths import sprint_root, task_root
-
-
-def _sprint_id(row):
-    return json.loads(row['metadata'])['sprint_id']
 
 
 def execution_policy(cfg):
@@ -71,9 +66,8 @@ class RuntimeTransfers:
         directory=self._request_dir(args);stage=directory/'preparing'
         if stage.exists():shutil.rmtree(stage)
         stage.mkdir(parents=True)
-        task_rows = {row['id']: row for row in tables['tasks']}
-        owners={'task':{tid:str(task_root(h.state, h.paths, tid, _sprint_id(task_rows[tid]))) for tid in task_ids},
-                'sprint':{sid:str(sprint_root(h.state, h.paths, sid)) for sid in sprint_ids},
+        owners={'task':{tid:str(descendant(h.state,h.paths['tasks'])/tid) for tid in task_ids},
+                'sprint':{sid:str(descendant(h.state,h.paths['sprints'])/sid) for sid in sprint_ids},
                 'worktree':{}}
         files=[];workspaces={};observed_sources=[];total=0
         for artifact in tables['artifacts']:
@@ -107,15 +101,9 @@ class RuntimeTransfers:
                 root=Path(root_text)
                 if root.is_symlink():raise PoiseError('Owner root is a symlink')
                 if not root.exists():continue
-                nested_task_roots = (
-                    [Path(value).resolve() for value in owners['task'].values()
-                     if Path(value).resolve().is_relative_to(root.resolve())]
-                    if scope == 'sprint' else []
-                )
                 for path in sorted(root.rglob('*')):
                     if path.is_symlink():raise PoiseError('Task/sprint artifact symlink is not transferable')
                     if path.is_dir():continue
-                    if any(path.resolve().is_relative_to(task) for task in nested_task_roots):continue
                     rel=(PurePosixPath(c['files_directory'])/scope/owner/path.relative_to(root).as_posix()).as_posix()
                     add(path,rel)
         execution={r['task_id']:json.loads(r['data']) for r in tables['task_execution']}
@@ -227,15 +215,11 @@ class RuntimeTransfers:
 
     def _binding(self,manifest,tables,sha):
         h=self.h;locations={};by_task={};trees={}
-        task_rows = {row['id']: row for row in tables['tasks']}
-        for owner, old in manifest['owners']['task'].items():
-            h._identifier(owner)
-            locations[old] = str(task_root(
-                h.state, h.paths, owner, _sprint_id(task_rows[owner])
-            ))
-        for owner, old in manifest['owners']['sprint'].items():
-            h._identifier(owner)
-            locations[old] = str(sprint_root(h.state, h.paths, owner))
+        for scope in ('task','sprint'):
+            for owner,old in manifest['owners'][scope].items():
+                h._identifier(owner)
+                folder=h.paths['tasks'] if scope=='task' else h.paths['sprints']
+                locations[old]=str(descendant(h.state,folder)/owner)
         for tid,old in manifest['owners']['worktree'].items():
             h._identifier(tid)
             trees[tid]=None if old is None else str(descendant(h.state,h.paths['worktrees'])/tid)

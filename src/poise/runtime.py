@@ -20,7 +20,6 @@ from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, method_passed, preview
-from .infrastructure.task_paths import sprint_root, task_root
 
 
 def resolve_source_under_test(
@@ -571,9 +570,9 @@ class Poise:
 
     def _roots(self, task: dict) -> dict[str,Path]:
         roots = {'runtime': self.runtime,
-                 'task': task_root(self.state, self.paths, task['id'], task['sprint_id'])}
+                 'task': descendant(self.state, self.paths['tasks']) / task['id']}
         if task['sprint_id'] is not None:
-            roots['sprint'] = sprint_root(self.state, self.paths, task['sprint_id'])
+            roots['sprint'] = descendant(self.state, self.paths['sprints']) / task['sprint_id']
         for path in roots.values():
             if path.is_symlink():
                 raise PoiseError('Корень владельца артефактов не может быть symlink')
@@ -582,8 +581,8 @@ class Poise:
 
     def _context(self, data: dict, prepare: bool) -> dict:
         stage = self._stage(data)
-        current_task_root = task_root(self.state, self.paths, data['id'], data['sprint_id'])
-        current_sprint_root = None if data['sprint_id'] is None else sprint_root(self.state, self.paths, data['sprint_id'])
+        task_root = descendant(self.state, self.paths['tasks']) / data['id']
+        sprint_root = None if data['sprint_id'] is None else descendant(self.state, self.paths['sprints']) / data['sprint_id']
         content = self.task_commands.content_context(data['id'])
         workflow = self.runner.context(data['id'])
         payload = None
@@ -603,8 +602,8 @@ class Poise:
                 'instruction': stage['instruction'], 'requirements': data['contract']['requirements'],
                 'definition_of_done': data['contract']['definition_of_done'],
                 'action':self.plan_actions.snapshot(data), 'content_requirements':content, 'handler':workflow['handler'], 'workflow':workflow,
-                'runtime_root': str(self.runtime), 'task_root': str(current_task_root),
-                'sprint_root': None if current_sprint_root is None else str(current_sprint_root),
+                'runtime_root': str(self.runtime), 'task_root': str(task_root),
+                'sprint_root': None if sprint_root is None else str(sprint_root),
                 'result_template': payload,
                 'progression': data.get('progression'),
                 'agents_files': [] if data['worktree'] is None else
@@ -905,11 +904,11 @@ class Poise:
     def _existing_artifacts(self, data: dict) -> list[dict]:
         roots = {
             'runtime': self.runtime,
-            'task': task_root(self.state, self.paths, data['id'], data['sprint_id']),
+            'task': descendant(self.state, self.paths['tasks']) / data['id'],
         }
         owners = {'runtime': self.session, 'task': data['id']}
         if data['sprint_id'] is not None:
-            roots['sprint'] = sprint_root(self.state, self.paths, data['sprint_id'])
+            roots['sprint'] = descendant(self.state, self.paths['sprints']) / data['sprint_id']
             owners['sprint'] = data['sprint_id']
         records = []
         for prior in self.store.artifact_records(data['id']):

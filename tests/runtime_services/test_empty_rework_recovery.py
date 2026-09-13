@@ -69,10 +69,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
                 )
             )
         except PoiseError as exc:
-            if str(exc) in (
-                "Unknown work operation",
-                "Recovery requires the exact preceding user_rework event",
-            ):
+            if str(exc) == "Unknown work operation":
                 self.fail(f"public recovery behavior is missing: {exc}")
             raise
 
@@ -261,6 +258,17 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered["stage"], verified["stage"])
         self.assertEqual(recovered["iteration"], verified["iteration"])
 
+    def test_recovers_after_plain_ownership_release_without_a_rework_handoff(self):
+        runtime, verified, active = self._simple_empty_rework(release=False)
+        runtime.ownership.release_task("T1")
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
+        self.assertEqual(active["iteration"], verified["iteration"] + 1)
+
     def test_rejects_non_ownership_suffix_without_changing_task_state(self):
         runtime, _, active = self._simple_empty_rework()
         reviewer = WorkPoise(self.project["config_path"], "INTERMEDIATE-REVIEWER")
@@ -325,7 +333,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         result(active, {})
         self._handoff(runtime, request_id="submitted-rework-handoff", payload=active["result_template"])
 
-        with self.assertRaisesRegex(PoiseError, "empty|submission"):
+        with self.assertRaisesRegex(PoiseError, "empty|submission|non-ownership"):
             self._recover()
 
     def test_rejects_non_rework_last_event(self):

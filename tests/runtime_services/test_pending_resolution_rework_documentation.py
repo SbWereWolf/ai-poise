@@ -21,4 +21,4 @@ def test_pending_resolution_rework_policy_is_documented_for_humans_and_agents():
     assert 'task_id="0077"' in workflow
     assert "предком текущего настроенного `base_ref`" in workflow
     assert "never recreate that worktree manually" in workflow_skill
-    assert "кандидат `released` или уже `resumed`" in workflow
+    assert "отдельный handoff пустой итерации для recovery не обязателен" in workflow

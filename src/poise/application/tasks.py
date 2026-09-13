@@ -386,25 +386,13 @@ class TaskCommands:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
             handoff = uow.handoffs.latest_recovery_candidate(task_id)
-            if handoff is None:
-                raise DomainError(
-                    "Empty rework recovery requires a preserved handoff"
-                )
-            if task.state.version < handoff["version"] + 1:
-                raise DomainError("Task predates the preserved empty rework handoff")
-            if handoff["receipt"]["verified"] is not False:
-                raise DomainError(
-                    "Empty rework recovery requires an active handoff after user_rework"
-                )
+            point = uow.tasks.empty_rework_recovery_point(
+                task_id, task.state.version, execution["last_report"], transition_event
+            )
+            if point.evidence_input is None:
+                raise DomainError("Previous verified submission has no evidence input")
             if task.state.submission_digest is not None:
                 raise DomainError("Current rework iteration is not empty: submission exists")
-            if (
-                handoff["receipt"]["stage"] != task.stage.stage_id
-                or handoff["receipt"]["iteration"] != task.state.iteration
-            ):
-                raise DomainError("Released handoff does not identify the current empty iteration")
-            if handoff["receipt"]["tree"] != tree:
-                raise DomainError("Released handoff tree changed")
             if (
                 execution["pending"] is not None
                 or execution["publication"] is not None
@@ -414,11 +402,6 @@ class TaskCommands:
                 or execution["last_report"].get("verified_tree") != tree
             ):
                 raise DomainError("Execution state is not an unchanged empty rework")
-            point = uow.tasks.empty_rework_recovery_point(
-                task_id, task.state.version, execution["last_report"], transition_event
-            )
-            if point.evidence_input is None:
-                raise DomainError("Previous verified submission has no evidence input")
             change = task.recover_empty_transition(reason, point, recovery_event)
             uow.tasks.save(change, task.state.version)
             if transition_event == "user_accept_and_continue":
@@ -426,7 +409,13 @@ class TaskCommands:
                     task_id,
                     {"last_report": {**execution["last_report"], "status": "verified"}},
                 )
-            uow.handoffs.replace({**handoff, "state": "recovered"})
+            if (handoff is not None
+                    and task.state.version >= handoff["version"] + 1
+                    and handoff["receipt"]["verified"] is False
+                    and handoff["receipt"]["stage"] == task.stage.stage_id
+                    and handoff["receipt"]["iteration"] == task.state.iteration
+                    and handoff["receipt"]["tree"] == tree):
+                uow.handoffs.replace({**handoff, "state": "recovered"})
             return {
                 "status": "recovered",
                 "task": task_id,

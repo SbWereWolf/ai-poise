@@ -12,7 +12,7 @@ import sys
 
 import pytest
 
-from conftest import Poise, write_json
+from conftest import Poise, WorkPoise, write_json
 from tests.backups.helpers import backup_commands, backup_directory, run_cli
 
 
@@ -398,14 +398,68 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
 
 def test_claimed_task_is_migrated_without_changing_ownership(project):
     from poise.application.task_process_migration import TaskProcessMigrationCommands
+    from poise.application.work import WorkTools
     from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
     from poise.modules.foundation.errors import PoiseError
+    from tests.batch.helpers import request
 
-    database, expected_metadata = _seed_legacy_tasks(project)
+    processes = _configured_processes(project)
+    owner = WorkTools(WorkPoise(project["config_path"], "owner-session-0063"))
+    task = deepcopy(project["task"])
+    task["id"] = "0063"
+    owner.invoke(
+        request(
+            "bootstrap",
+            {"task": task, "decision": None, "feedback": None, "rework_stage": None},
+        )
+    )
+    database = _database(project)
     with sqlite3.connect(database) as connection:
+        raw = connection.execute("SELECT metadata FROM tasks WHERE id='0063'").fetchone()[0]
+        metadata = json.loads(raw)
+        metadata["process"].pop("worktree_required")
         connection.execute(
-            "UPDATE tasks SET claimed_by=? WHERE id='0063'",
-            ("owner-session-0063",),
+            "UPDATE tasks SET metadata=? WHERE id='0063'",
+            (json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")),),
+        )
+        for task_id in TASKS[:-1]:
+            goal_type = "documentation" if task_id == "0074" else "development"
+            process = deepcopy(processes[goal_type])
+            process.pop("worktree_required")
+            legacy = {
+                "contract": {"id": task_id, "goal_type": goal_type},
+                "goal": f"legacy-{task_id}",
+                "process": process,
+                "marker": {"preserve": task_id},
+            }
+            connection.execute(
+                "INSERT INTO tasks(id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata) "
+                "VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    task_id,
+                    "available",
+                    0,
+                    1,
+                    None,
+                    7,
+                    None,
+                    json.dumps(legacy, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+                ),
+            )
+
+    legacy_owner = WorkTools(WorkPoise(project["config_path"], "owner-session-0063"))
+    with pytest.raises(PoiseError, match="worktree_required"):
+        legacy_owner.invoke(
+            request(
+                "handoff",
+                {
+                    "request_id": "legacy-0063-before-migration",
+                    "reason": "reproduce the public release deadlock",
+                    "result": None,
+                    "commit_message": None,
+                    "artifact_paths": [],
+                },
+            )
         )
     backup = backup_commands(project).create()
     before = _snapshot(database)
@@ -442,6 +496,24 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
     replay = _invoke_cli(project, _request(backup["name"], request_id="claimed-0063"))
     assert replay.returncode == 0, replay.stdout + replay.stderr
     assert json.loads(replay.stdout) == {**result, "replayed": True}
+    assert _snapshot(database) == after
+
+    migrated_owner = WorkTools(WorkPoise(project["config_path"], "owner-session-0063"))
+    handed_off = migrated_owner.invoke(
+        request(
+            "handoff",
+            {
+                "request_id": "legacy-0063-after-migration",
+                "reason": "prove the public release path is restored",
+                "result": None,
+                "commit_message": None,
+                "artifact_paths": [],
+            },
+        )
+    )
+    assert handed_off["status"] == "handed_off"
+    assert handed_off["task"] == "0063"
+    assert migrated_owner.runtime.task_queries.record("0063")["claimed_by"] is None
 
     backup_commands(project).restore(backup["name"])
     before_drift = _snapshot(database)
@@ -463,18 +535,12 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
             _request(backup["name"], request_id="claimed-0063-drift")
         )
 
-    after_drift = _snapshot(database)
-    assert after_drift["journal"] == before_drift["journal"]
-    assert all(
-        "worktree_required" not in json.loads(row[7])["process"]
-        for row in after_drift["tasks"]
-        if row[0] in TASKS
-    )
-    assert {row[0]: row[4] for row in after_drift["tasks"]} == {
-        **{row[0]: row[4] for row in before_drift["tasks"]},
-        "0063": "replacement-session",
-    }
-    assert expected_metadata["0063"]["marker"] == {"preserve": "0063"}
+    expected_drift = deepcopy(before_drift)
+    expected_drift["tasks"] = [
+        tuple((*row[:4], "replacement-session", *row[5:])) if row[0] == "0063" else row
+        for row in expected_drift["tasks"]
+    ]
+    assert _snapshot(database) == expected_drift
 
 
 def test_rolls_back_complete_batch_and_receipt_on_fault(project):

@@ -53,7 +53,11 @@ def execute(settings_path, stream, output):
                 if len(render(candidate))>cap: break
                 view=candidate
         else:
-            view={key:result[key] for key in ('status','goal_type','revision','changed','replayed','change_count','config_path')}
+            fields=(
+                'status','goal_type','revision','managed_revision','live_revision','aligned',
+                'replayed','changed','change_count','config_path',
+            )
+            view={key:result[key] for key in fields if key in result}
             view['response_path']=str(response)
         if len(render(view))>cap:
             view={'status':result['status'],'response_path':str(response)}

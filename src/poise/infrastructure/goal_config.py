@@ -154,7 +154,7 @@ class FileGoalConfigRepository:
         self.settings=settings
 
     @contextmanager
-    def edit(self,goal):
+    def edit(self,goal,*,recover=True):
         s=self.settings; cfg=s.raw
         target=s.target(goal)
         db_path=descendant(s.root,cfg["database"])
@@ -179,7 +179,8 @@ class FileGoalConfigRepository:
                 elif version!=1:
                     raise PoiseError("Schema БД редактора несовместима; миграция не выполняется")
                 edit=FileConfigEdit(s,db,goal,target)
-                edit.recover()
+                if recover:
+                    edit.recover()
                 yield edit
             except sqlite3.Error as exc:
                 raise PoiseError(f"Ошибка хранилища редактора: {exc}") from exc
@@ -236,6 +237,14 @@ class FileConfigEdit:
         }
 
     def reconcile(self, request, request_digest):
+        pending = self.db.execute(
+            "SELECT request_id FROM config_operations WHERE goal_type=? AND phase='pending'",
+            (self.goal,),
+        ).fetchone()
+        if pending is not None:
+            raise PublicationPending(
+                f"Операция {pending['request_id']} ещё ожидает публикации"
+            )
         current = self.current()
         if current is None:
             raise VersionConflict("Редактируемый тип не существует")
@@ -247,14 +256,6 @@ class FileConfigEdit:
             raise VersionConflict("Устаревшая managed revision")
         if live_revision != request["expected_live_revision"]:
             raise VersionConflict("Устаревшая live revision")
-        pending = self.db.execute(
-            "SELECT request_id FROM config_operations WHERE goal_type=? AND phase='pending'",
-            (self.goal,),
-        ).fetchone()
-        if pending is not None:
-            raise PublicationPending(
-                f"Операция {pending['request_id']} ещё ожидает публикации"
-            )
         validated = self.current()
         validated_revision = fingerprint(validated)
         if validated_revision != live_revision:

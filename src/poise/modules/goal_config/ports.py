@@ -12,7 +12,7 @@ class ConfigEdit(Protocol):
 
 
 class GoalConfigRepository(Protocol):
-    def edit(self, goal_type: str) -> ContextManager[ConfigEdit]: ...
+    def edit(self, goal_type: str, *, recover: bool = True) -> ContextManager[ConfigEdit]: ...
 
 
 class ProcessTemplates(Protocol):

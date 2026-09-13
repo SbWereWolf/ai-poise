@@ -96,13 +96,13 @@ class GoalConfigCommands:
 
     def status(self, request: dict) -> dict:
         validate_status_request(request)
-        with self.repository.edit(request["goal_type"]) as edit:
+        with self.repository.edit(request["goal_type"], recover=False) as edit:
             return edit.status()
 
     def reconcile(self, request: dict) -> dict:
         validate_reconcile_request(request)
         request_digest = fingerprint(request)
-        with self.repository.edit(request["goal_type"]) as edit:
+        with self.repository.edit(request["goal_type"], recover=False) as edit:
             prior = edit.replay(request["request_id"], request_digest)
             if prior is not None:
                 return prior

@@ -149,8 +149,7 @@ def _old_path_is_synchronous():
         def finish(self, *args):
             return False
 
-    runtime = _Runtime(None, foreground_progress)
-    runtime.telemetry = BlockingTelemetry()
+    runtime = _Runtime(BlockingTelemetry(), foreground_progress)
     progressed, outcome = _invoke_with_release(
         WorkTools(runtime), release, entered, foreground_progress, wait_for_progress=False
     )
@@ -188,6 +187,48 @@ def test_slow_optional_processor_does_not_delay_or_replace_work_result():
     assert "error" not in outcome
     assert outcome["result"]["results"][0]["value"] == {"state": "authoritative"}
     assert len(received) == 1
+
+
+def test_slow_optional_capture_does_not_delay_or_replace_work_result():
+    from poise.application.telemetry import OptionalTelemetry
+    from poise.application.work import WorkTools
+    from poise.modules.accounting.clock import ClockObservation
+
+    entered = Event()
+    release = Event()
+    foreground_progress = Event()
+
+    class BlockingClock:
+        def __init__(self):
+            self.calls = 0
+
+        def observe(self):
+            self.calls += 1
+            if self.calls == 1:
+                entered.set()
+                release.wait()
+            return ClockObservation(
+                "2026-09-13T01:00:00+00:00",
+                self.calls,
+                "boot-0082",
+            )
+
+    class CaptureDispatcher:
+        def submit(self, envelope):
+            return True
+
+    telemetry = OptionalTelemetry(BlockingClock(), CaptureDispatcher(), "original-session")
+    progressed, outcome = _invoke_with_release(
+        WorkTools(_Runtime(telemetry, foreground_progress)),
+        release,
+        entered,
+        foreground_progress,
+        wait_for_progress=True,
+    )
+
+    assert progressed is True
+    assert "error" not in outcome
+    assert outcome["result"]["results"][0]["value"] == {"state": "authoritative"}
 
 
 def _configure_production_accounting(project):

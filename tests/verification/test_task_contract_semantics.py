@@ -238,7 +238,7 @@ def case_public_creation_and_seed(root: Path) -> None:
         registry = inspector.task_queries.verification_registry(task_id)
         baseline = next(
             item["method"]
-            for item in registry["current"]["entries"]
+            for item in registry["current"]
             if item["method"]["id"] == "BASELINE"
         )
         assert record["contract"]["checks"]["baseline"] == ["BASELINE"]

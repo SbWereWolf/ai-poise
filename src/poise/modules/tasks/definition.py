@@ -33,8 +33,13 @@ def registry_inspection_stages(process):
     )
 
 
+def has_executable_obligations_field(process):
+    """Whether this exact process schema requires the Task classification field."""
+    return bool(registry_inspection_stages(process))
+
+
 def executable_obligations(contract, process):
-    if not registry_inspection_stages(process):
+    if not has_executable_obligations_field(process):
         return ()
     return declared_executable_obligations(
         contract['executable_obligations'],
@@ -74,7 +79,7 @@ def validate_creation(contract, process, automatic_checks):
     fields={'id','sprint_id','goal_type','goal','requirements','definition_of_done',
         'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan',
         'stage_contracts'}
-    if registry_inspection_stages(process):
+    if has_executable_obligations_field(process):
         fields.add('executable_obligations')
     exact_keys(contract,fields,'task')
     path_identifier(contract['id'])

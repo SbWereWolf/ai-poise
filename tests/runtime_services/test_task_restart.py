@@ -76,6 +76,7 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
     (worktree / "src" / "double.py").write_text(
         "def double(value):\n    return value * 3\n", encoding="utf-8",
     )
+    (worktree / "tests").mkdir(exist_ok=True)
     (worktree / "tests" / "restart-staged.txt").write_text(
         "staged WIP\n", encoding="utf-8",
     )

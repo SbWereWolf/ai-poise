@@ -192,8 +192,14 @@ def test_declared_arrival_cannot_satisfy_earlier_entry():
 def test_artifact_producer_must_have_writable_scope_and_exit_gate():
     contracts = _contracts()
     contracts[0]["allowed_paths"] = ["src/**"]
+    with pytest.raises(DomainError, match="producer.*scope"):
+        _parse(contracts=contracts)
+
+
+def test_artifact_producer_must_have_independent_exit_gate():
+    contracts = _contracts()
     contracts[0]["exit_requirements"] = []
-    with pytest.raises(DomainError, match="producer.*scope.*exit"):
+    with pytest.raises(DomainError, match="producer.*exit"):
         _parse(contracts=contracts)
 
 

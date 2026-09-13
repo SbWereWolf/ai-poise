@@ -82,6 +82,21 @@ def _legacy(runtime, task_id="T1"):
         )
 
 
+def _snapshot(runtime, task_id="T1"):
+    with runtime.store.transaction() as db:
+        task = tuple(db.execute(
+            "SELECT status,stage_index,iteration,claimed_by,version,current_submission_id,metadata "
+            "FROM tasks WHERE id=?", (task_id,)
+        ).fetchone())
+        events = tuple(tuple(row) for row in db.execute(
+            "SELECT version,data FROM task_events WHERE task_id=? ORDER BY seq", (task_id,)
+        ))
+        journal = tuple(tuple(row) for row in db.execute(
+            "SELECT session_id,event,data FROM journal WHERE task_id=? ORDER BY seq", (task_id,)
+        ))
+    return task, events, journal
+
+
 def _initialize(task, version, request_id="initialize-public"):
     return request("initialize_stage_contracts", {
         "request_id": request_id,
@@ -111,17 +126,19 @@ def test_public_initialize_packet_is_exact_and_atomic(project):
     _legacy(tools.runtime)
     version = tools.runtime.task_queries.record("T1")["version"]
     valid = _initialize(task, version)
+    assert parse_request(valid, project["cfg"]["batch"]) == valid
+    before = _snapshot(tools.runtime)
     for field in tuple(valid["input"]):
         malformed = deepcopy(valid)
         malformed["input"].pop(field)
         with pytest.raises(PoiseError):
             tools.invoke(malformed)
-        assert tools.runtime.task_queries.record("T1")["version"] == version
+        assert _snapshot(tools.runtime) == before
     malformed = deepcopy(valid)
     malformed["input"]["unexpected"] = True
     with pytest.raises(PoiseError):
         tools.invoke(malformed)
-    assert tools.runtime.task_queries.record("T1")["version"] == version
+    assert _snapshot(tools.runtime) == before
     result = tools.invoke(valid)
     assert result["status"] == "stage_contracts_initialized"
     assert result["version"] == version + 1 and result["replayed"] is False
@@ -134,13 +151,16 @@ def test_public_initialize_replay_survives_restart_and_rejects_conflict(project)
     version = tools.runtime.task_queries.record("T1")["version"]
     packet = _initialize(task, version, "durable-init")
     first = tools.invoke(packet)
+    after = _snapshot(tools.runtime)
     restarted = WorkTools(Poise(project["config_path"], "creator"))
     replay = restarted.invoke(packet)
-    assert replay["replayed"] is True and replay["version"] == first["version"]
+    assert replay == {**first, "replayed": True}
+    assert _snapshot(restarted.runtime) == after
     conflict = deepcopy(packet)
     conflict["input"]["contracts"][0]["allowed_paths"] = ["conflict/**"]
     with pytest.raises(PoiseError, match="request.*conflict"):
         restarted.invoke(conflict)
+    assert _snapshot(restarted.runtime) == after
 
 
 def test_public_revise_requires_inspection_owner_authorization_and_version(project):
@@ -149,14 +169,36 @@ def test_public_revise_requires_inspection_owner_authorization_and_version(proje
     current = tools.runtime.task_queries.record("T1")
     contract = deepcopy(task["stage_contracts"][0])
     contract["allowed_paths"] = ["tests/exact/**"]
-    packets = [
-        _revise("T1", current["version"], context["stage"], contract, role="executor"),
-        _revise("T1", current["version"] + 1, context["stage"], contract),
-    ]
-    for packet in packets:
-        with pytest.raises(PoiseError):
-            tools.invoke(packet)
-    assert tools.runtime.task_queries.record("T1")["version"] == current["version"]
+    before = _snapshot(tools.runtime)
+    with pytest.raises(PoiseError, match="inspection"):
+        tools.invoke(_revise("T1", current["version"], context["stage"], contract))
+    assert _snapshot(tools.runtime) == before
+
+
+def test_public_revise_requires_reviewer_role_on_inspection(project):
+    tools, context = _boot(project, inspection=True)
+    task = _configure(project)
+    current = tools.runtime.task_queries.record("T1")
+    contract = deepcopy(task["stage_contracts"][0])
+    before = _snapshot(tools.runtime)
+    with pytest.raises(PoiseError, match="reviewer"):
+        tools.invoke(_revise(
+            "T1", current["version"], context["stage"], contract, role="executor",
+        ))
+    assert _snapshot(tools.runtime) == before
+
+
+def test_public_revise_rejects_stale_version_on_inspection(project):
+    tools, context = _boot(project, inspection=True)
+    task = _configure(project)
+    current = tools.runtime.task_queries.record("T1")
+    contract = deepcopy(task["stage_contracts"][0])
+    before = _snapshot(tools.runtime)
+    with pytest.raises(PoiseError, match="version"):
+        tools.invoke(_revise(
+            "T1", current["version"] + 1, context["stage"], contract,
+        ))
+    assert _snapshot(tools.runtime) == before
 
 
 def test_public_revise_replay_survives_restart_and_records_history(project):
@@ -167,10 +209,12 @@ def test_public_revise_replay_survives_restart_and_records_history(project):
     contract = next(deepcopy(item) for item in task["stage_contracts"] if item["stage_id"] == stage_id)
     packet = _revise("T1", current["version"], stage_id, contract, request_id="durable-revision")
     first = tools.invoke(packet)
+    after = _snapshot(tools.runtime)
     restarted = WorkTools(Poise(project["config_path"], "creator"))
     replay = restarted.invoke(packet)
     history = restarted.runtime.stage_contract_context("T1")["history"]
-    assert replay["replayed"] is True and replay["version"] == first["version"]
+    assert replay == {**first, "replayed": True}
+    assert _snapshot(restarted.runtime) == after
     assert history[-1]["request_id"] == "durable-revision"
     assert {"old", "new", "reason", "authorization"} <= set(history[-1])
 
@@ -202,9 +246,21 @@ def test_public_entry_gate_failure_returns_projection_without_claim(project):
 
 
 def test_public_scope_contract_controls_verify_paths(project):
+    project["cfg"]["automatic_checks"] = []
+    write_json(project["config_path"], project["cfg"])
+    project["task"]["methods"] = []
+    project["task"]["method_inputs"] = []
+    project["task"]["checks"] = {
+        stage["id"]: [] for stage in project["process"]["stages"]
+    }
+    project["task"]["evidence_plan"] = {
+        stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
+        for stage in project["process"]["stages"]
+    }
     tools, context = _boot(project, scope=["tests/exact/**", "docs/task/**"])
-    worktree = context["worktree"]
-    outside = __import__("pathlib").Path(worktree) / "tests" / "outside.py"
+    Path = __import__("pathlib").Path
+    worktree = Path(context["worktree"])
+    outside = worktree / "tests" / "outside.py"
     outside.parent.mkdir(exist_ok=True)
     outside.write_text("VALUE = 1\n", encoding="utf-8")
     draft = deepcopy(context["result_template"])
@@ -212,3 +268,9 @@ def test_public_scope_contract_controls_verify_paths(project):
     draft["commit_message"] = "test: scope"
     with pytest.raises(PoiseError, match="allowed_paths"):
         tools.invoke(request("verify", {"result": draft, "artifacts": []}))
+    outside.unlink()
+    accepted = worktree / "docs" / "task" / "accepted.md"
+    accepted.parent.mkdir(parents=True, exist_ok=True)
+    accepted.write_text("Task-only expansion.\n", encoding="utf-8")
+    result = tools.invoke(request("verify", {"result": draft, "artifacts": []}))
+    assert result["status"] == "verified"

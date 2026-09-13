@@ -2,6 +2,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -123,6 +124,22 @@ def _counts(runtime, task_id):
     return counts, tuple(row) if row is not None else None
 
 
+def _raw_snapshot(runtime, task_id="T1"):
+    with runtime.store.transaction() as db:
+        task = tuple(db.execute(
+            "SELECT status,stage_index,iteration,claimed_by,version,current_submission_id,metadata "
+            "FROM tasks WHERE id=?",
+            (task_id,),
+        ).fetchone())
+        events = tuple(tuple(row) for row in db.execute(
+            "SELECT version,data FROM task_events WHERE task_id=? ORDER BY seq", (task_id,)
+        ))
+        journal = tuple(tuple(row) for row in db.execute(
+            "SELECT session_id,event,data FROM journal WHERE task_id=? ORDER BY seq", (task_id,)
+        ))
+    return {"task": task, "events": events, "journal": journal}
+
+
 def _legacy(runtime, task_id="T1"):
     with runtime.store.transaction() as db:
         row = db.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -192,6 +209,12 @@ def test_entry_recheck_precedes_submission_and_artifact_effects(project):
         "task": {"id": task["id"]}, "decision": None, "feedback": None, "rework_stage": None,
     }))
     before = _counts(runtime, "T1")
+    worktree = Path(context["worktree"])
+    git_before = (
+        subprocess.check_output(["git", "-C", str(worktree), "rev-parse", "HEAD"], text=True),
+        subprocess.check_output(["git", "-C", str(worktree), "status", "--porcelain=v1"], text=True),
+    )
+    forbidden = Path(runtime.state) / runtime.paths["tasks"] / "T1" / "artifacts" / "should-not-exist.txt"
     path.unlink()
     with pytest.raises(PoiseError, match="entry"):
         tools.invoke(request("verify", {
@@ -203,6 +226,11 @@ def test_entry_recheck_precedes_submission_and_artifact_effects(project):
             }],
         }))
     assert _counts(runtime, "T1") == before
+    assert not forbidden.exists()
+    assert (
+        subprocess.check_output(["git", "-C", str(worktree), "rev-parse", "HEAD"], text=True),
+        subprocess.check_output(["git", "-C", str(worktree), "status", "--porcelain=v1"], text=True),
+    ) == git_before
 
 
 def test_entry_rejection_preserves_all_pre_effect_counters(project):
@@ -253,19 +281,34 @@ def test_stage_contract_initialization_replays_and_rejects_conflict(project):
     runtime = tools.runtime
     _legacy(runtime)
     version = runtime.task_queries.record("T1")["version"]
+    before = _raw_snapshot(runtime)
     first = _transition(runtime, "initialize", request_id="init-1", expected_version=version,
                         contracts=task["stage_contracts"])
+    after = _raw_snapshot(runtime)
     replay = _transition(runtime, "initialize", request_id="init-1", expected_version=version,
                          contracts=task["stage_contracts"])
-    assert {k: v for k, v in first.items() if k != "replayed"} == {
-        k: v for k, v in replay.items() if k != "replayed"
-    }
+    assert replay == {**first, "replayed": True}
     assert replay["replayed"] is True
+    assert _raw_snapshot(runtime) == after
+    assert after["task"][4] == before["task"][4] + 1
+    assert len(after["events"]) == len(before["events"]) + 1
+    assert len(after["journal"]) == len(before["journal"]) + 1
+    entry = json.loads(after["journal"][-1][2])
+    assert entry == {
+        "action": "initialize_stage_contracts",
+        "actor": "executor",
+        "authorization": {"role": "creator"},
+        "new": task["stage_contracts"],
+        "old": None,
+        "reason": "Explicit stage contract transition",
+        "request_id": "init-1",
+    }
     changed = deepcopy(task["stage_contracts"])
     changed[0]["allowed_paths"] = ["different/**"]
     with pytest.raises(PoiseError, match="request.*conflict"):
         _transition(runtime, "initialize", request_id="init-1", expected_version=version,
                     contracts=changed)
+    assert _raw_snapshot(runtime) == after
 
 
 def test_reviewer_revision_replays_and_records_old_new_history(project):
@@ -274,16 +317,24 @@ def test_reviewer_revision_replays_and_records_old_new_history(project):
     contract = deepcopy(task["stage_contracts"][0])
     contract["allowed_paths"] = []
     version = runtime.task_queries.record("T1")["version"]
+    before = _raw_snapshot(runtime)
     first = _transition(runtime, "revise", request_id="revise-1", expected_version=version,
                         stage_id=contract["stage_id"], contract=contract, role="reviewer")
+    after = _raw_snapshot(runtime)
     restarted = Poise(project["config_path"], "executor")
     replay = _transition(restarted, "revise", request_id="revise-1", expected_version=version,
                          stage_id=contract["stage_id"], contract=contract, role="reviewer")
     history = restarted.stage_contract_context("T1")["history"]
     assert replay["replayed"] is True
+    assert replay == {**first, "replayed": True}
+    assert _raw_snapshot(restarted) == after
+    assert after["task"][4] == before["task"][4] + 1
+    assert len(after["events"]) == len(before["events"]) + 1
+    assert len(after["journal"]) == len(before["journal"]) + 1
     assert first["old"] != first["new"]
     assert history[-1]["old"] == first["old"] and history[-1]["new"] == first["new"]
     assert history[-1]["reason"] and history[-1]["authorization"] == {"role": "reviewer"}
+    assert history[-1]["actor"] == "executor" and history[-1]["request_id"] == "revise-1"
 
 
 def test_executor_and_non_inspection_stage_cannot_revise_contract(project):
@@ -291,9 +342,73 @@ def test_executor_and_non_inspection_stage_cannot_revise_contract(project):
     runtime = tools.runtime
     contract = deepcopy(task["stage_contracts"][0])
     version = runtime.task_queries.record("T1")["version"]
-    with pytest.raises(PoiseError, match="inspection.*reviewer"):
+    before = _raw_snapshot(runtime)
+    with pytest.raises(PoiseError, match="inspection"):
         _transition(runtime, "revise", request_id="bad-revise", expected_version=version,
+                    stage_id=contract["stage_id"], contract=contract, role="reviewer")
+    assert _raw_snapshot(runtime) == before
+
+
+def test_inspection_stage_executor_role_cannot_revise_contract(project):
+    tools, _, task = _bootstrap(project, inspection=True)
+    runtime = tools.runtime
+    contract = deepcopy(task["stage_contracts"][0])
+    before = _raw_snapshot(runtime)
+    with pytest.raises(PoiseError, match="reviewer"):
+        _transition(runtime, "revise", request_id="executor-role", expected_version=before["task"][4],
                     stage_id=contract["stage_id"], contract=contract, role="executor")
+    assert _raw_snapshot(runtime) == before
+
+
+def test_inspection_reviewer_stale_version_cannot_revise_contract(project):
+    tools, _, task = _bootstrap(project, inspection=True)
+    runtime = tools.runtime
+    contract = deepcopy(task["stage_contracts"][0])
+    before = _raw_snapshot(runtime)
+    with pytest.raises(PoiseError, match="version"):
+        _transition(runtime, "revise", request_id="stale-review", expected_version=before["task"][4] + 1,
+                    stage_id=contract["stage_id"], contract=contract, role="reviewer")
+    assert _raw_snapshot(runtime) == before
+
+
+def _legacy_guard(project, operation):
+    tools, context, task = _bootstrap(project)
+    runtime = tools.runtime
+    _legacy(runtime)
+    before = _raw_snapshot(runtime)
+    payload = deepcopy(context["result_template"])
+    payload["sections"]["report"] = "Must stay unsubmitted."
+    payload["commit_message"] = "test: forbidden legacy operation"
+    calls = {
+        "start": lambda: runtime.task_commands.start("T1", "executor", {}),
+        "acquire": lambda: runtime.ownership.acquire_task("T1"),
+        "context": lambda: runtime.task_commands.workflow_context("T1"),
+        "submit": lambda: runtime.task_commands.submit("T1", "executor", payload),
+    }
+    with pytest.raises(PoiseError, match="stage_contract_transition_required"):
+        calls[operation]()
+    assert _raw_snapshot(runtime) == before
+    assert _counts(runtime, "T1")[0]["submissions"] == 0
+    version = before["task"][4]
+    _transition(runtime, "initialize", request_id=f"unlock-{operation}", expected_version=version,
+                contracts=task["stage_contracts"])
+    assert runtime.task_commands.workflow_context("T1")["stage_contract"] == task["stage_contracts"][0]
+
+
+def test_legacy_missing_contract_blocks_start_until_initialize(project):
+    _legacy_guard(project, "start")
+
+
+def test_legacy_missing_contract_blocks_acquire_until_initialize(project):
+    _legacy_guard(project, "acquire")
+
+
+def test_legacy_missing_contract_blocks_context_until_initialize(project):
+    _legacy_guard(project, "context")
+
+
+def test_legacy_missing_contract_blocks_submit_until_initialize(project):
+    _legacy_guard(project, "submit")
 
 
 def test_reopen_preserves_initialized_stage_contract(project):

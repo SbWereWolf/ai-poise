@@ -78,6 +78,11 @@ def _show_task(tools):
     return response["results"][0]["value"]
 
 
+def _version(projection, marker):
+    assert "version" in projection, f"EXPECTED_MISSING_TASK_VERSION:{marker}"
+    return projection["version"]
+
+
 def test_active_bootstrap_and_show_expose_incrementing_version(project):
     task = _configure_single_stage(project)
     tools = WorkTools(Poise(project["config_path"], "executor"))
@@ -85,7 +90,9 @@ def test_active_bootstrap_and_show_expose_incrementing_version(project):
     context = _bootstrap(tools, task)
     shown = _show_task(tools)
 
-    assert context["version"] == shown["version"]
+    authoritative = tools.runtime.task_queries.record(task["id"])["version"]
+    assert _version(context, "active") == authoritative
+    assert _version(shown, "active-show") == authoritative
     assert "_version" not in context
     assert "_version" not in shown
 
@@ -96,7 +103,9 @@ def test_active_bootstrap_and_show_expose_incrementing_version(project):
     shown_after = _show_task(tools)
 
     assert verified["status"] == "verified"
-    assert shown_after["version"] > shown["version"]
+    authoritative_after = tools.runtime.task_queries.record(task["id"])["version"]
+    assert _version(shown_after, "verified-show") == authoritative_after
+    assert authoritative_after > authoritative
 
 
 def test_broken_bootstrap_exposes_restart_version(project):
@@ -120,15 +129,17 @@ def test_broken_bootstrap_exposes_restart_version(project):
 
     assert broken["status"] == "broken"
     assert "_version" not in broken
+    authoritative = tools.runtime.task_queries.record(task["id"])["version"]
     restarted = tools.invoke(request("task", {
         "action": "restart",
         "request_id": "restart-from-broken-version",
         "task_id": task["id"],
-        "expected_version": broken["version"],
+        "expected_version": _version(broken, "broken"),
         "reason": "The saved entry contract is unattainable.",
         "authorization": "The test authorizes recovery of this unfinished Task.",
     }))
     assert restarted["status"] == "newborn"
+    assert authoritative == broken["version"]
 
 
 def test_terminal_inspection_exposes_version_and_taskless_remains_taskless(project):
@@ -146,13 +157,16 @@ def test_terminal_inspection_exposes_version_and_taskless_remains_taskless(proje
         "rework_stage": None,
     }))
     assert completed["status"] == "completed"
+    completed_version = executor.runtime.task_queries.record(task["id"])["version"]
+    assert _version(completed, "completed") == completed_version
 
     reader = WorkTools(Poise(project["config_path"], "reader"))
     terminal = _bootstrap(reader, {"id": task["id"]})
     taskless = _bootstrap(reader, None)
 
     assert terminal["status"] == "completed"
-    assert terminal["version"] == completed["version"]
+    authoritative = reader.runtime.task_queries.record(task["id"])["version"]
+    assert _version(terminal, "terminal") == authoritative == completed_version
     assert "_version" not in terminal
     assert taskless["status"] == "read_only"
     assert "version" not in taskless
@@ -166,8 +180,29 @@ def test_documentation_and_skills_define_public_version_recovery_contract():
         encoding="utf-8"
     )
 
-    for text in (batch, workflow, development):
-        assert "Task version" in text
-        assert "bootstrap" in text
-        assert "show" in text
-        assert "expected_version" in text
+    assert (
+        "Существующая non-newborn Task возвращает точное текущее поле `version` через "
+        "`bootstrap` и текущую проекцию `show`."
+    ) in batch
+    assert "Приватное имя `_version` не входит в публичный DTO." in batch
+    assert (
+        "Taskless-ответы не содержат `version`, а newborn Task использует `revision`."
+    ) in batch
+    assert (
+        "Передавайте это значение без изменений как `expected_version` для защищённых "
+        "`restart` и исправления stage contract; при конфликте версии заново прочитайте "
+        "публичный `bootstrap`/`show`, а не угадывайте значение."
+    ) in batch
+
+    for text in (workflow, development):
+        assert (
+            "Public non-newborn `bootstrap` and current-Task `show` projections expose "
+            "the exact current Task version as `version`."
+        ) in text
+        assert "The private `_version` name is never part of the public DTO." in text
+        assert "Taskless responses omit `version`, and newborn Tasks use `revision`." in text
+        assert (
+            "Pass this value unchanged as `expected_version` for guarded `restart` or "
+            "stage-contract repair; on a version conflict, refresh through public "
+            "`bootstrap`/`show` instead of guessing."
+        ) in text

@@ -7,6 +7,7 @@ from dataclasses import replace
 import json
 import os
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 
@@ -124,7 +125,12 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
         "expected_revision": restarted["revision"],
     }))
     assert ready["status"] == "available"
-    resumed = executor.invoke(request("bootstrap", {
+    released = executor.runtime.ownership.snapshot("executor")
+    assert released.task_id is None
+    assert released.worktree_task_id is None
+
+    successor = WorkTools(Poise(project["config_path"], "successor"))
+    resumed = successor.invoke(request("bootstrap", {
         "task": {"id": task_id},
         "decision": None,
         "feedback": None,
@@ -137,6 +143,55 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
     assert {key: value for key, value in replay.items() if key != "interaction"} == {
         key: value for key, value in restarted.items() if key != "interaction"
     } | {"replayed": True}
+
+
+def test_ready_restarted_standalone_rolls_back_when_dependent_worktree_release_fails(project):
+    configure(project)
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    context = executor.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    task_id = context["task"]
+    worktree = Path(context["worktree"])
+    (worktree / "src" / "double.py").write_text(
+        "def double(value):\n    return value * 3\n", encoding="utf-8",
+    )
+    (worktree / "tests").mkdir(exist_ok=True)
+    (worktree / "tests" / "restart-staged.txt").write_text(
+        "staged WIP\n", encoding="utf-8",
+    )
+    git(worktree, "add", "tests/restart-staged.txt")
+    (worktree / "restart-untracked.txt").write_text(
+        "untracked WIP\n", encoding="utf-8",
+    )
+    git_before = wip_state(worktree)
+
+    before = executor.runtime.task_queries.record(task_id)
+    restarted = restart(executor, task_id, before["version"])
+    state_before_ready = task_state(executor.runtime, task_id, ("executor",))
+    with executor.runtime.store.transaction() as db:
+        db.execute(
+            "CREATE TRIGGER fail_dependent_worktree_release BEFORE UPDATE ON sessions "
+            "WHEN OLD.id='executor' AND NEW.task_id IS NULL "
+            "BEGIN SELECT RAISE(ABORT,'dependent-worktree-release-rollback'); END"
+        )
+
+    with pytest.raises(
+        sqlite3.IntegrityError,
+        match="dependent-worktree-release-rollback",
+    ):
+        executor.invoke(request("task", {
+            "action": "ready",
+            "request_id": "ready-restarted-standalone-rollback",
+            "task_id": task_id,
+            "expected_revision": restarted["revision"],
+        }))
+
+    assert task_state(executor.runtime, task_id, ("executor",)) == state_before_ready
+    assert wip_state(worktree) == git_before
 
 
 def test_restart_rejects_live_foreign_owner_without_any_task_state_change(project):

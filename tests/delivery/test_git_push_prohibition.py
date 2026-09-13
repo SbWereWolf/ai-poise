@@ -231,7 +231,7 @@ def test_push_disabled_verification_never_reads_or_writes_remote(project, monkey
         return original(cwd, *args, **kwargs)
 
     monkeypatch.setattr(h, "_git", observing_git)
-    report = h.verify()
+    report = verify(h, fill(context))
 
     assert report["status"] == "verified"
     assert remote_commands == []

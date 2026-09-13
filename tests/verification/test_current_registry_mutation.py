@@ -309,6 +309,15 @@ def configure_public_registry_case(project: dict) -> None:
         }
         for stage in stages
     }
+    project["task"]["stage_contracts"] = [
+        {
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        }
+        for stage in stages
+    ]
     project["cfg"]["automatic_checks"][0]["by_stage"] = {
         "test_implementation": ["RED"],
         "test_inspection": [],

@@ -19,6 +19,7 @@
 | advance | request_id, task_id, target_stage | Сохранить цель продвижения и пройти обычные переходы до работы, границы ролей, ворот или целевого этапа |
 | recover_empty_rework | task_id, reason | Вернуть освобождённую пустую rework-итерацию к непосредственно предшествующему verified result |
 | recover_empty_advance | task_id, reason | Вернуть освобождённый пустой этап после ошибочного `continue` к предшествующему verified result |
+| recover_missing_worktree | task_id, reason | Восстановить точный удалённый worktree verified/accepted Task из уже интегрированного commit |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
@@ -339,6 +340,36 @@ execution state или ownership. Ошибка перечисляет тольк
 состояний, созданных старой версией, а не штатным обходом нового запрета.
 
 ## Восстановление ошибочно открытой пустой rework-итерации
+
+Перед этим узким lifecycle recovery доступна независимая installation-owned операция
+`recover_missing_worktree`. Она нужна, если незавершённая Task остаётся `verified` или `accepted`,
+но её зарегистрированные branch и worktree были ошибочно удалены после интеграции проверенного
+commit. Операция не меняет ownership, Task version, stage, iteration, result или handoff.
+
+```json
+{
+  "operation": "recover_missing_worktree",
+  "input": {
+    "task_id": "0082",
+    "reason": "Восстановить точный интегрированный verified source для продолжения проверки."
+  },
+  "messages": []
+}
+```
+
+Вызов выполняется из текущего installation source idle-сессией либо текущим владельцем ровно этой
+Task. Idle-сессия может восстановить source при другом владельце, потому что ownership не
+передаётся и не освобождается; владелец другой Task получает отказ. Сохранённый `last_report.commit`
+обязан существовать, быть предком текущего настроенного `base_ref`, а tree commit обязан точно
+совпасть с сохранённым `verified_tree`. Путь обязан быть точным task path под настроенным state,
+а сохранённая branch — валидной и либо отсутствовать, либо указывать на тот же commit. Только
+после этих проверок создаются branch/worktree; итог дополнительно проверяется как clean exact
+commit/tree и как зарегистрированный worktree именно настроенного repository. Отдельный clone или
+embedded repository в том же path отклоняется. При сбое финальной проверки или audit операция
+удаляет только созданный ею worktree и только созданную ею branch; предсуществующая branch
+сохраняется. Повтор над уже точным worktree возвращает `replayed: true`. Любой конфликт пути,
+ветки, commit, tree или integration ancestry отклоняет операцию без изменения Task. После
+восстановления текущий владелец может выполнить обычный handoff, а получатель — native bootstrap.
 
 `recover_empty_rework` — узкая публичная аварийная операция, а не общий rollback. Она нужна,
 когда после verified result по ошибке уже открыт следующий `user_rework`, но в новой итерации

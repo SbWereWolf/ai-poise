@@ -91,16 +91,26 @@ drift и отклоняет весь пакет.
 точно `task_ids: ["0082"]` и не расширяет разрешение `task-process-migration-1`: смешанный
 набор, пустой набор, другой ID или несколько Task отклоняются до изменения данных. Этот путь
 добавляет в сохранённый process snapshot 0082 только отсутствующий boolean
-`worktree_required`, взятый из настроенного process того же immutable `goal_type`. Остальные
-поля старого snapshot не заменяются актуальным process целиком.
+`worktree_required`, взятый из настроенного process того же immutable `goal_type`. Уже выданный
+старый receipt schema 2 остаётся точно replayable; этот опубликованный контракт не меняется.
+
+Корректирующая `task-process-migration-3` принимает тот же точный набор Task. Если schema 2 уже
+добавила совпадающий boolean, schema 3 сохраняет process без изменений; если boolean ещё нет,
+она добавляет его, не заменяя остальные поля старого snapshot актуальным process целиком.
+Та же атомарная операция инициализирует отсутствующий `stage_contracts` в Task contract. Она
+создаёт один contract на каждый сохранённый process stage в исходном порядке, переносит
+его `allowed_paths` и назначает entry/exit gates из сохранённых process/task content requirements
+по их stage и phase. Уже существующий `stage_contracts` либо несовпадающий boolean означает,
+что точечный recovery неприменим, и весь запрос отклоняется. Обе правки выполняются одним
+metadata update без изменения lifecycle columns, Task version и released handoff.
 
 До вызова создайте публичную резервную копию через `poise backup create --config PROJECT_JSON`
 в период без writers и передайте её точное имя в `backup_name`:
 
 ```json
 {
-  "schema": "task-process-migration-2",
-  "request_id": "migrate-task-0082-process-1",
+  "schema": "task-process-migration-3",
+  "request_id": "migrate-task-0082-stage-contracts-2",
   "backup_name": "BACKUP_NAME",
   "task_ids": ["0082"],
   "authorization": "User authorized process snapshot recovery for Task 0082."
@@ -108,7 +118,9 @@ drift и отклоняет весь пакет.
 ```
 
 Успех должен вернуть `receipt`; точный повтор того же запроса возвращает тот же receipt и
-`replayed: true`. Миграция сохраняет lifecycle, verified result, stage, iteration, content, feedback, evidence, history, ownership, Git binding и config identity. После сравнения публичных
+`replayed: true`. Миграция сохраняет lifecycle, verified result, stage, iteration, content, feedback, evidence, history, ownership, Git binding и config identity. Summary также фиксирует,
+был ли добавлен process boolean, факт инициализации stage contracts и
+old/new digests обоих изменяемых snapshots. После сравнения публичных
 проекций передайте сохранённую released Task назначенному проверяющему и выполните native bootstrap Task `0082`. Ожидаемый восстановленный контекст — исходная verified итерация
 `test_remediation`, а не новая Task и не пустой результат.
 

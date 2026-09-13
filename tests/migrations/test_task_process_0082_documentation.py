@@ -10,6 +10,7 @@ class Task0082ProcessMigrationDocumentationTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         required = (
             "`task-process-migration-2`",
+            "`task-process-migration-3`",
             '`task_ids: ["0082"]`',
             "не расширяет разрешение `task-process-migration-1`",
             "публичную резервную копию",
@@ -18,6 +19,9 @@ class Task0082ProcessMigrationDocumentationTests(unittest.TestCase):
             "`replayed: true`",
             "lifecycle, verified result, stage, iteration, content, feedback, evidence, history, ownership, Git binding и config identity",
             "native bootstrap Task `0082`",
+            "`stage_contracts`",
+            "Task version и released handoff",
+            "старый receipt",
         )
 
         missing = [phrase for phrase in required if phrase not in text]

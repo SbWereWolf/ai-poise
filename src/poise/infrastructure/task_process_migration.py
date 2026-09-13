@@ -111,18 +111,26 @@ class SqliteTaskProcessMigration:
                         ).fetchone()[0]
                         metadata = json.loads(raw)
                         metadata["process"] = update.process
+                        if update.contract is not None:
+                            metadata["contract"] = update.contract
                         connection.execute(
                             "UPDATE tasks SET metadata=? WHERE id=?",
                             (encoded(metadata), update.task_id),
                         )
-                        task_results.append(
-                            {
-                                "task_id": update.task_id,
-                                "worktree_required": update.process["worktree_required"],
-                                "old_process_digest": update.old_process_digest,
-                                "new_process_digest": update.new_process_digest,
-                            }
-                        )
+                        summary = {
+                            "task_id": update.task_id,
+                            "worktree_required": update.process["worktree_required"],
+                            "old_process_digest": update.old_process_digest,
+                            "new_process_digest": update.new_process_digest,
+                        }
+                        if request.schema == "task-process-migration-3":
+                            summary.update({
+                                "worktree_required_added": update.worktree_required_added,
+                                "stage_contracts_initialized": True,
+                                "old_contract_digest": update.old_contract_digest,
+                                "new_contract_digest": update.new_contract_digest,
+                            })
+                        task_results.append(summary)
                         self.after_update(update.task_id)
                     result = {
                         "status": "migrated",
@@ -212,7 +220,19 @@ class SqliteTaskProcessMigration:
             item_fields = {
                 "task_id", "worktree_required", "old_process_digest", "new_process_digest"
             }
+            if request.schema == "task-process-migration-3":
+                item_fields.update({
+                    "worktree_required_added",
+                    "stage_contracts_initialized",
+                    "old_contract_digest",
+                    "new_contract_digest",
+                })
             if not isinstance(item, dict) or set(item) != item_fields or item["task_id"] != task_id:
+                raise PoiseError("Stored Task process migration audit Task summary is incompatible")
+            if request.schema == "task-process-migration-3" and (
+                type(item["worktree_required_added"]) is not bool
+                or item["stage_contracts_initialized"] is not True
+            ):
                 raise PoiseError("Stored Task process migration audit Task summary is incompatible")
             row = connection.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
             if row is None:
@@ -221,14 +241,33 @@ class SqliteTaskProcessMigration:
             process = metadata.get("process") if isinstance(metadata, dict) else None
             if not isinstance(process, dict) or type(process.get("worktree_required")) is not bool:
                 raise PoiseError("Stored Task process migration audit process is incompatible")
+            worktree_required = process["worktree_required"]
             old_process = dict(process)
-            worktree_required = old_process.pop("worktree_required")
+            if request.schema != "task-process-migration-3" or item["worktree_required_added"]:
+                old_process.pop("worktree_required")
             expected = {
                 "task_id": task_id,
                 "worktree_required": worktree_required,
                 "old_process_digest": digest(old_process),
                 "new_process_digest": digest(process),
             }
+            if request.schema == "task-process-migration-3":
+                contract = metadata.get("contract")
+                if (
+                    not isinstance(contract, dict)
+                    or not isinstance(contract.get("stage_contracts"), list)
+                ):
+                    raise PoiseError(
+                        "Stored Task process migration audit stage contracts are incompatible"
+                    )
+                old_contract = dict(contract)
+                old_contract.pop("stage_contracts")
+                expected.update({
+                    "worktree_required_added": item["worktree_required_added"],
+                    "stage_contracts_initialized": True,
+                    "old_contract_digest": digest(old_contract),
+                    "new_contract_digest": digest(contract),
+                })
             if item != expected:
                 raise PoiseError("Stored Task process migration audit digest is incompatible")
             summaries.append(expected)

@@ -133,14 +133,32 @@ class SqliteTaskRepository:
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"])
 
     def empty_rework_recovery_point(
-        self, task_id: str, rework_version: int, last_report: dict
+        self, task_id: str, handoff_version: int, last_report: dict
     ) -> EmptyReworkRecoveryPoint:
         events = self.db.execute(
-            "SELECT data FROM task_events WHERE task_id=? AND version=? ORDER BY seq",
-            (task_id, rework_version),
+            "SELECT version,data FROM task_events WHERE task_id=? AND version<=? ORDER BY seq",
+            (task_id, handoff_version),
         ).fetchall()
-        if len(events) != 1 or json.loads(events[0]["data"])["event"] != "user_rework":
+        parsed = [(row["version"], json.loads(row["data"])["event"]) for row in events]
+        reworks = [version for version, event in parsed if event == "user_rework"]
+        if not reworks:
             raise PoiseError("Recovery requires the exact preceding user_rework event")
+        rework_version = reworks[-1]
+        allowed_suffix = {
+            "handed_off",
+            "handoff_resumed",
+            "ownership_acquired",
+            "ownership_released",
+        }
+        unexpected = [
+            event
+            for version, event in parsed
+            if rework_version < version <= handoff_version and event not in allowed_suffix
+        ]
+        if unexpected:
+            raise PoiseError(
+                f"Recovery event suffix contains non-ownership events: {unexpected}"
+            )
         row = self.db.execute(
             "SELECT s.stage,s.iteration,s.digest,s.data,w.data AS workflow,r.data AS result "
             "FROM submissions s "

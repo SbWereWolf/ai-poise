@@ -229,6 +229,9 @@ class Task:
         return Change(self, None, (), registry_change)
 
     def _observe_registry_change(self, raw: dict):
+        subject_methods = set(
+            self.evidence_plan.stage(self.stage.stage_id).subject_methods
+        )
         if (isinstance(raw, dict)
                 and set(raw) == {
                     'request_id', 'expected_revision', 'operations',
@@ -265,19 +268,32 @@ class Task:
             method_id = operation['method_id']
             if operation['kind'] != 'replace':
                 raise DomainError('observe registry change permits only exact method replacement')
-            if self.stage.stage_id not in current[method_id].stages:
+            if method_id not in subject_methods:
                 raise DomainError(
-                    'observe registry change requires a method scheduled on the current stage'
+                    'observe registry change requires a current subject method'
                 )
             if updated[method_id].stages != current[method_id].stages:
                 raise DomainError('observe registry change cannot reschedule a method')
+            if (updated[method_id].evidence_kind != current[method_id].evidence_kind
+                    or updated[method_id].covers != current[method_id].covers):
+                raise DomainError(
+                    'observe registry change cannot alter evidence_kind or covers'
+                )
         return result
 
-    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool) -> dict:
+    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool):
+        request = next(
+            request for request in registry.requests
+            if request.request_id == raw['request_id']
+        )
+        if replayed:
+            if request.audit is None:
+                raise DomainError('registry change replay has no durable audit receipt')
+            return registry, {**json.loads(request.audit), 'replayed': True}
         audit = {
             'actor': actor,
             'methods': [operation['method_id'] for operation in raw['operations']],
-            'new_revision': registry.revision,
+            'new_revision': request.revision,
             'previous_revision': raw['expected_revision'],
             'request_id': raw['request_id'],
             'stage': self.stage.stage_id,
@@ -287,7 +303,10 @@ class Task:
         receipt_id = hashlib.sha256(json.dumps(
             audit, sort_keys=True, ensure_ascii=False, separators=(',', ':')
         ).encode('utf-8')).hexdigest()
-        return {**audit, 'receipt_id': receipt_id, 'replayed': replayed}
+        durable = {**audit, 'receipt_id': receipt_id}
+        return registry.bind_request_audit(raw['request_id'], durable), {
+            **durable, 'replayed': False,
+        }
 
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
                commit_message: str, content_additions: dict, trace: dict,
@@ -310,9 +329,10 @@ class Task:
                 result = self.check_registry.apply_change(method_additions)
             elif observes_evidence:
                 result = self._observe_registry_change(method_additions)
-                registry_change = self._registry_change_audit(
+                observe_registry, registry_change = self._registry_change_audit(
                     method_additions, result.registry, actor, result.replayed
                 )
+                result = replace(result, registry=observe_registry)
                 if not result.replayed:
                     durable = {key: value for key, value in registry_change.items()
                                if key != 'replayed'}

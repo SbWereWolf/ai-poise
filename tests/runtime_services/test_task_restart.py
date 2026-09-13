@@ -280,9 +280,17 @@ def test_restarted_published_sprint_member_becomes_available_under_same_id(proje
     current = reviewer.runtime.sprint_tools.overview("S")
     assert [item["id"] for item in current["tasks"]] == ["BROKEN"]
     assert current["tasks"][0]["status"] == "available"
-    resumed = sprint_bootstrap(reviewer, "BROKEN")
+    released = reviewer.runtime.ownership.snapshot("reviewer")
+    assert released.task_id is None
+    assert released.worktree_task_id is None
+
+    successor = WorkTools(Poise(project["config_path"], "successor"))
+    resumed = sprint_bootstrap(successor, "BROKEN")
     assert resumed["status"] == "active"
     assert resumed["worktree"] == active["worktree"]
+    acquired = successor.runtime.ownership.snapshot("successor")
+    assert acquired.task_id == "BROKEN"
+    assert acquired.worktree_task_id == "BROKEN"
 
 
 def test_restart_rejects_pending_unknown_outcome_without_mutation(project):

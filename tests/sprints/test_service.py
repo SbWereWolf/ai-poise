@@ -39,6 +39,17 @@ def test_incomplete_child_saved_for_feedback_not_published(sprint):
     assert len(history['layers'])>=3
 
 
+def test_incomplete_draft_members_do_not_claim_the_planning_session(sprint):
+    _,h,w=sprint
+    members=[{'id':'A','sprint_id':'S'},{'id':'B','sprint_id':'S'}]
+
+    planned=draft(w,members)
+
+    assert planned['status']=='draft'
+    assert h.task_queries.record('A')['claimed_by'] is None
+    assert h.task_queries.record('B')['claimed_by'] is None
+
+
 def test_unknown_exact_method_prevents_publication(sprint):
     p,h,w=sprint;t=task(p);t['checks']['work']=['MISSING']
     r=draft(w,[t]);assert r['errors']

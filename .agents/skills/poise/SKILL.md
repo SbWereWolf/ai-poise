@@ -26,6 +26,8 @@ Use one `bootstrap` package to obtain the current task/sprint, stage, process sn
 
 Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has
 a permanent identity and history, uses the shared ownership API, and preserves no route entry before goal_type selection.
+Sprint draft materialization creates each newborn member without a claim, so the planning
+session keeps ownership of only its current Task while it edits the draft graph.
 `create`, `edit`, `ready`, and `restart` require stable request IDs; preserve exact
 replay and reject foreign live ownership. A ready standalone Task becomes available, while a
 Sprint member remains newborn until publication. Use Sprint `materialize_tasks` to convert

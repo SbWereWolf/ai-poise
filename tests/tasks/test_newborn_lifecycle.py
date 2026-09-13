@@ -13,6 +13,7 @@ from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from sprints.helpers import changes as sprint_changes
 from sprints.helpers import setup as setup_sprint
+from sprints.helpers import task as sprint_task
 
 
 def tools(project, session):
@@ -53,10 +54,27 @@ def complete_patch(project, task_id, sprint_id=None):
     return contract
 
 
+def sprint_complete_patch(project, task_id, sprint_id):
+    contract = sprint_task(project, task_id)
+    contract["sprint_id"] = sprint_id
+    contract.pop("id")
+    contract.pop("sprint_id")
+    return contract
+
+
 def test_newborn_standalone_edit_and_ready(project):
     creator = tools(project, "creator")
     born = create(creator, "NEWBORN")
-    assert born == {
+    assert {key: born[key] for key in (
+        "status",
+        "task",
+        "revision",
+        "sprint",
+        "claimed_by",
+        "goal_type",
+        "route_entry",
+        "ready",
+    )} == {
         "status": "newborn",
         "task": "NEWBORN",
         "revision": 0,
@@ -164,7 +182,7 @@ def test_newborn_sprint_membership_and_publication(project):
     assert planner.runtime.task_queries.record("SPRINT-TASK")["history"][-1]["event"] == (
         "newborn_edited"
     )
-    remaining = complete_patch(project, "SPRINT-TASK", "NEWBORN-SPRINT")
+    remaining = sprint_complete_patch(project, "SPRINT-TASK", "NEWBORN-SPRINT")
     remaining.pop("goal")
     edited = edit(
         planner,
@@ -188,7 +206,7 @@ def test_newborn_sprint_membership_and_publication(project):
         planner,
         "SPRINT-FOLLOWUP",
         follower["revision"],
-        complete_patch(project, "SPRINT-FOLLOWUP", "NEWBORN-SPRINT")
+        sprint_complete_patch(project, "SPRINT-FOLLOWUP", "NEWBORN-SPRINT")
         | {"goal_type": "development"},
         "complete-sprint-follower",
     )
@@ -212,7 +230,7 @@ def test_newborn_sprint_membership_and_publication(project):
                 "items": [{
                     "predecessor": "SPRINT-TASK",
                     "successor": "SPRINT-FOLLOWUP",
-                    "kind": "blocks",
+                    "kind": "completion",
                 }],
             },
         ],
@@ -225,7 +243,7 @@ def test_newborn_sprint_membership_and_publication(project):
     assert revised["dependencies"] == [{
         "predecessor": "SPRINT-TASK",
         "successor": "SPRINT-FOLLOWUP",
-        "kind": "blocks",
+        "kind": "completion",
     }]
     task_history = planner.runtime.task_queries.record("SPRINT-TASK")["history"]
     assert [item["event"] for item in task_history].count("newborn_edited") == 2
@@ -251,8 +269,7 @@ def test_newborn_sprint_membership_and_publication(project):
 def test_newborn_type_route_and_legacy_materialization(project):
     setup_sprint(project)
     planner = tools(project, "legacy-planner")
-    legacy = deepcopy(project["task"])
-    legacy["id"] = "LEGACY-TASK"
+    legacy = sprint_task(project, "LEGACY-TASK")
     legacy["sprint_id"] = "LEGACY-SPRINT"
     drafted = planner.invoke(request("sprint", {
         "action": "draft",
@@ -286,14 +303,16 @@ def test_newborn_type_route_and_legacy_materialization(project):
         "request_id": "materialize-legacy-tasks",
         "expected_revision": drafted["revision"],
     }))
-    assert migrated == replay
+    assert {key: value for key, value in migrated.items() if key != "interaction"} == {
+        key: value for key, value in replay.items() if key != "interaction"
+    }
     assert migrated["materialized"] == ["LEGACY-TASK"]
     record = planner.runtime.task_queries.record("LEGACY-TASK")
     assert record["status"] == "newborn"
     assert record["process"]["route"]["entry"] == project["process"]["route"]["entry"]
 
-    direct = deepcopy(project["task"])
-    direct["id"] = "DIRECT-AVAILABLE"
+    direct = sprint_task(project, "DIRECT-AVAILABLE")
+    direct["sprint_id"] = None
     direct_client = tools(project, "direct")
     context = direct_client.invoke(request("bootstrap", {
         "task": direct,

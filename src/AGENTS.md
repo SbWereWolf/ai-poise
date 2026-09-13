@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-12T21:36:11+05:00.
+Updated: 2026-09-13.
 
 ## Declarative, reusable tools
 
@@ -44,6 +44,11 @@ substitute a caller-chosen session value. Persist identity initialization withou
 Task/Sprint for read-only work, and never derive workflow authority from identity origin.
 
 Do not preserve backward compatibility merely to read earlier formats. Do not design or run data migrations without a direct user instruction; request permission when a migration is necessary.
+
+For the authorized legacy Task process repair, follow
+[`docs/task-process-snapshot-migration.md`](../docs/task-process-snapshot-migration.md).
+Do not repair stored process snapshots through direct SQL; use the public migration and
+its named public backup, atomic validation, audit receipt, and exact replay contract.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 

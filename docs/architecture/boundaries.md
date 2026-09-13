@@ -239,7 +239,7 @@ Publish читает сохранённый план и не принимает 
 process-files публикуются через инструментарий. Внешние fixtures/сценарии не являются ядром.
 
 
-# Project setup boundary — 2026-09-14T00:00:00+05:00
+# Project setup boundary — 2026-09-07T14:15:55+05:00
 
 `modules/projects` владеет project blueprint и ответами questionnaire. Application зависит
 только от порта, не от pathlib/Git/SQLite. Infrastructure разрешает выбранные sources и
@@ -247,14 +247,6 @@ process-files публикуются через инструментарий. В
 readiness probes и публикует новый каталог. Это не universal file editor и не новый Task API.
 Общая механика atomic_write и exclusive_lock переиспользована; все business значения settings
 и выбранного шаблона явные. Этапы или имена целей не встроены в код project tool.
-
-`ProjectSettings.registry` выбирает единственный authoritative registry настроенных проектов.
-`FileProjectSetup` владеет его строгой схемой, регистрацией после публикации, проверкой
-идентичности и exact-replay recovery; создание и `project-init` не имеют отдельного writer.
-Read-only `FileProjectSetup.list` повторно использует общий `load_config`, отделяет
-missing/invalid записи от пригодных и не исправляет registry или manifests. Application и CLI
-проходят через существующие `ProjectSetupPort` и `ProjectCommands`; отдельного discovery
-сервиса или команды управления проектами нет.
 
 
 ## Live project configuration boundary — 2026-09-12

@@ -152,7 +152,7 @@ Batch work получил optional `telemetry`, а batch show — kind `accounti
 для каждой цели нет. Подробные поля, ограничения и пример: [process-catalogue](../configuration/process-catalogue.md).
 
 
-# Project setup — 2026-09-14T00:00:00+05:00
+# Project setup — 2026-09-07T14:15:55+05:00
 
 | API | Контракт |
 |---|---|
@@ -160,16 +160,12 @@ Batch work получил optional `telemetry`, а batch show — kind `accounti
 | `ProjectBlueprint.build(edits, max_edits)` | Один кандидат; нет изменения исходного шаблона и разрешения конфликтов порядком |
 | `Survey.answer/keep/back` | Явное изменение позиции/ответов; нет файлов или публикации |
 | `ProjectCommands.apply(request)` | Проверка пакетного намерения и вызов port |
-| `ProjectCommands.list()` | Read-only выдача настроенных проектов через тот же port |
 | `ProjectCommands.questionnaire(request)` | Тот же contract для CLI анкеты |
 | `project_tools(settings_path)` | Явная composition библиотеки |
-| `FileProjectSetup.apply` | Независимые snapshots, общий load_config, локальные probes, atomic create, receipt и регистрация |
-| `FileProjectSetup.list` | Строгий registry, общий load_config, стабильная сортировка usable/error записей без mutation |
+| `FileProjectSetup.apply` | Независимые snapshots, общий load_config, локальные probes, atomic create, receipt |
 
-CLI `project` без действия принимает один JSON stdin; его действие `list` использует тот же
-`ProjectCommands` и не читает stdin. CLI `project-init` получает ответы через bounded
-questionnaire и применяет один тот же пакет при publish. Создание и анкета публикуют запись
-через registry-владельца, а список остаётся read-only. Эти операции не изменяют Task/Sprint.
+CLI `project` принимает один JSON stdin. CLI `project-init` получает ответы через bounded
+questionnaire и применяет один тот же пакет при publish. Обе операции не изменяют Task/Sprint.
 
 ## Verification source provenance — task 0037
 

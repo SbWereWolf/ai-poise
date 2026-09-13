@@ -18,6 +18,8 @@ class Task0082ProcessMigrationDocumentationTests(unittest.TestCase):
             "`replayed: true`",
             "lifecycle, verified result, stage, iteration, content, feedback, evidence, history, ownership, Git binding и config identity",
             "native bootstrap Task `0082`",
+            "`stage_contracts`",
+            "Task version и released handoff",
         )
 
         missing = [phrase for phrase in required if phrase not in text]

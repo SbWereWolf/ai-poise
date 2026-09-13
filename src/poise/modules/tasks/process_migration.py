@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from ...common import digest, exact_keys
 from ..backups.domain import exact_backup_name
 from ..foundation.errors import DomainError
+from ..workflow.domain import RouteDefinition
+from .contracts import candidate_content_policy_from_metadata
+from .domain import TaskStageContracts
 
 
 AUTHORIZED_TASK_IDS = ("0077", "0081", "0079", "0078", "0074", "0063")
@@ -20,6 +23,7 @@ NONTERMINAL_STATUSES = frozenset({"available", "active", "verified", "accepted"}
 
 @dataclass(frozen=True)
 class MigrationRequest:
+    schema: str
     request_id: str
     backup_name: str
     task_ids: tuple[str, ...]
@@ -53,6 +57,7 @@ class MigrationRequest:
             "authorization": value["authorization"],
         }
         return cls(
+            schema=schema,
             request_id=value["request_id"],
             backup_name=backup_name,
             task_ids=authorized_task_ids,
@@ -65,8 +70,12 @@ class MigrationRequest:
 class ProcessUpdate:
     task_id: str
     process: dict
+    contract: dict | None
+    worktree_required_added: bool
     old_process_digest: str
     new_process_digest: str
+    old_contract_digest: str | None
+    new_contract_digest: str | None
 
 
 @dataclass(frozen=True)
@@ -75,6 +84,41 @@ class MigrationPlan:
 
 
 class ProcessSnapshotMigration:
+    @staticmethod
+    def _stage_contracts(metadata: dict, process: dict) -> list[dict]:
+        try:
+            contract = metadata["contract"]
+            requirements = [
+                *process["content_contract"]["requirements"],
+                *contract["content_contract"]["requirements"],
+            ]
+            values = [
+                {
+                    "stage_id": stage["id"],
+                    "allowed_paths": list(stage["allowed_paths"]),
+                    "entry_requirements": [
+                        item["id"] for item in requirements
+                        if stage["id"] in item["stages"] and item["phase"] == "pre"
+                    ],
+                    "exit_requirements": [
+                        item["id"] for item in requirements
+                        if stage["id"] in item["stages"] and item["phase"] == "post"
+                    ],
+                }
+                for stage in process["stages"]
+            ]
+        except (KeyError, TypeError) as exc:
+            raise DomainError("Task 0082 stage contract source is incompatible") from exc
+        route = RouteDefinition.from_process(process)
+        policy = candidate_content_policy_from_metadata(
+            {**metadata, "process": process},
+            {
+                "goal": process["content_contract"],
+                "task": contract["content_contract"],
+            },
+        )
+        return TaskStageContracts.parse(values, route, policy).to_list()
+
     @staticmethod
     def plan(request: MigrationRequest, rows: list[dict], processes: dict[str, dict]) -> MigrationPlan:
         by_id = {row.get("id"): row for row in rows if isinstance(row, dict)}
@@ -108,11 +152,42 @@ class ProcessSnapshotMigration:
             worktree_required = configured.get("worktree_required")
             if type(worktree_required) is not bool:
                 raise DomainError(f"Task {task_id} configured worktree_required is not explicit")
-            if "worktree_required" in process:
-                raise DomainError(f"Task {task_id} already has a conflicting worktree_required value")
             candidate = deepcopy(process)
-            candidate["worktree_required"] = worktree_required
+            worktree_required_added = "worktree_required" not in candidate
+            if worktree_required_added:
+                candidate["worktree_required"] = worktree_required
+            elif (
+                request.schema != "task-process-migration-2"
+                or type(candidate["worktree_required"]) is not bool
+                or candidate["worktree_required"] != worktree_required
+            ):
+                raise DomainError(
+                    f"Task {task_id} already has a conflicting worktree_required value"
+                )
+            migrated_contract = None
+            old_contract_digest = None
+            new_contract_digest = None
+            if request.schema == "task-process-migration-2":
+                if "stage_contracts" in contract:
+                    raise DomainError(
+                        f"Task {task_id} already has stage_contracts; exact recovery is not applicable"
+                    )
+                migrated_contract = deepcopy(contract)
+                migrated_contract["stage_contracts"] = ProcessSnapshotMigration._stage_contracts(
+                    metadata, candidate
+                )
+                old_contract_digest = digest(contract)
+                new_contract_digest = digest(migrated_contract)
             updates.append(
-                ProcessUpdate(task_id, candidate, digest(process), digest(candidate))
+                ProcessUpdate(
+                    task_id,
+                    candidate,
+                    migrated_contract,
+                    worktree_required_added,
+                    digest(process),
+                    digest(candidate),
+                    old_contract_digest,
+                    new_contract_digest,
+                )
             )
         return MigrationPlan(tuple(updates))

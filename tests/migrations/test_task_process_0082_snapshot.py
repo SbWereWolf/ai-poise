@@ -95,7 +95,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 for table in tables
             }
 
-    def _seed_legacy_0082(self) -> tuple[Path, dict]:
+    def _seed_legacy_0082(self) -> tuple[Path, dict, list[dict]]:
         self.project["task"]["id"] = "0082"
         setup_project(self.project, "development")
         process_path = self.project["root"] / "config/processes/development.json"
@@ -119,12 +119,22 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         task["evidence_plan"]["test_remediation"] = task["evidence_plan"].pop(
             "draft"
         )
+        requirements = (
+            process["content_contract"]["requirements"]
+            + task["content_contract"]["requirements"]
+        )
         task["stage_contracts"] = [
             {
                 "stage_id": stage["id"],
                 "allowed_paths": list(stage["allowed_paths"]),
-                "entry_requirements": [],
-                "exit_requirements": [],
+                "entry_requirements": [
+                    item["id"] for item in requirements
+                    if stage["id"] in item["stages"] and item["phase"] == "pre"
+                ],
+                "exit_requirements": [
+                    item["id"] for item in requirements
+                    if stage["id"] in item["stages"] and item["phase"] == "post"
+                ],
             }
             for stage in process["stages"]
         ]
@@ -179,6 +189,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 "SELECT metadata FROM tasks WHERE id='0082'"
             ).fetchone()[0]
             metadata = json.loads(raw)
+            stage_contracts = metadata["contract"].pop("stage_contracts")
             legacy_process = metadata["process"]
             stage = next(
                 item for item in legacy_process["stages"]
@@ -197,7 +208,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                     ),
                 ),
             )
-        return database, metadata
+        return database, metadata, stage_contracts
 
     def _invoke_cli(self, request: dict) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
@@ -243,7 +254,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                     self._request("tasks-backup.sqlite", task_ids=task_ids)
                 )
 
-    def test_domain_plans_only_missing_worktree_field(self):
+    def test_domain_plans_only_missing_worktree_and_stage_contract_fields(self):
         from poise.modules.tasks.process_migration import (
             MigrationRequest,
             ProcessSnapshotMigration,
@@ -253,6 +264,9 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         legacy = deepcopy(configured)
         legacy.pop("worktree_required")
         legacy["stages"][0]["instruction"] = "Preserve a legacy instruction."
+        contract = deepcopy(self.project["task"])
+        contract["id"] = "0082"
+        contract.pop("stage_contracts")
         request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
 
         plan = ProcessSnapshotMigration.plan(
@@ -263,7 +277,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                     "status": "active",
                     "claimed_by": None,
                     "metadata": {
-                        "contract": {"goal_type": "development"},
+                        "contract": contract,
                         "process": legacy,
                     },
                 }
@@ -275,11 +289,77 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         expected = deepcopy(legacy)
         expected["worktree_required"] = True
         self.assertEqual(plan.updates[0].process, expected)
+        self.assertEqual(
+            [item["stage_id"] for item in plan.updates[0].contract["stage_contracts"]],
+            [item["id"] for item in legacy["stages"]],
+        )
+
+    def test_schema_2_finishes_partial_process_recovery_without_replacing_it(self):
+        from poise.modules.tasks.process_migration import (
+            MigrationRequest,
+            ProcessSnapshotMigration,
+        )
+
+        configured = self._configured_process()
+        legacy = deepcopy(configured)
+        legacy["stages"][0]["instruction"] = "Preserve partial recovery state."
+        contract = deepcopy(self.project["task"])
+        contract["id"] = "0082"
+        contract.pop("stage_contracts")
+        request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
+
+        plan = ProcessSnapshotMigration.plan(
+            request,
+            [{
+                "id": "0082",
+                "status": "verified",
+                "claimed_by": None,
+                "metadata": {"contract": contract, "process": legacy},
+            }],
+            {"development": configured},
+        )
+
+        update = plan.updates[0]
+        self.assertFalse(update.worktree_required_added)
+        self.assertEqual(update.process, legacy)
+        self.assertEqual(update.old_process_digest, update.new_process_digest)
+        self.assertIn("stage_contracts", update.contract)
+
+    def test_schema_2_rejects_nonexact_partial_recovery(self):
+        from poise.modules.tasks.process_migration import (
+            MigrationRequest,
+            ProcessSnapshotMigration,
+        )
+
+        configured = self._configured_process()
+        contract = deepcopy(self.project["task"])
+        contract["id"] = "0082"
+        request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
+
+        for process, existing_contract, reason in (
+            (deepcopy(configured), contract, "already has stage_contracts"),
+            (
+                {**deepcopy(configured), "worktree_required": False},
+                {key: value for key, value in contract.items() if key != "stage_contracts"},
+                "conflicting worktree_required",
+            ),
+        ):
+            with self.subTest(reason=reason), self.assertRaisesRegex(DomainError, reason):
+                ProcessSnapshotMigration.plan(
+                    request,
+                    [{
+                        "id": "0082",
+                        "status": "verified",
+                        "claimed_by": None,
+                        "metadata": {"contract": existing_contract, "process": process},
+                    }],
+                    {"development": configured},
+                )
 
     def test_public_migration_preserves_task_0082_and_replays(self):
         from poise.modules.tasks.process_migration import MigrationRequest
 
-        database, metadata = self._seed_legacy_0082()
+        database, metadata, stage_contracts = self._seed_legacy_0082()
         backup = backup_commands(self.project).create()
         backup_path = backup_directory(self.project) / backup["name"]
         backup_digest = hashlib.sha256(backup_path.read_bytes()).hexdigest()
@@ -330,6 +410,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         migrated_metadata = json.loads(row[6])
         expected_metadata = deepcopy(metadata)
         expected_metadata["process"]["worktree_required"] = True
+        expected_metadata["contract"]["stage_contracts"] = stage_contracts
         self.assertEqual(migrated_metadata, expected_metadata)
         preserved_stage = next(
             item for item in migrated_metadata["process"]["stages"]
@@ -344,8 +425,12 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         expected_task = {
             "task_id": "0082",
             "worktree_required": True,
+            "worktree_required_added": True,
+            "stage_contracts_initialized": True,
             "old_process_digest": digest(metadata["process"]),
             "new_process_digest": digest(expected_metadata["process"]),
+            "old_contract_digest": digest(metadata["contract"]),
+            "new_contract_digest": digest(expected_metadata["contract"]),
         }
         self.assertEqual(migrated["tasks"], [expected_task])
         self.assertEqual(

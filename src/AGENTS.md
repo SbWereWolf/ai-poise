@@ -62,8 +62,10 @@ any claim creation, release, or replacement after the named backup or preflight 
 that rejects the complete batch.
 The separately authorized `task-process-migration-2` accepts exactly Task `0082`; it does
 not widen schema 1. It may add only the missing explicit `worktree_required` value to the
-stored legacy process, preserving every other process and Task field, then requires a native
-reviewer bootstrap of the preserved verified Task.
+stored legacy process and initialize exact stage contracts from that preserved process and its
+content requirements. Apply both metadata changes without changing Task version, lifecycle,
+released handoff, result, evidence, ownership, or Git state, then require a native reviewer
+bootstrap of the preserved verified Task.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 

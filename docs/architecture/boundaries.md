@@ -93,9 +93,11 @@ compatibility read. Одинаковый `request_id` с тем же intent во
 Schema `task-process-migration-2` имеет отдельный compile-time scope ровно из Task `0082` и
 не меняет авторизованный набор schema 1. Для 0082 domain строит новый process из сохранённого
 legacy snapshot, добавляя только отсутствующий `worktree_required` из совпадающего configured
-goal type. Storage сохраняет все lifecycle/result/content/evidence/ownership/Git поля и меняет
-только process внутри metadata; после commit работоспособность доказывается обычным reviewer
-bootstrap сохранённой verified Task.
+goal type. В той же plan строится точный отсутствующий stage contract каждого сохранённого route
+stage: scope берётся из stage, gates — из сохранённых content requirements по phase. Storage
+меняет только process и contract snapshots внутри metadata; Task version, lifecycle/result/
+content/evidence/ownership/Git поля и released handoff остаются прежними. После commit
+работоспособность доказывается обычным reviewer bootstrap сохранённой verified Task.
 
 ## Пакетный декларативный вход
 

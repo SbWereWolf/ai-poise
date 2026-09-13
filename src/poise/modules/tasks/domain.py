@@ -338,7 +338,9 @@ class Task:
         progress = self.route.enter(self.progress, destination)
         return self._enter("user_rework", feedback, actor, destination, progress)
 
-    def recover_empty_rework(self, reason: str, point: EmptyReworkRecoveryPoint) -> Change:
+    def recover_empty_transition(
+        self, reason: str, point: EmptyReworkRecoveryPoint, recovery_event: str
+    ) -> Change:
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("Empty rework recovery requires an explicit reason")
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by is not None:
@@ -375,9 +377,9 @@ class Task:
             evidence_assessment=point.evidence_assessment,
             action_assessment=None,
         )
-        event = TaskEvent(
-            "empty_rework_recovered", self.stage.stage_id, self.state.iteration, reason
-        )
+        if recovery_event not in ("empty_rework_recovered", "empty_advance_recovered"):
+            raise DomainError("Unknown empty transition recovery event")
+        event = TaskEvent(recovery_event, self.stage.stage_id, self.state.iteration, reason)
         return Change(recovered, None, (event,))
 
     def rework_failed(self, actor: str, feedback: str, tree: str, execution_key: str,

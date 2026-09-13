@@ -294,9 +294,9 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             any("Preserve legacy feedback for iteration 8" in row[-1]
                 for row in before["task_events"])
         )
-        request = self._request(backup["name"])
+        migration_request = self._request(backup["name"])
 
-        first = self._invoke_cli(request)
+        first = self._invoke_cli(migration_request)
 
         self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
         migrated = json.loads(first.stdout)
@@ -331,7 +331,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             "Preserve the legacy Task 0082 instruction.",
         )
 
-        parsed = MigrationRequest.parse(request)
+        parsed = MigrationRequest.parse(migration_request)
         expected_task = {
             "task_id": "0082",
             "worktree_required": True,
@@ -351,7 +351,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         )
         migrated_snapshot = self._snapshot(database)
 
-        replay = self._invoke_cli(request)
+        replay = self._invoke_cli(migration_request)
 
         self.assertEqual(replay.returncode, 0, replay.stdout + replay.stderr)
         replayed = json.loads(replay.stdout)

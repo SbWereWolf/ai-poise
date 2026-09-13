@@ -10,6 +10,11 @@ from ..foundation.errors import DomainError
 
 
 AUTHORIZED_TASK_IDS = ("0077", "0081", "0079", "0078", "0074", "0063")
+TASK_0082_AUTHORIZED_IDS = ("0082",)
+AUTHORIZED_TASK_IDS_BY_SCHEMA = {
+    "task-process-migration-1": AUTHORIZED_TASK_IDS,
+    "task-process-migration-2": TASK_0082_AUTHORIZED_IDS,
+}
 NONTERMINAL_STATUSES = frozenset({"available", "active", "verified", "accepted"})
 
 
@@ -25,28 +30,32 @@ class MigrationRequest:
     def parse(cls, value: object) -> "MigrationRequest":
         fields = {"schema", "request_id", "backup_name", "task_ids", "authorization"}
         exact_keys(value, fields, "task process migration request")
-        if value["schema"] != "task-process-migration-1":
+        schema = value["schema"]
+        if schema not in AUTHORIZED_TASK_IDS_BY_SCHEMA:
             raise DomainError("Unsupported task process migration schema")
         if not isinstance(value["request_id"], str) or not value["request_id"].strip():
             raise DomainError("Task process migration request_id must be a nonempty string")
         if not isinstance(value["authorization"], str) or not value["authorization"].strip():
             raise DomainError("Task process migration authorization must be a nonempty string")
         backup_name = exact_backup_name(value["backup_name"])
-        if not isinstance(value["task_ids"], list) or tuple(value["task_ids"]) != AUTHORIZED_TASK_IDS:
-            raise DomainError(
-                "Task process migration accepts exactly 0077, 0081, 0079, 0078, 0074 and 0063 in that order"
-            )
+        authorized_task_ids = AUTHORIZED_TASK_IDS_BY_SCHEMA[schema]
+        if not isinstance(value["task_ids"], list) or tuple(value["task_ids"]) != authorized_task_ids:
+            if schema == "task-process-migration-1":
+                raise DomainError(
+                    "Task process migration accepts exactly 0077, 0081, 0079, 0078, 0074 and 0063 in that order"
+                )
+            raise DomainError("Task process migration accepts exactly 0082")
         normalized = {
-            "schema": value["schema"],
+            "schema": schema,
             "request_id": value["request_id"],
             "backup_name": backup_name,
-            "task_ids": list(AUTHORIZED_TASK_IDS),
+            "task_ids": list(authorized_task_ids),
             "authorization": value["authorization"],
         }
         return cls(
             request_id=value["request_id"],
             backup_name=backup_name,
-            task_ids=AUTHORIZED_TASK_IDS,
+            task_ids=authorized_task_ids,
             authorization=value["authorization"],
             digest=digest(normalized),
         )

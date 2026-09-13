@@ -15,6 +15,8 @@ Identify the domain owner before implementation. Task, Sprint, content, evidence
 
 For repository changes follow TDD: contract/check design → tests → honest RED → test inspection → implementation → GREEN → code inspection → fixes → reinspection → documentation. Read [Development rules → TDD and inspection](../../../docs/governance/development-rules.md#tdd-и-осмотр) when working on implementation behaviour.
 
+For a development Task, pass the complete initial checks schedule explicitly; `{}` is valid and must not trigger template defaults. Design and register the actual RED/GREEN methods, schedules and future-output provenance at `verification_planning`, once their source paths are known.
+
 Tools are batch-oriented and declarative: if two or more required mechanical actions have no reasoning decision between them, expose one operation that ensures the requested result through owning APIs. Do not add hidden defaults, compatibility readers or migrations without direct user authorization. Read [Declarative tools → architectural invariant](../../../docs/architecture/declarative-tools.md#1-архитектурный-инвариант) for the corresponding contract section available in the current revision.
 
 ## Project-local configuration

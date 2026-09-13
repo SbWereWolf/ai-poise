@@ -10,6 +10,24 @@ from .modules.foundation.errors import PoiseError
 from .modules.foundation.validation import validate_exact_keys
 
 
+GIT_PUSH_PROHIBITION = (
+    "Git push is prohibited; set push_required=false and use the local integrate "
+    "operation, which publishes with git merge --ff-only."
+)
+
+
+def prohibit_git_push(argv) -> None:
+    """Reject a direct Git push before any process or Git adapter is invoked."""
+    if (isinstance(argv, (list, tuple)) and argv
+            and isinstance(argv[0], str) and Path(argv[0]).name == "git"
+            and any(argument == "push" for argument in argv[1:])):
+        raise PoiseError(GIT_PUSH_PROHIBITION)
+
+
+def prohibit_remote_git_publication() -> None:
+    raise PoiseError(GIT_PUSH_PROHIBITION)
+
+
 def exact_keys(value: dict, keys: set[str], where: str) -> None:
     validate_exact_keys(value, keys, where, PoiseError)
 
@@ -98,6 +116,8 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
         raise PoiseError('git.repository: требуется абсолютный путь')
     if type(cfg['git']['push_required']) is not bool:
         raise PoiseError('git.push_required: требуется явное true/false')
+    if cfg['git']['push_required']:
+        prohibit_remote_git_publication()
     try:
         re.compile(cfg['git']['commit_pattern'])
         cfg['git']['branch_template'].format(task_id='probe', session_id='probe')

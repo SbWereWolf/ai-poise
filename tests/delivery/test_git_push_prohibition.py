@@ -8,6 +8,7 @@ import pytest
 
 from conftest import WorkPoise as Poise
 from conftest import write_json
+from poise.composition import project_tools
 from poise.modules.foundation.errors import PoiseError
 
 from actions.helpers import advance, inspect, method, result, setup, start, verify
@@ -80,6 +81,30 @@ def test_push_required_runtime_is_rejected_before_repository_git(project, monkey
 
     assert_actionable_local_integration(error)
     assert calls == []
+
+
+def test_project_setup_rejects_push_required_before_git_probe(project, monkeypatch):
+    from poise.infrastructure.projects import FileProjectSetup
+    from projects.helpers import setup_case
+
+    settings, _, request = setup_case(project)
+    push_edit = next(
+        edit for edit in request["edits"] if edit["path"] == ["git", "push_required"]
+    )
+    push_edit["value"] = True
+    calls = []
+
+    def unexpected_probe(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("project setup reached a Git probe")
+
+    monkeypatch.setattr(FileProjectSetup, "_probe", unexpected_probe)
+    with pytest.raises(PoiseError) as error:
+        project_tools(settings).apply(request)
+
+    assert_actionable_local_integration(error)
+    assert calls == []
+    assert not (project["root"] / "configured" / "pilot").exists()
 
 
 def test_dynamic_git_runners_reject_push_before_their_effect(project, monkeypatch):

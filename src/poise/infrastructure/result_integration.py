@@ -9,7 +9,7 @@ import stat
 import subprocess
 import uuid
 
-from ..common import descendant, file_digest
+from ..common import descendant, file_digest, prohibit_git_push
 from ..execution import method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
@@ -34,6 +34,7 @@ class RuntimeResultIntegration:
         return ref.removeprefix("refs/heads/")
 
     def _run(self, cwd, *args, env=None):
+        prohibit_git_push(["git", *args])
         try:
             result = subprocess.run(
                 ["git", "-C", str(cwd), *args], capture_output=True, text=True,

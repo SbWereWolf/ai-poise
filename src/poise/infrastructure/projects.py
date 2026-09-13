@@ -10,7 +10,15 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
-from ..common import descendant,configured_root,exact_keys,digest,load_config,file_digest
+from ..common import (
+    descendant,
+    configured_root,
+    exact_keys,
+    digest,
+    load_config,
+    file_digest,
+    prohibit_remote_git_publication,
+)
 from ..modules.projects.domain import ProjectBlueprint
 from ..modules.foundation.errors import PoiseError,VersionConflict
 from .goal_config import read_document,atomic_write
@@ -81,6 +89,8 @@ class FileProjectSetup:
         return ProjectBlueprint.parse(raw)
 
     def _probe(self,cfg,enabled):
+        if cfg['git']['push_required']:
+            prohibit_remote_git_publication()
         if not enabled:return {'repository':'not_checked','remote':'not_checked'}
         repository=Path(cfg['git']['repository'])
         if not repository.is_absolute() or not repository.is_dir():raise PoiseError('Git repository must be an existing absolute path')
@@ -93,10 +103,7 @@ class FileProjectSetup:
         if Path(top).resolve()!=repository.resolve():raise PoiseError('Configured repository is not its worktree root')
         commit=git('rev-parse','--verify','--end-of-options',cfg['git']['base_ref']+'^{commit}')
         git('check-ref-format','--branch',cfg['git']['branch_template'].format(task_id='probe',session_id='probe'))
-        remote='not_required'
-        if cfg['git']['push_required']:
-            git('remote','get-url','--',cfg['git']['remote']);remote='configured_not_contacted'
-        return {'repository':'verified','base_revision':commit,'remote':remote}
+        return {'repository':'verified','base_revision':commit,'remote':'not_required'}
 
     def apply(self,request):
         s=self.settings;c=s.raw;target=confined(s.root,request['destination'])

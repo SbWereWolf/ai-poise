@@ -140,7 +140,6 @@ def test_newborn_ready_rejects_unreachable_pre_trace_gate(project):
     creator = tools(project, "creator")
     born = create(creator, "UNREACHABLE-PRE")
     assembled = complete_patch(project, "UNREACHABLE-PRE")
-    assembled.pop("goal")
     assembled["content_contract"] = {
         "sections": [],
         "routes": [{

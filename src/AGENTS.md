@@ -43,7 +43,15 @@ branch, base and WIP. Reject foreign ownership, stale versions, terminal Tasks a
 external outcomes before mutation. Sprint `replace_task` is not a correction writer; retain
 historical replacement relations only for reading.
 
-For every new trace requirement, ensure that its due stages intersect the referenced point's `write_stages`. Apply this rule to new goal-type and Task candidates, Sprint publication, and new active-Task additions before persistence or external effects. Restore stored contracts without retroactive rejection or rewriting, but validate every genuinely new requirement added to them. Keep immutable early evidence writable only at its owning stage; include that stage among the requirement's due stages instead of making the evidence writable later.
+For every new trace requirement, ensure that its due stages intersect the referenced
+point's `write_stages`. A `phase=pre` requirement additionally needs a declared write
+stage strictly before its earliest required stage; `phase=post` may use the same stage.
+Apply this one rule to direct Task creation, newborn ready, Sprint publication, new
+goal-type candidates, and new active-Task additions before persistence or external
+effects. Restore stored contracts without retroactive rejection or rewriting, but
+validate every genuinely new requirement added to them. Keep immutable early evidence
+writable only at its owning stage and expose it through a post-gate there before later
+pre-gates consume it.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.
 

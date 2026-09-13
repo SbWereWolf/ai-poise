@@ -84,6 +84,12 @@ def test_invalid_trace_schedule_prevents_all_sprint_member_publication(project):
     for candidate in (valid,invalid):
         candidate['checks']['later']=[]
         candidate['evidence_plan']['later']={'subject_methods':{},'arguments':[],'review_arguments':[]}
+        candidate['stage_contracts'].append({
+            'stage_id':'later',
+            'allowed_paths':list(later['allowed_paths']),
+            'entry_requirements':[],
+            'exit_requirements':[],
+        })
     invalid['content_contract']={"sections":[],"routes":[
         {"id":"delivery","requirements":invalid['requirements'],"points":[
             {"id":"method","kind":"method","fields":{},"write_stages":["later"]}]}],

@@ -14,8 +14,25 @@ from tests.conftest import write_json
 from .helpers import setup_case
 
 
+def file_state(path):
+    path = Path(path)
+    if not path.exists():
+        return None
+    stat = path.stat()
+    return {
+        'content': path.read_bytes(),
+        'mode': stat.st_mode,
+        'inode': stat.st_ino,
+        'size': stat.st_size,
+        'mtime_ns': stat.st_mtime_ns,
+        'ctime_ns': stat.st_ctime_ns,
+    }
+
+
 def test_project_list_cli_returns_empty_registry(project):
     settings, _, _ = setup_case(project)
+    registry = project['root'] / 'state/project-registry.json'
+    before = {path: file_state(path) for path in (settings, registry)}
 
     result = subprocess.run(
         [sys.executable, '-m', 'poise', 'project', 'list', '--settings', str(settings)],
@@ -29,6 +46,7 @@ def test_project_list_cli_returns_empty_registry(project):
         'projects': [],
         'errors': [],
     }
+    assert {path: file_state(path) for path in before} == before
 
 
 def test_list_orders_several_configured_projects(project):
@@ -111,6 +129,10 @@ def test_list_separates_missing_invalid_and_mismatched_entries(project):
             'invalid': {'config_path': 'configured/invalid/project.json'},
         },
     })
+    registry = project['root'] / 'state/project-registry.json'
+    missing = project['root'] / 'configured/missing/project.json'
+    observed_paths = (settings, registry, Path(created['config_path']), invalid, missing)
+    before = {path: file_state(path) for path in observed_paths}
 
     result = commands.list()
 
@@ -123,3 +145,4 @@ def test_list_separates_missing_invalid_and_mismatched_entries(project):
     assert [error['status'] for error in result['errors']] == ['invalid', 'missing', 'invalid']
     assert all(Path(error['config_path']).is_absolute() for error in result['errors'])
     assert all(error['reason'] for error in result['errors'])
+    assert {path: file_state(path) for path in before} == before

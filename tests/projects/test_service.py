@@ -75,7 +75,7 @@ def test_repo_probe_can_be_skipped_only_explicitly_and_is_reported(project):
     assert r['readiness']['repository']=='not_checked'
 
 
-def test_failure_before_atomic_publication_leaves_no_partial_project(project,monkeypatch):
+def test_publication_failures_are_atomic_or_recoverable_by_exact_replay(project,monkeypatch):
     import poise.infrastructure.projects as module
     settings,_,req=setup_case(project);tool=project_tools(settings)
     original=module.publish_directory
@@ -85,6 +85,23 @@ def test_failure_before_atomic_publication_leaves_no_partial_project(project,mon
     assert not (project['root']/'configured/pilot').exists()
     monkeypatch.setattr(module,'publish_directory',original)
     assert tool.apply(req)['status']=='created'
+
+    recoverable=deepcopy(req)
+    recoverable['request_id']='setup-registry-recovery'
+    recoverable['destination']='configured/recoverable'
+    recoverable['edits'][0]['value']='recoverable'
+    original_registry=module.publish_registry
+    def fail_registry(*args):raise OSError('simulated registry storage failure')
+    monkeypatch.setattr(module,'publish_registry',fail_registry)
+    with pytest.raises(PoiseError,match='retry same request'):
+        tool.apply(recoverable)
+    assert (project['root']/'configured/recoverable').is_dir()
+    assert [item['project'] for item in tool.list()['projects']]==['pilot']
+
+    monkeypatch.setattr(module,'publish_registry',original_registry)
+    replay=tool.apply(recoverable)
+    assert replay['status']=='created' and replay['replayed'] is True
+    assert [item['project'] for item in tool.list()['projects']]==['pilot','recoverable']
 
 
 def test_process_and_manifest_destination_collision_is_rejected(project):

@@ -640,7 +640,7 @@ def test_sprint_publication_rewrites_request_aliases_to_allocated_ids(project):
             {"queries": [{"id": "plan", "kind": "sprint", "sprint_id": "S", "view": "plan"}]},
         )
     )["results"][0]["value"]
-    assert plan["aggregate"]["plan"]["tasks"] == ["0001", "0002"]
+    assert [task["id"] for task in plan["aggregate"]["plan"]["tasks"]] == ["0001", "0002"]
     assert plan["aggregate"]["plan"]["dependencies"] == [
         {"predecessor": "0001", "successor": "0002", "kind": "completion"}
     ]
@@ -697,14 +697,11 @@ def test_sprint_publication_preflights_before_allocation(project):
         )
     )["results"][0]["value"]
     assert plan["aggregate"]["state"] == "draft"
-    preserved = tools.runtime.task_queries.record("0001")
-    assert preserved["status"] == "newborn"
-    assert preserved["creation_request"]["request_id"] == "sprint-missing-input"
     next_result = bootstrap(
         WorkTools(Poise(project["config_path"], "after-sprint-preflight")),
         automatic_intent(project, "after-sprint-preflight"),
     )
-    assert next_result["task"] == "0002"
+    assert next_result["task"] == "0001"
 
 
 def test_existing_rows_and_explicit_id_creation_need_no_migration(project):

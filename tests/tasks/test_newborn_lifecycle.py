@@ -153,13 +153,25 @@ def test_newborn_sprint_membership_and_publication(project):
         "changes": sprint_changes([]),
     }))
     born = create(planner, "SPRINT-TASK", "NEWBORN-SPRINT")
-    edited = edit(
+    partial = edit(
         planner,
         "SPRINT-TASK",
         born["revision"],
-        complete_patch(project, "SPRINT-TASK", "NEWBORN-SPRINT")
-        | {"goal_type": "development"},
-        "edit-sprint-newborn",
+        {"goal": "Partially planned member"},
+        "partially-edit-sprint-newborn",
+    )
+    assert partial["draft"] == {"goal": "Partially planned member"}
+    assert planner.runtime.task_queries.record("SPRINT-TASK")["history"][-1]["event"] == (
+        "newborn_edited"
+    )
+    remaining = complete_patch(project, "SPRINT-TASK", "NEWBORN-SPRINT")
+    remaining.pop("goal")
+    edited = edit(
+        planner,
+        "SPRINT-TASK",
+        partial["revision"],
+        remaining | {"goal_type": "development"},
+        "complete-sprint-newborn",
     )
     member_ready = task_action(
         planner,
@@ -171,19 +183,52 @@ def test_newborn_sprint_membership_and_publication(project):
     assert member_ready["status"] == "newborn"
     assert member_ready["ready"] is True
 
+    follower = create(planner, "SPRINT-FOLLOWUP", "NEWBORN-SPRINT")
+    completed_follower = edit(
+        planner,
+        "SPRINT-FOLLOWUP",
+        follower["revision"],
+        complete_patch(project, "SPRINT-FOLLOWUP", "NEWBORN-SPRINT")
+        | {"goal_type": "development"},
+        "complete-sprint-follower",
+    )
+    task_action(
+        planner,
+        action="ready",
+        request_id="ready-sprint-follower",
+        task_id="SPRINT-FOLLOWUP",
+        expected_revision=completed_follower["revision"],
+    )
+
     revised = planner.invoke(request("sprint", {
         "action": "draft",
         "sprint_id": "NEWBORN-SPRINT",
-        "request_id": "link-newborn-member",
-        "expected_revision": drafted["revision"] + 1,
+        "request_id": "plan-newborn-graph",
+        "expected_revision": follower["sprint_revision"],
         "template": None,
         "changes": [
-            {"kind": "upsert_tasks", "tasks": ["SPRINT-TASK"]},
-            {"kind": "dependencies", "items": []},
+            {
+                "kind": "dependencies",
+                "items": [{
+                    "predecessor": "SPRINT-TASK",
+                    "successor": "SPRINT-FOLLOWUP",
+                    "kind": "blocks",
+                }],
+            },
         ],
     }))
-    assert revised["tasks"][0]["id"] == "SPRINT-TASK"
-    assert revised["tasks"][0]["status"] == "newborn"
+    assert [item["id"] for item in revised["tasks"]] == [
+        "SPRINT-FOLLOWUP",
+        "SPRINT-TASK",
+    ]
+    assert {item["status"] for item in revised["tasks"]} == {"newborn"}
+    assert revised["dependencies"] == [{
+        "predecessor": "SPRINT-TASK",
+        "successor": "SPRINT-FOLLOWUP",
+        "kind": "blocks",
+    }]
+    task_history = planner.runtime.task_queries.record("SPRINT-TASK")["history"]
+    assert [item["event"] for item in task_history].count("newborn_edited") == 2
 
     published = planner.invoke(request("sprint", {
         "action": "publish",
@@ -192,7 +237,14 @@ def test_newborn_sprint_membership_and_publication(project):
         "expected_revision": revised["revision"],
     }))
     assert published["status"] == "planned"
-    assert published["tasks"][0]["status"] == "available"
+    assert {item["status"] for item in published["tasks"]} == {"available"}
+    assert published["blocked"] == [{
+        "task": "SPRINT-FOLLOWUP",
+        "reasons": [{
+            "predecessor": "SPRINT-TASK",
+            "reason": "predecessor_incomplete",
+        }],
+    }]
     assert planner.runtime.task_queries.record("SPRINT-TASK")["sprint_id"] == "NEWBORN-SPRINT"
 
 

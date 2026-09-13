@@ -56,7 +56,7 @@ Read-only semantic вызовы допустимы для диагностики
 
 ## Fallback на ast-index
 
-Если требуемая IDE capability не `listed`, не привязана к текущему project/worktree, неприменима к языку/символу или завершилась неинтерпретируемо, агент фиксирует конкретную причину и продолжает через `ast-index`, когда тот способен заменить операцию. Silent fallback без зафиксированной причины запрещён.
+Если требуемая IDE capability не `listed`, не привязана к текущему project/worktree, неприменима к языку/символу или завершилась неинтерпретируемо, агент фиксирует конкретную причину и продолжает через `ast-index`, когда тот способен заменить операцию. silent fallback без зафиксированной причины запрещён.
 
 Fallback не превращает `ast-index` в универсальный эквивалент IDE. Он подходит для индексируемого symbol/file search, usages, implementations, hierarchy, callers и repository-wide structural анализа. IDE inspections, quick documentation, semantic refactoring и IDE formatting не объявляются выполненными на основании одного результата `ast-index`. Для обычного текстового содержимого, комментариев и regex после правил `ast-index` применим `rg`.
 

@@ -266,6 +266,14 @@ def _configure_production_accounting(project):
     task["methods"] = []
     task["method_inputs"] = []
     task["checks"] = {"write": []}
+    task["stage_contracts"] = [
+        {
+            "stage_id": "write",
+            "allowed_paths": ["src/**", "tests/**", "docs/**"],
+            "entry_requirements": [],
+            "exit_requirements": [],
+        }
+    ]
     task["evidence_plan"] = {
         "write": {"subject_methods": {}, "arguments": [], "review_arguments": []}
     }

@@ -75,7 +75,9 @@ def test_list_orders_several_configured_projects(project):
     ]
 
 
-def test_batch_creation_registers_stable_identity_and_rejects_rebinding(project):
+def test_batch_creation_registers_stable_identity_and_recovers_registry_failure(project, monkeypatch):
+    import poise.infrastructure.projects as module
+
     settings, _, request = setup_case(project)
     commands = project_tools(settings)
 
@@ -91,6 +93,29 @@ def test_batch_creation_registers_stable_identity_and_rejects_rebinding(project)
     with pytest.raises(PoiseError, match='already registered'):
         commands.apply(conflicting)
     assert not (project['root'] / 'configured/other-pilot').exists()
+
+    recoverable = deepcopy(request)
+    recoverable['request_id'] = 'setup-registry-recovery'
+    recoverable['destination'] = 'configured/recoverable'
+    recoverable['edits'][0]['value'] = 'recoverable'
+    original_registry = module.publish_registry
+
+    def fail_registry(*args):
+        raise OSError('simulated registry storage failure')
+
+    monkeypatch.setattr(module, 'publish_registry', fail_registry)
+    with pytest.raises(PoiseError, match='retry same request'):
+        commands.apply(recoverable)
+    assert (project['root'] / 'configured/recoverable').is_dir()
+    assert [item['project'] for item in commands.list()['projects']] == ['pilot']
+
+    monkeypatch.setattr(module, 'publish_registry', original_registry)
+    replay = commands.apply(recoverable)
+    assert replay['status'] == 'created' and replay['replayed'] is True
+    assert [item['project'] for item in commands.list()['projects']] == [
+        'pilot',
+        'recoverable',
+    ]
 
 
 def test_interactive_creation_uses_same_registry(project):

@@ -677,31 +677,38 @@ class Task:
         updated = replace(self, state=state, progress=progress, evidence_input=None, evidence_assessment=None, action_assessment=None)
         return Change(updated, None, (TaskEvent(event, self.stage.stage_id, self.state.iteration, reason),))
 
+    def _ensure_pending_resolutions_inspected(self) -> None:
+        pending_resolutions = self.feedback.pending_resolutions
+        if not pending_resolutions:
+            return
+        current = self.route.node(self.stage.stage_id)
+        inspection_stage = (
+            self.stage.stage_id
+            if current.handler == HandlerKind.INSPECT
+            else current.target(self.progress.outcome)
+        )
+        if (inspection_stage is None or
+                self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
+            raise DomainError(
+                "Rework недоступен: маршрут не определяет обязательный этап "
+                "осмотра ожидающих исправлений"
+            )
+        resolution_ids = ", ".join(
+            resolution.id for resolution in pending_resolutions
+        )
+        raise DomainError(
+            f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
+            f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
+            "исправление."
+        )
+
     def rework(self, actor: str, feedback: str, target: str | None = None) -> Change:
         self._owned(actor)
         if not isinstance(feedback, str) or not feedback.strip():
             raise DomainError("Для rework требуется замечание пользователя")
         if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED, TaskStatus.COMPLETED):
             raise DomainError("Rework открывает ранее предъявленный результат")
-        pending_resolutions = self.feedback.pending_resolutions
-        if pending_resolutions:
-            inspection_stage = self.route.node(self.stage.stage_id).target(
-                self.progress.outcome
-            )
-            if (inspection_stage is None or
-                    self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
-                raise DomainError(
-                    "Rework недоступен: маршрут не определяет обязательный этап "
-                    "осмотра ожидающих исправлений"
-                )
-            resolution_ids = ", ".join(
-                resolution.id for resolution in pending_resolutions
-            )
-            raise DomainError(
-                f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
-                f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
-                "исправление."
-            )
+        self._ensure_pending_resolutions_inspected()
         destination = self.stage.stage_id if target is None else target
         if destination not in self.route.node(self.stage.stage_id).rework_targets:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")
@@ -763,11 +770,10 @@ class Task:
             self.stage.stage_id,self.state.iteration,self.state.submission_digest,tree,execution_key)
         if batch is None:
             raise DomainError("Нет точного известного failed check batch текущего результата")
+        self._ensure_pending_resolutions_inspected()
         destination=self.stage.stage_id if target is None else target
         if destination not in self.route.node(self.stage.stage_id).rework_targets:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")
-        if self.route.node(destination).handler == HandlerKind.REVISE and not self.feedback.open_findings:
-            raise DomainError("Нельзя перейти к исправлению без открытых находок")
         progress=self.route.enter(self.progress,destination)
         return self._enter("user_failed_check_rework",feedback,actor,destination,progress)
 

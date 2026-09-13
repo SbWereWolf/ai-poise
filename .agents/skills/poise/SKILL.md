@@ -64,6 +64,14 @@ Do not create a worktree for read-only queries. For repository-changing work, us
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
+Batch independent reads that are known before the call into one public `show` packet with
+multiple `queries`. Give each query a stable unique `id` and correlate the returned items by
+that ID. Use the existing `task`, `section`, `content`, `evidence`, `verification_registry`,
+`trace` and other supported query kinds; do not create another reader or inspect managed SQLite.
+Do not batch a dependent read until its identifier or range is known. One packet is not a
+cross-read-model SQL snapshot, and no token saving has been measured or may be claimed. Follow
+[Evidence-based review → Batched subject reads](../../../docs/workflows/evidence-based-review.md#пакетное-чтение-предмета).
+
 When a current observation command has become stale, do not recreate the Task or edit its
 database. Read the current registry with one `show` query of kind `verification_registry`, then
 submit one guarded `method_additions` change from the current `observe` stage. Replace only a

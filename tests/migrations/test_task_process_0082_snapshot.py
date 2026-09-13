@@ -15,9 +15,14 @@ import pytest
 
 import conftest
 from conftest import Poise
+from conftest import WorkPoise
 from conftest import project as project_fixture
+from conftest import write_json
+from batch.helpers import request
+from poise.application.work import WorkTools
 from poise.common import digest
 from poise.modules.foundation.errors import DomainError
+from runner.test_runner_paths import edit, result as stage_result, setup_project
 from tests.backups.helpers import backup_commands, backup_directory
 
 
@@ -91,76 +96,96 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             }
 
     def _seed_legacy_0082(self) -> tuple[Path, dict]:
-        from poise.infrastructure.sqlite.database import Database
+        self.project["task"]["id"] = "0082"
+        setup_project(self.project, "development")
+        process_path = self.project["root"] / "config/processes/development.json"
+        process = json.loads(process_path.read_text(encoding="utf-8"))
+        process["route"]["entry"] = "test_remediation"
+        for stage in process["stages"]:
+            if stage["id"] == "draft":
+                stage["id"] = "test_remediation"
+            stage["transitions"] = {
+                outcome: "test_remediation" if target == "draft" else target
+                for outcome, target in stage["transitions"].items()
+            }
+            stage["rework_targets"] = [
+                "test_remediation" if target == "draft" else target
+                for target in stage["rework_targets"]
+            ]
+        write_json(process_path, process)
 
-        Poise(self.project["config_path"], "schema-initializer")
+        task = self.project["task"]
+        task["checks"]["test_remediation"] = task["checks"].pop("draft")
+        task["evidence_plan"]["test_remediation"] = task["evidence_plan"].pop(
+            "draft"
+        )
+        for method in task["methods"]:
+            plan = method["verification_plan"]
+            plan["red_stages"] = [
+                "test_remediation" if stage == "draft" else stage
+                for stage in plan["red_stages"]
+            ]
+            plan["green_stages"] = [
+                "test_remediation" if stage == "draft" else stage
+                for stage in plan["green_stages"]
+            ]
+        write_json(self.project["task_path"], task)
+
+        runtime = Poise(self.project["config_path"], "S1")
+        context = runtime.bootstrap(task_file=self.project["task_path"])
+        self.assertEqual(context["stage"], "test_remediation")
+        edit(context, "development", "verified iteration 1\n")
+        stage_result(context, {})
+        verified = runtime.verify()
+        for iteration in range(2, 9):
+            context = runtime.bootstrap(
+                decision="rework",
+                feedback=f"Preserve legacy feedback for iteration {iteration}.",
+                rework_stage="test_remediation",
+            )
+            stage_result(context, {})
+            if iteration == 8:
+                artifact = Path(context["task_root"]) / "preserved-0082.txt"
+                artifact.write_text("preserve artifact\n", encoding="utf-8")
+                context["result_template"]["artifact_paths"] = [str(artifact)]
+            verified = runtime.verify()
+        self.assertEqual(verified["stage"], "test_remediation")
+        self.assertEqual(verified["iteration"], 8)
+        WorkTools(runtime).invoke(
+            request(
+                "handoff",
+                {
+                    "request_id": "release-legacy-0082",
+                    "reason": "Preserve released reviewer context.",
+                    "result": None,
+                    "commit_message": None,
+                    "artifact_paths": [],
+                },
+            )
+        )
+
         database = self._database()
-        config = json.loads(
-            self.project["config_path"].read_text(encoding="utf-8")
-        )
-        state = Path(config["paths"]["state"])
-        if not state.is_absolute():
-            state = self.project["config_path"].parent / state
-        legacy_process = deepcopy(self._configured_process())
-        legacy_process.pop("worktree_required")
-        metadata = {
-            "config_hash": "preserve-config-identity",
-            "contract": {"goal_type": "development", "id": "0082"},
-            "goal": "preserve legacy Task 0082",
-            "marker": {"preserve": "0082"},
-            "process": legacy_process,
-        }
-        store = Database(
-            database,
-            state / config["paths"]["lock"],
-            2.0,
-            0.01,
-        )
-        with store.transaction() as connection:
+        with runtime.store.transaction() as connection:
+            raw = connection.execute(
+                "SELECT metadata FROM tasks WHERE id='0082'"
+            ).fetchone()[0]
+            metadata = json.loads(raw)
+            legacy_process = metadata["process"]
+            stage = next(
+                item for item in legacy_process["stages"]
+                if item["id"] == "test_remediation"
+            )
+            stage["instruction"] = "Preserve the legacy Task 0082 instruction."
+            legacy_process.pop("worktree_required")
             connection.execute(
-                "INSERT INTO tasks(id,status,stage_index,iteration,claimed_by,version,"
-                "current_submission_id,metadata) VALUES(?,?,?,?,?,?,?,?)",
+                "UPDATE tasks SET metadata=? WHERE id='0082'",
                 (
-                    "0082",
-                    "active",
-                    5,
-                    8,
-                    None,
-                    37,
-                    None,
                     json.dumps(
                         metadata,
                         ensure_ascii=False,
                         sort_keys=True,
                         separators=(",", ":"),
                     ),
-                ),
-            )
-            connection.execute(
-                "INSERT INTO task_events(task_id,version,at,data) VALUES(?,?,?,?)",
-                (
-                    "0082",
-                    37,
-                    "2026-09-13T08:00:00+00:00",
-                    '{"event":"empty_rework_recovered"}',
-                ),
-            )
-            connection.execute(
-                "INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
-                (
-                    "0082",
-                    '{"branch":"tasks/0082","marker":"preserve","worktree":"/preserve"}',
-                    11,
-                ),
-            )
-            connection.execute(
-                "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
-                (
-                    "2026-09-13T08:00:00+00:00",
-                    "preserved-session",
-                    "0082",
-                    "preserved-event",
-                    '{"marker":"preserve"}',
                 ),
             )
         return database, metadata
@@ -218,6 +243,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         configured = self._configured_process()
         legacy = deepcopy(configured)
         legacy.pop("worktree_required")
+        legacy["stages"][0]["instruction"] = "Preserve a legacy instruction."
         request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
 
         plan = ProcessSnapshotMigration.plan(
@@ -237,7 +263,9 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         )
 
         self.assertEqual(tuple(item.task_id for item in plan.updates), ("0082",))
-        self.assertEqual(plan.updates[0].process, configured)
+        expected = deepcopy(legacy)
+        expected["worktree_required"] = True
+        self.assertEqual(plan.updates[0].process, expected)
 
     def test_public_migration_preserves_task_0082_and_replays(self):
         from poise.modules.tasks.process_migration import MigrationRequest
@@ -247,6 +275,25 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         backup_path = backup_directory(self.project) / backup["name"]
         backup_digest = hashlib.sha256(backup_path.read_bytes()).hexdigest()
         before = self._snapshot(database)
+        before_task = next(row for row in before["tasks"] if row[0] == "0082")
+        for table in (
+            "artifacts",
+            "evidence",
+            "handoffs",
+            "submissions",
+            "task_artifacts",
+            "task_events",
+            "task_execution",
+            "task_proofs",
+            "task_results",
+            "task_workflows",
+            "workflow_layers",
+        ):
+            self.assertTrue(before[table], table)
+        self.assertTrue(
+            any("Preserve legacy feedback for iteration 8" in row[-1]
+                for row in before["task_events"])
+        )
         request = self._request(backup["name"])
 
         first = self._invoke_cli(request)
@@ -270,11 +317,19 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 "SELECT status,stage_index,iteration,claimed_by,version,current_submission_id,metadata "
                 "FROM tasks WHERE id='0082'"
             ).fetchone()
-        self.assertEqual(row[:6], ("active", 5, 8, None, 37, None))
+        self.assertEqual(row[:6], before_task[1:7])
         migrated_metadata = json.loads(row[6])
         expected_metadata = deepcopy(metadata)
         expected_metadata["process"]["worktree_required"] = True
         self.assertEqual(migrated_metadata, expected_metadata)
+        preserved_stage = next(
+            item for item in migrated_metadata["process"]["stages"]
+            if item["id"] == "test_remediation"
+        )
+        self.assertEqual(
+            preserved_stage["instruction"],
+            "Preserve the legacy Task 0082 instruction.",
+        )
 
         parsed = MigrationRequest.parse(request)
         expected_task = {
@@ -303,6 +358,25 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         self.assertTrue(replayed["replayed"])
         self.assertEqual(replayed["receipt"], migrated["receipt"])
         self.assertEqual(self._snapshot(database), migrated_snapshot)
+
+        reviewer = WorkTools(
+            WorkPoise(self.project["config_path"], "REVIEWER")
+        ).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "0082"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+
+        self.assertEqual(reviewer["status"], "verified")
+        self.assertEqual(reviewer["stage"], "test_remediation")
+        self.assertEqual(reviewer["iteration"], 8)
+        self.assertEqual(reviewer["task"], "0082")
 
 
 if __name__ == "__main__":

@@ -35,8 +35,8 @@ def pending_runtime(project):
     return runtime
 
 
-def pending_task():
-    current = verify(task(), {}).accept("S", True).task
+def pending_task(route=None):
+    current = verify(task(route), {}).accept("S", True).task
     current = verify(current, inspect([finding()])).accept("S", True).task
     return verify(current, {"resolutions": [resolution()]})
 
@@ -61,7 +61,9 @@ def test_rework_rejects_pending_resolution_before_state_change(project):
 
 
 def test_failed_check_rework_rejects_pending_resolution_before_state_change():
-    current = pending_task().accept("S", True).task
+    route = process()
+    route["stages"][3]["rework_targets"].append("amend")
+    current = pending_task(route).accept("S", True).task
     current = current.submit(
         "S",
         {"report": "Failed follow-up candidate."},
@@ -70,7 +72,7 @@ def test_failed_check_rework_rejects_pending_resolution_before_state_change():
         {"sections": [], "routes": [], "requirements": []},
         {},
         [],
-        inspect(),
+        inspect(decisions=[decision("R1")]),
         {"phase": "prepare", "arguments": [], "decisions": []},
     ).task
     tree = "FAILED-TREE"
@@ -109,6 +111,57 @@ def test_failed_check_rework_rejects_pending_resolution_before_state_change():
         )
 
     assert str(caught.value) == EXPECTED_ERROR
+    assert current == before
+
+
+def test_failed_check_rework_rejects_foreign_owner_before_state_change():
+    current = task()
+    current = current.submit(
+        "S",
+        {"report": "Failed owned candidate."},
+        (),
+        "test: failed owned candidate",
+        {"sections": [], "routes": [], "requirements": []},
+        {},
+        [],
+        {},
+        {"phase": "prepare", "arguments": [], "decisions": []},
+    ).task
+    tree = "OWNED-FAILED-TREE"
+    execution_key = "OWNED-FAILED-EXECUTION"
+    receipt = {
+        "id": "OWNED-FAILED-RECEIPT",
+        "method": "GUARD",
+        "obligations": ["GUARD"],
+        "passed": False,
+        "timed_out": False,
+        "actual_exit_code": 1,
+        "tree": tree,
+        "guard": True,
+        "interpretable": True,
+    }
+    current = replace(
+        current,
+        evidence_book=current.evidence_book.record_submission_batch(
+            current.stage.stage_id,
+            current.state.iteration,
+            tree,
+            execution_key,
+            current.state.submission_digest,
+            [receipt],
+        ),
+    )
+    before = current
+
+    with pytest.raises(DomainError, match="другой сессией"):
+        current.rework_failed(
+            "FOREIGN",
+            "A foreign actor must not recover the owned failed candidate.",
+            tree,
+            execution_key,
+            "draft",
+        )
+
     assert current == before
 
 

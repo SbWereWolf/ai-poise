@@ -34,6 +34,12 @@ def setup_project(project, goal):
       "reference_profile":{"runner":"python","parser":"inline-no-path-arguments","version":1}}]
     contract["checks"]={s["id"]:["TARGETED"] for s in proc["stages"]}
     contract["evidence_plan"]={s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in proc["stages"]}
+    contract["stage_contracts"]=[{
+        "stage_id": stage["id"],
+        "allowed_paths": list(stage["allowed_paths"]),
+        "entry_requirements": [],
+        "exit_requirements": [],
+    } for stage in proc["stages"]]
     write_json(project["task_path"],contract)
     return Poise(project["config_path"],"S1")
 

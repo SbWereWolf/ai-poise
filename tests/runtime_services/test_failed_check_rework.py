@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from conftest import verification_plan, write_json
+from conftest import git, verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from conftest import WorkPoise as Poise
@@ -206,9 +206,21 @@ def test_failed_check_can_rework_to_declared_revise_stage_without_finding(projec
     immutable_before = tools.runtime.current_task()
     contract_before = deepcopy(immutable_before["contract"])
     process_before = deepcopy(immutable_before["process"])
+    wip = Path(worktree, "src", "failed-check-wip.txt")
+    staged_content = "staged candidate\n"
+    wip.write_text(staged_content, encoding="utf-8")
+    git(Path(worktree), "add", "src/failed-check-wip.txt")
+    wip.write_text(staged_content + "unstaged candidate\n", encoding="utf-8")
     _fail_current_stage(tools, context)
     before = _show(tools)
     observations = _show(tools, "evidence")["observations"]
+    git_before = {
+        "branch": git(Path(worktree), "symbolic-ref", "--short", "HEAD"),
+        "head": git(Path(worktree), "rev-parse", "HEAD"),
+        "index": git(Path(worktree), "write-tree"),
+        "status": git(Path(worktree), "status", "--porcelain=v1"),
+        "content": wip.read_text(encoding="utf-8"),
+    }
 
     recovered = _rework(tools, "closed_finding_remediation")
 
@@ -232,6 +244,13 @@ def test_failed_check_can_rework_to_declared_revise_stage_without_finding(projec
     )
     assert current["pending"] is None
     assert current["publication"] is None
+    assert {
+        "branch": git(Path(worktree), "symbolic-ref", "--short", "HEAD"),
+        "head": git(Path(worktree), "rev-parse", "HEAD"),
+        "index": git(Path(worktree), "write-tree"),
+        "status": git(Path(worktree), "status", "--porcelain=v1"),
+        "content": wip.read_text(encoding="utf-8"),
+    } == git_before
     assert any(
         event.get("reason") == "Repair the failed verification through the declared test route."
         for event in after["history"]
@@ -283,7 +302,7 @@ def test_checks_failed_rework_does_not_bypass_target_allowed_paths(project):
     recovered = _rework(tools)
     Path(recovered["worktree"], "src", "forbidden.py").write_text("forbidden = True\n", encoding="utf-8")
 
-    with pytest.raises(PoiseError, match="вне разрешённой области"):
+    with pytest.raises(PoiseError, match="stage contract allowed_paths"):
         verify(tools, result(recovered, "must remain inside the remediation scope"))
 
 

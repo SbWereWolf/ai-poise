@@ -1,6 +1,6 @@
 from poise.modules.evidence.domain import EvidencePlan
 import copy
-from poise.modules.tasks.domain import Task, StageSpec
+from poise.modules.tasks.domain import Task, StageSpec, TaskStageContracts
 from poise.modules.content.domain import SectionRule
 from poise.modules.content_requirements.domain import ContentPolicy
 from poise.modules.verification.domain import CheckRegistry
@@ -27,10 +27,21 @@ def task(cfg=None):
     stages=tuple(StageSpec(s["id"],(SectionRule("report","Заполнить.","strip",True),)) for s in cfg["stages"])
     ids=tuple(s.stage_id for s in stages)
     policy=ContentPolicy.from_layers(EMPTY,EMPTY,ids,(),(),("report",))
+    route=RouteDefinition.from_process(cfg)
     registry=CheckRegistry.from_task([],{i:[] for i in ids},ids)
-    return Task.new("T",stages,"S",policy,registry,RouteDefinition.from_process(cfg), EvidencePlan.parse(
+    contracts=TaskStageContracts.parse([
+        {
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        }
+        for stage in cfg["stages"]
+    ],route,policy)
+    return Task.new("T",stages,"S",policy,registry,route, EvidencePlan.parse(
         {s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in cfg["stages"]},
-        {s["id"]:s["handler"] for s in cfg["stages"]}, {s["id"]:[] for s in cfg["stages"]}))
+        {s["id"]:s["handler"] for s in cfg["stages"]}, {s["id"]:[] for s in cfg["stages"]}),
+        stage_contracts=contracts)
 
 def inspect(findings=(),decisions=()):
     return {"coverage":"Проверен текущий результат по требованиям.","findings":list(findings),"resolution_decisions":list(decisions)}

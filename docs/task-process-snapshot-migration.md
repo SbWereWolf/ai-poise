@@ -94,7 +94,7 @@ drift и отклоняет весь пакет.
 `worktree_required`, взятый из настроенного process того же immutable `goal_type`. Уже выданный
 старый receipt schema 2 остаётся точно replayable; этот опубликованный контракт не меняется.
 
-Корректирующая `task-process-migration-3` принимает тот же точный набор Task. Если schema 2 уже
+Корректирующая `task-process-migration-3` принимает только `0082`. Если schema 2 уже
 добавила совпадающий boolean, schema 3 сохраняет process без изменений; если boolean ещё нет,
 она добавляет его, не заменяя остальные поля старого snapshot актуальным process целиком.
 Та же атомарная операция инициализирует отсутствующий `stage_contracts` в Task contract. Она
@@ -123,6 +123,32 @@ metadata update без изменения lifecycle columns, Task version и rel
 old/new digests обоих изменяемых snapshots. После сравнения публичных
 проекций передайте сохранённую released Task назначенному проверяющему и выполните native bootstrap Task `0082`. Ожидаемый восстановленный контекст — исходная verified итерация
 `test_remediation`, а не новая Task и не пустой результат.
+
+## Восстановление текущей задачи планирования
+
+`task-process-migration-4` — одноразовая точечная операция только для
+`ERP-HARNESS-COMPARISON-PLAN`. Она исправляет legacy Task, которой не хватает
+`stage_contracts`, без restart: сохраняет ID, lifecycle, текущие stage/iteration, историю,
+ownership, worktree, branch и WIP. Контракты выводятся исключительно из сохранённых process и
+content snapshots этой Task: для каждого stage сохраняется его `allowed_paths`, а entry/exit
+gates строятся по сохранённым requirements и их phase. Процесс не подменяется текущим
+конфигом проекта.
+
+Перед запуском остановите writers и создайте public backup. Запрос имеет точную форму:
+
+```json
+{
+  "schema": "task-process-migration-4",
+  "request_id": "migrate-current-task-stage-contracts-1",
+  "backup_name": "BACKUP_NAME",
+  "task_ids": ["ERP-HARNESS-COMPARISON-PLAN"],
+  "authorization": "User authorized recovery of the current unfinished planning Task."
+}
+```
+
+Успешный receipt фиксирует old/new digests process и contract, а затем native `bootstrap`
+должен вернуть сохранённый этап `framing`. Другая Task, повторный другой intent, уже
+инициализированный contract или drift базы отклоняются до записи.
 
 Для отката прекратите все
 writes и используйте только `poise backup restore --config PROJECT_JSON BACKUP_NAME` по

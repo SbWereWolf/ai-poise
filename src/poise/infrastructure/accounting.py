@@ -32,11 +32,40 @@ class _AccountingRepositories:
     def __getattr__(self,name):return getattr(self.authoritative,name)
 
     def snapshot(self):
-        result=self.authoritative.snapshot()
-        optional=self.telemetry.snapshot_nonblocking()
-        for key in ('usage','cycles','telemetry'):
-            result[key]=[*result[key],*optional[key]]
+        result,conflicts=self.combine(
+            self.authoritative.snapshot(),self.telemetry.snapshot_nonblocking()
+        )
+        self.projection_conflicts=conflicts
         return result
+
+    @staticmethod
+    def combine(authoritative,optional):
+        result=deepcopy(authoritative);conflicts=0
+
+        def content(row):
+            return {key:value for key,value in row.items() if key not in ('task_id','seq')}
+
+        def merge(kind,secondary,unique=None):
+            nonlocal conflicts
+            rows=list(result[kind]);by_id={row['id']:row for row in rows}
+            by_unique={} if unique is None else {unique(row):row for row in rows}
+            for row in secondary:
+                old=by_id.get(row['id'])
+                collision=None if unique is None else by_unique.get(unique(row))
+                if old is not None:
+                    if content(old)!=content(row):conflicts+=1
+                    continue
+                if collision is not None:
+                    conflicts+=1
+                    continue
+                rows.append(row);by_id[row['id']]=row
+                if unique is not None:by_unique[unique(row)]=row
+            result[kind]=rows
+
+        merge('usage',optional['usage'],lambda row:(row['source'],row['stream'],row['sequence']))
+        merge('cycles',optional['cycles'])
+        merge('telemetry',optional['telemetry'])
+        return result,conflicts
 
 
 class RuntimeAccounting:
@@ -50,7 +79,8 @@ class RuntimeAccounting:
             self.telemetry_repo,
         )
         self.measurer=PayloadMeasurer(h)
-        self._last_snapshot=_empty_snapshot()
+        self._last_optional_snapshot=_empty_snapshot()
+        self._projection_conflicts=0
 
     def prepare(self,value):
         result=parse_telemetry(value,self.policy)
@@ -112,7 +142,9 @@ class RuntimeAccounting:
     def telemetry_summary(self,runtime):
         result=dict(runtime)
         result['stored']=len(self._snapshot()['telemetry'])
-        result['coverage']='partial' if result['stored'] or result.get('coverage')=='partial' else 'unavailable'
+        result['projection_conflicts']=self._projection_conflicts
+        result['coverage']='partial' if (result['stored'] or self._projection_conflicts
+            or result.get('coverage')=='partial') else 'unavailable'
         return result
 
     def _snapshot(self):
@@ -120,11 +152,11 @@ class RuntimeAccounting:
         try:
             optional=self.telemetry_repo.snapshot_nonblocking()
         except Exception:
-            optional=_empty_snapshot()
-        for key in ('usage','cycles','telemetry'):
-            authoritative[key]=[*authoritative[key],*optional[key]]
-        self._last_snapshot=authoritative
-        return deepcopy(authoritative)
+            optional=deepcopy(self._last_optional_snapshot)
+        else:
+            self._last_optional_snapshot=deepcopy(optional)
+        combined,self._projection_conflicts=self.repo.combine(authoritative,optional)
+        return combined
 
     def _project_terminal_credits(self,snapshot):
         credited={row['task_id'] for row in snapshot['credits']}

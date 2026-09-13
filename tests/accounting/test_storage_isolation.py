@@ -16,7 +16,7 @@ import pytest
 sys.path[:0] = [str(Path(__file__).resolve().parents[2]), str(Path(__file__).resolve().parents[1])]
 
 from conftest import DeterministicClock
-from poise.application.telemetry import OptionalTelemetry
+from poise.application.telemetry import OptionalTelemetry, TelemetryEnvelope
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.infrastructure.sqlite.accounting import SqliteAccounting
@@ -26,7 +26,8 @@ from poise.modules.accounting.domain import MetricPolicy
 from poise.runtime import Poise
 from tests.batch.helpers import request
 from tests.accounting.test_optional_telemetry_isolation import _raw_telemetry
-from tests.accounting.test_paths import finish, metrics, setup
+from tests.accounting.test_domain import sample
+from tests.accounting.test_paths import finish, metrics, send, setup
 
 
 class StorageCoupling(AssertionError):
@@ -278,6 +279,73 @@ def test_accounting_read_does_not_take_external_optional_writer_lock(project):
     assert outcome["result"]["telemetry"]["coverage"] == "partial"
 
 
+def test_unavailable_optional_sqlite_keeps_last_successful_snapshot(project):
+    runtime, work, _ = setup(project)
+    send(work, [sample()])
+    runtime.telemetry.flush()
+    before = metrics(work)
+    runtime.telemetry.flush()
+    runtime.telemetry.dispatcher.close()
+    assert before["totals"]["model_tokens"] == 120
+
+    optional_path = runtime.accounting.port.repo.database.path
+    with sqlite3.connect(optional_path, timeout=0, isolation_level=None, autocommit=True) as blocker:
+        blocker.execute("BEGIN EXCLUSIVE")
+        during = metrics(work)
+        blocker.execute("ROLLBACK")
+
+    after = metrics(work)
+    assert during["totals"]["model_tokens"] == before["totals"]["model_tokens"]
+    assert after["totals"]["model_tokens"] == before["totals"]["model_tokens"]
+
+
+def test_cross_store_duplicate_is_counted_once(project):
+    runtime, work, _ = setup(project)
+    raw = {"usage": [sample()], "intervals": [], "cause": None, "finding_targets": []}
+    send(work, raw["usage"])
+    runtime.telemetry.flush()
+    runtime.telemetry.dispatcher.close()
+    before = metrics(work)
+    optional = runtime.accounting.port.telemetry_repo.snapshot_nonblocking()
+    stored = optional["telemetry"][0]
+    runtime.accounting.port.repo.authoritative.store_telemetry(
+        TelemetryEnvelope(stored["id"], json.loads(stored["data"]))
+    )
+    runtime.accounting.port.repo.authoritative.ingest_binding(
+        runtime.accounting.port.prepare(raw),
+        runtime.session,
+        json.loads(stored["data"])["after_binding"],
+    )
+
+    report = metrics(work)
+
+    assert report["totals"]["model_tokens"] == before["totals"]["model_tokens"] == 120
+    assert report["totals"]["active_seconds"] == before["totals"]["active_seconds"]
+    assert report["telemetry"]["stored"] == before["telemetry"]["stored"]
+    assert report["telemetry"]["projection_conflicts"] == 0
+
+
+def test_cross_store_stream_conflict_prefers_authoritative_fact(project):
+    runtime, work, _ = setup(project)
+    send(work, [sample()])
+    runtime.telemetry.flush()
+    runtime.telemetry.dispatcher.close()
+    conflicting = sample(event="authoritative", inp=200, out=20)
+    runtime.accounting.port.repo.authoritative.ingest_binding(
+        runtime.accounting.port.prepare(
+            {"usage": [conflicting], "intervals": [], "cause": None, "finding_targets": []}
+        ),
+        runtime.session,
+        {"task": "T1", "sprint": None, "goal_type": "development", "stage": "write", "iteration": 1},
+    )
+
+    report = metrics(work)
+
+    assert report["totals"]["model_tokens"] == 220
+    assert report["telemetry"]["projection_conflicts"] == 1
+    assert report["telemetry"]["coverage"] == "partial"
+
+
 def test_report_merges_authoritative_task_messages_and_terminal_benefit(project):
     runtime, work, started = setup(project)
     packet = _show()
@@ -399,7 +467,7 @@ def main(mode, evidence_root):
     calls = [report for report in reports if report.when == "call"]
     matched = (code == pytest.ExitCode.TESTS_FAILED and errors == expected and len(calls) == 1
                if mode == "red" else code == pytest.ExitCode.OK and not errors
-               and len(calls) == (3 if mode == "guard" else 53)
+               and len(calls) == (3 if mode == "guard" else 56)
                and all(report.passed for report in calls))
     marker = {"red": "EXPECTED_EXPLICIT_TELEMETRY_STORAGE_CONTRACT_MISSING",
               "green": "TELEMETRY_STORAGE_GREEN", "guard": "TELEMETRY_RUNNER_GREEN"}[mode]

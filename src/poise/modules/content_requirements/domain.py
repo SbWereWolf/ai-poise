@@ -434,14 +434,16 @@ class ContentPolicy:
             tuple(TraceValue(r, p, _json(v)) for (r, p), v in sorted(current.items())))
 
     def evaluate(self, stage: str, phase: str, snapshot: ContentSnapshot,
-                 artifacts: tuple[ArtifactFact, ...]) -> Assessment:
+                 artifacts: tuple[ArtifactFact, ...],
+                 requirement_ids: tuple[str, ...] | None = None) -> Assessment:
         if stage not in self.stages or phase not in ("pre", "post"):
             raise DomainError("Неизвестный этап/фаза проверки содержимого")
         sections, trace = snapshot.section_map(), snapshot.trace_map()
         points = {(r.id, p.id): p for r in self.routes for p in r.points}
         results = []
         for rule in self.requirements:
-            if stage not in rule.stages or phase != rule.phase:
+            if (stage not in rule.stages or phase != rule.phase
+                    or requirement_ids is not None and rule.id not in requirement_ids):
                 continue
             d = json.loads(rule.details)
             if rule.kind == "section":

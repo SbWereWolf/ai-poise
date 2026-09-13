@@ -96,7 +96,12 @@ def _snapshot(runtime, task_id="T1"):
         journal = tuple(tuple(row) for row in db.execute(
             "SELECT session_id,event,data FROM journal WHERE task_id=? ORDER BY seq", (task_id,)
         ))
-    return task, events, journal
+        submissions = tuple(tuple(row) for row in db.execute(
+            "SELECT seq,stage,iteration,digest,data FROM submissions "
+            "WHERE task_id=? ORDER BY seq",
+            (task_id,),
+        ))
+    return task, events, journal, submissions
 
 
 def _initialize(task, version, request_id="initialize-public"):
@@ -158,6 +163,16 @@ def test_public_initialize_replay_survives_restart_and_rejects_conflict(project)
     replay = restarted.invoke(packet)
     assert replay == {**first, "replayed": True}
     assert _snapshot(restarted.runtime) == after
+    wrong_version = deepcopy(packet)
+    wrong_version["input"]["expected_version"] += 999
+    with pytest.raises(PoiseError, match="request.*conflict"):
+        restarted.invoke(wrong_version)
+    malformed_version = deepcopy(packet)
+    malformed_version["input"]["request_id"] = "bad-version-type"
+    malformed_version["input"]["expected_version"] = True
+    with pytest.raises(PoiseError, match="expected_version"):
+        restarted.invoke(malformed_version)
+    assert _snapshot(restarted.runtime) == after
     conflict = deepcopy(packet)
     conflict["input"]["contracts"][0]["allowed_paths"] = ["conflict/**"]
     with pytest.raises(PoiseError, match="request.*conflict"):
@@ -217,6 +232,16 @@ def test_public_revise_replay_survives_restart_and_records_history(project):
     history = restarted.runtime.stage_contract_context("T1")["history"]
     assert replay == {**first, "replayed": True}
     assert _snapshot(restarted.runtime) == after
+    wrong_version = deepcopy(packet)
+    wrong_version["input"]["expected_version"] += 999
+    with pytest.raises(PoiseError, match="request.*conflict"):
+        restarted.invoke(wrong_version)
+    malformed_version = deepcopy(packet)
+    malformed_version["input"]["request_id"] = "bad-revision-version-type"
+    malformed_version["input"]["expected_version"] = False
+    with pytest.raises(PoiseError, match="expected_version"):
+        restarted.invoke(malformed_version)
+    assert _snapshot(restarted.runtime) == after
     assert history[-1]["request_id"] == "durable-revision"
     assert {"old", "new", "reason", "authorization"} <= set(history[-1])
 
@@ -247,6 +272,44 @@ def test_public_entry_gate_failure_returns_projection_without_claim(project):
     assert tools.runtime.current_task() is None
 
 
+def test_public_entry_gate_evaluates_only_task_contract_refs(project):
+    task = _configure(project)
+    first = project["process"]["stages"][0]["id"]
+    task["content_contract"]["requirements"] = [
+        {
+            "id": "selected-empty",
+            "kind": "artifact",
+            "stages": [first],
+            "phase": "pre",
+            "scope": "task",
+            "pattern": "selected/**",
+            "minimum": 0,
+            "maximum": 0,
+            "source": {"kind": "preexisting"},
+        },
+        {
+            "id": "unselected-missing",
+            "kind": "artifact",
+            "stages": [first],
+            "phase": "pre",
+            "scope": "task",
+            "pattern": "missing/**",
+            "minimum": 1,
+            "maximum": 1,
+            "source": {"kind": "preexisting"},
+        },
+    ]
+    task["stage_contracts"][0]["entry_requirements"] = ["selected-empty"]
+    tools = WorkTools(Poise(project["config_path"], "creator"))
+    result = tools.invoke(request("bootstrap", {
+        "task": task, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert result["status"] == "active"
+    assert [item["id"] for item in result["content_requirements"]["due"]] == [
+        "selected-empty",
+    ]
+
+
 def test_public_scope_contract_controls_verify_paths(project):
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
@@ -268,8 +331,10 @@ def test_public_scope_contract_controls_verify_paths(project):
     draft = deepcopy(context["result_template"])
     draft["sections"]["report"] = "Scope should reject a template-only path."
     draft["commit_message"] = "test: scope"
+    before = _snapshot(tools.runtime)
     with pytest.raises(PoiseError, match="allowed_paths"):
         tools.invoke(request("verify", {"result": draft, "artifacts": []}))
+    assert _snapshot(tools.runtime) == before
     outside.unlink()
     accepted = worktree / "docs" / "task" / "accepted.md"
     accepted.parent.mkdir(parents=True, exist_ok=True)

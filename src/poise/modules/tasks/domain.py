@@ -124,20 +124,6 @@ class TaskStageContracts:
             if node.read_only and item.allowed_paths:
                 raise DomainError(f"{item.stage_id}: read-only stage cannot have writable scope")
             for phase, refs in (("pre", item.entry_requirements), ("post", item.exit_requirements)):
-                expected = tuple(
-                    requirement.id for requirement in policy.requirements
-                    if item.stage_id in requirement.stages and requirement.phase == phase
-                )
-                if set(refs) != set(expected) or len(refs) != len(expected):
-                    missing = set(expected) - set(refs)
-                    if phase == "post" and any(
-                        requirements[ref].kind == "artifact"
-                        and json.loads(requirements[ref].details).get("source", {}).get("kind")
-                        == "stage_output"
-                        for ref in missing
-                    ):
-                        raise DomainError("artifact producer requires an independent exit gate")
-                    raise DomainError(f"{item.stage_id}: gate references do not match {phase} phase")
                 for ref in refs:
                     requirement = requirements.get(ref)
                     if requirement is None or requirement.phase != phase or item.stage_id not in requirement.stages:
@@ -164,8 +150,14 @@ class TaskStageContracts:
         ))
 
     def _validate_artifact_sources(self, route: RouteDefinition, policy: ContentPolicy) -> None:
+        active_ids = {
+            requirement_id
+            for contract in self.items
+            for requirement_id in contract.entry_requirements + contract.exit_requirements
+        }
         artifact_requirements = [
-            requirement for requirement in policy.requirements if requirement.kind == "artifact"
+            requirement for requirement in policy.requirements
+            if requirement.kind == "artifact" and requirement.id in active_ids
         ]
         for requirement in artifact_requirements:
             details = json.loads(requirement.details)
@@ -456,6 +448,9 @@ class Task:
             registry = self.check_registry.extend(method_additions)
         registry.validate_route(self.route)
         policy = replace(self.content_policy, method_ids=registry.method_ids).extend(content_additions)
+        contracts = TaskStageContracts.parse(
+            self._require_stage_contracts().to_list(), self.route, policy
+        )
         if not isinstance(sections, dict):
             raise DomainError("sections должен быть объектом")
         standard = {r.name for r in self.stage.rules}
@@ -474,11 +469,21 @@ class Task:
         if submission.digest == self.state.submission_digest:
             return self._unchanged()
         change = self._change("submitted", None, submission, submission_digest=submission.digest)
-        return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
+        return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, stage_contracts=contracts, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
                        progress=replace(change.task.progress, outcome=handling.outcome, stage_work=work_json)))
 
     def assess_content(self, phase: str, artifacts: tuple[ArtifactFact, ...]) -> Assessment:
-        return self.content_policy.evaluate(self.stage.stage_id, phase, self.content_snapshot, artifacts)
+        contract = self._require_stage_contracts().stage(self.stage.stage_id)
+        requirement_ids = (
+            contract.entry_requirements if phase == "pre" else contract.exit_requirements
+        )
+        return self.content_policy.evaluate(
+            self.stage.stage_id,
+            phase,
+            self.content_snapshot,
+            artifacts,
+            requirement_ids,
+        )
 
     def mark_verified(self, actor: str, submission_digest: str, artifacts: tuple[ArtifactFact, ...]) -> Change:
         self._require_stage_contracts()

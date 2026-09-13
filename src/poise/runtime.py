@@ -680,6 +680,22 @@ class Poise:
         gate = self.validate_stage_entry(data)
         return None if gate['passed'] else self._entry_blocked(data, gate)
 
+    def validate_stage_scope(self, data: dict | None = None) -> dict:
+        current = self.task_queries.record(data['id']) if data is not None else self._task()
+        tree = self._current_tree(current)
+        changed = self._changed(current, tree)
+        stage = self._stage(current)
+        if stage['read_only'] and changed:
+            raise PoiseError(f'read-only этап изменил репозиторий: {changed}')
+        scope = current['contract']['stage_contracts'][current['stage_index']]['allowed_paths']
+        outside = [
+            path for path in changed
+            if not any(matches_allowed_path(path, pattern) for pattern in scope)
+        ]
+        if outside:
+            raise PoiseError(f'Изменения вне stage contract allowed_paths: {outside}')
+        return {'tree': tree, 'changed': changed, 'allowed_paths': scope}
+
     def _content_blocked(self, data: dict, gate: dict, receipts: list[dict]) -> dict:
         return {'status':'content_requirements_failed','task':data['id'], 'stage':self._stage(data)['id'],
                 'content_gate':gate,'checks':receipts,'replayed':False,
@@ -723,19 +739,12 @@ class Poise:
         gate = self.validate_stage_entry(data)
         if not gate['passed']:
             raise PoiseError('stage entry requirements are no longer satisfied')
+        scope_state = self.validate_stage_scope(data)
+        tree = scope_state['tree']
+        changed = scope_state['changed']
+        scope = scope_state['allowed_paths']
         submitted = self.runner.submit(data['id'], self.session, payload)
         data = self._task()
-        changed = self._changed(data, tree)
-        if stage['read_only'] and changed:
-            raise PoiseError(f'read-only этап изменил репозиторий: {changed}')
-        scope = data['contract']['stage_contracts'][data['stage_index']]['allowed_paths']
-        outside = [
-            path for path in changed
-            if not any(matches_allowed_path(path, pattern) for pattern in scope)
-        ]
-        if outside: raise PoiseError(
-            f'Изменения вне stage contract allowed_paths: {outside}'
-        )
         if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
             raise PoiseError('Сообщение коммита не соответствует правилу проекта')
         roots = self._roots(data)
@@ -751,13 +760,9 @@ class Poise:
             action=self.plan_actions.apply(data,payload)
             if action['status']!='complete':
                 return self._action_incomplete(data,payload,action)
-            tree=self._current_tree(data)
-            changed=self._changed(data,tree)
-            outside = [
-                path for path in changed
-                if not any(matches_allowed_path(path, pattern) for pattern in scope)
-            ]
-            if outside:raise PoiseError(f'Plan changed files outside its declared stage scope: {outside}')
+            scope_state = self.validate_stage_scope(data)
+            tree = scope_state['tree']
+            changed = scope_state['changed']
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         checks = self._select_checks(data, changed)

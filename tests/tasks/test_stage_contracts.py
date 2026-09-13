@@ -144,6 +144,21 @@ def test_stage_contract_references_matching_gate_phases():
         _parse(contracts=contracts)
 
 
+def test_stage_contract_gate_refs_select_existing_policy_conditions():
+    contracts = _contracts()
+    requirements = _requirements() + [
+        _artifact(
+            "optional-input",
+            "consume",
+            "pre",
+            {"kind": "preexisting"},
+            pattern="optional/**",
+        )
+    ]
+    parsed = _parse(contracts=contracts, requirements=requirements)
+    assert parsed.stage("consume").entry_requirements == ("built-input",)
+
+
 def test_stage_output_is_exit_only_for_its_producer():
     source = {"kind": "stage_output", "producer_stage": "prepare"}
     requirements = [_artifact("built-input", "prepare", "pre", source)]

@@ -196,6 +196,8 @@ class TaskCommands:
     ):
         if not isinstance(request_id, str) or not request_id:
             raise DomainError("stage contract request_id is required")
+        if type(expected_version) is not int or expected_version < 0:
+            raise DomainError("stage contract expected_version must be a nonnegative integer")
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("stage contract transition reason is required")
         new = deepcopy(contracts)
@@ -203,6 +205,7 @@ class TaskCommands:
             "action": "initialize_stage_contracts",
             "actor": actor,
             "authorization": deepcopy(authorization),
+            "expected_version": expected_version,
             "new": new,
             "old": None,
             "reason": reason,
@@ -226,6 +229,8 @@ class TaskCommands:
     ):
         if not isinstance(request_id, str) or not request_id:
             raise DomainError("stage contract request_id is required")
+        if type(expected_version) is not int or expected_version < 0:
+            raise DomainError("stage contract expected_version must be a nonnegative integer")
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("stage contract revision reason is required")
         with self.unit_of_work() as uow:
@@ -235,6 +240,7 @@ class TaskCommands:
                 "action": "revise_stage_contract",
                 "actor": actor,
                 "authorization": deepcopy(authorization),
+                "expected_version": expected_version,
                 "new": deepcopy(contract),
                 "old": old,
                 "reason": reason,
@@ -388,7 +394,13 @@ class TaskCommands:
     def content_context(self, task_id: str) -> dict:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
-            return task.content_policy.describe(task.stage.stage_id, task.content_snapshot)
+            context = task.content_policy.describe(task.stage.stage_id, task.content_snapshot)
+            contract = task._require_stage_contracts().stage(task.stage.stage_id)
+            active = set(contract.entry_requirements + contract.exit_requirements)
+            return {
+                **context,
+                "due": [item for item in context["due"] if item["id"] in active],
+            }
 
     def mark_verified(self, task_id: str, actor: str, digest: str, report: dict, artifacts: tuple[ArtifactFact, ...]) -> TaskState:
         with self.unit_of_work() as uow:

@@ -120,6 +120,7 @@ class WorkTools:
         if not gate['passed']:
             raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'],payload)
+        h.validate_stage_scope(data)
         # Validate existing path-only inputs before producing any new file.
         h.validate_artifact_paths(args['result']['artifact_paths'],data)
         factory.materialize(prepared)

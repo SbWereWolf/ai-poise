@@ -35,7 +35,7 @@ def _contracts(process, *, first_entry=(), first_scope=None):
 
 
 def _configure(project, *, contracts=True, entry_required=False, exit_required=False,
-               first_scope=None, inspection=False):
+               first_scope=None, inspection=False, review_gate=False):
     process = deepcopy(project["process"])
     task = deepcopy(project["task"])
     if inspection:
@@ -92,6 +92,22 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
             "maximum": 1,
             "source": {"kind": "stage_output", "producer_stage": process["stages"][0]["id"]},
         })
+    if review_gate:
+        revision_stage = process["stages"][1]["id"]
+        requirements.extend([
+            {
+                "id": requirement_id,
+                "kind": "section",
+                "stages": [revision_stage],
+                "phase": "pre",
+                "section": "report",
+                "states": [state],
+            }
+            for requirement_id, state in (
+                ("review-gate-a", "template"),
+                ("review-gate-b", "populated"),
+            )
+        ])
     task["content_contract"] = {"sections": [], "routes": [], "requirements": requirements}
     if contracts:
         task["stage_contracts"] = _contracts(
@@ -101,6 +117,8 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
         )
         if exit_required:
             task["stage_contracts"][0]["exit_requirements"] = ["stage-output"]
+        if review_gate:
+            task["stage_contracts"][1]["entry_requirements"] = ["review-gate-a"]
     write_json(project["root"] / "config/processes/development.json", process)
     return process, task
 
@@ -320,6 +338,7 @@ def test_stage_contract_initialization_replays_and_rejects_conflict(project):
         "action": "initialize_stage_contracts",
         "actor": "executor",
         "authorization": {"role": "creator"},
+        "expected_version": version,
         "new": task["stage_contracts"],
         "old": None,
         "reason": "Explicit stage contract transition",
@@ -331,6 +350,51 @@ def test_stage_contract_initialization_replays_and_rejects_conflict(project):
         _transition(runtime, "initialize", request_id="init-1", expected_version=version,
                     contracts=changed)
     assert _raw_snapshot(runtime) == after
+
+
+def test_reviewer_revision_changes_gate_refs_atomically(project):
+    tools, _, task = _bootstrap(project, inspection=True, review_gate=True)
+    runtime = tools.runtime
+    contract = deepcopy(task["stage_contracts"][1])
+    contract["entry_requirements"] = ["review-gate-b"]
+    before = _full_contract_snapshot(runtime)
+    result = _transition(
+        runtime,
+        "revise",
+        request_id="revise-gate",
+        expected_version=before["task"][4],
+        stage_id=contract["stage_id"],
+        contract=contract,
+        role="reviewer",
+    )
+    after = _full_contract_snapshot(runtime)
+    assert result["new"]["entry_requirements"] == ["review-gate-b"]
+    assert after["contracts"][1]["entry_requirements"] == ["review-gate-b"]
+    assert after["task"][4] == before["task"][4] + 1
+    assert len(after["events"]) == len(before["events"]) + 1
+    assert len(after["journal"]) == len(before["journal"]) + 1
+
+
+def test_content_addition_does_not_mutate_task_gate_contract_or_poison_reload(project):
+    tools, context, task = _bootstrap(project)
+    runtime = tools.runtime
+    payload = deepcopy(context["result_template"])
+    payload["sections"]["report"] = "Add a predicate for later reviewer selection."
+    payload["commit_message"] = "test: preserve task gates"
+    payload["content_additions"]["requirements"] = [{
+        "id": "later-review-gate",
+        "kind": "section",
+        "stages": [context["stage"]],
+        "phase": "pre",
+        "section": "report",
+        "states": ["populated"],
+    }]
+    runtime.task_commands.submit("T1", "executor", payload)
+    restarted = Poise(project["config_path"], "executor")
+    loaded = restarted.task_commands.workflow_context("T1")
+    assessment = restarted.task_commands.assess_content("T1", "pre", ())
+    assert loaded["stage_contract"] == task["stage_contracts"][0]
+    assert assessment.to_dict()["requirements"] == []
 
 
 def test_stage_contract_initialization_rejects_stale_version_atomically(project):

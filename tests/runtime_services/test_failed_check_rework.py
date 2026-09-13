@@ -97,6 +97,15 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         "stderr_contains": [],
     }
     task = deepcopy(project["task"])
+    task["stage_contracts"] = [
+        {
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        }
+        for stage in stages
+    ]
     task["methods"] = [method]
     task["method_inputs"] = [{
         "method_id": "CHECK",
@@ -190,7 +199,7 @@ def _rework(tools, target="test_remediation"):
     }))
 
 
-def test_failed_check_can_rework_to_declared_stage_without_recreating_task(project):
+def test_failed_check_can_rework_to_declared_revise_stage_without_finding(project):
     tools, context = _scenario(project, closed_revise_target=True)
     worktree = context["worktree"]
     worktrees_before = set(Path(worktree).parent.iterdir())
@@ -201,17 +210,12 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     before = _show(tools)
     observations = _show(tools, "evidence")["observations"]
 
-    with pytest.raises(PoiseError, match="открыт|finding|исправ"):
-        _rework(tools, "closed_finding_remediation")
-
-    assert _show(tools) == before
-
-    recovered = _rework(tools)
+    recovered = _rework(tools, "closed_finding_remediation")
 
     after = _show(tools)
     assert recovered["task"] == context["task"] == "T1"
     assert recovered["worktree"] == worktree
-    assert recovered["stage"] == "test_remediation"
+    assert recovered["stage"] == "closed_finding_remediation"
     assert recovered["iteration"] == 1
     assert set(Path(worktree).parent.iterdir()) == worktrees_before
     assert after["attempts"] == 0
@@ -223,7 +227,9 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     assert current["process"] == process_before
     assert after["workflow"]["transitions"] == before["workflow"]["transitions"] + 1
     assert after["workflow"]["visits"]["implementation"] == before["workflow"]["visits"]["implementation"]
-    assert after["workflow"]["visits"]["test_remediation"] == before["workflow"]["visits"]["test_remediation"] + 1
+    assert after["workflow"]["visits"]["closed_finding_remediation"] == (
+        before["workflow"]["visits"]["closed_finding_remediation"] + 1
+    )
     assert current["pending"] is None
     assert current["publication"] is None
     assert any(
@@ -236,7 +242,7 @@ def test_failed_check_can_rework_to_declared_stage_without_recreating_task(proje
     (tests / "recovery.txt").write_text("recovered\n", encoding="utf-8")
     completed = verify(tools, result(recovered, "recovered through the declared route"))
     assert completed["status"] == "verified"
-    assert completed["stage"] == "test_remediation"
+    assert completed["stage"] == "closed_finding_remediation"
 
 
 def test_uninterpretable_subject_check_can_rework_to_declared_stage(project):

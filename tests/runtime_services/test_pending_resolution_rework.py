@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 
 import pytest
 
@@ -57,6 +58,58 @@ def test_rework_rejects_pending_resolution_before_state_change(project):
     assert runtime.task_queries.record("T1") == record_before
     assert runtime.task_queries.history("T1") == history_before
     assert runtime.store.counts("T1") == counts_before
+
+
+def test_failed_check_rework_rejects_pending_resolution_before_state_change():
+    current = pending_task().accept("S", True).task
+    current = current.submit(
+        "S",
+        {"report": "Failed follow-up candidate."},
+        (),
+        "test: failed follow-up candidate",
+        {"sections": [], "routes": [], "requirements": []},
+        {},
+        [],
+        inspect(),
+        {"phase": "prepare", "arguments": [], "decisions": []},
+    ).task
+    tree = "FAILED-TREE"
+    execution_key = "FAILED-EXECUTION"
+    receipt = {
+        "id": "FAILED-RECEIPT",
+        "method": "GUARD",
+        "obligations": ["GUARD"],
+        "passed": False,
+        "timed_out": False,
+        "actual_exit_code": 1,
+        "tree": tree,
+        "guard": True,
+        "interpretable": True,
+    }
+    current = replace(
+        current,
+        evidence_book=current.evidence_book.record_submission_batch(
+            current.stage.stage_id,
+            current.state.iteration,
+            tree,
+            execution_key,
+            current.state.submission_digest,
+            [receipt],
+        ),
+    )
+    before = current
+
+    with pytest.raises(DomainError) as caught:
+        current.rework_failed(
+            "S",
+            "Do not bypass pending resolution inspection after a failed check.",
+            tree,
+            execution_key,
+            "amend",
+        )
+
+    assert str(caught.value) == EXPECTED_ERROR
+    assert current == before
 
 
 def test_exact_rework_retry_is_idempotent():

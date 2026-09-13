@@ -41,12 +41,23 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
     if inspection:
         inspect = deepcopy(process["stages"][1])
         revise = deepcopy(process["stages"][2])
+        inspect["handler"] = "inspect"
         inspect["transitions"] = {"clear": None, "changes_requested": revise["id"]}
         inspect["rework_targets"] = [revise["id"]]
         revise["transitions"] = {"complete": inspect["id"]}
         revise["rework_targets"] = [revise["id"]]
         process["stages"] = [inspect, revise]
         process["route"]["entry"] = inspect["id"]
+        task["methods"] = []
+        task["method_inputs"] = []
+        task["checks"] = {stage["id"]: [] for stage in process["stages"]}
+        task["evidence_plan"] = {
+            stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
+            for stage in process["stages"]
+        }
+        project["cfg"]["automatic_checks"] = []
+        write_json(project["config_path"], project["cfg"])
+    if exit_required:
         task["methods"] = []
         task["method_inputs"] = []
         task["checks"] = {stage["id"]: [] for stage in process["stages"]}
@@ -359,8 +370,8 @@ def test_stage_contract_initialization_rejects_unauthorized_role_atomically(proj
 def test_reviewer_revision_replays_and_records_old_new_history(project):
     tools, _, task = _bootstrap(project, inspection=True)
     runtime = tools.runtime
-    contract = deepcopy(task["stage_contracts"][0])
-    contract["allowed_paths"] = []
+    contract = deepcopy(task["stage_contracts"][1])
+    contract["allowed_paths"] = ["docs/review-fix/**"]
     version = runtime.task_queries.record("T1")["version"]
     before = _raw_snapshot(runtime)
     first = _transition(runtime, "revise", request_id="revise-1", expected_version=version,

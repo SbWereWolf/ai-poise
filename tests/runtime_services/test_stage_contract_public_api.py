@@ -36,6 +36,7 @@ def _configure(project, *, scope=None, inspection=False):
         process = deepcopy(project["process"])
         inspect = deepcopy(process["stages"][1])
         revise = deepcopy(process["stages"][2])
+        inspect["handler"] = "inspect"
         inspect["transitions"] = {"clear": None, "changes_requested": revise["id"]}
         inspect["rework_targets"] = [revise["id"]]
         revise["transitions"] = {"complete": inspect["id"]}
@@ -61,9 +62,10 @@ def _configure(project, *, scope=None, inspection=False):
 
 def _boot(project, session="creator", *, scope=None, inspection=False):
     _feature()
+    task = _configure(project, scope=scope, inspection=inspection)
     tools = WorkTools(Poise(project["config_path"], session))
     context = tools.invoke(request("bootstrap", {
-        "task": _configure(project, scope=scope, inspection=inspection),
+        "task": task,
         "decision": None,
         "feedback": None,
         "rework_stage": None,
@@ -205,9 +207,9 @@ def test_public_revise_replay_survives_restart_and_records_history(project):
     tools, context = _boot(project, inspection=True)
     task = _configure(project)
     current = tools.runtime.task_queries.record("T1")
-    stage_id = tools.runtime.current_task()["stage"]
-    contract = next(deepcopy(item) for item in task["stage_contracts"] if item["stage_id"] == stage_id)
-    packet = _revise("T1", current["version"], stage_id, contract, request_id="durable-revision")
+    contract = deepcopy(task["stage_contracts"][1])
+    contract["allowed_paths"] = ["docs/review-fix/**"]
+    packet = _revise("T1", current["version"], contract["stage_id"], contract, request_id="durable-revision")
     first = tools.invoke(packet)
     after = _snapshot(tools.runtime)
     restarted = WorkTools(Poise(project["config_path"], "creator"))

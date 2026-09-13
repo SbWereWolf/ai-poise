@@ -4,7 +4,12 @@ from copy import deepcopy
 from dataclasses import dataclass
 import hashlib
 import json
-from ..modules.tasks.domain import Task, TaskState, TaskStatus
+from ..modules.tasks.domain import (
+    Task,
+    TaskStageContracts,
+    TaskState,
+    TaskStatus,
+)
 from ..modules.workflow.domain import RouteDefinition
 from ..modules.tasks.ports import RepositoryTreeReader, TaskUnitOfWork
 from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
@@ -180,6 +185,86 @@ class TaskCommands:
             result = newborn.describe() | ({'sprint_revision':sprint_revision} if sprint_id is not None else {})
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
+
+    @staticmethod
+    def _stage_contract_authorization(value, required_role):
+        if value != {"role": required_role}:
+            raise DomainError(f"stage contract action requires {required_role} authorization")
+
+    def initialize_stage_contracts(
+        self, task_id, actor, expected_version, request_id, contracts, reason, authorization
+    ):
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError("stage contract request_id is required")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("stage contract transition reason is required")
+        new = deepcopy(contracts)
+        audit = {
+            "action": "initialize_stage_contracts",
+            "actor": actor,
+            "authorization": deepcopy(authorization),
+            "new": new,
+            "old": None,
+            "reason": reason,
+            "request_id": request_id,
+        }
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.stage_contract_receipt(task_id, request_id, audit)
+            if replay is not None:
+                return replay
+            self._stage_contract_authorization(authorization, "creator")
+            task = uow.tasks.load(task_id)
+            if task.state.version != expected_version:
+                raise DomainError("stage contract version conflict")
+            parsed = TaskStageContracts.parse(contracts, task.route, task.content_policy)
+            change = task.initialize_stage_contracts(parsed)
+            return uow.tasks.save_stage_contract_change(change, expected_version, audit)
+
+    def revise_stage_contract(
+        self, task_id, actor, expected_version, request_id, stage_id, contract,
+        reason, authorization
+    ):
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError("stage contract request_id is required")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("stage contract revision reason is required")
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            old = task._require_stage_contracts().stage(stage_id).to_dict()
+            audit = {
+                "action": "revise_stage_contract",
+                "actor": actor,
+                "authorization": deepcopy(authorization),
+                "new": deepcopy(contract),
+                "old": old,
+                "reason": reason,
+                "request_id": request_id,
+            }
+            replay = uow.tasks.stage_contract_receipt(task_id, request_id, audit)
+            if replay is not None:
+                return replay
+            self._stage_contract_authorization(authorization, "reviewer")
+            if task.state.version != expected_version:
+                raise DomainError("stage contract version conflict")
+            if not isinstance(contract, dict) or set(contract) != {
+                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
+            } or contract["stage_id"] != stage_id:
+                raise DomainError("Exact replacement stage contract is required")
+            candidate = [
+                deepcopy(contract) if item.stage_id == stage_id else item.to_dict()
+                for item in task.stage_contracts.items
+            ]
+            replacement = TaskStageContracts.parse(
+                candidate, task.route, task.content_policy
+            ).stage(stage_id)
+            change = task.revise_stage_contract(actor, stage_id, replacement)
+            return uow.tasks.save_stage_contract_change(change, expected_version, audit)
+
+    def stage_contract_context(self, task_id):
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            task._require_stage_contracts()
+            return uow.tasks.stage_contract_context(task_id)
 
     def edit_newborn(self, task_id, actor, expected_revision, patch, processes, config_hash,
                      request_id):

@@ -8,6 +8,7 @@ from ...modules.tasks.domain import (
     EmptyReworkRecoveryPoint,
     StageSpec,
     Task,
+    TaskStageContracts,
     TaskState,
     TaskStatus,
 )
@@ -88,6 +89,93 @@ class SqliteTaskRepository:
                 raise PoiseError("Request ID already used with another Task action intent")
             return deepcopy(data["result"])
         return None
+
+    def stage_contract_receipt(self, task_id: str, request_id: str, intent: dict):
+        row = self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event='stage_contract.action' "
+            "ORDER BY seq",
+            (task_id,),
+        ).fetchall()
+        for item in row:
+            saved = json.loads(item[0])
+            if saved.get("request_id") != request_id:
+                continue
+            comparable_saved = {
+                key: value for key, value in saved.items() if key != "old"
+            }
+            comparable_intent = {
+                key: value for key, value in intent.items() if key != "old"
+            }
+            if comparable_saved != comparable_intent:
+                raise PoiseError("stage contract request conflict: request_id has another intent")
+            metadata = json.loads(self.db.execute(
+                "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+            ).fetchone()[0])
+            history = metadata.get("stage_contract_history", [])
+            entry = next(value for value in history if value["request_id"] == request_id)
+            return {
+                "status": (
+                    "stage_contracts_initialized"
+                    if saved["action"] == "initialize_stage_contracts"
+                    else "stage_contract_revised"
+                ),
+                "task": task_id,
+                "request_id": request_id,
+                "version": entry["version"],
+                "old": deepcopy(saved["old"]),
+                "new": deepcopy(saved["new"]),
+                "replayed": True,
+            }
+        return None
+
+    def save_stage_contract_change(
+        self, change: Change, expected_version: int, audit: dict
+    ) -> dict:
+        self.save(change, expected_version)
+        task_id = change.task.state.task_id
+        row = self.db.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
+        metadata = json.loads(row[0])
+        metadata["contract"]["stage_contracts"] = change.task.stage_contracts.to_list()
+        history = list(metadata.get("stage_contract_history", []))
+        history.append({**deepcopy(audit), "version": change.task.state.version})
+        metadata["stage_contract_history"] = history
+        self.db.execute(
+            "UPDATE tasks SET metadata=? WHERE id=?",
+            (encode(metadata), task_id),
+        )
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (
+                datetime.now(timezone.utc).isoformat(),
+                audit["actor"],
+                task_id,
+                "stage_contract.action",
+                encode(audit),
+            ),
+        )
+        return {
+            "status": (
+                "stage_contracts_initialized"
+                if audit["action"] == "initialize_stage_contracts"
+                else "stage_contract_revised"
+            ),
+            "task": task_id,
+            "request_id": audit["request_id"],
+            "version": change.task.state.version,
+            "old": deepcopy(audit["old"]),
+            "new": deepcopy(audit["new"]),
+            "replayed": False,
+        }
+
+    def stage_contract_context(self, task_id: str) -> dict:
+        row = self.db.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        metadata = json.loads(row[0])
+        return {
+            "current": deepcopy(metadata["contract"].get("stage_contracts")),
+            "history": deepcopy(metadata.get("stage_contract_history", [])),
+        }
 
     def remember_action(self, task_id: str, actor: str, request_id: str,
                         digest: str, result: dict) -> None:
@@ -302,6 +390,15 @@ class SqliteTaskRepository:
         )
         metadata['contract']['methods']=[item['method'] for item in items]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
+        contracts = (
+            None
+            if "stage_contracts" not in metadata["contract"]
+            else TaskStageContracts.parse(
+                metadata["contract"]["stage_contracts"],
+                RouteDefinition.from_process(metadata["process"]),
+                policy,
+            )
+        )
         sections = self.db.execute("SELECT section_id,content,content_state FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY section_id ORDER BY submission_id DESC) AS n FROM section_layers WHERE task_id=?) WHERE n=1 ORDER BY section_id", (task_id,)).fetchall()
         trace = self.db.execute("SELECT route_id,point_id,data FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY route_id,point_id ORDER BY submission_id DESC) AS n FROM trace_point_layers WHERE task_id=?) WHERE n=1 ORDER BY route_id,point_id", (task_id,)).fetchall()
         snapshot = ContentSnapshot(tuple(SectionValue(s["section_id"],s["content"],ContentState(s["content_state"])) for s in sections),
@@ -313,7 +410,7 @@ class SqliteTaskRepository:
         return Task(state, stages_from_process(metadata["process"]), policy, snapshot, registry,
                     RouteDefinition.from_process(metadata["process"]),
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
-                    evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"])
+                    evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts)
 
     def empty_rework_recovery_point(
         self, task_id: str, handoff_version: int, last_report: dict,

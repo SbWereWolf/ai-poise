@@ -23,6 +23,7 @@ NEWBORN_FIELDS = frozenset({
     "content_contract",
     "evidence_plan",
     "executable_obligations",
+    "stage_contracts",
 })
 
 

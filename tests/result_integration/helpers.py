@@ -84,6 +84,12 @@ def prepare_completed_task(
             "implementation": {"subject_methods": {}, "arguments": [], "review_arguments": []}
         },
         "content_contract": {"sections": [], "routes": [], "requirements": []},
+        "stage_contracts": [{
+            "stage_id": "implementation",
+            "allowed_paths": ["src/**"],
+            "entry_requirements": [],
+            "exit_requirements": [],
+        }],
     }
     runtime = Poise(project["config_path"], "worker")
     tools = WorkTools(runtime)

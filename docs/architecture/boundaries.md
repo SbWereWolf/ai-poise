@@ -52,7 +52,10 @@ Task применяет переход только после этих пров
 набора, замены, эксклюзивности и зависимого освобождения. `OwnershipCommands` координирует
 preflight, liveness и повторную проверку в UoW. SQLite adapter сохраняет `tasks.claimed_by`
 (владелец Task) и `sessions.task_id` (независимая привязка worktree) одной транзакцией под
-существующим writer lock. Нельзя выводить владение Task только из `sessions.task_id`.
+существующим writer lock и `BEGIN IMMEDIATE`. Частичный unique index на непустой
+`tasks.claimed_by` физически ограничивает сессию одной Task; `sessions.id` ограничивает
+сессию одним worktree, а уникальный непустой `sessions.task_id` — worktree одной сессией.
+Нельзя выводить владение Task только из `sessions.task_id`.
 Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
 
 Process snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork

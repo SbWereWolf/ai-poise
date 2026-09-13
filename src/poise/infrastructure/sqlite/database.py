@@ -7,7 +7,7 @@ from ...modules.foundation.errors import PoiseError
 from ..locking import exclusive_lock
 
 # Storage format identity, not a project/process policy or a fallback.
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 SCHEMA = (
     "CREATE TABLE accounting_accounts(task_id TEXT PRIMARY KEY REFERENCES tasks(id), project TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)",
     "CREATE TABLE accounting_usage(id TEXT PRIMARY KEY, task_id TEXT REFERENCES tasks(id), project TEXT NOT NULL, source TEXT NOT NULL, stream TEXT NOT NULL, sequence INTEGER NOT NULL, occurred_at TEXT NOT NULL, data TEXT NOT NULL, UNIQUE(source,stream,sequence))",
@@ -48,6 +48,8 @@ SCHEMA = (
     "CREATE TABLE task_workflows(task_id TEXT PRIMARY KEY REFERENCES tasks(id), data TEXT NOT NULL)",
     "CREATE TABLE task_execution(task_id TEXT PRIMARY KEY REFERENCES tasks(id), data TEXT NOT NULL, version INTEGER NOT NULL)",
     "CREATE TABLE sessions(id TEXT PRIMARY KEY, task_id TEXT REFERENCES tasks(id))",
+    "CREATE UNIQUE INDEX tasks_single_claimant ON tasks(claimed_by) WHERE claimed_by IS NOT NULL",
+    "CREATE UNIQUE INDEX sessions_single_worktree_owner ON sessions(task_id) WHERE task_id IS NOT NULL",
     "CREATE TABLE submissions(seq INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT NOT NULL REFERENCES tasks(id), stage TEXT NOT NULL, iteration INTEGER NOT NULL, digest TEXT NOT NULL, data TEXT NOT NULL, UNIQUE(seq,task_id))",
     "CREATE TABLE workflow_layers(submission_id INTEGER NOT NULL, task_id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(task_id,submission_id), FOREIGN KEY(submission_id,task_id) REFERENCES submissions(seq,task_id))",
     "CREATE TABLE section_layers(submission_id INTEGER NOT NULL, task_id TEXT NOT NULL, section_id TEXT NOT NULL, content TEXT NOT NULL, content_state TEXT NOT NULL, PRIMARY KEY(submission_id,section_id), FOREIGN KEY(submission_id,task_id) REFERENCES submissions(seq,task_id))",
@@ -71,7 +73,7 @@ SCHEMA = (
 
 
 class Database:
-    """Linux-only external lock + short SQL transaction. No schema upgrades."""
+    """Linux-only external lock + short SQL transaction with one owned v12 upgrade."""
     def __init__(self, path: Path, lock: Path, wait: float, poll: float):
         for value in (wait, poll):
             if type(value) not in (int,float) or not math.isfinite(value) or value <= 0:
@@ -87,8 +89,63 @@ class Database:
                 for statement in SCHEMA:
                     db.execute(statement)
                 db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+            elif version == 12:
+                self._upgrade_v12_ownership(db)
             elif version != SCHEMA_VERSION:
                 raise PoiseError("Schema БД несовместима; миграция не выполняется. Нужен новый пустой store")
+
+    @staticmethod
+    def _upgrade_v12_ownership(db):
+        """Install physical ownership uniqueness without guessing an ambiguous live owner."""
+        duplicate_task_owners = db.execute(
+            "SELECT claimed_by FROM tasks WHERE claimed_by IS NOT NULL "
+            "GROUP BY claimed_by HAVING COUNT(*) > 1"
+        ).fetchall()
+        for row in duplicate_task_owners:
+            actor = row["claimed_by"]
+            claims = [item["id"] for item in db.execute(
+                "SELECT id FROM tasks WHERE claimed_by=? ORDER BY id", (actor,)
+            )]
+            binding = db.execute(
+                "SELECT task_id FROM sessions WHERE id=?", (actor,)
+            ).fetchone()
+            retained = None if binding is None else binding["task_id"]
+            if retained not in claims:
+                raise PoiseError(
+                    "Ownership schema upgrade cannot choose a Task claim for session "
+                    f"{actor}; repair the session binding before retrying"
+                )
+            db.execute(
+                "UPDATE tasks SET claimed_by=NULL WHERE claimed_by=? AND id<>?",
+                (actor, retained),
+            )
+
+        duplicate_worktree_owners = db.execute(
+            "SELECT task_id FROM sessions WHERE task_id IS NOT NULL "
+            "GROUP BY task_id HAVING COUNT(*) > 1"
+        ).fetchall()
+        for row in duplicate_worktree_owners:
+            task_id = row["task_id"]
+            owners = [item["id"] for item in db.execute(
+                "SELECT id FROM sessions WHERE task_id=? ORDER BY id", (task_id,)
+            )]
+            task = db.execute(
+                "SELECT claimed_by FROM tasks WHERE id=?", (task_id,)
+            ).fetchone()
+            retained = None if task is None else task["claimed_by"]
+            if retained not in owners:
+                raise PoiseError(
+                    "Ownership schema upgrade cannot choose a worktree owner for Task "
+                    f"{task_id}; repair the Task claim before retrying"
+                )
+            db.execute(
+                "UPDATE sessions SET task_id=NULL WHERE task_id=? AND id<>?",
+                (task_id, retained),
+            )
+
+        db.execute("CREATE UNIQUE INDEX tasks_single_claimant ON tasks(claimed_by) WHERE claimed_by IS NOT NULL")
+        db.execute("CREATE UNIQUE INDEX sessions_single_worktree_owner ON sessions(task_id) WHERE task_id IS NOT NULL")
+        db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     @contextmanager
     def transaction(self):
@@ -100,7 +157,7 @@ class Database:
                 db.execute("PRAGMA foreign_keys=ON")
                 if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
                     raise PoiseError("SQLite foreign_keys не включён")
-                db.execute("BEGIN")
+                db.execute("BEGIN IMMEDIATE")
                 yield db
                 db.execute("COMMIT")
             except BaseException:

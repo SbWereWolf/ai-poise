@@ -139,6 +139,7 @@ class TaskCommands:
 
     def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
                base_metadata: dict, execution, policy, base_revision):
+        from ..application.ownership import release_task_in
         from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
         request_id, _, _ = creation_parts(intent)
         parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
@@ -154,6 +155,9 @@ class TaskCommands:
                 base_metadata,
             )
             if not allocation.replayed:
+                before = uow.ownership.snapshot(actor)
+                if before.task_id is not None:
+                    release_task_in(uow, actor, before.task_id)
                 newborn = NewbornTask.create(allocation.task_id, None, actor)
                 uow.tasks.create_newborn(newborn, base_metadata['config_hash'])
                 uow.tasks.promote_newborn(task, metadata, newborn.version)

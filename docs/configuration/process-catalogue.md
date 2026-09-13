@@ -162,5 +162,9 @@ task_planning, integration. `--scenario short|feedback` выбирается я�
 в самих reference definitions; вариант без этапа должен быть отдельной явной настройкой графа.
 Никаких исключений в kernel по имени цели.
 
-Task schema — `ddd-accounting-12`, SQLite user_version=12. Schema 11 не поддерживается;
-автоматической миграции нет. Optional telemetry использует явно выбранные отдельные database/lock.
+Task schema — `ddd-accounting-12`, SQLite user_version=13. Schema 11 и более ранние версии
+не поддерживаются. Единственная миграция 12 → 13, введённая для физической эксклюзивности
+ownership, выполняется под тем же writer lock: она сохраняет Task, совпадающую с привязкой
+worktree этой сессии, и освобождает остальные дублирующие claims. Если эта привязка не
+позволяет однозначно выбрать владельца, открытие store прекращается с actionable ошибкой и
+ничего не угадывается. Optional telemetry использует явно выбранные отдельные database/lock.

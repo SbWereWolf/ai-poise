@@ -198,6 +198,95 @@ def test_first_change_records_bound_audit_and_replay_does_not_duplicate_it(proje
     assert events[0]["iteration"] == 1
 
 
+def test_replay_keeps_original_audit_after_later_registry_change_and_restart(project):
+    from conftest import Poise
+
+    runtime, _ = setup(project, logical=False)
+    context = runtime.bootstrap(project["task_path"])
+    first_payload = deepcopy(_payload(
+        context,
+        _change(project, request_id="request-A", revision=0),
+        "Apply request A.",
+    ))
+    first = runtime.task_commands.submit("T1", "S1", first_payload)
+    second_payload = deepcopy(_payload(
+        context,
+        _change(project, request_id="request-B", revision=1),
+        "Apply request B.",
+    ))
+    runtime.task_commands.submit("T1", "S1", second_payload)
+
+    restarted = Poise(project["config_path"], "S1")
+    replay = restarted.task_commands.submit("T1", "S1", first_payload)
+    registry = _registry(restarted)
+    events = [
+        item for item in restarted.task_queries.history("T1")
+        if item["event"] == "verification_registry_changed"
+    ]
+
+    assert replay.registry_change == {
+        **first.registry_change,
+        "replayed": True,
+    }
+    assert replay.registry_change["new_revision"] == 1
+    assert replay.registry_change["receipt_id"] == first.registry_change["receipt_id"]
+    assert registry["revision"] == 2
+    assert len(events) == 2
+    assert sum(
+        json.loads(event["reason"])["request_id"] == "request-A"
+        for event in events
+    ) == 1
+
+
+def test_observe_cannot_replace_same_stage_guard_or_change_its_classification(project):
+    from conftest import Poise, write_json
+
+    setup(project, logical=False)
+    guard = deepcopy(project["task"]["methods"][0])
+    guard["id"] = "GUARD"
+    guard["argv"] = [sys.executable, "-B", "-c", "print('guard=ok')"]
+    guard["stdout_contains"] = ["guard=ok"]
+    project["task"]["methods"].append(guard)
+    project["task"]["method_inputs"].append({
+        "method_id": "GUARD",
+        "repository_inputs": [],
+        "future_outputs": [],
+        "reference_profile": {
+            "runner": "python",
+            "parser": "inline-no-path-arguments",
+            "version": 1,
+        },
+    })
+    project["task"]["checks"]["measure"].append("GUARD")
+    write_json(project["task_path"], project["task"])
+    runtime = Poise(project["config_path"], "S1")
+    context = runtime.bootstrap(project["task_path"])
+    replacement = _replacement(project)
+    replacement["method"]["id"] = "GUARD"
+    replacement.update(
+        evidence_kind="executable_test",
+        covers=["requirements[0]"],
+    )
+    before = _state(runtime)
+
+    with pytest.raises(PoiseError, match="subject method"):
+        runtime.task_commands.submit(
+            "T1",
+            "S1",
+            _payload(context, _change(
+                project,
+                request_id="replace-guard",
+                operation={
+                    "kind": "replace",
+                    "method_id": "GUARD",
+                    "registration": replacement,
+                },
+            )),
+        )
+
+    assert _state(runtime) == before
+
+
 def test_next_verification_executes_only_the_replacement_definition(project):
     runtime, counter = setup(project, logical=False)
     context = runtime.bootstrap(project["task_path"])

@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -199,15 +200,20 @@ class Poise:
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
         self.runtime.mkdir(parents=True, exist_ok=True)
-        index = descendant(self.runtime, self.paths['git_index'])
-        if index.exists(): index.unlink()
+        configured_index = descendant(self.runtime, self.paths['git_index'])
+        configured_index.parent.mkdir(parents=True, exist_ok=True)
+        invocation = Path(tempfile.mkdtemp(
+            prefix=f'{configured_index.name}.',
+            dir=configured_index.parent,
+        ))
+        index = invocation / 'index'
         env = {**os.environ, 'GIT_INDEX_FILE': str(index)}
         try:
             self._git(worktree, 'read-tree', 'HEAD', env=env)
             self._git(worktree, 'add', '--all', env=env)
             return self._git(worktree, 'write-tree', env=env)
         finally:
-            if index.exists(): index.unlink()
+            shutil.rmtree(invocation)
 
     def _changed(self, data: dict, tree: str) -> list[str]:
         if data['worktree'] is None:

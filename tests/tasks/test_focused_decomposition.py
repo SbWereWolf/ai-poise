@@ -3,11 +3,54 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
 
 STAGES = ("planning", "implementation", "documentation")
+ERP_MIGRATED_SKILLS = {
+    "api-contracts",
+    "ddd",
+    "debugging-and-recovery",
+    "direct-checks",
+    "documentation",
+    "exec-task",
+    "grilling",
+    "infrastructure",
+    "jetbrains-ide",
+    "laravel",
+    "layout-and-design",
+    "modern-web-guidance",
+    "moonshine-native",
+    "performance-and-observability",
+    "php-modernization",
+    "phpunit",
+    "playwright",
+    "preflight",
+    "redis-queues",
+    "release-gate",
+    "remediation",
+    "remediation-review",
+    "repo-tooling",
+    "review",
+    "safe-commit",
+    "security-and-privacy",
+    "self-review",
+    "sprint-design",
+    "sql",
+    "strict-database-migrations",
+    "system-tests",
+    "tailwind-4-docs",
+    "tdd",
+    "vitest",
+    "vue-best-practices",
+    "vue-debug-guides",
+    "vue-pinia-best-practices",
+    "vue-router-best-practices",
+}
 
 
 def _policy():
@@ -101,6 +144,31 @@ def run_contract():
         "skills=['sprint-domain:sprints', 'task-domain:tasks']",
     )
 
+    for label, phases, expected in (
+        (
+            "missing",
+            _ordinary()["phases"][:-1],
+            "decomposition phases mismatch: missing=['documentation']; "
+            "duplicate=[]; unknown=[]",
+        ),
+        (
+            "duplicate",
+            _ordinary()["phases"] + [deepcopy(_ordinary()["phases"][0])],
+            "decomposition phases mismatch: missing=[]; duplicate=['planning']; "
+            "unknown=[]",
+        ),
+        (
+            "unknown",
+            _ordinary()["phases"]
+            + [{"stage": "deployment", "skills": [], "areas": []}],
+            "decomposition phases mismatch: missing=[]; duplicate=[]; "
+            "unknown=['deployment']",
+        ),
+    ):
+        malformed = _ordinary()
+        malformed["phases"] = phases
+        _assert_error(policy, malformed, expected)
+
     valid_integration = _integration()
     FocusedDecomposition.parse(valid_integration, STAGES).validate(policy)
     for field in (
@@ -124,6 +192,35 @@ def run_contract():
         outside,
         "integration areas outside allowed_paths: ['src/poise/modules/sprints/**']",
     )
+
+
+def run_red_contract():
+    try:
+        run_contract()
+    except ModuleNotFoundError as error:
+        if error.name != "poise.modules.tasks.decomposition":
+            raise
+        print("focused-decomposition:red:behavior-unimplemented")
+        raise SystemExit(1)
+    print("focused-decomposition:red:unexpected-pass")
+    raise SystemExit(2)
+
+
+def run_green_contract():
+    selected = [
+        str(Path(__file__).resolve()),
+        "--deselect",
+        f"{Path(__file__).resolve()}::test_focused_decomposition_documentation_contract",
+        "-q",
+    ]
+    completed = subprocess.run(
+        [sys.executable, "-B", "-m", "pytest", *selected],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode:
+        raise AssertionError(completed.stdout + completed.stderr)
 
     unknown_skill = _ordinary(skills=("erp-private-route",))
     _assert_error(
@@ -164,6 +261,13 @@ def run_documentation_contract():
     assert policy["skills"]
     assert policy["areas"]
 
+    erp = json.loads(
+        (root / "config/examples/erp-task-decomposition.example.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert {item["id"] for item in erp["skills"]} == ERP_MIGRATED_SKILLS
+
     documents = [
         root / "docs/workflows/batch-work.md",
         root / "docs/configuration/project-setup.md",
@@ -172,16 +276,142 @@ def run_documentation_contract():
         root / ".agents/skills/poise-development/SKILL.md",
         root / "AGENTS.md",
     ]
-    bodies = [path.read_text(encoding="utf-8") for path in documents]
-    for token in (
-        "task_decomposition",
-        "ordinary",
-        "integration",
-        "component_inputs",
-        "allowed_paths",
-        "project-specific routing",
-    ):
-        assert any(token in body for body in bodies), token
+    required_by_file = {
+        "batch-work.md": (
+            "task_decomposition",
+            "ordinary",
+            "integration",
+            "component_inputs",
+            "allowed_paths",
+        ),
+        "project-setup.md": (
+            "task_decomposition",
+            "project-specific routing",
+            "unknown decomposition skills",
+        ),
+        "development-rules.md": (
+            "ordinary",
+            "integration",
+            "does not prove factual completeness",
+        ),
+        "SKILL.md": ("task_decomposition", "ordinary", "integration"),
+        "AGENTS.md": (
+            "project-specific routing",
+            "does not prove factual completeness",
+        ),
+    }
+    for path in documents:
+        body = path.read_text(encoding="utf-8")
+        for token in required_by_file[path.name]:
+            assert token in body, (path, token)
+
+
+def _peer_decomposition(stages):
+    return {
+        "kind": "ordinary",
+        "phases": [
+            {
+                "stage": stage,
+                "skills": ["task-domain", "sprint-domain"] if index == 0 else [],
+                "areas": [],
+            }
+            for index, stage in enumerate(stages)
+        ],
+        "integration": None,
+    }
+
+
+def test_automatic_task_creation_rejects_unfocused_plan(project):
+    from batch.helpers import configure, request
+    from conftest import WorkPoise
+    from poise.application.work import WorkTools
+    from poise.modules.foundation.errors import PoiseError
+
+    configure(project)
+    client = WorkTools(WorkPoise(project["config_path"], "focused-auto"))
+    contract = deepcopy(project["task"])
+    contract["id"] = "FOCUSED-AUTO"
+    contract["decomposition"] = _peer_decomposition(
+        [stage["id"] for stage in project["process"]["stages"]]
+    )
+    with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
+        client.invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": contract,
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+
+
+def test_newborn_ready_rejects_unfocused_plan(project):
+    from batch.helpers import configure, request
+    from conftest import WorkPoise
+    from poise.application.work import WorkTools
+    from poise.modules.foundation.errors import PoiseError
+
+    configure(project)
+    client = WorkTools(WorkPoise(project["config_path"], "focused-newborn"))
+    born = client.invoke(
+        request(
+            "task",
+            {
+                "action": "create",
+                "request_id": "focused-newborn-create",
+                "task_id": "FOCUSED-NEWBORN",
+                "sprint_id": None,
+            },
+        )
+    )
+    contract = deepcopy(project["task"])
+    contract.pop("id")
+    contract.pop("sprint_id")
+    contract["decomposition"] = _peer_decomposition(
+        [stage["id"] for stage in project["process"]["stages"]]
+    )
+    edited = client.invoke(
+        request(
+            "task",
+            {
+                "action": "edit",
+                "request_id": "focused-newborn-edit",
+                "task_id": born["task"],
+                "expected_revision": born["revision"],
+                "patch": contract,
+            },
+        )
+    )
+    with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
+        client.invoke(
+            request(
+                "task",
+                {
+                    "action": "ready",
+                    "request_id": "focused-newborn-ready",
+                    "task_id": born["task"],
+                    "expected_revision": edited["revision"],
+                },
+            )
+        )
+
+
+def test_sprint_publish_rejects_unfocused_plan(project):
+    from conftest import WorkPoise
+    from poise.application.work import WorkTools
+    from poise.modules.foundation.errors import PoiseError
+    from sprints.helpers import draft, publish, setup, task
+
+    configured = setup(project)
+    client = WorkTools(WorkPoise(configured["config_path"], "focused-sprint"))
+    child = task(configured)
+    child["decomposition"] = _peer_decomposition(["work"])
+    sprint = draft(client, [child])
+    with pytest.raises(PoiseError, match="ordinary task combines narrow responsibilities"):
+        publish(client, sprint["revision"])
 
 
 def test_focused_decomposition_contract():

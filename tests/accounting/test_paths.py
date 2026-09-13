@@ -13,7 +13,7 @@ def setup(project, clock=None):
        'route':{'entry':'write'},
        'stages':[stage('write','produce',{'complete':None},False,['src/**','tests/**','docs/**'],['write'])],
        'content_contract':{'sections':[],'routes':[],'requirements':[]}}
-    project['cfg']['schema']='ddd-accounting-11';project['cfg']['accounting']=policy()
+    project['cfg']['schema']='ddd-accounting-12';project['cfg']['accounting']=policy()
     project['cfg']['automatic_checks']=[]
     write_json(project['root']/'config/processes/development.json',p)
     write_json(project['config_path'],project['cfg'])

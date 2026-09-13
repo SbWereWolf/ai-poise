@@ -355,7 +355,7 @@ def main(mode, evidence_root):
     calls = [report for report in reports if report.when == "call"]
     matched = (code == pytest.ExitCode.TESTS_FAILED and errors == expected and len(calls) == 1
                if mode == "red" else code == pytest.ExitCode.OK and not errors
-               and len(calls) == (3 if mode == "guard" else 53)
+               and len(calls) == (3 if mode == "guard" else 54)
                and all(report.passed for report in calls))
     marker = {"red": "EXPECTED_EXPLICIT_TELEMETRY_STORAGE_CONTRACT_MISSING",
               "green": "TELEMETRY_STORAGE_GREEN", "guard": "TELEMETRY_RUNNER_GREEN"}[mode]

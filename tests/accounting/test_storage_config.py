@@ -25,6 +25,14 @@ def test_explicit_storage_policy_accepts_operator_paths():
     assert parsed.data["storage"] == selected
 
 
+def test_schema11_rejects_storage_instead_of_accepting_a_mixed_source(project):
+    project["cfg"]["schema"] = "ddd-accounting-11"
+    assert "storage" in project["cfg"]["accounting"]
+    write_json(project["config_path"], project["cfg"])
+    with pytest.raises(PoiseError, match="schema|storage"):
+        load_config(project["config_path"])
+
+
 @pytest.mark.parametrize("case", [
     "missing",
     "null",
@@ -265,13 +273,32 @@ def test_active_schema11_task_remains_operable_until_quiescent_activation(projec
         after.telemetry.dispatcher.close()
 
 
-def test_schema11_runtime_never_writes_optional_envelope_into_authoritative_database(project):
+def test_schema11_runtime_disables_optional_capture_and_persistence(project):
     _, config_path, _ = _legacy_setup(project)
     runtime = Poise(config_path, "legacy-isolated", DeterministicClock())
+    assert "storage" not in runtime.cfg["accounting"]
+    assert runtime.telemetry.summary() == {
+        "coverage": "unavailable",
+        "submitted": 0,
+        "processed": 0,
+        "duplicates": 0,
+        "failed": 0,
+        "dropped": 0,
+        "pending": 0,
+    }
     packet = request("show", {"queries": [{"id": "task", "kind": "task"}]})
     packet["telemetry"] = _raw_telemetry()
     result = WorkTools(runtime).invoke(packet)
     runtime.telemetry.dispatcher.close()
+    assert runtime.telemetry.summary() == {
+        "coverage": "unavailable",
+        "submitted": 0,
+        "processed": 0,
+        "duplicates": 0,
+        "failed": 0,
+        "dropped": 0,
+        "pending": 0,
+    }
     with runtime.store.transaction() as database:
         envelopes = database.execute(
             "SELECT count(*) FROM accounting_cycles WHERE json_extract(data,'$.kind')='telemetry_envelope'"

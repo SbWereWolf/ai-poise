@@ -257,7 +257,7 @@ def _configure_production_accounting(project):
         ],
         "content_contract": {"sections": [], "routes": [], "requirements": []},
     }
-    project["cfg"]["schema"] = "ddd-accounting-11"
+    project["cfg"]["schema"] = "ddd-accounting-12"
     project["cfg"]["accounting"] = policy()
     project["cfg"]["automatic_checks"] = []
     write_json(project["root"] / "config/processes/development.json", process)

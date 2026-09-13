@@ -229,6 +229,7 @@ class TaskCommands:
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
                 release_task_in(uow, actor, before.task_id)
+            uow.work_packets.invalidate(task_id)
             if uow.execution.exists(task_id):
                 uow.execution.restart(task_id)
             uow.tasks.restart_newborn(

@@ -1,6 +1,7 @@
 from pathlib import Path
-from ..common import descendant, PoiseError
+from ..common import descendant
 from .artifact_factory import FileArtifactFactory
+from .sqlite.work_packets import SqliteWorkPacketRepository
 
 
 class WorkResources:
@@ -20,15 +21,13 @@ class WorkResources:
         if task is None:return None
         stage=task['process']['stages'][task['stage_index']]['id']
         with self.runtime.store.transaction() as db:
-            row=db.execute('SELECT digest FROM work_packets WHERE task_id=? AND stage=? AND iteration=?',
-                           (task['id'],stage,task['iteration'])).fetchone()
-            return None if row is None else row[0]
+            return SqliteWorkPacketRepository(db).current(
+                task['id'],stage,task['iteration'],
+            )
 
     def remember(self,task,digest):
         stage=task['process']['stages'][task['stage_index']]['id']
         with self.runtime.store.transaction() as db:
-            row=db.execute('SELECT digest FROM work_packets WHERE task_id=? AND stage=? AND iteration=?',
-                           (task['id'],stage,task['iteration'])).fetchone()
-            if row is not None and row[0]!=digest:
-                raise PoiseError('Verified packet cannot be replaced')
-            db.execute('INSERT OR IGNORE INTO work_packets VALUES(?,?,?,?)',(task['id'],stage,task['iteration'],digest))
+            SqliteWorkPacketRepository(db).remember(
+                task['id'],stage,task['iteration'],digest,
+            )

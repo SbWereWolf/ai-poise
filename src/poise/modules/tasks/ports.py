@@ -57,6 +57,14 @@ class EvidenceRepository(Protocol):
     def list_for(self, task_id: str) -> list[dict]: ...
 
 
+class WorkPacketRepository(Protocol):
+    def current(self, task_id: str, stage: str, iteration: int) -> str | None: ...
+    def remember(
+        self, task_id: str, stage: str, iteration: int, digest: str,
+    ) -> None: ...
+    def invalidate(self, task_id: str) -> None: ...
+
+
 class TaskUnitOfWork(Protocol):
     handoffs: "HandoffRepository"
     sprints: "SprintRepository"
@@ -64,6 +72,7 @@ class TaskUnitOfWork(Protocol):
     execution: ExecutionRepository
     evidence: EvidenceRepository
     ownership: object
+    work_packets: WorkPacketRepository
     def __enter__(self) -> TaskUnitOfWork: ...
     def __exit__(self, exc_type, exc, traceback) -> bool: ...
 

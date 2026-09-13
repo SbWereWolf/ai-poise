@@ -12,3 +12,7 @@ S4-01 заменён пользовательским решением: толь
 ## Обновление 2026-09-06T19:39:04+05:00
 
 requirements.json и соответствующие разделы основного ТЗ обновлены: HR-002/020/032 и новые HR-098…HR-106. Это изменение требований/плана, не schema upgrade рабочего config или БД. Детальные process matrices и прежние stateful fixtures оставлены как сохранённые материалы полного продукта. Новые cases для DDD-04A/04B — в ../planning-data/batch-tools-cases.json, статус NOT_RUN.
+
+## Обновление 2026-09-14
+
+Действующий инвариант запрещает `git push` всем агентам и execution paths AI poise без waiver. `push_required=true` отклоняется до Git, `push_required=false` не обращается к remote, а принятый результат публикуется локальным `integrate` через `git merge --ff-only`. Более ранние упоминания private/target push в сохранённых process matrices и stateful fixtures являются историческими сценариями, не действующим требованием, capability или разрешением на исполнение.

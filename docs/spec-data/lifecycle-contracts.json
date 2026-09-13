@@ -107,10 +107,10 @@
     },
     {
       "id": "RP-08",
-      "prior": "PASS, commit/push receipt lost",
+      "prior": "PASS, local commit receipt lost",
       "semantic": "same S",
       "subject": "same tree",
-      "decision": "probe exact remote/ref/SHA and complete local registration",
+      "decision": "probe exact local branch/SHA and complete local registration",
       "layers_delta": 0,
       "runs_delta": 0
     },

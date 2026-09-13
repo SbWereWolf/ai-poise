@@ -76,7 +76,7 @@
     {
       "id": "HR-012",
       "title": "Матрица адаптеров и честная доступность",
-      "text": "У каждого runtime profile явно заданы CLI transport, session/cycle binding, tool inventory transport, hook surface, executor, IDE binding, remote Git transport, durable transport, token/time telemetry. Статус capability: observed-ready, observed-unavailable или unknown; required неизвестная/недоступная capability блокирует соответствующий этап до записи кода. ChatGPT: Linux CLI через доступный execution tool, generated scoped launcher при отсутствии hooks; model-visible integration вызывается только агентом через реально предоставленный connector, а не из Python по предположению. Codex WSL: explicit CLI/hooks adapter и scoped launcher с проверенным payload. Ни один профиль не обещает native ChatGPT hooks, сеть или Gmail attachments без smoke. Core actions и controlled command output работают через CLI в обеих средах; недоступные native hooks не эмулируются скрыто. Недоступность required push/IDE не превращается в успешный этап или автоматическую замену инструментом.",
+      "text": "У каждого runtime profile явно заданы CLI transport, session/cycle binding, tool inventory transport, hook surface, executor, IDE binding, durable transport и token/time telemetry. Статус capability: observed-ready, observed-unavailable или unknown; required неизвестная/недоступная capability блокирует соответствующий этап до записи кода. Git push не является capability: он запрещён всем профилям. ChatGPT: Linux CLI через доступный execution tool, generated scoped launcher при отсутствии hooks; model-visible integration вызывается только агентом через реально предоставленный connector, а не из Python по предположению. Codex WSL: explicit CLI/hooks adapter и scoped launcher с проверенным payload. Ни один профиль не обещает native ChatGPT hooks, сеть или Gmail attachments без smoke. Core actions и controlled command output работают через CLI в обеих средах; недоступные native hooks не эмулируются скрыто.",
       "review_findings": [
         "R-03",
         "R-10"
@@ -86,7 +86,7 @@
     {
       "id": "HR-013",
       "title": "Внешнее действие через агента",
-      "text": "Для model-only capability composite action создаёт pending external action: operation ID, неизменный package/commit digest, exact target, ожидаемый receipt и probe, replay policy. Один ответ содержит весь запрос действия. Агент выполняет его имеющимся tool и возвращает receipt в том же submission/continuation; kernel проверяет receipt/probe и продолжает pending operation. Слова агента «отправлено/запушено» не являются receipt. Если tool не принимает нужный attachment/path/remote, действие blocked с исполнимой инструкцией пользователю. Gmail — только backup/handoff transport, не DB; его доступность и ограничения проверяются фактически. Сохраняющий копию транспорт не заменяет обязательный push без scoped user waiver.",
+      "text": "Для model-only capability composite action создаёт pending external action: operation ID, неизменный package/commit digest, exact target, ожидаемый receipt и probe, replay policy. Один ответ содержит весь запрос действия. Агент выполняет его имеющимся tool и возвращает receipt в том же submission/continuation; kernel проверяет receipt/probe и продолжает pending operation. Слова агента «отправлено» не являются receipt. Если tool не принимает нужный attachment/path/target, действие blocked с исполнимой инструкцией пользователю. Gmail — только backup/handoff transport, не DB; его доступность и ограничения проверяются фактически. Внешний транспорт не заменяет локальную Git-интеграцию и не разрешает `git push`.",
       "review_findings": [
         "R-03",
         "R-18"
@@ -234,7 +234,7 @@
     {
       "id": "HR-035",
       "title": "Задача без спринта и ad-hoc",
-      "text": "Standalone formal task имеет sprint=None явно, собственный root/process и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, Git commit/push и reusable result в session-owned durable deliverable root вне runtime. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.",
+      "text": "Standalone formal task имеет sprint=None явно, собственный root/process и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, локальный Git commit и reusable result в session-owned durable deliverable root вне runtime. Git push запрещён. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.",
       "review_findings": [
         "R-20"
       ],
@@ -334,7 +334,7 @@
     {
       "id": "HR-051",
       "title": "Согласованность проверенного и опубликованного кода",
-      "text": "Verify фиксирует полный candidate tree vector по codebases с учётом предназначенных deliverables. В execution receipts хранится tested tree vector. После mutating checks/formatters/native hooks — повторное сравнение; significant change делает evidence stale и запускает bounded stabilization по exact contracts. До remote публикации tree каждого final commit должен совпасть с проверенным tree для этой codebase; post-commit/hook changes не игнорируются. Pre-push side effect, меняющий workspace, не меняет уже указанный immutable commit, но блокирует завершение/вызывает reconciliation; pushed ref проверяется на точный expected SHA. Нельзя пометить tested A как доказательство A+B. Сообщение commit составляет агент; отсутствие нужного сообщения выявляется до дорогих checks.",
+      "text": "Verify фиксирует полный candidate tree vector по codebases с учётом предназначенных deliverables. В execution receipts хранится tested tree vector. После mutating checks/formatters/native hooks — повторное сравнение; significant change делает evidence stale и запускает bounded stabilization по exact contracts. Перед локальной интеграцией tree каждого final commit должен совпасть с проверенным tree для этой codebase; post-commit/hook changes не игнорируются. Git push и pre-push effects запрещены. Нельзя пометить tested A как доказательство A+B. Сообщение commit составляет агент; отсутствие нужного сообщения выявляется до дорогих checks.",
       "review_findings": [
         "R-04"
       ],
@@ -342,8 +342,8 @@
     },
     {
       "id": "HR-052",
-      "title": "Commit/push и вектор нескольких codebases",
-      "text": "Каждый successful Git write-stage создаёт/reuses verified commit и публикует собственную task branch в явно заданный remote/ref. Remote origin не подразумевается. Чистый stage/no-op не создаёт artificial commit; указанный message допускается как запасённое содержательное поле, но не используется для пустого commit. Multi-codebase result — vector {codebase: base, tested tree, commit, remote/ref, observed SHA/receipt}. Stage verified лишь при всех обязательных components. A pushed/B failed — partial_publication, tests и commit A сохранены, repeat дополняет B без duplicate A. Глобальный rollback независимых remotes не обещается. Required push недоступен — blocked, не local-only success без user waiver. Push private branch при продвижении main допустим, non-fast-forward той же remote branch — sync issue, не автоматически merge conflict.",
+      "title": "Commit и вектор нескольких codebases",
+      "text": "Каждый successful Git write-stage создаёт или повторно использует локальный verified commit в собственной task branch. `git push` запрещён для всех codebases и не может быть включён authority или waiver. Чистый stage/no-op не создаёт artificial commit; указанный message допускается как запасённое содержательное поле, но не используется для пустого commit. Multi-codebase result — vector `{codebase: base, tested tree, commit}`. Stage verified лишь при всех обязательных components. Локальная интеграция каждого принятого компонента выполняется соответствующим публичным lifecycle через exact fast-forward; внешний durable transport остаётся отдельным действием и не изменяет Git remote refs.",
       "review_findings": [
         "R-04",
         "R-17"
@@ -353,7 +353,7 @@
     {
       "id": "HR-053",
       "title": "Интеграция и точная граница target ref",
-      "text": "Integration объединяет объявленные exact sources с target baseline в private worktree. Git operation создаёт conflict observations до агентских resolution proposals; при конфликте возвращается awaiting_agent в той же stage iteration, и continuation не повторяет начатый merge/cherry-pick. Interim private commit/push не меняют target ref. Target publication — механический gate после принятых verification/inspection, при отдельной однозначной publish authority. Accept-and-stop запрещает publication. Gate повторно проверяет tested tree, current evidence, expected target old SHA и выполняет exact FF update или доказанный no-op; создаёт receipt и closure без новой содержательной iteration/второго acceptance. Drift не исправляется force push и не выполняет незаявленный rebase. Source→integrated mapping хранится для materialization, но не заменяет проверку availability successor.",
+      "text": "Integration объединяет объявленные exact sources с target baseline в private worktree. Git operation создаёт conflict observations до агентских resolution proposals; при конфликте возвращается awaiting_agent в той же stage iteration, и continuation не повторяет начатый merge/cherry-pick. Interim private commits не меняют target ref; push запрещён. После принятых verification/inspection и отдельной authority публичный `integrate` повторно проверяет tested tree, current evidence и expected target old SHA, затем выполняет локальный exact `git merge --ff-only` либо доказанный no-op; создаёт receipt и closure без новой содержательной iteration/второго acceptance. Drift не исправляется force update и не выполняет незаявленный rebase. Source→integrated mapping хранится для materialization, но не заменяет проверку availability successor.",
       "review_findings": [
         "R-05",
         "R-06",

@@ -25,6 +25,7 @@ def prepare_completed_task(
     methods=(),
     checks=(),
     artifact_files=None,
+    terminal_stage=False,
 ):
     methods = [deepcopy(method) for method in methods]
     for method in methods:
@@ -39,23 +40,39 @@ def prepare_completed_task(
     cfg["automatic_checks"] = []
     cfg["git"]["push_required"] = False
     write_json(project["config_path"], cfg)
-    process = {
-        "route": {"entry": "implementation"},
-        "goal_type": "development",
-        "worktree_required": True,
-        "stages": [{
-            "id": "implementation",
-            "instruction": "Create the accepted result.",
-            "read_only": False,
-            "allowed_paths": ["src/**"],
+    implementation = {
+        "id": "implementation",
+        "instruction": "Create the accepted result.",
+        "read_only": False,
+        "allowed_paths": ["src/**"],
+        "normalization": "strip",
+        "sections": {"report": "Record the result."},
+        "required_sections": ["report"],
+        "artifact_requirements": [],
+        "handler": "produce",
+        "transitions": {"complete": "documentation" if terminal_stage else None},
+        "rework_targets": ["implementation"],
+    }
+    stages = [implementation]
+    if terminal_stage:
+        stages.append({
+            "id": "documentation",
+            "instruction": "Record the final result.",
+            "read_only": True,
+            "allowed_paths": [],
             "normalization": "strip",
             "sections": {"report": "Record the result."},
             "required_sections": ["report"],
             "artifact_requirements": [],
             "handler": "produce",
             "transitions": {"complete": None},
-            "rework_targets": ["implementation"],
-        }],
+            "rework_targets": ["documentation"],
+        })
+    process = {
+        "route": {"entry": "implementation"},
+        "goal_type": "development",
+        "worktree_required": True,
+        "stages": stages,
         "benefit": {"git_categories": ["code"], "sections": []},
         "content_contract": {"sections": [], "routes": [], "requirements": []},
     }
@@ -79,24 +96,28 @@ def prepare_completed_task(
             },
         } for method in methods],
         "artifact_requirements": [],
-        "checks": {"implementation": list(checks)},
+        "checks": {
+            "implementation": list(checks),
+            **({"documentation": []} if terminal_stage else {}),
+        },
         "evidence_plan": {
-            "implementation": {"subject_methods": {}, "arguments": [], "review_arguments": []}
+            stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
+            for stage in stages
         },
         "content_contract": {"sections": [], "routes": [], "requirements": []},
         "stage_contracts": [{
-            "stage_id": "implementation",
-            "allowed_paths": ["src/**"],
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
-        }],
+        } for stage in stages],
         "decomposition": {
             "kind": "ordinary",
             "phases": [{
-                "stage": "implementation",
+                "stage": stage["id"],
                 "skills": ["task-domain"],
                 "areas": [],
-            }],
+            } for stage in stages],
             "integration": None,
         },
     }
@@ -126,6 +147,23 @@ def prepare_completed_task(
     assert verified["status"] == "verified"
     if accept:
         completed = tools.invoke(request("accept", {}))
+        if terminal_stage:
+            assert completed["status"] == "accepted"
+            context = tools.invoke(request("bootstrap", {
+                "task": None,
+                "decision": "continue",
+                "feedback": None,
+                "rework_stage": None,
+            }))
+            final_result = deepcopy(context["result_template"])
+            final_result["sections"]["report"] = "Final accepted result."
+            final_result["commit_message"] = "docs: record accepted result"
+            verified = tools.invoke(request("verify", {
+                "result": final_result,
+                "artifacts": [],
+            }))
+            assert verified["status"] == "verified"
+            completed = tools.invoke(request("accept", {}))
         assert completed["status"] == "completed"
     return tools, source_worktree, verified["commit"]
 

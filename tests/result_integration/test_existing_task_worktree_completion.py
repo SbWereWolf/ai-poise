@@ -156,30 +156,61 @@ def test_target_drift_reupdates_same_branch_and_reruns_checks(project, monkeypat
     assert not task_worktree.exists()
 
 
-def test_multistage_integration_runs_current_green_checks_before_publication():
+def test_multistage_integration_runs_current_green_checks_before_publication(project):
     method = integration_guard_method()
-    record = {
-        "stage_index": 1,
-        "process": {
-            "stages": [
-                {"id": "implementation"},
-                {"id": "documentation"},
-            ],
-        },
-        "contract": {
-            "methods": [method],
-            "checks": {
-                "implementation": [method["id"]],
-                "documentation": [],
+    method["argv"] = [
+        method["argv"][0],
+        "-c",
+        "from pathlib import Path; assert not Path('target-drift.txt').exists()",
+    ]
+    method["stdout_contains"] = []
+    red_only = integration_guard_method()
+    red_only.update(
+        id="PRE_IMPLEMENTATION_RED",
+        argv=[
+            red_only["argv"][0],
+            "-c",
+            "print('PRE_IMPLEMENTATION_RED'); raise SystemExit(1)",
+        ],
+        expected_exit_code=1,
+        stdout_contains=["PRE_IMPLEMENTATION_RED"],
+        verification_plan={
+            "responsibility": "Remain historical RED evidence, never an integration check.",
+            "change_surface": ["src/**"],
+            "red_stages": ["implementation"],
+            "green_stages": [],
+            "red_failure": {
+                "exit_code": 1,
+                "stdout_equals": "PRE_IMPLEMENTATION_RED\n",
+                "stderr_equals": "",
             },
         },
-    }
+    )
+    tools, task_worktree, accepted = prepare_completed_task(
+        project,
+        source_change,
+        methods=[red_only, method],
+        checks=[red_only["id"], method["id"]],
+        terminal_stage=True,
+    )
+    target_file = project["app"] / "target-drift.txt"
+    target_file.write_text("incompatible target\n")
+    git(project["app"], "add", target_file.name)
+    git(project["app"], "commit", "-m", "test: incompatible target drift")
+    target = git(project["app"], "rev-parse", "HEAD")
 
-    selected = RuntimeResultIntegration._select_checks(object(), record)
+    result = tools.invoke(request("integrate", integration_input(project, accepted)))
 
-    assert [item["id"] for item in selected] == [method["id"]], (
+    assert result["status"] == "blocked", (
         "integration omitted current produced-result GREEN checks"
     )
+    assert result["phase"] == "checks_failed"
+    assert len(result["checks"]) == 1
+    assert result["checks"][0]["method"] == method["id"]
+    assert result["checks"][0]["passed"] is False
+    assert git(project["app"], "rev-parse", "HEAD") == target
+    assert task_worktree.exists()
+    assert git(task_worktree, "merge-base", "--is-ancestor", accepted, "HEAD") == ""
 
 
 def test_blocked_ff_only_proves_all_main_worktree_state_unchanged(project):

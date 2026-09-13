@@ -66,9 +66,12 @@ def project(tmp_path, monkeypatch):
     git(app, 'add', '.')
     git(app, 'commit', '-m', 'Initial application')
     remote = tmp_path / 'remote.git'
-    subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
+    subprocess.run(
+        ['git', 'clone', '--bare', str(app), str(remote)],
+        check=True,
+        capture_output=True,
+    )
     git(app, 'remote', 'add', 'backup', str(remote))
-    git(app, 'push', 'backup', 'main')
     poise_root = tmp_path / 'poise'
     poise_root.mkdir()
     stages = []

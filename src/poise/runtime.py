@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -101,7 +102,25 @@ class Poise:
         self.work_resources=WorkResources(self)
         from .application.accounting import AccountingCommands
         from .infrastructure.accounting import RuntimeAccounting
-        self.accounting=AccountingCommands(RuntimeAccounting(self,clock))
+        from .infrastructure.telemetry import TelemetryDatabase
+        telemetry_storage=self.cfg['accounting']['storage']
+        telemetry_database=TelemetryDatabase(
+            descendant(self.state,telemetry_storage['database']),
+            descendant(self.state,telemetry_storage['lock']),
+            limits['lock_seconds'],
+            limits['lock_poll_seconds'],
+        )
+        self.accounting=AccountingCommands(RuntimeAccounting(self,telemetry_database))
+        from .application.telemetry import OptionalTelemetry
+        from .infrastructure.telemetry import AsyncTelemetryDispatcher,DetachedTelemetryProcessor
+        self.telemetry=OptionalTelemetry(
+            clock,
+            AsyncTelemetryDispatcher(
+                DetachedTelemetryProcessor(self.accounting.port.process),
+                max_pending=self.cfg['batch']['max_items'],
+            ),
+            self.session,
+        )
         from .infrastructure.sprint_work import SprintWork
         self.sprint_tools=SprintWork(self)
         from .infrastructure.actions import RuntimePlanActions
@@ -129,9 +148,62 @@ class Poise:
         return self.current_task()
 
     def handoff(self,args):
-        result=self.handoff_tools.preserve(args)
-        self.accounting.close_cycle()
-        return result
+        return self.handoff_tools.preserve(args)
+
+    def initialize_stage_contracts(
+        self, task_id, expected_version, request_id, contracts, reason, authorization
+    ):
+        return self.task_commands.initialize_stage_contracts(
+            task_id,
+            self.session,
+            expected_version,
+            request_id,
+            contracts,
+            reason,
+            authorization,
+        )
+
+    def revise_stage_contract(
+        self, task_id, expected_version, request_id, stage_id, contract, reason,
+        authorization
+    ):
+        return self.task_commands.revise_stage_contract(
+            task_id,
+            self.session,
+            expected_version,
+            request_id,
+            stage_id,
+            contract,
+            reason,
+            authorization,
+        )
+
+    def stage_contract_context(self, task_id):
+        return self.task_commands.stage_contract_context(task_id)
+
+    def task_action(self, args):
+        action = args['action']
+        self._identifier(args['request_id'])
+        self._identifier(args['task_id'])
+        if action == 'create':
+            if args['sprint_id'] is not None:
+                self._identifier(args['sprint_id'])
+            return self.task_commands.create_newborn(
+                args['task_id'], args['sprint_id'], self.session, self.config_hash,
+                args['request_id'],
+            )
+        if action == 'edit':
+            return self.task_commands.edit_newborn(
+                args['task_id'], self.session, args['expected_revision'], args['patch'],
+                self.processes, self.config_hash, args['request_id'],
+            )
+        if action == 'ready':
+            return self.task_commands.ready_newborn(
+                args['task_id'], self.session, args['expected_revision'],
+                self.cfg['automatic_checks'], self.config_hash, args['request_id'],
+                self._creation_base,
+            )
+        raise PoiseError('Unknown Task action')
 
     def recover_empty_rework(self, task_id: str, reason: str) -> dict:
         return self._recover_empty_transition(task_id, reason, "rework")
@@ -152,13 +224,53 @@ class Poise:
             raise PoiseError(f'Unknown Task for empty {transition} recovery')
         if data['claimed_by'] is not None:
             raise PoiseError(f'Empty {transition} recovery requires released work')
-        tree = self._current_tree(data)
+        tree = self._empty_transition_recovery_tree(data)
         command = (
             self.task_commands.recover_empty_rework
             if transition == "rework"
             else self.task_commands.recover_empty_advance
         )
         return command(task_id, reason, tree)
+
+    def _empty_transition_recovery_tree(self, data: dict) -> str:
+        worktree = data['worktree']
+        if worktree is None:
+            return data['entry_tree']
+        path = Path(worktree)
+        if path.exists():
+            return self._tree(path)
+
+        report = data.get('last_report')
+        commit = None if report is None else report.get('commit')
+        verified_tree = None if report is None else report.get('verified_tree')
+        if not isinstance(commit, str) or not isinstance(verified_tree, str):
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit/tree не сохранены'
+            )
+        repository = Path(self.cfg['git']['repository'])
+        try:
+            resolved = self._git(
+                repository, 'rev-parse', '--verify', f'{commit}^{{commit}}'
+            )
+            commit_tree = self._git(repository, 'show', '-s', '--format=%T', commit)
+            self._git(
+                repository,
+                'merge-base',
+                '--is-ancestor',
+                commit,
+                self.cfg['git']['base_ref'],
+            )
+        except PoiseError as exc:
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit не подтверждён '
+                'в текущем base'
+            ) from exc
+        if resolved != commit or commit_tree != verified_tree:
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit не соответствует '
+                'сохранённому tree'
+            )
+        return verified_tree
 
     def current_task(self):
         return self.store.current(self.session)
@@ -212,15 +324,20 @@ class Poise:
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
         self.runtime.mkdir(parents=True, exist_ok=True)
-        index = descendant(self.runtime, self.paths['git_index'])
-        if index.exists(): index.unlink()
+        configured_index = descendant(self.runtime, self.paths['git_index'])
+        configured_index.parent.mkdir(parents=True, exist_ok=True)
+        invocation = Path(tempfile.mkdtemp(
+            prefix=f'{configured_index.name}.',
+            dir=configured_index.parent,
+        ))
+        index = invocation / 'index'
         env = {**os.environ, 'GIT_INDEX_FILE': str(index)}
         try:
             self._git(worktree, 'read-tree', 'HEAD', env=env)
             self._git(worktree, 'add', '--all', env=env)
             return self._git(worktree, 'write-tree', env=env)
         finally:
-            if index.exists(): index.unlink()
+            shutil.rmtree(invocation)
 
     def _changed(self, data: dict, tree: str) -> list[str]:
         if data['worktree'] is None:
@@ -376,7 +493,12 @@ class Poise:
                 return self.sprint_tools.select(task['id'])
             selected=self.task_queries.record(task['id'])
             if selected is None:raise PoiseError('Неизвестный task/sprint ID')
-            if selected['status']=='available':return self.sprint_tools.start(task['id'])
+            if selected['status']=='newborn':
+                self.ownership.acquire_task(selected['id'])
+                return self.task_queries.record(selected['id'])
+            if selected['status']=='available':
+                blocked = self._require_entry(selected)
+                return blocked if blocked is not None else self.sprint_tools.start(task['id'])
             if is_terminal_task_status(selected['status']):
                 if current and not is_terminal_task_status(current['status']):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
@@ -391,7 +513,9 @@ class Poise:
             if existing is not None:
                 if contract != existing['contract']:
                     raise PoiseError('Existing task contract is immutable; bootstrap is not an editor')
-                if existing['status']=='available':return self.sprint_tools.start(existing['id'])
+                if existing['status']=='available':
+                    blocked = self._require_entry(existing)
+                    return blocked if blocked is not None else self.sprint_tools.start(existing['id'])
                 selected_process = existing['process']
             else:
                 if contract.get('goal_type') not in self.processes:
@@ -399,6 +523,9 @@ class Poise:
                 selected_process = self.processes[contract['goal_type']]
             if existing is not None:
                 data = existing
+                blocked = self._require_entry(data)
+                if blocked is not None:
+                    return blocked
                 if data['claimed_by'] is None and not is_terminal_task_status(data['status']):
                     released = self.handoff_tools.commands.latest(data['id'])
                     if released is not None:
@@ -419,12 +546,31 @@ class Poise:
                     ),
                     self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
-                data=self.task_queries.record(allocation.task_id)
-                if allocation.replayed and data['claimed_by'] not in (None,self.session):
-                    return {**self._context(data,data['status']=='active'),
-                            'allocation':allocation_receipt}
-                self._reconcile_task_worktree(data)
-                data=self.task_queries.record(allocation.task_id)
+                if allocation.replayed:
+                    data=self.task_queries.record(allocation.task_id)
+                    if data['claimed_by'] not in (None,self.session):
+                        return {**self._context(data,data['status']=='active'),
+                                'allocation':allocation_receipt}
+                    self._reconcile_task_worktree(data)
+                    data=self.task_queries.record(allocation.task_id)
+                    blocked = self._require_entry(data)
+                    if blocked is not None:
+                        return {**blocked, 'allocation':allocation_receipt}
+                    self.ownership.acquire_task(data['id'])
+                    current=self.store.current(self.session)
+                    result=self._context(current,current['status']=='active')
+                    return {**result,'allocation':allocation_receipt}
+                data = self.task_queries.record(allocation.task_id)
+                blocked = self._require_entry(data)
+                if blocked is not None:
+                    return {**blocked, **({'allocation': allocation_receipt}
+                                          if allocation_receipt is not None else {})}
+                started = self.sprint_tools.start(allocation.task_id)
+                return {**started, **({'allocation':allocation_receipt}
+                                      if allocation_receipt is not None else {})}
+            blocked = self._require_entry(data)
+            if blocked is not None:
+                return blocked
             self.ownership.acquire_task(data['id'])
             current = self.store.current(self.session)
         if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
@@ -469,6 +615,9 @@ class Poise:
                     self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage)
                 data = self._task()
             self._cleanup_runtime()
+        blocked = self._require_entry(data)
+        if blocked is not None:
+            return blocked
         result=self._context(data, data['status']=='active')
         return result if allocation_receipt is None else {**result,'allocation':allocation_receipt}
 
@@ -528,15 +677,80 @@ class Poise:
             merged[(old['scope'],old['path'])] = current
         return list(merged.values())
 
-    @staticmethod
-    def _artifact_facts(records: list[dict]) -> tuple[ArtifactFact, ...]:
-        return tuple(ArtifactFact(r['id'],r['scope'],r['relative_path']) for r in records)
+    def _artifact_facts(self, records: list[dict]) -> tuple[ArtifactFact, ...]:
+        facts = []
+        for record in records:
+            relative = record['relative_path']
+            prefix = self.cfg['batch']['artifact_directories'][record['scope']].rstrip('/') + '/'
+            if relative.startswith(prefix):
+                relative = relative[len(prefix):]
+            facts.append(ArtifactFact(record['id'], record['scope'], relative))
+        return tuple(facts)
 
     def _content_gate(self, data: dict, phase: str, artifacts: list[dict]) -> dict:
         assessment = self.task_commands.assess_content(data['id'],phase,self._artifact_facts(artifacts))
         result = assessment.to_dict()
         self.store.event(self.session,data['id'],'content.gate',result)
         return result
+
+    def _existing_artifacts(self, data: dict) -> list[dict]:
+        roots = {
+            'runtime': self.runtime,
+            'task': descendant(self.state, self.paths['tasks']) / data['id'],
+        }
+        owners = {'runtime': self.session, 'task': data['id']}
+        if data['sprint_id'] is not None:
+            roots['sprint'] = descendant(self.state, self.paths['sprints']) / data['sprint_id']
+            owners['sprint'] = data['sprint_id']
+        records = []
+        for prior in self.store.artifact_records(data['id']):
+            if prior['scope'] not in roots:
+                continue
+            try:
+                current = inspect_paths([prior['path']], roots, owners)[0]
+            except PoiseError:
+                continue
+            if current['digest'] != prior['digest']:
+                continue
+            records.append(current)
+        return records
+
+    def validate_stage_entry(self, data: dict | None = None) -> dict:
+        current = self.task_queries.record(data['id']) if data is not None else self._task()
+        assessment = self.task_commands.assess_content(
+            current['id'], 'pre', self._artifact_facts(self._existing_artifacts(current))
+        )
+        return assessment.to_dict()
+
+    def _entry_blocked(self, data: dict, gate: dict) -> dict:
+        return {
+            'status': 'content_requirements_failed',
+            'task': data['id'],
+            'stage': self._stage(data)['id'],
+            'content_requirements': gate,
+            'checks': [],
+            'replayed': False,
+        }
+
+    def _require_entry(self, data: dict) -> dict | None:
+        gate = self.validate_stage_entry(data)
+        return None if gate['passed'] else self._entry_blocked(data, gate)
+
+    def validate_stage_scope(self, data: dict | None = None) -> dict:
+        current = self.task_queries.record(data['id']) if data is not None else self._task()
+        tree = self._current_tree(current)
+        changed = self._changed(current, tree)
+        stage = self._stage(current)
+        if stage['read_only'] and changed:
+            raise PoiseError(f'read-only этап изменил репозиторий: {changed}')
+        scope = current['contract']['stage_contracts'][current['stage_index']]['allowed_paths']
+        outside = [
+            path for path in changed
+            if not any(matches_allowed_path(path, pattern) for pattern in scope)
+        ]
+        if outside:
+            raise PoiseError(f'Изменения вне stage contract allowed_paths: {outside}')
+        return {'tree': tree, 'changed': changed, 'allowed_paths': scope}
 
     def _content_blocked(self, data: dict, gate: dict, receipts: list[dict]) -> dict:
         return {'status':'content_requirements_failed','task':data['id'], 'stage':self._stage(data)['id'],
@@ -578,16 +792,15 @@ class Poise:
             raise PoiseError('Активный verify требует result object; служебный файл не читается')
         payload = deepcopy(payload)
         self.plan_actions.validate(data,payload)
+        gate = self.validate_stage_entry(data)
+        if not gate['passed']:
+            raise PoiseError('stage entry requirements are no longer satisfied')
+        scope_state = self.validate_stage_scope(data)
+        tree = scope_state['tree']
+        changed = scope_state['changed']
+        scope = scope_state['allowed_paths']
         submitted = self.runner.submit(data['id'], self.session, payload)
         data = self._task()
-        changed = self._changed(data, tree)
-        if stage['read_only'] and changed:
-            raise PoiseError(f'read-only этап изменил репозиторий: {changed}')
-        outside = [
-            path for path in changed
-            if not any(matches_allowed_path(path, pattern) for pattern in stage['allowed_paths'])
-        ]
-        if outside: raise PoiseError(f'Изменения вне разрешённой области этапа: {outside}')
         if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
             raise PoiseError('Сообщение коммита не соответствует правилу проекта')
         roots = self._roots(data)
@@ -603,13 +816,9 @@ class Poise:
             action=self.plan_actions.apply(data,payload)
             if action['status']!='complete':
                 return self._action_incomplete(data,payload,action)
-            tree=self._current_tree(data)
-            changed=self._changed(data,tree)
-            outside = [
-                path for path in changed
-                if not any(matches_allowed_path(path, pattern) for pattern in stage['allowed_paths'])
-            ]
-            if outside:raise PoiseError(f'Plan changed files outside its declared stage scope: {outside}')
+            scope_state = self.validate_stage_scope(data)
+            tree = scope_state['tree']
+            changed = scope_state['changed']
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         checks = self._select_checks(data, changed)
@@ -897,6 +1106,13 @@ class Poise:
         data = self.store.current(self.session)
         if data is None:
             return {'status':'read_only','project':self.cfg['project'],'tasks':self.task_queries.summary()}
+        if data['status']=='newborn':
+            return {'task':data['id'],'status':'newborn','revision':data['revision'],
+                    'sprint':data['sprint_id'],'claimed_by':data['claimed_by'],
+                    'goal_type':data['goal_type'],'route_entry':data['route_entry'],
+                    'ready':data['ready'],'draft':deepcopy(data['draft']),
+                    'history':self.task_queries.history(data['id']),
+                    'token_usage':'unavailable'}
         submissions, evidence = self.store.counts(data['id'])
         return {'task':data['id'],'status':data['status'],'stage':self._stage(data)['id'],
                 'iteration':data['iteration'],'attempts':data['attempts'],

@@ -73,6 +73,27 @@ class AccountingQueries:
                 continue
             a=timestamp(row['started_at']);z=timestamp(row['ended_at'])
             emit_interval(b,a,z,{**d,'seconds':(z-a).total_seconds()},True)
+        if self.policy['time_mode']=='tool_cycle':
+            for row in data['telemetry']:
+                envelope=json.loads(row['data'])
+                first=envelope['started'];last=envelope['finished']
+                comparable=(first['comparison_domain']==last['comparison_domain']
+                            and last['monotonic_ns']>=first['monotonic_ns'])
+                if not comparable:
+                    unmeasured_cycles+=1
+                    continue
+                elapsed_ns=last['monotonic_ns']-first['monotonic_ns']
+                a=timestamp(first['audit_utc']);z=a+timedelta(microseconds=elapsed_ns/1000)
+                b=envelope['after_binding'] if envelope['after_binding']['task'] is not None else envelope['before_binding']
+                if b['task'] is None or (envelope['before_binding']['task'] is None
+                                         and envelope['result_status']=='read_only'):
+                    continue
+                raw=envelope['telemetry']
+                payload={'kind':'telemetry_operation','operation':envelope['operation'],
+                         'cause':None if raw is None else raw['cause'],
+                         'finding_ids':[] if raw is None else [x['finding_id'] for x in raw['finding_targets']],
+                         'seconds':elapsed_ns/1_000_000_000}
+                emit_interval(b,a,z,payload,False)
         missing_message_dates=0
         for row in data['messages']:
             d=json.loads(row['data']);b={k:row[v] for k,v in (('task','task_id'),('sprint','sprint_id'),('goal_type','goal_type'),('stage','stage'),('iteration','iteration'))}

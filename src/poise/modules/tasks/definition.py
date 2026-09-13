@@ -1,7 +1,7 @@
 """One pure creation contract for standalone and sprint-published tasks."""
 from copy import deepcopy
 from .contracts import stages_from_process, candidate_content_policy_from_metadata, evidence_plan_from_metadata
-from .domain import Task
+from .domain import Task, TaskStageContracts
 from ..verification.domain import (
     CheckRegistry,
     declared_executable_obligations,
@@ -72,7 +72,8 @@ def validate_creation(contract, process, automatic_checks):
             f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
         )
     fields={'id','sprint_id','goal_type','goal','requirements','definition_of_done',
-        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan'}
+        'methods','method_inputs','checks','artifact_requirements','content_contract','evidence_plan',
+        'stage_contracts'}
     if registry_inspection_stages(process):
         fields.add('executable_obligations')
     exact_keys(contract,fields,'task')
@@ -129,6 +130,7 @@ def build_task(metadata, actor):
         obligation_catalog(metadata['contract']),
     )
     registry.validate_route(route)
-    args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry))
+    contracts = TaskStageContracts.parse(metadata['contract']['stage_contracts'], route, policy)
+    args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry),contracts)
     if actor is None:return Task.planned(*args)
     return Task.new(args[0],args[1],actor,*args[2:])

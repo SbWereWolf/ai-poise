@@ -11,9 +11,11 @@ from ..evidence.domain import EvidencePlan, EvidenceBook
 from ..inspection.domain import FeedbackBook
 from ..verification.domain import CheckRegistry
 from ..content_requirements.domain import ContentPolicy, ContentSnapshot, TraceValue, ArtifactFact, Assessment
+from ..foundation.paths import matches_allowed_path
 
 
 class TaskStatus(StrEnum):
+    NEWBORN = "newborn"
     AVAILABLE = "available"
     ACTIVE = "active"
     VERIFIED = "verified"
@@ -47,6 +49,168 @@ class StageSpec:
     def __post_init__(self) -> None:
         identifier(self.stage_id)
         SectionBook(self.rules)
+
+
+@dataclass(frozen=True)
+class TaskStageContract:
+    stage_id: str
+    allowed_paths: tuple[str, ...]
+    entry_requirements: tuple[str, ...]
+    exit_requirements: tuple[str, ...]
+
+    def to_dict(self) -> dict:
+        return {
+            "stage_id": self.stage_id,
+            "allowed_paths": list(self.allowed_paths),
+            "entry_requirements": list(self.entry_requirements),
+            "exit_requirements": list(self.exit_requirements),
+        }
+
+
+def _contract_names(value, label):
+    if (not isinstance(value, list)
+            or any(not isinstance(item, str) or not item for item in value)
+            or len(value) != len(set(value))):
+        raise DomainError(f"{label}: requires unique nonempty strings")
+    return tuple(value)
+
+
+def _reachable_without(route: RouteDefinition, start: str, target: str, excluded: str) -> bool:
+    pending = [start]
+    reached = set()
+    while pending:
+        stage = pending.pop()
+        if stage == excluded or stage in reached:
+            continue
+        if stage == target:
+            return True
+        reached.add(stage)
+        node = route.node(stage)
+        pending.extend(value for _, value in node.transitions if value is not None)
+        pending.extend(node.rework_targets)
+    return False
+
+
+@dataclass(frozen=True)
+class TaskStageContracts:
+    items: tuple[TaskStageContract, ...]
+
+    @classmethod
+    def parse(cls, raw, route: RouteDefinition, policy: ContentPolicy):
+        if not isinstance(raw, list):
+            raise DomainError("stage contracts require an explicit list with exact route coverage")
+        parsed = []
+        for value in raw:
+            if not isinstance(value, dict) or set(value) != {
+                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
+            }:
+                raise DomainError("stage contract requires exact fields")
+            stage_id = value["stage_id"]
+            if not isinstance(stage_id, str) or not stage_id:
+                raise DomainError("stage contract stage_id is required")
+            parsed.append(TaskStageContract(
+                stage_id,
+                _contract_names(value["allowed_paths"], f"{stage_id}.allowed_paths"),
+                _contract_names(value["entry_requirements"], f"{stage_id}.entry_requirements"),
+                _contract_names(value["exit_requirements"], f"{stage_id}.exit_requirements"),
+            ))
+        route_stages = tuple(node.stage_id for node in route.nodes)
+        if (tuple(item.stage_id for item in parsed) != route_stages
+                or len({item.stage_id for item in parsed}) != len(parsed)):
+            raise DomainError("stage contracts require exact route coverage in route order")
+        requirements = {requirement.id: requirement for requirement in policy.requirements}
+        for item in parsed:
+            node = route.node(item.stage_id)
+            if node.read_only and item.allowed_paths:
+                raise DomainError(f"{item.stage_id}: read-only stage cannot have writable scope")
+            for phase, refs in (("pre", item.entry_requirements), ("post", item.exit_requirements)):
+                for ref in refs:
+                    requirement = requirements.get(ref)
+                    if requirement is None or requirement.phase != phase or item.stage_id not in requirement.stages:
+                        raise DomainError(f"{item.stage_id}: requirement phase mismatch")
+        book = cls(tuple(parsed))
+        book._validate_artifact_sources(route, policy)
+        return book
+
+    def stage(self, stage_id: str) -> TaskStageContract:
+        for item in self.items:
+            if item.stage_id == stage_id:
+                return item
+        raise DomainError(f"Unknown Task stage contract: {stage_id}")
+
+    def to_list(self) -> list[dict]:
+        return [item.to_dict() for item in self.items]
+
+    def replace(self, stage_id: str, replacement: TaskStageContract) -> TaskStageContracts:
+        if replacement.stage_id != stage_id:
+            raise DomainError("Replacement stage contract identity mismatch")
+        self.stage(stage_id)
+        return TaskStageContracts(tuple(
+            replacement if item.stage_id == stage_id else item for item in self.items
+        ))
+
+    def _validate_artifact_sources(self, route: RouteDefinition, policy: ContentPolicy) -> None:
+        active_ids = {
+            requirement_id
+            for contract in self.items
+            for requirement_id in contract.entry_requirements + contract.exit_requirements
+        }
+        artifact_requirements = [
+            requirement for requirement in policy.requirements
+            if requirement.kind == "artifact" and requirement.id in active_ids
+        ]
+        for requirement in artifact_requirements:
+            details = json.loads(requirement.details)
+            source = details.get("source")
+            if source is None or source["kind"] == "preexisting":
+                continue
+            producer = source.get("producer_stage")
+            starts = {route.entry} | {
+                target for node in route.nodes for target in node.rework_targets
+            }
+            for consumer in requirement.stages:
+                if source["kind"] == "declared_arrival":
+                    arrival = source["arrival_stage"]
+                    if consumer != arrival and any(
+                        _reachable_without(route, start, consumer, arrival) for start in starts
+                    ):
+                        raise DomainError(
+                            "declared artifact arrival cannot satisfy an earlier entry gate"
+                        )
+                    continue
+                if requirement.phase == "post":
+                    if consumer != producer:
+                        raise DomainError("stage output must be an exit gate of its producer")
+                    consumed = any(
+                        candidate.phase == "pre"
+                        and json.loads(candidate.details) == details
+                        for candidate in artifact_requirements
+                    )
+                    if consumed and not any(
+                        details["pattern"] == pattern
+                        or matches_allowed_path(details["pattern"], pattern)
+                        for pattern in self.stage(producer).allowed_paths
+                    ):
+                        raise DomainError("artifact producer scope does not cover its declared output")
+                    continue
+                if consumer == producer:
+                    raise DomainError(
+                        "stage output is unavailable at producer entry; require producer exit"
+                    )
+                bypass = any(
+                    _reachable_without(route, start, consumer, producer) for start in starts
+                )
+                if bypass:
+                    label = "rework path does not let producer dominate consumer" if any(
+                        start != route.entry and _reachable_without(route, start, consumer, producer)
+                        for start in starts
+                    ) else "producer does not dominate consumer"
+                    raise DomainError(label)
+                output = next((candidate for candidate in artifact_requirements
+                    if candidate.phase == "post" and producer in candidate.stages
+                    and json.loads(candidate.details) == details), None)
+                if output is None or output.id not in self.stage(producer).exit_requirements:
+                    raise DomainError("artifact producer requires an independent exit gate")
 
 
 @dataclass(frozen=True)
@@ -113,6 +277,7 @@ class Change:
     task: Task
     submission: Submission | None
     events: tuple[TaskEvent, ...]
+    registry_change: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -131,6 +296,7 @@ class Task:
     evidence_input: str | None
     evidence_assessment: str | None
     action_assessment: str | None
+    stage_contracts: TaskStageContracts | None = None
 
     def __post_init__(self) -> None:
         identifier(self.state.task_id)
@@ -144,6 +310,9 @@ class Task:
             raise DomainError("Точки проверки ссылаются не на текущий реестр методов")
         if tuple(names) != tuple(n.stage_id for n in self.route.nodes):
             raise DomainError("Маршрут Task не соответствует конфигурации handlers")
+        if (self.stage_contracts is not None
+                and tuple(item.stage_id for item in self.stage_contracts.items) != tuple(names)):
+            raise DomainError("Stage contracts do not match the Task route")
         if (type(self.state.stage_index) is not int or not 0 <= self.state.stage_index < len(names)
                 or type(self.state.iteration) is not int or self.state.iteration < 1):
             raise DomainError("Неверная позиция задачи")
@@ -164,18 +333,48 @@ class Task:
             raise DomainError("Завершённая задача не может оставаться занятой")
 
     @classmethod
-    def new(cls, task_id: str, stages: tuple[StageSpec, ...], actor: str | None, content_policy: ContentPolicy, check_registry: CheckRegistry, route: RouteDefinition, evidence_plan: EvidencePlan) -> Task:
+    def new(cls, task_id: str, stages: tuple[StageSpec, ...], actor: str | None, content_policy: ContentPolicy, check_registry: CheckRegistry, route: RouteDefinition, evidence_plan: EvidencePlan, stage_contracts: TaskStageContracts | None = None) -> Task:
         if actor is not None:
             identifier(actor)
-        return cls(TaskState(task_id, route.index(route.entry), 1, TaskStatus.ACTIVE, actor, 0, None), stages, content_policy, ContentSnapshot((), ()), check_registry, route, RouteProgress.initial(route), FeedbackBook.empty(), evidence_plan, EvidenceBook.empty(), None, None, None)
+        return cls(TaskState(task_id, route.index(route.entry), 1, TaskStatus.ACTIVE, actor, 0, None), stages, content_policy, ContentSnapshot((), ()), check_registry, route, RouteProgress.initial(route), FeedbackBook.empty(), evidence_plan, EvidenceBook.empty(), None, None, None, stage_contracts)
 
     @classmethod
-    def planned(cls, task_id, stages, content_policy, check_registry, route, evidence_plan):
+    def planned(cls, task_id, stages, content_policy, check_registry, route, evidence_plan, stage_contracts=None):
         return cls(TaskState(task_id,route.index(route.entry),1,TaskStatus.AVAILABLE,None,0,None),
                    stages,content_policy,ContentSnapshot((),()),check_registry,route,
-                   RouteProgress.initial(route),FeedbackBook.empty(),evidence_plan,EvidenceBook.empty(),None,None,None)
+                   RouteProgress.initial(route),FeedbackBook.empty(),evidence_plan,EvidenceBook.empty(),None,None,None,stage_contracts)
+
+    def _require_stage_contracts(self) -> TaskStageContracts:
+        if self.stage_contracts is None:
+            raise DomainError(
+                "stage_contract_transition_required: initialize_stage_contracts is required"
+            )
+        return self.stage_contracts
+
+    def initialize_stage_contracts(self, contracts: TaskStageContracts) -> Change:
+        if self.stage_contracts is not None:
+            raise DomainError("Stage contracts are already initialized")
+        if not isinstance(contracts, TaskStageContracts):
+            raise DomainError("Exact parsed stage contracts are required")
+        change = self._change("stage_contracts_initialized", None, None)
+        return replace(change, task=replace(change.task, stage_contracts=contracts))
+
+    def revise_stage_contract(
+        self, actor: str, stage_id: str, replacement: TaskStageContract
+    ) -> Change:
+        contracts = self._require_stage_contracts()
+        self._owned(actor)
+        if self.state.claimed_by != actor:
+            raise DomainError("Stage contract revision requires current ownership")
+        if self.route.node(self.stage.stage_id).handler != HandlerKind.INSPECT:
+            raise DomainError("Stage contract revision requires the current inspection stage")
+        revised = contracts.replace(stage_id, replacement)
+        revised = TaskStageContracts.parse(revised.to_list(), self.route, self.content_policy)
+        change = self._change("stage_contract_revised", None, None)
+        return replace(change, task=replace(change.task, stage_contracts=revised))
 
     def start(self, actor=None):
+        self._require_stage_contracts()
         if actor is not None:
             identifier(actor)
         if self.state.status != TaskStatus.AVAILABLE:
@@ -191,12 +390,14 @@ class Task:
         return self._change("handed_off",reason,None,claimed_by=None)
 
     def resume_handoff(self, actor: str) -> Change:
+        self._require_stage_contracts()
         identifier(actor)
         if self.state.claimed_by is not None or self.state.status not in (TaskStatus.ACTIVE,TaskStatus.VERIFIED,TaskStatus.ACCEPTED):
             raise DomainError("Only unowned preserved work can be resumed")
         return self._change("handoff_resumed",None,None,claimed_by=actor)
 
     def acquire_ownership(self, actor: str) -> Change:
+        self._require_stage_contracts()
         identifier(actor)
         if self.state.claimed_by is not None or self.state.status not in (
                 TaskStatus.ACTIVE, TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
@@ -224,12 +425,93 @@ class Task:
         event = TaskEvent(kind, self.stage.stage_id, self.state.iteration, reason)
         return Change(replace(self, state=state), submission, (event,))
 
-    def _unchanged(self) -> Change:
-        return Change(self, None, ())
+    def _unchanged(self, registry_change: dict | None = None) -> Change:
+        return Change(self, None, (), registry_change)
+
+    def _observe_registry_change(self, raw: dict):
+        subject_methods = set(
+            self.evidence_plan.stage(self.stage.stage_id).subject_methods
+        )
+        if (isinstance(raw, dict)
+                and set(raw) == {
+                    'request_id', 'expected_revision', 'operations',
+                    'executable_obligations',
+                }
+                and isinstance(raw['operations'], list)
+                and not any(
+                    request.request_id == raw['request_id']
+                    for request in self.check_registry.requests
+                )
+                and raw['expected_revision'] == self.check_registry.revision):
+            for operation in raw['operations']:
+                if isinstance(operation, dict) and operation.get('kind') != 'replace':
+                    raise DomainError(
+                        'observe registry change permits only exact method replacement'
+                    )
+                if (isinstance(operation, dict)
+                        and operation.get('kind') == 'replace'
+                        and operation.get('method_id') in self.check_registry.method_ids
+                        and isinstance(operation.get('registration'), dict)
+                        and operation['registration'].get('stages') != list(next(
+                            entry.stages for entry in self.check_registry.entries
+                            if entry.method_id == operation['method_id']
+                        ))):
+                    raise DomainError('observe registry change cannot reschedule a method')
+        result = self.check_registry.apply_change(raw)
+        if tuple(raw['executable_obligations']) != self.check_registry.executable_obligations:
+            raise DomainError(
+                'observe registry change cannot alter executable_obligations'
+            )
+        current = {entry.method_id: entry for entry in self.check_registry.entries}
+        updated = {entry.method_id: entry for entry in result.registry.entries}
+        for operation in raw['operations']:
+            method_id = operation['method_id']
+            if operation['kind'] != 'replace':
+                raise DomainError('observe registry change permits only exact method replacement')
+            if method_id not in subject_methods:
+                raise DomainError(
+                    'observe registry change requires a current subject method'
+                )
+            if updated[method_id].stages != current[method_id].stages:
+                raise DomainError('observe registry change cannot reschedule a method')
+            if (updated[method_id].evidence_kind != current[method_id].evidence_kind
+                    or updated[method_id].covers != current[method_id].covers):
+                raise DomainError(
+                    'observe registry change cannot alter evidence_kind or covers'
+                )
+        return result
+
+    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool):
+        request = next(
+            request for request in registry.requests
+            if request.request_id == raw['request_id']
+        )
+        if replayed:
+            if request.audit is None:
+                raise DomainError('registry change replay has no durable audit receipt')
+            return registry, {**json.loads(request.audit), 'replayed': True}
+        audit = {
+            'actor': actor,
+            'methods': [operation['method_id'] for operation in raw['operations']],
+            'new_revision': request.revision,
+            'previous_revision': raw['expected_revision'],
+            'request_id': raw['request_id'],
+            'stage': self.stage.stage_id,
+            'iteration': self.state.iteration,
+            'task': self.state.task_id,
+        }
+        receipt_id = hashlib.sha256(json.dumps(
+            audit, sort_keys=True, ensure_ascii=False, separators=(',', ':')
+        ).encode('utf-8')).hexdigest()
+        durable = {**audit, 'receipt_id': receipt_id}
+        return registry.bind_request_audit(raw['request_id'], durable), {
+            **durable, 'replayed': False,
+        }
 
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
                commit_message: str, content_additions: dict, trace: dict,
                method_additions: list[dict] | dict, stage_work: dict, evidence_work: dict) -> Change:
+        self._require_stage_contracts()
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
@@ -237,16 +519,42 @@ class Task:
         stage_handler = handler(self.route.node(self.stage.stage_id).handler)
         handling = stage_handler.evaluate(stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
+        registry_change = None
+        registry_event = None
         if isinstance(method_additions, dict):
-            if 'test_registry' not in {rule.name for rule in self.stage.rules}:
+            owns_test_registry = 'test_registry' in {rule.name for rule in self.stage.rules}
+            observes_evidence = (
+                self.route.node(self.stage.stage_id).handler == HandlerKind.OBSERVE
+            )
+            if owns_test_registry:
+                result = self.check_registry.apply_change(method_additions)
+            elif observes_evidence:
+                result = self._observe_registry_change(method_additions)
+                observe_registry, registry_change = self._registry_change_audit(
+                    method_additions, result.registry, actor, result.replayed
+                )
+                result = replace(result, registry=observe_registry)
+                if not result.replayed:
+                    durable = {key: value for key, value in registry_change.items()
+                               if key != 'replayed'}
+                    registry_event = TaskEvent(
+                        'verification_registry_changed',
+                        self.stage.stage_id,
+                        self.state.iteration,
+                        json.dumps(durable, sort_keys=True, ensure_ascii=False),
+                    )
+            else:
                 raise DomainError(
                     f'{self.stage.stage_id}: изменение test_registry на этом этапе запрещено'
                 )
-            registry = self.check_registry.apply_change(method_additions).registry
+            registry = result.registry
         else:
             registry = self.check_registry.extend(method_additions)
         registry.validate_route(self.route)
         policy = replace(self.content_policy, method_ids=registry.method_ids).extend(content_additions)
+        contracts = TaskStageContracts.parse(
+            self._require_stage_contracts().to_list(), self.route, policy
+        )
         if not isinstance(sections, dict):
             raise DomainError("sections должен быть объектом")
         standard = {r.name for r in self.stage.rules}
@@ -263,15 +571,28 @@ class Task:
                                 json.dumps(method_additions,sort_keys=True,ensure_ascii=False), work_json,
                                 json.dumps(evidence_work,sort_keys=True,ensure_ascii=False))
         if submission.digest == self.state.submission_digest:
-            return self._unchanged()
+            return self._unchanged(registry_change)
         change = self._change("submitted", None, submission, submission_digest=submission.digest)
-        return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
-                       progress=replace(change.task.progress, outcome=handling.outcome, stage_work=work_json)))
+        events = change.events + (() if registry_event is None else (registry_event,))
+        return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, stage_contracts=contracts, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
+                       progress=replace(change.task.progress, outcome=handling.outcome, stage_work=work_json)),
+                       events=events, registry_change=registry_change)
 
     def assess_content(self, phase: str, artifacts: tuple[ArtifactFact, ...]) -> Assessment:
-        return self.content_policy.evaluate(self.stage.stage_id, phase, self.content_snapshot, artifacts)
+        contract = self._require_stage_contracts().stage(self.stage.stage_id)
+        requirement_ids = (
+            contract.entry_requirements if phase == "pre" else contract.exit_requirements
+        )
+        return self.content_policy.evaluate(
+            self.stage.stage_id,
+            phase,
+            self.content_snapshot,
+            artifacts,
+            requirement_ids,
+        )
 
     def mark_verified(self, actor: str, submission_digest: str, artifacts: tuple[ArtifactFact, ...]) -> Change:
+        self._require_stage_contracts()
         self._owned(actor)
         if self.state.submission_digest is None or submission_digest != self.state.submission_digest:
             raise DomainError("Проверен не текущий содержательный результат")
@@ -332,6 +653,25 @@ class Task:
             raise DomainError("Для rework требуется замечание пользователя")
         if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED, TaskStatus.COMPLETED):
             raise DomainError("Rework открывает ранее предъявленный результат")
+        pending_resolutions = self.feedback.pending_resolutions
+        if pending_resolutions:
+            inspection_stage = self.route.node(self.stage.stage_id).target(
+                self.progress.outcome
+            )
+            if (inspection_stage is None or
+                    self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
+                raise DomainError(
+                    "Rework недоступен: маршрут не определяет обязательный этап "
+                    "осмотра ожидающих исправлений"
+                )
+            resolution_ids = ", ".join(
+                resolution.id for resolution in pending_resolutions
+            )
+            raise DomainError(
+                f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
+                f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
+                "исправление."
+            )
         destination = self.stage.stage_id if target is None else target
         if destination not in self.route.node(self.stage.stage_id).rework_targets:
             raise DomainError("Возврат на этот этап не разрешён конфигурацией")
@@ -414,6 +754,7 @@ class Task:
         return self._enter('user_action_rework',feedback,actor,destination,progress)
 
     def workflow_context(self) -> dict:
+        contracts = self._require_stage_contracts()
         node = self.route.node(self.stage.stage_id)
         feedback = self.feedback
         if self.state.status == TaskStatus.ACTIVE and self.progress.stage_work is not None:
@@ -423,7 +764,8 @@ class Task:
                 "next_stage":next_stage, "terminal":self.progress.outcome is not None and next_stage is None,
                 "visits":dict(self.progress.visits), "transitions":self.progress.transitions,
                 "rework_targets":list(node.rework_targets), "feedback":feedback.context(),
-                "stage_work_template":handler(node.handler).template(), "evidence":self.evidence_context()}
+                "stage_work_template":handler(node.handler).template(), "evidence":self.evidence_context(),
+                "stage_contract":contracts.stage(self.stage.stage_id).to_dict()}
 
     def _handling(self):
         handling = handler(self.route.node(self.stage.stage_id).handler).evaluate(

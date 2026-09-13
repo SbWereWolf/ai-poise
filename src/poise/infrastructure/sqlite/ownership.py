@@ -32,10 +32,12 @@ class SqliteOwnershipRepository:
         return OwnershipPreflight(actor, task_id, row[0], owners[0] if owners else None)
 
     def worktree_required(self, task_id):
-        row = self.db.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
+        row = self.db.execute("SELECT status,metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
         if row is None:
             raise PoiseError(f"Unknown ownership Task: {task_id}")
-        process = json.loads(row[0])["process"]
+        if row['status'] == 'newborn':
+            return False
+        process = json.loads(row['metadata'])["process"]
         value = process.get("worktree_required")
         if type(value) is not bool:
             raise PoiseError("Stored process requires exact worktree_required bool")

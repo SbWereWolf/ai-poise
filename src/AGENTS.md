@@ -24,6 +24,14 @@ Apply domain-driven design throughout the codebase, not just to stage handlers. 
 
 Document and respect the responsibility boundaries of libraries and data owners. Change Task, Sprint, content, evidence, configuration and artifact state only through their owning APIs. CLI adapters, runners and hooks must not bypass those APIs with direct lifecycle assignments or table updates.
 
+Model early planning as a real newborn Task with permanent identity and history. Route its
+create/edit/ready transitions through the shared ownership API, preserve no route entry before goal_type selection,
+and apply type-specific readiness before `available`. Sprint
+`materialize_tasks` owns conversion of legacy embedded definitions into real newborn Task
+members while preserving partial edits, history, membership, graph aliases, immutable request
+replay, and source Task traceability. Keep direct complete creation supported; do not add a
+hidden broad migration.
+
 For every new trace requirement, ensure that its due stages intersect the referenced point's `write_stages`. Apply this rule to new goal-type and Task candidates, Sprint publication, and new active-Task additions before persistence or external effects. Restore stored contracts without retroactive rejection or rewriting, but validate every genuinely new requirement added to them. Keep immutable early evidence writable only at its owning stage; include that stage among the requirement's due stages instead of making the evidence writable later.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.

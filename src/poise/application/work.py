@@ -47,17 +47,23 @@ class WorkTools:
         # charged for an unrelated later query.
         bound_before = before if before is not None and not is_terminal_task_status(before['status']) else None
         self.interactions.record(events,h.session,bound_before)
-        telemetry=h.accounting.prepare(req['telemetry']) if 'telemetry' in req else None
-        h.accounting.begin(op,bound_before,telemetry,events[-1].identity if events else None)
+        telemetry=h.telemetry.capture(
+            op,
+            bound_before,
+            req.get('telemetry'),
+            events[-1].identity if events else None,
+        )
         try:
-            if telemetry is not None and op!='bootstrap':h.accounting.receive(telemetry,before)
-            if op=='sprint':out=h.sprint_tools.apply(args)
+            if op=='task':out=h.task_action(args)
+            elif op=='sprint':out=h.sprint_tools.apply(args)
             elif op=='transfer':out=h.transfer_tools.apply(args)
             elif op=='bootstrap':
                 out=h.bootstrap(**args)
             elif op=='handoff':out=h.handoff(args)
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
+            elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
+            elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='verify':out=self._verify(args)
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()
@@ -77,16 +83,17 @@ class WorkTools:
         except Exception:
             after=h.current_task()
             self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
-            if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,after)
-            h.accounting.finish(op,before,after,{'status':'rejected'})
+            h.telemetry.complete(telemetry,after,{'status':'rejected'})
             raise
         current=h.current_task()
         self.interactions.record(events,h.session,current if current is not None and not is_terminal_task_status(current['status']) else bound_before)
         self.interactions.delivered(current,out)
-        if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,current)
-        h.accounting.finish(op,before,current,out)
-        if current is not None and current['sprint_id'] is not None and h.sprint_tools.known(current['sprint_id']) and op in ('verify','accept','cancel'):
-            out={**out,'sprint':h.sprint_tools.overview(current['sprint_id'])}
+        h.telemetry.complete(telemetry,current,out)
+        sprint_subject = current if current is not None else before
+        if (sprint_subject is not None and sprint_subject['sprint_id'] is not None
+                and h.sprint_tools.known(sprint_subject['sprint_id'])
+                and op in ('verify','accept','cancel')):
+            out={**out,'sprint':h.sprint_tools.overview(sprint_subject['sprint_id'])}
         return {**out,'interaction':self.interactions.summary(h.report_task(out))}
 
     def _verify(self,args):
@@ -110,7 +117,11 @@ class WorkTools:
         prepared=factory.prepare(args['artifacts'])
         # Paths can be known before file creation; Task checks only semantic input.
         payload['artifact_paths']=list(dict.fromkeys(payload['artifact_paths']+[str(x.path) for x in prepared]))
+        gate = h.validate_stage_entry(data)
+        if not gate['passed']:
+            raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'],payload)
+        h.validate_stage_scope(data)
         # Validate existing path-only inputs before producing any new file.
         h.validate_artifact_paths(args['result']['artifact_paths'],data)
         factory.materialize(prepared)
@@ -122,7 +133,9 @@ class WorkTools:
         h=self.runtime;items=[]
         for query in queries:
             kind=query['kind']
-            if kind=='accounting':value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
+            if kind=='accounting':
+                value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
+                value={**value,'telemetry':h.accounting.telemetry_summary(h.telemetry.summary())}
             elif kind=='tool_result':value=h.show_output(query['receipt_id'],query['representation'],query['range'])
             elif kind=='sprint':value=h.sprint_tools.query(query['sprint_id'],query['view'])
             elif kind=='work_overview':

@@ -24,9 +24,26 @@ For a development Task, pass the complete initial checks schedule explicitly; `{
 
 Tools are batch-oriented and declarative: if two or more required mechanical actions have no reasoning decision between them, expose one operation that ensures the requested result through owning APIs. Do not add hidden defaults, compatibility readers or migrations without direct user authorization. Read [Declarative tools → architectural invariant](../../../docs/architecture/declarative-tools.md#1-архитектурный-инвариант) for the corresponding contract section available in the current revision.
 
+Keep stale observation recovery inside the existing verification owner. An `observe` stage may
+replace only one of its current `evidence_plan.subject_methods` through the guarded registry
+change contract. Preserve its schedule, executable classification and coverage, keep historical
+definitions and proof records immutable, and bind the first mutation/replay to one durable audit
+identity. Structural registry edits remain owned by `test_registry`. Read the exact invariants in
+[Evidence → stale observation replacement](../../../docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения).
+
+Keep the pending-resolution rework guard in the Task aggregate, before route or execution mutation.
+Its error must identify only unresolved resolution IDs and the exact next inspection stage; clean
+rework remains unchanged. Do not replace this invariant with a workaround Task or direct Task DB
+repair. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013).
+
 ## Project-local configuration
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
+
+When another authorized owner has replaced a managed process file, diagnose the exact head
+and live revisions with `goal-config-status-1`, then adopt validated content only with an exact
+`goal-config-reconcile-1` request carrying reason and authority. Do not create a fresh editor database
+to evade a stale managed head. Read [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией) before acting.
 
 ## Verification and delivery
 
@@ -41,5 +58,7 @@ After release and notification, continue actionable received assignments or the 
 Treat the accepted commit as immutable. Complete delivery by advancing the existing task branch in its existing task worktree: update from current `master`, merge, resolve conflicts there, and rerun checks. Do not create a separate integration branch or worktree. Stop automation on conflicts for agent resolution in the task worktree. Under the shared target lock, recheck `master` and repeat the cycle on drift. Publish only with `git merge --ff-only <task-branch>` in the main checkout; never directly update or force-update the target ref.
 
 Do not prepare, edit, or resolve conflicts in the main checkout or foreign WIP, and never `stash`, `reset`, `restore`, `checkout`, `clean`, stage, commit, or delete their state. The serialized fast-forward is the only publication effect. If it is blocked, require persisted proof that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are unchanged. After confirmed publication, remove only the task worktree, task branch, and registered temporary backups from the scoped runtime directory. Preserve foreign, operator, deliverable, and unfinished-recovery backups. Persist phases so current installed source can replay safely without rewriting the accepted commit. Read the canonical [finish and integration rules](../../../docs/governance/development-rules.md#интеграция-завершённого-результата).
+
+Repository snapshots use an invocation-owned temporary Git index and must clean only that exact owned directory. Never delete `snapshot.index.lock` manually or remove another invocation's directory; preserve real Git conflict evidence and use the owning public recovery path. Read the canonical [snapshot index contract](../../../docs/workflows/batch-work.md#изоляция-временного-git-index).
 
 When a skill relies on canonical documentation, link to the smallest exact normative section needed by the operational rule.

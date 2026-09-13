@@ -2,13 +2,29 @@ from __future__ import annotations
 from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
-from ..modules.tasks.domain import Task, TaskState, TaskStatus
+import hashlib
+import json
+from ..modules.tasks.domain import (
+    Task,
+    TaskStageContracts,
+    TaskState,
+    TaskStatus,
+)
 from ..modules.workflow.domain import RouteDefinition
 from ..modules.tasks.ports import RepositoryTreeReader, TaskUnitOfWork
 from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
-from ..modules.foundation.errors import DomainError
+from ..modules.foundation.errors import DomainError, VersionConflict
+from ..modules.tasks.newborn import NewbornTask
+from ..modules.tasks.definition import build_task, validate_creation
+
+
+def _action_digest(action: str, payload: dict) -> str:
+    value = {"action": action, **deepcopy(payload)}
+    return hashlib.sha256(json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode()).hexdigest()
 
 
 def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata):
@@ -88,6 +104,7 @@ class SubmissionReceipt:
     created: bool
     version: int
     digest: str
+    registry_change: dict | None = None
 
 
 class TaskCommands:
@@ -101,13 +118,19 @@ class TaskCommands:
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
         candidate, _ = materialize_contract(intent, creation_alias(intent))
-        metadata = validate_creation(candidate, process, automatic_checks)
-        preflight = CreationPreflight.parse(metadata["contract"], process)
+        try:
+            preflight = CreationPreflight.parse(candidate, process)
+        except KeyError as exc:
+            validate_creation(candidate, process, automatic_checks)
+            raise DomainError(
+                f"Task creation preflight requires field {exc.args[0]!r}"
+            ) from exc
         if not isinstance(base_revision, str) or not base_revision:
             raise DomainError("Task creation requires an explicit repository tree preflight")
         preflight.validate_base(
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
+        validate_creation(candidate, process, automatic_checks)
         return PreparedCreation(
             deepcopy(intent),
             deepcopy(process),
@@ -125,17 +148,206 @@ class TaskCommands:
             task, metadata, _ = _creation_values(
                 prepared.intent,
                 allocation,
-                actor,
+                None,
                 prepared.process,
                 prepared.automatic_checks,
                 base_metadata,
             )
-            uow.tasks.create(task, metadata)
-            uow.tasks.save(task.release_ownership(actor), task.state.version)
             if not allocation.replayed:
-                snapshot = execution(allocation.task_id)
-                uow.execution.create(allocation.task_id, snapshot)
+                newborn = NewbornTask.create(allocation.task_id, None, actor)
+                uow.tasks.create_newborn(newborn, base_metadata['config_hash'])
+                uow.tasks.promote_newborn(task, metadata, newborn.version)
             return allocation
+
+    def create_newborn(self, task_id, sprint_id, actor, config_hash, request_id):
+        from ..application.ownership import release_task_in
+        from ..modules.sprints.domain import Sprint
+        identity = _action_digest("create", {"task_id": task_id, "sprint_id": sprint_id})
+        newborn = NewbornTask.create(task_id, sprint_id, actor)
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id, request_id, identity)
+            if replay is not None:
+                return replay
+            before = uow.ownership.snapshot(actor)
+            if before.task_id not in (None, task_id):
+                release_task_in(uow, actor, before.task_id)
+            sprint_revision = None
+            if sprint_id is not None:
+                record = uow.sprints.get(sprint_id)
+                if record is None:
+                    raise DomainError('Unknown Sprint for newborn membership')
+                sprint = Sprint.restore(record['aggregate']).add_newborn_member(task_id)
+                record = {**record, 'actor':actor, 'aggregate':sprint.to_dict()}
+                uow.tasks.create_newborn(newborn, config_hash)
+                uow.sprints.save(record, sprint.revision - 1)
+                sprint_revision = sprint.revision
+            else:
+                uow.tasks.create_newborn(newborn, config_hash)
+            result = newborn.describe() | ({'sprint_revision':sprint_revision} if sprint_id is not None else {})
+            uow.tasks.remember_action(task_id, actor, request_id, identity, result)
+            return result
+
+    @staticmethod
+    def _stage_contract_authorization(value, required_role):
+        if value != {"role": required_role}:
+            raise DomainError(f"stage contract action requires {required_role} authorization")
+
+    def initialize_stage_contracts(
+        self, task_id, actor, expected_version, request_id, contracts, reason, authorization
+    ):
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError("stage contract request_id is required")
+        if type(expected_version) is not int or expected_version < 0:
+            raise DomainError("stage contract expected_version must be a nonnegative integer")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("stage contract transition reason is required")
+        new = deepcopy(contracts)
+        audit = {
+            "action": "initialize_stage_contracts",
+            "actor": actor,
+            "authorization": deepcopy(authorization),
+            "expected_version": expected_version,
+            "new": new,
+            "old": None,
+            "reason": reason,
+            "request_id": request_id,
+        }
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.stage_contract_receipt(task_id, request_id, audit)
+            if replay is not None:
+                return replay
+            self._stage_contract_authorization(authorization, "creator")
+            task = uow.tasks.load(task_id)
+            if task.state.version != expected_version:
+                raise DomainError("stage contract version conflict")
+            parsed = TaskStageContracts.parse(contracts, task.route, task.content_policy)
+            change = task.initialize_stage_contracts(parsed)
+            return uow.tasks.save_stage_contract_change(change, expected_version, audit)
+
+    def revise_stage_contract(
+        self, task_id, actor, expected_version, request_id, stage_id, contract,
+        reason, authorization
+    ):
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError("stage contract request_id is required")
+        if type(expected_version) is not int or expected_version < 0:
+            raise DomainError("stage contract expected_version must be a nonnegative integer")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("stage contract revision reason is required")
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            old = task._require_stage_contracts().stage(stage_id).to_dict()
+            audit = {
+                "action": "revise_stage_contract",
+                "actor": actor,
+                "authorization": deepcopy(authorization),
+                "expected_version": expected_version,
+                "new": deepcopy(contract),
+                "old": old,
+                "reason": reason,
+                "request_id": request_id,
+            }
+            replay = uow.tasks.stage_contract_receipt(task_id, request_id, audit)
+            if replay is not None:
+                return replay
+            self._stage_contract_authorization(authorization, "reviewer")
+            if task.state.version != expected_version:
+                raise DomainError("stage contract version conflict")
+            if not isinstance(contract, dict) or set(contract) != {
+                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
+            } or contract["stage_id"] != stage_id:
+                raise DomainError("Exact replacement stage contract is required")
+            candidate = [
+                deepcopy(contract) if item.stage_id == stage_id else item.to_dict()
+                for item in task.stage_contracts.items
+            ]
+            replacement = TaskStageContracts.parse(
+                candidate, task.route, task.content_policy
+            ).stage(stage_id)
+            change = task.revise_stage_contract(actor, stage_id, replacement)
+            return uow.tasks.save_stage_contract_change(change, expected_version, audit)
+
+    def stage_contract_context(self, task_id):
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            task._require_stage_contracts()
+            return uow.tasks.stage_contract_context(task_id)
+
+    def edit_newborn(self, task_id, actor, expected_revision, patch, processes, config_hash,
+                     request_id):
+        from ..application.ownership import release_task_in
+        if type(expected_revision) is not int:
+            raise DomainError('Newborn edit requires expected_revision')
+        identity = _action_digest("edit", {
+            "task_id": task_id, "expected_revision": expected_revision, "patch": patch,
+        })
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id, request_id, identity)
+            if replay is not None:
+                return replay
+            newborn = uow.tasks.load_newborn(task_id)
+            if newborn.version != expected_revision:
+                from ..modules.foundation.errors import VersionConflict
+                raise VersionConflict('Newborn Task revision changed')
+            if newborn.claimed_by not in (None, actor):
+                raise DomainError('Newborn Task is owned by another session')
+            before = uow.ownership.snapshot(actor)
+            if before.task_id not in (None, task_id):
+                release_task_in(uow, actor, before.task_id)
+            changed = newborn.edit(patch, processes, actor)
+            uow.tasks.save_newborn(changed, newborn.version, config_hash, 'newborn_edited')
+            result = changed.describe()
+            uow.tasks.remember_action(task_id, actor, request_id, identity, result)
+            return result
+
+    def ready_newborn(self, task_id, actor, expected_revision, automatic_checks, config_hash,
+                      request_id, creation_base):
+        if type(expected_revision) is not int:
+            raise DomainError('Newborn ready requires expected_revision')
+        identity = _action_digest("ready", {
+            "task_id": task_id, "expected_revision": expected_revision,
+        })
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id, request_id, identity)
+            if replay is not None:
+                return replay
+            newborn = uow.tasks.load_newborn(task_id)
+            if newborn.version != expected_revision:
+                from ..modules.foundation.errors import VersionConflict
+                raise VersionConflict('Newborn Task revision changed')
+            if newborn.claimed_by != actor:
+                raise DomainError('Newborn ready requires current ownership')
+            if newborn.process is None:
+                raise DomainError('Select goal_type before ready')
+            contract = {'id':task_id, 'sprint_id':newborn.sprint_id, **deepcopy(newborn.draft)}
+            snapshot = newborn
+        prepared = self.prepare_creation(
+            contract, snapshot.process, automatic_checks, creation_base()
+        )
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id, request_id, identity)
+            if replay is not None:
+                return replay
+            newborn = uow.tasks.load_newborn(task_id)
+            if newborn != snapshot:
+                raise VersionConflict('Newborn Task changed after creation preflight')
+            metadata = validate_creation(prepared.intent, newborn.process, automatic_checks)
+            metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=config_hash)
+            if newborn.sprint_id is not None:
+                ready = newborn.mark_ready()
+                uow.tasks.save_newborn(ready, newborn.version, config_hash, 'newborn_ready')
+                result = ready.describe()
+                uow.tasks.remember_action(task_id, actor, request_id, identity, result)
+                return result
+            task = build_task(metadata, None)
+            uow.tasks.promote_newborn(task, metadata, newborn.version)
+            result = {
+                'status':'available','task':task_id,'revision':newborn.version + 1,
+                'sprint':None,'claimed_by':None,'goal_type':contract['goal_type'],
+                'route_entry':newborn.process['route']['entry'],'ready':True,
+            }
+            uow.tasks.remember_action(task_id, actor, request_id, identity, result)
+            return result
 
     def start(self, task_id, actor, execution):
         with self.unit_of_work() as uow:
@@ -159,7 +371,8 @@ class TaskCommands:
             if submission_id is None:
                 raise DomainError("Нарушен контракт сохранения submission")
             return SubmissionReceipt(submission_id, change.submission is not None,
-                                     change.task.state.version, change.task.state.submission_digest)
+                                     change.task.state.version, change.task.state.submission_digest,
+                                     change.registry_change)
 
     def validate_submission(self, task_id: str, actor: str, payload: dict) -> None:
         """Pure candidate validation before ArtifactFactory external side effects."""
@@ -183,7 +396,13 @@ class TaskCommands:
     def content_context(self, task_id: str) -> dict:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
-            return task.content_policy.describe(task.stage.stage_id, task.content_snapshot)
+            context = task.content_policy.describe(task.stage.stage_id, task.content_snapshot)
+            contract = task._require_stage_contracts().stage(task.stage.stage_id)
+            active = set(contract.entry_requirements + contract.exit_requirements)
+            return {
+                **context,
+                "due": [item for item in context["due"] if item["id"] in active],
+            }
 
     def mark_verified(self, task_id: str, actor: str, digest: str, report: dict, artifacts: tuple[ArtifactFact, ...]) -> TaskState:
         with self.unit_of_work() as uow:
@@ -263,24 +482,14 @@ class TaskCommands:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
-            handoff = uow.handoffs.latest(task_id)
-            if handoff is None or handoff["state"] != "released":
-                raise DomainError("Empty rework recovery requires a released handoff")
-            if task.state.version != handoff["version"] + 1:
-                raise DomainError("Task changed after the released empty rework handoff")
-            if handoff["receipt"]["verified"] is not False:
-                raise DomainError(
-                    "Empty rework recovery requires an active handoff after user_rework"
-                )
+            handoff = uow.handoffs.latest_recovery_candidate(task_id)
+            point = uow.tasks.empty_rework_recovery_point(
+                task_id, task.state.version, execution["last_report"], transition_event
+            )
+            if point.evidence_input is None:
+                raise DomainError("Previous verified submission has no evidence input")
             if task.state.submission_digest is not None:
                 raise DomainError("Current rework iteration is not empty: submission exists")
-            if (
-                handoff["receipt"]["stage"] != task.stage.stage_id
-                or handoff["receipt"]["iteration"] != task.state.iteration
-            ):
-                raise DomainError("Released handoff does not identify the current empty iteration")
-            if handoff["receipt"]["tree"] != tree:
-                raise DomainError("Released handoff tree changed")
             if (
                 execution["pending"] is not None
                 or execution["publication"] is not None
@@ -290,11 +499,6 @@ class TaskCommands:
                 or execution["last_report"].get("verified_tree") != tree
             ):
                 raise DomainError("Execution state is not an unchanged empty rework")
-            point = uow.tasks.empty_rework_recovery_point(
-                task_id, handoff["version"], execution["last_report"], transition_event
-            )
-            if point.evidence_input is None:
-                raise DomainError("Previous verified submission has no evidence input")
             change = task.recover_empty_transition(reason, point, recovery_event)
             uow.tasks.save(change, task.state.version)
             if transition_event == "user_accept_and_continue":
@@ -302,7 +506,13 @@ class TaskCommands:
                     task_id,
                     {"last_report": {**execution["last_report"], "status": "verified"}},
                 )
-            uow.handoffs.replace({**handoff, "state": "recovered"})
+            if (handoff is not None
+                    and task.state.version >= handoff["version"] + 1
+                    and handoff["receipt"]["verified"] is False
+                    and handoff["receipt"]["stage"] == task.stage.stage_id
+                    and handoff["receipt"]["iteration"] == task.state.iteration
+                    and handoff["receipt"]["tree"] == tree):
+                uow.handoffs.replace({**handoff, "state": "recovered"})
             return {
                 "status": "recovered",
                 "task": task_id,

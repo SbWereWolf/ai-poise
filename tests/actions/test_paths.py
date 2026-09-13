@@ -82,6 +82,22 @@ def test_environment_plan_executes_and_probes_batch_once(project):
     inspect(h,advance(h));assert call(h,'accept',{})['status']=='completed'
 
 
+def test_apply_plan_cannot_complete_with_changes_outside_task_stage_scope(project):
+    h,ctx,_,_=setup(project,kind='commands')
+    forbidden=Path(ctx['worktree'])/'forbidden.txt'
+    change=method('WRITE_OUTSIDE',f'from pathlib import Path; Path({str(forbidden)!r}).write_text("unsafe")')
+    probe=method('OUTSIDE_READY',f'from pathlib import Path; raise SystemExit(0 if Path({str(forbidden)!r}).exists() else 1)')
+    plan={'kind':'commands','steps':[{
+        'id':'outside',
+        'probe_false_exit_codes':[1],
+        'apply':change,
+        'probe':probe,
+    }]}
+    with pytest.raises(PoiseError,match='allowed_paths'):
+        verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))
+    assert forbidden.read_text()=='unsafe'
+
+
 def test_command_plan_stops_after_failure_and_does_not_repeat_effect(project):
     h,ctx,_,_=setup(project,kind='commands')
     mark=project['root']/'mark'

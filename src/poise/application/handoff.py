@@ -35,6 +35,7 @@ class HandoffCommands:
                 return
             task=uow.tasks.load(record['task_id'])
             if task.state.version!=record['version']:raise PoiseError('Task changed during handoff')
+            uow.accounting_cycles.release(actor,record['task_id'])
             release_task_in(uow, actor, record['task_id'], record['plan']['reason'])
             uow.handoffs.replace({**record,'state':'released','receipt':receipt})
 

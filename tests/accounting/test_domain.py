@@ -7,6 +7,7 @@ from poise.modules.accounting.domain import (BenefitDefinition, MetricPolicy, Us
 
 def policy():
     return {'timezone':'UTC','week_start':0,'max_events':1000,'max_files':1000,
+        'storage':{'database':'accounting-fixture/observed.sqlite','lock':'accounting-fixture/observed.lock'},
         'max_blob_bytes':1048576,'time_mode':'tool_cycle',
         'causes':['initial','internal_qa','delivered_rework','requirement_change','poise_incident'],
         'sources':{'test':'reported','codex':'observed'},

@@ -1,10 +1,8 @@
 from copy import deepcopy
 from pathlib import Path
-import pytest
 from conftest import DeterministicClock,write_json,git
 from poise.runtime import Poise
 from poise.application.work import WorkTools
-from poise.common import PoiseError
 from tests.runner.helpers import stage
 from tests.batch.helpers import request
 from .test_domain import policy,sample
@@ -15,11 +13,13 @@ def setup(project, clock=None):
        'route':{'entry':'write'},
        'stages':[stage('write','produce',{'complete':None},False,['src/**','tests/**','docs/**'],['write'])],
        'content_contract':{'sections':[],'routes':[],'requirements':[]}}
-    project['cfg']['schema']='ddd-accounting-11';project['cfg']['accounting']=policy()
+    project['cfg']['schema']='ddd-accounting-12';project['cfg']['accounting']=policy()
     project['cfg']['automatic_checks']=[]
     write_json(project['root']/'config/processes/development.json',p)
     write_json(project['config_path'],project['cfg'])
     t=deepcopy(project['task']);t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+    t['stage_contracts']=[{'stage_id':'write','allowed_paths':['src/**','tests/**','docs/**'],
+        'entry_requirements':[],'exit_requirements':[]}]
     h=Poise(project['config_path'],'A',clock=DeterministicClock() if clock is None else clock)
     w=WorkTools(h)
     out=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
@@ -57,8 +57,11 @@ def test_usage_batch_dedup_conflict_and_atomicity(project):
     h,w,out=setup(project);send(w,[sample('x'),sample('y',sequence=2)]);send(w,[sample('x')])
     assert metrics(w)['totals']['model_tokens']==240
     bad=sample('x',inp=300)
-    with pytest.raises(PoiseError):send(w,[sample('new',sequence=3),bad])
-    assert metrics(w)['totals']['model_tokens']==240
+    result=send(w,[sample('new',sequence=3),bad])
+    assert result['status']=='read_only'
+    report=metrics(w)
+    assert report['totals']['model_tokens']==240
+    assert report['telemetry']['coverage']=='partial' and report['telemetry']['failed']==1
 
 
 def test_cumulative_baseline_and_details(project):

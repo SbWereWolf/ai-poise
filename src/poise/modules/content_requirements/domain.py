@@ -34,6 +34,23 @@ def _names(value: object, label: str, allowed: tuple | None, nonempty: bool) -> 
     return values
 
 
+def _artifact_source(value: object, stages: tuple[str, ...]) -> dict:
+    if not isinstance(value, dict) or "kind" not in value:
+        raise DomainError("artifact source: требуется явный kind")
+    kind = value["kind"]
+    fields = {
+        "preexisting": {"kind"},
+        "stage_output": {"kind", "producer_stage"},
+        "declared_arrival": {"kind", "arrival_stage"},
+    }
+    if kind not in fields or set(value) != fields[kind]:
+        raise DomainError("artifact source: неверный вид или набор полей")
+    stage = value.get("producer_stage", value.get("arrival_stage"))
+    if stage is not None and stage not in stages:
+        raise DomainError("artifact source: неизвестный этап")
+    return dict(value)
+
+
 @dataclass(frozen=True)
 class ArtifactFact:
     """Filesystem observations supplied by the adapter, never by the LLM."""
@@ -197,7 +214,7 @@ class ContentPolicy:
                     requirement_ids: tuple[str, ...], method_ids: tuple[str, ...],
                     standard_sections: tuple[str, ...]) -> ContentPolicy:
         policy = cls._parse_layers(
-            goal, task, stages, requirement_ids, method_ids, standard_sections)
+            goal, task, stages, requirement_ids, method_ids, standard_sections, True)
         policy._require_schedulable_trace_requirements(
             frozenset(r.id for r in policy.requirements if r.kind == "trace"))
         return policy
@@ -208,12 +225,12 @@ class ContentPolicy:
                        standard_sections: tuple[str, ...]) -> ContentPolicy:
         """Structurally restore persisted layers without applying newer creation rules."""
         return cls._parse_layers(
-            goal, task, stages, requirement_ids, method_ids, standard_sections)
+            goal, task, stages, requirement_ids, method_ids, standard_sections, False)
 
     @classmethod
     def _parse_layers(cls, goal: dict, task: dict, stages: tuple[str, ...],
                       requirement_ids: tuple[str, ...], method_ids: tuple[str, ...],
-                      standard_sections: tuple[str, ...]) -> ContentPolicy:
+                      standard_sections: tuple[str, ...], require_artifact_source: bool) -> ContentPolicy:
         for label, values in (("stages", stages), ("task requirements", requirement_ids),
                               ("methods", method_ids), ("standard sections", standard_sections)):
             if type(values) is not tuple:
@@ -271,9 +288,12 @@ class ContentPolicy:
                 if not isinstance(raw, dict) or "kind" not in raw:
                     raise DomainError("Не определён вид требования содержимого")
                 kind = raw["kind"]
+                artifact_fields = {"scope", "pattern", "minimum", "maximum", "source"}
+                if not require_artifact_source and "source" not in raw:
+                    artifact_fields = artifact_fields - {"source"}
                 variants = {"section": {"section", "states"},
                             "trace": {"route", "point", "field_equals"},
-                            "artifact": {"scope", "pattern", "minimum", "maximum"},
+                            "artifact": artifact_fields,
                             "coverage": {"points"}}
                 if kind not in variants:
                     raise DomainError("Неизвестный вид требования содержимого")
@@ -297,6 +317,8 @@ class ContentPolicy:
                     if (type(raw["minimum"]) is not int or type(raw["maximum"]) is not int
                             or not 0 <= raw["minimum"] <= raw["maximum"]):
                         raise DomainError("Неверные явные границы количества артефактов")
+                    if "source" in raw:
+                        _artifact_source(raw["source"], stages)
                 elif kind == "coverage":
                     _names(raw["points"], "coverage checkpoints", None, False)
                 else:
@@ -358,8 +380,10 @@ class ContentPolicy:
                     layers["task"][group].append(value)
                     if group == "requirements":
                         new_requirement_ids.add(name)
-        policy = self.restore_layers(layers["goal"], layers["task"], self.stages,
-                                     self.requirement_ids, self.method_ids, self.standard_sections)
+        policy = self._parse_layers(
+            layers["goal"], layers["task"], self.stages,
+            self.requirement_ids, self.method_ids, self.standard_sections, True
+        )
         policy._require_schedulable_trace_requirements(frozenset(new_requirement_ids))
         return policy
 
@@ -410,14 +434,16 @@ class ContentPolicy:
             tuple(TraceValue(r, p, _json(v)) for (r, p), v in sorted(current.items())))
 
     def evaluate(self, stage: str, phase: str, snapshot: ContentSnapshot,
-                 artifacts: tuple[ArtifactFact, ...]) -> Assessment:
+                 artifacts: tuple[ArtifactFact, ...],
+                 requirement_ids: tuple[str, ...] | None = None) -> Assessment:
         if stage not in self.stages or phase not in ("pre", "post"):
             raise DomainError("Неизвестный этап/фаза проверки содержимого")
         sections, trace = snapshot.section_map(), snapshot.trace_map()
         points = {(r.id, p.id): p for r in self.routes for p in r.points}
         results = []
         for rule in self.requirements:
-            if stage not in rule.stages or phase != rule.phase:
+            if (stage not in rule.stages or phase != rule.phase
+                    or requirement_ids is not None and rule.id not in requirement_ids):
                 continue
             d = json.loads(rule.details)
             if rule.kind == "section":

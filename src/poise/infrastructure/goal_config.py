@@ -154,7 +154,7 @@ class FileGoalConfigRepository:
         self.settings=settings
 
     @contextmanager
-    def edit(self,goal):
+    def edit(self,goal,*,recover=True):
         s=self.settings; cfg=s.raw
         target=s.target(goal)
         db_path=descendant(s.root,cfg["database"])
@@ -179,7 +179,8 @@ class FileGoalConfigRepository:
                 elif version!=1:
                     raise PoiseError("Schema БД редактора несовместима; миграция не выполняется")
                 edit=FileConfigEdit(s,db,goal,target)
-                edit.recover()
+                if recover:
+                    edit.recover()
                 yield edit
             except sqlite3.Error as exc:
                 raise PoiseError(f"Ошибка хранилища редактора: {exc}") from exc
@@ -211,6 +212,87 @@ class FileConfigEdit:
         if receipt["config_path"] != str(self.target):
             raise VersionConflict("Путь завершённой операции отличается от текущего registry")
         return {**receipt,"replayed":True,"current_revision":None if current is None else fingerprint(current)}
+
+    def status(self):
+        current = self.current()
+        if current is None:
+            raise VersionConflict("Редактируемый тип не существует")
+        live_revision = fingerprint(current)
+        head = self.db.execute(
+            "SELECT revision FROM config_heads WHERE goal_type=?", (self.goal,)
+        ).fetchone()
+        pending = self.db.execute(
+            "SELECT request_id FROM config_operations WHERE goal_type=? AND phase='pending'",
+            (self.goal,),
+        ).fetchone()
+        managed_revision = None if head is None else head["revision"]
+        return {
+            "status": "goal_config_status",
+            "goal_type": self.goal,
+            "config_path": str(self.target),
+            "managed_revision": managed_revision,
+            "live_revision": live_revision,
+            "aligned": managed_revision == live_revision,
+            "pending_request": None if pending is None else pending["request_id"],
+        }
+
+    def reconcile(self, request, request_digest):
+        pending = self.db.execute(
+            "SELECT request_id FROM config_operations WHERE goal_type=? AND phase='pending'",
+            (self.goal,),
+        ).fetchone()
+        if pending is not None:
+            raise PublicationPending(
+                f"Операция {pending['request_id']} ещё ожидает публикации"
+            )
+        current = self.current()
+        if current is None:
+            raise VersionConflict("Редактируемый тип не существует")
+        live_revision = fingerprint(current)
+        head = self.db.execute(
+            "SELECT revision FROM config_heads WHERE goal_type=?", (self.goal,)
+        ).fetchone()
+        if head is None or head["revision"] != request["expected_managed_revision"]:
+            raise VersionConflict("Устаревшая managed revision")
+        if live_revision != request["expected_live_revision"]:
+            raise VersionConflict("Устаревшая live revision")
+        validated = self.current()
+        validated_revision = fingerprint(validated)
+        if validated_revision != live_revision:
+            raise VersionConflict("Live revision изменилась во время reconcile")
+        receipt = {
+            "status": "reconciled",
+            "request_id": request["request_id"],
+            "goal_type": self.goal,
+            "previous_revision": head["revision"],
+            "revision": live_revision,
+            "validated_revision": validated_revision,
+            "current_revision": live_revision,
+            "config_path": str(self.target),
+            "config_unchanged": True,
+            "reason": request["reason"],
+            "authorization": request["authorization"],
+            "replayed": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        self.db.execute("BEGIN")
+        try:
+            self.db.execute(
+                "INSERT INTO config_operations VALUES(?,?,?,?,?,?,?)",
+                (
+                    request["request_id"], request_digest, self.goal, head["revision"],
+                    canonical(validated), canonical(receipt), "completed",
+                ),
+            )
+            self.db.execute(
+                "UPDATE config_heads SET revision=? WHERE goal_type=?",
+                (live_revision, self.goal),
+            )
+            self.db.execute("COMMIT")
+        except BaseException:
+            self.db.execute("ROLLBACK")
+            raise
+        return receipt
 
     def publish(self,request,request_digest,source_revision,candidate,template):
         current=self.current()

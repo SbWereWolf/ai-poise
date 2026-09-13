@@ -25,7 +25,7 @@ def setup(project):
     write_json(project['root']/'config/processes/development.json',p)
     docs=deepcopy(p);docs['goal_type']='documentation';docs['stages'][0]['allowed_paths']=['docs/**']
     write_json(project['root']/'config/processes/documentation.json',docs)
-    cfg=project['cfg'];cfg['schema']='ddd-accounting-11';cfg['sprint']=policy()
+    cfg=project['cfg'];cfg['schema']='ddd-accounting-12';cfg['sprint']=policy()
     cfg['automatic_checks']=[]
     cfg['processes']['documentation']='config/processes/documentation.json'
     write_json(project['config_path'],cfg)
@@ -44,6 +44,12 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
     t['method_inputs']=[{'method_id':'CHECK','repository_inputs':[],'future_outputs':[],
         'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}]
     t['checks']={'work':['CHECK']};t['evidence_plan']={'work':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
+    t['stage_contracts']=[{
+        'stage_id':'work',
+        'allowed_paths':list(project['process']['stages'][0]['allowed_paths']),
+        'entry_requirements':[],
+        'exit_requirements':[],
+    }]
     return t
 
 

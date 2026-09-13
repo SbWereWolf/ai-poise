@@ -26,6 +26,8 @@ def _comparison_domain() -> str:
 
 
 class SystemClock:
+    fork_safe = True
+
     def __init__(self):
         self._domain = _comparison_domain()
 

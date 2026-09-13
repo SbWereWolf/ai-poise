@@ -16,6 +16,7 @@ from conftest import Poise
 from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.inspection.domain import FeedbackBook
 from runner.helpers import finding, inspect, resolution
 from runner.test_runner_paths import edit, result, setup_project
 
@@ -68,10 +69,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
                 )
             )
         except PoiseError as exc:
-            if str(exc) in (
-                "Unknown work operation",
-                "Recovery requires the exact preceding user_rework event",
-            ):
+            if str(exc) == "Unknown work operation":
                 self.fail(f"public recovery behavior is missing: {exc}")
             raise
 
@@ -105,11 +103,20 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         edit(context, "development", "resolved\n")
         result(context, {"resolutions": [resolution()]})
         verified = runtime.verify()
-        active = runtime.bootstrap(
-            decision="rework",
-            feedback="Accidental empty rework before inspection.",
-            rework_stage="amend",
-        )
+        # Reproduce a state persisted by the product version before the
+        # pending-resolution rework guard existed. The current public path
+        # must reject creating this state; recovery still has to read it.
+        with self.monkeypatch.context() as legacy_product:
+            legacy_product.setattr(
+                FeedbackBook,
+                "pending_resolutions",
+                property(lambda _book: ()),
+            )
+            active = runtime.bootstrap(
+                decision="rework",
+                feedback="Accidental empty rework before inspection.",
+                rework_stage="amend",
+            )
         self._handoff(runtime)
         return runtime, verified, active
 
@@ -170,6 +177,34 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         pending = reviewer["workflow"]["feedback"]["pending_resolutions"]
         self.assertEqual([item["id"] for item in pending], ["R1"])
 
+    def test_recovers_integrated_task_after_its_worktree_was_cleaned(self):
+        runtime, verified, _ = self._pending_resolution_rework()
+        worktree = Path(runtime.task_queries.record("T1")["worktree"])
+        commit = runtime.task_queries.record("T1")["last_report"]["commit"]
+        self._quiet_git(self.project["app"], "merge", "--ff-only", commit)
+        self._quiet_git(self.project["app"], "worktree", "remove", str(worktree))
+        self._quiet_git(self.project["app"], "branch", "-d", "tasks/T1")
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["verified_tree"], verified["verified_tree"])
+        self.assertFalse(worktree.exists())
+
+    def test_rejects_missing_worktree_when_verified_commit_is_not_integrated(self):
+        runtime, _, _ = self._pending_resolution_rework()
+        worktree = Path(runtime.task_queries.record("T1")["worktree"])
+        self._quiet_git(self.project["app"], "worktree", "remove", str(worktree))
+        record_before = runtime.task_queries.record("T1")
+        history_before = runtime.task_queries.history("T1")
+
+        with self.assertRaisesRegex(PoiseError, "текущем base"):
+            self._recover()
+
+        self.assertEqual(runtime.task_queries.record("T1"), record_before)
+        self.assertEqual(runtime.task_queries.history("T1"), history_before)
+
     def test_recovers_across_ownership_only_handoff_suffix(self):
         _, verified, active = self._simple_empty_rework()
         for number in (1, 2):
@@ -199,6 +234,40 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered["status"], "recovered")
         self.assertEqual(recovered["stage"], verified["stage"])
         self.assertEqual(recovered["iteration"], verified["iteration"])
+
+    def test_recovers_after_resumed_handoff_and_plain_ownership_release(self):
+        _, verified, active = self._simple_empty_rework()
+        reviewer = WorkPoise(self.project["config_path"], "FINAL-REVIEWER")
+        context = WorkTools(reviewer).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "T1"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+        self.assertEqual(context["iteration"], active["iteration"])
+        reviewer.ownership.release_task("T1")
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
+
+    def test_recovers_after_plain_ownership_release_without_a_rework_handoff(self):
+        runtime, verified, active = self._simple_empty_rework(release=False)
+        runtime.ownership.release_task("T1")
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
+        self.assertEqual(active["iteration"], verified["iteration"] + 1)
 
     def test_rejects_non_ownership_suffix_without_changing_task_state(self):
         runtime, _, active = self._simple_empty_rework()
@@ -264,7 +333,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         result(active, {})
         self._handoff(runtime, request_id="submitted-rework-handoff", payload=active["result_template"])
 
-        with self.assertRaisesRegex(PoiseError, "empty|submission"):
+        with self.assertRaisesRegex(PoiseError, "empty|submission|non-ownership"):
             self._recover()
 
     def test_rejects_non_rework_last_event(self):

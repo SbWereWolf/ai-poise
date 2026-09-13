@@ -26,6 +26,16 @@ from poise.common import load_config
 EMPTY={'sections':[],'routes':[],'requirements':[]}
 
 
+def _stage_contracts(process):
+    requirements=process['content_contract']['requirements']
+    return [{'stage_id':stage['id'],'allowed_paths':list(stage['allowed_paths']),
+             'entry_requirements':[rule['id'] for rule in requirements
+                 if stage['id'] in rule['stages'] and rule['phase']=='pre'],
+             'exit_requirements':[rule['id'] for rule in requirements
+                 if stage['id'] in rule['stages'] and rule['phase']=='post']}
+            for stage in process['stages']]
+
+
 def coverage():
     reference=json.loads((SOURCE/'config/catalogue/reference.json').read_text())
     actual={(g['id'],s['id']) for g in reference['goal_types'] for s in g['stages']}
@@ -206,7 +216,8 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
           'dod':['The route finishes with retained evidence and reviewed result; no unrelated repository edits.'],
           'methods':methods,'method_inputs':_method_inputs(goal,methods),
           'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
-          'contract':deepcopy(EMPTY),'evidence':evidence}
+          'contract':deepcopy(EMPTY),'evidence':evidence,
+          'stage_contracts':_stage_contracts(process)}
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
     if goal=='development':vals['checks']=checks

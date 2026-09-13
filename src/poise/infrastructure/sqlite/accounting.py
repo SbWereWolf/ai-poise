@@ -19,6 +19,10 @@ def timestamp(text):
 
 def binding(task):
     if task is None:return {'task':None,'sprint':None,'goal_type':None,'stage':None,'iteration':None}
+    if task['status'] == 'newborn':
+        return {'task':task['id'],'sprint':task['sprint_id'],
+                'goal_type':task.get('goal_type') or 'newborn',
+                'stage':'newborn','iteration':1}
     return {'task':task['id'],'sprint':task['sprint_id'],'goal_type':task['contract']['goal_type'],
             'stage':task['process']['stages'][task['stage_index']]['id'],'iteration':task['iteration']}
 
@@ -41,7 +45,11 @@ class SqliteAccounting:
             db.execute('INSERT INTO accounting_accounts VALUES(?,?,?,?)',(task['id'],self.project,at,encoded(baseline)))
 
     def ingest(self,prepared,session,task):
-        at_bind=binding(task);p=self.policy.data
+        return self.ingest_binding(prepared,session,binding(task))
+
+    def ingest_binding(self,prepared,session,at_bind,persist_task_reference=True):
+        p=self.policy.data
+        task_reference=at_bind['task'] if persist_task_reference else None
         with self.database.transaction() as db:
             # Sort within the explicit batch. A late novel historical sample is not guessed.
             for event in sorted(prepared['usage'],key=lambda e:(e.data['source'],e.data['stream'],e.data['sequence'])):
@@ -60,7 +68,7 @@ class SqliteAccounting:
                         'source_mode':p['sources'][d['source']],'session':session,
                         'finding_ids':[t['finding_id'] for t in prepared['finding_targets']]}
                 db.execute('INSERT INTO accounting_usage VALUES(?,?,?,?,?,?,?,?)',
-                   (event.key,at_bind['task'],self.project,d['source'],d['stream'],d['sequence'],d['occurred_at'],encoded(record)))
+                   (event.key,task_reference,self.project,d['source'],d['stream'],d['sequence'],d['occurred_at'],encoded(record)))
             for entry in prepared['intervals']:
                 a,b=timestamp(entry['started_at']),timestamp(entry['ended_at'])
                 if b<a:raise PoiseError('Time interval ends before it starts')
@@ -77,20 +85,21 @@ class SqliteAccounting:
                       'finding_ids':[t['finding_id'] for t in prepared['finding_targets']],
                       'seconds':(b-a).total_seconds(),'closed_by':'source'}
                 db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
-                    (eid,at_bind['task'],self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
+                    (eid,task_reference,self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
             for target in prepared['finding_targets']:
-                if task is None:raise PoiseError('Finding attribution requires current task')
-                row=db.execute('SELECT data FROM task_workflows WHERE task_id=?',(task['id'],)).fetchone()
+                task_id=at_bind['task']
+                if task_id is None:raise PoiseError('Finding attribution requires current task')
+                row=db.execute('SELECT data FROM task_workflows WHERE task_id=?',(task_id,)).fetchone()
                 feedback=json.loads(row[0])['feedback']
                 finding=next((x for x in feedback['findings'] if x['id']==target['finding_id']),None)
                 if finding is None:raise PoiseError('Unknown finding for cost attribution')
                 delivered=db.execute('SELECT at FROM interaction_reports WHERE task_id=? AND stage=? AND iteration=?',
-                    (task['id'],target['stage'],target['iteration'])).fetchone()
+                    (task_id,target['stage'],target['iteration'])).fetchone()
                 if delivered is None or (finding['stage'],finding['iteration'])==(target['stage'],target['iteration']):
                     raise PoiseError('Quality finding must target a previously delivered iteration')
-                old=db.execute('SELECT data FROM accounting_findings WHERE task_id=? AND finding_id=?',(task['id'],target['finding_id'])).fetchone()
+                old=db.execute('SELECT data FROM accounting_findings WHERE task_id=? AND finding_id=?',(task_id,target['finding_id'])).fetchone()
                 if old is not None and json.loads(old[0])!=target:raise PoiseError('Finding attribution cannot silently change')
-                db.execute('INSERT OR IGNORE INTO accounting_findings VALUES(?,?,?)',(task['id'],target['finding_id'],encoded(target)))
+                db.execute('INSERT OR IGNORE INTO accounting_findings VALUES(?,?,?)',(task_id,target['finding_id'],encoded(target)))
             if prepared['cause'] is not None:
                 current=db.execute('SELECT id,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
                 if current is not None:
@@ -99,6 +108,29 @@ class SqliteAccounting:
                         data['cause']=prepared['cause'];data['finding_ids']=[t['finding_id'] for t in prepared['finding_targets']]
                         db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(data),current['id']))
                     elif data['cause']!=prepared['cause']:raise PoiseError('A work cycle already has an explicit cause')
+
+    def store_telemetry(self,envelope):
+        data=envelope.data
+        selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
+        stored={'kind':'telemetry_envelope','envelope':data}
+        with self.database.transaction() as db:
+            old=db.execute('SELECT data FROM accounting_cycles WHERE id=?',(envelope.identity,)).fetchone()
+            if old is not None:
+                if json.loads(old[0])!=stored:raise PoiseError('Telemetry identity has conflicting content')
+                return False
+            db.execute(
+                'INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
+                (
+                    envelope.identity,
+                    None,
+                    self.project,
+                    data['session'],
+                    data['started']['audit_utc'],
+                    data['finished']['audit_utc'],
+                    encoded(stored),
+                ),
+            )
+        return True
 
     @staticmethod
     def _new_timing(observation:ClockObservation):
@@ -168,21 +200,43 @@ class SqliteAccounting:
                 d['turn_id']=turn_id
                 db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
             elif d['turn_id']!=turn_id:
-                at=d['last_observed_at'];timing=d.get('timing')
-                valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
-                       and type(timing.get('started_monotonic_ns')) is int
-                       and type(timing.get('last_monotonic_ns')) is int
-                       and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
-                if not valid:
-                    self._unmeasured(d);error='Open accounting cycle cannot be compared safely; retry the operation'
-                elif timing['last_monotonic_ns']<timing['started_monotonic_ns']:
-                    error='Monotonic clock moved backwards; accounting state was not changed'
-                else:
-                    error=None;timing['ended_monotonic_ns']=timing['last_monotonic_ns']
-                    timing['elapsed_microseconds']=(timing['last_monotonic_ns']-timing['started_monotonic_ns'])//1000
-                    timing['status']='measured';d['closed_by']='next_user_turn_at_last_observation'
-                if error is None or d['timing']['status']=='unmeasured_clock_discontinuity':
-                    db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),row['id']))
+                error=self._close_at_last_observation(db,row,d,'next_user_turn_at_last_observation')
+        if error is not None:raise PoiseError(error)
+
+    @staticmethod
+    def _close_at_last_observation(db,row,data,reason):
+        timing=data.get('timing')
+        valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
+               and type(timing.get('started_monotonic_ns')) is int
+               and type(timing.get('last_monotonic_ns')) is int
+               and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
+        if not valid:
+            SqliteAccounting._unmeasured(data)
+            error='Open accounting cycle cannot be compared safely; retry the operation'
+        elif timing['last_monotonic_ns']<timing['started_monotonic_ns']:
+            error='Monotonic clock moved backwards; accounting state was not changed'
+        else:
+            error=None
+            timing['ended_monotonic_ns']=timing['last_monotonic_ns']
+            timing['elapsed_microseconds']=(timing['last_monotonic_ns']-timing['started_monotonic_ns'])//1000
+            timing['status']='measured'
+            data['closed_by']=reason
+        if error is None or data['timing']['status']=='unmeasured_clock_discontinuity':
+            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',
+                       (data['last_observed_at'],encoded(data),row['id']))
+        return error
+
+    def release_cycle(self,session,task_id):
+        """Release the legacy session lease using only already recorded observations."""
+        with self.database.transaction() as db:
+            row=db.execute(
+                'SELECT * FROM accounting_cycles WHERE session_id=? AND task_id=? AND ended_at IS NULL',
+                (session,task_id),
+            ).fetchone()
+            if row is None:return
+            error=self._close_at_last_observation(
+                db,row,json.loads(row['data']),'handoff_at_last_observation',
+            )
         if error is not None:raise PoiseError(error)
 
     def touch(self,session,at:ClockObservation):
@@ -201,16 +255,34 @@ class SqliteAccounting:
 
     def snapshot(self):
         with self.database.transaction() as db:
-            accounts=[dict(r) for r in db.execute('SELECT * FROM accounting_accounts WHERE project=?',(self.project,))]
-            tasks={r['id']:TaskQueries.record_in(db,r['id']) for r in db.execute('SELECT id FROM tasks')}
-            return {'accounts':accounts,'tasks':tasks,
-                'usage':[dict(r) for r in db.execute('SELECT * FROM accounting_usage WHERE project=?',(self.project,))],
-                'cycles':[dict(r) for r in db.execute('SELECT * FROM accounting_cycles WHERE project=?',(self.project,))],
-                'credits':[dict(r) for r in db.execute('SELECT * FROM accounting_credits WHERE project=? ORDER BY seq',(self.project,))],
-                'messages':[dict(r) for r in db.execute('SELECT e.*,b.task_id,b.sprint_id,b.goal_type,b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b ON b.event_id=e.id WHERE e.project=?',(self.project,))],
-                'reports':[dict(r) for r in db.execute('SELECT * FROM interaction_reports')],
-                'quality':[dict(r) for r in db.execute('SELECT * FROM accounting_findings')],
-                'workflows':{r['task_id']:json.loads(r['data']) for r in db.execute('SELECT * FROM task_workflows')}}
+            return self._snapshot_in(db)
+
+    def snapshot_nonblocking(self):
+        reader=getattr(self.database,'read_transaction',None)
+        if reader is None:return self.snapshot()
+        with reader() as db:return self._snapshot_in(db)
+
+    def _snapshot_in(self,db):
+        accounts=[dict(r) for r in db.execute('SELECT * FROM accounting_accounts WHERE project=?',(self.project,))]
+        tasks={r['id']:TaskQueries.record_in(db,r['id']) for r in db.execute('SELECT id FROM tasks')}
+        cycles=[];telemetry=[]
+        for original in db.execute(
+            'SELECT * FROM accounting_cycles WHERE project=? ORDER BY rowid',
+            (self.project,),
+        ):
+            row=dict(original);data=json.loads(row['data'])
+            if data.get('kind')=='telemetry_envelope':
+                row['data']=encoded(data['envelope']);telemetry.append(row)
+            else:cycles.append(row)
+        return {'accounts':accounts,'tasks':tasks,
+            'usage':[dict(r) for r in db.execute('SELECT * FROM accounting_usage WHERE project=?',(self.project,))],
+            'cycles':cycles,'telemetry':telemetry,
+            'credits':[dict(r) for r in db.execute('SELECT * FROM accounting_credits WHERE project=? ORDER BY seq',(self.project,))],
+            'messages':[dict(r) for r in db.execute('SELECT e.*,b.task_id,b.sprint_id,b.goal_type,b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b ON b.event_id=e.id WHERE e.project=?',(self.project,))],
+            'reports':[dict(r) for r in db.execute('SELECT * FROM interaction_reports')],
+            'quality':[dict(r) for r in db.execute('SELECT * FROM accounting_findings')],
+            'workflows':{r['task_id']:json.loads(r['data']) for r in db.execute('SELECT * FROM task_workflows')},
+            'events':[dict(r) for r in db.execute('SELECT * FROM task_events ORDER BY seq')]}
 
     def latest_credit(self,tid):
         with self.database.transaction() as db:
@@ -232,6 +304,23 @@ class SqliteAccounting:
             delta={k: (measurement[k] if previous is None else (None if measurement[k] is None or previous['measurement'][k] is None else measurement[k]-previous['measurement'][k])) for k in fields}
             data={'marker':marker,'state':state,'binding':binding(task),'measurement':measurement,'delta':delta}
             db.execute('INSERT INTO accounting_credits(id,task_id,project,at,data) VALUES(?,?,?,?,?)',(marker,task['id'],self.project,at,encoded(data)))
+
+
+class SqliteAccountingCycles:
+    """Authoritative cycle release participating in the caller's transaction."""
+
+    def __init__(self,db):self.db=db
+
+    def release(self,session,task_id):
+        row=self.db.execute(
+            'SELECT * FROM accounting_cycles WHERE session_id=? AND task_id=? AND ended_at IS NULL',
+            (session,task_id),
+        ).fetchone()
+        if row is None:return
+        error=SqliteAccounting._close_at_last_observation(
+            self.db,row,json.loads(row['data']),'handoff_at_last_observation',
+        )
+        if error is not None:raise PoiseError(error)
 
 
 def check_accounting_import(db,tables):

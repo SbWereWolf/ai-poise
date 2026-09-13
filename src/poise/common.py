@@ -75,8 +75,8 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting'}
     exact_keys(cfg, keys | ({'task_ids'} if 'task_ids' in cfg else set()), 'project config')
-    if cfg['schema'] != 'ddd-accounting-11':
-        raise PoiseError('Неподдерживаемая schema; автоматических миграций нет')
+    if cfg['schema'] != 'ddd-accounting-12':
+        raise PoiseError('Версия конфигурации не поддерживается; автоматических миграций нет')
     exact_keys(cfg['paths'], {'state','database','lock','runtime','tasks','sprints','worktrees',
                              'git_index','runs','stdout','stderr','response'}, 'paths')
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
@@ -120,7 +120,19 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
                 or any(type(value) is not bool for value in legacy_process_requirements.values())):
             raise PoiseError('Bound-source migration requires one explicit bool for every process')
     from .modules.accounting.domain import MetricPolicy
-    MetricPolicy.parse(cfg['accounting'])
+    accounting=MetricPolicy.parse(cfg['accounting']).data
+    optional=[descendant(state,accounting['storage'][key]) for key in ('database','lock')]
+    authoritative=[descendant(state,cfg['paths'][key]) for key in ('database','lock')]
+    if optional[0]==optional[1] or any(item in authoritative for item in optional):
+        raise PoiseError('accounting.storage должен использовать отдельные database и lock')
+    for index,left in enumerate(optional):
+        for right in [*authoritative,*optional[index+1:]]:
+            try:
+                aliased=left.exists() and right.exists() and left.samefile(right)
+            except OSError:
+                aliased=False
+            if aliased:
+                raise PoiseError('accounting.storage физически совпадает с другим хранилищем')
     exact_keys(cfg['runtime_services'],{'output','handoff','transfer'},'runtime_services')
     from .modules.transfers.domain import TransferPolicy
     TransferPolicy.parse(cfg['runtime_services']['transfer'])

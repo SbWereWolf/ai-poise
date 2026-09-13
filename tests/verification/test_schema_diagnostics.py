@@ -77,6 +77,12 @@ def creation_fixture():
             for stage in stages
         },
         "executable_obligations": ["requirements[0]"],
+        "stage_contracts": [{
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        } for stage in process["stages"]],
     }
     return {"request_id": "schema-diagnostic-creation", "task": task}, process
 

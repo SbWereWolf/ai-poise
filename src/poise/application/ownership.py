@@ -14,6 +14,11 @@ def _conflict(owner, liveness):
 
 
 def _release_task_in(uow, actor, task_id, reason=None):
+    if uow.tasks.is_newborn(task_id):
+        if reason is not None:
+            raise PoiseError('Newborn Task handoff requires readiness or explicit cancellation')
+        uow.tasks.release_newborn(task_id, actor)
+        return
     task = uow.tasks.load(task_id)
     change = task.handoff(actor, reason) if reason is not None else task.release_ownership(actor)
     uow.tasks.save(change, task.state.version)
@@ -39,6 +44,8 @@ class OwnershipCommands:
 
     def _preflight(self, actor, task_id):
         with self.uow() as uow:
+            if not uow.tasks.is_newborn(task_id):
+                uow.tasks.load(task_id)._require_stage_contracts()
             observed = uow.ownership.preflight(actor, task_id)
         self.after_preflight(observed)
         return observed
@@ -74,8 +81,11 @@ class OwnershipCommands:
                 _release_task_in(uow, actor, before.task_id)
             current = uow.ownership.preflight(actor, task_id)
             if current.task_owner is None:
-                task = uow.tasks.load(task_id)
-                uow.tasks.save(task.acquire_ownership(actor), task.state.version)
+                if uow.tasks.is_newborn(task_id):
+                    uow.tasks.acquire_newborn(task_id, actor)
+                else:
+                    task = uow.tasks.load(task_id)
+                    uow.tasks.save(task.acquire_ownership(actor), task.state.version)
             if required:
                 uow.ownership.bind_worktree(actor, task_id)
             elif before.worktree_task_id is None:

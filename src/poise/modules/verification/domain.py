@@ -4,11 +4,11 @@ import hashlib
 import json
 from ..foundation.errors import DomainError
 from ..foundation.paths import matches_allowed_path
+from ..foundation.validation import validate_exact_keys
 
 
 def exact_keys(value: dict, keys: set[str], where: str) -> None:
-    if not isinstance(value, dict) or set(value) != keys:
-        raise DomainError(f"{where}: требуется точный набор полей {sorted(keys)}")
+    validate_exact_keys(value, keys, where, DomainError)
 
 
 def declared_executable_obligations(value, catalog, where):

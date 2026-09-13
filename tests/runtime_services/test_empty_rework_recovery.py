@@ -11,6 +11,7 @@ import conftest
 from batch.helpers import request
 from conftest import project as project_fixture
 from conftest import Poise
+from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runner.helpers import finding, inspect, resolution
@@ -120,7 +121,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         stored = runtime.task_queries.record("T1")
         self.assertEqual(stored["status"], "verified")
         self.assertIsNone(stored["claimed_by"])
-        reviewer = WorkTools(Poise(self.project["config_path"], "REVIEWER")).invoke(
+        reviewer = WorkTools(WorkPoise(self.project["config_path"], "REVIEWER")).invoke(
             request(
                 "bootstrap",
                 {
@@ -150,7 +151,7 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         history_after = runtime.task_queries.history("T1")
         self.assertEqual(history_after[:-1], history_before)
         self.assertEqual(history_after[-1]["event"], "empty_rework_recovered")
-        reviewer = WorkTools(Poise(self.project["config_path"], "REVIEWER")).invoke(
+        reviewer = WorkTools(WorkPoise(self.project["config_path"], "REVIEWER")).invoke(
             request(
                 "bootstrap",
                 {

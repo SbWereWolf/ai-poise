@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import io
+import inspect
 import json
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 
@@ -26,6 +28,7 @@ def _load_contract():
         )
         from poise.modules.requirements_registry.domain import RequirementsRegistry
         from poise.modules.requirements_registry.service import TaskRequirementsGate
+        from poise.modules.tasks.domain import TaskStatus
     except (ImportError, ModuleNotFoundError):
         return None
     return {
@@ -35,6 +38,7 @@ def _load_contract():
         "TaskRequirementsSnapshotStore": TaskRequirementsSnapshotStore,
         "RequirementsRegistry": RequirementsRegistry,
         "TaskRequirementsGate": TaskRequirementsGate,
+        "TaskStatus": TaskStatus,
         "load_config": load_config,
     }
 
@@ -363,16 +367,165 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             }
         ]
         plan = live["registry"].plan_task(task_requirements)
-        intent = {
-            "requirements": ["Task must preserve registry provenance."],
-            "requirements_snapshot": plan["snapshot"],
-            "requirements_agreement": {
-                "accepted": True,
-                "chains": plan["chains"],
-            },
+        process = {
+            "goal_type": "development",
+            "stages": [
+                {
+                    "id": "build",
+                    "instruction": "Build the result.",
+                    "read_only": False,
+                    "allowed_paths": [],
+                    "normalization": "strip",
+                    "sections": {},
+                    "required_sections": [],
+                    "artifact_requirements": [],
+                    "handler": "produce",
+                    "transitions": {"complete": None},
+                    "rework_targets": ["build"],
+                }
+            ],
+            "content_contract": {"sections": [], "routes": [], "requirements": []},
+            "route": {"entry": "build"},
+            "benefit": {"git_categories": ["code"], "sections": []},
+            "worktree_required": True,
         }
+        stored_contract = {
+            "id": "TASK-RESTART",
+            "sprint_id": None,
+            "goal_type": "development",
+            "goal": "Preserve the agreed Requirements context across restart.",
+            "requirements": ["Task must preserve registry provenance."],
+            "definition_of_done": ["Restart uses the Task-owned immutable snapshot."],
+            "methods": [],
+            "method_inputs": [],
+            "checks": {"build": []},
+            "artifact_requirements": [],
+            "content_contract": {"sections": [], "routes": [], "requirements": []},
+            "evidence_plan": {
+                "build": {
+                    "subject_methods": {},
+                    "arguments": [],
+                    "review_arguments": [],
+                }
+            },
+            "stage_contracts": [
+                {
+                    "stage_id": "build",
+                    "allowed_paths": [],
+                    "entry_requirements": [],
+                    "exit_requirements": [],
+                }
+            ],
+        }
+        agreement = {"accepted": True, "chains": plan["chains"]}
 
-        _, original = gate.prepare_contract(intent)
+        class Tasks:
+            def __init__(self):
+                self.newborn = None
+                self.promoted_metadata = None
+                self.context = {
+                    "config_hash": "saved-config",
+                    "contract": stored_contract,
+                    "creation_request": None,
+                    "process": process,
+                    "requirements_agreement": agreement,
+                    "requirements_snapshot": plan["snapshot"],
+                    "restart_history": [],
+                    "sprint_id": None,
+                    "stage_contract_history": [],
+                }
+                self.task = SimpleNamespace(
+                    state=SimpleNamespace(
+                        task_id="TASK-RESTART",
+                        status=CONTRACT["TaskStatus"].AVAILABLE,
+                        claimed_by="session",
+                        version=6,
+                    )
+                )
+
+            def action_receipt(self, task_id, request_id, identity):
+                return None
+
+            def load(self, task_id):
+                self._exact_task(task_id)
+                return self.task
+
+            def load_newborn(self, task_id):
+                self._exact_task(task_id)
+                if self.newborn is None:
+                    raise AssertionError("restart_newborn must persist the reconstructed Task first")
+                return self.newborn
+
+            def restart_context(self, task_id):
+                self._exact_task(task_id)
+                return json.loads(json.dumps(self.context))
+
+            def restart_newborn(
+                self,
+                newborn,
+                expected_version,
+                config_hash,
+                reason,
+                authorization,
+            ):
+                self.assert_restart(newborn, expected_version, config_hash)
+                self.newborn = newborn
+
+            def assert_restart(self, newborn, expected_version, config_hash):
+                if expected_version != 6 or newborn.version != 7:
+                    raise AssertionError("restart must preserve the exact Task version step")
+                if config_hash != "saved-config":
+                    raise AssertionError("restart must preserve the stored config hash")
+
+            def promote_newborn(self, task, metadata, expected_revision):
+                if self.newborn is None or expected_revision != self.newborn.version:
+                    raise AssertionError("ready must promote the restarted newborn")
+                self.promoted_metadata = json.loads(json.dumps(metadata))
+
+            def publish_requirements_context(self, task_id, snapshot, accepted_agreement):
+                raise AssertionError("restart must reuse, not republish, immutable Requirements context")
+
+            def remember_action(self, task_id, actor, request_id, identity, result):
+                self._exact_task(task_id)
+
+            @staticmethod
+            def _exact_task(task_id):
+                if task_id != "TASK-RESTART":
+                    raise AssertionError("unexpected Task identity")
+
+        class Execution:
+            @staticmethod
+            def exists(task_id):
+                return False
+
+        class Ownership:
+            @staticmethod
+            def preflight(actor, task_id):
+                return SimpleNamespace(task_owner="session", worktree_owner=None)
+
+            @staticmethod
+            def snapshot(actor):
+                return SimpleNamespace(task_id="TASK-RESTART", worktree_task_id=None)
+
+        class Uow:
+            def __init__(self, tasks):
+                self.tasks = tasks
+                self.execution = Execution()
+                self.ownership = Ownership()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+        class Tree:
+            @staticmethod
+            def existing_paths(revision, paths):
+                return frozenset(paths)
+
+        tasks = Tasks()
+        commands = CONTRACT["TaskCommands"](lambda: Uow(tasks), Tree(), gate)
         live["registry"] = live["registry"].apply(
             [
                 put(
@@ -386,66 +539,30 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             ],
             max_items=20,
         )
+
+        restarted = commands.restart_newborn(
+            "TASK-RESTART",
+            "session",
+            6,
+            "restart-requirements-context",
+            "Repair the execution contract without rewriting historical meaning.",
+            "The user authorized restart of this unfinished Task.",
+        )
+        self.assertEqual(restarted["draft"]["requirements_snapshot"], plan["snapshot"])
+        self.assertEqual(restarted["draft"]["requirements_agreement"], agreement)
+
+        ordinary_creation = {
+            **stored_contract,
+            "requirements_snapshot": plan["snapshot"],
+            "requirements_agreement": agreement,
+        }
         with self.assertRaisesRegex(Exception, "snapshot"):
-            gate.prepare_contract(intent)
-        cleaned, recovered = gate.prepare_contract(intent, historical=True)
-        self.assertNotIn("requirements_snapshot", cleaned)
-        self.assertNotIn("requirements_agreement", cleaned)
-        self.assertEqual(recovered, original)
+            commands.prepare_creation(ordinary_creation, process, [], "base-revision")
+        self.assertEqual(
+            tuple(inspect.signature(commands.prepare_creation).parameters),
+            ("intent", "process", "automatic_checks", "base_revision"),
+        )
 
-        class RestartedNewborn:
-            version = 7
-            claimed_by = "session"
-            process = {}
-            sprint_id = None
-            restart_history = ({"reason": "repair"},)
-            draft = intent
-
-        class Execution:
-            def exists(self, task_id):
-                return False
-
-        class FirstTasks:
-            def action_receipt(self, task_id, request_id, identity):
-                return None
-
-            def load_newborn(self, task_id):
-                return RestartedNewborn()
-
-            def restart_context(self, task_id):
-                return {"config_hash": "saved-config"}
-
-        class SecondTasks:
-            def action_receipt(self, task_id, request_id, identity):
-                return {"status": "available", "task": task_id, "replayed": True}
-
-        class Uow:
-            def __init__(self, tasks):
-                self.tasks = tasks
-                self.execution = Execution()
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, traceback):
-                return False
-
-        units = iter((Uow(FirstTasks()), Uow(SecondTasks())))
-        commands = CONTRACT["TaskCommands"](lambda: next(units), object(), gate)
-        prepared = {}
-
-        def prepare_creation(
-            candidate,
-            process,
-            automatic_checks,
-            base_revision,
-            historical_requirements=False,
-        ):
-            prepared["historical_requirements"] = historical_requirements
-            prepared["intent"] = candidate
-            return object()
-
-        commands.prepare_creation = prepare_creation
         ready = commands.ready_newborn(
             "TASK-RESTART",
             "session",
@@ -455,9 +572,10 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             "ready-restarted-task",
             lambda: "base-revision",
         )
-        self.assertTrue(prepared["historical_requirements"])
-        self.assertEqual(prepared["intent"]["requirements_snapshot"], plan["snapshot"])
-        self.assertTrue(ready["replayed"])
+        self.assertEqual(ready["status"], "available")
+        self.assertEqual(tasks.context["requirements_snapshot"], plan["snapshot"])
+        self.assertEqual(tasks.context["requirements_agreement"], agreement)
+        self.assertEqual(tasks.promoted_metadata["contract"], stored_contract)
 
     def test_exact_automatic_creation_replay_skips_live_preflight(self):
         class Allocation:

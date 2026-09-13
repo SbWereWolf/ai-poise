@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -149,6 +150,97 @@ class Poise:
     def handoff(self,args):
         return self.handoff_tools.preserve(args)
 
+    def task_action(self, args):
+        action = args['action']
+        self._identifier(args['request_id'])
+        self._identifier(args['task_id'])
+        if action == 'create':
+            if args['sprint_id'] is not None:
+                self._identifier(args['sprint_id'])
+            return self.task_commands.create_newborn(
+                args['task_id'], args['sprint_id'], self.session, self.config_hash,
+                args['request_id'],
+            )
+        if action == 'edit':
+            return self.task_commands.edit_newborn(
+                args['task_id'], self.session, args['expected_revision'], args['patch'],
+                self.processes, self.config_hash, args['request_id'],
+            )
+        if action == 'ready':
+            return self.task_commands.ready_newborn(
+                args['task_id'], self.session, args['expected_revision'],
+                self.cfg['automatic_checks'], self.config_hash, args['request_id'],
+                self._creation_base,
+            )
+        raise PoiseError('Unknown Task action')
+
+    def recover_empty_rework(self, task_id: str, reason: str) -> dict:
+        return self._recover_empty_transition(task_id, reason, "rework")
+
+    def recover_empty_advance(self, task_id: str, reason: str) -> dict:
+        return self._recover_empty_transition(task_id, reason, "advance")
+
+    def _recover_empty_transition(
+        self, task_id: str, reason: str, transition: str
+    ) -> dict:
+        self._identifier(task_id)
+        if not isinstance(reason, str) or not reason.strip():
+            raise PoiseError(f'Empty {transition} recovery reason is required')
+        if self.current_task() is not None:
+            raise PoiseError(f'Empty {transition} recovery requires an idle session')
+        data = self.task_queries.record(task_id)
+        if data is None:
+            raise PoiseError(f'Unknown Task for empty {transition} recovery')
+        if data['claimed_by'] is not None:
+            raise PoiseError(f'Empty {transition} recovery requires released work')
+        tree = self._empty_transition_recovery_tree(data)
+        command = (
+            self.task_commands.recover_empty_rework
+            if transition == "rework"
+            else self.task_commands.recover_empty_advance
+        )
+        return command(task_id, reason, tree)
+
+    def _empty_transition_recovery_tree(self, data: dict) -> str:
+        worktree = data['worktree']
+        if worktree is None:
+            return data['entry_tree']
+        path = Path(worktree)
+        if path.exists():
+            return self._tree(path)
+
+        report = data.get('last_report')
+        commit = None if report is None else report.get('commit')
+        verified_tree = None if report is None else report.get('verified_tree')
+        if not isinstance(commit, str) or not isinstance(verified_tree, str):
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit/tree не сохранены'
+            )
+        repository = Path(self.cfg['git']['repository'])
+        try:
+            resolved = self._git(
+                repository, 'rev-parse', '--verify', f'{commit}^{{commit}}'
+            )
+            commit_tree = self._git(repository, 'show', '-s', '--format=%T', commit)
+            self._git(
+                repository,
+                'merge-base',
+                '--is-ancestor',
+                commit,
+                self.cfg['git']['base_ref'],
+            )
+        except PoiseError as exc:
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit не подтверждён '
+                'в текущем base'
+            ) from exc
+        if resolved != commit or commit_tree != verified_tree:
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit не соответствует '
+                'сохранённому tree'
+            )
+        return verified_tree
+
     def current_task(self):
         return self.store.current(self.session)
 
@@ -201,15 +293,20 @@ class Poise:
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
         self.runtime.mkdir(parents=True, exist_ok=True)
-        index = descendant(self.runtime, self.paths['git_index'])
-        if index.exists(): index.unlink()
+        configured_index = descendant(self.runtime, self.paths['git_index'])
+        configured_index.parent.mkdir(parents=True, exist_ok=True)
+        invocation = Path(tempfile.mkdtemp(
+            prefix=f'{configured_index.name}.',
+            dir=configured_index.parent,
+        ))
+        index = invocation / 'index'
         env = {**os.environ, 'GIT_INDEX_FILE': str(index)}
         try:
             self._git(worktree, 'read-tree', 'HEAD', env=env)
             self._git(worktree, 'add', '--all', env=env)
             return self._git(worktree, 'write-tree', env=env)
         finally:
-            if index.exists(): index.unlink()
+            shutil.rmtree(invocation)
 
     def _changed(self, data: dict, tree: str) -> list[str]:
         if data['worktree'] is None:
@@ -365,6 +462,9 @@ class Poise:
                 return self.sprint_tools.select(task['id'])
             selected=self.task_queries.record(task['id'])
             if selected is None:raise PoiseError('Неизвестный task/sprint ID')
+            if selected['status']=='newborn':
+                self.ownership.acquire_task(selected['id'])
+                return self.task_queries.record(selected['id'])
             if selected['status']=='available':return self.sprint_tools.start(task['id'])
             if is_terminal_task_status(selected['status']):
                 if current and not is_terminal_task_status(current['status']):
@@ -408,12 +508,20 @@ class Poise:
                     ),
                     self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
-                data=self.task_queries.record(allocation.task_id)
-                if allocation.replayed and data['claimed_by'] not in (None,self.session):
-                    return {**self._context(data,data['status']=='active'),
-                            'allocation':allocation_receipt}
-                self._reconcile_task_worktree(data)
-                data=self.task_queries.record(allocation.task_id)
+                if allocation.replayed:
+                    data=self.task_queries.record(allocation.task_id)
+                    if data['claimed_by'] not in (None,self.session):
+                        return {**self._context(data,data['status']=='active'),
+                                'allocation':allocation_receipt}
+                    self._reconcile_task_worktree(data)
+                    data=self.task_queries.record(allocation.task_id)
+                    self.ownership.acquire_task(data['id'])
+                    current=self.store.current(self.session)
+                    result=self._context(current,current['status']=='active')
+                    return {**result,'allocation':allocation_receipt}
+                started = self.sprint_tools.start(allocation.task_id)
+                return {**started, **({'allocation':allocation_receipt}
+                                      if allocation_receipt is not None else {})}
             self.ownership.acquire_task(data['id'])
             current = self.store.current(self.session)
         if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
@@ -886,6 +994,13 @@ class Poise:
         data = self.store.current(self.session)
         if data is None:
             return {'status':'read_only','project':self.cfg['project'],'tasks':self.task_queries.summary()}
+        if data['status']=='newborn':
+            return {'task':data['id'],'status':'newborn','revision':data['revision'],
+                    'sprint':data['sprint_id'],'claimed_by':data['claimed_by'],
+                    'goal_type':data['goal_type'],'route_entry':data['route_entry'],
+                    'ready':data['ready'],'draft':deepcopy(data['draft']),
+                    'history':self.task_queries.history(data['id']),
+                    'token_usage':'unavailable'}
         submissions, evidence = self.store.counts(data['id'])
         return {'task':data['id'],'status':data['status'],'stage':self._stage(data)['id'],
                 'iteration':data['iteration'],'attempts':data['attempts'],

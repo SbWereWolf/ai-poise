@@ -61,6 +61,45 @@ SQLite не объявляется атомарной транзакцией fil
 
 Конфигурационная ошибка не публикует частичный пакет. Чрезмерно маленький output budget отклоняется до публикации. Ошибка записи после сохранения намерения возвращается как pending; следующий вызов выясняет/продолжает состояние, а не требует правки БД агентом.
 
+## Сверка управляемой revision с live-конфигурацией
+
+Редактор — единственный владелец своей managed-head revision. Другой разрешённый механизм
+может атомарно заменить тот же process-файл, но такая замена не становится новой managed
+head молча и не должна затираться прежним содержимым редактора. Для диагностики и явного
+принятия уже опубликованного валидного файла служат две схемы того же публичного CLI:
+
+- `goal-config-status-1` принимает `schema` и `goal_type`. Это строго read-only операция:
+  она возвращает target, managed revision, наблюдаемую live revision, признак совпадения и
+  известный `pending_request`, не продолжая и не завершая pending-публикацию.
+- `goal-config-reconcile-1` принимает `schema`, уникальный `request_id`, `goal_type`, точные
+  `expected_managed_revision` и `expected_live_revision`, а также непустые `reason` и
+  `authorization`. Операция полностью разбирает live process общим валидатором и принимает
+  его только при совпадении обеих revisions.
+
+Успешная сверка меняет только ownership metadata и audit редактора. Process-файл и snapshots
+существующих Task не переписываются. Receipt связывает предыдущую managed revision, принятую
+и валидированную live revision, target path, причину и основание полномочий; точный повтор
+того же запроса возвращает этот receipt. Конфликтующий drift, устаревшая managed revision,
+другой payload с тем же `request_id` и любая неоднозначная pending-операция дают отказ без
+изменений.
+
+Диагностику и сверку вызывают через действующий installation settings, например:
+
+```bash
+python -m poise goal-config --settings config/goal-editor.json <<'JSON'
+{"schema":"goal-config-status-1","goal_type":"development"}
+JSON
+
+python -m poise goal-config --settings config/goal-editor.json <<'JSON'
+{"schema":"goal-config-reconcile-1","request_id":"adopt-development-1","goal_type":"development","expected_managed_revision":"<exact-managed-revision>","expected_live_revision":"<exact-live-revision>","reason":"adopt an authorized external publication","authorization":"user-approved repair"}
+JSON
+```
+
+Расхождение нельзя обходить, создавая новую БД редактора: это теряет цепочку владения и
+аудит, но не доказывает происхождение live-конфигурации. Сначала получают read-only status,
+проверяют источник изменения и затем либо выполняют точную публичную сверку, либо устраняют
+неправомерную замену отдельным авторизованным действием.
+
 ## Результат
 Один компактный JSON: status, request/goal IDs, новая и предыдущая revisions, changed/replayed, число изменений, путь полученного конфига и полного ответа. Размер inline и выходные коды заданы settings. Подробные ошибки сохраняются автоматически в configured response root.
 

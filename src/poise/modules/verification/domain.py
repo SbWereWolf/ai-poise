@@ -4,11 +4,11 @@ import hashlib
 import json
 from ..foundation.errors import DomainError
 from ..foundation.paths import matches_allowed_path
+from ..foundation.validation import validate_exact_keys
 
 
 def exact_keys(value: dict, keys: set[str], where: str) -> None:
-    if not isinstance(value, dict) or set(value) != keys:
-        raise DomainError(f"{where}: требуется точный набор полей {sorted(keys)}")
+    validate_exact_keys(value, keys, where, DomainError)
 
 
 def declared_executable_obligations(value, catalog, where):
@@ -281,9 +281,17 @@ class RegistryRequest:
     request_id: str
     digest: str
     revision: int
+    audit: str | None = None
 
     def to_dict(self) -> dict:
-        return {'request_id': self.request_id, 'digest': self.digest, 'revision': self.revision}
+        value = {
+            'request_id': self.request_id,
+            'digest': self.digest,
+            'revision': self.revision,
+        }
+        if self.audit is not None:
+            value['audit'] = json.loads(self.audit)
+        return value
 
 
 @dataclass(frozen=True)
@@ -520,6 +528,37 @@ class CheckRegistry:
         )
         return RegistryChangeResult(updated, False)
 
+    def bind_request_audit(self, request_id: str, audit: dict) -> CheckRegistry:
+        encoded = json.dumps(
+            audit, sort_keys=True, ensure_ascii=False, separators=(',', ':')
+        )
+        found = False
+        requests = []
+        for request in self.requests:
+            if request.request_id != request_id:
+                requests.append(request)
+                continue
+            found = True
+            if request.audit is not None and request.audit != encoded:
+                raise DomainError(
+                    'registry change.request_id уже связан с другим audit receipt'
+                )
+            requests.append(RegistryRequest(
+                request.request_id, request.digest, request.revision, encoded
+            ))
+        if not found:
+            raise DomainError('registry change audit requires a recorded request')
+        return CheckRegistry(
+            self.stages,
+            self.entries,
+            self.revision,
+            self.history,
+            tuple(requests),
+            self.executable_obligations,
+            self.inspection_stages,
+            self.obligation_catalog,
+        )
+
     def _validate_coverage_refs(self, entries: tuple[RegisteredCheck, ...]) -> None:
         if not self.obligation_catalog:
             return
@@ -567,7 +606,14 @@ class CheckRegistry:
             )
             for item in raw['history']
         )
-        requests = tuple(RegistryRequest(**item) for item in raw['requests'])
+        requests = tuple(RegistryRequest(
+            item['request_id'],
+            item['digest'],
+            item['revision'],
+            None if 'audit' not in item else json.dumps(
+                item['audit'], sort_keys=True, ensure_ascii=False, separators=(',', ':')
+            ),
+        ) for item in raw['requests'])
         obligations = declared_executable_obligations(
             raw['executable_obligations'],
             self.obligation_catalog,

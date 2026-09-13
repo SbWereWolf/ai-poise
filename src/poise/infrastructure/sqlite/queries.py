@@ -86,6 +86,34 @@ class TaskQueries:
         if row is None: return None
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
         metadata = json.loads(row['metadata'])
+        history = [json.loads(item[0]) for item in db.execute(
+            "SELECT data FROM task_events WHERE task_id=? ORDER BY seq", (task_id,)
+        )]
+        if row['status'] == 'newborn':
+            from ...modules.tasks.newborn import NewbornTask
+            newborn = NewbornTask.restore(
+                row['id'], row['claimed_by'], row['version'], metadata
+            )
+            return {
+                **metadata,
+                **newborn.describe(),
+                'id':row['id'],
+                'sprint_id':newborn.sprint_id,
+                'stage_index':0,
+                'iteration':1,
+                '_version':row['version'],
+                '_execution_version':None,
+                'worktree':None,
+                'branch':None,
+                'base':None,
+                'attempts':0,
+                'publication':None,
+                'pending':None,
+                'entry_tree':None,
+                'last_report':None,
+                'result_commit':None,
+                'history':history,
+            }
         from .tasks import without_retired_method_timeout
         items = [without_retired_method_timeout(json.loads(r[0])) for r in db.execute(
             'SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid', (task_id,)
@@ -103,7 +131,8 @@ class TaskQueries:
         return {**metadata, **execution, "id":row["id"],
                 "status":row["status"],"stage_index":row["stage_index"],"iteration":row["iteration"],
                 "claimed_by":row["claimed_by"],"result_commit":None if report is None else report["commit"],
-                "_version":row["version"],"_execution_version":row["execution_version"]}
+                "_version":row["version"],"_execution_version":row["execution_version"],
+                "history":history}
 
     def history(self, task_id: str) -> list[dict]:
         with self.database.transaction() as db:
@@ -112,7 +141,9 @@ class TaskQueries:
     def summary(self) -> list[dict]:
         with self.database.transaction() as db:
             return [{"id":r["id"],"status":r["status"],"goal":json.loads(r["metadata"])["goal"]}
-                    for r in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id")]
+                    for r in db.execute(
+                        "SELECT id,status,metadata FROM tasks WHERE status!='newborn' ORDER BY id"
+                    )]
 
     def standalone_summary(self) -> list[dict]:
         with self.database.transaction() as db:

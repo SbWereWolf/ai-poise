@@ -35,9 +35,13 @@ class InteractionStore:
                 if task is not None:
                     row=db.execute('SELECT task_id FROM interaction_bindings WHERE event_id=?',(event.identity,)).fetchone()
                     if row is None:
-                        stage=task['process']['stages'][task['stage_index']]['id']
+                        newborn = task['status'] == 'newborn'
+                        stage = ('newborn' if newborn else
+                                 task['process']['stages'][task['stage_index']]['id'])
+                        goal_type = (task.get('goal_type') or 'newborn' if newborn
+                                     else task['contract']['goal_type'])
                         db.execute('INSERT INTO interaction_bindings VALUES(?,?,?,?,?,?,?,?)',
-                            (event.identity,task['id'],task['sprint_id'],task['contract']['goal_type'],stage,task['iteration'],session,self.project))
+                            (event.identity,task['id'],task['sprint_id'],goal_type,stage,task['iteration'],session,self.project))
 
     def delivered(self,task,report):
         # This records tool-result delivery, not an unobservable final ChatGPT answer.
@@ -60,13 +64,14 @@ class InteractionStore:
                 event=json.loads(row[0])
                 if event['reason'] is None:unknown+=1
                 else:counts[event['reason']]+=1
+            newborn = task is not None and task['status'] == 'newborn'
             return {'user_messages_count':len(rows),'observed_messages_count':len(rows),
                     'coverage':'partial' if rows else 'unavailable',
                     'source':self.config['message_source'], 'reason_counts':counts,'unclassified_messages':unknown,
                     'task':None if task is None else task['id'],
-                    'goal_type':None if task is None else task['contract']['goal_type'],
+                    'goal_type':None if task is None else (task.get('goal_type') if newborn else task['contract']['goal_type']),
                     'outcome':None if task is None else task['status'],
-                    'planned_content_stages_count':None if task is None else sum(s['handler']!=HandlerKind.PUBLISH.value for s in task['process']['stages']),
+                    'planned_content_stages_count':None if task is None or newborn else sum(s['handler']!=HandlerKind.PUBLISH.value for s in task['process']['stages']),
                     'delivered_stages_count':len({r['stage'] for r in delivered}),
                     'delivered_iterations_count':len(delivered),
                     'delivery_observation':'tool_result_returned'}

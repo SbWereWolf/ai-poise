@@ -1,7 +1,16 @@
 from __future__ import annotations
 import json
+from dataclasses import replace
+from copy import deepcopy
 from datetime import datetime, timezone
-from ...modules.tasks.domain import Task, TaskState, TaskStatus, StageSpec, Change
+from ...modules.tasks.domain import (
+    Change,
+    EmptyReworkRecoveryPoint,
+    StageSpec,
+    Task,
+    TaskState,
+    TaskStatus,
+)
 from ...modules.tasks.contracts import stages_from_process, stored_content_policy_from_metadata, evidence_plan_from_metadata
 from ...modules.content.domain import ContentState, SectionValue
 from ...modules.verification.domain import CheckRegistry
@@ -10,6 +19,7 @@ from ...modules.workflow.domain import RouteDefinition, RouteProgress
 from ...modules.inspection.domain import FeedbackBook
 from ...modules.evidence.domain import EvidenceBook
 from ...modules.foundation.errors import PoiseError, VersionConflict
+from ...modules.tasks.newborn import NewbornTask
 
 
 def encode(value: object) -> str:
@@ -36,6 +46,186 @@ class SqliteTaskRepository:
 
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
+
+    def is_newborn(self, task_id):
+        row = self.db.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        return row[0] == TaskStatus.NEWBORN.value
+
+    def create_newborn(self, newborn: NewbornTask, config_hash: str) -> None:
+        if self.exists(newborn.task_id):
+            raise PoiseError("Task ID already exists; newborn creation cannot replace it")
+        if self.db.execute("SELECT 1 FROM sprints WHERE id=?", (newborn.task_id,)).fetchone():
+            raise PoiseError("Task/sprint ID collision")
+        self.db.execute(
+            "INSERT INTO tasks VALUES(?,?,?,?,?,?,NULL,?)",
+            (
+                newborn.task_id,
+                TaskStatus.NEWBORN.value,
+                0,
+                1,
+                newborn.claimed_by,
+                newborn.version,
+                encode(newborn.metadata(config_hash)),
+            ),
+        )
+        self._event(newborn.task_id, newborn.version, {
+            "event": "created_newborn",
+            "stage": "newborn",
+            "iteration": 1,
+        })
+
+    def action_receipt(self, task_id: str, request_id: str, digest: str):
+        for row in self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event='newborn.action' ORDER BY seq",
+            (task_id,),
+        ):
+            data = json.loads(row[0])
+            if data.get("request_id") != request_id:
+                continue
+            if data.get("digest") != digest:
+                raise PoiseError("Request ID already used with another Task action intent")
+            return deepcopy(data["result"])
+        return None
+
+    def remember_action(self, task_id: str, actor: str, request_id: str,
+                        digest: str, result: dict) -> None:
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), actor, task_id, "newborn.action", encode({
+                "request_id": request_id,
+                "digest": digest,
+                "result": deepcopy(result),
+            })),
+        )
+
+    def load_newborn(self, task_id: str) -> NewbornTask:
+        row = self.db.execute(
+            "SELECT status,claimed_by,version,metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        if row["status"] != TaskStatus.NEWBORN.value:
+            raise PoiseError("Task is not newborn")
+        return NewbornTask.restore(
+            task_id, row["claimed_by"], row["version"], json.loads(row["metadata"])
+        )
+
+    def newborn_creation(self, task_id: str):
+        newborn = self.load_newborn(task_id)
+        if newborn.process is None:
+            raise PoiseError('Newborn Task has no selected goal_type')
+        return newborn, {
+            'id':task_id,
+            'sprint_id':newborn.sprint_id,
+            **deepcopy(newborn.draft),
+        }
+
+    def save_newborn(self, newborn: NewbornTask, expected_version: int,
+                     config_hash: str, event: str) -> None:
+        if newborn.version == expected_version:
+            return
+        if newborn.version != expected_version + 1:
+            raise VersionConflict("Недопустимый шаг версии newborn Task")
+        updated = self.db.execute(
+            "UPDATE tasks SET claimed_by=?,version=?,metadata=? "
+            "WHERE id=? AND status=? AND version=?",
+            (
+                newborn.claimed_by,
+                newborn.version,
+                encode(newborn.metadata(config_hash)),
+                newborn.task_id,
+                TaskStatus.NEWBORN.value,
+                expected_version,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict("Конфликт версии newborn Task")
+        self._event(newborn.task_id, newborn.version, {
+            "event": event,
+            "stage": "newborn",
+            "iteration": 1,
+        })
+
+    def detach_newborn(self, task_id: str, expected_sprint: str) -> None:
+        newborn = self.load_newborn(task_id)
+        if newborn.sprint_id != expected_sprint:
+            raise VersionConflict("Newborn Task Sprint membership changed")
+        changed = newborn.detach_from_sprint()
+        metadata = json.loads(self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()[0])
+        self.save_newborn(changed, newborn.version, metadata["config_hash"], "sprint_detached")
+
+    def acquire_newborn(self, task_id: str, actor: str) -> None:
+        newborn = self.load_newborn(task_id)
+        changed = newborn.acquire(actor)
+        metadata = json.loads(self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()[0])
+        self.save_newborn(
+            changed, newborn.version, metadata['config_hash'], 'ownership_acquired'
+        )
+
+    def release_newborn(self, task_id: str, actor: str) -> None:
+        newborn = self.load_newborn(task_id)
+        changed = newborn.release(actor)
+        metadata = json.loads(self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()[0])
+        self.save_newborn(
+            changed, newborn.version, metadata['config_hash'], 'ownership_released'
+        )
+
+    def promote_newborn(self, task: Task, metadata: dict, expected_version: int) -> None:
+        if not self.is_newborn(task.state.task_id):
+            raise PoiseError("Only a newborn Task can become available")
+        promoted = replace(
+            task,
+            state=replace(
+                task.state,
+                version=expected_version + 1,
+                status=TaskStatus.AVAILABLE,
+                claimed_by=None,
+            ),
+        )
+        s = promoted.state
+        updated = self.db.execute(
+            "UPDATE tasks SET status=?,stage_index=?,iteration=?,claimed_by=?,version=?,metadata=? "
+            "WHERE id=? AND status=? AND version=?",
+            (
+                s.status.value,
+                s.stage_index,
+                s.iteration,
+                s.claimed_by,
+                s.version,
+                encode(metadata),
+                s.task_id,
+                TaskStatus.NEWBORN.value,
+                expected_version,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict("Конфликт версии newborn Task")
+        self.db.execute(
+            "INSERT INTO content_contracts VALUES(?,?,?)",
+            (s.task_id, s.version, encode(promoted.content_policy.to_layers())),
+        )
+        self.db.execute(
+            "INSERT INTO task_workflows VALUES(?,?)",
+            (s.task_id, encode(promoted.workflow_snapshot())),
+        )
+        self._save_methods(promoted)
+        self.db.execute(
+            "INSERT INTO task_proofs VALUES(?,?)",
+            (s.task_id, encode(promoted.evidence_snapshot())),
+        )
+        self._event(s.task_id, s.version, {
+            "event": "became_available",
+            "stage": promoted.stage.stage_id,
+            "iteration": s.iteration,
+        })
 
     def allocate(self, intent, policy, reserved_ids=()):
         from ...modules.tasks.allocation import Allocation, creation_parts
@@ -125,6 +315,96 @@ class SqliteTaskRepository:
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"])
 
+    def empty_rework_recovery_point(
+        self, task_id: str, handoff_version: int, last_report: dict,
+        transition_event: str = "user_rework",
+    ) -> EmptyReworkRecoveryPoint:
+        events = self.db.execute(
+            "SELECT version,data FROM task_events "
+            "WHERE task_id=? AND version<=? ORDER BY seq",
+            (task_id, handoff_version),
+        ).fetchall()
+        parsed = [
+            (row["version"], json.loads(row["data"])["event"])
+            for row in events
+        ]
+        transitions = [
+            version for version, event in parsed if event == transition_event
+        ]
+        if not transitions:
+            raise PoiseError(f"Recovery requires the exact preceding {transition_event} event")
+        transition_version = transitions[-1]
+        ownership_events = {
+            "handed_off",
+            "handoff_resumed",
+            "ownership_acquired",
+            "ownership_released",
+        }
+        unexpected = [
+            event
+            for version, event in parsed
+            if transition_version < version <= handoff_version
+            and event not in ownership_events
+        ]
+        if unexpected:
+            raise PoiseError(
+                f"Recovery event suffix contains non-ownership events: {unexpected}"
+            )
+        row = self.db.execute(
+            "SELECT s.stage,s.iteration,s.digest,s.data,w.data AS workflow,r.data AS result "
+            "FROM submissions s "
+            "JOIN workflow_layers w ON w.task_id=s.task_id AND w.submission_id=s.seq "
+            "JOIN task_results r ON r.task_id=s.task_id AND r.submission_id=s.seq "
+            "WHERE s.task_id=? ORDER BY s.seq DESC LIMIT 1",
+            (task_id,),
+        ).fetchone()
+        saved_result = None if row is None else json.loads(row["result"])
+        expected_report = (
+            None
+            if saved_result is None
+            else {
+                **saved_result,
+                "status": (
+                    "accepted"
+                    if transition_event == "user_accept_and_continue"
+                    else saved_result["status"]
+                ),
+            }
+        )
+        if row is None or expected_report != last_report:
+            raise PoiseError("Recovery requires the immediately preceding verified result")
+        if saved_result.get("status") != "verified":
+            raise PoiseError("Recovery requires a previously verified result")
+        workflow = json.loads(row["workflow"])
+        envelope = json.loads(row["data"])
+        proof_row = self.db.execute(
+            "SELECT data FROM task_proof_layers WHERE task_id=? AND version<? "
+            "ORDER BY version DESC LIMIT 1",
+            (task_id, transition_version),
+        ).fetchone()
+        if proof_row is None:
+            raise PoiseError("Recovery requires the previous immutable proof snapshot")
+        proof = json.loads(proof_row["data"])
+        feedback = workflow["feedback"]
+        progress = RouteProgress(
+            tuple(workflow["visits"].items()),
+            workflow["transitions"],
+            workflow["outcome"],
+            json.dumps(envelope["stage_work"], sort_keys=True, ensure_ascii=False),
+        )
+        return EmptyReworkRecoveryPoint(
+            row["stage"],
+            row["iteration"],
+            row["digest"],
+            progress,
+            FeedbackBook.from_dict(
+                {name: feedback[name] for name in ("findings", "resolutions", "decisions")}
+            ),
+            EvidenceBook.from_dict(proof["book"]),
+            proof["input"],
+            proof["assessment"],
+        )
+
     def save(self, change: Change, expected_version: int) -> int | None:
         state = change.task.state
         prior = self.db.execute("SELECT version,current_submission_id FROM tasks WHERE id=?", (state.task_id,)).fetchone()
@@ -139,6 +419,14 @@ class SqliteTaskRepository:
             raise VersionConflict("Недопустимый шаг версии задачи")
         if state.submission_digest is None:
             submission_id = None
+        elif change.submission is None and submission_id is None:
+            restored = self.db.execute(
+                "SELECT seq FROM submissions WHERE task_id=? AND digest=? ORDER BY seq DESC",
+                (state.task_id, state.submission_digest),
+            ).fetchall()
+            if len(restored) != 1:
+                raise PoiseError("Recovered Task requires one exact previous submission")
+            submission_id = restored[0]["seq"]
         if change.submission is not None:
             candidate = change.submission
             if candidate.digest != state.submission_digest:

@@ -61,6 +61,7 @@ class SprintWork:
         if isinstance(packet,dict) and packet.get('action')=='replace_task':return result
         overview=self.overview(result['sprint'])
         return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {}),
+                **({'materialized':result['materialized']} if 'materialized' in result else {}),
                 **({'cleanup':result['cleanup']} if 'cleanup' in result else {})}
 
     def select(self,sprint_id):

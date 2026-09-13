@@ -1772,8 +1772,15 @@
       "text": "Каждое сообщение имеет один основной work binding, который может быть разрешён после выбора task; связанные ссылки не добавляют события. Отчёты task/sprint/goal_type/project/day/week/all считают unique events и показывают остаток scope-only/unattributed. Затраты отменённой задачи сохраняются при нулевой пользе; handoff/reopen не сбрасывает счётчик. Периоды используют явную timezone и надёжное время источника либо обозначенное ограничение времени приёма. Неполные данные не превращаются в ноль.",
       "review_findings": [],
       "group": "11. Декларативные инструменты и пользовательские сообщения"
+    },
+    {
+      "id": "HR-107",
+      "title": "Реальная newborn Task до готовности",
+      "text": "Newborn Task имеет постоянный ID, history, revision, optional Sprint membership и ownership с момента create. До выбора goal_type route entry отсутствует; после выбора применяется type-specific process snapshot, а в available Task переходит только после полной readiness проверки. Create/edit/ready и Sprint materialize_tasks используют immutable request identity и общий ownership API; foreign live owner блокирует запись. Sprint хранит real newborn Task без потери частичных правок, history, membership и graph; legacy embedded definitions переводятся явно, а replacement сохраняет source Task traceability. Массовой миграции нет; прямая полная creation остаётся поддержанным путём.",
+      "review_findings": [],
+      "group": "11. Декларативные инструменты и пользовательские сообщения"
     }
   ],
   "schema": "poise-doc-requirements/3",
-  "updated_at": "2026-09-06T19:39:04+05:00"
+  "updated_at": "2026-09-13T08:10:00+05:00"
 }

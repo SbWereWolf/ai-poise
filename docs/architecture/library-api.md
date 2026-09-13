@@ -40,6 +40,12 @@ metadata.
 ## Конфигурация типа цели
 `GoalTypeDefinition.parse/build`: общий чистый владелец полного process. `GoalConfigCommands.apply_batch(request)`: один декларативный пакет, создание из явного template либо update по revision. Порт `GoalConfigRepository.edit` реализует короткий controlled edit; FileGoalConfigRepository и FileTemplates — infrastructure.
 
+`GoalConfigCommands.status(request)` наблюдает managed head, live revision и pending request
+без recovery и иных записей. `GoalConfigCommands.reconcile(request)` при отсутствии pending
+сверяет exact managed/live revisions, валидирует полный live process тем же доменным parser и
+атомарно принимает его как новый managed head с durable audit receipt. Adoption не
+перезаписывает process-файл или Task snapshots; неизвестный drift остаётся явным конфликтом.
+
 CLI: `poise goal-config --settings <file>` с одним JSON в stdin. Не требует активной task и не открывает её DB. Стандартные/дополнительные sections, content rules, trace routes, stages/transitions редактируются одним кандидатом. Точный контракт: [goal-config](../configuration/goal-config.md).
 
 `exclusive_lock` общий для Task и editor store. Runtime pack loader делегирует в тот же доменный validator. Конкретные EvidencePlan и command methods задачи не перемещены в pack и не заполняются по догадке.

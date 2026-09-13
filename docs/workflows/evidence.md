@@ -1,6 +1,6 @@
 # Доказательства и наблюдения — контракт DDD-04
 
-Обновлено: **2026-09-12**. Срез **POISE-DDD-04 / tasks 0037, 0052**.
+Обновлено: **2026-09-13**. Срез **POISE-DDD-04 / tasks 0037, 0052, 0094**.
 
 ## Владение и цель
 `CheckRegistry` (verification) хранит точные команды и расписание. `EvidencePlan` определяет роль результатов и обязательные аргументы/осмотры. `EvidenceBook` хранит неизменные наблюдения, ревизии аргументов и решения. Task композиционно владеет планом/книгой и фазой; runner не правит доменные поля. Правило одинаково для всех goal types.
@@ -92,6 +92,39 @@ invocation и `execution_key`. Invocation содержит точный сним
 execution state. То же относится к отсутствующей ledger-записи и повреждённым либо удалённым
 файлам output. Runtime не пробует второй ключ, legacy alias, tolerant reconstruction или
 fallback к похожему batch; прежние неканонические данные не переписываются миграцией.
+
+### Замена устаревшего метода наблюдения
+
+Если зарегистрированный предметный метод устарел после изменения репозитория или внешнего
+контракта, Task не пересоздаётся и её БД не исправляется вручную. Текущий этап с handler
+`observe` может передать в обычном `method_additions` тот же защищённый пакет изменения
+реестра, что и этап-владелец `test_registry`: `request_id`, точную `expected_revision`,
+непустой список `operations` и полный текущий список `executable_obligations`.
+
+Это узкое делегирование владения разрешает только `replace` метода, который одновременно:
+
+- входит в `evidence_plan.subject_methods` текущего этапа;
+- уже существует в current registry;
+- сохраняет прежние `method_id`, полный список `stages`, `evidence_kind` и `covers`;
+- не меняет `executable_obligations`.
+
+Добавление, удаление, reschedule, замена same-stage guard вне `subject_methods` и изменение
+классификации либо покрытия остаются исключительным правом этапа `test_registry`. Весь пакет
+сначала проходит обычную проверку revision, idempotency digest, формы метода, provenance и
+verification plan. Любой отказ оставляет Task, current/history реестра и журнал без изменений.
+
+Первое успешное применение сохраняет прежний current snapshot в history и привязывает к
+request неизменяемый audit receipt: `task`, `actor`, `stage`, `iteration`, `request_id`,
+`previous_revision`, `new_revision`, изменённые `methods` и `receipt_id`. Тот же request после
+любого числа последующих редакций и после перезапуска возвращает исходные audit-поля и
+`receipt_id` с `replayed=true`; событие `verification_registry_changed` второй раз не пишется.
+Изменённый payload с тем же request ID отклоняется.
+
+Исторические определения методов, command receipts, их source/expectation provenance,
+дерево и execution identity, аргументы и assessments не перезаписываются и не
+переинтерпретируются. Следующий `verify` исполняет только новое current-определение. Текущую
+revision, current, history, requests и `executable_obligations` перед заменой следует получить
+одним `show` query с `kind=verification_registry`; файловая Task DB не является API.
 
 Не заявляется полная идентичность внешней среды: время, состояние внешнего сервиса и ignored файлы автоматически не fingerprint-ятся. Для таких зависимостей нужны явные команды/наблюдения проекта; адаптеры и более точные правила актуальности расширяются по реальному использованию.
 

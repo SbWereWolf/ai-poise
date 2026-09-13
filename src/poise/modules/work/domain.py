@@ -5,7 +5,7 @@ from ..foundation.errors import DomainError
 
 
 SPRINT_OVERVIEW_STATUSES = frozenset({'planned','active','completed','cancelled','blocked'})
-STANDALONE_TASK_STATUSES = frozenset({'available','active','verified','accepted','completed','cancelled'})
+STANDALONE_TASK_STATUSES = frozenset({'newborn','available','active','verified','accepted','completed','cancelled'})
 
 
 def status_filter(value, allowed, name):
@@ -20,14 +20,16 @@ def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
+            'recover_empty_rework':{'task_id','reason'},
+            'recover_empty_advance':{'task_id','reason'},
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},
-            'sprint':None,'transfer':None}
+            'task':None,'sprint':None,'transfer':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
-    if op not in ('sprint','transfer','integrate'):exact(value['input'],shapes[op],f'{op} input')
+    if op not in ('task','sprint','transfer','integrate'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')
@@ -73,6 +75,16 @@ def parse_request(value, config):
                 minimum=1 if r['unit']=='lines' else 0
                 if r['start']<minimum or r['end']<r['start']:
                     raise DomainError('Range must be ordered and within the selected unit')
+    if op == 'task':
+        task_shapes = {
+            'create': {'action','request_id','task_id','sprint_id'},
+            'edit': {'action','request_id','task_id','expected_revision','patch'},
+            'ready': {'action','request_id','task_id','expected_revision'},
+        }
+        action = value['input'].get('action') if isinstance(value['input'],dict) else None
+        if action not in task_shapes:
+            raise DomainError('Unknown Task action')
+        exact(value['input'], task_shapes[action], f'task {action} input')
     # Bound all object collections, not just top-level operations.
     def check(node):
         if isinstance(node,(list,dict)):

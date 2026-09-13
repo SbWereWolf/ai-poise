@@ -154,17 +154,21 @@ def test_task_path_consumers_do_not_duplicate_namespace_selection(project):
     repository = Path(__file__).parents[2]
     owner = repository / "src" / "poise" / "infrastructure" / "task_paths.py"
     consumers = {
-        repository / "src" / "poise" / "interfaces" / "work.py": "task_paths.task_root(",
-        repository / "src" / "poise" / "runtime.py": "task_paths.task_root(",
-        repository / "src" / "poise" / "infrastructure" / "result_integration.py": "task_paths.task_root(",
-        repository / "src" / "poise" / "infrastructure" / "transfers.py": "task_paths.task_root(",
+        repository / "src" / "poise" / "interfaces" / "work.py":
+            "from ..infrastructure.task_paths import sprint_root, task_root",
+        repository / "src" / "poise" / "runtime.py":
+            "from .infrastructure.task_paths import sprint_root, task_root",
+        repository / "src" / "poise" / "infrastructure" / "result_integration.py":
+            "from .task_paths import task_root",
+        repository / "src" / "poise" / "infrastructure" / "transfers.py":
+            "from .task_paths import sprint_root, task_root",
     }
 
     assert 'paths["standalone_tasks"]' in owner.read_text(encoding="utf-8")
-    for consumer, delegated_call in consumers.items():
+    for consumer, owner_import in consumers.items():
         source = consumer.read_text(encoding="utf-8")
-        assert "task_paths import" not in source, consumer
-        assert delegated_call in source, consumer
+        assert owner_import in source, consumer
+        assert "task_root(" in source, consumer
         assert 'paths["standalone_tasks"]' not in source, consumer
         assert 'paths["sprints"]' not in source, consumer
         assert ' / "task"' not in source, consumer

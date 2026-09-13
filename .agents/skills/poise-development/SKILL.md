@@ -28,6 +28,11 @@ Tools are batch-oriented and declarative: if two or more required mechanical act
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
 
+When another authorized owner has replaced a managed process file, diagnose the exact head
+and live revisions with `goal-config-status-1`, then adopt validated content only with an exact
+`goal-config-reconcile-1` request carrying reason and authority. Do not create a fresh editor database
+to evade a stale managed head. Read [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией) before acting.
+
 ## Verification and delivery
 
 An idle reviewer starts on a received handoff. If several handoffs arrive, finish the review already started, save its result, release the Task and notify its executor, then immediately take the next already-received actionable Task in the same turn. Incoming handoffs do not interrupt the current review. Follow the canonical [direct-handoff rule](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).

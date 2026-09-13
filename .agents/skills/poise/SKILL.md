@@ -24,6 +24,12 @@ the recipient acquires through bootstrap before working, under existing Task aut
 
 Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required content, worktree, findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
+If a lawful external process publication leaves the goal-config editor head stale, first use
+the read-only `goal-config-status-1` diagnostic and establish the provenance of the live file.
+Adopt it only through an exact `goal-config-reconcile-1` request with the observed managed and
+live revisions, reason and authority. Do not create a fresh editor database to bypass stale
+ownership metadata. Follow [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией).
+
 When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.
 
 Do not create a worktree for read-only queries. For repository-changing work, use the worktree supplied by AI poise and read the target repository's applicable `AGENTS.md` before edits.

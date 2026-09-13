@@ -26,6 +26,8 @@ Use `poise project` or `poise project-init` with an explicitly selected template
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their working files or database directly. Native coding tools remain appropriate for source code, tests and target documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not grant ongoing authorization. Report implemented and tested capabilities separately from planned ones.
 
+When an authorized external publication makes a goal-config editor head stale, use the public `goal-config-status-1` and exact `goal-config-reconcile-1` protocol documented in [goal configuration](docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией). Do not create a fresh editor database to bypass the managed head.
+
 Count observed user messages without inventing missing messages or token usage. Preserve their source and coverage. Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI poise defects.
 
 ## Shared agent policy

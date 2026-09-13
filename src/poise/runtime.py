@@ -75,7 +75,7 @@ class Poise:
         limits = self.cfg['limits']
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
-                           limits['lock_seconds'], limits['lock_poll_seconds'])
+                           limits['lock_seconds'], limits['lock_poll_seconds'], self.processes)
         from .infrastructure.repository_tree import GitRepositoryTree
         repository_tree = GitRepositoryTree(
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']

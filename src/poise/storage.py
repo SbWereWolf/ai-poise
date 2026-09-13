@@ -11,13 +11,14 @@ from .infrastructure.sqlite.queries import TaskQueries
 
 class Store:
     """Composition/receipt facade of the original slice; no Task lifecycle writes."""
-    def __init__(self, database: Path, lock: Path, wait: float, poll: float):
+    def __init__(self, database: Path, lock: Path, wait: float, poll: float, processes: dict):
         self.database=Database(database,lock,wait,poll)
         self.path=database
+        self.processes=processes
         self.queries=TaskQueries(self.database)
 
     def unit_of_work(self):
-        return SqliteUnitOfWork(self.database)
+        return SqliteUnitOfWork(self.database,self.processes)
 
     def transaction(self):
         return self.database.transaction()

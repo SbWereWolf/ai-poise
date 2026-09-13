@@ -7,8 +7,9 @@ from ...modules.ownership.domain import OwnershipPreflight, OwnershipSnapshot
 
 
 class SqliteOwnershipRepository:
-    def __init__(self, connection):
+    def __init__(self, connection, processes):
         self.db = connection
+        self.processes = processes
 
     def snapshot(self, actor):
         tasks = [row[0] for row in self.db.execute(
@@ -35,7 +36,15 @@ class SqliteOwnershipRepository:
         if row is None:
             raise PoiseError(f"Unknown ownership Task: {task_id}")
         process = json.loads(row[0])["process"]
-        value = process["worktree_required"]
+        if "worktree_required" in process:
+            value = process["worktree_required"]
+        else:
+            # Tasks created before the explicit field migration retain their immutable
+            # goal type; the validated process registry supplies that type's decision.
+            goal_type = process.get("goal_type")
+            if goal_type not in self.processes:
+                raise PoiseError("Stored process has no worktree requirement or known goal type")
+            value = self.processes[goal_type]["worktree_required"]
         if type(value) is not bool:
             raise PoiseError("Stored process requires exact worktree_required bool")
         return value

@@ -477,15 +477,21 @@ def _lifecycle_state(client, project):
     tables = (
         "tasks",
         "task_execution",
+        "task_events",
         "sessions",
+        "session_sprints",
         "journal",
         "sprints",
+        "sprint_layers",
         "sprint_members",
+        "sprint_dependencies",
         "sprint_requests",
     )
     with client.runtime.store.transaction() as database:
         rows = {
-            table: [tuple(row) for row in database.execute(f"SELECT * FROM {table}")]
+            table: sorted(
+                tuple(row) for row in database.execute(f"SELECT * FROM {table}")
+            )
             for table in tables
         }
     rows["worktree_paths"] = sorted(

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from threading import Event, Thread
 
 from ..modules.accounting.clock import ClockObservation
 from ..modules.accounting.domain import identity
@@ -42,6 +43,17 @@ class TelemetryEnvelope:
     data: dict
 
 
+class _ThreadCapture:
+    def __init__(self, work):
+        self.finished = Event()
+        self.final = None
+        Thread(target=work, args=(self,), daemon=True).start()
+
+    def complete(self, final):
+        self.final = final
+        self.finished.set()
+
+
 class OptionalTelemetry:
     """Capture immutable inputs; every failure remains telemetry-only."""
 
@@ -64,6 +76,73 @@ class OptionalTelemetry:
         except Exception:
             self.dropped += 1
             return None
+
+    def _base(self, operation, before, telemetry, turn_id):
+        return {
+            "operation": operation,
+            "session": self.session,
+            "turn_id": turn_id,
+            "before_binding": _binding(before),
+            "telemetry": deepcopy(telemetry),
+        }
+
+    def _envelope(self, base, started, finished, final):
+        data = {
+            **base,
+            "started": _observation(started),
+            "after_binding": final["after_binding"],
+            "finished": _observation(finished),
+            "result_status": final["result_status"],
+        }
+        return TelemetryEnvelope(identity=identity(data), data=data)
+
+    def capture(self, operation, before, telemetry, turn_id):
+        """Start capture without waiting for Clock or downstream processing."""
+        try:
+            base = self._base(operation, before, telemetry, turn_id)
+            begin_capture = getattr(self.dispatcher, "begin_capture", None)
+            if begin_capture is not None:
+                token = begin_capture(self.clock, base, self._envelope)
+                if token is None:
+                    self.dropped += 1
+                return token
+
+            def work(token):
+                try:
+                    started = self.clock.observe()
+                    token.finished.wait()
+                    envelope = self._envelope(
+                        base,
+                        started,
+                        self.clock.observe(),
+                        token.final,
+                    )
+                    if not self.dispatcher.submit(envelope):
+                        self.dropped += 1
+                except Exception:
+                    self.dropped += 1
+
+            return _ThreadCapture(work)
+        except Exception:
+            self.dropped += 1
+            return None
+
+    def complete(self, token, after, result):
+        if token is None:
+            return False
+        final = {
+            "after_binding": _binding(after),
+            "result_status": result.get("status"),
+        }
+        try:
+            finish_capture = getattr(self.dispatcher, "finish_capture", None)
+            if finish_capture is not None:
+                return bool(finish_capture(token, final))
+            token.complete(final)
+            return True
+        except Exception:
+            self.dropped += 1
+            return False
 
     def finish(self, token, after, result):
         if token is None:

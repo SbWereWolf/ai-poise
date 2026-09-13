@@ -47,7 +47,11 @@ class WorkTools:
         # charged for an unrelated later query.
         bound_before = before if before is not None and not is_terminal_task_status(before['status']) else None
         self.interactions.record(events,h.session,bound_before)
-        telemetry=h.telemetry.begin(
+        # An accounting read drains earlier telemetry before its own capture is
+        # opened; otherwise the query would wait for the operation that contains it.
+        if op == 'show' and any(query['kind'] == 'accounting' for query in args['queries']):
+            h.telemetry.flush()
+        telemetry=h.telemetry.capture(
             op,
             bound_before,
             req.get('telemetry'),
@@ -78,12 +82,12 @@ class WorkTools:
         except Exception:
             after=h.current_task()
             self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
-            h.telemetry.finish(telemetry,after,{'status':'rejected'})
+            h.telemetry.complete(telemetry,after,{'status':'rejected'})
             raise
         current=h.current_task()
         self.interactions.record(events,h.session,current if current is not None and not is_terminal_task_status(current['status']) else bound_before)
         self.interactions.delivered(current,out)
-        h.telemetry.finish(telemetry,current,out)
+        h.telemetry.complete(telemetry,current,out)
         if current is not None and current['sprint_id'] is not None and h.sprint_tools.known(current['sprint_id']) and op in ('verify','accept','cancel'):
             out={**out,'sprint':h.sprint_tools.overview(current['sprint_id'])}
         return {**out,'interaction':self.interactions.summary(h.report_task(out))}
@@ -122,7 +126,6 @@ class WorkTools:
         for query in queries:
             kind=query['kind']
             if kind=='accounting':
-                h.telemetry.flush()
                 value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
                 value={**value,'telemetry':h.accounting.telemetry_summary(h.telemetry.summary())}
             elif kind=='tool_result':value=h.show_output(query['receipt_id'],query['representation'],query['range'])

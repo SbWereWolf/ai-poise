@@ -231,7 +231,10 @@ class SqliteAccounting:
             accounts=[dict(r) for r in db.execute('SELECT * FROM accounting_accounts WHERE project=?',(self.project,))]
             tasks={r['id']:TaskQueries.record_in(db,r['id']) for r in db.execute('SELECT id FROM tasks')}
             cycles=[];telemetry=[]
-            for original in db.execute('SELECT * FROM accounting_cycles WHERE project=?',(self.project,)):
+            for original in db.execute(
+                'SELECT * FROM accounting_cycles WHERE project=? ORDER BY rowid',
+                (self.project,),
+            ):
                 row=dict(original);data=json.loads(row['data'])
                 if data.get('kind')=='telemetry_envelope':
                     row['data']=encoded(data['envelope']);telemetry.append(row)

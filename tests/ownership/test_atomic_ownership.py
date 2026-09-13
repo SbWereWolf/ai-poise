@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
 import os
@@ -7,6 +8,7 @@ from pathlib import Path
 import sqlite3
 import stat
 import subprocess
+from threading import Barrier
 
 import pytest
 
@@ -157,6 +159,34 @@ def test_self_acquisition_is_idempotent_and_live_owner_is_rejected(project):
     assert Path(current["worktree"]).is_dir()
     assert owner.runtime.task_queries.record("TARGET")["claimed_by"] == "owner"
 
+    seed, _ = _bootstrap(project, "seed", "RACE")
+    seed.runtime.ownership.release_task("RACE")
+    from poise.application.ownership import OwnershipCommands
+    from poise.modules.ownership.domain import Liveness
+
+    barrier = Barrier(2)
+
+    def compete(actor):
+        runtime = Poise(project["config_path"], actor)
+        commands = OwnershipCommands(runtime.store.unit_of_work, lambda _: Liveness.LIVE)
+        barrier.wait()
+        try:
+            commands.acquire_task(actor, "RACE")
+        except PoiseError as exc:
+            return actor, exc
+        return actor, None
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(compete, ("racer-a", "racer-b")))
+    winners = [actor for actor, error in results if error is None]
+    failures = [error for _, error in results if error is not None]
+    assert len(winners) == 1
+    assert len(failures) == 1
+    tasks, worktrees = _ownership_rows(contender.runtime)
+    assert tasks["RACE"] == winners[0]
+    assert worktrees[winners[0]] == "RACE"
+    assert list(worktrees.values()).count("RACE") == 1
+
 
 def test_partial_acquisition_rolls_back(project):
     _configure_process(project, True)
@@ -178,7 +208,14 @@ def test_partial_acquisition_rolls_back(project):
 def test_release_couples_required_worktree_but_preserves_independent(project):
     _configure_process(project, True)
     dependent, _ = _bootstrap(project, "dependent", "DEPENDENT")
-    dependent.runtime.ownership.release_task("DEPENDENT")
+    receipt = dependent.invoke(request("handoff", {
+        "request_id": "release-dependent",
+        "reason": "Exercise the public release route.",
+        "result": None,
+        "commit_message": None,
+        "artifact_paths": [],
+    }))
+    assert receipt["status"] == "handed_off"
     tasks, worktrees = _ownership_rows(dependent.runtime)
     assert tasks["DEPENDENT"] is None
     assert worktrees["dependent"] is None
@@ -224,6 +261,7 @@ def test_one_task_and_one_worktree_limit(project):
         second.runtime.ownership.acquire_worktree("FIRST")
     assert _ownership_rows(second.runtime) == before
 
+    first.runtime.ownership.release_task("FIRST")
     second.runtime.ownership.release_task("SECOND")
     second.runtime.ownership.acquire_worktree("SECOND")
     second.runtime.ownership.acquire_worktree("FIRST")
@@ -256,9 +294,42 @@ def test_acquire_release_preserve_cwd_roots_and_wip(project, monkeypatch):
     assert Path.cwd() == launch_root
     assert Path(tools.runtime.config_path).is_relative_to(launch_root)
 
-    rival, _ = _bootstrap(project, "rival", "RIVAL")
-    rejected_before = _fingerprint(worktree)
+    current_worktree = Path(second["worktree"])
+    current_tracked = current_worktree / "src/double.py"
+    current_tracked.write_text("def double(n):\n    return n + 3\n", encoding="utf-8")
+    current_tracked.chmod(0o700)
+    (current_worktree / "live-owner-wip.bin").write_bytes(b"\x00live-owner\xff")
+    rival, rival_context = _bootstrap(project, "rival", "RIVAL")
+    rejected_before = {
+        "old": _fingerprint(worktree),
+        "current": _fingerprint(current_worktree),
+        "rival": _fingerprint(Path(rival_context["worktree"])),
+    }
     with pytest.raises(PoiseError):
-        rival.runtime.ownership.acquire_worktree("OLD")
-    assert _fingerprint(worktree) == rejected_before
+        rival.runtime.ownership.acquire_worktree("NEW")
+    assert {
+        "old": _fingerprint(worktree),
+        "current": _fingerprint(current_worktree),
+        "rival": _fingerprint(Path(rival_context["worktree"])),
+    } == rejected_before
+
+    rollback_owner, rollback_context = _bootstrap(project, "rollback-owner", "ROLLBACK")
+    rollback_owner.runtime.ownership.release_task("ROLLBACK")
+    rollback_worktree = Path(rollback_context["worktree"])
+    rollback_before = {
+        "rival": _fingerprint(Path(rival_context["worktree"])),
+        "target": _fingerprint(rollback_worktree),
+    }
+    with rival.runtime.store.transaction() as db:
+        db.execute(
+            "CREATE TRIGGER fail_wip_claim BEFORE UPDATE ON tasks "
+            "WHEN NEW.id='ROLLBACK' AND NEW.claimed_by='rival' "
+            "BEGIN SELECT RAISE(ABORT,'wip-rollback'); END"
+        )
+    with pytest.raises(sqlite3.IntegrityError, match="wip-rollback"):
+        rival.runtime.ownership.acquire_task("ROLLBACK")
+    assert {
+        "rival": _fingerprint(Path(rival_context["worktree"])),
+        "target": _fingerprint(rollback_worktree),
+    } == rollback_before
     assert Path.cwd() == launch_root

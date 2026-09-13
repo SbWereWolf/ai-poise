@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,8 +13,11 @@ def section(path, heading):
     body = text(path)
     start = body.index(heading)
     tail = body[start + len(heading):]
-    next_heading = tail.find("\n## ")
-    return body[start:] if next_heading < 0 else body[start:start + len(heading) + next_heading]
+    level = len(heading) - len(heading.lstrip("#"))
+    next_heading = re.search(rf"\n#{{1,{level}}} ", tail)
+    if next_heading is None:
+        return body[start:]
+    return body[start:start + len(heading) + next_heading.start()]
 
 
 def test_canonical_russian_documents_define_atomic_session_ownership():

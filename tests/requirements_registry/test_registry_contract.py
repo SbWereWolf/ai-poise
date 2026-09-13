@@ -20,7 +20,10 @@ def _load_contract():
         from poise.application.requirements_registry import RequirementsCommands
         from poise.application.tasks import TaskCommands
         from poise.common import load_config
-        from poise.infrastructure.requirements_registry import RequirementsStore
+        from poise.infrastructure.requirements_registry import (
+            RequirementsStore,
+            TaskRequirementsSnapshotStore,
+        )
         from poise.modules.requirements_registry.domain import RequirementsRegistry
         from poise.modules.requirements_registry.service import TaskRequirementsGate
     except (ImportError, ModuleNotFoundError):
@@ -29,6 +32,7 @@ def _load_contract():
         "RequirementsCommands": RequirementsCommands,
         "TaskCommands": TaskCommands,
         "RequirementsStore": RequirementsStore,
+        "TaskRequirementsSnapshotStore": TaskRequirementsSnapshotStore,
         "RequirementsRegistry": RequirementsRegistry,
         "TaskRequirementsGate": TaskRequirementsGate,
         "load_config": load_config,
@@ -97,6 +101,15 @@ class RequirementsRegistryDomainTests(unittest.TestCase):
         self.assertEqual(registry.requirement("APP-OLD")["status"], "obsolete")
         self.assertNotIn("APP-OLD", registry.coverage()["application_without_system"])
         self.assertNotIn("SYS-OLD-GAP", registry.coverage()["system_without_application"])
+        self.assertEqual(
+            registry.coverage(mode="current"),
+            {
+                "application_without_system": ["APP-CURRENT-GAP"],
+                "system_without_application": ["SYS-CURRENT-GAP"],
+            },
+        )
+        with self.assertRaisesRegex(Exception, "obsolete|устар"):
+            registry.plan_task([{"text": "New work cannot use a retired requirement.", "applications": ["APP-OLD"]}])
         with self.assertRaisesRegex(Exception, "status"):
             registry.apply(
                 [put(requirement("BAD", "system", "unknown", "Invalid status."))],
@@ -191,6 +204,8 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                 "operations": [
                     put(requirement("SYS", "system", "future", "Future system requirement.")),
                     put(requirement("APP", "application", "future", "Future application requirement.")),
+                    put(requirement("SYS-GAP", "system", "current", "Disconnected system requirement.")),
+                    put(requirement("APP-GAP", "application", "current", "Disconnected application requirement.")),
                     link("SYS", "APP"),
                 ],
             }
@@ -216,8 +231,18 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                     "systems": [{"id": "SYS", "level": "system", "status": "future", "text": "Future system requirement."}],
                 },
             )
-            self.assertEqual(queried[1]["value"], {"application_without_system": [], "system_without_application": []})
-            self.assertEqual(queried[2]["value"], [])
+            expected_gaps = {
+                "application_without_system": ["APP-GAP"],
+                "system_without_application": ["SYS-GAP"],
+            }
+            self.assertEqual(queried[1]["value"], expected_gaps)
+            self.assertEqual(
+                queried[2]["value"],
+                [
+                    {"kind": "application_without_system", "requirement_id": "APP-GAP", "text": "Disconnected application requirement."},
+                    {"kind": "system_without_application", "requirement_id": "SYS-GAP", "text": "Disconnected system requirement."},
+                ],
+            )
             before = commands.query([{"id": "registry", "kind": "registry"}])
             with self.assertRaisesRegex(Exception, "unknown|level|link"):
                 commands.apply(
@@ -281,22 +306,27 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "requirements_snapshot"):
             gate.validate({"requirements": contract["requirements"]})
 
-    def test_explicit_full_text_agreement_publishes_persisted_immutable_snapshot(self):
+    def test_explicit_full_text_agreement_publishes_and_reads_task_db_snapshot(self):
         live = {"registry": populated_registry()}
-        gate = CONTRACT["TaskRequirementsGate"].enabled(lambda: live["registry"])
-        links = [{"text": "Task must preserve registry provenance.", "applications": ["APP-1"]}]
-        plan = live["registry"].plan_task(links)
-        agreement = {"accepted": True, "chains": plan["chains"]}
+        with tempfile.TemporaryDirectory() as raw:
+            task_database = Path(raw) / "tasks.sqlite"
+            snapshots = CONTRACT["TaskRequirementsSnapshotStore"](task_database)
+            gate = CONTRACT["TaskRequirementsGate"].enabled(lambda: live["registry"], snapshots)
+            links = [{"text": "Task must preserve registry provenance.", "applications": ["APP-1"]}]
+            plan = live["registry"].plan_task(links)
+            agreement = {"accepted": True, "chains": plan["chains"]}
 
-        with self.assertRaisesRegex(Exception, "agreement|соглас"):
-            gate.prepare(links, {"accepted": False, "chains": plan["chains"]})
-        published = gate.prepare(links, agreement)
-        persisted_task = json.loads(json.dumps({"requirements_snapshot": published}))
-        self.assertEqual(persisted_task["requirements_snapshot"]["requirements"]["SYS-1"]["text"], "System protects durable state.")
-        self.assertEqual(persisted_task["requirements_snapshot"]["requirements"]["APP-1"]["status"], "current")
-        self.assertEqual(persisted_task["requirements_snapshot"]["links"], [{"system": "SYS-1", "application": "APP-1"}, {"system": "SYS-2", "application": "APP-1"}])
-        live["registry"] = live["registry"].apply([put(requirement("SYS-1", "system", "obsolete", "Changed after publication."))], max_items=20)
-        self.assertEqual(persisted_task["requirements_snapshot"]["requirements"]["SYS-1"]["text"], "System protects durable state.")
+            with self.assertRaisesRegex(Exception, "agreement|соглас"):
+                gate.publish("TASK-1", links, {"accepted": False, "chains": plan["chains"]})
+            published = gate.publish("TASK-1", links, agreement)
+            self.assertEqual(snapshots.read("TASK-1"), published)
+            self.assertEqual(published["requirements"]["SYS-1"]["text"], "System protects durable state.")
+            self.assertEqual(published["requirements"]["APP-1"]["status"], "current")
+            self.assertEqual(published["links"], [{"system": "SYS-1", "application": "APP-1"}, {"system": "SYS-2", "application": "APP-1"}])
+            live["registry"] = live["registry"].apply([put(requirement("SYS-1", "system", "obsolete", "Changed after publication."))], max_items=20)
+            self.assertEqual(snapshots.read("TASK-1")["requirements"]["SYS-1"]["text"], "System protects durable state.")
+            with self.assertRaisesRegex(Exception, "immutable|exists|существ"):
+                gate.publish("TASK-1", links, agreement)
 
     def test_common_task_creation_preflight_always_invokes_the_explicit_gate(self):
         class RejectingGate:
@@ -349,6 +379,30 @@ class RequirementsRegistryDeliveryTests(unittest.TestCase):
             config_path.write_text(json.dumps(source), encoding="utf-8")
             with self.assertRaisesRegex(Exception, "requirements_database|paths"):
                 CONTRACT["load_config"](config_path)
+            source = json.loads(source_path.read_text(encoding="utf-8"))
+            source["paths"]["state"] = str(root / "project-data")
+            del source["paths"]["requirements_lock"]
+            config_path.write_text(json.dumps(source), encoding="utf-8")
+            with self.assertRaisesRegex(Exception, "requirements_lock|paths"):
+                CONTRACT["load_config"](config_path)
+
+    def test_task_and_requirements_databases_have_disjoint_owned_schemas(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            requirements_db = root / "requirements.sqlite"
+            task_db = root / "tasks.sqlite"
+            CONTRACT["RequirementsStore"](requirements_db, root / "requirements.lock", lock_seconds=1.0, poll_seconds=0.01)
+            snapshots = CONTRACT["TaskRequirementsSnapshotStore"](task_db)
+            snapshots.initialize()
+            with sqlite3.connect(requirements_db) as connection:
+                requirements_tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            with sqlite3.connect(task_db) as connection:
+                task_tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            self.assertTrue({"requirements", "requirement_links"}.issubset(requirements_tables))
+            self.assertIn("task_requirements_snapshots", task_tables)
+            self.assertNotIn("task_requirements_snapshots", requirements_tables)
+            self.assertFalse({"requirements", "requirement_links"} & task_tables)
+            self.assertTrue(requirements_tables.isdisjoint(task_tables))
 
     def test_repository_delivery_declares_config_bootstrap_docs_and_skill_links(self):
         root = REPOSITORY_ROOT

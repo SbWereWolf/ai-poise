@@ -100,12 +100,17 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
     assert restarted["status"] == "newborn"
     assert restarted["task"] == task_id
     assert restarted["sprint"] is None
-    assert restarted["draft"] == {
+    expected_draft = {
         key: deepcopy(value)
         for key, value in before["contract"].items()
         if key not in {"id", "sprint_id"}
     }
+    expected_draft["requirements_snapshot"] = before["requirements_snapshot"]
+    expected_draft["requirements_agreement"] = before["requirements_agreement"]
+    assert restarted["draft"] == expected_draft
     after = executor.runtime.task_queries.record(task_id)
+    assert after["requirements_snapshot"] == before["requirements_snapshot"]
+    assert after["requirements_agreement"] == before["requirements_agreement"]
     assert after["worktree"] == execution_before["worktree"] == context["worktree"]
     assert after["branch"] == execution_before["branch"]
     assert after["pending"] is None

@@ -6,7 +6,7 @@ from poise.composition import project_tools
 from poise.common import PoiseError,load_config,digest
 from conftest import WorkPoise as Poise
 from poise.application.work import WorkTools
-from tests.conftest import git,write_json
+from tests.conftest import git,seed_fixture_requirements,write_json
 from .helpers import setup_case
 
 
@@ -22,6 +22,7 @@ def test_setup_creates_independent_runtime_config_without_task_or_git_mutation(p
     source=project['root']/req['template']['id'] # actual copy, not symlink
     assert (root/cfg['processes']['development']).is_file()
     assert not (root/cfg['processes']['development']).is_symlink()
+    seed_fixture_requirements(root, cfg)
     response=WorkTools(Poise(result['config_path'],'pilot')).invoke({'operation':'bootstrap','input':{'task':project['task'],'decision':None,'feedback':None,'rework_stage':None},'messages':[]})
     assert response['task']=='T1' and response['stage']=='tests'
     assert Path(response['worktree']).is_dir()

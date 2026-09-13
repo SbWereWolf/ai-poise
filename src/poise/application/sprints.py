@@ -16,6 +16,14 @@ def fingerprint(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
 
 
+def _creation_definition(body):
+    """Return the Task schema owned below the external Requirements gate."""
+    result = deepcopy(body)
+    result.pop("requirements_snapshot", None)
+    result.pop("requirements_agreement", None)
+    return result
+
+
 class SprintCommands:
     def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
                  automatic_checks,execution_hash,prepare_creation,creation_base):
@@ -40,7 +48,9 @@ class SprintCommands:
                     body={'id':t,'sprint_id':s.plan.data['id'],**deepcopy(fact['_newborn_draft'])}
                     process=fact['_newborn_process']
                     if process is None:raise DomainError('Unknown goal_type')
-                    validate_creation(body,process,record['automatic_checks'])
+                    validate_creation(
+                        _creation_definition(body), process, record['automatic_checks']
+                    )
                     if not fact.get('ready',False):
                         raise DomainError('Newborn Sprint member is not type-ready')
                     continue
@@ -128,7 +138,9 @@ class SprintCommands:
                     process=newborn.process
                     if process is None:raise DomainError('Unknown goal_type')
                     body={'id':task_id,'sprint_id':sid,**deepcopy(newborn.draft)}
-                    validate_creation(body,process,self.automatic_checks)
+                    validate_creation(
+                        _creation_definition(body), process, self.automatic_checks
+                    )
                 except PoiseError:
                     pass
                 else:

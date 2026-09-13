@@ -71,6 +71,21 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
+    def _newborn_metadata(self, newborn, config_hash):
+        metadata = newborn.metadata(config_hash)
+        if not newborn.restart_history:
+            return metadata
+        row = self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (newborn.task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {newborn.task_id}")
+        previous = json.loads(row[0])
+        for key in ("requirements_snapshot", "requirements_agreement"):
+            if key in previous:
+                metadata[key] = deepcopy(previous[key])
+        return metadata
+
     def is_newborn(self, task_id):
         row = self.db.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
         if row is None:
@@ -358,7 +373,7 @@ class SqliteTaskRepository:
                 TaskStatus.NEWBORN.value,
                 newborn.claimed_by,
                 newborn.version,
-                encode(newborn.metadata(config_hash)),
+                encode(self._newborn_metadata(newborn, config_hash)),
                 newborn.task_id,
                 expected_version,
             ),
@@ -385,7 +400,7 @@ class SqliteTaskRepository:
             (
                 newborn.claimed_by,
                 newborn.version,
-                encode(newborn.metadata(config_hash)),
+                encode(self._newborn_metadata(newborn, config_hash)),
                 newborn.task_id,
                 TaskStatus.NEWBORN.value,
                 expected_version,

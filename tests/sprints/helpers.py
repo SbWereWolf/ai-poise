@@ -1,6 +1,6 @@
 from copy import deepcopy
 import sys
-from conftest import write_json
+from conftest import bind_task_requirements, write_json
 from batch.helpers import request
 
 
@@ -45,12 +45,12 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
         'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}]
     t['checks']={'work':['CHECK']};t['evidence_plan']={'work':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     t['stage_contracts']=[{
-        'stage_id':'work',
-        'allowed_paths':list(project['process']['stages'][0]['allowed_paths']),
+        'stage_id':stage['id'],
+        'allowed_paths':list(stage['allowed_paths']),
         'entry_requirements':[],
         'exit_requirements':[],
-    }]
-    return t
+    } for stage in project['process']['stages']]
+    return bind_task_requirements(t, project['requirements_registry'])
 
 
 def changes(tasks,edges=()):
@@ -89,4 +89,4 @@ def publish_existing_contract(runtime, contract, sprint_id):
     r=runtime.sprint_tools.apply({'action':'draft','sprint_id':sprint_id,'request_id':'fixture-draft',
        'expected_revision':None,'template':{'id':'basic','version':'1'},'changes':changes([t])})
     runtime.sprint_tools.apply({'action':'publish','sprint_id':sprint_id,'request_id':'fixture-publish','expected_revision':r['revision']})
-    return t
+    return deepcopy(runtime.task_queries.record(t['id'])['contract'])

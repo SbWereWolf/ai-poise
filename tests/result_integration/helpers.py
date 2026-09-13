@@ -9,7 +9,7 @@ import sys
 from poise.application.work import WorkTools
 from conftest import WorkPoise as Poise
 
-from conftest import git, write_json
+from conftest import bind_task_requirements, git, write_json
 
 
 def request(operation, inputs):
@@ -91,6 +91,7 @@ def prepare_completed_task(
             "exit_requirements": [],
         }],
     }
+    bind_task_requirements(task, project["requirements_registry"])
     runtime = Poise(project["config_path"], "worker")
     tools = WorkTools(runtime)
     context = tools.invoke(request("bootstrap", {

@@ -58,6 +58,8 @@ When the Task's counterpart executor/reviewer is known, apply [Direct role hando
 
 If the recipient or messaging tool is unavailable, report the saved handoff to the user; do not contact unrelated agents. If handoff fails, do not announce a completed transfer. If notification fails after release, retry the notification against the same saved result or report the blocker; do not silently reclaim or repeat the work. Repeated messages require checking current Poise state, not replaying a finished stage. Stop for a harness blocker or a decision outside the existing authorization, not for a routine executor/reviewer boundary.
 
+For multiple incoming review handoffs, follow the linked direct-handoff rule: if idle, acquire and start immediately; otherwise finish the review already started, save, release and notify before taking the next Task. A new handoff does not interrupt the current review or claim a second Task. End the turn after notification and process the next already-received handoff in the next work cycle, without waiting or monitoring.
+
 For another store/environment, use `transfer`; do not merge task databases manually. Read [Transfer → Batch API](../../../docs/workflows/transfer.md#пакетный-api).
 
 ## Observed usage

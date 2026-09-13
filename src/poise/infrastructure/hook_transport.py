@@ -198,7 +198,13 @@ class HookService:
             {'kind':'external','session_id':native['session_id'],'agent_id':d['agent_id']})
         root=descendant(self.settings.bindings,identity.key)
         launcher=descendant(root,self.settings.raw['launcher']);binding=descendant(root,self.settings.raw['binding_file'])
-        record={'session_id':identity.key,'external_session':native['session_id'],'agent_id':d['agent_id'],
+        assigned=native['session_id']
+        if binding.exists():
+            prior=read_document(binding)
+            if not isinstance(prior,dict) or not isinstance(prior.get('session_id'),str) or not prior['session_id']:
+                raise PoiseError('Existing hook binding has no assigned session')
+            assigned=prior['session_id']
+        record={'session_id':assigned,'external_session':native['session_id'],'agent_id':d['agent_id'],
             'project':cfg['project'],'settings':str(self.settings.path),'settings_digest':digest(self.settings.raw),
             'definition_path':str(Path(definition_path).resolve()),'launcher':str(launcher),'binding_path':str(binding)}
         self.registry.bind(record)

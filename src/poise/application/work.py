@@ -62,6 +62,7 @@ class WorkTools:
             elif op=='handoff':out=h.handoff(args)
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
+            elif op=='recover_missing_worktree':out=h.recover_missing_worktree(**args)
             elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='verify':out=self._verify(args)

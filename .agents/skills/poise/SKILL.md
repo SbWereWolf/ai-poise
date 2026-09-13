@@ -42,6 +42,11 @@ pending external outcome before mutation. Resolve pending uncertainty through it
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
 action. Historical replacement relations remain read-only provenance.
 
+Use the installation-owned `recover_missing_worktree` operation only for a nonterminal
+verified/accepted Task whose registered worktree was removed. It must prove the saved report
+commit is integrated into the configured base and has the exact verified tree before restoring
+the saved branch/worktree; it never changes Task ownership, lifecycle, result, or handoff.
+
 If a lawful external process publication leaves the goal-config editor head stale, first use
 the read-only `goal-config-status-1` diagnostic and establish the provenance of the live file.
 Adopt it only through an exact `goal-config-reconcile-1` request with the observed managed and

@@ -75,6 +75,10 @@ matching `worktree_required`, or adds the missing explicit value, and initialize
 contracts from that preserved process and its content requirements. Apply schema 3 metadata
 changes without changing Task version, lifecycle, released handoff, result, evidence, ownership,
 or Git state, then require a native reviewer bootstrap of the preserved verified Task.
+Recover an accidentally cleaned nonterminal verified/accepted worktree only through the
+installation-owned `recover_missing_worktree` operation. Require the saved report commit to be
+integrated into the configured base with the exact verified tree; restore only the saved valid
+branch and configured Task path, and never change Task ownership or lifecycle in that recovery.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 

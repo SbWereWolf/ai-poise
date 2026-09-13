@@ -12,7 +12,7 @@ EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 INSTALLATION_OPERATIONS={
     'show', 'cancel', 'task', 'sprint', 'integrate',
-    'recover_empty_rework', 'recover_empty_advance'
+    'recover_empty_rework', 'recover_empty_advance', 'recover_missing_worktree'
 }
 
 

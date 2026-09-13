@@ -9,7 +9,7 @@ import selectors
 import signal
 import subprocess
 import time
-from ..common import PoiseError
+from ..common import PoiseError,prohibit_git_push
 from .goal_config import strict_json
 
 
@@ -72,6 +72,7 @@ class StdioProbe:
             return message['result']
 
     def run(self):
+        prohibit_git_push(self.spec['argv'])
         m=self.spec['mcp'];self.deadline=time.monotonic()+self.spec['timeout_seconds']
         with (self.directory/self.files['stdout']).open('wb') as self.raw,(self.directory/self.files['stderr']).open('wb') as err:
             try:

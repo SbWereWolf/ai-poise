@@ -38,6 +38,15 @@ Do not create a worktree for read-only queries. For repository-changing work, us
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).
 
+When a current observation command has become stale, do not recreate the Task or edit its
+database. Read the current registry with one `show` query of kind `verification_registry`, then
+submit one guarded `method_additions` change from the current `observe` stage. Replace only a
+method owned by that stage's `evidence_plan.subject_methods`; provide the exact current revision,
+a new idempotent request ID and unchanged stages, `evidence_kind`, `covers` and
+`executable_obligations`. Add/remove/reschedule and guard or classification changes still require
+a `test_registry` stage. Preserve the returned audit receipt; a replay must return its original
+identity without another event. Follow [Evidence → stale observation replacement](../../../docs/workflows/evidence.md#замена-устаревшего-метода-наблюдения).
+
 Use native coding/IDE tools for source changes. AI poise owns task state, evidence registration, execution receipts, Git lifecycle boundaries and managed artifacts. Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user instruction to start a Task authorizes its executor and reviewer to continue ordinary execution, review and remediation through the harness without a new user command for each stage or review. Honor an explicit stage-only assignment or other user limit. Continue stages of your own role; at a role boundary follow the handoff procedure below. Do not bypass gates or act as your own independent reviewer. Stop for a real blocker, a new required decision, or separately controlled acceptance/publication/integration.
 
 Poise isolates the temporary Git index for every repository snapshot invocation and cleans only that invocation's owned directory. Never delete `snapshot.index.lock` manually or remove a sibling snapshot directory: preserve a genuine Git conflict diagnostic and let the owning lifecycle recover it. See the canonical [snapshot index contract](../../../docs/workflows/batch-work.md#изоляция-временного-git-index).

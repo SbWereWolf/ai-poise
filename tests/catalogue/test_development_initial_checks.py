@@ -233,6 +233,20 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
         process,
         task["methods"],
     )
+    expected_contracts = walkthrough["_stage_contracts"](process)
+    assert task["stage_contracts"] == expected_contracts
+    assert any(
+        contract["entry_requirements"] or contract["exit_requirements"]
+        for contract in task["stage_contracts"]
+    )
+    active = {
+        requirement_id
+        for contract in task["stage_contracts"]
+        for requirement_id in contract["entry_requirements"] + contract["exit_requirements"]
+    }
+    assert active == {
+        requirement["id"] for requirement in process["content_contract"]["requirements"]
+    }
     assert task["checks"]["baseline"] == ["BASELINE"]
     assert task["checks"]["test_implementation"] == ["TEST_RED"]
     assert task["checks"]["implementation"] == ["TEST_GREEN"]

@@ -48,6 +48,17 @@ def _configured_processes(project: dict) -> dict[str, dict]:
     return {"development": development, "documentation": documentation, "analysis": analysis}
 
 
+def _configured_worktree_values(project: dict) -> dict[str, bool]:
+    config = json.loads(project["config_path"].read_text(encoding="utf-8"))
+    values = {}
+    for goal_type, relative in config["processes"].items():
+        process = json.loads(
+            (project["config_path"].parent / relative).read_text(encoding="utf-8")
+        )
+        values[goal_type] = process["worktree_required"]
+    return values
+
+
 def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
     from poise.infrastructure.sqlite.database import Database
 
@@ -230,16 +241,21 @@ def test_domain_plans_only_missing_field_for_exact_batch():
     rows = []
     processes = {}
     for task_id in TASKS:
-        goal_type = "documentation" if task_id == "0077" else "development"
+        goal_type = (
+            "analysis" if task_id == "0063"
+            else "documentation" if task_id == "0077"
+            else "development"
+        )
         process = {"goal_type": goal_type, "route": {"entry": "start"}}
         rows.append({"id": task_id, "status": "available", "claimed_by": None,
                      "metadata": {"contract": {"goal_type": goal_type}, "process": process}})
-        processes[goal_type] = {**process, "worktree_required": goal_type != "documentation"}
+        configured_value = {"documentation": False, "development": True, "analysis": False}[goal_type]
+        processes[goal_type] = {**process, "worktree_required": configured_value}
 
     plan = ProcessSnapshotMigration.plan(request, rows, processes)
 
     assert tuple(item.task_id for item in plan.updates) == TASKS
-    assert [item.process["worktree_required"] for item in plan.updates] == [False, True, True, True, True, True]
+    assert [item.process["worktree_required"] for item in plan.updates] == [False, True, True, True, True, False]
     assert all(set(item.process) == {"goal_type", "route", "worktree_required"} for item in plan.updates)
 
 
@@ -263,10 +279,12 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert result["backup_name"] == backup["name"]
     assert [item["task_id"] for item in result["tasks"]] == list(TASKS)
     assert [item["worktree_required"] for item in result["tasks"]] == [True, True, True, True, False, True]
+    configured_values = _configured_worktree_values(project)
     expected_tasks = []
     for task_id in TASKS:
         old_process = expected_metadata[task_id]["process"]
-        worktree_required = expected_metadata[task_id]["contract"]["goal_type"] != "documentation"
+        goal_type = expected_metadata[task_id]["contract"]["goal_type"]
+        worktree_required = configured_values[goal_type]
         new_process = {**old_process, "worktree_required": worktree_required}
         expected_tasks.append({
             "task_id": task_id,
@@ -306,9 +324,9 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
         metadata = json.loads(raw)
         expected = deepcopy(expected_metadata[task_id])
         if task_id in TASKS:
-            expected["process"]["worktree_required"] = (
-                expected["contract"]["goal_type"] != "documentation"
-            )
+            expected["process"]["worktree_required"] = configured_values[
+                expected["contract"]["goal_type"]
+            ]
         assert metadata == expected
         if task_id in TASKS:
             route = BoundSourceRoute.decide("bootstrap", {"id": task_id}, None, {

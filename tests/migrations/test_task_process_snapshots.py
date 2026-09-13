@@ -136,6 +136,13 @@ def _request(backup_name: str, **changes: object) -> dict:
     return value
 
 
+def _digest(value: object) -> str:
+    packed = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    )
+    return hashlib.sha256(packed.encode("utf-8")).hexdigest()
+
+
 def _snapshot(database: Path) -> dict[str, list[tuple]]:
     with sqlite3.connect(database) as connection:
         tables = [
@@ -201,13 +208,24 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert result["backup_name"] == backup["name"]
     assert [item["task_id"] for item in result["tasks"]] == list(TASKS)
     assert [item["worktree_required"] for item in result["tasks"]] == [True, True, True, True, False]
-    for item in result["tasks"]:
-        assert set(item) == {
-            "task_id", "worktree_required", "old_process_digest", "new_process_digest"
-        }
-        assert len(item["old_process_digest"]) == len(item["new_process_digest"]) == 64
-        assert item["old_process_digest"] != item["new_process_digest"]
-    assert len(result["receipt"]) == 64
+    expected_tasks = []
+    for task_id in TASKS:
+        old_process = expected_metadata[task_id]["process"]
+        new_process = {**old_process, "worktree_required": task_id != "0074"}
+        expected_tasks.append({
+            "task_id": task_id,
+            "worktree_required": task_id != "0074",
+            "old_process_digest": _digest(old_process),
+            "new_process_digest": _digest(new_process),
+        })
+    assert result["tasks"] == expected_tasks
+    parsed_request = MigrationRequest.parse(_request(backup["name"]))
+    expected_receipt = _digest({
+        "request_digest": parsed_request.digest,
+        "backup_name": backup["name"],
+        "tasks": expected_tasks,
+    })
+    assert result["receipt"] == expected_receipt
     assert hashlib.sha256(backup_path.read_bytes()).hexdigest() == backup_digest
 
     after = _snapshot(database)
@@ -247,16 +265,22 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert set(audit) == {"request_digest", "request_id", "result"}
     assert audit["request_id"] == result["request_id"]
     assert audit["result"] == result
-    assert audit["request_digest"] == MigrationRequest.parse(_request(backup["name"])).digest
+    assert audit["request_digest"] == parsed_request.digest
 
     conflicting_before = _snapshot(database)
-    conflict = _invoke_cli(
-        project,
-        _request(backup["name"], authorization="Different authorization with the same request ID."),
+    second_backup = json.loads(
+        run_cli("backup", "create", "--config", str(project["config_path"])).stdout
     )
-    assert conflict.returncode == 2
-    assert "request_id" in json.loads(conflict.stdout)["reason"]
-    assert _snapshot(database) == conflicting_before
+    assert (backup_directory(project) / second_backup["name"]).is_file()
+    conflicts = [
+        _request(backup["name"], authorization="Different authorization with the same request ID."),
+        _request(second_backup["name"]),
+    ]
+    for changed_intent in conflicts:
+        conflict = _invoke_cli(project, changed_intent)
+        assert conflict.returncode == 2
+        assert "request_id" in json.loads(conflict.stdout)["reason"]
+        assert _snapshot(database) == conflicting_before
 
     replay = _invoke_cli(project, _request(backup["name"]))
     assert replay.returncode == 0, replay.stderr
@@ -374,6 +398,7 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
 
 
 def test_stale_backup_or_live_row_drift_rejects_every_update(project):
+    from poise.modules.foundation.errors import PoiseError
     from poise.modules.tasks.process_migration import MigrationRequest
     from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
 
@@ -403,7 +428,10 @@ def test_stale_backup_or_live_row_drift_rejects_every_update(project):
     port = SqliteTaskProcessMigration(
         project["config_path"], clock=lambda: FIXED_NOW, after_preflight=drift_after_preflight
     )
-    with pytest.raises(Exception, match="backup"):
+    with pytest.raises(
+        PoiseError,
+        match="Task DB differs from the named backup after migration preflight",
+    ):
         port.migrate(MigrationRequest.parse(_request(backup["name"])))
     drifted = _snapshot(database)
     expected_drifted = deepcopy(before_interposed)

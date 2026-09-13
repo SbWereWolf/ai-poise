@@ -218,5 +218,81 @@
         "remediation_basis"
       ]
     }
-  }
+  },
+  "stage_contracts": [
+    {
+      "stage_id": "framing",
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "outline",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "outline-input-content_requirements",
+        "outline-input-source_inventory",
+        "mcp_research_plan-required-outline"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "drafting",
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "entry_requirements": [
+        "drafting-input-outline",
+        "drafting-input-source_inventory",
+        "drafting-input-verification_plan"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "validation",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "validation-input-content",
+        "validation-input-examples_commands",
+        "validation-input-source_inventory",
+        "validation-input-verification_plan",
+        "capability_matrix-required-validation",
+        "policy_decisions-required-validation",
+        "skill_links-required-validation"
+      ],
+      "exit_requirements": [
+        "validation-post-verdict"
+      ]
+    },
+    {
+      "stage_id": "inspection",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "inspection-input-content",
+        "inspection-input-content_requirements",
+        "capability_matrix-required-inspection",
+        "policy_decisions-required-inspection",
+        "skill_links-required-inspection"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "remediation",
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "entry_requirements": [
+        "remediation-input-verification_plan"
+      ],
+      "exit_requirements": []
+    },
+    {
+      "stage_id": "remediation_inspection",
+      "allowed_paths": [],
+      "entry_requirements": [
+        "remediation_inspection-input-content"
+      ],
+      "exit_requirements": []
+    }
+  ]
 }

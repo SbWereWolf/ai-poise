@@ -34,10 +34,15 @@ def publish_directory(source,target):
     finally:os.close(fd)
 
 
+def publish_registry(settings,document):
+    content=(json.dumps(document,ensure_ascii=False,indent=settings.raw['json_indent'],allow_nan=False)+'\n').encode()
+    atomic_write(settings.registry,content,settings.raw['file_mode'])
+
+
 class ProjectSettings:
     def __init__(self,path):
         self.path=Path(path).resolve();self.raw=read_document(self.path);c=self.raw
-        exact_keys(c,{'schema','root','templates','manifest','receipt','lock','file_mode','directory_mode',
+        exact_keys(c,{'schema','root','templates','manifest','receipt','registry','lock','file_mode','directory_mode',
             'json_indent','lock_seconds','lock_poll_seconds','git_seconds','max_input_bytes','max_edits',
             'max_survey_steps','output_chars','exit_codes'},'project setup settings')
         if c['schema']!='project-setup-settings-1':raise PoiseError('Unsupported setup settings schema')
@@ -55,7 +60,11 @@ class ProjectSettings:
             if not isinstance(c[k],str) or Path(c[k]).name!=c[k] or c[k] in ('','.','..'):
                 raise PoiseError(f'{k} must be a single filename')
         if c['manifest']==c['receipt']:raise PoiseError('Receipt and manifest must be distinct')
-        confined(self.root,c['lock'])
+        for key in ('registry','lock'):
+            if not isinstance(c[key],str) or not c[key].strip():raise PoiseError(f'Explicit {key} path required')
+        self.registry=confined(self.root,c['registry'])
+        self.lock=confined(self.root,c['lock'])
+        if self.registry==self.lock:raise PoiseError('Project registry and setup lock must be distinct')
         exact_keys(c['exit_codes'],{'success','rejected','aborted'},'setup exit codes')
         if any(type(v) is not int or not 0<=v<=255 for v in c['exit_codes'].values()) or len(set(c['exit_codes'].values()))!=3:
             raise PoiseError('Distinct explicit exit codes required')
@@ -98,10 +107,62 @@ class FileProjectSetup:
             git('remote','get-url','--',cfg['git']['remote']);remote='configured_not_contacted'
         return {'repository':'verified','base_revision':commit,'remote':remote}
 
+    def _registry(self):
+        document=read_document(self.settings.registry)
+        exact_keys(document,{'schema','projects'},'configured project registry')
+        if document['schema']!='configured-project-registry-1':
+            raise PoiseError('Unsupported configured project registry schema')
+        projects=document['projects']
+        if not isinstance(projects,dict):raise PoiseError('Configured project registry projects must be an object')
+        for project,entry in projects.items():
+            if not isinstance(project,str) or not project.strip():
+                raise PoiseError('Configured project registry requires non-empty project identities')
+            exact_keys(entry,{'config_path'},f'configured project registry entry {project}')
+            if not isinstance(entry['config_path'],str) or not entry['config_path'].strip():
+                raise PoiseError(f'Configured project registry entry {project} requires config_path')
+            confined(self.settings.root,entry['config_path'])
+        return document
+
+    def _relative_config_path(self,target):
+        return str((target/self.settings.raw['manifest']).resolve().relative_to(self.settings.root))
+
+    def _register(self,document,project,target):
+        relative=self._relative_config_path(target)
+        existing=document['projects'].get(project)
+        if existing is not None:
+            if existing['config_path']!=relative:
+                raise VersionConflict(f'Project identity {project} already registered to another configuration')
+            return False
+        updated={'schema':'configured-project-registry-1','projects':{
+            **document['projects'],project:{'config_path':relative}}}
+        publish_registry(self.settings,updated)
+        return True
+
+    def list(self):
+        s=self.settings
+        document=self._registry()
+        projects=[];errors=[]
+        for project in sorted(document['projects']):
+            path=confined(s.root,document['projects'][project]['config_path'])
+            if not path.is_file():
+                errors.append({'project':project,'config_path':str(path),'status':'missing',
+                    'reason':'Configured project manifest does not exist'})
+                continue
+            try:
+                _,cfg,_=load_config(path)
+                if cfg['project']!=project:
+                    raise PoiseError(f'Manifest project identity is {cfg["project"]!r}, expected {project!r}')
+            except PoiseError as exc:
+                errors.append({'project':project,'config_path':str(path),'status':'invalid','reason':str(exc)})
+                continue
+            projects.append({'project':project,'config_path':str(path)})
+        return {'status':'listed_with_errors' if errors else 'listed','projects':projects,'errors':errors}
+
     def apply(self,request):
         s=self.settings;c=s.raw;target=confined(s.root,request['destination'])
-        lock=confined(s.root,c['lock'])
+        lock=s.lock
         if lock.is_relative_to(target):raise PoiseError('Setup lock cannot be inside project destination')
+        if s.registry.is_relative_to(target):raise PoiseError('Project registry cannot be inside project destination')
         request_digest=digest(request)
         minimal={'status':'created','project':'','revision':'0'*64,'config_path':str(target/c['manifest']),
                  'process_count':0,'readiness':{'repository':'not_checked','remote':'not_checked'},'replayed':False}
@@ -109,6 +170,7 @@ class FileProjectSetup:
             raise PoiseError('output_chars cannot hold project receipt; no publication attempted')
         try:
             with exclusive_lock(lock,c['lock_seconds'],c['lock_poll_seconds']):
+                registry=self._registry()
                 if target.exists():
                     receipt_path=confined(target,c['receipt'])
                     if not receipt_path.is_file():raise VersionConflict('Destination exists without this setup receipt')
@@ -117,8 +179,13 @@ class FileProjectSetup:
                     for rel,expected in saved['files'].items():
                         file=confined(target,rel)
                         if not file.is_file() or file_digest(file)!=expected:raise VersionConflict('Published project changed; replay cannot overwrite it')
+                    self._register(registry,saved['result']['project'],target)
                     return {**saved['result'],'replayed':True}
                 blueprint=self.template(request['template']);cfg=blueprint.build(request['edits'],c['max_edits'])
+                existing=registry['projects'].get(cfg['project'])
+                relative=self._relative_config_path(target)
+                if existing is not None and existing['config_path']!=relative:
+                    raise VersionConflict(f'Project identity {cfg["project"]} already registered to another configuration')
                 sources=blueprint.data['process_sources'];documents={}
                 if not isinstance(cfg['processes'],dict) or not cfg['processes']:raise PoiseError('Explicit selected processes required')
                 for goal,relative in cfg['processes'].items():
@@ -151,6 +218,7 @@ class FileProjectSetup:
                     write(c['receipt'],{'schema':'project-receipt-1','request_id':request['request_id'],
                         'request_digest':request_digest,'template':request['template'],'files':files,'result':result})
                     publish_directory(candidate,target)
+                self._register(registry,cfg['project'],target)
                 return result
         except OSError as exc:
             raise PoiseError(f'Project storage operation failed; retry same request to inspect publication: {exc}') from exc

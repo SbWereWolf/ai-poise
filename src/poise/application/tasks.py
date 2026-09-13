@@ -487,6 +487,26 @@ class TaskCommands:
                 payload['commit_message'],payload['content_additions'],payload['trace'],
                 payload['method_additions'],payload['stage_work'],payload['evidence_work'])
 
+    def matching_submission_digest(self, task_id: str, actor: str, payload: dict) -> str | None:
+        if not isinstance(payload,dict) or set(payload)!={"sections","artifact_paths","commit_message","content_additions","trace","method_additions","stage_work","evidence_work"}:
+            raise DomainError("Invalid stage result fields")
+        if not isinstance(payload['artifact_paths'],list):
+            raise DomainError('artifact_paths must be a list')
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            change = task.submit(
+                actor,
+                payload['sections'],
+                tuple(payload['artifact_paths']),
+                payload['commit_message'],
+                payload['content_additions'],
+                payload['trace'],
+                payload['method_additions'],
+                payload['stage_work'],
+                payload['evidence_work'],
+            )
+            return task.state.submission_digest if change.submission is None else None
+
     def assess_content(self, task_id: str, phase: str, artifacts: tuple[ArtifactFact, ...]) -> Assessment:
         with self.unit_of_work() as uow:
             return uow.tasks.load(task_id).assess_content(phase, artifacts)
@@ -599,12 +619,19 @@ class TaskCommands:
                     "Progression cannot continue with a pending unknown external outcome"
                 )
             handoff = uow.handoffs.latest_recovery_candidate(task_id)
+            ownership_suffix = (
+                ()
+                if handoff is None
+                else uow.tasks.ownership_event_suffix(
+                    task_id, handoff["version"], task.state.version
+                )
+            )
             crossed = bool(
                 handoff is not None
                 and handoff["state"] == "resumed"
                 and handoff["actor"] != actor
-                and task.state.version == handoff["version"] + 2
                 and handoff["receipt"]["stage"] == task.stage.stage_id
+                and ownership_suffix[:2] == ("handed_off", "handoff_resumed")
             )
             step = progression_step(task, target_stage, crossed)
             progression = uow.tasks.begin_progression(
@@ -774,11 +801,48 @@ class TaskCommands:
             task=uow.tasks.load(task_id)
             return task.evidence_book.batch(task.stage.stage_id,task.state.iteration,tree,execution_key)
 
+    def submission_observation_batch(
+        self, task_id, submission_digest, tree, execution_key
+    ):
+        with self.unit_of_work() as uow:
+            task=uow.tasks.load(task_id)
+            return task.evidence_book.submission_batch(
+                task.stage.stage_id,task.state.iteration,
+                submission_digest,tree,execution_key
+            )
+
     def record_observations(self, task_id, actor, tree, execution_key, receipts):
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
             change=task.record_observations(actor,tree,execution_key,receipts)
             uow.tasks.save(change,task.state.version)
+
+    def recover_pending_checks(
+        self, task_id, actor, submission_digest, tree, execution_key, receipts
+    ):
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            execution, execution_version = uow.execution.load(task_id)
+            if execution['pending'] != 'checks':
+                raise DomainError("Check recovery requires pending=checks")
+            if task.state.submission_digest != submission_digest:
+                raise DomainError("Check recovery submission changed before commit")
+            batch = task.evidence_book.submission_batch(
+                task.stage.stage_id,
+                task.state.iteration,
+                submission_digest,
+                tree,
+                execution_key,
+            )
+            if batch is None or batch['receipts'] != receipts:
+                raise DomainError("Check recovery receipts changed before commit")
+            change = task.recover_pending_checks(actor)
+            uow.tasks.save(change, task.state.version)
+            uow.execution.save(
+                task_id,
+                {**execution, 'pending': None},
+                execution_version,
+            )
 
     def assess_evidence(self, task_id, actor, tree, execution_key):
         with self.unit_of_work() as uow:

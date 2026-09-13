@@ -1,0 +1,8 @@
+{
+  "schema": "configured-project-registry-1",
+  "projects": {
+    "ai-poise": {
+      "config_path": "config/projects/ai-poise/project.json"
+    }
+  }
+}

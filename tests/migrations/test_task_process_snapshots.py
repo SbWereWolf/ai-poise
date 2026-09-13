@@ -393,6 +393,7 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert replay.returncode == 0, replay.stderr
     replayed = json.loads(replay.stdout)
     assert replayed == {**result, "replayed": True}
+    assert _snapshot(database) == after
 
 
 def test_claimed_task_is_migrated_without_changing_ownership(project):
@@ -474,7 +475,6 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
         "0063": "replacement-session",
     }
     assert expected_metadata["0063"]["marker"] == {"preserve": "0063"}
-    assert _snapshot(database) == after
 
 
 def test_rolls_back_complete_batch_and_receipt_on_fault(project):

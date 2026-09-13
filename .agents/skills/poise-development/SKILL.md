@@ -42,6 +42,11 @@ repair. Read [Batch work → rework with pending resolutions](../../../docs/work
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
 
+Keep target-project skill inventory and area routing out of AI poise source. Read the selected
+project's `task_decomposition` policy and require every process phase to declare skills and
+areas before readiness. Ordinary Tasks cannot combine peer narrow responsibilities. An integration Task names component_inputs, combined_result, integration_checks, and allowed_paths.
+Its allowed paths cover every declared phase area. Validation does not prove factual completeness of declared skills or boundaries.
+
 When another authorized owner has replaced a managed process file, diagnose the exact head
 and live revisions with `goal-config-status-1`, then adopt validated content only with an exact
 `goal-config-reconcile-1` request carrying reason and authority. Do not create a fresh editor database

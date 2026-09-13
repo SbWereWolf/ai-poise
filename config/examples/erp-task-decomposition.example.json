@@ -1,0 +1,228 @@
+{
+  "skills": [
+    {
+      "id": "api-contracts",
+      "class": "narrow",
+      "responsibility": "backend-contracts"
+    },
+    {
+      "id": "ddd",
+      "class": "narrow",
+      "responsibility": "domain-design"
+    },
+    {
+      "id": "debugging-and-recovery",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "direct-checks",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "documentation",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "exec-task",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "grilling",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "infrastructure",
+      "class": "narrow",
+      "responsibility": "infrastructure"
+    },
+    {
+      "id": "jetbrains-ide",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "laravel",
+      "class": "narrow",
+      "responsibility": "laravel-backend"
+    },
+    {
+      "id": "layout-and-design",
+      "class": "narrow",
+      "responsibility": "frontend-design"
+    },
+    {
+      "id": "modern-web-guidance",
+      "class": "narrow",
+      "responsibility": "frontend-design"
+    },
+    {
+      "id": "moonshine-native",
+      "class": "narrow",
+      "responsibility": "laravel-admin"
+    },
+    {
+      "id": "performance-and-observability",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "php-modernization",
+      "class": "narrow",
+      "responsibility": "laravel-backend"
+    },
+    {
+      "id": "phpunit",
+      "class": "narrow",
+      "responsibility": "backend-tests"
+    },
+    {
+      "id": "playwright",
+      "class": "narrow",
+      "responsibility": "browser-tests"
+    },
+    {
+      "id": "preflight",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "redis-queues",
+      "class": "narrow",
+      "responsibility": "queues"
+    },
+    {
+      "id": "release-gate",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "remediation",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "remediation-review",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "repo-tooling",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "review",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "safe-commit",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "security-and-privacy",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "self-review",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "sprint-design",
+      "class": "meta",
+      "responsibility": null
+    },
+    {
+      "id": "sql",
+      "class": "narrow",
+      "responsibility": "database"
+    },
+    {
+      "id": "strict-database-migrations",
+      "class": "narrow",
+      "responsibility": "database"
+    },
+    {
+      "id": "system-tests",
+      "class": "narrow",
+      "responsibility": "system-tests"
+    },
+    {
+      "id": "tailwind-4-docs",
+      "class": "narrow",
+      "responsibility": "frontend-design"
+    },
+    {
+      "id": "tdd",
+      "class": "general",
+      "responsibility": null
+    },
+    {
+      "id": "vitest",
+      "class": "narrow",
+      "responsibility": "frontend-tests"
+    },
+    {
+      "id": "vue-best-practices",
+      "class": "narrow",
+      "responsibility": "vue-frontend"
+    },
+    {
+      "id": "vue-debug-guides",
+      "class": "narrow",
+      "responsibility": "vue-frontend"
+    },
+    {
+      "id": "vue-pinia-best-practices",
+      "class": "narrow",
+      "responsibility": "vue-frontend"
+    },
+    {
+      "id": "vue-router-best-practices",
+      "class": "narrow",
+      "responsibility": "vue-frontend"
+    }
+  ],
+  "areas": [
+    {
+      "path": "app/**",
+      "responsibility": "laravel-backend"
+    },
+    {
+      "path": "database/**",
+      "responsibility": "database"
+    },
+    {
+      "path": "resources/css/**",
+      "responsibility": "frontend-design"
+    },
+    {
+      "path": "resources/js/**",
+      "responsibility": "vue-frontend"
+    },
+    {
+      "path": "routes/**",
+      "responsibility": "backend-contracts"
+    },
+    {
+      "path": "tests/Browser/**",
+      "responsibility": "browser-tests"
+    },
+    {
+      "path": "tests/Feature/**",
+      "responsibility": "system-tests"
+    },
+    {
+      "path": "tests/Unit/**",
+      "responsibility": "backend-tests"
+    }
+  ]
+}

@@ -102,6 +102,17 @@ snapshot уже возвращён адресным `bootstrap`.
         "method_inputs": [],
         "checks": {},
         "executable_obligations": ["requirements[0]"],
+        "decomposition": {
+          "kind": "ordinary",
+          "phases": [
+            {
+              "stage": "planning",
+              "skills": ["task-planning"],
+              "areas": ["docs/plans/**"]
+            }
+          ],
+          "integration": null
+        },
         "artifact_requirements": [],
         "content_contract": {"sections": [], "routes": [], "requirements": []},
         "evidence_plan": {},
@@ -136,6 +147,28 @@ runner/parser profile до allocation Task ID и подготовки worktree. 
 intent этот список относится уже к материализованному контракту, но вызывающая сторона
 по-прежнему передаёт его без поля `id`: идентификатор добавляет AI poise. Поэтому исправлять
 ошибку нужно по списку отсутствующих полей, а не копированием полного внутреннего контракта.
+
+### Декомпозиция и фокус Task
+
+Каждая фаза процесса явно объявляет skills и areas в `decomposition`; набор фаз должен точно
+совпадать с этапами выбранного process snapshot. Классы skills — meta, general и narrow —
+задаёт `task_decomposition` выбранного проекта. `meta` и `general` сами по себе не создают
+границу ответственности, а `narrow` связывается с одной project-specific responsibility.
+
+Вид Task — `ordinary` или `integration` — определяется до проверки фокуса. Обычная Task не
+объединяет разные narrow responsibilities или несвязанные маршрутизированные области, даже
+если они разнесены по разным фазам. Поэтому разделение работы по этапам не является способом
+обойти границу ответственности.
+
+Если цель состоит именно в сборке результатов нескольких компонентов, integration Task обязана объявить component_inputs, combined_result, integration_checks и allowed_paths.
+`allowed_paths` покрывает все области её фаз, а остальные поля описывают входы компонентов,
+единый результат и проверки их совместной работы. `meta` и `general` Task не требуют
+искусственного разделения.
+
+Неизвестные skills и areas без маршрута отклоняются до готовности Task или Sprint. Порядок деклараций не влияет на решение или диагностику: конфликтующие идентификаторы, области и
+responsibilities нормализуются и выводятся детерминированно. Проверка устанавливает только
+внутреннюю согласованность декларации и не доказывает, что исполнитель перечислил все
+фактически необходимые навыки или затрагиваемые области.
 
 ```json
 {"allocation":{"request_id":"customer-import-creation-1","task_id":"0029","replayed":false}}

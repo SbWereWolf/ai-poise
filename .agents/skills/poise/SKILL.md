@@ -33,6 +33,13 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
+Read task_decomposition from the selected project's project-specific routing. Declare every process phase before an ordinary or integration Task is made ready. Each phase names its
+skills and areas; the phase set must exactly match the selected process snapshot. Meta and general skills do not split a Task; peer narrow responsibilities do. Phase boundaries cannot
+hide a cross-responsibility ordinary Task. Use integration only when its declaration names
+component inputs, one combined result, integration checks, and allowed paths covering all
+phase areas. Treat validation as declaration consistency, not proof that the inventory or
+declared scope is factually complete.
+
 When a saved execution contract makes DoD unattainable or the next stage fails its own DoR,
 treat the outcome as `broken`, never as successful completion. A reviewer may repair only the
 defective stage contract, or an authorized owner may restart the same Task to newborn through

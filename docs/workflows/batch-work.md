@@ -329,8 +329,11 @@ commit. Операция не меняет ownership, Task version, stage, itera
 совпасть с сохранённым `verified_tree`. Путь обязан быть точным task path под настроенным state,
 а сохранённая branch — валидной и либо отсутствовать, либо указывать на тот же commit. Только
 после этих проверок создаются branch/worktree; итог дополнительно проверяется как clean exact
-commit/tree. Повтор над уже точным worktree возвращает `replayed: true`. Любой конфликт пути,
-ветки, commit, tree или integration ancestry отклоняет операцию без изменения Task DB. После
+commit/tree и как зарегистрированный worktree именно настроенного repository. Отдельный clone или
+embedded repository в том же path отклоняется. При сбое финальной проверки или audit операция
+удаляет только созданный ею worktree и только созданную ею branch; предсуществующая branch
+сохраняется. Повтор над уже точным worktree возвращает `replayed: true`. Любой конфликт пути,
+ветки, commit, tree или integration ancestry отклоняет операцию без изменения Task. После
 восстановления текущий владелец может выполнить обычный handoff, а получатель — native bootstrap.
 
 `recover_empty_rework` — узкая публичная аварийная операция, а не общий rollback. Она нужна,

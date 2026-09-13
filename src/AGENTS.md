@@ -78,7 +78,9 @@ or Git state, then require a native reviewer bootstrap of the preserved verified
 Recover an accidentally cleaned nonterminal verified/accepted worktree only through the
 installation-owned `recover_missing_worktree` operation. Require the saved report commit to be
 integrated into the configured base with the exact verified tree; restore only the saved valid
-branch and configured Task path, and never change Task ownership or lifecycle in that recovery.
+branch and configured Task path registered to that repository. Reject independent repositories
+at the same path. Roll back only Git resources created by the failed invocation, and never change
+Task ownership or lifecycle in that recovery.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 

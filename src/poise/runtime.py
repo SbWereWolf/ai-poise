@@ -268,33 +268,75 @@ class Poise:
         if branch_head not in (None, commit):
             raise PoiseError('Missing Task worktree branch points to another commit')
         replayed = expected_worktree.exists()
+        created_worktree = False
+        created_branch = False
         if replayed:
             if not expected_worktree.is_dir():
                 raise PoiseError('Stored Task worktree recovery path is not a directory')
-        else:
-            expected_worktree.parent.mkdir(parents=True, exist_ok=True)
-            if branch_head is None:
-                self._git(
-                    repository, 'worktree', 'add', '-b', expected_branch,
-                    str(expected_worktree), commit,
-                )
-            else:
-                self._git(repository, 'worktree', 'add', str(expected_worktree), expected_branch)
-        if (
-            self._git(expected_worktree, 'symbolic-ref', '--short', 'HEAD') != expected_branch
-            or self._git(expected_worktree, 'rev-parse', 'HEAD') != commit
-            or self._git(expected_worktree, 'status', '--porcelain')
-            or self._tree(expected_worktree) != verified_tree
-        ):
-            raise PoiseError('Recovered Task worktree does not match the verified source')
-        if not replayed:
-            self.store.event(self.session, task_id, 'worktree.recovered', {
-                'reason': reason,
-                'branch': expected_branch,
-                'worktree': str(expected_worktree),
-                'commit': commit,
-                'tree': verified_tree,
-            })
+        try:
+            if not replayed:
+                expected_worktree.parent.mkdir(parents=True, exist_ok=True)
+                if branch_head is None:
+                    self._git(
+                        repository, 'worktree', 'add', '-b', expected_branch,
+                        str(expected_worktree), commit,
+                    )
+                    created_branch = True
+                else:
+                    self._git(
+                        repository, 'worktree', 'add', str(expected_worktree), expected_branch
+                    )
+                created_worktree = True
+            repository_common = self._git(repository, 'rev-parse', '--git-common-dir')
+            worktree_common = self._git(expected_worktree, 'rev-parse', '--git-common-dir')
+            repository_common = (
+                Path(repository_common) if Path(repository_common).is_absolute()
+                else repository / repository_common
+            ).resolve(strict=True)
+            worktree_common = (
+                Path(worktree_common) if Path(worktree_common).is_absolute()
+                else expected_worktree / worktree_common
+            ).resolve(strict=True)
+            registered = self._git(repository, 'worktree', 'list', '--porcelain')
+            registered_paths = {
+                Path(line.removeprefix('worktree ')).resolve(strict=True)
+                for line in registered.splitlines() if line.startswith('worktree ')
+            }
+            if repository_common != worktree_common or expected_worktree not in registered_paths:
+                raise PoiseError('Recovered path is not a worktree of the configured repository')
+            if (
+                self._git(expected_worktree, 'symbolic-ref', '--short', 'HEAD') != expected_branch
+                or self._git(expected_worktree, 'rev-parse', 'HEAD') != commit
+                or self._git(expected_worktree, 'status', '--porcelain')
+                or self._tree(expected_worktree) != verified_tree
+            ):
+                raise PoiseError('Recovered Task worktree does not match the verified source')
+            if not replayed:
+                self.store.event(self.session, task_id, 'worktree.recovered', {
+                    'reason': reason,
+                    'branch': expected_branch,
+                    'worktree': str(expected_worktree),
+                    'commit': commit,
+                    'tree': verified_tree,
+                })
+        except BaseException as exc:
+            cleanup_errors = []
+            if created_worktree:
+                try:
+                    self._git(repository, 'worktree', 'remove', '--force', str(expected_worktree))
+                except BaseException as cleanup_exc:
+                    cleanup_errors.append(str(cleanup_exc))
+            if created_branch:
+                try:
+                    self._git(repository, 'branch', '-D', expected_branch)
+                except BaseException as cleanup_exc:
+                    cleanup_errors.append(str(cleanup_exc))
+            if cleanup_errors:
+                raise PoiseError(
+                    'Missing worktree recovery failed and scoped cleanup was incomplete: '
+                    + '; '.join(cleanup_errors)
+                ) from exc
+            raise
         return {
             'status': 'recovered',
             'task': task_id,

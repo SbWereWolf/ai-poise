@@ -1,7 +1,14 @@
 from __future__ import annotations
 import json
 from datetime import datetime, timezone
-from ...modules.tasks.domain import Task, TaskState, TaskStatus, StageSpec, Change
+from ...modules.tasks.domain import (
+    Change,
+    EmptyReworkRecoveryPoint,
+    StageSpec,
+    Task,
+    TaskState,
+    TaskStatus,
+)
 from ...modules.tasks.contracts import stages_from_process, stored_content_policy_from_metadata, evidence_plan_from_metadata
 from ...modules.content.domain import ContentState, SectionValue
 from ...modules.verification.domain import CheckRegistry
@@ -125,6 +132,57 @@ class SqliteTaskRepository:
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"])
 
+    def empty_rework_recovery_point(
+        self, task_id: str, rework_version: int, last_report: dict
+    ) -> EmptyReworkRecoveryPoint:
+        events = self.db.execute(
+            "SELECT data FROM task_events WHERE task_id=? AND version=? ORDER BY seq",
+            (task_id, rework_version),
+        ).fetchall()
+        if len(events) != 1 or json.loads(events[0]["data"])["event"] != "user_rework":
+            raise PoiseError("Recovery requires the exact preceding user_rework event")
+        row = self.db.execute(
+            "SELECT s.stage,s.iteration,s.digest,s.data,w.data AS workflow,r.data AS result "
+            "FROM submissions s "
+            "JOIN workflow_layers w ON w.task_id=s.task_id AND w.submission_id=s.seq "
+            "JOIN task_results r ON r.task_id=s.task_id AND r.submission_id=s.seq "
+            "WHERE s.task_id=? ORDER BY s.seq DESC LIMIT 1",
+            (task_id,),
+        ).fetchone()
+        if row is None or json.loads(row["result"]) != last_report:
+            raise PoiseError("Recovery requires the immediately preceding verified result")
+        if last_report.get("status") != "verified":
+            raise PoiseError("Recovery requires a previously verified result")
+        workflow = json.loads(row["workflow"])
+        envelope = json.loads(row["data"])
+        proof_row = self.db.execute(
+            "SELECT data FROM task_proof_layers WHERE task_id=? AND version<? "
+            "ORDER BY version DESC LIMIT 1",
+            (task_id, rework_version),
+        ).fetchone()
+        if proof_row is None:
+            raise PoiseError("Recovery requires the previous immutable proof snapshot")
+        proof = json.loads(proof_row["data"])
+        feedback = workflow["feedback"]
+        progress = RouteProgress(
+            tuple(workflow["visits"].items()),
+            workflow["transitions"],
+            workflow["outcome"],
+            json.dumps(envelope["stage_work"], sort_keys=True, ensure_ascii=False),
+        )
+        return EmptyReworkRecoveryPoint(
+            row["stage"],
+            row["iteration"],
+            row["digest"],
+            progress,
+            FeedbackBook.from_dict(
+                {name: feedback[name] for name in ("findings", "resolutions", "decisions")}
+            ),
+            EvidenceBook.from_dict(proof["book"]),
+            proof["input"],
+            proof["assessment"],
+        )
+
     def save(self, change: Change, expected_version: int) -> int | None:
         state = change.task.state
         prior = self.db.execute("SELECT version,current_submission_id FROM tasks WHERE id=?", (state.task_id,)).fetchone()
@@ -139,6 +197,14 @@ class SqliteTaskRepository:
             raise VersionConflict("Недопустимый шаг версии задачи")
         if state.submission_digest is None:
             submission_id = None
+        elif change.submission is None and submission_id is None:
+            restored = self.db.execute(
+                "SELECT seq FROM submissions WHERE task_id=? AND digest=? ORDER BY seq DESC",
+                (state.task_id, state.submission_digest),
+            ).fetchall()
+            if len(restored) != 1:
+                raise PoiseError("Recovered Task requires one exact previous submission")
+            submission_id = restored[0]["seq"]
         if change.submission is not None:
             candidate = change.submission
             if candidate.digest != state.submission_digest:

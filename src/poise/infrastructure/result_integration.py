@@ -264,13 +264,12 @@ class RuntimeResultIntegration:
         return failed
 
     def _select_checks(self, record):
-        stage = record["process"]["stages"][record["stage_index"]]["id"]
-        ids = record["contract"]["checks"][stage]
-        methods = {method["id"]: method for method in record["contract"]["methods"]}
-        missing = set(ids) - methods.keys()
-        if missing:
-            raise PoiseError(f"Unknown integration methods: {sorted(missing)}")
-        return [methods[method_id] for method_id in ids]
+        selected = []
+        for method in record["contract"]["methods"]:
+            plan = method["verification_plan"]
+            if plan["green_stages"] and plan["change_surface"]:
+                selected.append(method)
+        return selected
 
     def _run_checks(self, record, run):
         worktree = Path(run.task_worktree).resolve(strict=True)

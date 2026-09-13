@@ -13,7 +13,8 @@ def _runtime(project, session="SNAPSHOT-INDEX"):
 
 
 def _real_index(project) -> Path:
-    return Path(git(project["app"], "rev-parse", "--git-path", "index"))
+    path = Path(git(project["app"], "rev-parse", "--git-path", "index"))
+    return path if path.is_absolute() else project["app"] / path
 
 
 def test_stale_legacy_lock_is_ignored_without_deletion(project):
@@ -37,6 +38,11 @@ def test_failed_invocation_cleans_only_its_directory_and_retry_succeeds(
     monkeypatch,
 ):
     runtime = _runtime(project, "SNAPSHOT-FAILURE")
+    runtime.runtime.mkdir(parents=True, exist_ok=True)
+    foreign = runtime.runtime / "snapshot.index.foreign-owned"
+    foreign.mkdir()
+    foreign_lock = foreign / "index.lock"
+    foreign_lock.write_text("foreign owner\n", encoding="utf-8")
     original = runtime._git
     captured_indexes = []
     fail_once = True
@@ -62,6 +68,7 @@ def test_failed_invocation_cleans_only_its_directory_and_retry_succeeds(
     assert not first.parent.exists()
     assert runtime._tree(project["app"]) == git(project["app"], "write-tree")
     assert captured_indexes[-1] != first
+    assert foreign_lock.read_text(encoding="utf-8") == "foreign owner\n"
 
 
 def test_concurrent_session_snapshots_use_distinct_git_indexes(project, monkeypatch):
@@ -105,4 +112,3 @@ def test_snapshot_captures_all_worktree_states_without_changing_real_index(proje
 
     assert {"staged.txt", "src/double.py", "untracked.txt"} <= changed
     assert real_index.read_bytes() == before
-

@@ -81,8 +81,6 @@ class ProcessSnapshotMigration:
             row = by_id[task_id]
             if row.get("status") not in NONTERMINAL_STATUSES:
                 raise DomainError(f"Task {task_id} is terminal or has an incompatible status")
-            if row.get("claimed_by") is not None:
-                raise DomainError(f"Task {task_id} is claimed; release it before migration")
             metadata = row.get("metadata")
             if not isinstance(metadata, dict):
                 raise DomainError(f"Task {task_id} metadata is incompatible")

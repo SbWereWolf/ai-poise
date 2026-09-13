@@ -177,13 +177,53 @@ class Poise:
             raise PoiseError(f'Unknown Task for empty {transition} recovery')
         if data['claimed_by'] is not None:
             raise PoiseError(f'Empty {transition} recovery requires released work')
-        tree = self._current_tree(data)
+        tree = self._empty_transition_recovery_tree(data)
         command = (
             self.task_commands.recover_empty_rework
             if transition == "rework"
             else self.task_commands.recover_empty_advance
         )
         return command(task_id, reason, tree)
+
+    def _empty_transition_recovery_tree(self, data: dict) -> str:
+        worktree = data['worktree']
+        if worktree is None:
+            return data['entry_tree']
+        path = Path(worktree)
+        if path.exists():
+            return self._tree(path)
+
+        report = data.get('last_report')
+        commit = None if report is None else report.get('commit')
+        verified_tree = None if report is None else report.get('verified_tree')
+        if not isinstance(commit, str) or not isinstance(verified_tree, str):
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit/tree не сохранены'
+            )
+        repository = Path(self.cfg['git']['repository'])
+        try:
+            resolved = self._git(
+                repository, 'rev-parse', '--verify', f'{commit}^{{commit}}'
+            )
+            commit_tree = self._git(repository, 'show', '-s', '--format=%T', commit)
+            self._git(
+                repository,
+                'merge-base',
+                '--is-ancestor',
+                commit,
+                self.cfg['git']['base_ref'],
+            )
+        except PoiseError as exc:
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit не подтверждён '
+                'в текущем base'
+            ) from exc
+        if resolved != commit or commit_tree != verified_tree:
+            raise PoiseError(
+                'Worktree восстановления отсутствует, а verified commit не соответствует '
+                'сохранённому tree'
+            )
+        return verified_tree
 
     def current_task(self):
         return self.store.current(self.session)

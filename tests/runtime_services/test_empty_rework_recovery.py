@@ -180,6 +180,34 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         pending = reviewer["workflow"]["feedback"]["pending_resolutions"]
         self.assertEqual([item["id"] for item in pending], ["R1"])
 
+    def test_recovers_integrated_task_after_its_worktree_was_cleaned(self):
+        runtime, verified, _ = self._pending_resolution_rework()
+        worktree = Path(runtime.task_queries.record("T1")["worktree"])
+        commit = runtime.task_queries.record("T1")["last_report"]["commit"]
+        self._quiet_git(self.project["app"], "merge", "--ff-only", commit)
+        self._quiet_git(self.project["app"], "worktree", "remove", str(worktree))
+        self._quiet_git(self.project["app"], "branch", "-d", "tasks/T1")
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["verified_tree"], verified["verified_tree"])
+        self.assertFalse(worktree.exists())
+
+    def test_rejects_missing_worktree_when_verified_commit_is_not_integrated(self):
+        runtime, _, _ = self._pending_resolution_rework()
+        worktree = Path(runtime.task_queries.record("T1")["worktree"])
+        self._quiet_git(self.project["app"], "worktree", "remove", str(worktree))
+        record_before = runtime.task_queries.record("T1")
+        history_before = runtime.task_queries.history("T1")
+
+        with self.assertRaisesRegex(PoiseError, "текущем base"):
+            self._recover()
+
+        self.assertEqual(runtime.task_queries.record("T1"), record_before)
+        self.assertEqual(runtime.task_queries.history("T1"), history_before)
+
     def test_recovers_across_ownership_only_handoff_suffix(self):
         _, verified, active = self._simple_empty_rework()
         for number in (1, 2):

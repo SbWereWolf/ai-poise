@@ -130,6 +130,7 @@ def select_restarted_process(tools, newborn, goal_type, process, request_suffix)
         "task_id": newborn["task"],
         "expected_revision": newborn["revision"],
         "patch": process_contract(goal_type, process),
+        "remove": [],
     }))
     return tools.invoke(request("task", {
         "action": "ready",

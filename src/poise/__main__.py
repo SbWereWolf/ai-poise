@@ -11,6 +11,7 @@ def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
+    project.add_argument('project_action',nargs='?',choices=('list',))
     project.add_argument('--settings',type=Path,required=True)
     project_config=sub.add_parser('project-config',help='Update one existing configured project')
     project_config.add_argument('--settings',type=Path,required=True)
@@ -59,7 +60,7 @@ def main():
     args=parser().parse_args()
     if args.command=='project':
         from .interfaces.projects import execute
-        return execute(args.settings,sys.stdin.buffer,sys.stdout)
+        return execute(args.settings,sys.stdin.buffer,sys.stdout,args.project_action)
     if args.command=='project-config':
         from .interfaces.project_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)

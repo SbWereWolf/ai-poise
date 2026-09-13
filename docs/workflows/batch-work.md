@@ -69,7 +69,8 @@ snapshot уже возвращён адресным `bootstrap`.
         "executable_obligations": ["requirements[0]"],
         "artifact_requirements": [],
         "content_contract": {"sections": [], "routes": [], "requirements": []},
-        "evidence_plan": {}
+        "evidence_plan": {},
+        "stage_contracts": []
       }
     },
     "decision": null,
@@ -81,7 +82,7 @@ snapshot уже возвращён адресным `bootstrap`.
 ```
 
 Это точная форма envelope и creation intent, но вложенные `methods`, `checks`,
-`content_contract` и `evidence_plan` должны быть полным контрактом выбранного `goal_type`;
+`content_contract`, `evidence_plan` и `stage_contracts` должны быть полным контрактом выбранного `goal_type`;
 пустые значения примера не объявляются универсально исполнимой задачей. Успешный ответ
 содержит фактический `task`, task/worktree roots с тем же ID и квитанцию; persisted branch
 формируется из этого ID по `git.branch_template`:

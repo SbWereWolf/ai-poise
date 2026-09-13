@@ -35,7 +35,9 @@ def setup(project):
     cfg=deepcopy(project['cfg']);cfg['processes']['planning']='config/processes/planning.json';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
     task=deepcopy(project['task']);task.update(id='PLAN',goal_type='planning',methods=[],method_inputs=[],
-        checks={s['id']:[] for s in p['stages']},evidence_plan={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']})
+        checks={s['id']:[] for s in p['stages']},evidence_plan={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in p['stages']},
+        stage_contracts=[{'stage_id':s['id'],'allowed_paths':list(s['allowed_paths']),
+            'entry_requirements':[],'exit_requirements':[]} for s in p['stages']])
     child=deepcopy(project['task']);child['id']='CHILD'
     h=Poise(project['config_path'],'PLANNER');ctx=start(h,task)
     return h,ctx,child

@@ -48,20 +48,24 @@ def tiny():
     # The template is explicit data, not a source of implicit optional parameters.
     return {'schema':'task-blueprint-1','goal_type':'custom','parameters':
             {'identity':'text','membership':'nullable_text','goal':'text','requirements':'strings',
-             'dod':'strings','methods':'list','method_inputs':'list','contract':'object','evidence':'object'},
+             'dod':'strings','methods':'list','method_inputs':'list','contract':'object','evidence':'object',
+             'stage_contracts':'list'},
             'task':{'id':{'$input':'identity'},'sprint_id':{'$input':'membership'},'goal_type':'custom',
                     'goal':{'$input':'goal'},'requirements':{'$input':'requirements'},
                     'definition_of_done':{'$input':'dod'},'methods':{'$input':'methods'},
                     'method_inputs':{'$input':'method_inputs'},
                     'checks':{'draft':[]},'artifact_requirements':[],
-                    'content_contract':{'$input':'contract'},'evidence_plan':{'$input':'evidence'}}}
+                    'content_contract':{'$input':'contract'},'evidence_plan':{'$input':'evidence'},
+                    'stage_contracts':{'$input':'stage_contracts'}}}
 
 
 def values():
     return {'identity':'T','membership':None,'goal':'Write a precise note',
             'requirements':['R1'],'dod':['D1'],'methods':[],'method_inputs':[],
             'contract':{'sections':[],'routes':[],'requirements':[]},
-            'evidence':{'draft':{'subject_methods':{},'arguments':[],'review_arguments':[]}}}
+            'evidence':{'draft':{'subject_methods':{},'arguments':[],'review_arguments':[]}},
+            'stage_contracts':[{'stage_id':'draft','allowed_paths':[],
+                'entry_requirements':[],'exit_requirements':[]}]}
 
 
 def process():

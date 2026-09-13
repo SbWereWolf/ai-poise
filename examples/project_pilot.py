@@ -55,7 +55,10 @@ def run(root,repository,base_ref,destination,task_id):
             'reference_profile':{'runner':'pytest','parser':'positional-paths','version':1}}],
         'artifact_requirements':[],
         'contract':{'sections':[],'routes':[],'requirements':[]},
-        'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in processes['verification']['stages']}}
+        'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in processes['verification']['stages']},
+        'stage_contracts':[{'stage_id':s['id'],'allowed_paths':list(s['allowed_paths']),
+            'entry_requirements':[],'exit_requirements':[]}
+            for s in processes['verification']['stages']]}
     parameters['evidence']['execution']['subject_methods']={
         'VERIFY':{'exit_codes':[0],'stdout_contains':['passed'],'stderr_contains':[]}}
     task=commands.tasks([{'template':{'id':'verification-v1','version':selected_task['version'],'digest':selected_task['digest']},

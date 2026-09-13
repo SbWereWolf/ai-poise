@@ -106,6 +106,12 @@ def _parameters(process: dict, checks: dict, methods: list[dict] | None = None) 
         "artifact_requirements": [],
         "contract": {"sections": [], "routes": [], "requirements": []},
         "evidence": evidence,
+        "stage_contracts": [{
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        } for stage in process["stages"]],
     }
 
 

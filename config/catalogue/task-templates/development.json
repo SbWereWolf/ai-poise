@@ -13,7 +13,8 @@
     "checks": "object",
     "artifact_requirements": "list",
     "contract": "object",
-    "evidence": "object"
+    "evidence": "object",
+    "stage_contracts": "list"
   },
   "task": {
     "id": {
@@ -52,6 +53,9 @@
     },
     "evidence_plan": {
       "$input": "evidence"
+    },
+    "stage_contracts": {
+      "$input": "stage_contracts"
     }
   }
 }

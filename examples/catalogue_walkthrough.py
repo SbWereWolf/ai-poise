@@ -206,7 +206,11 @@ def prepare_task(repo,commands,processes,goal,task_id,home,membership=None):
           'dod':['The route finishes with retained evidence and reviewed result; no unrelated repository edits.'],
           'methods':methods,'method_inputs':_method_inputs(goal,methods),
           'artifact_requirements':[{'scope':'task','pattern':'artifacts/result.md','minimum':1,'maximum':1}],
-          'contract':deepcopy(EMPTY),'evidence':evidence}
+          'contract':deepcopy(EMPTY),'evidence':evidence,
+          'stage_contracts':[{'stage_id':stage['id'],
+              'allowed_paths':list(stage['allowed_paths']),
+              'entry_requirements':[],'exit_requirements':[]}
+              for stage in process['stages']]}
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
     if goal=='development':vals['checks']=checks

@@ -103,7 +103,7 @@ def parse_request(value, config):
     if op == 'task':
         task_shapes = {
             'create': {'action','request_id','task_id','sprint_id'},
-            'edit': {'action','request_id','task_id','expected_revision','patch'},
+            'edit': {'action','request_id','task_id','expected_revision','patch','remove'},
             'ready': {'action','request_id','task_id','expected_revision'},
             'restart': {
                 'action','request_id','task_id','expected_version','reason','authorization'

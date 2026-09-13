@@ -192,7 +192,7 @@ def _legacy(runtime, task_id="T1"):
 
 
 def _seed_artifact(runtime, task_id="T1"):
-    root = Path(runtime.state) / runtime.paths["tasks"] / task_id
+    root = Path(runtime.state) / runtime.paths["standalone_tasks"] / task_id
     path = root / "artifacts" / "inputs" / "ready.txt"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("ready\n", encoding="utf-8")
@@ -255,7 +255,7 @@ def test_entry_recheck_precedes_submission_and_artifact_effects(project):
         subprocess.check_output(["git", "-C", str(worktree), "rev-parse", "HEAD"], text=True),
         subprocess.check_output(["git", "-C", str(worktree), "status", "--porcelain=v1"], text=True),
     )
-    forbidden = Path(runtime.state) / runtime.paths["tasks"] / "T1" / "artifacts" / "should-not-exist.txt"
+    forbidden = Path(runtime.state) / runtime.paths["standalone_tasks"] / "T1" / "artifacts" / "should-not-exist.txt"
     path.unlink()
     with pytest.raises(PoiseError, match="entry"):
         tools.invoke(request("verify", {

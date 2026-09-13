@@ -87,7 +87,7 @@ def test_missing_artifact_rejected_before_tests(project):
 
 def test_task_owner_root_cannot_redirect_to_external_directory(project,tmp_path):
     outside=tmp_path/'other-owner';outside.mkdir()
-    parent=project['root']/'state/tasks';parent.mkdir(parents=True)
+    parent=project['root']/'state/standalone';parent.mkdir(parents=True)
     (parent/'T1').symlink_to(outside,target_is_directory=True)
     h=Poise(project['config_path'],'A')
     with pytest.raises(PoiseError,match='symlink'):

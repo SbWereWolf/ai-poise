@@ -1,6 +1,20 @@
 # Статус реализации
 
-Обновлено: **2026-09-13T00:00:00+05:00**.
+Обновлено: **2026-09-14T00:00:00+05:00**.
+
+## Explicit newborn field removal — task 0110
+
+Публичный `operation: task`, `action: edit` принимает обязательные `patch` и `remove` в одном
+optimistic/idempotent intent. При смене `goal_type` caller явно удаляет сохранённые draft-поля,
+которые запрещены целевым процессом; например, переход development → integration удаляет
+`executable_obligations` без отмены или замены Task. `null`, скрытая очистка, compatibility
+reader и ручное исправление БД не используются.
+
+Domain определяет точный набор полей через тот же владеющий creation contract, что и `ready`.
+До мутации отклоняются неизвестные, повторные, отсутствующие, обязательные, immutable и
+одновременно patched/removed поля. Digest включает `remove`; точный replay, identity, Sprint
+membership, append-only history, process snapshot, ownership и revision guards сохраняются.
+Путь проверен focused lifecycle 5/5, bounded smoke 6/6 и независимым inspection.
 
 ## Broken Task recovery — task 0079
 
@@ -160,6 +174,17 @@ digest. Повтор после process loss идемпотентно продо
 operator backups; не применяет force-delete, push или скрытый fallback. Профильное покрытие
 находится в `tests/task_cleanup`, Sprint cancellation/replacement и result-integration cleanup;
 фактический GREEN подтверждается текущим verification batch, а не зафиксированным здесь числом.
+
+
+# Project listing — Task 0097 — 2026-09-14
+
+Существующий `poise project` поддерживает read-only действие `list`, сохраняя прежнее создание
+без позиционного действия. Один явный `configured-project-registry-1` используется batch и
+interactive публикацией, точным replay после сбоя регистрации и списком. Выдача сортирует
+пригодные проекты и явные missing/invalid ошибки; отдельного CLI, discovery-сервиса или
+directory scan нет. Реальный `config/project-setup.json` указывает на поставляемый registry с
+проектом `ai-poise`. Актуальный GREEN подтверждается verification evidence Task, а не
+зафиксированным в документе числом.
 
 
 # POISE-PILOT-01 — 2026-09-07T14:15:55+05:00

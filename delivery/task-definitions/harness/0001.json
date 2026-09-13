@@ -48,13 +48,11 @@
       "stdout_contains": [],
       "stderr_contains": [],
       "verification_plan": {
-        "responsibility": "Preserve the legacy BASELINE command and tested project/requirements surface; run it at test_inspection, the earliest legal GREEN stage in the current process.",
-        "change_surface": [
-          "tests/projects/**"
-        ],
+        "responsibility": "Guard the pre-existing project and requirements baseline before Task-produced changes.",
+        "change_surface": [],
         "red_stages": [],
         "green_stages": [
-          "test_inspection"
+          "baseline"
         ],
         "red_failure": null
       }

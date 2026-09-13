@@ -112,7 +112,7 @@
     "state": "/home/sbwerewolf/workdata/ai-poise/projects/ai-poise",
     "stderr": "stderr.txt",
     "stdout": "stdout.txt",
-    "tasks": "task",
+    "standalone_tasks": "standalone",
     "worktrees": "worktrees"
   },
   "processes": {

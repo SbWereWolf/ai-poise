@@ -20,6 +20,26 @@ EXECUTABLE_OBLIGATIONS = {
     ],
 }
 
+LEGACY_BASELINE_CONTRACTS = {
+    "0001": {
+        "argv": ["python3.13", "-m", "pytest", "tests/projects", "-q"],
+        "responsibility": (
+            "Preserve the legacy BASELINE command and tested project/requirements surface; "
+            "run it at test_inspection, the earliest legal GREEN stage in the current process."
+        ),
+    },
+    "0002": {
+        "argv": [
+            "python3.13", "-m", "pytest", "tests/hook_transport",
+            "tests/runtime_services", "-q",
+        ],
+        "responsibility": (
+            "Preserve the legacy BASELINE command and tested hook/runtime surface; run it at "
+            "test_inspection, the earliest legal GREEN stage in the current process."
+        ),
+    },
+}
+
 
 def task_definitions():
     root=ROOT/"delivery/task-definitions/harness"
@@ -64,7 +84,16 @@ def test_wsl_seed_creates_single_poise_project_sprint(tmp_path):
         if task_id in EXECUTABLE_OBLIGATIONS:
             assert task["executable_obligations"]==EXECUTABLE_OBLIGATIONS[task_id]
         else:
+            assert task["goal_type"]=="documentation"
             assert "executable_obligations" not in task
+        if task_id in LEGACY_BASELINE_CONTRACTS:
+            baseline=next(method for method in task["methods"] if method["id"]=="BASELINE")
+            expected=LEGACY_BASELINE_CONTRACTS[task_id]
+            assert baseline["argv"]==expected["argv"]
+            assert baseline["expected_exit_code"]==0
+            assert baseline["verification_plan"]["responsibility"]==expected["responsibility"]
+            assert task["checks"]["baseline"]==[]
+            assert task["checks"]["test_inspection"]==["BASELINE"]
     config=project_from_blueprint(tmp_path)
     result=subprocess.run([sys.executable,str(ROOT/"tools/seed_wsl_tasks.py"),"--poise-config",str(config)],env={**os.environ,"PYTHONPATH":str(ROOT/"src")},capture_output=True,text=True,timeout=60)
     assert result.returncode==0,result.stdout+result.stderr

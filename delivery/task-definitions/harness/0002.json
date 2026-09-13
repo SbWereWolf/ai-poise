@@ -46,7 +46,7 @@
       "stdout_contains": [],
       "stderr_contains": [],
       "verification_plan": {
-        "responsibility": "Verify that existing hook transport and runtime service behavior remains green after executable tests are introduced.",
+        "responsibility": "Preserve the legacy BASELINE command and tested hook/runtime surface; run it at test_inspection, the earliest legal GREEN stage in the current process.",
         "change_surface": [
           "tests/hook_transport/**",
           "tests/runtime_services/**"

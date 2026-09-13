@@ -64,8 +64,8 @@ class SprintCommands:
 
     def _materialize_draft_changes(self,uow,sid,changes,processes,execution_hash):
         """Replace embedded definitions with editable real newborn Task members."""
-        from ..modules.tasks.allocation import materialize_contract
-        prepared=deepcopy(changes);members=[]
+        from ..modules.tasks.allocation import TaskIdPolicy, materialize_contract
+        prepared=deepcopy(changes);members=[];aliases={}
         for change in prepared:
             if change.get('kind')!='upsert_tasks':continue
             normalized=[]
@@ -74,46 +74,56 @@ class SprintCommands:
                     newborn=uow.tasks.load_newborn(intent)
                     if newborn.sprint_id!=sid:
                         raise DomainError('Newborn Task belongs to another Sprint')
+                    aliases[intent]=intent
                     normalized.append(intent);continue
-                request_id=None
+                creation_request=None
                 if isinstance(intent,dict) and set(intent)=={'request_id','task'}:
-                    allocation=uow.tasks.allocate(intent,self.task_id_policy,(sid,*normalized))
-                    contract,_=materialize_contract(intent,allocation.task_id)
-                    request_id=allocation.request_id
+                    policy=TaskIdPolicy.parse(self.task_id_policy)
+                    allocation=uow.tasks.allocate(intent,policy,(sid,*normalized))
+                    contract,creation_request=materialize_contract(intent,allocation.task_id)
+                    alias=allocation.request_id
                 else:
                     contract=deepcopy(intent)
+                    alias=contract.get('id') if isinstance(contract,dict) else None
                 if not isinstance(contract,dict) or not isinstance(contract.get('id'),str):
                     raise DomainError('Sprint draft Task requires an explicit identity')
                 task_id=path_identifier(contract['id'])
                 draft={k:deepcopy(v) for k,v in contract.items() if k not in ('id','sprint_id')}
-                kind=draft.get('goal_type')
-                if kind not in processes:
-                    draft.pop('goal_type',None)
                 existing=uow.tasks.exists(task_id)
                 if existing:
                     if not uow.tasks.is_newborn(task_id):
+                        aliases[alias]=task_id
                         normalized.append(task_id)
                         continue
                     newborn=uow.tasks.load_newborn(task_id)
                     if newborn.sprint_id!=sid:
                         raise DomainError('Newborn Task belongs to another Sprint')
+                    if creation_request is not None and newborn.creation_request!=creation_request:
+                        raise DomainError('Creation request belongs to another newborn Task')
                     updates={k:v for k,v in draft.items() if newborn.draft.get(k)!=v}
                     if updates:
-                        changed=replace(newborn,claimed_by=self.actor).edit(
-                            updates,processes,self.actor
-                        )
-                        changed=replace(changed,claimed_by=None)
+                        if newborn.claimed_by not in (None,self.actor):
+                            raise DomainError('Newborn Task is owned by another session')
+                        changed=newborn.materialize_draft(updates,processes,self.actor)
+                        changed=replace(changed,claimed_by=newborn.claimed_by)
                         uow.tasks.save_newborn(
                             changed,newborn.version,execution_hash,'newborn_edited'
                         )
                         newborn=changed
                 else:
-                    newborn=NewbornTask.create(task_id,sid,self.actor)
-                    if draft:
-                        newborn=newborn.edit(draft,processes,self.actor)
-                    newborn=replace(newborn,claimed_by=None)
+                    newborn=replace(
+                        NewbornTask.create(task_id,sid,self.actor),
+                        creation_request=deepcopy(creation_request),
+                    )
                     uow.tasks.create_newborn(newborn,execution_hash)
                     members.append(task_id)
+                    if draft:
+                        changed=newborn.materialize_draft(draft,processes,self.actor)
+                        changed=replace(changed,claimed_by=None)
+                        uow.tasks.save_newborn(
+                            changed,newborn.version,execution_hash,'newborn_edited'
+                        )
+                        newborn=changed
                 try:
                     process=newborn.process
                     if process is None:raise DomainError('Unknown goal_type')
@@ -129,7 +139,15 @@ class SprintCommands:
                         )
                         newborn=ready
                 normalized.append(task_id)
+                aliases[alias]=task_id
             change['tasks']=normalized
+        for change in prepared:
+            if change.get('kind')!='dependencies':continue
+            change['items']=[{
+                **edge,
+                'predecessor':aliases.get(edge['predecessor'],edge['predecessor']),
+                'successor':aliases.get(edge['successor'],edge['successor']),
+            } for edge in change['items']]
         return prepared,members
 
     def _describe(self,uow,record):
@@ -212,9 +230,11 @@ class SprintCommands:
             if u.sprints.receipt(sid,packet['request_id'],identity) is not None:return None
             if type(packet['expected_revision']) is not int or packet['expected_revision']!=record['aggregate']['revision']:
                 raise VersionConflict('Publish revision changed')
-            errors=self._errors(record,u.sprints.facts(sid))
+            sprint=Sprint.restore(record['aggregate'])
+            errors=(sprint.plan.content_errors(sprint.policy)
+                    + sprint.plan.graph_errors(sprint.policy))
             if errors:raise DomainError('; '.join(errors))
-            intents=deepcopy(Sprint.restore(record['aggregate']).plan.data['tasks'])
+            intents=deepcopy(sprint.plan.data['tasks'])
             processes=deepcopy(record['processes'])
             automatic_checks=deepcopy(record['automatic_checks'])
             snapshot=fingerprint(record)
@@ -224,14 +244,15 @@ class SprintCommands:
             if isinstance(intent,str):
                 with self.uow() as u:
                     newborn,body=u.tasks.newborn_creation(intent)
-                if not newborn.ready:
-                    raise DomainError('Newborn Sprint member is not type-ready')
                 if newborn.claimed_by not in (None,self.actor):
                     raise DomainError('Newborn Sprint member is owned by another session')
+                creation=self.prepare_creation(
+                    body,newborn.process,automatic_checks,base
+                )
+                if not newborn.ready:
+                    raise DomainError('Newborn Sprint member is not type-ready')
                 prepared.append({
-                    'creation':self.prepare_creation(
-                        body,newborn.process,automatic_checks,base
-                    ),
+                    'creation':creation,
                     'newborn':newborn,
                 })
                 continue
@@ -309,7 +330,15 @@ class SprintCommands:
                                 raise VersionConflict('Newborn Sprint member changed after creation preflight')
                             metadata=validate_creation(contract,newborn.process,record['automatic_checks'])
                             metadata.update(sprint_id=sid,goal=contract['goal'],config_hash=record['execution_hash'])
+                            if newborn.creation_request is not None:
+                                metadata['creation_request']=deepcopy(newborn.creation_request)
                             u.tasks.promote_newborn(build_task(metadata,None),metadata,newborn.version)
+                            if newborn.creation_request is not None:
+                                allocations.append({
+                                    'request_id':newborn.creation_request['request_id'],
+                                    'task_id':newborn.task_id,
+                                    'replayed':False,
+                                })
                             continue
                         body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
                         if prepared.intent!=intent:
@@ -322,6 +351,10 @@ class SprintCommands:
                         if allocation.receipt() is not None:allocations.append(allocation.receipt())
                     if created:
                         s=replace(s,plan=SprintPlan(rewrite_task_plan(s.plan.data,created)))
+                    elif all(isinstance(intent,str) for intent in s.plan.data['tasks']):
+                        plan=deepcopy(s.plan.data)
+                        plan['tasks']=[{'id':task_id} for task_id in plan['tasks']]
+                        s=replace(s,plan=SprintPlan(plan))
                 elif action=='materialize_tasks':
                     if s.state!='draft':raise DomainError('Only a legacy Sprint draft can materialize Tasks')
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:

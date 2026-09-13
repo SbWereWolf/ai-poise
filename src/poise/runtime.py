@@ -153,7 +153,7 @@ class Poise:
             return self.task_commands.ready_newborn(
                 args['task_id'], self.session, args['expected_revision'],
                 self.cfg['automatic_checks'], self.config_hash, args['request_id'],
-                self._creation_base(),
+                self._creation_base,
             )
         raise PoiseError('Unknown Task action')
 

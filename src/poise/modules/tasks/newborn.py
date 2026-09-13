@@ -37,6 +37,7 @@ class NewbornTask:
     draft: dict
     process: dict | None
     ready: bool
+    creation_request: dict | None = None
 
     @classmethod
     def create(cls, task_id: str, sprint_id: str | None, actor: str):
@@ -44,7 +45,7 @@ class NewbornTask:
         if sprint_id is not None:
             path_identifier(sprint_id)
         path_identifier(actor)
-        return cls(task_id, sprint_id, actor, 0, {}, None, False)
+        return cls(task_id, sprint_id, actor, 0, {}, None, False, None)
 
     @classmethod
     def restore(cls, task_id: str, claimed_by: str | None, version: int, metadata: dict):
@@ -59,10 +60,17 @@ class NewbornTask:
             raise DomainError("Newborn Task ready flag must be boolean")
         process = metadata.get("process")
         goal_type = draft.get("goal_type")
-        if (goal_type is None) != (process is None):
+        if process is not None and goal_type != process.get("goal_type"):
             raise DomainError("Newborn Task process must match explicit goal_type selection")
+        creation_request = metadata.get("creation_request")
+        if creation_request is not None and (
+            not isinstance(creation_request, dict)
+            or set(creation_request) != {"request_id", "digest"}
+            or not all(isinstance(value, str) and value for value in creation_request.values())
+        ):
+            raise DomainError("Newborn Task creation request must be immutable")
         return cls(task_id, metadata["sprint_id"], claimed_by, version,
-                   deepcopy(draft), deepcopy(process), ready)
+                   deepcopy(draft), deepcopy(process), ready, deepcopy(creation_request))
 
     def edit(self, patch: dict, processes: dict, actor: str):
         if self.ready:
@@ -90,6 +98,23 @@ class NewbornTask:
             raise DomainError("Newborn Task is owned by another session")
         return replace(self, version=self.version + 1, draft=draft, process=process,
                        claimed_by=actor)
+
+    def materialize_draft(self, draft: dict, processes: dict, actor: str):
+        """Persist a Sprint planning draft even before goal type becomes valid."""
+        if not isinstance(draft, dict) or not draft or not set(draft) <= NEWBORN_FIELDS:
+            raise DomainError("Sprint newborn requires a nonempty known-field draft")
+        if self.claimed_by not in (None, actor):
+            raise DomainError("Newborn Task is owned by another session")
+        value = {**deepcopy(self.draft), **deepcopy(draft)}
+        selected = value.get("goal_type")
+        process = deepcopy(processes[selected]) if selected in processes else None
+        return replace(
+            self,
+            version=self.version + 1,
+            draft=value,
+            process=process,
+            claimed_by=actor,
+        )
 
     def mark_ready(self):
         if self.ready:
@@ -123,6 +148,8 @@ class NewbornTask:
         }
         if self.process is not None:
             value["process"] = deepcopy(self.process)
+        if self.creation_request is not None:
+            value["creation_request"] = deepcopy(self.creation_request)
         return value
 
     def describe(self) -> dict:

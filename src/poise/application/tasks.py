@@ -112,13 +112,15 @@ class TaskCommands:
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
         candidate, _ = materialize_contract(intent, creation_alias(intent))
-        metadata = validate_creation(candidate, process, automatic_checks)
-        preflight = CreationPreflight.parse(metadata["contract"], process)
+        if not isinstance(candidate, dict) or not {'methods','method_inputs'} <= set(candidate):
+            validate_creation(candidate, process, automatic_checks)
+        preflight = CreationPreflight.parse(candidate, process)
         if not isinstance(base_revision, str) or not base_revision:
             raise DomainError("Task creation requires an explicit repository tree preflight")
         preflight.validate_base(
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
+        validate_creation(candidate, process, automatic_checks)
         return PreparedCreation(
             deepcopy(intent),
             deepcopy(process),
@@ -203,7 +205,7 @@ class TaskCommands:
             return result
 
     def ready_newborn(self, task_id, actor, expected_revision, automatic_checks, config_hash,
-                      request_id, base_revision):
+                      request_id, creation_base):
         if type(expected_revision) is not int:
             raise DomainError('Newborn ready requires expected_revision')
         identity = _action_digest("ready", {
@@ -224,7 +226,7 @@ class TaskCommands:
             contract = {'id':task_id, 'sprint_id':newborn.sprint_id, **deepcopy(newborn.draft)}
             snapshot = newborn
         prepared = self.prepare_creation(
-            contract, snapshot.process, automatic_checks, base_revision
+            contract, snapshot.process, automatic_checks, creation_base()
         )
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)

@@ -14,7 +14,7 @@ import sys
 import pytest
 
 from batch.helpers import configure, request, result, verify
-from conftest import WorkPoise as Poise, add_test
+from conftest import WorkPoise as Poise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import DomainError, PoiseError
 from poise.modules.tasks.domain import TaskStatus
@@ -76,6 +76,67 @@ def work_packet_rows(runtime, task_id):
             "WHERE task_id=? ORDER BY stage,iteration",
             (task_id,),
         )]
+
+
+def process_contract(goal_type, process):
+    requirements = process["content_contract"]["requirements"]
+    return {
+        "goal_type": goal_type,
+        "methods": [],
+        "method_inputs": [],
+        "checks": {stage["id"]: [] for stage in process["stages"]},
+        "evidence_plan": {
+            stage["id"]: {
+                "subject_methods": {},
+                "arguments": ([{
+                    "id": f"{stage['id']}-route-proof",
+                    "kind": "logical",
+                    "phase": "prepare",
+                    "observation_methods": [],
+                }] if stage["handler"] == "check" else []),
+                "review_arguments": [],
+            }
+            for stage in process["stages"]
+        },
+        "stage_contracts": [
+            {
+                "stage_id": stage["id"],
+                "allowed_paths": list(stage["allowed_paths"]),
+                "entry_requirements": [
+                    item["id"] for item in requirements
+                    if stage["id"] in item["stages"] and item["phase"] == "pre"
+                ],
+                "exit_requirements": [
+                    item["id"] for item in requirements
+                    if stage["id"] in item["stages"] and item["phase"] == "post"
+                ],
+            }
+            for stage in process["stages"]
+        ],
+    }
+
+
+def complete_stage_result(context, report):
+    payload = deepcopy(context["result_template"])
+    payload["sections"] = {key: report for key in payload["sections"]}
+    payload["commit_message"] = f"test: {report}"
+    return payload
+
+
+def select_restarted_process(tools, newborn, goal_type, process, request_suffix):
+    edited = tools.invoke(request("task", {
+        "action": "edit",
+        "request_id": f"select-{request_suffix}-{goal_type}",
+        "task_id": newborn["task"],
+        "expected_revision": newborn["revision"],
+        "patch": process_contract(goal_type, process),
+    }))
+    return tools.invoke(request("task", {
+        "action": "ready",
+        "request_id": f"ready-{request_suffix}-{goal_type}",
+        "task_id": newborn["task"],
+        "expected_revision": edited["revision"],
+    }))
 
 
 def wip_state(worktree):
@@ -168,56 +229,118 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
 
 def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(project):
     configure(project)
+    repository_root = Path(__file__).parents[2]
+    process_root = project["config_path"].parent / "config" / "processes"
+    processes = {}
+    for goal_type in ("integration", "development"):
+        processes[goal_type] = json.loads(
+            (repository_root / "config" / "catalogue" / "processes" /
+             f"{goal_type}.json").read_text(encoding="utf-8")
+        )
+    development_entry = deepcopy(processes["development"]["stages"][0])
+    development_entry["transitions"] = {"complete": None}
+    development_entry["rework_targets"] = [development_entry["id"]]
+    processes["development"]["stages"] = [development_entry]
+    processes["development"]["content_contract"] = {
+        "sections": [],
+        "routes": [],
+        "requirements": [],
+    }
+    for goal_type in ("integration", "development"):
+        write_json(process_root / f"{goal_type}.json", processes[goal_type])
+    project["cfg"]["processes"] = {
+        goal_type: f"config/processes/{goal_type}.json"
+        for goal_type in ("integration", "development")
+    }
+    project["cfg"]["automatic_checks"] = []
+    write_json(project["config_path"], project["cfg"])
+    integration_task = deepcopy(project["task"])
+    integration_task.update(process_contract("integration", processes["integration"]))
     owner = WorkTools(Poise(project["config_path"], "packet-owner"))
     context = owner.invoke(request("bootstrap", {
-        "task": project["task"],
+        "task": integration_task,
         "decision": None,
         "feedback": None,
         "rework_stage": None,
     }))
-    add_test(context["worktree"])
-    first_payload = result(context, "verified before restart")
+    assert context["stage"] == "framing"
+    first_payload = complete_stage_result(
+        context, "verified integration framing before development",
+    )
     first = verify(owner, first_payload)
     assert first["status"] == "verified"
     task_id = first["task"]
     audit_before = immutable_audit_rows(owner.runtime, task_id)
     packet_before = work_packet_rows(owner.runtime, task_id)
     assert len(packet_before) == 1
+    assert packet_before[0][1:3] == ("framing", 1)
 
     current = owner.runtime.task_queries.record(task_id)
     newborn = restart(
         owner,
         task_id,
         current["version"],
-        request_id="restart-after-verified-packet",
+        request_id="restart-integration-to-development",
     )
-    assert work_packet_rows(owner.runtime, task_id) == [], (
-        "Verified packet cannot be replaced after restart because the old "
-        "work-packet identity is still current"
-    )
-    ready = owner.invoke(request("task", {
-        "action": "ready",
-        "request_id": "ready-after-verified-packet",
-        "task_id": task_id,
-        "expected_revision": newborn["revision"],
-    }))
-    assert ready["status"] == "available"
+    assert select_restarted_process(
+        owner,
+        newborn,
+        "development",
+        processes["development"],
+        "integration-to-development",
+    )["status"] == "available"
 
-    successor = WorkTools(Poise(project["config_path"], "packet-successor"))
-    resumed = successor.invoke(request("bootstrap", {
+    developer = WorkTools(Poise(project["config_path"], "packet-developer"))
+    development = developer.invoke(request("bootstrap", {
         "task": {"id": task_id},
         "decision": None,
         "feedback": None,
         "rework_stage": None,
     }))
-    fresh_payload = result(resumed, "fresh verified result after restart")
-    fresh = verify(successor, fresh_payload)
-    assert fresh["status"] == "verified"
-    packet_after = work_packet_rows(successor.runtime, task_id)
-    assert len(packet_after) == 1
-    assert packet_after[0][3] != packet_before[0][3]
-    audit_after = immutable_audit_rows(successor.runtime, task_id)
+    assert development["stage"] == "baseline"
+    developed = verify(
+        developer,
+        complete_stage_result(development, "verified development baseline"),
+    )
+    assert developed["status"] == "verified"
+    audit_after_development = immutable_audit_rows(developer.runtime, task_id)
     for table, rows in audit_before.items():
+        assert all(row in audit_after_development[table] for row in rows)
+
+    current = developer.runtime.task_queries.record(task_id)
+    newborn = restart(
+        developer,
+        task_id,
+        current["version"],
+        request_id="restart-development-to-integration",
+    )
+    assert select_restarted_process(
+        developer,
+        newborn,
+        "integration",
+        processes["integration"],
+        "development-to-integration",
+    )["status"] == "available"
+
+    integrator = WorkTools(Poise(project["config_path"], "packet-integrator"))
+    resumed = integrator.invoke(request("bootstrap", {
+        "task": {"id": task_id},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert resumed["stage"] == "framing"
+    fresh = verify(
+        integrator,
+        complete_stage_result(resumed, "fresh integration framing after development"),
+    )
+    assert fresh["status"] == "verified"
+    packet_after = work_packet_rows(integrator.runtime, task_id)
+    assert len(packet_after) == 1
+    assert packet_after[0][1:3] == ("framing", 1)
+    assert packet_after[0][3] != packet_before[0][3]
+    audit_after = immutable_audit_rows(integrator.runtime, task_id)
+    for table, rows in audit_after_development.items():
         assert all(row in audit_after[table] for row in rows)
     assert len(audit_after["submissions"]) > len(audit_before["submissions"])
     assert len(audit_after["task_results"]) > len(audit_before["task_results"])

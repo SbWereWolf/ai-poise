@@ -42,6 +42,14 @@ pending external outcome before mutation. Resolve pending uncertainty through it
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
 action. Historical replacement relations remain read-only provenance.
 
+Task restart atomically invalidates every mutable current `work-packet identity` for that
+Task in the same Unit of Work as the newborn lifecycle reset. This does not rewrite or delete
+immutable `submissions`, `task_results`, `evidence`, or Task `history`; failure of invalidation
+or any later restart step rolls the whole transaction back. After `edit`/`ready`, save a fresh
+result normally even when the restarted route reuses the same stage and iteration. For a current
+verified result, an exact packet replay remains idempotent, while different result/artifact input
+must follow the domain `PoiseError` rework path and must never surface an internal `NameError`.
+
 Use the installation-owned `recover_missing_worktree` operation only for a nonterminal
 verified/accepted Task whose registered worktree was removed. It must prove the saved report
 commit is integrated into the configured base and has the exact verified tree before restoring

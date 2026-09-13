@@ -18,12 +18,27 @@ def _binding(task):
             "stage": None,
             "iteration": None,
         }
+    contract = task.get("contract")
+    process = task.get("process")
+    stage_index = task.get("stage_index")
+    stage = None
+    if (
+        isinstance(process, dict)
+        and isinstance(process.get("stages"), list)
+        and type(stage_index) is int
+        and 0 <= stage_index < len(process["stages"])
+    ):
+        stage = process["stages"][stage_index]["id"]
     return {
         "task": task["id"],
-        "sprint": task["sprint_id"],
-        "goal_type": task["contract"]["goal_type"],
-        "stage": task["process"]["stages"][task["stage_index"]]["id"],
-        "iteration": task["iteration"],
+        "sprint": task.get("sprint_id"),
+        "goal_type": (
+            contract.get("goal_type")
+            if isinstance(contract, dict)
+            else task.get("goal_type")
+        ),
+        "stage": stage,
+        "iteration": task.get("iteration"),
     }
 
 

@@ -29,8 +29,11 @@ poise backup create --config PROJECT_JSON
 
 Сохраните выданное имя файла. Проверьте его наличие через `poise backup list --config
 PROJECT_JSON`. Не копируйте и не заменяйте SQLite-файл вручную. Целевые Task должны
-существовать, не быть terminal или claimed и содержать совместимый process без поля
+существовать, не быть terminal и содержать совместимый process без поля
 `worktree_required`. Их неизменяемый `goal_type` должен ссылаться на настроенный process.
+Существующий claim не нужно предварительно освобождать: операция сохраняет его точное
+значение и не принимает решений о liveness, передаче или замене владельца. При этом сам
+владелец не должен писать в Task DB во время backup и миграции.
 
 ## Запрос
 
@@ -60,12 +63,14 @@ poise task-process-migrate --config PROJECT_JSON <<'JSON'
 JSON
 ```
 
-Операция проверяет целиком названную копию и рабочую DB, все цели, lifecycle/claims,
+Операция проверяет целиком названную копию и рабочую DB, все цели и lifecycle,
 process shape и соответствие `goal_type`. Значение `worktree_required` выводится из
 настроенного process definition. После внешнего preflight состояние повторно сверяется
 под writer lock. Все шесть snapshots записываются **одной транзакцией** либо не меняется
 ни один. Task IDs, lifecycle, прочее содержимое process, history, submissions, evidence,
-dependencies, claims, results и artifacts сохраняются.
+dependencies, claims, results и artifacts сохраняются. Стабильный existing claim допустим;
+его создание, снятие или замена после названного backup либо после preflight считается
+drift и отклоняет весь пакет.
 
 ## Receipt, повтор и восстановление работы
 

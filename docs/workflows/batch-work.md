@@ -16,6 +16,7 @@
 | sprint | Поля выбранного action | Создать/изменить Sprint либо безопасно заменить его незавершённую Task |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
 | recover_empty_rework | task_id, reason | Вернуть освобождённую пустую rework-итерацию к непосредственно предшествующему verified result |
+| recover_empty_advance | task_id, reason | Вернуть освобождённый пустой этап после ошибочного `continue` к предшествующему verified result |
 | integrate | request_id, task_id, expected_source_commit, expected_target_commit, authorization, resolutions | Интегрировать окончательно принятую Task и убрать её worktree/локальную ветку |
 | cancel | reason | Санкционированно отменить текущую задачу без gate completeness |
 
@@ -247,14 +248,14 @@ worktree.
 tree совпадают с `verified_tree` непосредственно предшествующего сохранённого отчёта.
 
 Предыдущая точка восстанавливается только из неизменяемых записей одного latest verified
-submission: result, workflow layer и proof layer. Её версия должна непосредственно предшествовать
-последнему подходящему событию `user_rework`. После него и до версии финального handoff допустимы
-только `handed_off`, `handoff_resumed`, `ownership_acquired` и `ownership_released`: такой суффикс
-меняет владельца, но не содержимое итерации. Любое другое событие блокирует восстановление;
-сохранённые feedback и evidence также не могли измениться. Обработчики
+submission: result, workflow layer и proof layer. Исходным переходом служит последнее точное событие
+`user_rework`; после него и до версии финального handoff разрешены только `handed_off`,
+`handoff_resumed`, `ownership_acquired` и `ownership_released`. Поэтому повторные циклы передачи
+не мешают восстановлению, но любой другой lifecycle event после исходного перехода приводит к
+отказу без изменения Task. Сохранённые feedback и evidence также не могли измениться. Обработчики
 внешних действий `apply_plan` и `publish` этим путём не восстанавливаются. Уже созданный submission,
-изменённое дерево, занятая Task, другой lifecycle event, потерянный proof, несколько одинаковых
-submission digest или любое другое неоднозначное состояние дают отказ до записи.
+изменённое дерево, занятая Task, потерянный proof, несколько одинаковых submission digest или любое
+другое неоднозначное состояние дают отказ до записи.
 
 Успех атомарно возвращает прежние stage, iteration, status=`verified`, route progress, feedback,
 evidence и ссылку на точный current submission. Новая пустая итерация не удаляется из истории:
@@ -263,6 +264,32 @@ evidence и ссылку на точный current submission. Новая пус
 устаревший handoff. Прежние submissions, task results, receipts, findings и resolutions не
 переписываются. Повтор после подтверждённого успеха ничего не откатывает ещё раз и получает отказ
 об отсутствии released handoff; фактический статус следует проверить публичным чтением Task.
+
+### Пустой переход после `continue`
+
+`recover_empty_advance` использует те же запреты на занятую Task, submission, изменение tree,
+pending execution, внешнее действие и неоднозначную историю, но требует точное исходное событие
+`user_accept_and_continue`. Операции не взаимозаменяемы: rework-origin отвергается advance-вызовом,
+а continue-origin — rework-вызовом. Поиск выбирает последнее такое содержательное событие, а после
+него допускает только тот же точный набор ownership events. Поэтому повторные `resume` и `handoff`
+без новой работы разрешены, но любой иной lifecycle event приводит к отказу без изменения Task.
+
+```json
+{
+  "operation": "recover_empty_advance",
+  "input": {
+    "task_id": "0088",
+    "reason": "Ошибочно выбран continue; замечание требует другого writable remediation stage."
+  },
+  "messages": []
+}
+```
+
+При обычном `continue` execution-проекция предыдущего отчёта получает status=`accepted`, хотя
+неизменяемый `task_result` остаётся verified. Recovery требует их точного совпадения с этой
+единственной разницей, затем атомарно возвращает status отчёта и Task в `verified`, восстанавливает
+current submission и добавляет `empty_advance_recovered`. После этого агент может применить уже
+известное reviewer feedback через обычный verified-result `rework` в правильный разрешённый stage.
 
 ## Интеграция принятого результата
 

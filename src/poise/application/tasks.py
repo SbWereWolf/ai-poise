@@ -243,6 +243,23 @@ class TaskCommands:
             return change.task.state
 
     def recover_empty_rework(self, task_id: str, reason: str, tree: str) -> dict:
+        return self._recover_empty_transition(
+            task_id, reason, tree, "user_rework", "empty_rework_recovered"
+        )
+
+    def recover_empty_advance(self, task_id: str, reason: str, tree: str) -> dict:
+        return self._recover_empty_transition(
+            task_id,
+            reason,
+            tree,
+            "user_accept_and_continue",
+            "empty_advance_recovered",
+        )
+
+    def _recover_empty_transition(
+        self, task_id: str, reason: str, tree: str,
+        transition_event: str, recovery_event: str,
+    ) -> dict:
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
             execution, _ = uow.execution.load(task_id)
@@ -274,12 +291,17 @@ class TaskCommands:
             ):
                 raise DomainError("Execution state is not an unchanged empty rework")
             point = uow.tasks.empty_rework_recovery_point(
-                task_id, handoff["version"], execution["last_report"]
+                task_id, handoff["version"], execution["last_report"], transition_event
             )
             if point.evidence_input is None:
                 raise DomainError("Previous verified submission has no evidence input")
-            change = task.recover_empty_rework(reason, point)
+            change = task.recover_empty_transition(reason, point, recovery_event)
             uow.tasks.save(change, task.state.version)
+            if transition_event == "user_accept_and_continue":
+                uow.execution.patch(
+                    task_id,
+                    {"last_report": {**execution["last_report"], "status": "verified"}},
+                )
             uow.handoffs.replace({**handoff, "state": "recovered"})
             return {
                 "status": "recovered",

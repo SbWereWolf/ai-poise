@@ -49,6 +49,9 @@ For the authorized legacy Task process repair, follow
 [`docs/task-process-snapshot-migration.md`](../docs/task-process-snapshot-migration.md).
 Do not repair stored process snapshots through direct SQL; use the public migration and
 its named public backup, atomic validation, audit receipt, and exact replay contract.
+A stable existing claim does not block that authorized migration and must remain unchanged;
+any claim creation, release, or replacement after the named backup or preflight is drift
+that rejects the complete batch.
 
 Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
 

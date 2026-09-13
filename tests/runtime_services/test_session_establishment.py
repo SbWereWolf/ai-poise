@@ -106,7 +106,12 @@ def test_generated_collision_is_retried_atomically_between_competing_registries(
         {"collision", "fresh-b"},
     )
     assert len({item.session_id for item in established}) == 2
-    with sqlite3.connect(project["database"]) as connection:
+    database = (
+        project["root"]
+        / project["cfg"]["paths"]["state"]
+        / project["cfg"]["paths"]["database"]
+    )
+    with sqlite3.connect(database) as connection:
         rows = connection.execute(
             "SELECT identity_key, session_id FROM runtime_bindings ORDER BY identity_key"
         ).fetchall()
@@ -176,7 +181,12 @@ def test_direct_work_without_hook_launcher_persists_generated_session(project, t
     assert first["status"] == second["status"] == "read_only"
     assert first["session"] == second["session"]
     assert binding.is_file()
-    with sqlite3.connect(project["database"]) as connection:
+    database = (
+        project["root"]
+        / project["cfg"]["paths"]["state"]
+        / project["cfg"]["paths"]["database"]
+    )
+    with sqlite3.connect(database) as connection:
         assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
         assert connection.execute("SELECT COUNT(*) FROM sprints").fetchone()[0] == 0
         assert connection.execute("SELECT COUNT(*) FROM runtime_bindings").fetchone()[0] == 1

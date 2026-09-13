@@ -88,6 +88,7 @@ class SubmissionReceipt:
     created: bool
     version: int
     digest: str
+    registry_change: dict | None = None
 
 
 class TaskCommands:
@@ -159,7 +160,8 @@ class TaskCommands:
             if submission_id is None:
                 raise DomainError("Нарушен контракт сохранения submission")
             return SubmissionReceipt(submission_id, change.submission is not None,
-                                     change.task.state.version, change.task.state.submission_digest)
+                                     change.task.state.version, change.task.state.submission_digest,
+                                     change.registry_change)
 
     def validate_submission(self, task_id: str, actor: str, payload: dict) -> None:
         """Pure candidate validation before ArtifactFactory external side effects."""

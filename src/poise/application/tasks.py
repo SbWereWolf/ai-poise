@@ -27,14 +27,16 @@ def _action_digest(action: str, payload: dict) -> str:
     ).encode()).hexdigest()
 
 
-def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata,
-                     requirements_snapshot=None):
+def _creation_values(intent, allocation, actor, process, automatic_checks, base_metadata):
     from ..modules.tasks.allocation import materialize_contract
     from ..modules.tasks.definition import build_task, validate_creation
     contract, creation_request = materialize_contract(intent, allocation.task_id)
+    if creation_request is not None:
+        creation_request = {
+            "request_id": allocation.request_id,
+            "digest": allocation.digest,
+        }
     metadata = validate_creation(contract, process, automatic_checks)
-    if requirements_snapshot is not None:
-        metadata['requirements_snapshot'] = deepcopy(requirements_snapshot)
     metadata.update(base_metadata)
     metadata.update(sprint_id=contract['sprint_id'], goal=contract['goal'])
     if creation_request is not None:
@@ -44,27 +46,33 @@ def _creation_values(intent, allocation, actor, process, automatic_checks, base_
 
 @dataclass(frozen=True)
 class PreparedCreation:
+    source_intent: dict
     intent: dict
     process: dict
     automatic_checks: list
-    requirements_snapshot: dict | None
+    requirements_context: dict | None
+    requirements_gate: object
 
 
 def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=()):
     from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
     if not isinstance(prepared, PreparedCreation):
         raise DomainError("Task creation requires a verified creation preflight")
+    source_intent = deepcopy(prepared.source_intent)
     intent = deepcopy(prepared.intent)
     process = deepcopy(prepared.process)
     automatic_checks = deepcopy(prepared.automatic_checks)
-    request_id, _, _ = creation_parts(intent)
+    request_id, _, _ = creation_parts(source_intent)
     parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
-    allocation = uow.tasks.allocate(intent, parsed_policy, reserved_ids)
+    allocation = uow.tasks.allocate(source_intent, parsed_policy, reserved_ids)
     task, metadata, contract = _creation_values(
         intent, allocation, None, process, automatic_checks, base_metadata,
-        prepared.requirements_snapshot,
     )
-    uow.tasks.create(task, metadata)
+    if not allocation.replayed:
+        uow.tasks.create(task, metadata)
+    prepared.requirements_gate.publish_created(
+        uow, allocation.task_id, prepared.requirements_context
+    )
     return allocation, contract
 
 
@@ -124,7 +132,8 @@ class TaskCommands:
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
-        intent, requirements_snapshot = self.requirements_gate.prepare_contract(intent)
+        source_intent = deepcopy(intent)
+        intent, requirements_context = self.requirements_gate.prepare_contract(intent)
         candidate, _ = materialize_contract(intent, creation_alias(intent))
         try:
             preflight = CreationPreflight.parse(candidate, process)
@@ -140,10 +149,12 @@ class TaskCommands:
         )
         validate_creation(candidate, process, automatic_checks)
         return PreparedCreation(
+            source_intent,
             deepcopy(intent),
             deepcopy(process),
             deepcopy(automatic_checks),
-            deepcopy(requirements_snapshot),
+            deepcopy(requirements_context),
+            self.requirements_gate,
         )
 
     def publish_requirements(self, task_id, task_requirements, agreement):
@@ -167,12 +178,14 @@ class TaskCommands:
                 prepared.process,
                 prepared.automatic_checks,
                 base_metadata,
-                prepared.requirements_snapshot,
             )
             if not allocation.replayed:
                 newborn = NewbornTask.create(allocation.task_id, None, actor)
                 uow.tasks.create_newborn(newborn, base_metadata['config_hash'])
                 uow.tasks.promote_newborn(task, metadata, newborn.version)
+            self.requirements_gate.publish_created(
+                uow, allocation.task_id, prepared.requirements_context
+            )
             return allocation
 
     def create_newborn(self, task_id, sprint_id, actor, config_hash, request_id):
@@ -230,9 +243,17 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Task worktree is owned by another session; handoff is required")
             context = uow.tasks.restart_context(task_id)
+            restart_contract = deepcopy(context["contract"])
+            if context["requirements_snapshot"] is not None:
+                restart_contract["requirements_snapshot"] = deepcopy(
+                    context["requirements_snapshot"]
+                )
+                restart_contract["requirements_agreement"] = deepcopy(
+                    context["requirements_agreement"]
+                )
             newborn = NewbornTask.restart(
                 task,
-                context["contract"],
+                restart_contract,
                 context["process"],
                 context["sprint_id"],
                 actor,
@@ -431,8 +452,6 @@ class TaskCommands:
             if newborn != snapshot:
                 raise VersionConflict('Newborn Task changed after creation preflight')
             metadata = validate_creation(prepared.intent, newborn.process, effective_checks)
-            if prepared.requirements_snapshot is not None:
-                metadata['requirements_snapshot'] = deepcopy(prepared.requirements_snapshot)
             metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
             if newborn.creation_request is not None:
                 metadata['creation_request'] = deepcopy(newborn.creation_request)
@@ -450,6 +469,9 @@ class TaskCommands:
                 return result
             task = build_task(metadata, None)
             uow.tasks.promote_newborn(task, metadata, newborn.version)
+            self.requirements_gate.publish_created(
+                uow, task_id, prepared.requirements_context
+            )
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from copy import deepcopy
 import hashlib
 import json
@@ -166,78 +166,85 @@ class RequirementsStore:
 
 
 class TaskRequirementsSnapshotStore:
-    """Task-DB-owned immutable requirement snapshots.
-
-    The plain constructor is for a private, isolated database. Production
-    composition uses ``shared`` and the configured Task DB external lock.
-    """
+    """Isolated Task snapshot adapter used outside the versioned Task schema."""
 
     def __init__(self, database):
         self.database = Path(database)
-        self.lock = None
-        self.lock_seconds = None
-        self.poll_seconds = None
-
-    @classmethod
-    def shared(cls, database, lock, lock_seconds, poll_seconds):
-        instance = cls(database)
-        instance.lock = Path(lock)
-        for value in (lock_seconds, poll_seconds):
-            if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
-                raise PoiseError("Task snapshot store requires positive finite lock limits")
-        instance.lock_seconds = lock_seconds
-        instance.poll_seconds = poll_seconds
-        return instance
-
-    def _guard(self):
-        if self.lock is None:
-            return nullcontext()
-        return exclusive_lock(self.lock, self.lock_seconds, self.poll_seconds)
 
     def initialize(self):
         self.database.parent.mkdir(parents=True, exist_ok=True)
-        with self._guard():
-            with sqlite3.connect(self.database, timeout=0, isolation_level=None) as connection:
-                connection.execute("BEGIN IMMEDIATE")
-                connection.execute(
-                    "CREATE TABLE IF NOT EXISTS task_requirements_snapshots("
-                    "task_id TEXT PRIMARY KEY, data TEXT NOT NULL)"
+        with sqlite3.connect(self.database, timeout=0, isolation_level=None) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
                 )
-                connection.execute("COMMIT")
+            }
+            if version != 0 or tables - {"task_requirements_snapshots"}:
+                connection.execute("ROLLBACK")
+                raise PoiseError(
+                    "Isolated Task snapshot adapter cannot modify the versioned Task DB"
+                )
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS task_requirements_snapshots("
+                "task_id TEXT PRIMARY KEY, data TEXT NOT NULL, agreement TEXT NOT NULL)"
+            )
+            connection.execute("COMMIT")
 
-    def create(self, task_id, snapshot):
+    def create(self, task_id, snapshot, agreement=None):
         if not isinstance(task_id, str) or not task_id:
             raise DomainError("Task snapshot requires a task id")
         self.initialize()
         try:
-            with self._guard():
-                with sqlite3.connect(self.database, timeout=0, isolation_level=None) as connection:
-                    connection.execute("BEGIN IMMEDIATE")
-                    connection.execute(
-                        "INSERT INTO task_requirements_snapshots(task_id,data) VALUES(?,?)",
-                        (task_id, _encoded(snapshot)),
-                    )
-                    connection.execute("COMMIT")
+            with sqlite3.connect(self.database, timeout=0, isolation_level=None) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    "INSERT INTO task_requirements_snapshots(task_id,data,agreement) VALUES(?,?,?)",
+                    (task_id, _encoded(snapshot), _encoded(agreement)),
+                )
+                connection.execute("COMMIT")
         except sqlite3.IntegrityError as exc:
             raise DomainError("Task requirements snapshot is immutable and already exists") from exc
 
     def exists(self, task_id):
         self.initialize()
-        with self._guard():
-            with sqlite3.connect(self.database) as connection:
-                return connection.execute(
-                    "SELECT 1 FROM task_requirements_snapshots WHERE task_id=?",
-                    (task_id,),
-                ).fetchone() is not None
+        with sqlite3.connect(self.database) as connection:
+            return connection.execute(
+                "SELECT 1 FROM task_requirements_snapshots WHERE task_id=?",
+                (task_id,),
+            ).fetchone() is not None
 
     def read(self, task_id):
         self.initialize()
-        with self._guard():
-            with sqlite3.connect(self.database) as connection:
-                row = connection.execute(
-                    "SELECT data FROM task_requirements_snapshots WHERE task_id=?",
-                    (task_id,),
-                ).fetchone()
+        with sqlite3.connect(self.database) as connection:
+            row = connection.execute(
+                "SELECT data FROM task_requirements_snapshots WHERE task_id=?",
+                (task_id,),
+            ).fetchone()
         if row is None:
             raise DomainError("Task requirements snapshot does not exist")
         return json.loads(row[0])
+
+
+class TaskRequirementsMetadataStore:
+    """Immutable Requirements context stored in the existing Task metadata."""
+
+    def __init__(self, unit_of_work):
+        self.unit_of_work = unit_of_work
+
+    def exists(self, task_id):
+        with self.unit_of_work() as uow:
+            return uow.tasks.restart_context(task_id)["requirements_snapshot"] is not None
+
+    def create(self, task_id, snapshot, agreement):
+        with self.unit_of_work() as uow:
+            uow.tasks.publish_requirements_context(task_id, snapshot, agreement)
+
+    def read(self, task_id):
+        with self.unit_of_work() as uow:
+            snapshot = uow.tasks.restart_context(task_id)["requirements_snapshot"]
+        if snapshot is None:
+            raise DomainError("Task requirements snapshot does not exist")
+        return snapshot

@@ -308,12 +308,37 @@ class SqliteTaskRepository:
             "contract": deepcopy(metadata.get("contract")),
             "creation_request": deepcopy(metadata.get("creation_request")),
             "process": deepcopy(metadata["process"]),
+            "requirements_agreement": deepcopy(
+                metadata.get("requirements_agreement")
+            ),
+            "requirements_snapshot": deepcopy(
+                metadata.get("requirements_snapshot")
+            ),
             "restart_history": deepcopy(metadata.get("restart_history", [])),
             "sprint_id": metadata["sprint_id"],
             "stage_contract_history": deepcopy(
                 metadata.get("stage_contract_history", [])
             ),
         }
+
+    def publish_requirements_context(self, task_id, snapshot, agreement) -> None:
+        row = self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        metadata = json.loads(row[0])
+        if (
+            metadata.get("requirements_snapshot") is not None
+            or metadata.get("requirements_agreement") is not None
+        ):
+            raise PoiseError("Task requirements snapshot is immutable and already exists")
+        metadata["requirements_snapshot"] = deepcopy(snapshot)
+        metadata["requirements_agreement"] = deepcopy(agreement)
+        self.db.execute(
+            "UPDATE tasks SET metadata=? WHERE id=?",
+            (encode(metadata), task_id),
+        )
 
     def restart_newborn(
         self,

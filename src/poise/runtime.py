@@ -86,35 +86,25 @@ class Poise:
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
         )
         from .modules.requirements_registry.service import TaskRequirementsGate
-        if 'requirements_database' in self.paths:
-            from .application.requirements_registry import RequirementsCommands
-            from .infrastructure.requirements_registry import (
-                RequirementsStore,
-                TaskRequirementsSnapshotStore,
-            )
-            self.requirements_store = RequirementsStore(
-                descendant(self.state, self.paths['requirements_database']),
-                descendant(self.state, self.paths['requirements_lock']),
-                limits['lock_seconds'],
-                limits['lock_poll_seconds'],
-            )
-            self.requirements_commands = RequirementsCommands(
-                self.requirements_store,
-                self.cfg['batch']['max_items'],
-            )
-            requirements_gate = TaskRequirementsGate.enabled(
-                self.requirements_store.registry,
-                TaskRequirementsSnapshotStore.shared(
-                    descendant(self.state, self.paths['database']),
-                    descendant(self.state, self.paths['lock']),
-                    limits['lock_seconds'],
-                    limits['lock_poll_seconds'],
-                ),
-            )
-        else:
-            self.requirements_store = None
-            self.requirements_commands = None
-            requirements_gate = TaskRequirementsGate.disabled()
+        from .application.requirements_registry import RequirementsCommands
+        from .infrastructure.requirements_registry import (
+            RequirementsStore,
+            TaskRequirementsMetadataStore,
+        )
+        self.requirements_store = RequirementsStore(
+            descendant(self.state, self.paths['requirements_database']),
+            descendant(self.state, self.paths['requirements_lock']),
+            limits['lock_seconds'],
+            limits['lock_poll_seconds'],
+        )
+        self.requirements_commands = RequirementsCommands(
+            self.requirements_store,
+            self.cfg['batch']['max_items'],
+        )
+        requirements_gate = TaskRequirementsGate.enabled(
+            self.requirements_store.registry,
+            TaskRequirementsMetadataStore(self.store.unit_of_work),
+        )
         self.task_commands, self.task_queries = task_tools(
             self.store,
             repository_tree,

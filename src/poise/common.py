@@ -80,10 +80,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     task_paths = {'state','database','lock','runtime','tasks','sprints','worktrees',
                   'git_index','runs','stdout','stderr','response'}
     requirements_paths = {'requirements_database', 'requirements_lock'}
-    configured_requirements = set(cfg['paths']) & requirements_paths
-    if configured_requirements not in (set(), requirements_paths):
-        raise PoiseError('paths: requirements_database и requirements_lock задаются вместе')
-    exact_keys(cfg['paths'], task_paths | configured_requirements, 'paths')
+    exact_keys(cfg['paths'], task_paths | requirements_paths, 'paths')
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
     for key, value in cfg['limits'].items():
@@ -113,25 +110,24 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
         raise PoiseError('Mutable state root overlaps the project manifest')
     for key in ('database','lock','runtime','tasks','sprints','worktrees'):
         descendant(state, cfg['paths'][key])
-    if configured_requirements:
-        requirements_storage = [
-            descendant(state, cfg['paths'][key])
-            for key in ('requirements_database', 'requirements_lock')
-        ]
-        task_storage = [
-            descendant(state, cfg['paths'][key])
-            for key in ('database', 'lock')
-        ]
-        if len(set(requirements_storage + task_storage)) != 4:
-            raise PoiseError('Requirements DB/lock должны быть отделены от Task DB/lock')
-        for left in requirements_storage:
-            for right in task_storage:
-                try:
-                    aliased = left.exists() and right.exists() and left.samefile(right)
-                except OSError:
-                    aliased = False
-                if aliased:
-                    raise PoiseError('Requirements storage физически совпадает с Task storage')
+    requirements_storage = [
+        descendant(state, cfg['paths'][key])
+        for key in ('requirements_database', 'requirements_lock')
+    ]
+    task_storage = [
+        descendant(state, cfg['paths'][key])
+        for key in ('database', 'lock')
+    ]
+    if len(set(requirements_storage + task_storage)) != 4:
+        raise PoiseError('Requirements DB/lock должны быть отделены от Task DB/lock')
+    for left in requirements_storage:
+        for right in task_storage:
+            try:
+                aliased = left.exists() and right.exists() and left.samefile(right)
+            except OSError:
+                aliased = False
+            if aliased:
+                raise PoiseError('Requirements storage физически совпадает с Task storage')
     for key in ('git_index','runs','stdout','stderr','response'):
         descendant(state, cfg['paths'][key])
     homes = [descendant(state, cfg['paths'][k]) for k in ('runtime','tasks','sprints','worktrees')]

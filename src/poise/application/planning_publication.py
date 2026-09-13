@@ -131,7 +131,7 @@ class PlanningPublications:
                 validate_creation_intent(intent,self.processes[goal],self.automatic_checks)
                 alias=creation_intent_alias(intent)
                 if alias in aliases:raise DomainError('Duplicate child creation identity')
-                if prepared.intent!=intent:
+                if prepared.source_intent!=intent:
                     raise DomainError('Reviewed child intent changed after creation preflight')
                 aliases.add(alias);candidates.append((prepared,goal))
             reservations=creation_batch_reservations(

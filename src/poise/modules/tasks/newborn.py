@@ -16,6 +16,8 @@ NEWBORN_FIELDS = frozenset({
     "goal_type",
     "goal",
     "requirements",
+    "requirements_snapshot",
+    "requirements_agreement",
     "definition_of_done",
     "methods",
     "method_inputs",

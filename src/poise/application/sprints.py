@@ -307,14 +307,19 @@ class SprintCommands:
                         prepared=item['creation']
                         if isinstance(intent,str):
                             newborn,contract=u.tasks.newborn_creation(intent)
-                            if (not newborn.ready or prepared.intent!=contract
+                            if (not newborn.ready or prepared.source_intent!=contract
                                     or newborn!=item['newborn']):
                                 raise VersionConflict('Newborn Sprint member changed after creation preflight')
-                            metadata=validate_creation(contract,newborn.process,record['automatic_checks'])
+                            metadata=validate_creation(
+                                prepared.intent,newborn.process,record['automatic_checks']
+                            )
                             metadata.update(sprint_id=sid,goal=contract['goal'],config_hash=record['execution_hash'])
                             if newborn.creation_request is not None:
                                 metadata['creation_request']=deepcopy(newborn.creation_request)
                             u.tasks.promote_newborn(build_task(metadata,None),metadata,newborn.version)
+                            prepared.requirements_gate.publish_created(
+                                u,newborn.task_id,prepared.requirements_context
+                            )
                             if newborn.creation_request is not None:
                                 allocations.append({
                                     'request_id':newborn.creation_request['request_id'],
@@ -323,7 +328,7 @@ class SprintCommands:
                                 })
                             continue
                         body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
-                        if prepared.intent!=intent:
+                        if prepared.source_intent!=intent:
                             raise VersionConflict('Sprint Task intent changed after creation preflight')
                         allocation,contract=create_planned_in_uow(
                             u,prepared,{'config_hash':record['execution_hash']},

@@ -8,35 +8,40 @@ from ..foundation.errors import DomainError
 class TaskRequirementsGate:
     """Validate live chains and persist the immutable Task-owned snapshot."""
 
-    def __init__(self, registry_loader, snapshots, enabled):
+    def __init__(self, registry_loader, snapshots):
         self._registry_loader = registry_loader
         self._snapshots = snapshots
-        self._enabled = enabled
 
     @classmethod
     def enabled(cls, registry_loader, snapshots=None):
         if not callable(registry_loader):
             raise DomainError("Requirements registry loader must be callable")
-        return cls(registry_loader, snapshots, True)
-
-    @classmethod
-    def disabled(cls):
-        return cls(None, None, False)
+        return cls(registry_loader, snapshots)
 
     def prepare_contract(self, intent):
         if not isinstance(intent, dict):
             raise DomainError("Task requirements intent must be an object")
         candidate = deepcopy(intent)
-        if not self._enabled:
-            return candidate, None
         body = candidate.get("task") if set(candidate) == {"request_id", "task"} else candidate
         snapshot = self.validate(body)
+        plan = self._registry_loader().plan_task(snapshot["task_requirements"])
+        agreement = deepcopy(body.get("requirements_agreement"))
+        self._validate_agreement(agreement, plan)
         del body["requirements_snapshot"]
-        return candidate, snapshot
+        del body["requirements_agreement"]
+        return candidate, {"snapshot": snapshot, "agreement": agreement}
+
+    @staticmethod
+    def _validate_agreement(agreement, plan):
+        if (
+            not isinstance(agreement, dict)
+            or set(agreement) != {"accepted", "chains"}
+            or agreement["accepted"] is not True
+            or agreement["chains"] != plan["chains"]
+        ):
+            raise DomainError("Explicit full-text requirements agreement is required")
 
     def validate(self, contract):
-        if not self._enabled:
-            return None
         if not isinstance(contract, dict):
             raise DomainError("Task requirements contract must be an object")
         if "requirements_snapshot" not in contract:
@@ -59,23 +64,36 @@ class TaskRequirementsGate:
         return deepcopy(snapshot)
 
     def publish(self, task_id, task_requirements, agreement):
-        if not self._enabled or self._snapshots is None:
+        if self._snapshots is None:
             raise DomainError("Task requirements publication is not configured")
         if self._snapshots.exists(task_id):
             raise DomainError("Task requirements snapshot is immutable and already exists")
         plan = self._registry_loader().plan_task(task_requirements)
         if plan["status"] != "ready":
             raise DomainError("Task requirements chain has unresolved gaps")
-        if (
-            not isinstance(agreement, dict)
-            or agreement.get("accepted") is not True
-            or agreement.get("chains") != plan["chains"]
-        ):
-            raise DomainError("Explicit full-text requirements agreement is required")
-        self._snapshots.create(task_id, plan["snapshot"])
+        self._validate_agreement(agreement, plan)
+        self._snapshots.create(task_id, plan["snapshot"], agreement)
         return deepcopy(plan["snapshot"])
 
+    def publish_created(self, uow, task_id, context):
+        if context is None:
+            raise DomainError("Task publication requires Requirements agreement context")
+        stored = uow.tasks.restart_context(task_id)
+        if (
+            stored.get("requirements_snapshot") is None
+            and stored.get("requirements_agreement") is None
+        ):
+            uow.tasks.publish_requirements_context(
+                task_id, context["snapshot"], context["agreement"]
+            )
+            stored = uow.tasks.restart_context(task_id)
+        if (
+            stored.get("requirements_snapshot") != context["snapshot"]
+            or stored.get("requirements_agreement") != context["agreement"]
+        ):
+            raise DomainError("Task publication did not persist its Requirements agreement")
+
     def snapshot(self, task_id):
-        if not self._enabled or self._snapshots is None:
+        if self._snapshots is None:
             raise DomainError("Task requirements snapshot storage is not configured")
         return self._snapshots.read(task_id)

@@ -12,9 +12,6 @@ def requirements_tools(config_path):
     from .infrastructure.requirements_registry import RequirementsStore
     root, config, _ = load_config(config_path)
     paths = config['paths']
-    if 'requirements_database' not in paths:
-        from .modules.foundation.errors import PoiseError
-        raise PoiseError('Requirements Registry не настроен для проекта')
     state = configured_root(root, paths['state'])
     limits = config['limits']
     return RequirementsCommands(

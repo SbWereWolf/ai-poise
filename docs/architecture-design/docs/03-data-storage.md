@@ -131,7 +131,7 @@ Query adapter может делать JOIN нескольких принадле
 
 Путь lock — явно configured и общий для экземпляров одного store, предпочтительно рядом с БД внутри Harness state. Lock-файл не удаляется после каждой операции и не трактуется по факту существования; удерживается файловая блокировка. Таймаут, интервал ожидания и бюджет — обязательные конфиги. Поддерживаем локальный Linux/WSL filesystem; работоспособность блокировок на произвольном сетевом диске не обещаем.
 
-Никакая transaction/DB lock не охватывает subprocess, IDE-вызов, ожидание пользователя, Git push, hashing большого файла или отправку backup. После внешней работы UoW заново читает relevant versions и subject before accepting outcome.
+Никакая transaction/DB lock не охватывает subprocess, IDE-вызов, ожидание пользователя, локальную Git-интеграцию, hashing большого файла или отправку backup. Git push запрещён. После внешней работы UoW заново читает relevant versions и subject before accepting outcome.
 
 ## 8. Граница агрегата и транзакции
 

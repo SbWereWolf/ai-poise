@@ -57,7 +57,7 @@ CONTINUE:
 
 FINALIZE:
   проверить нужные evidence/изменения;
-  фиксировать verified result, commit/push и сохранность;
+  фиксировать verified result, локальный commit и сохранность; Git push запрещён;
   сформировать доклад и остановиться.
 ```
 
@@ -118,7 +118,7 @@ VerifyStage(binding, result_file):
 | Тот же phase payload, дерево изменилось H1→H2 после failed check | Тот же содержательный слой, новый check attempt для H2 |
 | Новый предусмотренный payload той же активной фазы | Новый candidate layer; related evidence переоценивается |
 | Новый CONTINUE по уже полученным фактам | Дополнение текущей итерации; OBSERVE/APPLY receipts не теряются |
-| Git push не завершён, но проверенный commit неизменен | Продолжить доставку/проверку remote receipt; не перезапускать тест без причины |
+| Настраиваемый runner запросил Git push | Отклонить до subprocess; указать `push_required=false` и локальный `integrate`/`git merge --ff-only` |
 | Предыдущая внешняя операция имеет неизвестный исход | Probe/receipt reconciliation; при невозможности — конкретная остановка, не слепой повтор |
 | Результат уже verified и предъявлен, затем код изменился | Сначала санкционированный rework; старый результат не переписывается |
 
@@ -222,12 +222,12 @@ stage-entry/current subject
 → сверка фактического дерева
 → commit при требуемом Git delta
 → сверка commit tree
-→ private branch push при требовании project
+→ локальный commit в private branch; push запрещён
 → проверка remote receipt
 → Task.mark_verified
 ```
 
-Если hook изменил дерево, непроверенный результат не признаётся verified. Повторное выполнение затронутых проверок ограничено явным бюджетом. Target integration publish отличается от private push и выполняется координатором publish только после требуемых inspection/authority.
+Если hook изменил дерево, непроверенный результат не признаётся verified. Повторное выполнение затронутых проверок ограничено явным бюджетом. Target integration выполняется только локальным публичным `integrate` после требуемых inspection/authority; private и target push запрещены.
 
 Служебные файлы целевой среды, доступность shared test DB/портов и binding IDE не обеспечиваются одним worktree. Ресурсный adapter обязан либо подтвердить отдельные resources, либо сериализовать конкретный shared resource согласно проекту. DB lock Harness для этого не удерживается. Git worktree имеет отдельные рабочие файлы, но не полностью независимые все repository refs [S13](../sources.md).
 

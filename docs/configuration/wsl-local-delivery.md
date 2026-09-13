@@ -41,7 +41,7 @@ python -m poise project-init \
   --probe-repository yes
 ```
 
-В анкете явно задаются repository исходников AI poise, base ref, remote, Git author, push policy, абсолютный project-data root и наследуемые environment variables.
+В анкете явно задаются repository исходников AI poise, base ref, неиспользуемое имя remote, Git author, обязательное `push_required=false`, абсолютный project-data root и наследуемые environment variables. `push_required=true` запрещён и отклоняется до Git-команды.
 
 ## Создание Task DB
 

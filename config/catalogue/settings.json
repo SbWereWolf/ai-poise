@@ -5,7 +5,7 @@
     "development-v1": {
       "path": "config/catalogue/task-templates/development.json",
       "version": "1",
-      "digest": "bf73337abb3b8b93e36b1d76d184c8a8fad04d5f7a09d04792ca5692a2495ffe",
+      "digest": "903ba0df848d2219a87d285356507e88c5dd54f1c20c5c86584c54ed13f44e5e",
       "goal_type": "development"
     },
     "test_development-v1": {

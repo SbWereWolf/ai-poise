@@ -53,7 +53,8 @@ When the Task's counterpart executor/reviewer is known, apply [Direct role hando
 
 1. Save the result, evidence and findings, complete your required checks, and confirm that public `handoff` actually released the Task.
 2. Stop Task/worktree changes, then use the available direct-message tool to notify that known counterpart. Include project/Task ID, stage and receiving role, result/findings and handoff receipt links, next action and any limits of the user's Task-start instruction. Do not ask the user to relay the message or authorize each ordinary review.
-3. The recipient must acquire through `bootstrap` and check current state before working. A message neither transfers ownership nor substitutes for a review decision. Keep messages actionable, not repetitive status chatter.
+3. After successful notification, end your turn. Do not wait for a reply, poll the counterpart's status, read its conversation to track progress, or schedule background monitoring. This applies to both roles. A new incoming assignment starts the next work cycle; do not keep this turn open until it arrives. Finish your own already-started commands and save/handoff operations before ending the turn.
+4. The recipient must acquire through `bootstrap` and check current state before working. A message neither transfers ownership nor substitutes for a review decision. Keep messages actionable, not repetitive status chatter.
 
 If the recipient or messaging tool is unavailable, report the saved handoff to the user; do not contact unrelated agents. If handoff fails, do not announce a completed transfer. If notification fails after release, retry the notification against the same saved result or report the blocker; do not silently reclaim or repeat the work. Repeated messages require checking current Poise state, not replaying a finished stage. Stop for a harness blocker or a decision outside the existing authorization, not for a routine executor/reviewer boundary.
 

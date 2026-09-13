@@ -104,14 +104,7 @@
           "after": []
         }
       ],
-      "method_schedule": {
-        "baseline": "BASELINE",
-        "test_implementation": "TEST_RED",
-        "test_remediation": "TEST_RED",
-        "implementation": "TEST_GREEN",
-        "implementation_remediation": "TEST_GREEN",
-        "documentation": "DOC_CHECK"
-      }
+      "method_schedule": {}
     },
     {
       "id": "test_development",
@@ -1363,14 +1356,7 @@
     }
   ],
   "methods": {
-    "development": {
-      "baseline": "BASELINE",
-      "test_implementation": "TEST_RED",
-      "test_remediation": "TEST_RED",
-      "implementation": "TEST_GREEN",
-      "implementation_remediation": "TEST_GREEN",
-      "documentation": "DOC_CHECK"
-    },
+    "development": {},
     "test_development": {
       "baseline": "BASELINE",
       "test_implementation": "TEST_GREEN",

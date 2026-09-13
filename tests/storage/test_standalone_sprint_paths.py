@@ -38,6 +38,33 @@ def configured(project, *, standalone_tasks="standalone"):
     return write_json(project["config_path"], cfg)
 
 
+def completed_sprint_member(project, *, accept):
+    configured(project)
+    sprint_setup(project)
+    planner = WorkTools(Poise(project["config_path"], "planner"))
+    planned = draft(planner, [sprint_task(project, "MEMBER")])
+    publish(planner, planned["revision"])
+
+    tools = WorkTools(Poise(project["config_path"], "member"))
+    context = tools.invoke(request("bootstrap", {
+        "task": {"id": "MEMBER"},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    source = Path(context["worktree"]) / "src" / "sprint_member.py"
+    source.write_text("VALUE = 'sprint member'\n", encoding="utf-8")
+    payload = deepcopy(context["result_template"])
+    payload["sections"]["report"] = "Create a Sprint-member result."
+    payload["commit_message"] = "test: create sprint member result"
+    verified = tools.invoke(request("verify", {"result": payload, "artifacts": []}))
+    assert verified["status"] == "verified"
+    if accept:
+        completed = tools.invoke(request("accept", {}))
+        assert completed["status"] == "completed"
+    return tools, verified["commit"]
+
+
 def test_configuration_requires_the_explicit_standalone_namespace(project):
     old = deepcopy(project["cfg"])
     old["paths"]["tasks"] = old["paths"].pop("standalone_tasks")
@@ -98,6 +125,49 @@ def test_task_root_selects_standalone_or_sprint_membership(project):
     context = json.loads(Path(receipt["response_path"]).read_text(encoding="utf-8"))
     assert Path(context["task_root"]) == state / "standalone" / "T1"
     assert Path(receipt["response_path"]).is_relative_to(state / "standalone" / "T1" / "runs")
+
+
+def test_legacy_task_directory_is_ignored_without_migration_or_fallback(project):
+    configured(project)
+    state = project["root"] / "state"
+    legacy = state / "task" / "T1"
+    sentinel = legacy / "legacy-only.txt"
+    sentinel.parent.mkdir(parents=True)
+    sentinel.write_text("must remain in the unsupported legacy root\n", encoding="utf-8")
+
+    tools = WorkTools(Poise(project["config_path"], "standalone"))
+    context = tools.invoke(request("bootstrap", {
+        "task": project["task"],
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+
+    current = state / "standalone" / "T1"
+    assert Path(context["task_root"]) == current
+    assert sentinel.read_text(encoding="utf-8") == "must remain in the unsupported legacy root\n"
+    assert not (current / sentinel.name).exists()
+    assert not any(path.name == sentinel.name for path in current.rglob("*"))
+
+
+def test_task_path_consumers_do_not_duplicate_namespace_selection(project):
+    repository = Path(__file__).parents[2]
+    owner = repository / "src" / "poise" / "infrastructure" / "task_paths.py"
+    consumers = {
+        repository / "src" / "poise" / "interfaces" / "work.py": "task_paths.task_root(",
+        repository / "src" / "poise" / "runtime.py": "task_paths.task_root(",
+        repository / "src" / "poise" / "infrastructure" / "result_integration.py": "task_paths.task_root(",
+        repository / "src" / "poise" / "infrastructure" / "transfers.py": "task_paths.task_root(",
+    }
+
+    assert 'paths["standalone_tasks"]' in owner.read_text(encoding="utf-8")
+    for consumer, delegated_call in consumers.items():
+        source = consumer.read_text(encoding="utf-8")
+        assert "task_paths import" not in source, consumer
+        assert delegated_call in source, consumer
+        assert 'paths["standalone_tasks"]' not in source, consumer
+        assert 'paths["sprints"]' not in source, consumer
+        assert ' / "task"' not in source, consumer
 
 
 def test_runtime_evidence_query_artifact_and_handoff_receipts_are_standalone(project):
@@ -172,6 +242,35 @@ def test_result_integration_check_receipts_use_the_standalone_owner_root(project
     )
     integrated = tools.invoke(request("integrate", integration_input(project, source)))
     expected = project["root"] / "state" / "standalone" / "T1"
+
+    assert integrated["status"] == "integrated"
+    assert Path(integrated["checks"][0]["stdout"]).is_relative_to(expected / "runs")
+    assert Path(integrated["checks"][0]["stderr"]).is_relative_to(expected / "runs")
+
+
+def test_cleanup_preservation_uses_the_sprint_member_owner_root(project):
+    tools, commit = completed_sprint_member(project, accept=False)
+    cancelled = tools.invoke(request("cancel", {"reason": "Exercise Sprint-member cleanup."}))
+    assert cancelled["status"] == "cancelled"
+    cleaned = tools.invoke(request("cleanup", {
+        "request_id": "cleanup-sprint-member",
+        "task_id": "MEMBER",
+        "commit_disposition": {"kind": "preserved", "expected_commit": commit},
+        "authorization": "The test preserves this exact Sprint-member commit.",
+    }))
+    expected = project["root"] / "state" / "sprints" / "S" / "task" / "MEMBER"
+
+    assert cleaned["status"] == "cleanup_complete"
+    assert Path(cleaned["disposition"]["bundle_path"]).is_relative_to(expected)
+
+
+def test_result_integration_check_receipts_use_the_sprint_member_owner_root(project):
+    tools, commit = completed_sprint_member(project, accept=True)
+    integrated = tools.invoke(request(
+        "integrate",
+        integration_input(project, commit, request_id="integrate-sprint-member", task_id="MEMBER"),
+    ))
+    expected = project["root"] / "state" / "sprints" / "S" / "task" / "MEMBER"
 
     assert integrated["status"] == "integrated"
     assert Path(integrated["checks"][0]["stdout"]).is_relative_to(expected / "runs")

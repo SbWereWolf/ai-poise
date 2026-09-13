@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import subprocess
@@ -197,6 +199,52 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered["status"], "recovered")
         self.assertEqual(recovered["stage"], verified["stage"])
         self.assertEqual(recovered["iteration"], verified["iteration"])
+
+    def test_rejects_non_ownership_suffix_without_changing_task_state(self):
+        runtime, _, active = self._simple_empty_rework()
+        reviewer = WorkPoise(self.project["config_path"], "INTERMEDIATE-REVIEWER")
+        WorkTools(reviewer).invoke(
+            request(
+                "bootstrap",
+                {
+                    "task": {"id": "T1"},
+                    "decision": None,
+                    "feedback": None,
+                    "rework_stage": None,
+                },
+            )
+        )
+        self._handoff(reviewer, request_id="ownership-only-handoff")
+        handoff_version = runtime.task_queries.record("T1")["_version"] - 1
+        event = json.dumps(
+            {
+                "event": "verified",
+                "iteration": active["iteration"],
+                "reason": None,
+                "stage": active["stage"],
+                "submission": None,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        with runtime.store.transaction() as database:
+            database.execute(
+                "INSERT INTO task_events(task_id,version,at,data) VALUES(?,?,?,?)",
+                (
+                    "T1",
+                    handoff_version,
+                    datetime.now(timezone.utc).isoformat(),
+                    event,
+                ),
+            )
+        stored = runtime.task_queries.record("T1")
+        history = runtime.task_queries.history("T1")
+
+        with self.assertRaisesRegex(PoiseError, "non-ownership"):
+            self._recover()
+
+        self.assertEqual(runtime.task_queries.record("T1"), stored)
+        self.assertEqual(runtime.task_queries.history("T1"), history)
 
     def test_rejects_claimed_task(self):
         self._simple_empty_rework(release=False)

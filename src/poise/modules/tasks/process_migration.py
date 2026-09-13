@@ -14,11 +14,17 @@ from .domain import TaskStageContracts
 
 AUTHORIZED_TASK_IDS = ("0077", "0081", "0079", "0078", "0074", "0063")
 TASK_0082_AUTHORIZED_IDS = ("0082",)
+CURRENT_PLANNING_TASK_IDS = ("ERP-HARNESS-COMPARISON-PLAN",)
 AUTHORIZED_TASK_IDS_BY_SCHEMA = {
     "task-process-migration-1": AUTHORIZED_TASK_IDS,
     "task-process-migration-2": TASK_0082_AUTHORIZED_IDS,
     "task-process-migration-3": TASK_0082_AUTHORIZED_IDS,
+    "task-process-migration-4": CURRENT_PLANNING_TASK_IDS,
 }
+STAGE_CONTRACT_RECOVERY_SCHEMAS = frozenset({
+    "task-process-migration-3",
+    "task-process-migration-4",
+})
 NONTERMINAL_STATUSES = frozenset({"available", "active", "verified", "accepted"})
 
 
@@ -48,6 +54,10 @@ class MigrationRequest:
             if schema == "task-process-migration-1":
                 raise DomainError(
                     "Task process migration accepts exactly 0077, 0081, 0079, 0078, 0074 and 0063 in that order"
+                )
+            if schema == "task-process-migration-4":
+                raise DomainError(
+                    "Task process migration accepts exactly the current planning Task"
                 )
             raise DomainError("Task process migration accepts exactly 0082")
         normalized = {
@@ -109,7 +119,7 @@ class ProcessSnapshotMigration:
                 for stage in process["stages"]
             ]
         except (KeyError, TypeError) as exc:
-            raise DomainError("Task 0082 stage contract source is incompatible") from exc
+            raise DomainError("Task stage contract source is incompatible") from exc
         route = RouteDefinition.from_process(process)
         policy = candidate_content_policy_from_metadata(
             {**metadata, "process": process},
@@ -158,7 +168,7 @@ class ProcessSnapshotMigration:
             if worktree_required_added:
                 candidate["worktree_required"] = worktree_required
             elif (
-                request.schema != "task-process-migration-3"
+                request.schema not in STAGE_CONTRACT_RECOVERY_SCHEMAS
                 or type(candidate["worktree_required"]) is not bool
                 or candidate["worktree_required"] != worktree_required
             ):
@@ -168,7 +178,7 @@ class ProcessSnapshotMigration:
             migrated_contract = None
             old_contract_digest = None
             new_contract_digest = None
-            if request.schema == "task-process-migration-3":
+            if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
                 if "stage_contracts" in contract:
                     raise DomainError(
                         f"Task {task_id} already has stage_contracts; exact recovery is not applicable"

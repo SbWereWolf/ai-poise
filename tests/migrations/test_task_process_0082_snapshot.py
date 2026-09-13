@@ -30,6 +30,7 @@ from tests.backups.helpers import FIXED_NOW, backup_commands, backup_directory
 
 
 TASKS_V1 = ("0077", "0081", "0079", "0078", "0074", "0063")
+CURRENT_TASK = "ERP-HARNESS-COMPARISON-PLAN"
 
 
 class Task0082ProcessMigrationTests(unittest.TestCase):
@@ -92,6 +93,20 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         }
 
     @staticmethod
+    def _current_task_request(backup_name: str, **changes: object) -> dict:
+        value = {
+            "schema": "task-process-migration-4",
+            "request_id": "migrate-current-task-stage-contracts-1",
+            "backup_name": backup_name,
+            "task_ids": [CURRENT_TASK],
+            "authorization": (
+                "User authorized recovery of the current unfinished planning Task."
+            ),
+        }
+        value.update(changes)
+        return value
+
+    @staticmethod
     def _snapshot(database: Path) -> dict[str, list[tuple]]:
         with sqlite3.connect(database) as connection:
             tables = [
@@ -108,8 +123,8 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 for table in tables
             }
 
-    def _seed_legacy_0082(self) -> tuple[Path, dict, list[dict]]:
-        self.project["task"]["id"] = "0082"
+    def _seed_legacy_0082(self, task_id: str = "0082") -> tuple[Path, dict, list[dict]]:
+        self.project["task"]["id"] = task_id
         setup_project(self.project, "development")
         process_path = self.project["root"] / "config/processes/development.json"
         process = json.loads(process_path.read_text(encoding="utf-8"))
@@ -199,7 +214,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         database = self._database()
         with runtime.store.transaction() as connection:
             raw = connection.execute(
-                "SELECT metadata FROM tasks WHERE id='0082'"
+                "SELECT metadata FROM tasks WHERE id=?", (task_id,)
             ).fetchone()[0]
             metadata = json.loads(raw)
             stage_contracts = metadata["contract"].pop("stage_contracts")
@@ -211,7 +226,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             stage["instruction"] = "Preserve the legacy Task 0082 instruction."
             legacy_process.pop("worktree_required")
             connection.execute(
-                "UPDATE tasks SET metadata=? WHERE id='0082'",
+                "UPDATE tasks SET metadata=? WHERE id=?",
                 (
                     json.dumps(
                         metadata,
@@ -219,6 +234,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                         sort_keys=True,
                         separators=(",", ":"),
                     ),
+                    task_id,
                 ),
             )
         return database, metadata, stage_contracts
@@ -246,13 +262,17 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             check=False,
         )
 
-    def test_schema_2_and_3_accept_only_task_0082(self):
+    def test_schemas_2_to_4_accept_only_their_authorized_task(self):
         from poise.modules.tasks.process_migration import MigrationRequest
 
         parsed = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
         self.assertEqual(parsed.task_ids, ("0082",))
         parsed_legacy = MigrationRequest.parse(self._legacy_request("tasks-backup.sqlite"))
         self.assertEqual(parsed_legacy.task_ids, ("0082",))
+        parsed_current = MigrationRequest.parse(
+            self._current_task_request("tasks-backup.sqlite")
+        )
+        self.assertEqual(parsed_current.task_ids, (CURRENT_TASK,))
         parsed_v1 = MigrationRequest.parse(
             {
                 "schema": "task-process-migration-1",
@@ -268,6 +288,44 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 MigrationRequest.parse(
                     self._request("tasks-backup.sqlite", task_ids=task_ids)
                 )
+        for task_ids in ([], [CURRENT_TASK, "0082"], ["0082"]):
+            with self.assertRaisesRegex(DomainError, "current planning Task"):
+                MigrationRequest.parse(
+                    self._current_task_request("tasks-backup.sqlite", task_ids=task_ids)
+                )
+
+    def test_schema_4_recovers_current_task_without_resetting_its_stage(self):
+        database, metadata, stage_contracts = self._seed_legacy_0082(CURRENT_TASK)
+        backup = backup_commands(self.project).create()
+        before = self._snapshot(database)
+        before_task = next(row for row in before["tasks"] if row[0] == CURRENT_TASK)
+
+        result = self._invoke_cli(self._current_task_request(backup["name"]))
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        migrated = json.loads(result.stdout)
+        self.assertEqual(migrated["status"], "migrated")
+        self.assertEqual([item["task_id"] for item in migrated["tasks"]], [CURRENT_TASK])
+        after = self._snapshot(database)
+        after_task = next(row for row in after["tasks"] if row[0] == CURRENT_TASK)
+        self.assertEqual(after_task[:7], before_task[:7])
+        after_metadata = json.loads(after_task[7])
+        self.assertEqual(after_metadata["contract"], {
+            **metadata["contract"], "stage_contracts": stage_contracts,
+        })
+
+        resumed = WorkTools(WorkPoise(self.project["config_path"], "CURRENT-REVIEWER")).invoke(
+            request("bootstrap", {
+                "task": {"id": CURRENT_TASK},
+                "decision": None,
+                "feedback": None,
+                "rework_stage": None,
+            })
+        )
+        self.assertEqual(
+            (resumed["task"], resumed["stage"], resumed["iteration"]),
+            (CURRENT_TASK, "test_remediation", 8),
+        )
 
     def test_domain_plans_only_missing_worktree_and_stage_contract_fields(self):
         from poise.modules.tasks.process_migration import (

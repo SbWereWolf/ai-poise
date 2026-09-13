@@ -393,6 +393,87 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert replay.returncode == 0, replay.stderr
     replayed = json.loads(replay.stdout)
     assert replayed == {**result, "replayed": True}
+
+
+def test_claimed_task_is_migrated_without_changing_ownership(project):
+    from poise.application.task_process_migration import TaskProcessMigrationCommands
+    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.modules.foundation.errors import PoiseError
+
+    database, expected_metadata = _seed_legacy_tasks(project)
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE tasks SET claimed_by=? WHERE id='0063'",
+            ("owner-session-0063",),
+        )
+    backup = backup_commands(project).create()
+    before = _snapshot(database)
+
+    first = _invoke_cli(project, _request(backup["name"], request_id="claimed-0063"))
+
+    assert first.returncode == 0, first.stdout + first.stderr
+    result = json.loads(first.stdout)
+    assert result["status"] == "migrated"
+    assert result["replayed"] is False
+    after = _snapshot(database)
+    assert {key: value for key, value in after.items() if key not in {"tasks", "journal"}} == {
+        key: value for key, value in before.items() if key not in {"tasks", "journal"}
+    }
+    before_tasks = {row[0]: row for row in before["tasks"]}
+    after_tasks = {row[0]: row for row in after["tasks"]}
+    for task_id in before_tasks:
+        old = before_tasks[task_id]
+        new = after_tasks[task_id]
+        assert old[:7] == new[:7]
+        old_metadata = json.loads(old[7])
+        new_metadata = json.loads(new[7])
+        if task_id in TASKS:
+            old_process = old_metadata.pop("process")
+            new_process = new_metadata.pop("process")
+            assert new_process == {
+                **old_process,
+                "worktree_required": result["tasks"][TASKS.index(task_id)]["worktree_required"],
+            }
+        assert new_metadata == old_metadata
+    assert after_tasks["0063"][4] == "owner-session-0063"
+    assert len(after["journal"]) == len(before["journal"]) + 1
+
+    replay = _invoke_cli(project, _request(backup["name"], request_id="claimed-0063"))
+    assert replay.returncode == 0, replay.stdout + replay.stderr
+    assert json.loads(replay.stdout) == {**result, "replayed": True}
+
+    backup_commands(project).restore(backup["name"])
+    before_drift = _snapshot(database)
+
+    def replace_claim_after_preflight() -> None:
+        with sqlite3.connect(database) as connection:
+            connection.execute(
+                "UPDATE tasks SET claimed_by=? WHERE id='0063'",
+                ("replacement-session",),
+            )
+
+    port = SqliteTaskProcessMigration(
+        project["config_path"],
+        clock=FakeClock(),
+        after_preflight=replace_claim_after_preflight,
+    )
+    with pytest.raises(PoiseError, match="differs from the named backup after migration preflight"):
+        TaskProcessMigrationCommands(port).migrate(
+            _request(backup["name"], request_id="claimed-0063-drift")
+        )
+
+    after_drift = _snapshot(database)
+    assert after_drift["journal"] == before_drift["journal"]
+    assert all(
+        "worktree_required" not in json.loads(row[7])["process"]
+        for row in after_drift["tasks"]
+        if row[0] in TASKS
+    )
+    assert {row[0]: row[4] for row in after_drift["tasks"]} == {
+        **{row[0]: row[4] for row in before_drift["tasks"]},
+        "0063": "replacement-session",
+    }
+    assert expected_metadata["0063"]["marker"] == {"preserve": "0063"}
     assert _snapshot(database) == after
 
 
@@ -438,7 +519,6 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
     variants = []
     variants.append(good[:-1])
     terminal = deepcopy(good); terminal[0]["status"] = "completed"; variants.append(terminal)
-    claimed = deepcopy(good); claimed[0]["claimed_by"] = "foreign"; variants.append(claimed)
     conflicting = deepcopy(good); conflicting[0]["metadata"]["process"]["worktree_required"] = False; variants.append(conflicting)
     mismatch = deepcopy(good); mismatch[0]["metadata"]["process"]["goal_type"] = "documentation"; variants.append(mismatch)
     invalid_goal = deepcopy(good); invalid_goal[0]["metadata"]["contract"]["goal_type"] = []; variants.append(invalid_goal)
@@ -477,11 +557,6 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
             "terminal",
         ),
         (
-            "claimed",
-            lambda: execute("UPDATE tasks SET claimed_by='foreign' WHERE id='0074'"),
-            "claimed",
-        ),
-        (
             "missing",
             lambda: execute("DELETE FROM tasks WHERE id='0074'"),
             "0074",
@@ -511,7 +586,7 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
         assert reason in json.loads(result.stdout)["reason"].lower()
         assert _snapshot(database) == before_case
         with sqlite3.connect(database) as connection:
-            row = original_rows["0074" if label in {"terminal", "claimed", "missing"} else "0078"]
+            row = original_rows["0074" if label in {"terminal", "missing"} else "0078"]
             connection.execute("INSERT OR REPLACE INTO tasks VALUES(?,?,?,?,?,?,?,?)", row)
 
 

@@ -185,6 +185,12 @@ def run_contract():
         "areas=['src/poise/modules/sprints/**:sprints', "
         "'src/poise/modules/tasks/**:tasks']",
     )
+    _assert_error(
+        policy,
+        _ordinary(areas=("src/poise/modules/sprints/**",)),
+        "ordinary task narrow skill and area responsibilities mismatch: "
+        "skills=['tasks']; areas=['sprints']",
+    )
 
     phased = _ordinary()
     phased["phases"][0]["skills"] = ["sprint-domain"]
@@ -194,6 +200,21 @@ def run_contract():
         "ordinary task combines narrow responsibilities: "
         "skills=['sprint-domain:sprints', 'task-domain:tasks']",
     )
+
+    hidden_area = _ordinary()
+    hidden_area["phases"][0]["areas"] = ["src/poise/modules/sprints/**"]
+    _assert_error(
+        policy,
+        hidden_area,
+        "ordinary task combines unrelated areas: "
+        "areas=['src/poise/modules/sprints/**:sprints', "
+        "'src/poise/modules/tasks/**:tasks']",
+    )
+
+    FocusedDecomposition.parse(
+        _ordinary(skills=("workflow", "python"), areas=("docs/**",)),
+        STAGES,
+    ).validate(policy)
 
     for phases, expected in (
         (

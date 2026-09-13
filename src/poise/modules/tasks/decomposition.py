@@ -158,15 +158,26 @@ class FocusedDecomposition:
         unknown_areas = sorted(set(declared_areas) - set(routed["areas"]))
         if unknown_areas:
             raise DomainError(f"unrouted decomposition areas: {unknown_areas}")
+        narrow_policy_responsibilities = {
+            responsibility
+            for skill_class, responsibility in routed["skills"].values()
+            if skill_class == "narrow"
+        }
         focused_areas = sorted({
             area
             for phase in self.phases
-            if any(
-                routed["skills"][skill][0] == "narrow"
-                for skill in phase["skills"]
-            )
             for area in phase["areas"]
+            if routed["areas"][area] in narrow_policy_responsibilities
         })
+        narrow_responsibilities = {
+            routed["skills"][skill][1]
+            for skill in declared_skills
+            if routed["skills"][skill][0] == "narrow"
+        }
+        area_responsibilities = {
+            routed["areas"][area]
+            for area in focused_areas
+        }
         if self.kind == "ordinary":
             narrow = sorted(
                 f"{skill}:{routed['skills'][skill][1]}"
@@ -178,7 +189,13 @@ class FocusedDecomposition:
             area_routes = sorted(f"{area}:{routed['areas'][area]}" for area in focused_areas)
             if len({item.rsplit(":", 1)[1] for item in area_routes}) > 1:
                 raise DomainError(f"ordinary task combines unrelated areas: areas={area_routes}")
-        else:
+        if area_responsibilities - narrow_responsibilities:
+            raise DomainError(
+                f"{self.kind} task narrow skill and area responsibilities mismatch: "
+                f"skills={sorted(narrow_responsibilities)}; "
+                f"areas={sorted(area_responsibilities)}"
+            )
+        if self.kind == "integration":
             allowed = self.integration["allowed_paths"]
             outside = sorted(
                 area for area in focused_areas if not any(_contains(path, area) for path in allowed)

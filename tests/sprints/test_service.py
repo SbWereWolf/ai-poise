@@ -84,18 +84,28 @@ def test_invalid_trace_schedule_prevents_all_sprint_member_publication(project):
     for candidate in (valid,invalid):
         candidate['checks']['later']=[]
         candidate['evidence_plan']['later']={'subject_methods':{},'arguments':[],'review_arguments':[]}
+        candidate['stage_contracts'].append({
+            'stage_id':'later',
+            'allowed_paths':list(later['allowed_paths']),
+            'entry_requirements':[],
+            'exit_requirements':[],
+        })
     invalid['content_contract']={"sections":[],"routes":[
         {"id":"delivery","requirements":invalid['requirements'],"points":[
-            {"id":"method","kind":"method","fields":{},"write_stages":["work"]}]}],
+            {"id":"method","kind":"method","fields":{},"write_stages":["later"]}]}],
         "requirements":[
             {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
              "stages":["later"],"phase":"pre","field_equals":{}}]}
 
     planned=draft(w,[valid,invalid])
-    with pytest.raises(PoiseError) as error:
+    try:
         publish(w,planned['revision'])
-    assert all(value in str(error.value) for value in
-               ('method-too-late','delivery','method','work','later'))
+    except PoiseError as error:
+        failure = error
+    else:
+        pytest.fail("TASK_0119_SPRINT_PRE_GATE_ACCEPTED")
+    assert all(value in str(failure) for value in
+               ('method-too-late','delivery','method','pre','write_stages','later'))
     assert h.task_queries.summary()==[]
     assert not (h.state/h.paths['worktrees']).exists()
     assert bootstrap(w,'S')['status']=='draft'

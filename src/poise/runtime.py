@@ -203,6 +203,11 @@ class Poise:
                 self.cfg['automatic_checks'], self.config_hash, args['request_id'],
                 self._creation_base,
             )
+        if action == 'restart':
+            return self.task_commands.restart_newborn(
+                args['task_id'], self.session, args['expected_version'],
+                args['request_id'], args['reason'], args['authorization'],
+            )
         raise PoiseError('Unknown Task action')
 
     def recover_empty_rework(self, task_id: str, reason: str) -> dict:
@@ -724,12 +729,28 @@ class Poise:
 
     def _entry_blocked(self, data: dict, gate: dict) -> dict:
         return {
-            'status': 'content_requirements_failed',
+            'status': 'broken',
             'task': data['id'],
             'stage': self._stage(data)['id'],
-            'content_requirements': gate,
+            'failure': {
+                'kind': 'content_requirements_failed',
+                'phase': gate['phase'],
+                'content_requirements': gate,
+            },
             'checks': [],
             'replayed': False,
+            'recovery': [
+                {
+                    'action': 'repair_stage_contract',
+                    'operation': 'revise_stage_contract',
+                    'when': 'A reviewer can correct only the defective current gate or scope.',
+                },
+                {
+                    'action': 'restart_task',
+                    'operation': 'task',
+                    'when': 'The immutable Task contract must be edited from newborn state.',
+                },
+            ],
         }
 
     def _require_entry(self, data: dict) -> dict | None:

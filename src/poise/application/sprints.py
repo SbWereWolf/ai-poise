@@ -175,29 +175,11 @@ class SprintCommands:
                 'dependencies':{'action','sprint_id','request_id','expected_revision','items','reason'},
                 'cancel_tasks':{'action','sprint_id','request_id','tasks','mode','reason'},
                 'cancel':{'action','sprint_id','request_id','reason'},
-                'waive_dependencies':{'action','sprint_id','request_id','decisions'},
-                'replace_task':{'action','sprint_id','request_id','expected_revision','source_task','replacement','reason','authorization'}}
+                'waive_dependencies':{'action','sprint_id','request_id','decisions'}}
         if not isinstance(packet,dict) or not isinstance(packet.get('action'),str) or packet['action'] not in shapes:
             raise DomainError('Unknown sprint action')
         exact_keys(packet,shapes[packet['action']],'sprint action');path_identifier(packet['request_id'])
         return packet['action']
-
-    def replacement_snapshot(self,packet):
-        if self._action(packet)!='replace_task':raise DomainError('Replacement snapshot requires replace_task')
-        identity=fingerprint(packet)
-        with self.uow() as u:
-            sid=packet['sprint_id'] if packet['sprint_id'] is not None else u.sprints.scope(self.actor)
-            path_identifier(sid);record=u.sprints.get(sid)
-            if record is None or record['project']!=self.project:raise DomainError('Unknown Sprint in this project')
-            old=u.sprints.receipt(sid,packet['request_id'],identity)
-            if old is not None:return {'receipt':old,'sprint':sid}
-            if type(packet['expected_revision']) is not int or packet['expected_revision']!=record['aggregate']['revision']:
-                raise VersionConflict('Replacement revision changed')
-            facts=u.sprints.facts(sid);source=packet['source_task'];path_identifier(source)
-            if source not in facts:raise DomainError('Source Task is not a current Sprint member')
-            task=u.tasks.load(source)
-            return {'receipt':None,'sprint':sid,'fact':facts[source],'task_version':task.state.version,
-                    'handoff':u.handoffs.latest(source)}
 
     def cancellation_snapshot(self,packet):
         action=self._action(packet)
@@ -369,27 +351,6 @@ class SprintCommands:
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Dependency revision changed')
                     s=s.update_dependencies(packet['items'],{i:f['status'] for i,f in u.sprints.facts(sid).items()},packet['reason'])
-                elif action=='replace_task':
-                    if preflight is None:raise DomainError('Replacement requires external safety preflight')
-                    if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
-                        raise VersionConflict('Replacement revision changed')
-                    facts=u.sprints.facts(sid);source=packet['source_task'];candidate=packet['replacement']
-                    if source not in facts:raise DomainError('Source Task is not a current Sprint member')
-                    source_task=u.tasks.load(source)
-                    if source_task.state.version!=preflight['task_version'] or facts[source]!=preflight['fact'] or u.handoffs.latest(source)!=preflight['handoff']:
-                        raise VersionConflict('Source Task changed after replacement preflight')
-                    kind=candidate.get('goal_type') if isinstance(candidate,dict) else None
-                    if not isinstance(kind,str) or kind not in record['processes']:raise DomainError('Unknown goal_type')
-                    validate_creation(candidate,record['processes'][kind],record['automatic_checks'])
-                    target=candidate['id']
-                    if u.tasks.exists(target) or u.sprints.get(target) is not None:raise DomainError('Replacement Task ID collision')
-                    s=s.replace_task(source,candidate,{i:f['status'] for i,f in facts.items()},packet['reason'],
-                                     packet['authorization'],preflight['safety'])
-                    metadata={'contract':deepcopy(candidate),'process':deepcopy(record['processes'][kind]),
-                              'sprint_id':sid,'goal':candidate['goal'],'config_hash':record['execution_hash']}
-                    u.tasks.create(build_task(metadata,None),metadata)
-                    u.tasks.save(source_task.supersede(self.actor,packet['reason']),source_task.state.version)
-                    self._save_cleanup(u,source,preflight['cleanup_pending'])
                 elif action=='waive_dependencies':
                     if not isinstance(packet['decisions'],list) or not packet['decisions']:
                         raise DomainError('A nonempty explicit decision batch is required')
@@ -424,14 +385,10 @@ class SprintCommands:
                 u.sprints.save(record,prior)
                 if action=='publish':u.sprints.publish_members(record)
                 elif action=='dependencies':u.sprints.replace_dependencies(record)
-                elif action=='replace_task':
-                    u.sprints.add_replacement_member(record,packet['replacement']['id'])
-                    if preflight['fact']['claimed_by']==self.actor:u.handoffs.unbind(self.actor,packet['source_task'])
             u.sprints.bind(self.actor,sid)
             result=self._describe(u,record)
             if action=='materialize_tasks':result={**result,'materialized':sorted(ids)}
-            if action=='replace_task':result={**result,'cleanup':{packet['source_task']:preflight['cleanup_result']}}
-            elif action in ('cancel_tasks','cancel'):
+            if action in ('cancel_tasks','cancel'):
                 result={**result,'cleanup':{tid:item['cleanup_result'] for tid,item in preflight['tasks'].items()}}
             if allocations:result={**result,'allocations':allocations}
             u.sprints.remember(sid,packet['request_id'],identity,result)

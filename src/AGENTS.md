@@ -32,6 +32,14 @@ members while preserving partial edits, history, membership, graph aliases, immu
 replay, and source Task traceability. Keep direct complete creation supported; do not add a
 hidden broad migration.
 
+Keep broken execution-contract recovery in the Task owner. Report an unattainable DoD or a
+failed next-stage DoR as `broken`; let a reviewer revise only the defective inspection-stage
+contract, or use the public Task `restart` action to return the same unfinished, unintegrated
+Task to newborn. Preserve its ID, append-only history, Sprint membership, execution workspace,
+branch, base and WIP. Reject foreign ownership, stale versions, terminal Tasks and unresolved
+external outcomes before mutation. Sprint `replace_task` is not a correction writer; retain
+historical replacement relations only for reading.
+
 For every new trace requirement, ensure that its due stages intersect the referenced point's `write_stages`. Apply this rule to new goal-type and Task candidates, Sprint publication, and new active-Task additions before persistence or external effects. Restore stored contracts without retroactive rejection or rewriting, but validate every genuinely new requirement added to them. Keep immutable early evidence writable only at its owning stage; include that stage among the requirement's due stages instead of making the evidence writable later.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.

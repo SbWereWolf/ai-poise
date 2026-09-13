@@ -130,32 +130,6 @@ def test_standalone_creation_uses_current_base_and_persists_it(project):
     assert execution(runtime, "STANDALONE")["base"] == current_base
 
 
-def test_available_replacement_starts_from_current_base(project):
-    setup(project)
-    runtime = Poise(project["config_path"], "replacement-owner")
-    tools = WorkTools(runtime)
-    planned = draft(tools, [task(project, "BAD")])
-    current = publish(tools, planned["revision"])
-    replacement = task(project, "BAD-2")
-    tools.invoke(request("sprint", {
-        "action": "replace_task",
-        "sprint_id": None,
-        "request_id": "replace-BAD",
-        "expected_revision": current["revision"],
-        "source_task": "BAD",
-        "replacement": replacement,
-        "reason": "Replace the unfinished Task",
-        "authorization": "The user authorized this replacement",
-    }))
-    current_base = advance_base(project, "replacement-base")
-
-    context = bootstrap(tools, "BAD-2")
-
-    assert runtime.task_queries.record("BAD")["worktree"] is None
-    assert git(Path(context["worktree"]), "rev-parse", "HEAD") == current_base
-    assert execution(runtime, "BAD-2")["base"] == current_base
-
-
 def test_partial_setup_retry_keeps_observed_base_after_ref_moves(project, monkeypatch):
     setup(project)
     runtime = Poise(project["config_path"], "retry-owner")

@@ -3,7 +3,7 @@ import json
 import uuid
 from ..application.work import WorkTools
 from ..common import PoiseError,descendant
-from ..modules.work.domain import parse_request
+from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
 
 
@@ -26,7 +26,11 @@ def execute(runtime,stream,output):
         if len(json.dumps(minimal,ensure_ascii=False,separators=(',',':'))+'\n')>h.cfg['limits']['output_chars']:
             raise PoiseError('Configured output_chars cannot fit the result receipt; action not started')
         result=WorkTools(h).invoke(request)
-        category='business_incomplete' if result['status'] in ('checks_failed','content_requirements_failed','evidence_requirements_failed','observations_stale','action_failed','action_blocked') else 'success'
+        category = (
+            'business_incomplete'
+            if result['status'] in BUSINESS_INCOMPLETE_STATUSES
+            else 'success'
+        )
     except (PoiseError,UnicodeError,RecursionError) as exc:
         result={'status':'rejected','reason':str(exc)}
         current=h.store.current(h.session)

@@ -231,8 +231,9 @@ def _transition(runtime, action, *, request_id, task_id="T1", expected_version,
 
 def test_entry_failure_precedes_claim_and_context(project):
     tools, result, _ = _bootstrap(project, entry_required=True)
-    assert result["status"] == "content_requirements_failed"
-    assert result["content_requirements"]["phase"] == "pre"
+    assert result["status"] == "broken"
+    assert result["failure"]["kind"] == "content_requirements_failed"
+    assert result["failure"]["content_requirements"]["phase"] == "pre"
     assert tools.runtime.current_task() is None
     with tools.runtime.store.transaction() as db:
         row = db.execute("SELECT status,claimed_by FROM tasks WHERE id='T1'").fetchone()
@@ -241,7 +242,7 @@ def test_entry_failure_precedes_claim_and_context(project):
 
 def test_entry_recheck_precedes_submission_and_artifact_effects(project):
     first, rejected, task = _bootstrap(project, entry_required=True)
-    assert rejected["status"] == "content_requirements_failed"
+    assert rejected["status"] == "broken"
     runtime = first.runtime
     path = _seed_artifact(runtime)
     tools = WorkTools(Poise(project["config_path"], "executor"))
@@ -276,7 +277,7 @@ def test_entry_recheck_precedes_submission_and_artifact_effects(project):
 def test_entry_rejection_preserves_all_pre_effect_counters(project):
     tools, result, _ = _bootstrap(project, entry_required=True)
     counts, state = _counts(tools.runtime, "T1")
-    assert result["status"] == "content_requirements_failed"
+    assert result["status"] == "broken"
     assert state[0:4] == ("available", 0, 1, None)
     assert counts["submissions"] == counts["artifacts"] == counts["action_runs"] == counts["task_results"] == 0
 

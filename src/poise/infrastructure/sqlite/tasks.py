@@ -210,6 +210,58 @@ class SqliteTaskRepository:
             **deepcopy(newborn.draft),
         }
 
+    def restart_context(self, task_id: str) -> dict:
+        row = self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        metadata = json.loads(row[0])
+        return {
+            "config_hash": metadata["config_hash"],
+            "contract": deepcopy(metadata.get("contract")),
+            "creation_request": deepcopy(metadata.get("creation_request")),
+            "process": deepcopy(metadata["process"]),
+            "restart_history": deepcopy(metadata.get("restart_history", [])),
+            "sprint_id": metadata["sprint_id"],
+            "stage_contract_history": deepcopy(
+                metadata.get("stage_contract_history", [])
+            ),
+        }
+
+    def restart_newborn(
+        self,
+        newborn: NewbornTask,
+        expected_version: int,
+        config_hash: str,
+        reason: str,
+        authorization: str,
+    ) -> None:
+        if newborn.version != expected_version + 1:
+            raise VersionConflict("Invalid Task restart version step")
+        updated = self.db.execute(
+            "UPDATE tasks SET status=?,stage_index=0,iteration=1,claimed_by=?,version=?,"
+            "current_submission_id=NULL,metadata=? WHERE id=? AND status IN "
+            "('available','active','verified','accepted') AND version=?",
+            (
+                TaskStatus.NEWBORN.value,
+                newborn.claimed_by,
+                newborn.version,
+                encode(newborn.metadata(config_hash)),
+                newborn.task_id,
+                expected_version,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict("Task changed before restart")
+        self._event(newborn.task_id, newborn.version, {
+            "event": "restarted_newborn",
+            "stage": "newborn",
+            "iteration": 1,
+            "reason": reason,
+            "authorization": authorization,
+        })
+
     def save_newborn(self, newborn: NewbornTask, expected_version: int,
                      config_hash: str, event: str) -> None:
         if newborn.version == expected_version:
@@ -301,12 +353,14 @@ class SqliteTaskRepository:
             (s.task_id, s.version, encode(promoted.content_policy.to_layers())),
         )
         self.db.execute(
-            "INSERT INTO task_workflows VALUES(?,?)",
+            "INSERT INTO task_workflows VALUES(?,?) ON CONFLICT(task_id) DO UPDATE "
+            "SET data=excluded.data",
             (s.task_id, encode(promoted.workflow_snapshot())),
         )
         self._save_methods(promoted)
         self.db.execute(
-            "INSERT INTO task_proofs VALUES(?,?)",
+            "INSERT INTO task_proofs VALUES(?,?) ON CONFLICT(task_id) DO UPDATE "
+            "SET data=excluded.data",
             (s.task_id, encode(promoted.evidence_snapshot())),
         )
         self._event(s.task_id, s.version, {
@@ -622,3 +676,18 @@ class SqliteExecutionRepository:
         if not updates: return
         data,version=self.load(task_id)
         self.save(task_id,{**data,**updates},version)
+
+    def restart(self, task_id: str) -> None:
+        data, version = self.load(task_id)
+        if data["pending"] is not None:
+            raise PoiseError(
+                "Task has an unknown external outcome; complete its pending recovery "
+                "protocol before restart"
+            )
+        self.save(task_id, {
+            **data,
+            "attempts": 0,
+            "publication": None,
+            "pending": None,
+            "last_report": None,
+        }, version)

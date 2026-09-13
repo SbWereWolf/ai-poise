@@ -26,12 +26,21 @@ Use one `bootstrap` package to obtain the current task/sprint, stage, process sn
 
 Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has
 a permanent identity and history, uses the shared ownership API, and preserves no route entry before goal_type selection.
-`create`, `edit`, and `ready` require stable request IDs; preserve exact
+`create`, `edit`, `ready`, and `restart` require stable request IDs; preserve exact
 replay and reject foreign live ownership. A ready standalone Task becomes available, while a
 Sprint member remains newborn until publication. Use Sprint `materialize_tasks` to convert
 legacy embedded definitions while preserving partial edits, history, graph aliases, membership,
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
+
+When a saved execution contract makes DoD unattainable or the next stage fails its own DoR,
+treat the outcome as `broken`, never as successful completion. A reviewer may repair only the
+defective stage contract, or an authorized owner may restart the same Task to newborn through
+the public `task` action. Preserve Task identity, immutable history, Sprint membership,
+worktree/branch and all WIP; reject terminal work, a foreign live owner, stale version, or a
+pending external outcome before mutation. Resolve pending uncertainty through its explicit
+recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
+action. Historical replacement relations remain read-only provenance.
 
 If a lawful external process publication leaves the goal-config editor head stale, first use
 the read-only `goal-config-status-1` diagnostic and establish the provenance of the live file.

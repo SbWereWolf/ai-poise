@@ -217,48 +217,6 @@ class Sprint:
             waivers=tuple(w for w in self.waivers if (w['predecessor'],w['successor']) in unchanged),
             decisions=self.decisions+({'kind':'dependencies_changed','reason':reason},))
 
-    def replace_task(self,source,replacement_task,states,reason,authorization,safety):
-        if self.state!='published':raise DomainError('Task replacement requires a published Sprint')
-        if not isinstance(reason,str) or not reason.strip() or not isinstance(authorization,str) or not authorization.strip():
-            raise DomainError('Task replacement requires explicit reason and authorization')
-        tasks={t['id']:t for t in self.plan.data['tasks']}
-        if source not in tasks:raise DomainError('Source Task is not a current Sprint member')
-        if not isinstance(replacement_task,dict) or 'id' not in replacement_task:
-            raise DomainError('Replacement Task contract is required')
-        target=path_identifier(replacement_task['id'])
-        if target==source or target in tasks:raise DomainError('Replacement Task ID collision')
-        if replacement_task.get('sprint_id')!=self.plan.data['id']:
-            raise DomainError('Replacement Task belongs to another Sprint')
-        if set(states)!=set(tasks):raise DomainError('Sprint membership and Task states disagree')
-        if states[source] not in ('available','active','verified','accepted'):
-            raise DomainError('Only an unfinished Task can be superseded')
-        if not isinstance(safety,dict) or safety.get('kind') not in ('available','caller_owned_clean','released_handoff'):
-            raise DomainError('Explicit safe replacement state is required')
-        for edge in self.plan.data['dependencies']:
-            if edge['predecessor']==source and states[edge['successor']]!='available':
-                raise DomainError('Cannot change prerequisite of an already started successor')
-        plan=deepcopy(self.plan.data)
-        plan['tasks']=[deepcopy(replacement_task) if t['id']==source else deepcopy(t) for t in plan['tasks']]
-        plan['tasks']=sorted(plan['tasks'],key=lambda t:t['id'])
-        for edge in plan['dependencies']:
-            if edge['predecessor']==source:edge['predecessor']=target
-            if edge['successor']==source:edge['successor']=target
-        plan['dependencies']=sorted(plan['dependencies'],key=lambda e:(e['predecessor'],e['successor']))
-        waivers=[]
-        for item in self.waivers:
-            value=deepcopy(item)
-            if value['predecessor']==source:value['predecessor']=target
-            if value['successor']==source:value['successor']=target
-            waivers.append(value)
-        candidate=SprintPlan(plan)
-        errors=candidate.graph_errors(self.policy)
-        if errors:raise DomainError('; '.join(errors))
-        relation={'kind':'task_replacement','source':source,'replacement':target,
-                  'reason':reason,'authorization':authorization,'from_revision':self.revision,
-                  'to_revision':self.revision+1,'safety':deepcopy(safety)}
-        return replace(self,plan=candidate,revision=self.revision+1,waivers=tuple(waivers),
-                       decisions=self.decisions+(relation,))
-
     def cancellation_scope(self,ids,mode):
         known={task_identity(t) for t in self.plan.data['tasks']}
         if not isinstance(ids,list) or not ids or any(not isinstance(i,str) for i in ids) or len(set(ids))!=len(ids) or set(ids)-known:

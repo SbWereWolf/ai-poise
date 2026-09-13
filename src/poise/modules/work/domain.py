@@ -10,6 +10,16 @@ STAGE_CONTRACT_OPERATIONS = frozenset({
     'initialize_stage_contracts',
     'revise_stage_contract',
 })
+BUSINESS_INCOMPLETE_STATUSES = frozenset({
+    'action_blocked',
+    'action_failed',
+    'broken',
+    'capabilities_unavailable',
+    'checks_failed',
+    'content_requirements_failed',
+    'evidence_requirements_failed',
+    'observations_stale',
+})
 
 
 def status_filter(value, allowed, name):
@@ -90,6 +100,9 @@ def parse_request(value, config):
             'create': {'action','request_id','task_id','sprint_id'},
             'edit': {'action','request_id','task_id','expected_revision','patch'},
             'ready': {'action','request_id','task_id','expected_revision'},
+            'restart': {
+                'action','request_id','task_id','expected_version','reason','authorization'
+            },
         }
         action = value['input'].get('action') if isinstance(value['input'],dict) else None
         if action not in task_shapes:

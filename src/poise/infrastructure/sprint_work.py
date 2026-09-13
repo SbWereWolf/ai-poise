@@ -1,5 +1,4 @@
 """Workspace readiness outside SQL locks; orchestration never mutates Task fields."""
-from pathlib import Path
 from ..application.sprints import SprintCommands
 from ..modules.foundation.errors import PoiseError
 from ..common import descendant
@@ -17,37 +16,7 @@ class SprintWork:
 
     def apply(self,packet):
         preflight=None
-        if isinstance(packet,dict) and packet.get('action')=='replace_task':
-            snapshot=self.commands.replacement_snapshot(packet)
-            if snapshot['receipt'] is not None:return snapshot['receipt']
-            fact=snapshot['fact'];status=fact['status']
-            if status in ('completed','cancelled','superseded'):
-                raise PoiseError('Only an unfinished Task can be superseded')
-            if fact['pending'] is not None:
-                raise PoiseError('Task has a pending external outcome; resolve the pending operation before replacement')
-            if status=='available':
-                if fact['claimed_by'] is not None or fact['worktree'] is not None:
-                    raise PoiseError('Available Task has ambiguous WIP; preserve it through handoff before replacement')
-                safety={'kind':'available'}
-            elif fact['claimed_by'] is not None:
-                if fact['claimed_by']!=self.h.session:
-                    raise PoiseError('Task is owned by another session; ask that owner to handoff before replacement')
-                if fact['worktree'] is None:
-                    raise PoiseError('Owned Task has ambiguous WIP; create a handoff before replacement')
-                worktree=Path(fact['worktree'])
-                if self.h._git(worktree,'status','--porcelain','--untracked-files=all'):
-                    raise PoiseError('Task worktree is dirty; preserve WIP through handoff before replacement')
-                safety={'kind':'caller_owned_clean','worktree':str(worktree),
-                        'tree':self.h._git(worktree,'rev-parse','HEAD^{tree}')}
-            else:
-                handoff=snapshot['handoff']
-                if handoff is None or handoff['state']!='released':
-                    raise PoiseError('Unowned Task has ambiguous WIP; preserve it through an explicit handoff before replacement')
-                safety={'kind':'released_handoff','handoff_request':handoff['request_id']}
-            run=self.h.cleanup_tools.prepare_terminal(packet['source_task'],f"{packet['request_id']}:{packet['source_task']}",packet['authorization'])
-            preflight={**snapshot,'safety':safety,'cleanup_pending':self.h.cleanup_tools.pending(run),
-                       'cleanup_result':self.h.cleanup_tools.terminal_result(run)}
-        elif isinstance(packet,dict) and packet.get('action') in ('cancel_tasks','cancel'):
+        if isinstance(packet,dict) and packet.get('action') in ('cancel_tasks','cancel'):
             snapshot=self.commands.cancellation_snapshot(packet)
             if snapshot['receipt'] is not None:return snapshot['receipt']
             prepared={}
@@ -58,7 +27,6 @@ class SprintWork:
             preflight={**snapshot,'tasks':prepared}
         result=self.commands.apply(packet,preflight)
         # Receipt proves application exactly once; current context may have advanced.
-        if isinstance(packet,dict) and packet.get('action')=='replace_task':return result
         overview=self.overview(result['sprint'])
         return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {}),
                 **({'materialized':result['materialized']} if 'materialized' in result else {}),

@@ -159,7 +159,12 @@ def test_list_separates_missing_invalid_and_mismatched_entries(project):
     observed_paths = (settings, registry, Path(created['config_path']), invalid, missing)
     before = {path: file_state(path) for path in observed_paths}
 
-    result = commands.list()
+    result = project_tools(settings).list()
+    cli = subprocess.run(
+        [sys.executable, '-m', 'poise', 'project', 'list', '--settings', str(settings)],
+        text=True,
+        capture_output=True,
+    )
 
     assert result['status'] == 'listed_with_errors'
     assert result['projects'] == [{
@@ -170,4 +175,6 @@ def test_list_separates_missing_invalid_and_mismatched_entries(project):
     assert [error['status'] for error in result['errors']] == ['invalid', 'missing', 'invalid']
     assert all(Path(error['config_path']).is_absolute() for error in result['errors'])
     assert all(error['reason'] for error in result['errors'])
+    assert cli.returncode == 0, cli.stderr + cli.stdout
+    assert json.loads(cli.stdout) == result
     assert {path: file_state(path) for path in before} == before

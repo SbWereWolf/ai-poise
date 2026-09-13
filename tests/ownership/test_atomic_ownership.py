@@ -97,6 +97,9 @@ def _fingerprint(path):
 def test_four_combinations_and_task_type_dependency(project):
     packs = sorted((ROOT / "config/processes").glob("*.json"))
     packs += sorted((ROOT / "config/projects/ai-poise/config/processes").glob("*.json"))
+    packs += sorted((ROOT / "config/catalogue/processes").glob("*.json"))
+    packs += sorted((ROOT / "config/catalogue/process-templates").glob("*.json"))
+    packs += sorted((ROOT / "config/templates").glob("*.json"))
     assert packs
     for path in packs:
         process = json.loads(path.read_text(encoding="utf-8"))

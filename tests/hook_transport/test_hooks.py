@@ -133,6 +133,38 @@ def test_native_session_liveness_is_fail_closed_and_session_end_is_definitive(pr
     assert s.registry.liveness(binding['session_id']) is Liveness.DEAD
 
 
+def test_public_native_dead_owner_recovery_moves_both_claims(project,tmp_path):
+    s=service(project,tmp_path);out=install(s)
+    native(s,out,session='owner');native(s,out,session='contender')
+    owner=s.latest_binding('owner','primary')
+    contender=s.latest_binding('contender','primary')
+    started=s.work(owner['binding_path'],request('bootstrap',{
+        'task':project['task'],'decision':None,'feedback':None,'rework_stage':None}))
+    acquire=request('bootstrap',{
+        'task':{'id':started['task']},'decision':None,'feedback':None,'rework_stage':None})
+
+    def claims():
+        h=s.bound_runtime(owner['binding_path'])
+        with h.store.transaction() as db:
+            return (
+                dict(db.execute('SELECT id,claimed_by FROM tasks')),
+                dict(db.execute('SELECT id,task_id FROM sessions')),
+            )
+
+    before=claims()
+    with pytest.raises(PoiseError,match='live'):
+        s.work(contender['binding_path'],acquire)
+    assert claims()==before
+    native(s,out,'SessionEnd',session='owner')
+    recovered=s.work(contender['binding_path'],acquire)
+    tasks,worktrees=claims()
+    assert recovered['worktree']==started['worktree']
+    assert tasks[started['task']]==contender['session_id']
+    assert worktrees[owner['session_id']] is None
+    assert worktrees[contender['session_id']]==started['task']
+    assert list(worktrees.values()).count(started['task'])==1
+
+
 def test_missing_turn_id_is_not_invented(project,tmp_path):
     s=service(project,tmp_path);out=install(s);e=event('UserPromptSubmit');e.pop('turn_id');e['cwd']=str(project['root'])
     with pytest.raises(PoiseError):s.event(out['definition_path'],e)

@@ -140,6 +140,73 @@ def test_dynamic_git_runners_reject_push_before_their_effect(project, monkeypatc
     assert calls == []
 
 
+def test_configured_tokenizer_rejects_git_push_before_process(monkeypatch):
+    from poise.infrastructure.accounting_measurement import PayloadMeasurer
+
+    runtime = type("Runtime", (), {"cfg": {"accounting": {"tokenizer": {
+        "kind": "command",
+        "command": {
+            "argv": ["git", "push", "backup", "HEAD:refs/heads/task"],
+            "cwd": ".",
+            "environment": {},
+            "timeout_seconds": 1.0,
+            "max_output_bytes": 1024,
+        },
+    }}}})()
+    calls = []
+
+    def unexpected_process(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("configured tokenizer started git push")
+
+    monkeypatch.setattr(
+        "poise.infrastructure.accounting_measurement.subprocess.run",
+        unexpected_process,
+    )
+    with pytest.raises(PoiseError) as error:
+        PayloadMeasurer(runtime).tokenize(["payload"])
+
+    assert_actionable_local_integration(error)
+    assert calls == []
+
+
+def test_configured_mcp_probe_rejects_git_push_before_process(tmp_path, monkeypatch):
+    from poise.infrastructure.mcp_probe import StdioProbe
+
+    spec = {
+        "argv": ["git", "push", "backup", "HEAD:refs/heads/task"],
+        "cwd": ".",
+        "environment": {},
+        "timeout_seconds": 1.0,
+        "max_output_bytes": 1024,
+        "mcp": {
+            "max_message_bytes": 1024,
+            "max_messages": 4,
+            "max_pages": 1,
+            "protocol_version": "2025-06-18",
+            "client_info": {"name": "test", "version": "1"},
+            "required_tools": [],
+            "call": None,
+            "shutdown_seconds": 0.1,
+        },
+    }
+    calls = []
+
+    def unexpected_process(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("configured MCP probe started git push")
+
+    monkeypatch.setattr(
+        "poise.infrastructure.mcp_probe.subprocess.Popen",
+        unexpected_process,
+    )
+    with pytest.raises(PoiseError) as error:
+        StdioProbe(spec, tmp_path, {"stdout": "stdout.txt", "stderr": "stderr.txt"}).run()
+
+    assert_actionable_local_integration(error)
+    assert calls == []
+
+
 def test_public_verification_method_rejects_git_push_before_process(project, monkeypatch):
     from conftest import add_test
     from tests.batch.helpers import bootstrap, result as batch_result, verify as batch_verify

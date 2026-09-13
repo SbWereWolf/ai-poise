@@ -43,8 +43,9 @@ class SqliteAccounting:
     def ingest(self,prepared,session,task):
         return self.ingest_binding(prepared,session,binding(task))
 
-    def ingest_binding(self,prepared,session,at_bind):
+    def ingest_binding(self,prepared,session,at_bind,persist_task_reference=True):
         p=self.policy.data
+        task_reference=at_bind['task'] if persist_task_reference else None
         with self.database.transaction() as db:
             # Sort within the explicit batch. A late novel historical sample is not guessed.
             for event in sorted(prepared['usage'],key=lambda e:(e.data['source'],e.data['stream'],e.data['sequence'])):
@@ -63,7 +64,7 @@ class SqliteAccounting:
                         'source_mode':p['sources'][d['source']],'session':session,
                         'finding_ids':[t['finding_id'] for t in prepared['finding_targets']]}
                 db.execute('INSERT INTO accounting_usage VALUES(?,?,?,?,?,?,?,?)',
-                   (event.key,at_bind['task'],self.project,d['source'],d['stream'],d['sequence'],d['occurred_at'],encoded(record)))
+                   (event.key,task_reference,self.project,d['source'],d['stream'],d['sequence'],d['occurred_at'],encoded(record)))
             for entry in prepared['intervals']:
                 a,b=timestamp(entry['started_at']),timestamp(entry['ended_at'])
                 if b<a:raise PoiseError('Time interval ends before it starts')
@@ -80,7 +81,7 @@ class SqliteAccounting:
                       'finding_ids':[t['finding_id'] for t in prepared['finding_targets']],
                       'seconds':(b-a).total_seconds(),'closed_by':'source'}
                 db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
-                    (eid,at_bind['task'],self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
+                    (eid,task_reference,self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
             for target in prepared['finding_targets']:
                 task_id=at_bind['task']
                 if task_id is None:raise PoiseError('Finding attribution requires current task')
@@ -117,7 +118,7 @@ class SqliteAccounting:
                 'INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
                 (
                     envelope.identity,
-                    selected['task'],
+                    None,
                     self.project,
                     data['session'],
                     data['started']['audit_utc'],
@@ -198,14 +199,15 @@ class SqliteAccounting:
                 error=self._close_at_last_observation(db,row,d,'next_user_turn_at_last_observation')
         if error is not None:raise PoiseError(error)
 
-    def _close_at_last_observation(self,db,row,data,reason):
+    @staticmethod
+    def _close_at_last_observation(db,row,data,reason):
         timing=data.get('timing')
         valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
                and type(timing.get('started_monotonic_ns')) is int
                and type(timing.get('last_monotonic_ns')) is int
                and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
         if not valid:
-            self._unmeasured(data)
+            SqliteAccounting._unmeasured(data)
             error='Open accounting cycle cannot be compared safely; retry the operation'
         elif timing['last_monotonic_ns']<timing['started_monotonic_ns']:
             error='Monotonic clock moved backwards; accounting state was not changed'
@@ -289,6 +291,23 @@ class SqliteAccounting:
             delta={k: (measurement[k] if previous is None else (None if measurement[k] is None or previous['measurement'][k] is None else measurement[k]-previous['measurement'][k])) for k in fields}
             data={'marker':marker,'state':state,'binding':binding(task),'measurement':measurement,'delta':delta}
             db.execute('INSERT INTO accounting_credits(id,task_id,project,at,data) VALUES(?,?,?,?,?)',(marker,task['id'],self.project,at,encoded(data)))
+
+
+class SqliteAccountingCycles:
+    """Authoritative cycle release participating in the caller's transaction."""
+
+    def __init__(self,db):self.db=db
+
+    def release(self,session,task_id):
+        row=self.db.execute(
+            'SELECT * FROM accounting_cycles WHERE session_id=? AND task_id=? AND ended_at IS NULL',
+            (session,task_id),
+        ).fetchone()
+        if row is None:return
+        error=SqliteAccounting._close_at_last_observation(
+            self.db,row,json.loads(row['data']),'handoff_at_last_observation',
+        )
+        if error is not None:raise PoiseError(error)
 
 
 def check_accounting_import(db,tables):

@@ -5,6 +5,10 @@
   "max_files": 1000,
   "max_blob_bytes": 1048576,
   "time_mode": "tool_cycle",
+  "storage": {
+    "database": "telemetry/events.sqlite",
+    "lock": "telemetry/events.lock"
+  },
   "causes": [
     "initial",
     "internal_qa",

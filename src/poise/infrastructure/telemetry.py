@@ -2,9 +2,34 @@
 from __future__ import annotations
 
 from collections import deque
+from contextlib import contextmanager
 import json
 import os
+from pathlib import Path
 from threading import Condition, Lock, Thread
+
+from .sqlite.database import Database
+
+
+class TelemetryDatabase:
+    """Lazy optional store: composition never waits for its writer lock."""
+
+    def __init__(self,path:Path,lock:Path,wait:float,poll:float):
+        self.path,self.lock,self.wait,self.poll=path,lock,wait,poll
+        self._database=None
+        self._initialization=Lock()
+
+    def _ready(self):
+        if self._database is None:
+            with self._initialization:
+                if self._database is None:
+                    self._database=Database(self.path,self.lock,self.wait,self.poll)
+        return self._database
+
+    @contextmanager
+    def transaction(self):
+        with self._ready().transaction() as db:
+            yield db
 
 
 class _ThreadCapture:

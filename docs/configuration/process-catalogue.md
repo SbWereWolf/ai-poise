@@ -162,5 +162,5 @@ task_planning, integration. `--scenario short|feedback` выбирается я�
 в самих reference definitions; вариант без этапа должен быть отдельной явной настройкой графа.
 Никаких исключений в kernel по имени цели.
 
-Task schema остаётся `ddd-accounting-11`, SQLite user_version=12. Добавление новых библиотечных
-вариантов не требует миграции таблиц. Старые устаревшие схемы не поддерживаются.
+Task schema — `ddd-accounting-12`, SQLite user_version=12. Schema 11 не поддерживается;
+автоматической миграции нет. Optional telemetry использует явно выбранные отдельные database/lock.

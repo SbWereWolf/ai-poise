@@ -1,4 +1,5 @@
 """Composition adapter; observes existing work, never drives its business lifecycle."""
+from copy import deepcopy
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 from ..modules.accounting.domain import MetricPolicy,BenefitDefinition,parse_telemetry
 from ..modules.accounting.clock import ClockObservation
@@ -8,13 +9,26 @@ from .accounting_measurement import PayloadMeasurer,zero_measure
 from .accounting_queries import AccountingQueries
 
 
+def _empty_snapshot():
+    return {
+        'accounts':[], 'tasks':{}, 'usage':[], 'cycles':[], 'telemetry':[],
+        'credits':[], 'messages':[], 'reports':[], 'quality':[], 'workflows':{},
+    }
+
+
+class _SnapshotRepository:
+    def __init__(self,data):self.data=data
+    def snapshot(self):return deepcopy(self.data)
+
+
 class RuntimeAccounting:
-    def __init__(self,h):
+    def __init__(self,h,database):
         self.h=h;self.policy=MetricPolicy.parse(h.cfg['accounting'])
         try:ZoneInfo(self.policy.data['timezone'])
         except ZoneInfoNotFoundError as exc:raise PoiseError('Unknown accounting timezone') from exc
-        self.repo=SqliteAccounting(h.store.database,h.cfg['project'],self.policy)
+        self.repo=SqliteAccounting(database,h.cfg['project'],self.policy)
         self.measurer=PayloadMeasurer(h)
+        self._last_snapshot=_empty_snapshot()
 
     def prepare(self,value):
         result=parse_telemetry(value,self.policy)
@@ -23,9 +37,6 @@ class RuntimeAccounting:
             a,b=timestamp(e['started_at']),timestamp(e['ended_at'])
             if b<a:raise PoiseError('Time interval ends before start')
         return result
-
-    def release_cycle(self,task_id):
-        self.repo.release_cycle(self.h.session,task_id)
 
     def _account(self,task,observation):
         if task is None or task['base'] is None:return
@@ -51,10 +62,8 @@ class RuntimeAccounting:
         raw=data['telemetry'];prepared=None if raw is None else self.prepare(raw)
         if not self.repo.store_telemetry(envelope):return
         selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
-        task=None if selected['task'] is None else self.h.task_queries.record(selected['task'])
-        self._account(task,started)
-        if prepared is not None:self.repo.ingest_binding(prepared,data['session'],selected)
-        self.reconcile(finished)
+        if prepared is not None:self.repo.ingest_binding(prepared,data['session'],selected,False)
+        self._last_snapshot=self.repo.snapshot()
 
     def reconcile(self,observation):
         data=self.repo.snapshot()
@@ -75,10 +84,24 @@ class RuntimeAccounting:
             self.repo.credit(task,measure,observation.audit_utc)
 
     def report(self,query):
-        return AccountingQueries(self.repo,self.policy,self.h.cfg['project']).report(query)
+        snapshot=self._snapshot()
+        return AccountingQueries(_SnapshotRepository(snapshot),self.policy,self.h.cfg['project']).report(query)
 
     def telemetry_summary(self,runtime):
         result=dict(runtime)
-        result['stored']=len(self.repo.snapshot()['telemetry'])
+        result['stored']=len(self._snapshot()['telemetry'])
         result['coverage']='partial' if result['stored'] or result.get('coverage')=='partial' else 'unavailable'
         return result
+
+    def _snapshot(self):
+        if getattr(self.h,'telemetry',None) is not None:
+            try:
+                if self.h.telemetry.summary().get('pending',0):
+                    return deepcopy(self._last_snapshot)
+            except Exception:
+                return deepcopy(self._last_snapshot)
+        try:
+            self._last_snapshot=self.repo.snapshot()
+        except Exception:
+            pass
+        return deepcopy(self._last_snapshot)

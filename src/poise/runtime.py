@@ -101,7 +101,15 @@ class Poise:
         self.work_resources=WorkResources(self)
         from .application.accounting import AccountingCommands
         from .infrastructure.accounting import RuntimeAccounting
-        self.accounting=AccountingCommands(RuntimeAccounting(self))
+        from .infrastructure.telemetry import TelemetryDatabase
+        telemetry_storage=self.cfg['accounting']['storage']
+        telemetry_database=TelemetryDatabase(
+            descendant(self.state,telemetry_storage['database']),
+            descendant(self.state,telemetry_storage['lock']),
+            limits['lock_seconds'],
+            limits['lock_poll_seconds'],
+        )
+        self.accounting=AccountingCommands(RuntimeAccounting(self,telemetry_database))
         from .application.telemetry import OptionalTelemetry
         from .infrastructure.telemetry import AsyncTelemetryDispatcher,DetachedTelemetryProcessor
         self.telemetry=OptionalTelemetry(

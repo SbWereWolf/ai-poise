@@ -11,6 +11,7 @@
 | application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
 | SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
 | runtime/execution/artifacts | реальные наблюдения Git/команд/files; publication и transport | прямые UPDATE Task/evidence state |
+| Optional telemetry | неизменяемый `TelemetryEnvelope`, отдельные SQLite database/lock, асинхронная best-effort запись и partial coverage | брать authoritative Task DB lock, задерживать либо отменять результат WorkTools |
 
 `EvidenceBook` используется композиционно; это не BaseTask и не отдельный движок каждого goal type. Runner делегирует чистым handler/domain, не держит lock во время subprocess. Generic observe/check отличаются способом интерпретации заданных наблюдений, не названием цели.
 

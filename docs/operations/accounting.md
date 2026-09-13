@@ -10,7 +10,9 @@ Task/Sprint отвечают за выполнение и приёмку. Accoun
 
 ## Явная конфигурация
 
-Project schema — `ddd-accounting-11`, SQLite — `user_version=12`. Обязателен `accounting` со всеми полями из [исходного примера](../../config/accounting.example.json): timezone, week_start, max_events, max_files, max_blob_bytes, time_mode, causes, sources, path_categories, tokenizer. Пример задаёт конкретные значения, не является неявной подстановкой.
+Project schema — `ddd-accounting-12`, SQLite — `user_version=12`. Обязателен `accounting` со всеми полями из [исходного примера](../../config/accounting.example.json): timezone, week_start, max_events, max_files, max_blob_bytes, time_mode, causes, sources, path_categories, tokenizer и `storage` с отдельными относительными путями `database`/`lock`. Schema 11 не поддерживается и не мигрируется: до этого изменения рабочий вариант schema 12 не публиковался. Пример задаёт конкретные значения, не является неявной подстановкой.
+
+В schema 12 необязательная телеметрия записывается в отдельную SQLite-БД под отдельным внешним lock. Её writer не обращается к authoritative Task DB и не участвует в транзакции результата работы. Захваченный `TelemetryEnvelope` обрабатывается асинхронно; заполненность очереди, ошибка или удерживаемый optional lock дают частичное покрытие, но не задерживают и не заменяют успешный ответ WorkTools. Пока optional-запись не завершена, accounting read использует последний завершённый snapshot. Время envelope содержит `ClockObservation`; длительность вычисляется только внутри общей `comparison_domain`.
 
 У каждого process обязательное `benefit`: `git_categories` и `sections`. Пустые списки допустимы только явно. Редактор goal-config поддерживает `set_benefit` в том же пакете с изменениями этапов и секций. Неизвестная категория при начале работы отклоняется.
 

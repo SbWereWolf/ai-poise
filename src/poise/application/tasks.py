@@ -112,9 +112,13 @@ class TaskCommands:
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
         candidate, _ = materialize_contract(intent, creation_alias(intent))
-        if not isinstance(candidate, dict) or not {'methods','method_inputs'} <= set(candidate):
+        try:
+            preflight = CreationPreflight.parse(candidate, process)
+        except KeyError as exc:
             validate_creation(candidate, process, automatic_checks)
-        preflight = CreationPreflight.parse(candidate, process)
+            raise DomainError(
+                f"Task creation preflight requires field {exc.args[0]!r}"
+            ) from exc
         if not isinstance(base_revision, str) or not base_revision:
             raise DomainError("Task creation requires an explicit repository tree preflight")
         preflight.validate_base(

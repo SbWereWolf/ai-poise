@@ -351,10 +351,6 @@ class SprintCommands:
                         if allocation.receipt() is not None:allocations.append(allocation.receipt())
                     if created:
                         s=replace(s,plan=SprintPlan(rewrite_task_plan(s.plan.data,created)))
-                    elif all(isinstance(intent,str) for intent in s.plan.data['tasks']):
-                        plan=deepcopy(s.plan.data)
-                        plan['tasks']=[{'id':task_id} for task_id in plan['tasks']]
-                        s=replace(s,plan=SprintPlan(plan))
                 elif action=='materialize_tasks':
                     if s.state!='draft':raise DomainError('Only a legacy Sprint draft can materialize Tasks')
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:

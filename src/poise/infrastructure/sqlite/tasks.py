@@ -71,6 +71,27 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
+    def ownership_event_suffix(
+        self, task_id: str, after_version: int, through_version: int
+    ) -> tuple[str, ...]:
+        rows = self.db.execute(
+            "SELECT version,data FROM task_events "
+            "WHERE task_id=? AND version>? AND version<=? ORDER BY version",
+            (task_id, after_version, through_version),
+        ).fetchall()
+        if [row["version"] for row in rows] != list(
+            range(after_version + 1, through_version + 1)
+        ):
+            return ()
+        events = tuple(json.loads(row["data"])["event"] for row in rows)
+        ownership_events = {
+            "handed_off",
+            "handoff_resumed",
+            "ownership_acquired",
+            "ownership_released",
+        }
+        return events if set(events) <= ownership_events else ()
+
     def is_newborn(self, task_id):
         row = self.db.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
         if row is None:
@@ -551,6 +572,51 @@ class SqliteTaskRepository:
                     RouteDefinition.from_process(metadata["process"]),
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts)
+
+    def membership_snapshot(self, task_id: str) -> dict:
+        row = self.db.execute(
+            "SELECT t.status,t.claimed_by,t.version,t.metadata,e.data AS execution "
+            "FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id WHERE t.id=?",
+            (task_id,),
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        metadata = json.loads(row["metadata"])
+        execution = None if row["execution"] is None else json.loads(row["execution"])
+        return {
+            "task_id": task_id,
+            "status": row["status"],
+            "claimed_by": row["claimed_by"],
+            "version": row["version"],
+            "sprint_id": metadata["sprint_id"],
+            "execution": execution,
+        }
+
+    def change_sprint_membership(
+        self, task_id: str, expected_sprint: str | None,
+        target_sprint: str | None, expected_version: int,
+    ) -> None:
+        row = self.db.execute(
+            "SELECT version,metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        metadata = json.loads(row["metadata"])
+        if row["version"] != expected_version or metadata["sprint_id"] != expected_sprint:
+            raise VersionConflict("Task Sprint membership changed")
+        metadata["sprint_id"] = target_sprint
+        version = expected_version + 1
+        updated = self.db.execute(
+            "UPDATE tasks SET version=?,metadata=? WHERE id=? AND version=?",
+            (version, encode(metadata), task_id, expected_version),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict("Task Sprint membership changed")
+        self._event(task_id, version, {
+            "event": "sprint_membership_changed",
+            "from_sprint": expected_sprint,
+            "to_sprint": target_sprint,
+        })
 
     def empty_rework_recovery_point(
         self, task_id: str, handoff_version: int, last_report: dict,

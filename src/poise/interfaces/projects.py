@@ -13,10 +13,12 @@ def emit(settings,result,category,output):
     return settings.raw['exit_codes'][category] if settings is not None else 2
 
 
-def execute(settings_path,stream,output):
+def execute(settings_path,stream,output,action=None):
     settings=None
     try:
         settings=ProjectSettings(settings_path)
+        if action=='list':
+            return emit(settings,project_tools(settings_path).list(),'success',output)
         raw=stream.read(settings.raw['max_input_bytes']+1)
         if len(raw)>settings.raw['max_input_bytes']:raise PoiseError('Project input limit exceeded')
         result=project_tools(settings_path).apply(strict_json(raw.decode('utf-8')))

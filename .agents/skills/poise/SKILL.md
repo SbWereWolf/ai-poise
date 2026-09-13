@@ -42,6 +42,15 @@ pending external outcome before mutation. Resolve pending uncertainty through it
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
 action. Historical replacement relations remain read-only provenance.
 
+When an interrupted invocation leaves `pending=checks`, retry only the exact current submitted
+`verify` packet. The runtime may reconcile it without rerunning checks only when every terminal
+receipt is present and exactly matches the current stage, iteration, submission, tree, execution
+key, invocation, ledger record, and persisted output digests. Treat incomplete, mismatched,
+duplicated, unknown, or output-corrupt receipts as unresolved external outcomes and make no Task
+or execution mutation.
+
+Public non-newborn `bootstrap` and current-Task `show` projections expose the exact current Task version as `version`. The private `_version` name is never part of the public DTO. Taskless responses omit `version`, and newborn Tasks use `revision`. Pass this value unchanged as `expected_version` for guarded `restart` or stage-contract repair; on a version conflict, refresh through public `bootstrap`/`show` instead of guessing.
+
 Use the installation-owned `recover_missing_worktree` operation only for a nonterminal
 verified/accepted Task whose registered worktree was removed. It must prove the saved report
 commit is integrated into the configured base and has the exact verified tree before restoring
@@ -98,6 +107,16 @@ Never use the main checkout or foreign WIP for preparation or conflict resolutio
 Bootstrap the sprint to get the eligible set instead of calculating dependencies manually. `verified` is not `completed`; predecessor completion follows the task's acceptance policy. Read [Sprint API → Work selection](../../../docs/workflows/sprints.md#выбор-работы-и-один-пакет-контекста) and [Sprint API → Dependency kinds](../../../docs/workflows/sprints.md#два-явных-вида-зависимостей).
 
 Treat result dependencies as readiness plus `result_provenance`, not Git ancestry. Every new successor worktree starts from the current configured base ref; AI poise does not use or merge predecessor result commits as its branch base.
+
+Inter-task dependencies exist only inside one Sprint; a standalone Task or a member of another
+Sprint cannot be an endpoint. Use draft `adopt_tasks` atomically only for Tasks with
+`status=available, claimed_by=null, worktree=null, pending=null, last_report=null, and attempts=0`.
+Use published `extract_tasks` only for the same eligible member with no incoming or outgoing dependency.
+Identity, immutable history, goal, contract, and readiness are preserved. A
+successful conversion changes membership, graph, revision, and the request receipt together;
+rejection changes none of them, and a retry after rejection is not a replay. Draft
+`remove_tasks` remains the pre-publication correction route, and draft cancellation atomically
+detaches both newborn and adopted Tasks.
 
 ## Capabilities
 

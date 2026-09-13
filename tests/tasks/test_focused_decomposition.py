@@ -88,13 +88,18 @@ ERP_META_SKILLS = {
 }
 ERP_GENERAL_SKILLS = ERP_MIGRATED_SKILLS - set(ERP_NARROW_RESPONSIBILITIES) - ERP_META_SKILLS
 ERP_AREA_ROUTES = {
+    "app/Domain/**": "domain-design",
+    "app/Jobs/**": "queues",
+    "app/MoonShine/**": "laravel-admin",
     "app/**": "laravel-backend",
     "database/**": "database",
+    "infrastructure/**": "infrastructure",
     "resources/css/**": "frontend-design",
     "resources/js/**": "vue-frontend",
     "routes/**": "backend-contracts",
     "tests/Browser/**": "browser-tests",
     "tests/Feature/**": "system-tests",
+    "tests/Frontend/**": "frontend-tests",
     "tests/Unit/**": "backend-tests",
 }
 
@@ -372,11 +377,18 @@ def run_documentation_contract():
     assert set(by_id) == (
         set(ERP_NARROW_RESPONSIBILITIES) | ERP_META_SKILLS | ERP_GENERAL_SKILLS
     )
-    assert {
+    actual_routes = {
         item["path"]: item["responsibility"] for item in erp["areas"]
-    } == ERP_AREA_ROUTES
+    }
+    assert actual_routes == ERP_AREA_ROUTES, (
+        f"ERP area routes mismatch: expected={ERP_AREA_ROUTES!r}; "
+        f"actual={actual_routes!r}"
+    )
     routed = set(ERP_AREA_ROUTES.values())
-    assert set(ERP_NARROW_RESPONSIBILITIES.values()) <= routed
+    missing_routes = sorted(set(ERP_NARROW_RESPONSIBILITIES.values()) - routed)
+    assert not missing_routes, (
+        f"ERP narrow responsibilities lack area routes: {missing_routes}"
+    )
 
     documents = [
         root / "docs/workflows/batch-work.md",

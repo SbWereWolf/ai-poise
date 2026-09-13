@@ -7,7 +7,6 @@ import pytest
 from batch.helpers import request
 from conftest import Poise, WorkPoise, git, write_json
 from poise.application.work import WorkTools
-from poise.modules.hook_transport.domain import BoundSourceRoute
 from runner.test_runner_paths import edit, result, setup_project
 
 
@@ -221,14 +220,7 @@ def test_rejects_unintegrated_commit_and_mismatched_verified_tree(project, monke
         recovery.recover_missing_worktree(context["task"], "Reject a mismatched tree.")
 
 
-def test_missing_worktree_recovery_is_installation_owned_and_documented():
-    route = BoundSourceRoute.decide(
-        "recover_missing_worktree",
-        None,
-        {"id": "CURRENT", "status": "verified"},
-        None,
-    )
-    assert (route.source, route.task_id) == ("installation", None)
+def test_missing_worktree_recovery_is_documented():
     text = (Path(__file__).resolve().parents[2] / "docs/workflows/batch-work.md").read_text(
         encoding="utf-8"
     )

@@ -268,7 +268,6 @@ def test_domain_plans_only_missing_field_for_exact_batch():
 
 def test_migration_preserves_task_state_and_replays_receipt(project):
     from poise.modules.tasks.process_migration import MigrationRequest
-    from poise.modules.hook_transport.domain import BoundSourceRoute
 
     database, expected_metadata = _seed_legacy_tasks(project)
     backup = backup_commands(project).create()
@@ -335,13 +334,6 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
                 expected["contract"]["goal_type"]
             ]
         assert metadata == expected
-        if task_id in TASKS:
-            route = BoundSourceRoute.decide("bootstrap", {"id": task_id}, None, {
-                "id": task_id, "status": status, "worktree": None, "process": metadata["process"]
-            })
-            expected_source = "target_task" if metadata["process"]["worktree_required"] else "installation"
-            assert route.source == expected_source
-
     with sqlite3.connect(database) as connection:
         journal = connection.execute(
             "SELECT at,session_id,task_id,event,data FROM journal ORDER BY seq DESC LIMIT 1"

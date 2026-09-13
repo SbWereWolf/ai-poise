@@ -19,20 +19,21 @@ def test_native_hook_transport_changes_work_only_through_worktools():
     assert 'dangerously-bypass' not in source
 
 
-def test_bound_source_route_is_pure_and_preparation_stays_in_application_boundary():
+def test_task_work_never_selects_or_dispatches_a_task_owned_harness():
     domain=(ROOT/'modules/hook_transport/domain.py').read_text()
     tree=ast.parse(domain)
     imports=[]
     for node in ast.walk(tree):
         if isinstance(node,ast.Import):imports.extend(item.name for item in node.names)
         elif isinstance(node,ast.ImportFrom):imports.append(node.module or '')
-    assert 'BoundSourceRoute' in domain
+    assert 'BoundSourceRoute' not in domain
     assert not any(name.split('.')[0] in {'os','pathlib','sqlite3','subprocess'} for name in imports)
 
     application=(ROOT/'application/work.py').read_text()
     transport=(ROOT/'infrastructure/hook_transport.py').read_text()
-    assert 'prepare_bound_source' in application
-    assert 'prepare_bound_source' in transport
+    assert 'prepare_bound_source' not in application
+    assert '_dispatch_bound_source' not in transport
+    assert 'POISE_NATIVE_BOUND_SOURCE' not in transport
     assert 'UPDATE tasks' not in transport and 'INSERT INTO tasks' not in transport
 
     transport_tree=ast.parse(transport)

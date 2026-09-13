@@ -17,7 +17,7 @@ def test_native_source_resolution_is_canonical_and_cross_referenced():
         "installation source",
         "Task worktree",
         "session-scoped",
-        "без fallback",
+            "не использует fallback",
         "config_hash",
     ):
         assert term in runtime
@@ -25,11 +25,12 @@ def test_native_source_resolution_is_canonical_and_cross_referenced():
         "session-scoped source resolution",
         "WorkTools",
         "native binding",
-        "общую конфигурацию",
+        "не запускает дочерний `WorkTools`",
         "Task worktree",
     ):
         assert term in boundaries
-    assert "worktree/src" in local and "native self-hosting" in local
+    assert "worktree/src" in local and "installation source" in local
+    assert "не исполняется из собственного" in local
 
     for path in (
         ROOT / "docs/configuration/runtime-hooks.md",

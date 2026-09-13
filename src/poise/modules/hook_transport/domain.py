@@ -6,46 +6,9 @@ import re
 from ..artifact_factory.domain import exact
 from ..capabilities.domain import ProbeSpec,positive,nonempty
 from ..foundation.errors import PoiseError
-from ..tasks.domain import is_terminal_task_status
 
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
-INSTALLATION_OPERATIONS={
-    'show', 'cancel', 'task', 'sprint', 'integrate',
-    'recover_empty_rework', 'recover_empty_advance', 'recover_missing_worktree'
-}
-
-
-@dataclass(frozen=True)
-class BoundSourceRoute:
-    """Pure decision about which immutable source boundary owns one work packet."""
-    source: str
-    task_id: str | None
-
-    @classmethod
-    def decide(cls,operation,task_input,current_task,target_task):
-        if operation in INSTALLATION_OPERATIONS:
-            return cls('installation',None)
-        if operation=='integrate' and target_task is not None:
-            return cls('target_task',target_task['id'])
-        if operation=='bootstrap':
-            if target_task is not None:
-                if is_terminal_task_status(target_task['status']):
-                    return cls('installation',None)
-                if target_task['status'] == 'newborn':
-                    return cls('installation',None)
-                if (target_task.get('worktree') is None
-                        and target_task['process']['worktree_required'] is False):
-                    return cls('installation',None)
-                return cls('target_task',target_task['id'])
-            if task_input is not None:
-                return cls('installation',None)
-        if current_task is not None and not is_terminal_task_status(current_task['status']):
-            if (current_task.get('worktree') is None
-                    and current_task['process']['worktree_required'] is False):
-                return cls('installation',None)
-            return cls('current_task',current_task['id'])
-        return cls('installation',None)
 
 
 @dataclass(frozen=True)

@@ -59,6 +59,11 @@ def create(directory: Path):
         {'method_id':'GREEN','repository_inputs':[],'future_outputs':[{'path':'tests','producer_stage':'tests'}],'reference_profile':{'runner':'unittest','parser':'discover-start-directory','version':1}},
     ]
     task = {'id': 'DEMO-1', 'sprint_id': None, 'goal_type': 'development', 'goal': 'Исправить double(2), получить 4.', 'requirements': ['double(n) возвращает n*2'], 'definition_of_done': ['Регрессионный тест RED до правки, GREEN после.'], 'methods': methods, 'method_inputs': method_inputs, 'checks': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': ['GREEN']}, 'artifact_requirements': [{'scope': 'task', 'pattern': 'artifacts/result.md', 'minimum': 1, 'maximum': 1}], 'content_contract': {'sections': [], 'routes': [], 'requirements': []}}
+    task['stage_contracts'] = [
+        {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
+         'entry_requirements': [], 'exit_requirements': []}
+        for stage in stages
+    ]
     task['evidence_plan'] = {s['id']: {'subject_methods': {}, 'arguments': [], 'review_arguments': []} for s in stages}
     save(home / 'task.json', task)
     return home

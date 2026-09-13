@@ -204,50 +204,7 @@ def test_completed_integrate_runs_from_current_installation_source(project, tmp_
     assert not source_worktree.exists()
 
 
-def _remove_work_method(package):
-    transport = package / "infrastructure" / "hook_transport.py"
-    tree = ast.parse(transport.read_text(encoding="utf-8"))
-    removed = 0
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == "HookService":
-            before = len(node.body)
-            node.body = [
-                item
-                for item in node.body
-                if not (isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == "work")
-            ]
-            removed += before - len(node.body)
-    assert removed == 1
-    transport.write_text(ast.unparse(ast.fix_missing_locations(tree)) + "\n", encoding="utf-8")
-
-
-def _inject_before_work(package, statement):
-    transport = package / "interfaces" / "hook_transport.py"
-    tree = ast.parse(transport.read_text(encoding="utf-8"))
-    inserted = 0
-
-    class InjectMutation(ast.NodeTransformer):
-        def visit_Assign(self, node):
-            nonlocal inserted
-            self.generic_visit(node)
-            call = node.value
-            if (
-                isinstance(call, ast.Call)
-                and isinstance(call.func, ast.Attribute)
-                and isinstance(call.func.value, ast.Name)
-                and call.func.value.id == "service"
-                and call.func.attr == "work"
-            ):
-                inserted += 1
-                return [*ast.parse(statement).body, node]
-            return node
-
-    tree = InjectMutation().visit(tree)
-    assert inserted == 1
-    transport.write_text(ast.unparse(ast.fix_missing_locations(tree)) + "\n", encoding="utf-8")
-
-
-def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(project, tmp_path):
+def test_existing_task_bootstrap_uses_installation_source_without_rebinding(project, tmp_path):
     sprint_setup(project)
     service, installed, installation = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "task-session")
@@ -259,18 +216,39 @@ def test_existing_task_bootstrap_loads_registered_task_source_without_rebinding(
 
     started, context = _call(launcher, _bootstrap({"id": "T1"}))
     assert started.returncode == 0, started.stdout + started.stderr
-    task_source = Path(context["worktree"]) / "src" / "poise"
-    assert Path(context["loaded_source"]) == task_source
+    assert Path(context["loaded_source"]) == installation / "poise"
     assert context["session"] == binding["session_id"]
     assert context["interaction"]["observed_messages_count"] == 1
     assert context["interaction"]["source"] == {
         "id": "codex-hook-main",
         "mode": "runtime_event",
     }
-    assert task_source != installation / "poise"
     assert _work_invocations(project) == [
-        {"source": str(task_source), "operation": "bootstrap"}
+        {"source": str(installation / "poise"), "operation": "bootstrap"}
     ]
+
+
+def test_existing_task_continuation_uses_installation_when_task_harness_is_incompatible(
+    project, tmp_path
+):
+    service, installed, installation = _service(project, tmp_path)
+    launcher, binding = _launcher(service, installed, "incompatible-task-harness")
+    started, context = _call(launcher, _bootstrap(project["task"]))
+    assert started.returncode == 0, started.stdout + started.stderr
+
+    task_entrypoint = Path(context["worktree"]) / "src" / "poise" / "__main__.py"
+    task_entrypoint.unlink()
+
+    continued, current = _call(launcher, _bootstrap(None))
+
+    assert continued.returncode == 0, continued.stdout + continued.stderr
+    assert current["status"] == "active"
+    assert current["session"] == binding["session_id"]
+    assert Path(current["loaded_source"]) == installation / "poise"
+    assert _work_invocations(project)[-1] == {
+        "source": str(installation / "poise"),
+        "operation": "bootstrap",
+    }
 
 
 def test_terminal_task_bootstrap_uses_installation_source_without_binding(project, tmp_path):
@@ -301,14 +279,13 @@ def test_terminal_task_bootstrap_uses_installation_source_without_binding(projec
 
 @pytest.mark.parametrize("config_changed", [False, True])
 @pytest.mark.parametrize("state", ["active", "verified", "accepted"])
-def test_assigned_session_continuation_loads_current_task_source_in_each_resumable_state(
+def test_assigned_session_continuation_uses_installation_source_in_each_resumable_state(
     project, tmp_path, state, config_changed
 ):
-    service, installed, _ = _service(project, tmp_path)
+    service, installed, installation = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "continuation-" + state)
     started, context = _call(launcher, _bootstrap(project["task"]))
     assert started.returncode == 0, started.stdout + started.stderr
-    task_source = Path(context["worktree"]) / "src" / "poise"
 
     if state in {"verified", "accepted"}:
         add_test(context["worktree"])
@@ -328,7 +305,7 @@ def test_assigned_session_continuation_loads_current_task_source_in_each_resumab
     continued, current = _call(launcher, _bootstrap(None))
     assert continued.returncode == 0, continued.stdout + continued.stderr
     assert current["status"] == state
-    assert Path(current["loaded_source"]) == task_source
+    assert Path(current["loaded_source"]) == installation / "poise"
     assert current["session"] == binding["session_id"]
     assert (current["task"], current["stage"], current["iteration"]) == (
         context["task"], context["stage"], context["iteration"]
@@ -365,69 +342,6 @@ def test_taskless_and_new_task_creation_use_configured_installation_source(proje
     assert Path(context["loaded_source"]) == installation / "poise"
 
 
-@pytest.mark.parametrize(
-    "damage",
-    [
-        "missing_worktree",
-        "escaped_symlink",
-        "intermediate_symlink",
-        "wrong_branch",
-        "wrong_git_root",
-        "missing_package",
-        "missing_work_method",
-    ],
-)
-def test_invalid_registered_task_source_is_rejected_without_fallback(project, tmp_path, damage):
-    service, installed, installation = _service(project, tmp_path)
-    launcher, _ = _launcher(service, installed, "invalid-" + damage)
-    started, context = _call(launcher, _bootstrap(project["task"]))
-    assert started.returncode == 0, started.stdout + started.stderr
-    worktree = Path(context["worktree"])
-
-    if damage == "missing_worktree":
-        shutil.rmtree(worktree)
-    elif damage == "escaped_symlink":
-        package = worktree / "src" / "poise"
-        outside = tmp_path / "unregistered-poise"
-        shutil.move(package, outside)
-        package.symlink_to(outside, target_is_directory=True)
-    elif damage == "intermediate_symlink":
-        source = worktree / "src"
-        outside = tmp_path / "unregistered-source"
-        shutil.move(source, outside)
-        source.symlink_to(outside, target_is_directory=True)
-    elif damage == "wrong_branch":
-        git(worktree, "branch", "-m", "unexpected-native-source")
-    elif damage == "wrong_git_root":
-        shutil.rmtree(worktree)
-        worktree.mkdir()
-        git(worktree, "init", "-b", "tasks/T1")
-        git(worktree, "config", "user.name", "Fixture")
-        git(worktree, "config", "user.email", "fixture@example.invalid")
-        shutil.copytree(installation / "poise", worktree / "src" / "poise")
-        git(worktree, "add", ".")
-        git(worktree, "commit", "-m", "Create unrelated repository")
-    elif damage == "missing_package":
-        shutil.rmtree(worktree / "src" / "poise")
-    else:
-        _remove_work_method(worktree / "src" / "poise")
-
-    attempted, payload = _call(launcher, _bootstrap(None))
-    assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
-    assert payload["status"] == "rejected"
-    reason_terms = {
-        "missing_worktree": ("source", "worktree", "missing", "path"),
-        "escaped_symlink": ("source", "worktree", "symlink", "escape"),
-        "intermediate_symlink": ("source", "worktree", "symlink", "escape"),
-        "wrong_branch": ("source", "worktree", "git", "branch"),
-        "wrong_git_root": ("source", "worktree", "git", "repository", "root"),
-        "missing_package": ("source", "worktree", "poise", "package", "missing"),
-        "missing_work_method": ("source", "hookservice", "work", "entrypoint", "structure"),
-    }
-    assert any(word in payload["reason"].lower() for word in reason_terms[damage])
-    assert payload.get("loaded_source") != str(installation / "poise")
-
-
 def test_existing_task_rejects_an_unregistered_lookalike_worktree(project, tmp_path):
     service, installed, installation = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "unregistered-task")
@@ -443,7 +357,7 @@ def test_existing_task_rejects_an_unregistered_lookalike_worktree(project, tmp_p
     assert payload.get("loaded_source") != str(lookalike)
 
 
-def test_two_bindings_load_different_task_sources_without_shared_mutation(project, tmp_path):
+def test_two_bindings_use_one_installation_source_without_shared_mutation(project, tmp_path):
     service, installed, installation = _service(project, tmp_path)
     launcher_a, binding_a = _launcher(service, installed, "parallel-a")
     launcher_b, binding_b = _launcher(service, installed, "parallel-b")
@@ -477,42 +391,11 @@ def test_two_bindings_load_different_task_sources_without_shared_mutation(projec
         (run_a, result_a), (run_b, result_b) = future_a.result(), future_b.result()
 
     assert run_a.returncode == run_b.returncode == 0
-    assert Path(result_a["loaded_source"]) == expected_a
-    assert Path(result_b["loaded_source"]) == expected_b
-    assert result_a["source_sentinel"] == "task-T1"
-    assert result_b["source_sentinel"] == "task-T2"
-    assert Path(result_a["loaded_source"]) != installation / "poise"
-    assert Path(result_b["loaded_source"]) != installation / "poise"
+    assert Path(result_a["loaded_source"]) == installation / "poise"
+    assert Path(result_b["loaded_source"]) == installation / "poise"
+    assert result_a["source_sentinel"] == "installation"
+    assert result_b["source_sentinel"] == "installation"
     assert {str(path): _digest(path) for path in protected} == before
-
-
-@pytest.mark.parametrize("mutation", ["binding", "source", "git"])
-def test_child_revalidates_bound_source_facts_after_parent_selection(project, tmp_path, mutation):
-    service, installed, installation = _service(project, tmp_path)
-    launcher, binding = _launcher(service, installed, "toctou-" + mutation)
-    started, context = _call(launcher, _bootstrap(project["task"]))
-    assert started.returncode == 0, started.stdout + started.stderr
-    worktree = Path(context["worktree"])
-    package = worktree / "src" / "poise"
-    statements = {
-        "binding": "Path(args.binding).write_text('{}', encoding='utf-8')",
-        "source": "(Path(__file__).resolve().parents[1] / '__main__.py').unlink()",
-        "git": (
-            "__import__('subprocess').check_call(["
-            "'git', '-C', str(Path(__file__).resolve().parents[3]), "
-            "'branch', '-m', 'toctou-mutated'])"
-        ),
-    }
-    _inject_before_work(package, statements[mutation])
-    git(worktree, "add", "src/poise/interfaces/hook_transport.py")
-    git(worktree, "commit", "-m", f"Inject {mutation} TOCTOU fixture")
-
-    attempted, payload = _call(launcher, _bootstrap(None))
-
-    assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
-    assert payload["status"] == "rejected"
-    assert any(word in payload["reason"].lower() for word in ("binding", "source", "worktree", "branch"))
-    assert payload.get("loaded_source") != str(installation / "poise")
 
 
 def test_read_only_and_task_cancel_recover_after_configuration_change(project, tmp_path):

@@ -186,25 +186,24 @@ RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands мен
 
 ### session-scoped source resolution
 
-Доменный `BoundSourceRoute` выбирает только владельца source: installation, существующую
-целевую Task или текущую Task. Application `WorkTools.prepare_bound_source` координирует
-подготовку существующей Task через её публичные владельцы, не потребляя сообщение и не
-исполняя пакет. Infrastructure `HookService` проверяет зарегистрированный `Task worktree`,
-Git- и filesystem-границы, после чего запускает отдельный интерпретатор из выбранного source.
+Уточнено **2026-09-13**: session-scoped launcher исполняет каждый work-пакет только из явно
+настроенного `installation source`. `Task worktree` является предметом разработки и проверок,
+но не поставщиком исполняемого harness. Иначе старая или изменяемая вместе с продуктом копия
+AI poise должна была прочитать текущую конфигурацию и Task DB, что создавало циклическую
+зависимость: обновление harness могло заблокировать собственные `bootstrap`, `verify` и
+`handoff` ещё до выполнения публичной операции.
 
-`native binding` остаётся владельцем session/message provenance. Выбранный source и его
-проверочные факты не записываются в binding, Task DB или общую конфигурацию; поэтому две
-сессии могут конкурентно использовать разные worktrees без общей мутации. Installation
-interface только переносит результат выбранного дочернего `WorkTools` и не становится вторым
-исполнителем операции. Уточнено **2026-09-12**: все операции текущей Task, включая рабочие
-переходы, используют валидную текущую конфигурацию без общего `config_hash` gate, как
-предусмотрено задачей 0026. Task-owned snapshots сохраняются; хеш остаётся диагностическим
-provenance. Это не отменяет проверок binding, source, ownership и revisions.
+`native binding` остаётся владельцем session/message provenance. Launcher не записывает
+выбранный source в binding или Task DB, не запускает дочерний `WorkTools` из Task worktree и
+не имеет fallback-маршрута. Параллельные сессии используют одну установленную реализацию,
+собственные bindings и независимые Task ownership; их worktrees не становятся runtime-кодом.
+Все операции используют валидную текущую конфигурацию без общего `config_hash` gate, как
+предусмотрено задачей 0026. Task-owned process, contract и verification snapshots сохраняются;
+хеш остаётся диагностическим provenance. Lifecycle ownership и revision guards не меняются.
 
-Адресный `terminal inspection snapshot` для `completed`, `cancelled` и `superseded` проходит
-через installation source: терминальная Task не обязана иметь доступную worktree и не может
-становиться владельцем session source. `BoundSourceRoute` выбирает эту транспортную границу,
-а `WorkTools` координирует вызов; ни один из них не меняет Task lifecycle.
+Адресный `terminal inspection snapshot` для `completed`, `cancelled` и `superseded` также
+проходит через installation source. Терминальная Task не обязана иметь доступную worktree;
+чтение снимка не меняет её lifecycle.
 
 Task остаётся владельцем terminal status и освобождённого claim. Runtime составляет проекцию
 из сохранённых Task context, content, evidence и audit history через существующие owner/query

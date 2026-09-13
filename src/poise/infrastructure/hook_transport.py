@@ -3,30 +3,22 @@
 The adapter never edits Codex trust or starts task transitions from native events.
 """
 from copy import deepcopy
-import ast
 import json
 import os
 from pathlib import Path
 import shlex
-import subprocess
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
 from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
 from ..modules.capabilities.domain import positive,nonempty
-from ..modules.goal_config.domain import GoalTypeDefinition
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
-from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from ..application.capabilities import CapabilityChecks
 from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
 from .capabilities import LocalProbeExecutor
-from .goal_config import read_document,atomic_write,strict_json
+from .goal_config import read_document,atomic_write
 from .session_establishment import establish_poise
 from .sqlite.hook_transport import HookRegistry
-
-
-BOUND_SOURCE_ENV='POISE_NATIVE_BOUND_SOURCE'
-BOUND_SOURCE_FIELDS={'task_id','worktree','branch','source_root','package_root','git_common','binding_digest'}
 
 
 class HookSettings:
@@ -269,164 +261,8 @@ class HookService:
         return CapabilityChecks(LocalProbeExecutor(self.settings.observations,self.settings.raw['file_mode'],self.settings.raw['probe_files']),
             self.settings.raw['max_probes']).run(d.data['probes'],workspace)
 
-    @staticmethod
-    def _plain_path(path,label):
-        if not path.is_absolute() or '..' in path.parts:
-            raise PoiseError(f'{label} path must be explicit and absolute')
-        if path.is_symlink():raise PoiseError(f'{label} must not be a symlink')
-        try:resolved=path.resolve(strict=True)
-        except OSError as exc:raise PoiseError(f'{label} is missing: {path}') from exc
-        if resolved!=path:raise PoiseError(f'{label} has a symlinked path component')
-        return resolved
-
-    def _source_suffix(self,h):
-        repository=self._plain_path(Path(h.cfg['git']['repository']),'Configured Git repository')
-        source=self._plain_path(Path(self.settings.raw['source_root']),'Configured Poise source')
-        try:suffix=source.relative_to(repository)
-        except ValueError:return None
-        return repository,suffix
-
-    @staticmethod
-    def _git_path(h,cwd,*args):
-        value=Path(h._git(cwd,*args))
-        if not value.is_absolute():value=cwd/value
-        return value.resolve(strict=True)
-
-    def _task_source_facts(self,h,task,binding_path):
-        if not isinstance(task,dict) or not isinstance(task.get('id'),str):
-            raise PoiseError('Task source requires a registered Task record')
-        if not isinstance(task.get('worktree'),str) or not task['worktree']:
-            raise PoiseError(f"Task {task['id']} worktree is missing from managed state")
-        if not isinstance(task.get('branch'),str) or not task['branch']:
-            raise PoiseError(f"Task {task['id']} branch is missing from managed state")
-        worktree=self._plain_path(Path(task['worktree']),f"Task {task['id']} worktree")
-        topology=self._source_suffix(h)
-        if topology is None:raise PoiseError('Bound Task source has no configured repository-relative source')
-        repository,suffix=topology
-        source=worktree/suffix
-        current=worktree
-        for part in suffix.parts:
-            current=current/part
-            if current.is_symlink():raise PoiseError(f"Task {task['id']} source must not contain a symlink")
-        source=self._plain_path(source,f"Task {task['id']} Poise source")
-        package=source/'poise'
-        if package.is_symlink():raise PoiseError(f"Task {task['id']} Poise package must not be a symlink")
-        package=self._plain_path(package,f"Task {task['id']} Poise package")
-        entry=package/'__main__.py'
-        transport=package/'infrastructure'/'hook_transport.py'
-        for path,label in ((entry,'Poise source package entrypoint'),(transport,'Poise source HookService entrypoint')):
-            if path.is_symlink():raise PoiseError(f"Task {task['id']} {label} must not be a symlink")
-            if not path.is_file():raise PoiseError(f"Task {task['id']} {label} is missing")
-        try:tree=ast.parse(transport.read_text(encoding='utf-8'))
-        except (OSError,UnicodeError,SyntaxError) as exc:
-            raise PoiseError(f"Task {task['id']} HookService entrypoint is structurally invalid") from exc
-        service=next((node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='HookService'),None)
-        has_work=service is not None and any(
-            isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)) and node.name=='work'
-            for node in service.body
-        )
-        if not has_work:raise PoiseError(f"Task {task['id']} HookService.work entrypoint is missing")
-        top=self._git_path(h,worktree,'rev-parse','--path-format=absolute','--show-toplevel')
-        if top!=worktree:raise PoiseError(f"Task {task['id']} Git root does not match its registered worktree")
-        branch=h._git(worktree,'symbolic-ref','--short','HEAD')
-        if branch!=task['branch']:raise PoiseError(f"Task {task['id']} Git branch does not match managed state")
-        configured_common=self._git_path(h,repository,'rev-parse','--path-format=absolute','--git-common-dir')
-        task_common=self._git_path(h,worktree,'rev-parse','--path-format=absolute','--git-common-dir')
-        if task_common!=configured_common:
-            raise PoiseError(f"Task {task['id']} Git repository does not match configured repository")
-        binding=Path(binding_path)
-        return {'task_id':task['id'],'worktree':str(worktree),'branch':branch,
-                'source_root':str(source),'package_root':str(package),'git_common':str(task_common),
-                'binding_digest':file_digest(binding)}
-
-    def _bound_source_facts(self,binding_path):
-        raw=os.environ.pop(BOUND_SOURCE_ENV,None)
-        if raw is None:return None
-        try:facts=strict_json(raw)
-        except (PoiseError,UnicodeError) as exc:raise PoiseError('Bound Task source facts are invalid') from exc
-        exact_keys(facts,BOUND_SOURCE_FIELDS,'bound Task source facts')
-        if any(not isinstance(value,str) or not value for value in facts.values()):
-            raise PoiseError('Bound Task source facts require non-empty strings')
-        loaded=Path(__file__).resolve().parents[1]
-        if loaded!=Path(facts['package_root']):raise PoiseError('Loaded Poise source differs from bound Task source')
-        if file_digest(Path(binding_path))!=facts['binding_digest']:
-            raise PoiseError('Native binding changed before bound Task execution')
-        return facts
-
-    def _child_result(self,h,completed):
-        if not completed.stdout:
-            reason=completed.stderr[-self.settings.raw['output_chars']:] or 'no JSON result'
-            raise PoiseError(f'Bound Task source process failed: {reason}')
-        try:view=strict_json(completed.stdout)
-        except (PoiseError,UnicodeError) as exc:
-            raise PoiseError('Bound Task source returned invalid JSON') from exc
-        result=view
-        if isinstance(view,dict) and 'response_path' in view:
-            path=Path(view['response_path'])
-            if (not path.is_absolute() or path.is_symlink()
-                    or not path.resolve(strict=True).is_relative_to(h.state.resolve(strict=True))):
-                raise PoiseError('Bound Task source response path is outside managed state')
-            result=read_document(path)
-        if not isinstance(result,dict) or not isinstance(result.get('status'),str):
-            raise PoiseError('Bound Task source returned an invalid result')
-        expected=(self.settings.raw['exit_codes']['rejected'] if result['status']=='rejected'
-                  else self.settings.raw['exit_codes']['incomplete']
-                  if result['status'] in BUSINESS_INCOMPLETE_STATUSES
-                  else self.settings.raw['exit_codes']['success'])
-        if completed.returncode!=expected:
-            raise PoiseError('Bound Task source exit code does not match its result status')
-        if result['status']=='rejected':raise PoiseError(result.get('reason','Bound Task source rejected work'))
-        return result
-
-    def _dispatch_bound_source(self,h,binding_path,packet,facts):
-        environment={**os.environ,'PYTHONPATH':facts['source_root'],'PYTHONDONTWRITEBYTECODE':'1',
-                     BOUND_SOURCE_ENV:json.dumps(facts,ensure_ascii=False,separators=(',',':'))}
-        completed=subprocess.run(
-            [self.settings.raw['python'],'-B','-m','poise','hook-work','--settings',str(self.settings.path),
-             '--binding',str(binding_path)],
-            input=encoded(packet)+'\n',text=True,capture_output=True,env=environment)
-        return self._child_result(h,completed)
-
-    def _bound_process_requirements(self, facts):
-        if facts is None:
-            return None
-        live_config = read_document(self.settings.project_config)
-        live_root = self.settings.project_config.parent
-        live_processes = {
-            goal: read_document(descendant(live_root, process_path))
-            for goal, process_path in live_config['processes'].items()
-        }
-        if all(type(process.get('worktree_required')) is bool
-               for process in live_processes.values()):
-            return None
-        installation_source = Path(self.settings.raw['source_root']).resolve()
-        try:
-            relative = self.settings.project_config.relative_to(installation_source.parent)
-        except ValueError as exc:
-            raise PoiseError('Project config is outside the configured installation source') from exc
-        candidate = descendant(Path(facts['worktree']),str(relative))
-        candidate_config = read_document(candidate)
-        if candidate_config.get('processes') != live_config.get('processes'):
-            raise PoiseError('Bound Task process registry differs from the live manifest')
-        requirements = {}
-        for goal, process_path in candidate_config['processes'].items():
-            process = GoalTypeDefinition.parse(
-                read_document(descendant(candidate.parent,process_path))
-            ).data
-            if process['goal_type'] != goal:
-                raise PoiseError(f'Bound Task process identity differs for {goal}')
-            requirements[goal] = process['worktree_required']
-        return requirements
-
-    def _execute_bound(self,h,record,req,definition,bound_facts=None,binding_path=None):
+    def _execute(self,h,record,req,definition):
         def invoke():
-            if bound_facts is not None:
-                current=(h.task_queries.record(req['input']['task_id'])
-                         if req['operation']=='integrate' else h.current_task())
-                if current is None or current['id']!=bound_facts['task_id']:
-                    raise PoiseError('Native binding no longer owns the bound Task source')
-                if self._task_source_facts(h,current,binding_path)!=bound_facts:
-                    raise PoiseError('Bound Task source facts changed before execution')
             return WorkTools(h).invoke(req)
 
         gated=req['operation'] in definition['gate_operations']
@@ -450,17 +286,15 @@ class HookService:
 
     def work(self,binding_path,packet):
         from .clock import SystemClock
-        bound_facts=self._bound_source_facts(binding_path)
         record,message=self._record(binding_path)
         caller=CallerIdentity.native(record['project'],record['external_session'])
-        requirements=self._bound_process_requirements(bound_facts)
         h=establish_poise(
             self.settings.project_config,
             caller,
             [],
             SystemClock(),
             record['session_id'],
-            requirements,
+            None,
             self.registry.liveness,
         ).runtime
         self.runtime=h
@@ -471,15 +305,7 @@ class HookService:
         d=self.definition(record['definition_path']).data
         if h.cfg['batch']['message_source']!={'id':d['message_source'],'mode':'runtime_event'}:
             raise PoiseError('Message source changed after hook binding')
-        if bound_facts is not None:
-            return self._execute_bound(h,record,req,d,bound_facts,binding_path)
-        route,task=WorkTools(h).prepare_bound_source(req)
-        if route.source!='installation':
-            if self._source_suffix(h) is None:
-                return self._execute_bound(h,record,req,d)
-            facts=self._task_source_facts(h,task,binding_path)
-            return self._dispatch_bound_source(h,binding_path,packet,facts)
-        return self._execute_bound(h,record,req,d)
+        return self._execute(h,record,req,d)
 
 
 def setup_runtime(settings_path,packet):

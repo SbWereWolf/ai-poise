@@ -6,7 +6,7 @@
 
 JetBrains MCP дополняет нативные инструменты редактирования и проверки, когда IDE может дать семантический ответ о коде или безопасно выполнить IDE-owned преобразование. Политика определяется этим документом. `AGENTS.md` и project skills содержат краткую англоязычную проекцию и ссылаются на минимальные нормативные разделы; исторические Task definitions, планы, отчёты и списки имён tools не являются самостоятельной политикой.
 
-Действующая конфигурация Codex сообщает только намерение подключить endpoint. Описание доступного model tool сообщает только выданный интерфейс. Успешный вызов с точным `projectPath` подтверждает только выполненную операцию над этим project/worktree. Capability inventory AI poise является отдельным источником evidence: если JetBrains probe не включён в текущий hook definition, успешный прямой model tool call не следует выдавать за пройденный Harness preflight.
+Действующая конфигурация Codex сообщает только намерение подключить endpoint. Описание доступного model tool сообщает только выданный интерфейс. Само по себе поле `projectPath` в запросе не доказывает, что endpoint его применил: нужен ответ о факте, уникальном для этого project/worktree, либо точный workspace predicate. Capability inventory AI poise является отдельным источником evidence: если JetBrains probe не включён в текущий hook definition, успешный прямой model tool call не следует выдавать за пройденный Harness preflight.
 
 ## Модель состояния capability
 
@@ -14,7 +14,7 @@ JetBrains MCP дополняет нативные инструменты ред�
 
 1. `configured` — endpoint явно включён в пользовательской или project configuration;
 2. `listed` — текущая сессия получила описание соответствующего tool;
-3. `project_bound` — read-only вызов с точным project/worktree успешно подтвердил нужный проект;
+3. `project_bound` — read-only вызов подтвердил уникальный факт нужного project/worktree, а не только принял переданный `projectPath`;
 4. `operation_proved` — конкретная операция дала интерпретируемый результат; для мутации отдельно проверен итоговый diff и проектные checks.
 
 Позднее состояние не выводится из более раннего. Наличие `rename`, `reformat` или универсального executor в каталоге не доказывает корректность изменения. Timeout, ошибка индексации, неподдерживаемый тип файла, чужой открытый проект или неоднозначный символ сохраняются как `unavailable`, `inapplicable` либо `inconclusive`, а не как PASS.
@@ -23,7 +23,7 @@ JetBrains MCP дополняет нативные инструменты ред�
 
 | IDE endpoint | Configured | Listed текущей сессией | Project-bound наблюдение | Подтверждённая область |
 |---|---:|---:|---:|---|
-| PyCharm | да | да, 8 tools | да, worktree Task `0104` | Python: поиск `CapabilityChecks`, quick documentation и file problems; call hierarchy для class-root защитно потребовал callable FQN |
+| PyCharm | да | да, 8 tools | не доказано | Ответы для общих с main checkout Python-путей; новый файл Task `0104` не найден, поэтому worktree binding и языковая применимость не подтверждены |
 | PhpStorm | да | нет | не запускалось | не подтверждена |
 | WebStorm | да | нет | не запускалось | не подтверждена |
 

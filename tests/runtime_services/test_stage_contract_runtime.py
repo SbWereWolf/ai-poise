@@ -140,6 +140,17 @@ def _raw_snapshot(runtime, task_id="T1"):
     return {"task": task, "events": events, "journal": journal}
 
 
+def _full_contract_snapshot(runtime, task_id="T1"):
+    raw = _raw_snapshot(runtime, task_id)
+    metadata = json.loads(raw["task"][-1])
+    return {
+        **raw,
+        "metadata": metadata,
+        "contracts": deepcopy(metadata["contract"].get("stage_contracts")),
+        "history": deepcopy(metadata.get("stage_contract_history", [])),
+    }
+
+
 def _legacy(runtime, task_id="T1"):
     with runtime.store.transaction() as db:
         row = db.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -309,6 +320,40 @@ def test_stage_contract_initialization_replays_and_rejects_conflict(project):
         _transition(runtime, "initialize", request_id="init-1", expected_version=version,
                     contracts=changed)
     assert _raw_snapshot(runtime) == after
+
+
+def test_stage_contract_initialization_rejects_stale_version_atomically(project):
+    tools, _, task = _bootstrap(project)
+    runtime = tools.runtime
+    _legacy(runtime)
+    before = _full_contract_snapshot(runtime)
+    with pytest.raises(PoiseError, match="version"):
+        _transition(
+            runtime,
+            "initialize",
+            request_id="fresh-stale-initialize",
+            expected_version=before["task"][4] + 1,
+            contracts=task["stage_contracts"],
+            role="creator",
+        )
+    assert _full_contract_snapshot(runtime) == before
+
+
+def test_stage_contract_initialization_rejects_unauthorized_role_atomically(project):
+    tools, _, task = _bootstrap(project)
+    runtime = tools.runtime
+    _legacy(runtime)
+    before = _full_contract_snapshot(runtime)
+    with pytest.raises(PoiseError, match="creator"):
+        _transition(
+            runtime,
+            "initialize",
+            request_id="fresh-unauthorized-initialize",
+            expected_version=before["task"][4],
+            contracts=task["stage_contracts"],
+            role="executor",
+        )
+    assert _full_contract_snapshot(runtime) == before
 
 
 def test_reviewer_revision_replays_and_records_old_new_history(project):

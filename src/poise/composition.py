@@ -31,3 +31,9 @@ def route_migration_tools(config_path):
     from .application.route_migration import RouteMigrationCommands
     from .infrastructure.route_migration import FileRouteCountLimitMigration
     return RouteMigrationCommands(FileRouteCountLimitMigration(config_path))
+
+
+def task_process_migration_tools(config_path):
+    from .application.task_process_migration import TaskProcessMigrationCommands
+    from .infrastructure.task_process_migration import SqliteTaskProcessMigration
+    return TaskProcessMigrationCommands(SqliteTaskProcessMigration(config_path))

@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -158,9 +159,14 @@ def _snapshot(database: Path) -> dict[str, list[tuple]]:
 
 
 def _invoke_cli(project: dict, request: dict) -> subprocess.CompletedProcess[str]:
+    environment = os.environ.copy()
+    root = Path(__file__).resolve().parents[2]
+    source = str(root / "src")
+    environment["PYTHONPATH"] = source + os.pathsep + environment.get("PYTHONPATH", "")
     return subprocess.run(
         [sys.executable, "-m", "poise", "task-process-migrate", "--config", str(project["config_path"])],
-        cwd=Path(__file__).resolve().parents[2],
+        cwd=root,
+        env=environment,
         input=json.dumps(request),
         text=True,
         capture_output=True,
@@ -252,9 +258,11 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
             expected["process"]["worktree_required"] = task_id != "0074"
         assert metadata == expected
         if task_id in TASKS:
-            assert BoundSourceRoute.decide("bootstrap", {"id": task_id}, None, {
+            route = BoundSourceRoute.decide("bootstrap", {"id": task_id}, None, {
                 "id": task_id, "status": status, "worktree": None, "process": metadata["process"]
-            }).source == "installation"
+            })
+            expected_source = "target_task" if metadata["process"]["worktree_required"] else "installation"
+            assert route.source == expected_source
 
     with sqlite3.connect(database) as connection:
         journal = connection.execute(
@@ -417,7 +425,6 @@ def test_stale_backup_or_live_row_drift_rejects_every_update(project):
     assert _snapshot(database) == before
     assert all("worktree_required" not in item["process"] for item in expected.values())
 
-    database.unlink()
     backup_commands(project).restore(backup["name"])
     before_interposed = _snapshot(database)
 

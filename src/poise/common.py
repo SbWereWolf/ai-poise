@@ -72,7 +72,7 @@ def configured_root(config_root: Path, value: str) -> Path:
 from .modules.verification.domain import validate_method
 
 
-def load_config(path: Path) -> tuple[Path, dict, dict]:
+def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
     root = path.resolve().parent
     cfg = read_json(path)
     keys = {'schema','project','paths','limits','git','processes','environment_names',
@@ -118,6 +118,10 @@ def load_config(path: Path) -> tuple[Path, dict, dict]:
         raise PoiseError('Корни runtime/task/sprint/worktree не должны пересекаться')
     if not isinstance(cfg['processes'],dict) or not cfg['processes']:
         raise PoiseError('Нет явно заданных процессов')
+    if legacy_process_requirements is not None:
+        if (set(legacy_process_requirements) != set(cfg['processes'])
+                or any(type(value) is not bool for value in legacy_process_requirements.values())):
+            raise PoiseError('Bound-source migration requires one explicit bool for every process')
     from .modules.accounting.domain import MetricPolicy
     MetricPolicy.parse(cfg['accounting'])
     exact_keys(cfg['runtime_services'],{'output','handoff','transfer'},'runtime_services')
@@ -148,7 +152,10 @@ def load_config(path: Path) -> tuple[Path, dict, dict]:
         if state.is_relative_to(process_path) or process_path.is_relative_to(state):
             raise PoiseError('Mutable state root overlaps a process configuration')
         process = read_json(process_path)
-        from .modules.goal_config.domain import GoalTypeDefinition
+        from .modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS
+        if (legacy_process_requirements is not None
+                and set(process) == PROCESS_FIELDS - {'worktree_required'}):
+            process['worktree_required'] = legacy_process_requirements[kind]
         process = GoalTypeDefinition.parse(process).data
         if process['goal_type'] != kind:
             raise PoiseError(f'Неоднозначный process {kind}')

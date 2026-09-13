@@ -62,9 +62,12 @@ def resolve_source_under_test(
 
 class Poise:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
-    def __init__(self, config_path: Path | str, session: str, clock):
+    def __init__(self, config_path: Path | str, session: str, clock,
+                 legacy_process_requirements: dict[str, bool] | None = None):
         self.config_path = Path(config_path).resolve()
-        self.root, self.cfg, self.processes = load_config(self.config_path)
+        self.root, self.cfg, self.processes = load_config(
+            self.config_path, legacy_process_requirements
+        )
         self.session = self._identifier(session)
         self.state = configured_root(self.root, self.cfg['paths']['state'])
         self.paths = self.cfg['paths']

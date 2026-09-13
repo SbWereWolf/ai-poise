@@ -12,6 +12,7 @@ import subprocess
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
 from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
 from ..modules.capabilities.domain import positive,nonempty
+from ..modules.goal_config.domain import GoalTypeDefinition
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
 from ..application.capabilities import CapabilityChecks
@@ -386,6 +387,29 @@ class HookService:
             input=encoded(packet)+'\n',text=True,capture_output=True,env=environment)
         return self._child_result(h,completed)
 
+    def _bound_process_requirements(self, facts):
+        if facts is None:
+            return None
+        installation_source = Path(self.settings.raw['source_root']).resolve()
+        try:
+            relative = self.settings.project_config.relative_to(installation_source.parent)
+        except ValueError as exc:
+            raise PoiseError('Project config is outside the configured installation source') from exc
+        candidate = descendant(Path(facts['worktree']),str(relative))
+        candidate_config = read_document(candidate)
+        live_config = read_document(self.settings.project_config)
+        if candidate_config.get('processes') != live_config.get('processes'):
+            raise PoiseError('Bound Task process registry differs from the live manifest')
+        requirements = {}
+        for goal, process_path in candidate_config['processes'].items():
+            process = GoalTypeDefinition.parse(
+                read_document(descendant(candidate.parent,process_path))
+            ).data
+            if process['goal_type'] != goal:
+                raise PoiseError(f'Bound Task process identity differs for {goal}')
+            requirements[goal] = process['worktree_required']
+        return requirements
+
     def _execute_bound(self,h,record,req,definition,bound_facts=None,binding_path=None):
         def invoke():
             if bound_facts is not None:
@@ -420,7 +444,15 @@ class HookService:
         bound_facts=self._bound_source_facts(binding_path)
         record,message=self._record(binding_path)
         caller=CallerIdentity.native(record['project'],record['external_session'])
-        h=establish_poise(self.settings.project_config,caller,[],SystemClock(),record['session_id']).runtime
+        requirements=self._bound_process_requirements(bound_facts)
+        h=establish_poise(
+            self.settings.project_config,
+            caller,
+            [],
+            SystemClock(),
+            record['session_id'],
+            requirements,
+        ).runtime
         self.runtime=h
         from ..modules.work.domain import parse_request
         req=parse_request(packet,h.cfg['batch'])

@@ -47,10 +47,13 @@ class WorkTools:
         # charged for an unrelated later query.
         bound_before = before if before is not None and not is_terminal_task_status(before['status']) else None
         self.interactions.record(events,h.session,bound_before)
-        telemetry=h.accounting.prepare(req['telemetry']) if 'telemetry' in req else None
-        h.accounting.begin(op,bound_before,telemetry,events[-1].identity if events else None)
+        telemetry=h.telemetry.capture(
+            op,
+            bound_before,
+            req.get('telemetry'),
+            events[-1].identity if events else None,
+        )
         try:
-            if telemetry is not None and op!='bootstrap':h.accounting.receive(telemetry,before)
             if op=='task':out=h.task_action(args)
             elif op=='sprint':out=h.sprint_tools.apply(args)
             elif op=='transfer':out=h.transfer_tools.apply(args)
@@ -80,14 +83,12 @@ class WorkTools:
         except Exception:
             after=h.current_task()
             self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
-            if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,after)
-            h.accounting.finish(op,before,after,{'status':'rejected'})
+            h.telemetry.complete(telemetry,after,{'status':'rejected'})
             raise
         current=h.current_task()
         self.interactions.record(events,h.session,current if current is not None and not is_terminal_task_status(current['status']) else bound_before)
         self.interactions.delivered(current,out)
-        if telemetry is not None and op=='bootstrap':h.accounting.receive(telemetry,current)
-        h.accounting.finish(op,before,current,out)
+        h.telemetry.complete(telemetry,current,out)
         sprint_subject = current if current is not None else before
         if (sprint_subject is not None and sprint_subject['sprint_id'] is not None
                 and h.sprint_tools.known(sprint_subject['sprint_id'])
@@ -132,7 +133,9 @@ class WorkTools:
         h=self.runtime;items=[]
         for query in queries:
             kind=query['kind']
-            if kind=='accounting':value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
+            if kind=='accounting':
+                value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
+                value={**value,'telemetry':h.accounting.telemetry_summary(h.telemetry.summary())}
             elif kind=='tool_result':value=h.show_output(query['receipt_id'],query['representation'],query['range'])
             elif kind=='sprint':value=h.sprint_tools.query(query['sprint_id'],query['view'])
             elif kind=='work_overview':

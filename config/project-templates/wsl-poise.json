@@ -2,7 +2,7 @@
   "schema": "project-blueprint-1",
   "version": "3",
   "config": {
-    "schema": "ddd-accounting-11",
+    "schema": "ddd-accounting-12",
     "project": "REPLACE_WITH_PROJECT_ID",
     "paths": {
       "state": "",
@@ -190,6 +190,10 @@
     "accounting": {
       "timezone": "UTC",
       "week_start": 0,
+      "storage": {
+        "database": "telemetry/events.sqlite",
+        "lock": "telemetry/events.lock"
+      },
       "max_events": 1000,
       "max_files": 1000,
       "max_blob_bytes": 1048576,

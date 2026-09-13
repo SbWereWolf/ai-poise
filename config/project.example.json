@@ -1,5 +1,5 @@
 {
-  "schema": "ddd-accounting-11",
+  "schema": "ddd-accounting-12",
   "project": "demo",
   "paths": {
     "state": "state",
@@ -205,6 +205,10 @@
   "accounting": {
     "timezone": "UTC",
     "week_start": 0,
+    "storage": {
+      "database": "telemetry/events.sqlite",
+      "lock": "telemetry/events.lock"
+    },
     "max_events": 1000,
     "max_files": 1000,
     "max_blob_bytes": 1048576,

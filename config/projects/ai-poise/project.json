@@ -10,6 +10,10 @@
     "max_blob_bytes": 1048576,
     "max_events": 1000,
     "max_files": 1000,
+    "storage": {
+      "database": "database/telemetry.sqlite",
+      "lock": "database/telemetry.lock"
+    },
     "path_categories": {
       "code": [
         "src/**"
@@ -193,7 +197,7 @@
       "max_total_bytes": 134217728
     }
   },
-  "schema": "ddd-accounting-11",
+  "schema": "ddd-accounting-12",
   "sprint": {
     "acceptable_terminal_states": [
       "completed",

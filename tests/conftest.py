@@ -93,7 +93,7 @@ def project(tmp_path, monkeypatch):
     process = {'route':{"entry":"tests"}, 'goal_type': 'development', 'worktree_required': True, 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     write_json(poise_root / 'config/processes/development.json', process)
     cfg = {
-        'schema': 'ddd-accounting-11',
+        'schema': 'ddd-accounting-12',
         'project': 'demo',
         'paths': {
             'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock',
@@ -124,6 +124,10 @@ def project(tmp_path, monkeypatch):
         ],
     }
     cfg['accounting']=json.loads((Path(__file__).resolve().parents[1]/'config/accounting.example.json').read_text())
+    cfg['accounting']['storage'] = {
+        'database': 'fixture-telemetry/events.sqlite',
+        'lock': 'fixture-telemetry/events.lock',
+    }
     cfg['runtime_services']=json.loads((Path(__file__).resolve().parents[1]/'config/runtime.example.json').read_text())
     cfg['batch']=json.loads((Path(__file__).resolve().parents[1]/'config/batch.example.json').read_text())
     cfg['sprint']=json.loads((Path(__file__).resolve().parents[1]/'config/sprint.example.json').read_text())

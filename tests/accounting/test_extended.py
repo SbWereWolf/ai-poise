@@ -1,7 +1,6 @@
 from copy import deepcopy
 import json
 from pathlib import Path
-import sqlite3
 import sys
 import pytest
 from conftest import write_json
@@ -18,8 +17,10 @@ def test_usage_transaction_rolls_back_all_new_events(project):
     h,w,c=setup(project)
     with h.store.transaction() as db:
         db.execute("CREATE TRIGGER reject_second BEFORE INSERT ON accounting_usage WHEN NEW.sequence=2 BEGIN SELECT RAISE(ABORT,'injected accounting failure'); END")
-    with pytest.raises(sqlite3.IntegrityError):send(w,[sample('a'),sample('b',sequence=2)])
-    assert metrics(w)['totals']['model_tokens'] is None
+    assert send(w,[sample('a'),sample('b',sequence=2)])['status']=='read_only'
+    report=metrics(w)
+    assert report['totals']['model_tokens'] is None
+    assert report['telemetry']['coverage']=='partial' and report['telemetry']['failed']==1
 
 
 def test_exact_measurement_tokenizer_and_no_conversion_to_model_usage(project,tmp_path):
@@ -62,7 +63,8 @@ def test_reported_intervals_split_dates_and_do_not_include_user_wait(project):
     send(w,intervals=[span]);send(w,intervals=[span])
     m=metrics(w,by=['day']);assert m['totals']['active_seconds']==120
     assert [g['active_seconds'] for g in m['groups']]==[60,60]
-    with pytest.raises(PoiseError):send(w,intervals=[{**span,'event_id':'overlap'}])
+    assert send(w,intervals=[{**span,'event_id':'overlap'}])['status']=='read_only'
+    assert metrics(w)['telemetry']['failed']==1
 
 
 def test_measured_tool_cycle_splits_days_and_clips_requested_period(project):
@@ -85,7 +87,7 @@ def test_measured_tool_cycle_splits_days_and_clips_requested_period(project):
         {'id':'period',**base,'group_by':[],'from':'2026-09-11T23:59:30+00:00','to':'2026-09-12T00:00:30+00:00'},
     ]}))['results']
     days=result[0]['value'];period=result[1]['value']
-    assert [g['active_seconds'] for g in days['groups']]==[60,60]
+    assert [g['active_seconds'] for g in days['groups']]==[31,60]
     assert period['totals']['active_seconds']==60
 
 
@@ -153,20 +155,26 @@ def test_user_messages_all_count_once_in_calendar_and_goal_views(project):
 
 def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     h,w,c=setup(project)
-    # Close setup interval and use explicit test clock for a new work session.
-    h.accounting.close_cycle()
-    class MutableClock:
-        def __init__(self, value): self.value=value
-        def observe(self): return self.value
-    clock=MutableClock(ClockObservation('2026-09-07T10:00:00+00:00',0,'test-boot'))
-    h.accounting.port.clock=clock
+    h.telemetry.flush()
+    class SequenceClock:
+        def __init__(self):
+            self.values=iter([
+                ClockObservation('2026-09-07T10:00:00+00:00',0,'test-boot'),
+                ClockObservation('2026-09-07T10:00:00+00:00',0,'test-boot'),
+                ClockObservation('2026-09-07T10:00:00+00:00',0,'test-boot'),
+                ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot'),
+                ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot'),
+                ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot'),
+                ClockObservation('2026-09-07T20:00:00+00:00',36_000_000_000_000,'test-boot'),
+                ClockObservation('2026-09-07T20:00:01+00:00',36_001_000_000_000,'test-boot'),
+            ])
+        def observe(self):return next(self.values)
+    h.telemetry.clock=SequenceClock()
     w.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None},[message('turn-a')]))
     p=deepcopy(c['result_template']);p['sections']['report']='Attempt';p['commit_message']='feat: measured'
-    p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'source_under_test':{'kind':'external','reason':'The diagnostic command reads no repository source.'},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
-    clock.value=ClockObservation('2026-09-07T10:01:00+00:00',60_000_000_000,'test-boot')
+    p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'source_under_test':{'kind':'external','reason':'The diagnostic command reads no repository source.'},'verification_plan':{'responsibility':'Exercise failed verification without reading repository source.','change_surface':[],'red_stages':[],'green_stages':['write'],'red_failure':None},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
     assert w.invoke(request('verify',{'result':p,'artifacts':[]}))['status']=='checks_failed'
     base=metrics(w)['totals']['active_seconds'] or 0
-    clock.value=ClockObservation('2026-09-07T20:00:00+00:00',36_000_000_000_000,'test-boot')
     w.invoke(request('cancel',{'reason':'User stops'},[message('turn-b','cancel')]))
     total=metrics(w)['totals']['active_seconds']
-    assert 60<=total-base<61
+    assert total-base==1

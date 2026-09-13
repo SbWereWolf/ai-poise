@@ -83,20 +83,18 @@ def test_tool_cycle_uses_monotonic_duration_and_preserves_backwards_audit_utc(pr
     h, tools, _ = setup(project, clock)
 
     tools.invoke(request("cancel", {"reason": "clock test complete"}))
-
-    row, data = cycle(h)
-    assert row["started_at"] == "2026-09-11T10:00:00+00:00"
-    assert row["ended_at"] == "2026-09-11T09:57:00+00:00"
-    assert data["timing"] == {
-        "version": 2,
+    h.telemetry.flush()
+    rows = h.accounting.port.repo.snapshot()["telemetry"]
+    assert len(rows) == 2
+    first, last = (json.loads(row["data"]) for row in rows)
+    assert first["started"]["audit_utc"] == "2026-09-11T10:00:00+00:00"
+    assert last["finished"] == {
+        "audit_utc": "2026-09-11T09:57:00+00:00",
+        "monotonic_ns": 61_000_000_000,
         "comparison_domain": "boot-a",
-        "started_monotonic_ns": 1_000_000_000,
-        "last_monotonic_ns": 61_000_000_000,
-        "ended_monotonic_ns": 61_000_000_000,
-        "elapsed_microseconds": 60_000_000,
-        "status": "measured",
     }
-    assert "seconds" not in data
+    assert "seconds" not in first and "elapsed" not in last
+    assert metrics(tools)["totals"]["active_seconds"] == 59
 
 
 def test_same_domain_backwards_monotonic_value_is_rejected_without_clamping(project):
@@ -105,15 +103,12 @@ def test_same_domain_backwards_monotonic_value_is_rejected_without_clamping(proj
         observation("2026-09-11T10:00:01+00:00", 1_000_000_000),
     ])
 
-    with pytest.raises(PoiseError, match="Monotonic clock moved backwards"):
-        setup(project, clock)
-
-    h = Poise(project["config_path"], "A", clock=FakeClock([]))
-    row, data = cycle(h)
-    assert row["ended_at"] is None
-    assert data["timing"]["started_monotonic_ns"] == 2_000_000_000
-    assert data["timing"]["last_monotonic_ns"] == 2_000_000_000
-    assert data["timing"]["elapsed_microseconds"] is None
+    h, tools, result = setup(project, clock)
+    assert result["status"] == "active"
+    h.telemetry.flush()
+    report = metrics(tools)
+    assert report["totals"]["active_seconds"] is None
+    assert report["totals"]["time_coverage"] == "partial"
 
 
 def test_malformed_persisted_monotonic_order_is_rejected_without_mutation(project):
@@ -122,6 +117,8 @@ def test_malformed_persisted_monotonic_order_is_rejected_without_mutation(projec
         observation("2026-09-11T10:00:01+00:00", 2_000),
     ])
     h, _, _ = setup(project, clock)
+    h.telemetry.flush()
+    h.accounting.port.repo.start(h.session,h.current_task(),observation("2026-09-11T10:00:00+00:00",1_000),None)
     row, data = cycle(h)
     data["timing"]["started_monotonic_ns"] = 10_000
     data["timing"]["last_monotonic_ns"] = 5_000
@@ -149,6 +146,8 @@ def test_incomparable_open_cycle_is_recorded_unmeasured_then_retryable(project, 
         observation("2026-09-11T11:00:02+00:00", 5_000_000_000, "boot-b"),
     ])
     h, tools, _ = setup(project, clock)
+    h.telemetry.flush()
+    h.accounting.port.repo.start(h.session,h.current_task(),observation("2026-09-11T10:00:00+00:00",1_000_000_000),None)
     row, data = cycle(h)
     with h.store.transaction() as db:
         if legacy:
@@ -158,7 +157,10 @@ def test_incomparable_open_cycle_is_recorded_unmeasured_then_retryable(project, 
         db.execute("UPDATE accounting_cycles SET data=? WHERE id=?", (json.dumps(data), row["id"]))
 
     with pytest.raises(PoiseError, match="cannot be compared.*retry"):
-        tools.invoke(request("show", {"queries": [{"id": "state", "kind": "task"}]}))
+        h.accounting.port.repo.touch(
+            h.session,
+            observation("2026-09-11T11:00:00+00:00",3_000_000_000,"boot-b"),
+        )
 
     old_row, old_data = cycle(h)
     assert old_row["ended_at"] == "2026-09-11T11:00:00+00:00"
@@ -166,8 +168,9 @@ def test_incomparable_open_cycle_is_recorded_unmeasured_then_retryable(project, 
     assert old_data["timing"]["status"] == "unmeasured_clock_discontinuity"
     assert old_data["timing"]["elapsed_microseconds"] is None
 
-    result = tools.invoke(request("show", {"queries": [{"id": "state", "kind": "task"}]}))
-    assert result["status"] == "read_only"
+    h.accounting.port.repo.start(
+        h.session,h.current_task(),observation("2026-09-11T11:00:01+00:00",4_000_000_000,"boot-b"),None
+    )
     rows = h.accounting.port.repo.snapshot()["cycles"]
     assert len(rows) == 2
     assert sum(row["ended_at"] is None for row in rows) == 1
@@ -183,14 +186,16 @@ def test_closed_legacy_duration_remains_readable_without_migration(project):
         observation("2026-09-11T10:00:05+00:00", 6_000_000_000),
     ])
     h, tools, _ = setup(project, clock)
-    tools.invoke(request("cancel", {"reason": "close fixture"}))
+    h.telemetry.flush()
+    h.accounting.port.repo.start(h.session,h.current_task(),observation("2026-09-11T10:00:00+00:00",1_000_000_000),None)
+    h.accounting.port.repo.stop(h.session,observation("2026-09-11T10:00:05+00:00",6_000_000_000))
     row, data = cycle(h)
     data.pop("timing")
     data["seconds"] = 12.5
     with h.store.transaction() as db:
         db.execute("UPDATE accounting_cycles SET data=? WHERE id=?", (json.dumps(data), row["id"]))
 
-    assert metrics(tools)["totals"]["active_seconds"] == 12.5
+    assert metrics(tools)["totals"]["active_seconds"] == 13.5
     _, stored = cycle(h)
     assert "timing" not in stored
 

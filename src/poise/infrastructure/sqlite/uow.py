@@ -4,6 +4,7 @@ from .sprints import SqliteSprintRepository
 from .evidence import SqliteEvidenceRepository
 from .tasks import SqliteTaskRepository, SqliteExecutionRepository
 from .ownership import SqliteOwnershipRepository
+from .accounting import SqliteAccountingCycles
 
 
 class SqliteUnitOfWork:
@@ -22,6 +23,7 @@ class SqliteUnitOfWork:
         self.execution = SqliteExecutionRepository(connection)
         self.evidence = SqliteEvidenceRepository(connection)
         self.ownership = SqliteOwnershipRepository(connection,self.processes)
+        self.accounting_cycles = SqliteAccountingCycles(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

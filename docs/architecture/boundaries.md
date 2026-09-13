@@ -11,6 +11,7 @@
 | application/TaskCommands + EvidenceCommands | общий вход, авторизация позиции, короткая UoW | таблицы и внешние команды |
 | SQLite repositories/UoW | запись с FK/optimistic version и внешний lock | сами принимать proof или переходить этап |
 | runtime/execution/artifacts | реальные наблюдения Git/команд/files; publication и transport | прямые UPDATE Task/evidence state |
+| Optional telemetry | неизменяемый `TelemetryEnvelope`, отдельные SQLite database/lock, асинхронная best-effort запись и partial coverage | брать authoritative Task DB lock, задерживать либо отменять результат WorkTools |
 
 `EvidenceBook` используется композиционно; это не BaseTask и не отдельный движок каждого goal type. Runner делегирует чистым handler/domain, не держит lock во время subprocess. Generic observe/check отличаются способом интерпретации заданных наблюдений, не названием цели.
 
@@ -88,6 +89,13 @@ boundary не получает ownership authority. Полное сравнен�
 compatibility read. Одинаковый `request_id` с тем же intent возвращает проверенный receipt;
 изменённый intent, повреждённый audit или drift отклоняются. Время audit поступает через
 обязательный `Clock`; production composition явно предоставляет `SystemClock`.
+
+Schema `task-process-migration-2` имеет отдельный compile-time scope ровно из Task `0082` и
+не меняет авторизованный набор schema 1. Для 0082 domain строит новый process из сохранённого
+legacy snapshot, добавляя только отсутствующий `worktree_required` из совпадающего configured
+goal type. Storage сохраняет все lifecycle/result/content/evidence/ownership/Git поля и меняет
+только process внутри metadata; после commit работоспособность доказывается обычным reviewer
+bootstrap сохранённой verified Task.
 
 ## Пакетный декларативный вход
 

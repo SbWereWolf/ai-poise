@@ -1,4 +1,5 @@
-"""One current operator-selected telemetry storage contract; no migration."""
+"""One current schema-12 telemetry storage contract; no migration."""
+import json
 import os
 from pathlib import Path
 
@@ -24,8 +25,8 @@ def test_explicit_storage_policy_accepts_operator_paths():
     assert parsed.data["storage"] == selected
 
 
-def test_unpublished_schema_alias_is_rejected(project):
-    project["cfg"]["schema"] = "ddd-accounting-12"
+def test_superseded_schema11_is_rejected(project):
+    project["cfg"]["schema"] = "ddd-accounting-11"
     write_json(project["config_path"], project["cfg"])
     with pytest.raises(PoiseError, match="Версия конфигурации"):
         load_config(project["config_path"])
@@ -149,7 +150,7 @@ def test_production_composition_uses_exact_configured_paths(project, absolute_st
 
 
 def _initial_setup(project):
-    project["cfg"]["schema"] = "ddd-accounting-11"
+    project["cfg"]["schema"] = "ddd-accounting-12"
     project["cfg"]["accounting"] = policy()
     settings, _, create = setup_case(project)
     published = project_tools(settings).apply(create)
@@ -176,3 +177,51 @@ def test_public_initial_setup_uses_only_explicit_selected_storage(project):
     runtime = _observe_once(config_path, "initial-observer")
     assert runtime.accounting.port.repo.database.path == state / chosen["database"]
     assert runtime.accounting.port.repo.database.lock == state / chosen["lock"]
+
+
+@pytest.mark.parametrize(
+    "relative,blueprint,accounting_only,selected",
+    [
+        (
+            "config/accounting.example.json",
+            False,
+            True,
+            {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},
+        ),
+        (
+            "config/project.example.json",
+            False,
+            False,
+            {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},
+        ),
+        (
+            "config/project-templates/linux-reference.json",
+            True,
+            False,
+            {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},
+        ),
+        (
+            "config/project-templates/wsl-poise.json",
+            True,
+            False,
+            {"database": "telemetry/events.sqlite", "lock": "telemetry/events.lock"},
+        ),
+        (
+            "config/projects/ai-poise/project.json",
+            False,
+            False,
+            {"database": "database/telemetry.sqlite", "lock": "database/telemetry.lock"},
+        ),
+    ],
+)
+def test_repository_config_surfaces_publish_schema12_storage(
+    relative, blueprint, accounting_only, selected,
+):
+    payload = json.loads((Path(__file__).resolve().parents[2] / relative).read_text())
+    if accounting_only:
+        accounting = payload
+    else:
+        config = payload["config"] if blueprint else payload
+        assert config["schema"] == "ddd-accounting-12"
+        accounting = config["accounting"]
+    assert accounting["storage"] == selected

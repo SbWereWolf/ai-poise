@@ -312,21 +312,22 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             task_database = Path(raw) / "tasks.sqlite"
             snapshots = CONTRACT["TaskRequirementsSnapshotStore"](task_database)
             gate = CONTRACT["TaskRequirementsGate"].enabled(lambda: live["registry"], snapshots)
+            task_commands = CONTRACT["TaskCommands"](lambda: None, object(), gate)
             links = [{"text": "Task must preserve registry provenance.", "applications": ["APP-1"]}]
             plan = live["registry"].plan_task(links)
             agreement = {"accepted": True, "chains": plan["chains"]}
 
             with self.assertRaisesRegex(Exception, "agreement|соглас"):
-                gate.publish("TASK-1", links, {"accepted": False, "chains": plan["chains"]})
-            published = gate.publish("TASK-1", links, agreement)
-            self.assertEqual(snapshots.read("TASK-1"), published)
+                task_commands.publish_requirements("TASK-1", links, {"accepted": False, "chains": plan["chains"]})
+            published = task_commands.publish_requirements("TASK-1", links, agreement)
+            self.assertEqual(task_commands.requirements_snapshot("TASK-1"), published)
             self.assertEqual(published["requirements"]["SYS-1"]["text"], "System protects durable state.")
             self.assertEqual(published["requirements"]["APP-1"]["status"], "current")
             self.assertEqual(published["links"], [{"system": "SYS-1", "application": "APP-1"}, {"system": "SYS-2", "application": "APP-1"}])
             live["registry"] = live["registry"].apply([put(requirement("SYS-1", "system", "obsolete", "Changed after publication."))], max_items=20)
-            self.assertEqual(snapshots.read("TASK-1")["requirements"]["SYS-1"]["text"], "System protects durable state.")
+            self.assertEqual(task_commands.requirements_snapshot("TASK-1")["requirements"]["SYS-1"]["text"], "System protects durable state.")
             with self.assertRaisesRegex(Exception, "immutable|exists|существ"):
-                gate.publish("TASK-1", links, agreement)
+                task_commands.publish_requirements("TASK-1", links, agreement)
 
     def test_common_task_creation_preflight_always_invokes_the_explicit_gate(self):
         class RejectingGate:

@@ -220,8 +220,9 @@ class Poise:
         self._identifier(task_id)
         if not isinstance(reason, str) or not reason.strip():
             raise PoiseError('Missing worktree recovery reason is required')
-        if self.current_task() is not None:
-            raise PoiseError('Missing worktree recovery requires an idle session')
+        current = self.current_task()
+        if current is not None and current['id'] != task_id:
+            raise PoiseError('Missing worktree recovery requires an idle or owning session')
         data = self.task_queries.record(task_id)
         if data is None:
             raise PoiseError('Unknown Task for missing worktree recovery')

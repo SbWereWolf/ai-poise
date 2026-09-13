@@ -157,6 +157,20 @@ def test_recovers_without_changing_foreign_claim_or_task_records(project):
     assert worktree.is_dir()
 
 
+def test_current_owner_can_recover_its_missing_worktree(project):
+    executor, owner, context, _, _, _, worktree, _ = _cleaned_verified(
+        project, foreign_claim=True
+    )
+
+    recovered = owner.recover_missing_worktree(
+        context["task"], "Let the current owner restore source before handoff."
+    )
+
+    assert recovered["replayed"] is False
+    assert worktree.is_dir()
+    assert executor.task_queries.record(context["task"])["claimed_by"] == owner.session
+
+
 def test_rejects_independent_repository_at_saved_path(project):
     _, _, context, _, handoff, root, worktree, branch = _cleaned_verified(project)
     subprocess.check_call(["git", "clone", "--quiet", str(root), str(worktree)])

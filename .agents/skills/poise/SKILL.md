@@ -47,7 +47,8 @@ verified/accepted Task whose registered worktree was removed. It must prove the 
 commit is integrated into the configured base and has the exact verified tree before restoring
 the saved branch/worktree. Reject a path that is not a registered worktree of the configured
 repository. On failure, remove only the worktree and branch created by that invocation; it never
-changes Task ownership, lifecycle, result, or handoff.
+changes Task ownership, lifecycle, result, or handoff. An idle session or the current owner of
+that same Task may invoke it; an owner of another Task may not.
 
 If a lawful external process publication leaves the goal-config editor head stale, first use
 the read-only `goal-config-status-1` diagnostic and establish the provenance of the live file.

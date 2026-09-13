@@ -185,8 +185,11 @@ def test_ad_hoc_read_only_requires_no_worktree(project):
 
 def test_cli_uses_session_binding_not_task_id(project,monkeypatch):
     import os, subprocess,sys
-    env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[1]/'src'),
-         'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'cli-session'}
+    env={key:value for key,value in os.environ.items()
+         if key not in ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_SESSION','POISE_CALLER_BINDING')}
+    env.update({'PYTHONPATH':str(Path(__file__).resolve().parents[1]/'src'),
+                'POISE_CONFIG':str(project['config_path']),
+                'POISE_CALLER_BINDING':str(project['root']/'.cli-caller.json')})
     request={'operation':'bootstrap','input':{'task':project['task'],'decision':None,'feedback':None,'rework_stage':None},'messages':[]}
     boot=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps(request),env=env,capture_output=True,text=True)
     assert boot.returncode==0,boot.stderr

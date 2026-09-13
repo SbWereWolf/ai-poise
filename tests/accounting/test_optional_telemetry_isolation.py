@@ -62,7 +62,7 @@ class _Clock:
         self.values = iter(
             [
                 ClockObservation("2026-09-13T01:00:00+00:00", 10, "boot-0082"),
-                ClockObservation("2026-09-13T00:59:00+00:00", 2_000_010, "boot-0082"),
+                ClockObservation("2026-09-13T00:59:00+00:00", 2_000_000_010, "boot-0082"),
                 ClockObservation("2026-09-13T01:01:00+00:00", 40, "boot-0082"),
                 ClockObservation("2026-09-13T01:01:01+00:00", 50, "boot-0082"),
             ]
@@ -140,22 +140,17 @@ def _old_path_is_synchronous():
     release = Event()
     foreground_progress = Event()
 
-    class BlockingAccounting:
-        def prepare(self, raw):
-            return raw
-
+    class BlockingTelemetry:
         def begin(self, *args):
             entered.set()
             release.wait()
-
-        def receive(self, *args):
             return None
 
         def finish(self, *args):
-            return None
+            return False
 
     runtime = _Runtime(None, foreground_progress)
-    runtime.accounting = BlockingAccounting()
+    runtime.telemetry = BlockingTelemetry()
     progressed, outcome = _invoke_with_release(
         WorkTools(runtime), release, entered, foreground_progress, wait_for_progress=False
     )
@@ -197,22 +192,26 @@ def test_slow_optional_processor_does_not_delay_or_replace_work_result():
 
 def _configure_production_accounting(project):
     from conftest import write_json
-    from tests.accounting.test_domain import policy
-    from tests.runner.helpers import stage
+    from test_domain import policy
 
     process = {
         "goal_type": "development",
         "benefit": {"git_categories": ["code", "documentation"], "sections": []},
         "route": {"entry": "write"},
         "stages": [
-            stage(
-                "write",
-                "produce",
-                {"complete": None},
-                False,
-                ["src/**", "tests/**", "docs/**"],
-                ["write"],
-            )
+            {
+                "id": "write",
+                "handler": "produce",
+                "transitions": {"complete": None},
+                "rework_targets": ["write"],
+                "instruction": "Выполнить один этап и доложить.",
+                "read_only": False,
+                "allowed_paths": ["src/**", "tests/**", "docs/**"],
+                "normalization": "strip",
+                "sections": {"report": "Заполнить."},
+                "required_sections": ["report"],
+                "artifact_requirements": [],
+            }
         ],
         "content_contract": {"sections": [], "routes": [], "requirements": []},
     }
@@ -232,23 +231,27 @@ def _configure_production_accounting(project):
 
 
 def _bootstrap_request(task):
-    from tests.batch.helpers import message, request
-
-    packet = request(
-        "bootstrap",
-        {"task": task, "decision": None, "feedback": None, "rework_stage": None},
-        [message("turn-0082")],
-    )
+    packet = {
+        "operation": "bootstrap",
+        "input": {"task": task, "decision": None, "feedback": None, "rework_stage": None},
+        "messages": [
+            {
+                "conversation_id": "conversation-A",
+                "message_id": "turn-0082",
+                "occurred_at": "2026-09-06T15:00:00+00:00",
+                "reason": "initial",
+                "subject": None,
+            }
+        ],
+    }
     packet["telemetry"] = _raw_telemetry()
     return packet
 
 
 def _accounting_request(telemetry=None):
-    from tests.batch.helpers import request
-
-    packet = request(
-        "show",
-        {
+    packet = {
+        "operation": "show",
+        "input": {
             "queries": [
                 {
                     "id": "economics",
@@ -260,7 +263,8 @@ def _accounting_request(telemetry=None):
                 }
             ]
         },
-    )
+        "messages": [],
+    }
     if telemetry is not None:
         packet["telemetry"] = telemetry
     return packet
@@ -321,7 +325,7 @@ def test_production_worktools_envelope_persists_once_across_restart(project):
     }
     assert data["finished"] == {
         "audit_utc": "2026-09-13T00:59:00+00:00",
-        "monotonic_ns": 2_000_010,
+        "monotonic_ns": 2_000_000_010,
         "comparison_domain": "boot-0082",
     }
     assert "elapsed" not in data and "duration" not in data

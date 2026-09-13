@@ -24,6 +24,7 @@ class TaskOverviewPort(Protocol):
 
 class WorkRuntime(Protocol):
     accounting: Any
+    telemetry: Any
     transfer_tools:Any
     cleanup_tools:Any
     integration_tools:Any

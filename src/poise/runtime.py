@@ -89,7 +89,17 @@ class Poise:
         self.work_resources=WorkResources(self)
         from .application.accounting import AccountingCommands
         from .infrastructure.accounting import RuntimeAccounting
-        self.accounting=AccountingCommands(RuntimeAccounting(self,clock))
+        self.accounting=AccountingCommands(RuntimeAccounting(self))
+        from .application.telemetry import OptionalTelemetry
+        from .infrastructure.telemetry import AsyncTelemetryDispatcher,DetachedTelemetryProcessor
+        self.telemetry=OptionalTelemetry(
+            clock,
+            AsyncTelemetryDispatcher(
+                DetachedTelemetryProcessor(self.accounting.port.process),
+                max_pending=self.cfg['batch']['max_items'],
+            ),
+            self.session,
+        )
         from .infrastructure.sprint_work import SprintWork
         self.sprint_tools=SprintWork(self)
         from .infrastructure.actions import RuntimePlanActions
@@ -117,9 +127,7 @@ class Poise:
         return self.current_task()
 
     def handoff(self,args):
-        result=self.handoff_tools.preserve(args)
-        self.accounting.close_cycle()
-        return result
+        return self.handoff_tools.preserve(args)
 
     def current_task(self):
         return self.store.current(self.session)

@@ -41,7 +41,10 @@ class SqliteAccounting:
             db.execute('INSERT INTO accounting_accounts VALUES(?,?,?,?)',(task['id'],self.project,at,encoded(baseline)))
 
     def ingest(self,prepared,session,task):
-        at_bind=binding(task);p=self.policy.data
+        return self.ingest_binding(prepared,session,binding(task))
+
+    def ingest_binding(self,prepared,session,at_bind):
+        p=self.policy.data
         with self.database.transaction() as db:
             # Sort within the explicit batch. A late novel historical sample is not guessed.
             for event in sorted(prepared['usage'],key=lambda e:(e.data['source'],e.data['stream'],e.data['sequence'])):
@@ -79,18 +82,19 @@ class SqliteAccounting:
                 db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
                     (eid,at_bind['task'],self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
             for target in prepared['finding_targets']:
-                if task is None:raise PoiseError('Finding attribution requires current task')
-                row=db.execute('SELECT data FROM task_workflows WHERE task_id=?',(task['id'],)).fetchone()
+                task_id=at_bind['task']
+                if task_id is None:raise PoiseError('Finding attribution requires current task')
+                row=db.execute('SELECT data FROM task_workflows WHERE task_id=?',(task_id,)).fetchone()
                 feedback=json.loads(row[0])['feedback']
                 finding=next((x for x in feedback['findings'] if x['id']==target['finding_id']),None)
                 if finding is None:raise PoiseError('Unknown finding for cost attribution')
                 delivered=db.execute('SELECT at FROM interaction_reports WHERE task_id=? AND stage=? AND iteration=?',
-                    (task['id'],target['stage'],target['iteration'])).fetchone()
+                    (task_id,target['stage'],target['iteration'])).fetchone()
                 if delivered is None or (finding['stage'],finding['iteration'])==(target['stage'],target['iteration']):
                     raise PoiseError('Quality finding must target a previously delivered iteration')
-                old=db.execute('SELECT data FROM accounting_findings WHERE task_id=? AND finding_id=?',(task['id'],target['finding_id'])).fetchone()
+                old=db.execute('SELECT data FROM accounting_findings WHERE task_id=? AND finding_id=?',(task_id,target['finding_id'])).fetchone()
                 if old is not None and json.loads(old[0])!=target:raise PoiseError('Finding attribution cannot silently change')
-                db.execute('INSERT OR IGNORE INTO accounting_findings VALUES(?,?,?)',(task['id'],target['finding_id'],encoded(target)))
+                db.execute('INSERT OR IGNORE INTO accounting_findings VALUES(?,?,?)',(task_id,target['finding_id'],encoded(target)))
             if prepared['cause'] is not None:
                 current=db.execute('SELECT id,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
                 if current is not None:
@@ -99,6 +103,29 @@ class SqliteAccounting:
                         data['cause']=prepared['cause'];data['finding_ids']=[t['finding_id'] for t in prepared['finding_targets']]
                         db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(data),current['id']))
                     elif data['cause']!=prepared['cause']:raise PoiseError('A work cycle already has an explicit cause')
+
+    def store_telemetry(self,envelope):
+        data=envelope.data
+        selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
+        stored={'kind':'telemetry_envelope','envelope':data}
+        with self.database.transaction() as db:
+            old=db.execute('SELECT data FROM accounting_cycles WHERE id=?',(envelope.identity,)).fetchone()
+            if old is not None:
+                if json.loads(old[0])!=stored:raise PoiseError('Telemetry identity has conflicting content')
+                return False
+            db.execute(
+                'INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
+                (
+                    envelope.identity,
+                    selected['task'],
+                    self.project,
+                    data['session'],
+                    data['started']['audit_utc'],
+                    data['finished']['audit_utc'],
+                    encoded(stored),
+                ),
+            )
+        return True
 
     @staticmethod
     def _new_timing(observation:ClockObservation):
@@ -203,9 +230,15 @@ class SqliteAccounting:
         with self.database.transaction() as db:
             accounts=[dict(r) for r in db.execute('SELECT * FROM accounting_accounts WHERE project=?',(self.project,))]
             tasks={r['id']:TaskQueries.record_in(db,r['id']) for r in db.execute('SELECT id FROM tasks')}
+            cycles=[];telemetry=[]
+            for original in db.execute('SELECT * FROM accounting_cycles WHERE project=?',(self.project,)):
+                row=dict(original);data=json.loads(row['data'])
+                if data.get('kind')=='telemetry_envelope':
+                    row['data']=encoded(data['envelope']);telemetry.append(row)
+                else:cycles.append(row)
             return {'accounts':accounts,'tasks':tasks,
                 'usage':[dict(r) for r in db.execute('SELECT * FROM accounting_usage WHERE project=?',(self.project,))],
-                'cycles':[dict(r) for r in db.execute('SELECT * FROM accounting_cycles WHERE project=?',(self.project,))],
+                'cycles':cycles,'telemetry':telemetry,
                 'credits':[dict(r) for r in db.execute('SELECT * FROM accounting_credits WHERE project=? ORDER BY seq',(self.project,))],
                 'messages':[dict(r) for r in db.execute('SELECT e.*,b.task_id,b.sprint_id,b.goal_type,b.stage,b.iteration FROM interaction_events e LEFT JOIN interaction_bindings b ON b.event_id=e.id WHERE e.project=?',(self.project,))],
                 'reports':[dict(r) for r in db.execute('SELECT * FROM interaction_reports')],

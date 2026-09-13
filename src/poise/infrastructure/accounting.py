@@ -9,21 +9,12 @@ from .accounting_queries import AccountingQueries
 
 
 class RuntimeAccounting:
-    def __init__(self,h,clock):
+    def __init__(self,h):
         self.h=h;self.policy=MetricPolicy.parse(h.cfg['accounting'])
         try:ZoneInfo(self.policy.data['timezone'])
         except ZoneInfoNotFoundError as exc:raise PoiseError('Unknown accounting timezone') from exc
         self.repo=SqliteAccounting(h.store.database,h.cfg['project'],self.policy)
         self.measurer=PayloadMeasurer(h)
-        self.clock=clock
-        self.call_started=None;self.telemetry=None;self.turn_id=None
-
-    def _observe(self):
-        value=self.clock.observe()
-        if not isinstance(value,ClockObservation):raise PoiseError('Clock.observe must return ClockObservation')
-        return value
-
-    def close_cycle(self):self.repo.stop(self.h.session,self._observe())
 
     def prepare(self,value):
         result=parse_telemetry(value,self.policy)
@@ -43,34 +34,26 @@ class RuntimeAccounting:
             self.repo.ensure_account(task,{'git_base':task['base'],'sections':{n:'' for n in d.sections},
                 'benefit':task['process']['benefit'],'policy':self.policy.data,'origin':'task_start'},observation.audit_utc)
 
-    def receive(self,prepared,task):
-        self._account(task,self.call_started)
-        if self.policy.data['time_mode']=='tool_cycle' and task is not None and task['status']=='active':
-            self.repo.start(self.h.session,task,self.call_started,self.turn_id)
-        self.repo.ingest(prepared,self.h.session,task)
+    @staticmethod
+    def _observation(value):
+        return ClockObservation(
+            value['audit_utc'],
+            value['monotonic_ns'],
+            value['comparison_domain'],
+        )
 
-    def begin(self,operation,task,prepared,turn_id):
-        self.call_started=self._observe();self.telemetry=prepared;self.turn_id=turn_id
-        self.repo.new_turn(self.h.session,turn_id)
-        self._account(task,self.call_started)
-        if self.policy.data['time_mode']=='tool_cycle' and task is not None and task['status']=='active':
-            self.repo.start(self.h.session,task,self.call_started,self.turn_id)
-
-    def finish(self,operation,before,after,result):
-        finished=self._observe()
-        self._account(after,finished)
-        if self.policy.data['time_mode']=='tool_cycle':
-            if after is not None and after['status']=='active' and operation=='bootstrap':
-                self.repo.start(self.h.session,after,self.call_started,self.turn_id)
-            if (result['status'] in ('verified','cancelled','handed_off','handoff_complete','rejected')
-                    or operation in ('handoff','cancel','accept')
-                    or (before is not None and after is None)):
-                self.repo.stop(self.h.session,finished)
-        self.repo.touch(self.h.session,finished)
+    def process(self,envelope):
+        data=envelope.data
+        started=self._observation(data['started']);finished=self._observation(data['finished'])
+        raw=data['telemetry'];prepared=None if raw is None else self.prepare(raw)
+        if not self.repo.store_telemetry(envelope):return
+        selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
+        task=None if selected['task'] is None else self.h.task_queries.record(selected['task'])
+        self._account(task,started)
+        if prepared is not None:self.repo.ingest_binding(prepared,data['session'],selected)
         self.reconcile(finished)
 
-    def reconcile(self,observation=None):
-        observation=self._observe() if observation is None else observation
+    def reconcile(self,observation):
         data=self.repo.snapshot()
         for a in data['accounts']:
             task=data['tasks'][a['task_id']]
@@ -89,5 +72,10 @@ class RuntimeAccounting:
             self.repo.credit(task,measure,observation.audit_utc)
 
     def report(self,query):
-        self.reconcile(self.call_started)
         return AccountingQueries(self.repo,self.policy,self.h.cfg['project']).report(query)
+
+    def telemetry_summary(self,runtime):
+        result=dict(runtime)
+        result['stored']=len(self.repo.snapshot()['telemetry'])
+        result['coverage']='partial' if result['stored'] or result.get('coverage')=='partial' else 'unavailable'
+        return result

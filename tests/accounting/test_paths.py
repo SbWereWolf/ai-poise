@@ -1,10 +1,8 @@
 from copy import deepcopy
 from pathlib import Path
-import pytest
 from conftest import DeterministicClock,write_json,git
 from poise.runtime import Poise
 from poise.application.work import WorkTools
-from poise.common import PoiseError
 from tests.runner.helpers import stage
 from tests.batch.helpers import request
 from .test_domain import policy,sample
@@ -57,8 +55,11 @@ def test_usage_batch_dedup_conflict_and_atomicity(project):
     h,w,out=setup(project);send(w,[sample('x'),sample('y',sequence=2)]);send(w,[sample('x')])
     assert metrics(w)['totals']['model_tokens']==240
     bad=sample('x',inp=300)
-    with pytest.raises(PoiseError):send(w,[sample('new',sequence=3),bad])
-    assert metrics(w)['totals']['model_tokens']==240
+    result=send(w,[sample('new',sequence=3),bad])
+    assert result['status']=='read_only'
+    report=metrics(w)
+    assert report['totals']['model_tokens']==240
+    assert report['telemetry']['coverage']=='partial' and report['telemetry']['failed']==1
 
 
 def test_cumulative_baseline_and_details(project):

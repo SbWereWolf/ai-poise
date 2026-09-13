@@ -43,7 +43,15 @@ branch, base and WIP. Reject foreign ownership, stale versions, terminal Tasks a
 external outcomes before mutation. Sprint `replace_task` is not a correction writer; retain
 historical replacement relations only for reading.
 
-For every new trace requirement, ensure that its due stages intersect the referenced point's `write_stages`. Apply this rule to new goal-type and Task candidates, Sprint publication, and new active-Task additions before persistence or external effects. Restore stored contracts without retroactive rejection or rewriting, but validate every genuinely new requirement added to them. Keep immutable early evidence writable only at its owning stage; include that stage among the requirement's due stages instead of making the evidence writable later.
+For every new trace requirement, ensure that its due stages intersect the referenced
+point's `write_stages`. A `phase=pre` requirement additionally needs a declared write
+stage strictly before its earliest required stage; `phase=post` may use the same stage.
+Apply this one rule to direct Task creation, newborn ready, Sprint publication, new
+goal-type candidates, and new active-Task additions before persistence or external
+effects. Restore stored contracts without retroactive rejection or rewriting, but
+validate every genuinely new requirement added to them. Keep immutable early evidence
+writable only at its owning stage and expose it through a post-gate there before later
+pre-gates consume it.
 
 Keep domain code independent of I/O. Application services coordinate domain objects and ports; infrastructure implements those ports. Reuse transaction, execution and presentation mechanics without creating a universal raw-data editor.
 
@@ -113,12 +121,16 @@ import error or execution against another checkout is not a valid RED.
 Keep `verification_plan` validation in `CheckRegistry` and route scope ownership
 in `RouteDefinition`. New methods declare `change_surface`, `red_stages`, and
 `green_stages`; every required GREEN path must be covered by configured
-`allowed_paths`. RED predicates compare complete output exactly, so additional
+`allowed_paths`. Allow an empty repository surface only for a pre-existing baseline
+guard with no RED and sole GREEN at the route-entry `baseline`; produced-result GREEN
+methods require a non-empty covered surface. RED predicates compare complete output exactly, so additional
 failures do not pass. Preserve pre-plan snapshot restoration without adding a
 default, migration, or recursive runner-specific source inference.
 Keep current-registry mutation, revision/idempotency guards, immutable snapshots,
-and executable-obligation validation in `CheckRegistry`. Task creation and every
-stage-authorized `test_registry` mutation require explicit `executable_obligations`;
-never infer them from all requirements/DoD. Restore the current classification only
+and executable-obligation validation in `CheckRegistry`. Task creation requires explicit
+`executable_obligations` when the process schema owns `test_registry`; a schema without
+that field must omit it and initializes an explicitly empty registry classification.
+Every stage-authorized `test_registry` mutation supplies the full explicit list; never
+infer it from all requirements/DoD. Restore the current classification only
 from validated registry state, without rewriting historical methods or receipts and
 without a migration or fallback to immutable creation metadata.

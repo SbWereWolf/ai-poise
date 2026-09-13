@@ -1,6 +1,6 @@
 {
   "schema": "project-blueprint-1",
-  "version": "1",
+  "version": "2",
   "config": {
     "schema": "ddd-accounting-12",
     "project": "REPLACE_WITH_PROJECT_ID",
@@ -9,7 +9,7 @@
       "database": "state.sqlite",
       "lock": "state.lock",
       "runtime": "runtime",
-      "tasks": "tasks",
+      "standalone_tasks": "standalone",
       "sprints": "sprints",
       "worktrees": "worktrees",
       "git_index": "snapshot.index",

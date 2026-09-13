@@ -47,6 +47,8 @@ class InspectHandler:
 class ReviseHandler:
     def evaluate(self, work: dict, book: FeedbackBook, stage: str, iteration: int):
         exact(work, {"resolutions"}, "revise stage_work")
+        if not book.open_findings and work["resolutions"] == []:
+            return HandlerResult("complete", book)
         return HandlerResult("complete", book.propose(work["resolutions"], stage, iteration))
 
     def template(self):

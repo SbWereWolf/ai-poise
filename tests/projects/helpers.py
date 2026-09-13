@@ -19,12 +19,15 @@ def setup_case(project):
     write_json(root/'config/project-blueprint.json',blueprint)
     settings={'schema':'project-setup-settings-1','root':'.','templates':{
         'selected':{'path':'config/project-blueprint.json','version':'1','digest':digest(blueprint)}},
-        'manifest':'project.json','receipt':'setup-receipt.json','lock':'state/project-setup.lock',
+        'manifest':'project.json','receipt':'setup-receipt.json',
+        'registry':'state/project-registry.json','lock':'state/project-setup.lock',
         'file_mode':384,'directory_mode':448,'json_indent':2,
         'lock_seconds':2.0,'lock_poll_seconds':0.01,'git_seconds':15.0,
         'max_input_bytes':1048576,'max_edits':1000,'max_survey_steps':100,'output_chars':8192,
         'exit_codes':{'success':0,'rejected':2,'aborted':3}}
     settings_path=write_json(root/'setup.json',settings)
+    write_json(root/'state/project-registry.json',{
+        'schema':'configured-project-registry-1','projects':{}})
     request={'schema':'project-setup-1','request_id':'setup-1','destination':'configured/pilot',
         'template':{'id':'selected','version':'1','digest':digest(blueprint)},
         'edits':[{'path':['project'],'value':'pilot'},

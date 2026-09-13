@@ -202,7 +202,7 @@ def _external_snapshot(runtime):
         ["git", "-C", str(repository), "worktree", "list", "--porcelain"],
         text=True,
     )
-    task_root = runtime.state / runtime.paths["tasks"]
+    task_root = runtime.state / runtime.paths["standalone_tasks"]
     task_files = sorted(str(path.relative_to(task_root)) for path in task_root.rglob("*")) if task_root.exists() else []
     return {
         "tasks": runtime.task_queries.summary(),

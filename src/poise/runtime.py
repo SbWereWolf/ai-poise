@@ -20,6 +20,7 @@ from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
 from .execution import run_command, contains, method_passed, preview
+from .infrastructure.task_paths import sprint_root, task_root
 
 
 def resolve_source_under_test(
@@ -195,7 +196,7 @@ class Poise:
         if action == 'edit':
             return self.task_commands.edit_newborn(
                 args['task_id'], self.session, args['expected_revision'], args['patch'],
-                self.processes, self.config_hash, args['request_id'],
+                args['remove'], self.processes, self.config_hash, args['request_id'],
             )
         if action == 'ready':
             return self.task_commands.ready_newborn(
@@ -571,9 +572,9 @@ class Poise:
 
     def _roots(self, task: dict) -> dict[str,Path]:
         roots = {'runtime': self.runtime,
-                 'task': descendant(self.state, self.paths['tasks']) / task['id']}
+                 'task': task_root(self.state, self.paths, task['id'], task['sprint_id'])}
         if task['sprint_id'] is not None:
-            roots['sprint'] = descendant(self.state, self.paths['sprints']) / task['sprint_id']
+            roots['sprint'] = sprint_root(self.state, self.paths, task['sprint_id'])
         for path in roots.values():
             if path.is_symlink():
                 raise PoiseError('Корень владельца артефактов не может быть symlink')
@@ -582,8 +583,8 @@ class Poise:
 
     def _context(self, data: dict, prepare: bool) -> dict:
         stage = self._stage(data)
-        task_root = descendant(self.state, self.paths['tasks']) / data['id']
-        sprint_root = None if data['sprint_id'] is None else descendant(self.state, self.paths['sprints']) / data['sprint_id']
+        current_task_root = task_root(self.state, self.paths, data['id'], data['sprint_id'])
+        current_sprint_root = None if data['sprint_id'] is None else sprint_root(self.state, self.paths, data['sprint_id'])
         content = self.task_commands.content_context(data['id'])
         workflow = self.runner.context(data['id'])
         payload = None
@@ -604,8 +605,8 @@ class Poise:
                 'instruction': stage['instruction'], 'requirements': data['contract']['requirements'],
                 'definition_of_done': data['contract']['definition_of_done'],
                 'action':self.plan_actions.snapshot(data), 'content_requirements':content, 'handler':workflow['handler'], 'workflow':workflow,
-                'runtime_root': str(self.runtime), 'task_root': str(task_root),
-                'sprint_root': None if sprint_root is None else str(sprint_root),
+                'runtime_root': str(self.runtime), 'task_root': str(current_task_root),
+                'sprint_root': None if current_sprint_root is None else str(current_sprint_root),
                 'result_template': payload,
                 'progression': data.get('progression'),
                 'agents_files': [] if data['worktree'] is None else
@@ -906,11 +907,11 @@ class Poise:
     def _existing_artifacts(self, data: dict) -> list[dict]:
         roots = {
             'runtime': self.runtime,
-            'task': descendant(self.state, self.paths['tasks']) / data['id'],
+            'task': task_root(self.state, self.paths, data['id'], data['sprint_id']),
         }
         owners = {'runtime': self.session, 'task': data['id']}
         if data['sprint_id'] is not None:
-            roots['sprint'] = descendant(self.state, self.paths['sprints']) / data['sprint_id']
+            roots['sprint'] = sprint_root(self.state, self.paths, data['sprint_id'])
             owners['sprint'] = data['sprint_id']
         records = []
         for prior in self.store.artifact_records(data['id']):
@@ -1017,7 +1018,8 @@ class Poise:
         if (data['worktree'] is not None
                 and self._git(worktree,'symbolic-ref','--short','HEAD') != data['branch']):
             raise PoiseError('В worktree другая ветка')
-        if data['pending'] is not None:
+        pending_checks = data['pending'] == 'checks'
+        if data['pending'] is not None and not pending_checks:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
@@ -1038,8 +1040,19 @@ class Poise:
         tree = scope_state['tree']
         changed = scope_state['changed']
         scope = scope_state['allowed_paths']
-        submitted = self.runner.submit(data['id'], self.session, payload)
-        data = self._task()
+        if pending_checks:
+            submitted_digest = self.runner.matching_submission_digest(
+                data['id'], self.session, payload
+            )
+            if submitted_digest is None:
+                raise PoiseError(
+                    'Восстановление pending=checks требует точного повтора '
+                    'текущего submitted результата'
+                )
+            submitted = None
+        else:
+            submitted = self.runner.submit(data['id'], self.session, payload)
+            data = self._task()
         if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
             raise PoiseError('Сообщение коммита не соответствует правилу проекта')
         roots = self._roots(data)
@@ -1065,10 +1078,34 @@ class Poise:
             data, tree, checks, worktree
         )
         # Env values participate only in the digest; they are not persisted in receipts.
-        batch = self.task_commands.observation_batch(data['id'],tree,execution_key)
-        usable = batch is not None and self._usable_receipts(
+        current_submission_digest = (
+            submitted_digest if submitted is None else submitted.digest
+        )
+        if pending_checks:
+            batch = self.task_commands.submission_observation_batch(
+                data['id'],current_submission_digest,tree,execution_key
+            )
+        else:
+            batch = self.task_commands.observation_batch(
+                data['id'],tree,execution_key
+            )
+        intact = batch is not None and self._intact_receipts(
             data['id'], batch['receipts'], invocations, tree
         )
+        usable = intact and self._usable_receipts(
+            data['id'], batch['receipts'], invocations, tree
+        )
+        if pending_checks:
+            if not intact:
+                raise PoiseError(
+                    'Неизвестен исход прерванной проверки; не запускаем '
+                    'повтор вслепую. Смотрите журнал.'
+                )
+            self.runner.recover_pending_checks(
+                data['id'], self.session, submitted_digest, tree,
+                execution_key, batch['receipts']
+            )
+            data = self._task()
         if payload['evidence_work']['phase']=='continue' and not usable:
             return {'status':'observations_stale','task':data['id'],'stage':stage['id'],
                     'reason':'Нужен PREPARE: точные входы наблюдения изменились или receipt недоступен.',
@@ -1077,12 +1114,12 @@ class Poise:
         if missing:
             return {'status':'evidence_requirements_failed','task':data['id'],'stage':stage['id'],
                     'missing':list(missing),'checks':[],'context':self._context(data,True)}
-        payload_hash = submitted.digest
+        payload_hash = current_submission_digest
         publication = data['publication']
         if (publication is not None and publication['tree']==tree and publication['payload_hash']==payload_hash
                 and publication['execution_key']==execution_key and usable):
             return self._publish(data, publication)
-        if usable:
+        if intact:
             receipts = batch['receipts']
             attempt = data['attempts']
         else:

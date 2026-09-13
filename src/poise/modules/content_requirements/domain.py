@@ -342,17 +342,29 @@ class ContentPolicy:
 
     def _require_schedulable_trace_requirements(self, selected: frozenset[str]) -> None:
         routes = {route.id: route for route in self.routes}
+        stage_positions = {stage: position for position, stage in enumerate(self.stages)}
         for requirement in self.requirements:
             if requirement.kind != "trace" or requirement.id not in selected:
                 continue
             details = json.loads(requirement.details)
             route = routes[details["route"]]
             point = next(point for point in route.points if point.id == details["point"])
-            if set(requirement.stages).isdisjoint(point.write_stages):
+            earliest_due_position = min(stage_positions[stage] for stage in requirement.stages)
+            earliest_due_stage = self.stages[earliest_due_position]
+            has_writable_due_stage = not set(requirement.stages).isdisjoint(point.write_stages)
+            has_write_before_due = any(
+                stage_positions[stage] < earliest_due_position for stage in point.write_stages
+            )
+            if (not has_writable_due_stage
+                    or requirement.phase == "pre" and not has_write_before_due):
                 raise DomainError(
                     f"Требование {requirement.id}: маршрут {route.id}, точка {point.id}; "
+                    f"phase={requirement.phase}, "
                     f"write_stages={list(point.write_stages)}, "
-                    f"due_stages={list(requirement.stages)} не пересекаются")
+                    f"due_stages={list(requirement.stages)}, "
+                    f"earliest required stage={earliest_due_stage}; "
+                    "требуется общий writable due stage, а для phase=pre — "
+                    "write stage строго раньше earliest required stage")
 
     def to_layers(self) -> dict:
         return {"goal": json.loads(self.goal_json), "task": json.loads(self.task_json)}

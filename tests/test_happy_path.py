@@ -111,16 +111,20 @@ def test_invalid_trace_schedule_rejected_before_task_branch_or_worktree(project)
     invalid=deepcopy(project['task'])
     invalid['content_contract']={"sections":[],"routes":[
         {"id":"delivery","requirements":invalid['requirements'],"points":[
-            {"id":"method","kind":"method","fields":{},"write_stages":["tests"]}]}],
+            {"id":"method","kind":"method","fields":{},"write_stages":["implementation"]}]}],
         "requirements":[
             {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
              "stages":["implementation"],"phase":"pre","field_equals":{}}]}
     task_path=write_json(project['root']/'invalid-schedule-task.json',invalid)
     h=Poise(project['config_path'],'S-A')
-    with pytest.raises(PoiseError) as error:
+    try:
         h.bootstrap(task_file=task_path)
-    assert all(value in str(error.value) for value in
-               ('method-too-late','delivery','method','tests','implementation'))
+    except PoiseError as error:
+        failure = error
+    else:
+        pytest.fail("TASK_0119_DIRECT_PRE_GATE_ACCEPTED")
+    assert all(value in str(failure) for value in
+               ('method-too-late','delivery','method','pre','write_stages','implementation'))
     assert h.task_queries.record('T1') is None
     assert not (project['root']/'state/worktrees/T1').exists()
     assert git(project['app'],'branch','--list','tasks/T1')==''

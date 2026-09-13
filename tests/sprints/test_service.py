@@ -39,6 +39,17 @@ def test_incomplete_child_saved_for_feedback_not_published(sprint):
     assert len(history['layers'])>=3
 
 
+def test_incomplete_draft_members_do_not_claim_the_planning_session(sprint):
+    _,h,w=sprint
+    members=[{'id':'A','sprint_id':'S'},{'id':'B','sprint_id':'S'}]
+
+    planned=draft(w,members)
+
+    assert planned['status']=='draft'
+    assert h.task_queries.record('A')['claimed_by'] is None
+    assert h.task_queries.record('B')['claimed_by'] is None
+
+
 def test_unknown_exact_method_prevents_publication(sprint):
     p,h,w=sprint;t=task(p);t['checks']['work']=['MISSING']
     r=draft(w,[t]);assert r['errors']
@@ -84,18 +95,28 @@ def test_invalid_trace_schedule_prevents_all_sprint_member_publication(project):
     for candidate in (valid,invalid):
         candidate['checks']['later']=[]
         candidate['evidence_plan']['later']={'subject_methods':{},'arguments':[],'review_arguments':[]}
+        candidate['stage_contracts'].append({
+            'stage_id':'later',
+            'allowed_paths':list(later['allowed_paths']),
+            'entry_requirements':[],
+            'exit_requirements':[],
+        })
     invalid['content_contract']={"sections":[],"routes":[
         {"id":"delivery","requirements":invalid['requirements'],"points":[
-            {"id":"method","kind":"method","fields":{},"write_stages":["work"]}]}],
+            {"id":"method","kind":"method","fields":{},"write_stages":["later"]}]}],
         "requirements":[
             {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
              "stages":["later"],"phase":"pre","field_equals":{}}]}
 
     planned=draft(w,[valid,invalid])
-    with pytest.raises(PoiseError) as error:
+    try:
         publish(w,planned['revision'])
-    assert all(value in str(error.value) for value in
-               ('method-too-late','delivery','method','work','later'))
+    except PoiseError as error:
+        failure = error
+    else:
+        pytest.fail("TASK_0119_SPRINT_PRE_GATE_ACCEPTED")
+    assert all(value in str(failure) for value in
+               ('method-too-late','delivery','method','pre','write_stages','later'))
     assert h.task_queries.summary()==[]
     assert not (h.state/h.paths['worktrees']).exists()
     assert bootstrap(w,'S')['status']=='draft'

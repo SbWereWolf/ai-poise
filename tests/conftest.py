@@ -97,7 +97,7 @@ def project(tmp_path, monkeypatch):
         'project': 'demo',
         'paths': {
             'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock',
-            'runtime': 'runtime', 'tasks': 'tasks', 'sprints': 'sprints',
+            'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints',
             'worktrees': 'worktrees',
             'git_index': 'snapshot.index', 'runs': 'runs',
             'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json',

@@ -94,6 +94,107 @@ def _fingerprint(path):
     }
 
 
+def test_storage_rejects_duplicate_task_and_worktree_claims(project):
+    """The database, not a later reader, enforces one owner per resource."""
+    _configure_process(project, False)
+    first, _ = _bootstrap(project, "first-seed", "FIRST")
+    first.runtime.ownership.release_task("FIRST")
+    second, _ = _bootstrap(project, "second-seed", "SECOND")
+    second.runtime.ownership.release_task("SECOND")
+
+    with first.runtime.store.transaction() as db:
+        db.execute("UPDATE tasks SET claimed_by=? WHERE id=?", ("single-owner", "FIRST"))
+        with pytest.raises(sqlite3.IntegrityError, match="UNIQUE constraint failed"):
+            db.execute("UPDATE tasks SET claimed_by=? WHERE id=?", ("single-owner", "SECOND"))
+
+    with first.runtime.store.transaction() as db:
+        db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("tree-owner-a", "FIRST"))
+        with pytest.raises(sqlite3.IntegrityError, match="UNIQUE constraint failed"):
+            db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("tree-owner-b", "FIRST"))
+
+
+def test_v12_ownership_upgrade_keeps_the_session_bound_claim(tmp_path):
+    from poise.infrastructure.sqlite.database import Database, SCHEMA_VERSION
+
+    path = tmp_path / "ownership.sqlite"
+    lock = tmp_path / "ownership.lock"
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        db.execute("DROP INDEX tasks_single_claimant")
+        db.execute("DROP INDEX sessions_single_worktree_owner")
+        db.executemany(
+            "INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?)",
+            [
+                ("RETAIN", "active", 0, 1, "owner", 1, None, "{}"),
+                ("RELEASE", "active", 0, 1, "owner", 1, None, "{}"),
+            ],
+        )
+        db.executemany(
+            "INSERT INTO sessions(id,task_id) VALUES(?,?)",
+            [("owner", "RETAIN"), ("stale-worktree-owner", "RETAIN")],
+        )
+        db.execute("PRAGMA user_version=12")
+
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 13
+        assert db.execute("SELECT claimed_by FROM tasks WHERE id='RETAIN'").fetchone()[0] == "owner"
+        assert db.execute("SELECT claimed_by FROM tasks WHERE id='RELEASE'").fetchone()[0] is None
+        assert db.execute("SELECT task_id FROM sessions WHERE id='owner'").fetchone()[0] == "RETAIN"
+        assert db.execute("SELECT task_id FROM sessions WHERE id='stale-worktree-owner'").fetchone()[0] is None
+
+
+def test_v12_ownership_upgrade_refuses_an_ambiguous_task_owner(tmp_path):
+    from poise.infrastructure.sqlite.database import Database
+
+    path = tmp_path / "ambiguous-ownership.sqlite"
+    lock = tmp_path / "ambiguous-ownership.lock"
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        db.execute("DROP INDEX tasks_single_claimant")
+        db.execute("DROP INDEX sessions_single_worktree_owner")
+        db.executemany(
+            "INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?)",
+            [
+                ("FIRST", "active", 0, 1, "owner", 1, None, "{}"),
+                ("SECOND", "active", 0, 1, "owner", 1, None, "{}"),
+            ],
+        )
+        db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("owner", None))
+        db.execute("PRAGMA user_version=12")
+
+    with pytest.raises(PoiseError, match="cannot choose a Task claim"):
+        Database(path, lock, 1, 0.01)
+
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 12
+        assert db.execute("SELECT COUNT(*) FROM tasks WHERE claimed_by='owner'").fetchone()[0] == 2
+
+
+def test_v12_ownership_upgrade_releases_stale_terminal_worktree_bindings(tmp_path):
+    from poise.infrastructure.sqlite.database import Database
+
+    path = tmp_path / "terminal-worktree.sqlite"
+    lock = tmp_path / "terminal-worktree.lock"
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        db.execute("DROP INDEX tasks_single_claimant")
+        db.execute("DROP INDEX sessions_single_worktree_owner")
+        db.execute(
+            "INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?)",
+            ("TERMINAL", "completed", 0, 1, None, 1, None, "{}"),
+        )
+        db.executemany(
+            "INSERT INTO sessions(id,task_id) VALUES(?,?)",
+            [("stale-a", "TERMINAL"), ("stale-b", "TERMINAL")],
+        )
+        db.execute("PRAGMA user_version=12")
+
+    Database(path, lock, 1, 0.01)
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT COUNT(*) FROM sessions WHERE task_id='TERMINAL'").fetchone()[0] == 0
+
+
 def test_four_combinations_and_task_type_dependency(project):
     packs = sorted((ROOT / "config/processes").glob("*.json"))
     packs += sorted((ROOT / "config/projects/ai-poise/config/processes").glob("*.json"))

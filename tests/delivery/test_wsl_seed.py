@@ -121,7 +121,7 @@ def test_single_wsl_template_has_project_local_storage_and_no_system_split():
     blueprint=json.loads((ROOT/"config/project-templates/wsl-poise.json").read_text())
     paths=blueprint["config"]["paths"]
     assert paths["database"]=="tasks.sqlite"
-    assert paths["tasks"]=="artifacts/tasks"
+    assert paths["standalone_tasks"]=="artifacts/standalone"
     assert paths["sprints"]=="artifacts/sprints"
     assert not (ROOT/"config/project-templates/wsl-system.json").exists()
     assert not (ROOT/"delivery/task-definitions/system").exists()

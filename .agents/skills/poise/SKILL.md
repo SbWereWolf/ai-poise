@@ -26,12 +26,20 @@ Use one `bootstrap` package to obtain the current task/sprint, stage, process sn
 
 Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has
 a permanent identity and history, uses the shared ownership API, and preserves no route entry before goal_type selection.
+Sprint draft materialization creates each newborn member without a claim, so the planning
+session keeps ownership of only its current Task while it edits the draft graph.
 `create`, `edit`, `ready`, and `restart` require stable request IDs; preserve exact
 replay and reject foreign live ownership. A ready standalone Task becomes available, while a
 Sprint member remains newborn until publication. Use Sprint `materialize_tasks` to convert
 legacy embedded definitions while preserving partial edits, history, graph aliases, membership,
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
+
+Every newborn Task `edit` request explicitly supplies both `patch` and `remove`; at least one
+is nonempty. Use `remove` in the same optimistic request when a goal-type change makes a saved
+draft field invalid. Never encode deletion with null, silently clean the draft, or omit `remove`
+as a compatibility path. Preserve exact replay and reject unknown, absent, duplicate, required,
+immutable, or patch-conflicting removals before mutation.
 
 When a saved execution contract makes DoD unattainable or the next stage fails its own DoR,
 treat the outcome as `broken`, never as successful completion. A reviewer may repair only the
@@ -41,6 +49,21 @@ worktree/branch and all WIP; reject terminal work, a foreign live owner, stale v
 pending external outcome before mutation. Resolve pending uncertainty through its explicit
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
 action. Historical replacement relations remain read-only provenance.
+
+Task restart atomically invalidates every mutable current `work-packet identity` for that
+Task in the same Unit of Work as the newborn lifecycle reset. This does not rewrite or delete
+immutable `submissions`, `task_results`, `evidence`, or Task `history`; failure of invalidation
+or any later restart step rolls the whole transaction back. After `edit`/`ready`, save a fresh
+result normally even when the restarted route reuses the same stage and iteration. For a current
+verified result, an exact packet replay remains idempotent, while different result/artifact input
+must follow the domain `PoiseError` rework path and must never surface an internal `NameError`.
+
+When an interrupted invocation leaves `pending=checks`, retry only the exact current submitted
+`verify` packet. The runtime may reconcile it without rerunning checks only when every terminal
+receipt is present and exactly matches the current stage, iteration, submission, tree, execution
+key, invocation, ledger record, and persisted output digests. Treat incomplete, mismatched,
+duplicated, unknown, or output-corrupt receipts as unresolved external outcomes and make no Task
+or execution mutation.
 
 Public non-newborn `bootstrap` and current-Task `show` projections expose the exact current Task version as `version`. The private `_version` name is never part of the public DTO. Taskless responses omit `version`, and newborn Tasks use `revision`. Pass this value unchanged as `expected_version` for guarded `restart` or stage-contract repair; on a version conflict, refresh through public `bootstrap`/`show` instead of guessing.
 
@@ -73,6 +96,14 @@ that ID. Use the existing `task`, `section`, `content`, `evidence`, `verificatio
 Do not batch a dependent read until its identifier or range is known. One packet is not a
 cross-read-model SQL snapshot, and no token saving has been measured or may be claimed. Follow
 [Evidence-based review → Batched subject reads](../../../docs/workflows/evidence-based-review.md#пакетное-чтение-предмета).
+
+Let the exact process schema decide whether Task creation contains
+`executable_obligations`. A schema with a `test_registry` inspection route requires the field,
+including an explicit empty list; a schema without it must omit the field and receives an empty
+public registry classification without requirement/DoD inference. For repository verification,
+an empty `change_surface` represents only a pre-existing baseline guard with no RED and sole
+GREEN at the route-entry `baseline`. Produced-result GREEN methods require a non-empty surface
+covered by their stage. Follow [Batch work → Current verification registry](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
 
 When a current observation command has become stale, do not recreate the Task or edit its
 database. Read the current registry with one `show` query of kind `verification_registry`, then

@@ -1,5 +1,6 @@
 """Contract tests: stage gates are data, not goal_type branches."""
 from copy import deepcopy
+from pathlib import Path
 import pytest
 from poise.modules.content.domain import SectionValue, ContentState
 from poise.modules.content_requirements.domain import ContentPolicy, ContentSnapshot, ArtifactFact
@@ -17,11 +18,11 @@ def declarations():
             {"id":"A","requirements":["R1"],"points":[
                 {"id":"source","kind":"record","fields":{"state":["planned","documented"],"reference":[]},"write_stages":["plan","implement"]},
                 {"id":"test","kind":"method","fields":{},"write_stages":["plan","tests"]},
-                {"id":"verdict","kind":"record","fields":{"result":["satisfied","not_satisfied"],"basis":[]},"write_stages":["review"]}]},
+                {"id":"verdict","kind":"record","fields":{"result":["satisfied","not_satisfied"],"basis":[]},"write_stages":["implement","review"]}]},
             {"id":"B","requirements":["R2"],"points":[
-                {"id":"argument","kind":"record","fields":{"facts":[],"assumptions":[],"inference":[],"conclusion":[]},"write_stages":["review"]}]}],
+                {"id":"argument","kind":"record","fields":{"facts":[],"assumptions":[],"inference":[],"conclusion":[]},"write_stages":["implement","review"]}]}],
         "requirements":[
-            {"id":"A-source","kind":"trace","route":"A","point":"source","stages":["plan","tests","implement","review"],"phase":"pre","field_equals":{}},
+            {"id":"A-source","kind":"trace","route":"A","point":"source","stages":["tests","implement","review"],"phase":"pre","field_equals":{}},
             {"id":"A-published","kind":"trace","route":"A","point":"source","stages":["implement","review"],"phase":"pre","field_equals":{"state":"documented"}},
             {"id":"A-test","kind":"trace","route":"A","point":"test","stages":["tests","implement","review"],"phase":"pre","field_equals":{}},
             {"id":"A-verdict","kind":"trace","route":"A","point":"verdict","stages":["review"],"phase":"pre","field_equals":{}},
@@ -230,12 +231,38 @@ def test_trace_schedule_rejects_value_or_predicate_without_writable_due_stage(ki
         assert expected in message
 
 
-def test_corrected_task_0017_pattern_is_due_while_writable_and_later():
+def test_phase_aware_trace_schedule_allows_same_stage_post_and_historical_restore():
     stages = ("verification_planning", "test_implementation", "implementation")
     contract = trace_schedule("method", ["verification_planning"], list(stages),
                               rule_id="verification-before-write")
-    created = ContentPolicy.from_layers(empty(), contract, stages, ("R1",), ("RED",), ("report",))
+    contract["requirements"][0]["phase"] = "post"
+    created = ContentPolicy.from_layers(
+        empty(), contract, stages, ("R1",), ("RED",), ("report",)
+    )
     assert created.requirements[0].stages == stages
+
+    historical = deepcopy(contract)
+    historical["requirements"][0]["phase"] = "pre"
+    restored = ContentPolicy.restore_layers(
+        empty(), historical, stages, ("R1",), ("RED",), ("report",)
+    )
+    assert restored.requirements[0].phase == "pre"
+
+
+def test_trace_phase_reachability_documentation_contract():
+    root = Path(__file__).resolve().parents[2]
+    workflow = (root / "docs/workflows/content-requirements.md").read_text()
+    governance = (root / "docs/governance/development-rules.md").read_text()
+    agent_rule = (root / "src/AGENTS.md").read_text()
+
+    for text in (workflow, governance):
+        assert "phase=pre" in text
+        assert "phase=post" in text
+        assert "earliest required stage" in text
+    assert "earliest required stage" in agent_rule
+    assert "direct Task creation" in agent_rule
+    assert "newborn ready" in agent_rule
+    assert "Sprint publication" in agent_rule
 
 
 def test_another_writable_point_on_a_multi_point_route_does_not_satisfy_target_schedule():

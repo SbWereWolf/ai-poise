@@ -19,17 +19,59 @@ class TaskRequirementsGate:
         return cls(registry_loader, snapshots)
 
     def prepare_contract(self, intent):
-        if not isinstance(intent, dict):
-            raise DomainError("Task requirements intent must be an object")
-        candidate = deepcopy(intent)
-        body = candidate.get("task") if set(candidate) == {"request_id", "task"} else candidate
+        candidate, body = self._candidate(intent)
         snapshot = self.validate(body)
         plan = self._registry_loader().plan_task(snapshot["task_requirements"])
         agreement = deepcopy(body.get("requirements_agreement"))
         self._validate_agreement(agreement, plan)
+        return self._prepared(candidate, body, snapshot, agreement)
+
+    def prepare_restarted_contract(self, intent, persisted_snapshot, persisted_agreement):
+        """Validate only the immutable context selected by the Task restart owner."""
+        candidate, body = self._candidate(intent)
+        if (
+            body.get("requirements_snapshot") != persisted_snapshot
+            or body.get("requirements_agreement") != persisted_agreement
+        ):
+            raise DomainError("Restarted Task Requirements context differs from persisted state")
+        snapshot, plan = self._validate_snapshot(
+            body,
+            self._snapshot_registry(persisted_snapshot),
+            "persisted Task",
+        )
+        agreement = deepcopy(body.get("requirements_agreement"))
+        self._validate_agreement(agreement, plan)
+        return self._prepared(candidate, body, snapshot, agreement)
+
+    @staticmethod
+    def _candidate(intent):
+        if not isinstance(intent, dict):
+            raise DomainError("Task requirements intent must be an object")
+        candidate = deepcopy(intent)
+        body = candidate.get("task") if set(candidate) == {"request_id", "task"} else candidate
+        if not isinstance(body, dict):
+            raise DomainError("Task requirements contract must be an object")
+        return candidate, body
+
+    @staticmethod
+    def _prepared(candidate, body, snapshot, agreement):
         del body["requirements_snapshot"]
         del body["requirements_agreement"]
         return candidate, {"snapshot": snapshot, "agreement": agreement}
+
+    @staticmethod
+    def _snapshot_registry(snapshot):
+        from .domain import RequirementsRegistry
+        if not isinstance(snapshot, dict) or set(snapshot) != {
+            "requirements",
+            "links",
+            "task_requirements",
+        }:
+            raise DomainError("Task requirements snapshot has an invalid shape")
+        requirements = snapshot["requirements"]
+        if not isinstance(requirements, dict):
+            raise DomainError("Task requirements snapshot has invalid requirements")
+        return RequirementsRegistry.restore(list(requirements.values()), snapshot["links"])
 
     @staticmethod
     def _validate_agreement(agreement, plan):
@@ -42,6 +84,11 @@ class TaskRequirementsGate:
             raise DomainError("Explicit full-text requirements agreement is required")
 
     def validate(self, contract):
+        snapshot, _ = self._validate_snapshot(contract, self._registry_loader(), "live registry")
+        return snapshot
+
+    @staticmethod
+    def _validate_snapshot(contract, registry, source):
         if not isinstance(contract, dict):
             raise DomainError("Task requirements contract must be an object")
         if "requirements_snapshot" not in contract:
@@ -53,15 +100,15 @@ class TaskRequirementsGate:
             "task_requirements",
         }:
             raise DomainError("Task requirements snapshot has an invalid shape")
-        planned = self._registry_loader().plan_task(snapshot["task_requirements"])
+        planned = registry.plan_task(snapshot["task_requirements"])
         if planned["status"] != "ready":
             raise DomainError("Task requirements snapshot contains unresolved gaps")
         if planned["snapshot"] != snapshot:
-            raise DomainError("Task requirements snapshot differs from the live registry")
+            raise DomainError(f"Task requirements snapshot differs from the {source}")
         texts = [item["text"] for item in snapshot["task_requirements"]]
         if contract.get("requirements") != texts:
             raise DomainError("Task requirements snapshot does not match Task requirements")
-        return deepcopy(snapshot)
+        return deepcopy(snapshot), planned
 
     def publish(self, task_id, task_requirements, agreement):
         if self._snapshots is None:

@@ -129,11 +129,37 @@ class TaskCommands:
         self.requirements_gate = requirements_gate
 
     def prepare_creation(self, intent, process, automatic_checks, base_revision):
+        return self._prepare_creation(
+            intent,
+            process,
+            automatic_checks,
+            base_revision,
+            self.requirements_gate.prepare_contract,
+        )
+
+    def _prepare_restarted_creation(
+        self, intent, process, automatic_checks, base_revision, persisted_context
+    ):
+        return self._prepare_creation(
+            intent,
+            process,
+            automatic_checks,
+            base_revision,
+            lambda candidate: self.requirements_gate.prepare_restarted_contract(
+                candidate,
+                persisted_context["requirements_snapshot"],
+                persisted_context["requirements_agreement"],
+            ),
+        )
+
+    def _prepare_creation(
+        self, intent, process, automatic_checks, base_revision, prepare_requirements
+    ):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
         from ..modules.tasks.definition import validate_creation
         source_intent = deepcopy(intent)
-        intent, requirements_context = self.requirements_gate.prepare_contract(intent)
+        intent, requirements_context = prepare_requirements(intent)
         candidate, _ = materialize_contract(intent, creation_alias(intent))
         try:
             preflight = CreationPreflight.parse(candidate, process)
@@ -168,6 +194,10 @@ class TaskCommands:
         from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
         request_id, _, _ = creation_parts(intent)
         parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.allocate(intent, parsed_policy)
+        if replay.replayed:
+            return replay
         prepared = self.prepare_creation(intent, process, automatic_checks, base_revision)
         with self.unit_of_work() as uow:
             allocation = uow.tasks.allocate(intent, parsed_policy)
@@ -438,12 +468,22 @@ class TaskCommands:
                 if sprint is None or sprint['aggregate']['state'] != 'published':
                     raise DomainError('Restarted Sprint Task requires its published Sprint')
                 effective_checks = sprint['automatic_checks']
-        prepared = self.prepare_creation(
-            contract,
-            snapshot.process,
-            effective_checks,
-            restart_base if restart_base is not None else creation_base(),
-        )
+        base_revision = restart_base if restart_base is not None else creation_base()
+        if newborn.restart_history:
+            prepared = self._prepare_restarted_creation(
+                contract,
+                snapshot.process,
+                effective_checks,
+                base_revision,
+                context,
+            )
+        else:
+            prepared = self.prepare_creation(
+                contract,
+                snapshot.process,
+                effective_checks,
+                base_revision,
+            )
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
             if replay is not None:

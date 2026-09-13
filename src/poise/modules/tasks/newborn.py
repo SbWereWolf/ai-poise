@@ -45,11 +45,12 @@ class NewbornTask:
     stage_contract_history: tuple[dict, ...] = ()
 
     @classmethod
-    def create(cls, task_id: str, sprint_id: str | None, actor: str):
+    def create(cls, task_id: str, sprint_id: str | None, actor: str | None):
         path_identifier(task_id)
         if sprint_id is not None:
             path_identifier(sprint_id)
-        path_identifier(actor)
+        if actor is not None:
+            path_identifier(actor)
         return cls(task_id, sprint_id, actor, 0, {}, None, False, None, (), ())
 
     @classmethod

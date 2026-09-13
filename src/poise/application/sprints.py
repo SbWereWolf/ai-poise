@@ -191,7 +191,7 @@ class SprintCommands:
                         newborn=changed
                 else:
                     newborn=replace(
-                        NewbornTask.create(task_id,sid,self.actor),
+                        NewbornTask.create(task_id,sid,None),
                         creation_request=deepcopy(creation_request),
                     )
                     uow.tasks.create_newborn(newborn,execution_hash)

@@ -47,6 +47,21 @@ Its error must identify only unresolved resolution IDs and the exact next inspec
 rework remains unchanged. Do not replace this invariant with a workaround Task or direct Task DB
 repair. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013).
 
+## JetBrains MCP and structural fallback
+
+For code-semantic work, treat configured endpoints, listed tools, worktree-bound observations,
+and proof of a concrete operation as separate states. Use an applicable worktree-bound JetBrains
+MCP capability for semantic navigation, call hierarchy, IDE inspections, semantic rename, or
+IDE-owned formatting; select by tool semantics rather than a stored name map. Follow the exact
+[selection rule](../../../docs/governance/jetbrains-mcp-policy.md#правило-выбора-инструмента) and
+[boundaries](../../../docs/governance/jetbrains-mcp-policy.md#границы-и-исключения).
+
+If the required IDE capability is unavailable or inapplicable, record the exact reason before
+using ast-index for an operation it can replace. Use ast-index directly for repository-wide graph,
+batch, and structural search. Do not claim that ast-index performed IDE inspection, semantic
+refactoring, or IDE formatting. Follow [Fallback to ast-index](../../../docs/governance/jetbrains-mcp-policy.md#fallback-на-ast-index)
+and preserve the [capability evidence](../../../docs/governance/jetbrains-mcp-policy.md#проверка-и-evidence) separately from configuration intent.
+
 ## Project-local configuration
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).

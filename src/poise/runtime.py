@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -158,18 +159,31 @@ class Poise:
         raise PoiseError('Unknown Task action')
 
     def recover_empty_rework(self, task_id: str, reason: str) -> dict:
+        return self._recover_empty_transition(task_id, reason, "rework")
+
+    def recover_empty_advance(self, task_id: str, reason: str) -> dict:
+        return self._recover_empty_transition(task_id, reason, "advance")
+
+    def _recover_empty_transition(
+        self, task_id: str, reason: str, transition: str
+    ) -> dict:
         self._identifier(task_id)
         if not isinstance(reason, str) or not reason.strip():
-            raise PoiseError('Empty rework recovery reason is required')
+            raise PoiseError(f'Empty {transition} recovery reason is required')
         if self.current_task() is not None:
-            raise PoiseError('Empty rework recovery requires an idle session')
+            raise PoiseError(f'Empty {transition} recovery requires an idle session')
         data = self.task_queries.record(task_id)
         if data is None:
-            raise PoiseError('Unknown Task for empty rework recovery')
+            raise PoiseError(f'Unknown Task for empty {transition} recovery')
         if data['claimed_by'] is not None:
-            raise PoiseError('Empty rework recovery requires released work')
+            raise PoiseError(f'Empty {transition} recovery requires released work')
         tree = self._current_tree(data)
-        return self.task_commands.recover_empty_rework(task_id, reason, tree)
+        command = (
+            self.task_commands.recover_empty_rework
+            if transition == "rework"
+            else self.task_commands.recover_empty_advance
+        )
+        return command(task_id, reason, tree)
 
     def current_task(self):
         return self.store.current(self.session)
@@ -223,15 +237,20 @@ class Poise:
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
         self.runtime.mkdir(parents=True, exist_ok=True)
-        index = descendant(self.runtime, self.paths['git_index'])
-        if index.exists(): index.unlink()
+        configured_index = descendant(self.runtime, self.paths['git_index'])
+        configured_index.parent.mkdir(parents=True, exist_ok=True)
+        invocation = Path(tempfile.mkdtemp(
+            prefix=f'{configured_index.name}.',
+            dir=configured_index.parent,
+        ))
+        index = invocation / 'index'
         env = {**os.environ, 'GIT_INDEX_FILE': str(index)}
         try:
             self._git(worktree, 'read-tree', 'HEAD', env=env)
             self._git(worktree, 'add', '--all', env=env)
             return self._git(worktree, 'write-tree', env=env)
         finally:
-            if index.exists(): index.unlink()
+            shutil.rmtree(invocation)
 
     def _changed(self, data: dict, tree: str) -> list[str]:
         if data['worktree'] is None:

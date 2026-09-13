@@ -26,6 +26,8 @@ Use `poise project` or `poise project-init` with an explicitly selected template
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their working files or database directly. Native coding tools remain appropriate for source code, tests and target documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not grant ongoing authorization. Report implemented and tested capabilities separately from planned ones.
 
+When an authorized external publication makes a goal-config editor head stale, use the public `goal-config-status-1` and exact `goal-config-reconcile-1` protocol documented in [goal configuration](docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией). Do not create a fresh editor database to bypass the managed head.
+
 Count observed user messages without inventing missing messages or token usage. Preserve their source and coverage. Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI poise defects.
 
 ## Shared agent policy
@@ -75,6 +77,8 @@ Follow [Start and finish](docs/governance/development-rules.md#%D0%BD%D0%B0%D1%8
 Before substantive project work, explicitly select the working project configuration and session identity, then invoke `bootstrap` through AI poise's public work API. Only prerequisite inspection needed to locate/configure that entry point precedes it. Consume the returned task/stage, capabilities and result template; do not invent task IDs, state or a worktree. Resume through the same API.
 
 Before reporting successful completion, invoke `verify` through the same API with the current stage result and artifacts, inspect its terminal status and required evidence, and complete any required continuation within the authorized stage. A zero exit code, pending continuation or mere receipt is not proof of success. Continue to the next executor-owned stage when the existing executor assignment covers it; do not enter reviewer work or separately controlled acceptance/publication/integration without the applicable authorization.
+
+Repository snapshot Git-index ownership and recovery follow the canonical [batch-work contract](docs/workflows/batch-work.md#изоляция-временного-git-index). Never delete `snapshot.index.lock` manually or remove another invocation's snapshot directory.
 
 For taskless read-only work, use `bootstrap` with explicit null task/decision/feedback/rework_stage and `verify` with `result=null`, `artifacts=[]`. Confirm that the returned context is actually taskless; a session may already own work. An addressed `completed`, `cancelled`, or `superseded` Task returns a `terminal inspection snapshot` containing its preserved context, content, evidence, and history; inspection must not bind, resume, or claim that Task. Use that snapshot directly, then use taskless bootstrap before null-result verify. Cancellation is an emergency terminal outcome and does not require evidence. `read_only_verified` finalizes runtime with no substantive checks and must not be represented as validation of the answer. Independently validate factual claims. Persistent task results require a formal task and the managed artifact API.
 

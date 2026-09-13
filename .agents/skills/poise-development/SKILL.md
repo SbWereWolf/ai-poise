@@ -28,6 +28,11 @@ Tools are batch-oriented and declarative: if two or more required mechanical act
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
 
+When another authorized owner has replaced a managed process file, diagnose the exact head
+and live revisions with `goal-config-status-1`, then adopt validated content only with an exact
+`goal-config-reconcile-1` request carrying reason and authority. Do not create a fresh editor database
+to evade a stale managed head. Read [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией) before acting.
+
 ## Verification and delivery
 
 An idle reviewer starts on a received handoff. If several handoffs arrive, finish the review already started, save its result, release the Task and notify its executor, then immediately take the next already-received actionable Task in the same turn. Incoming handoffs do not interrupt the current review. Follow the canonical [direct-handoff rule](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
@@ -41,5 +46,7 @@ After release and notification, continue actionable received assignments or the 
 Treat the accepted commit as immutable. Complete delivery by advancing the existing task branch in its existing task worktree: update from current `master`, merge, resolve conflicts there, and rerun checks. Do not create a separate integration branch or worktree. Stop automation on conflicts for agent resolution in the task worktree. Under the shared target lock, recheck `master` and repeat the cycle on drift. Publish only with `git merge --ff-only <task-branch>` in the main checkout; never directly update or force-update the target ref.
 
 Do not prepare, edit, or resolve conflicts in the main checkout or foreign WIP, and never `stash`, `reset`, `restore`, `checkout`, `clean`, stage, commit, or delete their state. The serialized fast-forward is the only publication effect. If it is blocked, require persisted proof that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are unchanged. After confirmed publication, remove only the task worktree, task branch, and registered temporary backups from the scoped runtime directory. Preserve foreign, operator, deliverable, and unfinished-recovery backups. Persist phases so current installed source can replay safely without rewriting the accepted commit. Read the canonical [finish and integration rules](../../../docs/governance/development-rules.md#интеграция-завершённого-результата).
+
+Repository snapshots use an invocation-owned temporary Git index and must clean only that exact owned directory. Never delete `snapshot.index.lock` manually or remove another invocation's directory; preserve real Git conflict evidence and use the owning public recovery path. Read the canonical [snapshot index contract](../../../docs/workflows/batch-work.md#изоляция-временного-git-index).
 
 When a skill relies on canonical documentation, link to the smallest exact normative section needed by the operational rule.

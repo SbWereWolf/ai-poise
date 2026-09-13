@@ -21,6 +21,7 @@ def parse_request(value, config):
     shapes={'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
             'recover_empty_rework':{'task_id','reason'},
+            'recover_empty_advance':{'task_id','reason'},
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},

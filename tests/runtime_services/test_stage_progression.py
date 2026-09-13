@@ -191,6 +191,62 @@ def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(pro
     assert reviewer.runtime.current_task()["version"] == version
 
 
+def test_resumed_reviewer_crosses_boundary_after_ownership_only_suffix(project):
+    configure_progression(project)
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    first = bootstrap(executor, project["task"])
+    add_test(first["worktree"])
+    assert verify(executor, result(first))["status"] == "verified"
+    implementation = advance(executor)
+    Path(implementation["worktree"], "src/double.py").write_text(
+        "def double(n):\n    return n * 2\n", encoding="utf-8",
+    )
+    assert verify(executor, result(implementation))["status"] == "verified"
+    boundary = advance(executor)
+    assert boundary["status"] == "role_handoff_required"
+    assert handoff(executor)["status"] == "handed_off"
+
+    first_reviewer = WorkTools(Poise(project["config_path"], "first-reviewer"))
+    resumed = bootstrap(first_reviewer, {"id": "T1"})
+    assert resumed["progression"] == boundary["progression"]
+    before_suffix = state_snapshot(
+        first_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+    first_reviewer.runtime.ownership.release_task("T1")
+    second_reviewer = WorkTools(Poise(project["config_path"], "second-reviewer"))
+    acquired = bootstrap(second_reviewer, {"id": "T1"})
+    after_suffix = state_snapshot(
+        second_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+
+    assert acquired["progression"] == boundary["progression"]
+    assert after_suffix["execution"] == before_suffix["execution"]
+    assert after_suffix["progression_journal"] == before_suffix["progression_journal"]
+    for field in ("status", "stage", "iteration", "last_report"):
+        assert after_suffix["task"][field] == before_suffix["task"][field]
+
+    reached = advance(second_reviewer)
+
+    assert reached["status"] == "progression_target_reached"
+    assert reached["stage"] == "code_review"
+    assert reached["progression"] == {
+        **boundary["progression"],
+        "status": "reached",
+    }
+    completed = state_snapshot(
+        second_reviewer.runtime,
+        ("executor", "first-reviewer", "second-reviewer"),
+    )
+    assert completed["execution"][0]["last_report"] == (
+        after_suffix["execution"][0]["last_report"]
+    )
+    version = second_reviewer.runtime.current_task()["version"]
+    assert advance(second_reviewer)["status"] == "progression_target_reached"
+    assert second_reviewer.runtime.current_task()["version"] == version
+
+
 def test_progression_checks_next_entry_gate_before_transition_and_resumes_after_fix(project):
     configure_progression(project, gated=True)
     tools = WorkTools(Poise(project["config_path"], "executor"))

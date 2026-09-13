@@ -19,6 +19,9 @@ same-kind replacement and release; never steal an uncertain live claim. Derive t
 dependent worktree from the explicit process snapshot, not a caller flag. Release it
 with its Task while preserving independent worktree ownership. Ownership must not
 change cwd, launch roots, Git or WIP, and must not absorb cleanup or result integration.
+Treat restart-ready promotion as the same release boundary: promoting a restarted
+standalone or published Sprint Task to available clears the releasing actor's
+dependency-bound worktree in the same unit of work, without changing Git or WIP.
 
 Apply domain-driven design throughout the codebase, not just to stage handlers. Identify the owner of each business rule before adding behaviour.
 

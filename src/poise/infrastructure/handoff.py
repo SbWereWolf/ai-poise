@@ -115,6 +115,9 @@ class LocalHandoff:
         atomic_write(receipt_path,(encoded(receipt)+'\n').encode(),self.config['file_mode'])
         h.register_artifact_paths([*plan['preserved_artifacts'],str(bundle),str(receipt_path)],data)
         h.result_views.finish()
+        # The legacy accounting cycle is a session lease: release it before
+        # ownership so the same native session can immediately select another Task.
+        h.accounting.release_cycle(data['id'])
         self.commands.release(h.session,request_id,receipt)
         h.store.event(h.session,data['id'],'handoff.released',{'receipt':str(receipt_path),'commit':sha,'verified':verified})
         h._cleanup_runtime()

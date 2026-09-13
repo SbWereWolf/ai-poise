@@ -47,10 +47,6 @@ class WorkTools:
         # charged for an unrelated later query.
         bound_before = before if before is not None and not is_terminal_task_status(before['status']) else None
         self.interactions.record(events,h.session,bound_before)
-        # An accounting read drains earlier telemetry before its own capture is
-        # opened; otherwise the query would wait for the operation that contains it.
-        if op == 'show' and any(query['kind'] == 'accounting' for query in args['queries']):
-            h.telemetry.flush()
         telemetry=h.telemetry.capture(
             op,
             bound_before,

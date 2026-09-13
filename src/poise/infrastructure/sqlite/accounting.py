@@ -195,21 +195,42 @@ class SqliteAccounting:
                 d['turn_id']=turn_id
                 db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(d),row['id']))
             elif d['turn_id']!=turn_id:
-                at=d['last_observed_at'];timing=d.get('timing')
-                valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
-                       and type(timing.get('started_monotonic_ns')) is int
-                       and type(timing.get('last_monotonic_ns')) is int
-                       and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
-                if not valid:
-                    self._unmeasured(d);error='Open accounting cycle cannot be compared safely; retry the operation'
-                elif timing['last_monotonic_ns']<timing['started_monotonic_ns']:
-                    error='Monotonic clock moved backwards; accounting state was not changed'
-                else:
-                    error=None;timing['ended_monotonic_ns']=timing['last_monotonic_ns']
-                    timing['elapsed_microseconds']=(timing['last_monotonic_ns']-timing['started_monotonic_ns'])//1000
-                    timing['status']='measured';d['closed_by']='next_user_turn_at_last_observation'
-                if error is None or d['timing']['status']=='unmeasured_clock_discontinuity':
-                    db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',(at,encoded(d),row['id']))
+                error=self._close_at_last_observation(db,row,d,'next_user_turn_at_last_observation')
+        if error is not None:raise PoiseError(error)
+
+    def _close_at_last_observation(self,db,row,data,reason):
+        timing=data.get('timing')
+        valid=(isinstance(timing,dict) and timing.get('version')==2 and timing.get('status')=='open'
+               and type(timing.get('started_monotonic_ns')) is int
+               and type(timing.get('last_monotonic_ns')) is int
+               and timing['started_monotonic_ns']>=0 and timing['last_monotonic_ns']>=0)
+        if not valid:
+            self._unmeasured(data)
+            error='Open accounting cycle cannot be compared safely; retry the operation'
+        elif timing['last_monotonic_ns']<timing['started_monotonic_ns']:
+            error='Monotonic clock moved backwards; accounting state was not changed'
+        else:
+            error=None
+            timing['ended_monotonic_ns']=timing['last_monotonic_ns']
+            timing['elapsed_microseconds']=(timing['last_monotonic_ns']-timing['started_monotonic_ns'])//1000
+            timing['status']='measured'
+            data['closed_by']=reason
+        if error is None or data['timing']['status']=='unmeasured_clock_discontinuity':
+            db.execute('UPDATE accounting_cycles SET ended_at=?,data=? WHERE id=?',
+                       (data['last_observed_at'],encoded(data),row['id']))
+        return error
+
+    def release_cycle(self,session,task_id):
+        """Release the legacy session lease using only already recorded observations."""
+        with self.database.transaction() as db:
+            row=db.execute(
+                'SELECT * FROM accounting_cycles WHERE session_id=? AND task_id=? AND ended_at IS NULL',
+                (session,task_id),
+            ).fetchone()
+            if row is None:return
+            error=self._close_at_last_observation(
+                db,row,json.loads(row['data']),'handoff_at_last_observation',
+            )
         if error is not None:raise PoiseError(error)
 
     def touch(self,session,at:ClockObservation):

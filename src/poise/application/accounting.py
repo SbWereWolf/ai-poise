@@ -5,3 +5,4 @@ class AccountingCommands:
     def __init__(self,port:AccountingPort):self.port=port
     def report(self,query):return self.port.report(query)
     def telemetry_summary(self,runtime):return self.port.telemetry_summary(runtime)
+    def release_cycle(self,task_id):return self.port.release_cycle(task_id)

@@ -102,10 +102,7 @@ class OptionalTelemetry:
             base = self._base(operation, before, telemetry, turn_id)
             begin_capture = getattr(self.dispatcher, "begin_capture", None)
             if begin_capture is not None:
-                token = begin_capture(self.clock, base, self._envelope)
-                if token is None:
-                    self.dropped += 1
-                return token
+                return begin_capture(self.clock, base, self._envelope)
 
             def work(token):
                 try:

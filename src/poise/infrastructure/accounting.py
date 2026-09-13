@@ -24,6 +24,9 @@ class RuntimeAccounting:
             if b<a:raise PoiseError('Time interval ends before start')
         return result
 
+    def release_cycle(self,task_id):
+        self.repo.release_cycle(self.h.session,task_id)
+
     def _account(self,task,observation):
         if task is None or task['base'] is None:return
         if self.repo.baseline(task['id']) is None:

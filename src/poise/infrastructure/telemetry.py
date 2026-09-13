@@ -103,11 +103,11 @@ class AsyncTelemetryDispatcher:
 
     def begin_capture(self, clock, base, builder):
         with self._changed:
+            self._stats["submitted"] += 1
             outstanding = len(self._pending) + len(self._receipts) + self._captures
             if self._closed or outstanding >= self.max_pending:
                 self._stats["dropped"] += 1
                 return None
-            self._stats["submitted"] += 1
             if (
                 getattr(self.processor, "detached", False)
                 and getattr(clock, "fork_safe", False)
@@ -323,4 +323,8 @@ class AsyncTelemetryDispatcher:
     def summary(self):
         with self._changed:
             coverage = "partial" if self._stats["submitted"] else "unavailable"
-            return {"coverage": coverage, **self._stats}
+            pending = self._stats["submitted"] - sum(
+                self._stats[key]
+                for key in ("processed", "duplicates", "failed", "dropped")
+            )
+            return {"coverage": coverage, **self._stats, "pending": pending}

@@ -287,6 +287,89 @@ def test_observe_cannot_replace_same_stage_guard_or_change_its_classification(pr
     assert _state(runtime) == before
 
 
+def test_observe_subject_replacement_preserves_classification_and_coverage(project):
+    from conftest import Poise, write_json
+    from runner.helpers import stage
+
+    setup(project, logical=False)
+    process_path = project["root"] / "config/processes/verification_demo.json"
+    process = json.loads(process_path.read_text(encoding="utf-8"))
+    registry_stage = stage(
+        "registry",
+        "produce",
+        {"complete": "measure"},
+        False,
+        ["tests/**"],
+        ["registry"],
+    )
+    registry_stage["sections"]["test_registry"] = "Define the current registry."
+    registry_stage["required_sections"].append("test_registry")
+    process["route"]["entry"] = "registry"
+    process["stages"].insert(0, registry_stage)
+    write_json(process_path, process)
+    project["task"]["checks"] = {
+        "registry": [],
+        **project["task"]["checks"],
+    }
+    project["task"]["evidence_plan"] = {
+        "registry": {
+            "subject_methods": {},
+            "arguments": [],
+            "review_arguments": [],
+        },
+        **project["task"]["evidence_plan"],
+    }
+    write_json(project["task_path"], project["task"])
+    runtime = Poise(project["config_path"], "S1")
+    context = runtime.bootstrap(project["task_path"])
+    classified = _replacement(project)
+    classified.update(
+        evidence_kind="executable_test",
+        covers=["requirements[0]"],
+    )
+    registry_payload = _payload(context, _change(
+        project,
+        request_id="classify-subject",
+        operation={
+            "kind": "replace",
+            "method_id": "M",
+            "registration": classified,
+        },
+    ))
+    registry_payload["sections"]["test_registry"] = "Classify subject M."
+    runtime.task_commands.submit("T1", "S1", registry_payload)
+    assert runtime.verify()["status"] == "verified"
+    context = runtime.bootstrap(decision="continue")
+    variants = []
+    unclassified = _replacement(project, marker="classification")
+    variants.append(("classification", unclassified))
+    changed_coverage = _replacement(project, marker="coverage")
+    changed_coverage.update(
+        evidence_kind="executable_test",
+        covers=["definition_of_done[0]"],
+    )
+    variants.append(("coverage", changed_coverage))
+
+    for label, registration in variants:
+        before = _state(runtime)
+        with pytest.raises(PoiseError, match="evidence_kind or covers"):
+            runtime.task_commands.submit(
+                "T1",
+                "S1",
+                _payload(context, _change(
+                    project,
+                    request_id=f"change-subject-{label}",
+                    revision=1,
+                    operation={
+                        "kind": "replace",
+                        "method_id": "M",
+                        "registration": registration,
+                    },
+                )),
+            )
+        assert _state(runtime) == before
+
+
 def test_next_verification_executes_only_the_replacement_definition(project):
     runtime, counter = setup(project, logical=False)
     context = runtime.bootstrap(project["task_path"])

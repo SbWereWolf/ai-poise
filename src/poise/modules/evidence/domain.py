@@ -297,6 +297,16 @@ class EvidenceBook:
                 return b
         return None
 
+    def submission_batch(self, stage, iteration, submission_digest, tree, key):
+        for item in reversed(self.batches):
+            b=json.loads(item)
+            if (
+                b['stage'], b['iteration'], b.get('submission_digest'),
+                b['tree'], b['execution_key']
+            ) == (stage, iteration, submission_digest, tree, key):
+                return b
+        return None
+
     def failed_batch(self, stage, iteration, submission_digest, tree, key):
         for item in reversed(self.batches):
             try:

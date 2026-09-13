@@ -63,21 +63,35 @@ def _assert_only_recovery_delta(before, after):
     after_task = deepcopy(after["task"])
     assert before_task.pop("pending") == "checks"
     assert after_task.pop("pending") is None
-    assert after_task.pop("version") == before_task.pop("version") + 1
+    before_version = before_task.pop("_version")
+    after_version = after_task.pop("_version")
+    assert after_version == before_version + 1
+    assert before_task.pop("version") == before_version
+    assert after_task.pop("version") == after_version
+    assert after_task.pop("_execution_version") == before_task.pop("_execution_version") + 1
+    before_private_history = before_task.pop("history")
+    after_private_history = after_task.pop("history")
     assert after_task == before_task
 
     before_public = deepcopy(before["public_task"])
     after_public = deepcopy(after["public_task"])
     before_history = before_public.pop("history")
     after_history = after_public.pop("history")
+    assert before_private_history == before_history
+    assert after_private_history == after_history
     assert after_public == before_public
     assert after_history[:-1] == before_history
+    submission = next(
+        event["submission"]
+        for event in reversed(before_history)
+        if event["event"] == "submitted"
+    )
     assert after_history[-1] == {
         "event": "pending_checks_recovered",
         "iteration": before["task"]["iteration"],
         "reason": None,
         "stage": before["task"]["process"]["stages"][before["task"]["stage_index"]]["id"],
-        "submission": None,
+        "submission": submission,
     }
     assert after["evidence"] == before["evidence"]
 
@@ -160,6 +174,26 @@ def test_exact_verify_replay_recovers_complete_passing_batch_into_evidence_flow(
     assert _snapshot(tools) == recovered_state
 
 
+def test_ordinary_evidence_continuation_reuses_the_current_observation_batch(project):
+    tools, context = _valid_scenario(project, passing_continuation=True)
+    awaiting = verify(tools, result(context, "passing observation awaiting evidence"))
+    assert awaiting["status"] == "awaiting_continuation"
+
+    continuation = deepcopy(awaiting["context"]["result_template"])
+    continuation["evidence_work"]["arguments"] = [{
+        "id": "CONTINUE",
+        "kind": "logical",
+        "facts": ["The registered check completed successfully."],
+        "assumptions": [],
+        "inference": "The current observation satisfies the declared condition.",
+        "conclusion": "The evidence obligation is satisfied.",
+        "verdict": "proved",
+        "observation_ids": [awaiting["checks"][0]["id"]],
+    }]
+
+    assert verify(tools, continuation)["status"] == "verified"
+
+
 def test_pending_checks_without_complete_batch_is_rejected_without_mutation(project):
     tools, context = _valid_scenario(project)
     payload = result(context, "submitted without observations")
@@ -186,6 +220,22 @@ def test_pending_checks_rejects_a_different_submission_without_mutation(project)
         match="прерванной проверки|текущего submitted результата",
     ):
         verify(tools, changed)
+
+    assert _snapshot(tools) == before
+
+
+def test_pending_checks_rejects_receipts_from_an_older_submission(project):
+    tools, context = _valid_scenario(project)
+    original = result(context, "original failed candidate")
+    assert verify(tools, deepcopy(original))["status"] == "checks_failed"
+
+    current = result(context, "current candidate interrupted before checks")
+    tools.runtime.task_commands.submit("T1", tools.runtime.session, deepcopy(current))
+    _mark_pending(tools)
+    before = _snapshot(tools)
+
+    with pytest.raises(PoiseError, match="Неизвестен исход прерванной проверки"):
+        verify(tools, deepcopy(current))
 
     assert _snapshot(tools) == before
 

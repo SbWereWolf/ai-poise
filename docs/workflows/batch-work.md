@@ -285,6 +285,20 @@ creation contract используется только явно сохранё�
 
 ### Явный rework после `checks_failed`
 
+Перед rework `pending=checks` не всегда означает действительно неизвестный исход. Если для
+текущих submission, stage, iteration, tree и execution key уже сохранён полный набор
+terminal receipts, публичным recovery служит точный replay исходного `verify` packet. Replay не выполняет
+checks повторно: он требует точного payload digest, полного однозначного соответствия методов и
+receipt ledger, существующих stdout/stderr с совпавшими digest и известных terminal exit codes.
+При успешной сверке Task и execution меняются атомарно: добавляется
+`pending_checks_recovered`, а `pending` очищается. Failed batch возвращает обычный
+`checks_failed`; passing batch продолжает штатный evidence pipeline. Последующий точный replay
+идемпотентно возвращает сохранённый результат.
+
+Если хотя бы один receipt отсутствует, дублируется, относится к другой provenance, имеет
+неизвестный outcome либо изменённый output, recovery отклоняется до мутации и checks не
+запускаются. Сначала требуется установить внешний исход; `rework` не используется как обход.
+
 `checks_failed` оставляет Task с submitted результатом активной и сохраняет неизменяемый batch receipts. Следующий пользовательский ход может явно вернуть ту же Task на разрешённый этап через существующий `bootstrap`:
 
 ```json

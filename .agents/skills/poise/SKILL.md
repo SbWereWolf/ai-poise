@@ -42,6 +42,13 @@ pending external outcome before mutation. Resolve pending uncertainty through it
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
 action. Historical replacement relations remain read-only provenance.
 
+When an interrupted invocation leaves `pending=checks`, retry only the exact current submitted
+`verify` packet. The runtime may reconcile it without rerunning checks only when every terminal
+receipt is present and exactly matches the current stage, iteration, submission, tree, execution
+key, invocation, ledger record, and persisted output digests. Treat incomplete, mismatched,
+duplicated, unknown, or output-corrupt receipts as unresolved external outcomes and make no Task
+or execution mutation.
+
 Use the installation-owned `recover_missing_worktree` operation only for a nonterminal
 verified/accepted Task whose registered worktree was removed. It must prove the saved report
 commit is integrated into the configured base and has the exact verified tree before restoring

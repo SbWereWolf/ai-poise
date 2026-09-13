@@ -618,12 +618,19 @@ class TaskCommands:
                     "Progression cannot continue with a pending unknown external outcome"
                 )
             handoff = uow.handoffs.latest_recovery_candidate(task_id)
+            ownership_suffix = (
+                ()
+                if handoff is None
+                else uow.tasks.ownership_event_suffix(
+                    task_id, handoff["version"], task.state.version
+                )
+            )
             crossed = bool(
                 handoff is not None
                 and handoff["state"] == "resumed"
                 and handoff["actor"] != actor
-                and task.state.version == handoff["version"] + 2
                 and handoff["receipt"]["stage"] == task.stage.stage_id
+                and ownership_suffix[:2] == ("handed_off", "handoff_resumed")
             )
             step = progression_step(task, target_stage, crossed)
             progression = uow.tasks.begin_progression(

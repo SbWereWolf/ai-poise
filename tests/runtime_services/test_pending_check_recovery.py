@@ -77,6 +77,8 @@ def _assert_only_recovery_delta(before, after):
     after_public = deepcopy(after["public_task"])
     before_history = before_public.pop("history")
     after_history = after_public.pop("history")
+    assert before_public.pop("version") == before_version
+    assert after_public.pop("version") == after_version
     assert before_private_history == before_history
     assert after_private_history == after_history
     assert after_public == before_public

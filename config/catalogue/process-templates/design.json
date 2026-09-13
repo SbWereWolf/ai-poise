@@ -1,5 +1,6 @@
 {
   "goal_type": "design",
+  "worktree_required": true,
   "route": {
     "entry": "framing"
   },

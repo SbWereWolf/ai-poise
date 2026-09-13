@@ -63,7 +63,8 @@ def resolve_source_under_test(
 class Poise:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
     def __init__(self, config_path: Path | str, session: str, clock,
-                 legacy_process_requirements: dict[str, bool] | None = None):
+                 legacy_process_requirements: dict[str, bool] | None = None,
+                 liveness=None):
         self.config_path = Path(config_path).resolve()
         self.root, self.cfg, self.processes = load_config(
             self.config_path, legacy_process_requirements
@@ -85,10 +86,10 @@ class Poise:
         )
         self.task_commands, self.task_queries = task_tools(self.store, repository_tree)
         from .application.ownership import BoundOwnership, OwnershipCommands
-        from .modules.ownership.domain import Liveness
+        from .modules.ownership.domain import UnobservedSessionLiveness
         ownership_commands = OwnershipCommands(
             self.store.unit_of_work,
-            lambda actor: Liveness.UNCERTAIN,
+            UnobservedSessionLiveness() if liveness is None else liveness,
             lambda observed: None,
         )
         self.ownership = BoundOwnership(ownership_commands, self.session)
@@ -195,8 +196,17 @@ class Poise:
             if index.exists(): index.unlink()
 
     def _changed(self, data: dict, tree: str) -> list[str]:
+        if data['worktree'] is None:
+            return []
         result = self._git(Path(data['worktree']), 'diff', '--name-only', '--no-renames', '-z', data['entry_tree'], tree)
         return [s for s in result.split('\0') if s]
+
+    def _current_tree(self, data: dict) -> str:
+        return data['entry_tree'] if data['worktree'] is None else self._tree(Path(data['worktree']))
+
+    def _verification_workspace(self, data: dict) -> Path:
+        return (Path(self.cfg['git']['repository']) if data['worktree'] is None
+                else Path(data['worktree']))
 
     def _task(self) -> dict:
         task = self.store.current(self.session)
@@ -268,7 +278,7 @@ class Poise:
     def _execution_reservation(self, task_id, base, worktree_required=True):
         if not worktree_required:
             return {'worktree':None,'branch':None,'base':base,'attempts':0,
-                    'publication':None,'pending':None,'entry_tree':None,'last_report':None}
+                    'publication':None,'pending':None,'entry_tree':base,'last_report':None}
         branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
         worktree=descendant(self.state,self.paths['worktrees'])/task_id
         pending={'kind':'worktree_setup','worktree':str(worktree),'branch':branch,'base':base}
@@ -404,7 +414,7 @@ class Poise:
         if decision is not None:
             if decision not in ('continue','rework'):
                 raise PoiseError('Решение должно быть continue или rework')
-            entry_tree = self._tree(Path(data['worktree']))
+            entry_tree = self._current_tree(data)
             if decision == 'continue':
                 state = self.runner.accept(data['id'], self.session, True, entry_tree)
                 data = self._task()
@@ -417,7 +427,7 @@ class Poise:
                 elif data['status']=='active':
                     if data['pending'] is not None:
                         raise PoiseError('Неизвестен исход прерванной проверки; rework запрещён')
-                    worktree=Path(data['worktree'])
+                    worktree=self._verification_workspace(data)
                     checks=self._select_checks(data,self._changed(data,entry_tree))
                     invocations,execution_key=self._verification_execution(
                         data,entry_tree,checks,worktree)
@@ -438,7 +448,7 @@ class Poise:
     def accept(self) -> dict:
         data = self._task()
         self.runner.accept(data['id'], self.session, False, None)
-        data = self._task()
+        data = self.task_queries.record(data['id'])
         self.store.event(self.session, data['id'], 'user.accept',
                          {'stage':self._stage(data)['id'],'status':data['status']})
         return data['last_report']
@@ -520,14 +530,16 @@ class Poise:
             self.store.event(self.session,None,'read_only.finalize',{})
             self._cleanup_runtime()
             return {'status':'read_only_verified','project':self.cfg['project'],'checks':[], 'artifacts':[]}
-        data = self._task(); stage = self._stage(data); worktree = Path(data['worktree'])
+        data = self._task(); stage = self._stage(data)
+        worktree = self._verification_workspace(data)
         if data['claimed_by'] != self.session:
             raise PoiseError('Нет владения текущей работой')
-        if self._git(worktree,'symbolic-ref','--short','HEAD') != data['branch']:
+        if (data['worktree'] is not None
+                and self._git(worktree,'symbolic-ref','--short','HEAD') != data['branch']):
             raise PoiseError('В worktree другая ветка')
         if data['pending'] is not None:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
-        tree = self._tree(worktree)
+        tree = self._current_tree(data)
         if data['status'] == 'verified':
             if tree != data['last_report']['verified_tree']:
                 raise PoiseError('Код изменён после доклада: сначала rework')
@@ -564,7 +576,7 @@ class Poise:
             action=self.plan_actions.apply(data,payload)
             if action['status']!='complete':
                 return self._action_incomplete(data,payload,action)
-            tree=self._tree(worktree)
+            tree=self._current_tree(data)
             changed=self._changed(data,tree)
             outside = [
                 path for path in changed
@@ -620,7 +632,7 @@ class Poise:
             data = self._task()
         if not self._usable_receipts(data['id'], receipts, invocations, tree):
             return {'status':'checks_failed','task':data['id'],'stage':stage['id'],'attempt':attempt,'checks':receipts,'replayed':False}
-        if self._tree(worktree) != tree:
+        if self._current_tree(data) != tree:
             raise PoiseError('Наблюдения изменили проверяемое дерево; сначала согласуйте фактическое состояние')
         assessment = self.runner.assess_evidence(data['id'],self.session,tree,execution_key)
         data = self._task()
@@ -632,7 +644,7 @@ class Poise:
             return {'status':'awaiting_continuation' if assessment['needs_continuation'] else 'evidence_requirements_failed',
                     'task':data['id'],'stage':stage['id'],'checks':receipts,'evidence_assessment':assessment,
                     'context':context, 'next_work':'Дополнить evidence_work и вызвать verify в той же итерации.'}
-        if self._tree(worktree) != tree:
+        if self._current_tree(data) != tree:
             raise PoiseError('Проверки изменили дерево; требуется verify фактического нового состояния')
         artifacts = self._candidate_artifacts(data, payload['artifact_paths'], roots)
         gate = self._content_gate(data,'post',artifacts)
@@ -788,8 +800,9 @@ class Poise:
         return receipts
 
     def _publish(self, data: dict, publication: dict) -> dict:
-        worktree = Path(data['worktree']); tree = publication['tree']; stage = self._stage(data)
-        if self._tree(worktree) != tree:
+        worktree = self._verification_workspace(data)
+        tree = publication['tree']; stage = self._stage(data)
+        if self._current_tree(data) != tree:
             raise PoiseError('Дерево изменилось перед публикацией; старое evidence не принимается')
         current_artifacts = self._candidate_artifacts(data, [r['path'] for r in publication['artifacts']], self._roots(data))
         for phase in ('pre','post'):
@@ -797,8 +810,11 @@ class Poise:
             if not gate['passed']:
                 return self._content_blocked(data,gate,publication['checks'])
         publication['artifacts'] = current_artifacts
-        sha = self._git(worktree,'rev-parse','HEAD')
-        pending_merge = self.plan_actions._read_optional_ref(worktree,'MERGE_HEAD') is not None
+        sha = data['base'] if data['worktree'] is None else self._git(worktree,'rev-parse','HEAD')
+        pending_merge = (False if data['worktree'] is None else
+                         self.plan_actions._read_optional_ref(worktree,'MERGE_HEAD') is not None)
+        if data['worktree'] is None and publication['changed']:
+            raise PoiseError('Worktree-free Task cannot publish repository changes')
         if publication['changed'] or pending_merge:
             if self._git(worktree,'rev-parse','HEAD^{tree}') != tree or pending_merge:
                 self._git(worktree,'add','--all')

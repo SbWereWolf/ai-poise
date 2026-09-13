@@ -10,6 +10,13 @@ class Liveness(str, Enum):
     UNCERTAIN = "uncertain"
 
 
+class UnobservedSessionLiveness:
+    """Fail-closed policy when no authoritative native lifecycle is available."""
+
+    def __call__(self, actor):
+        return Liveness.UNCERTAIN
+
+
 @dataclass(frozen=True)
 class OwnershipSnapshot:
     actor: str

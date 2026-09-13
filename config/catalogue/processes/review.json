@@ -62,6 +62,7 @@
     "sections": []
   },
   "goal_type": "review",
+  "worktree_required": true,
   "route": {
     "entry": "planning"
   },

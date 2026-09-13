@@ -42,6 +42,7 @@ def prepare_completed_task(
     process = {
         "route": {"entry": "implementation"},
         "goal_type": "development",
+        "worktree_required": True,
         "stages": [{
             "id": "implementation",
             "instruction": "Create the accepted result.",

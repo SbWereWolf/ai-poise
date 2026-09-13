@@ -85,6 +85,7 @@
     "sections": []
   },
   "goal_type": "verification",
+  "worktree_required": true,
   "route": {
     "entry": "planning"
   },

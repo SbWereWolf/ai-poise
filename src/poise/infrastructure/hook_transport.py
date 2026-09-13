@@ -390,6 +390,15 @@ class HookService:
     def _bound_process_requirements(self, facts):
         if facts is None:
             return None
+        live_config = read_document(self.settings.project_config)
+        live_root = self.settings.project_config.parent
+        live_processes = {
+            goal: read_document(descendant(live_root, process_path))
+            for goal, process_path in live_config['processes'].items()
+        }
+        if all(type(process.get('worktree_required')) is bool
+               for process in live_processes.values()):
+            return None
         installation_source = Path(self.settings.raw['source_root']).resolve()
         try:
             relative = self.settings.project_config.relative_to(installation_source.parent)
@@ -397,7 +406,6 @@ class HookService:
             raise PoiseError('Project config is outside the configured installation source') from exc
         candidate = descendant(Path(facts['worktree']),str(relative))
         candidate_config = read_document(candidate)
-        live_config = read_document(self.settings.project_config)
         if candidate_config.get('processes') != live_config.get('processes'):
             raise PoiseError('Bound Task process registry differs from the live manifest')
         requirements = {}
@@ -428,7 +436,8 @@ class HookService:
         if gated:
             task=h.current_task()
             active_task=task is not None and task['status'] not in ('completed','cancelled','superseded')
-            workspace=task['worktree'] if active_task else h.cfg['git']['repository']
+            workspace=(task['worktree'] if active_task and task['worktree'] is not None
+                       else h.cfg['git']['repository'])
             checks=self.probes(record['definition_path'],workspace)
             if not checks['ready'] and not (req['operation']=='bootstrap' and not active_task):
                 h.interactions.record(h.interactions.prepare(req['messages']),h.session,
@@ -452,6 +461,7 @@ class HookService:
             SystemClock(),
             record['session_id'],
             requirements,
+            self.registry.liveness,
         ).runtime
         self.runtime=h
         from ..modules.work.domain import parse_request

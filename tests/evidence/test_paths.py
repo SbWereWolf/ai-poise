@@ -14,7 +14,7 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
     stages=[stage('measure',kind, {'complete':'audit'} if kind=='observe' else
                  {'satisfied':'audit','not_satisfied':'audit','inconclusive':'audit'},True,[],['measure']),
             stage('audit','inspect',{'clear':None,'changes_requested':'measure'},True,[],['audit','measure'])]
-    proc={'goal_type':'verification_demo','benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'measure'},
+    proc={'goal_type':'verification_demo','worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'measure'},
           'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':stages}
     write_json(project['root']/'config/processes/verification_demo.json',proc)
     cfg=project['cfg']; cfg['processes']={'verification_demo':'config/processes/verification_demo.json'}

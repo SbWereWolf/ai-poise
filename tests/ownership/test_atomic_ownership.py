@@ -13,7 +13,7 @@ from threading import Barrier, Lock
 import pytest
 
 from batch.helpers import request
-from conftest import WorkPoise as Poise, write_json
+from conftest import WorkPoise as Poise, git, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.goal_config.domain import BatchValidationError, validate_process
@@ -160,6 +160,60 @@ def test_four_combinations_and_task_type_dependency(project):
     assert Path(sprint_context["worktree"]).is_dir()
     assert task_claims["SPRINT-OWNED"] == "sprint-executor"
     assert worktree_claims["sprint-executor"] == "SPRINT-OWNED"
+
+
+def test_worktree_free_task_verifies_hands_off_and_resumes(project):
+    _configure_process(project, False)
+    project["cfg"]["automatic_checks"] = []
+    write_json(project["config_path"], project["cfg"])
+    task = _task(project, "TASK-ONLY-LIFECYCLE")
+    task["methods"] = []
+    task["method_inputs"] = []
+    task["checks"] = {stage["id"]: [] for stage in project["process"]["stages"]}
+    task["evidence_plan"] = {
+        stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
+        for stage in project["process"]["stages"]
+    }
+    first = WorkTools(Poise(project["config_path"], "task-only-first"))
+    context = first.invoke(request("bootstrap", {
+        "task": task,
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert context["worktree"] is None
+    result = deepcopy(context["result_template"])
+    result["sections"]["report"] = "Worktree-free stage completed."
+    verified = first.invoke(request("verify", {"result": result, "artifacts": []}))
+    assert verified["status"] == "verified"
+    assert verified["commit"] == git(project["app"], "rev-parse", "HEAD")
+
+    handed_off = first.invoke(request("handoff", {
+        "request_id": "task-only-handoff",
+        "reason": "Continue the worktree-free Task in another session.",
+        "result": None,
+        "commit_message": None,
+        "artifact_paths": [],
+    }))
+    assert handed_off["worktree"] is None
+    assert handed_off["bundle_path"] is None
+
+    second = WorkTools(Poise(project["config_path"], "task-only-second"))
+    resumed = second.invoke(request("bootstrap", {
+        "task": {"id": task["id"]},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert resumed["status"] == "verified"
+    continued = second.invoke(request("bootstrap", {
+        "task": None,
+        "decision": "continue",
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    assert continued["status"] == "active"
+    assert continued["worktree"] is None
 
 
 def test_complete_set_acquisition_replaces_same_kind_atomically(project):

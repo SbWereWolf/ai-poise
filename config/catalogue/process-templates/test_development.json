@@ -1,5 +1,6 @@
 {
   "goal_type": "test_development",
+  "worktree_required": true,
   "route": {
     "entry": "baseline"
   },

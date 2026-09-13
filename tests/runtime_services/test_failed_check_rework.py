@@ -69,6 +69,7 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
             "entry": "implementation",
         },
         "goal_type": "development",
+        "worktree_required": True,
         "stages": stages,
         "benefit": {"git_categories": ["code"], "sections": []},
         "content_contract": {"sections": [], "routes": [], "requirements": []},

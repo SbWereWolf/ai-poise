@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 from pathlib import Path
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -18,6 +19,7 @@ def _load_contract():
     try:
         from poise.application.requirements_registry import RequirementsCommands
         from poise.application.tasks import TaskCommands
+        from poise.common import load_config
         from poise.infrastructure.requirements_registry import RequirementsStore
         from poise.modules.requirements_registry.domain import RequirementsRegistry
         from poise.modules.requirements_registry.service import TaskRequirementsGate
@@ -29,6 +31,7 @@ def _load_contract():
         "RequirementsStore": RequirementsStore,
         "RequirementsRegistry": RequirementsRegistry,
         "TaskRequirementsGate": TaskRequirementsGate,
+        "load_config": load_config,
     }
 
 
@@ -71,19 +74,29 @@ def populated_registry():
 
 class RequirementsRegistryDomainTests(unittest.TestCase):
     def test_statuses_many_to_many_and_nonobsolete_coverage(self):
-        registry = populated_registry()
+        registry = populated_registry().apply(
+            [
+                put(requirement("SYS-CURRENT-GAP", "system", "current", "Unassigned current system.")),
+                put(requirement("SYS-FUTURE-GAP", "system", "future", "Unassigned future system.")),
+                put(requirement("SYS-OLD-GAP", "system", "obsolete", "Retired system.")),
+                put(requirement("APP-CURRENT-GAP", "application", "current", "Unowned current app.")),
+                put(requirement("APP-FUTURE-GAP", "application", "future", "Unowned future app.")),
+            ],
+            max_items=20,
+        )
 
         self.assertEqual(
             registry.coverage(),
             {
-                "application_without_system": [],
-                "system_without_application": [],
+                "application_without_system": ["APP-CURRENT-GAP", "APP-FUTURE-GAP"],
+                "system_without_application": ["SYS-CURRENT-GAP", "SYS-FUTURE-GAP"],
             },
         )
-        self.assertEqual(
-            registry.requirement("APP-2")["status"],
-            "future",
-        )
+        self.assertEqual(registry.requirement("APP-1")["status"], "current")
+        self.assertEqual(registry.requirement("APP-2")["status"], "future")
+        self.assertEqual(registry.requirement("APP-OLD")["status"], "obsolete")
+        self.assertNotIn("APP-OLD", registry.coverage()["application_without_system"])
+        self.assertNotIn("SYS-OLD-GAP", registry.coverage()["system_without_application"])
         with self.assertRaisesRegex(Exception, "status"):
             registry.apply(
                 [put(requirement("BAD", "system", "unknown", "Invalid status."))],
@@ -114,6 +127,15 @@ class RequirementsRegistryDomainTests(unittest.TestCase):
             ["System protects durable state.", "System preserves audit provenance."],
         )
         snapshot = json.loads(json.dumps(plan["snapshot"]))
+        self.assertEqual(snapshot["requirements"]["APP-2"]["status"], "future")
+        self.assertEqual(
+            snapshot["links"],
+            [
+                {"system": "SYS-1", "application": "APP-1"},
+                {"system": "SYS-1", "application": "APP-2"},
+                {"system": "SYS-2", "application": "APP-1"},
+            ],
+        )
         changed = registry.apply(
             [put(requirement("SYS-1", "system", "current", "Changed live text."))],
             max_items=20,
@@ -178,15 +200,24 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             self.assertEqual(first["revision"], 1)
             self.assertFalse(first["replayed"])
             self.assertTrue(replay["replayed"])
+            queried = commands.query(
+                [
+                    {"id": "chain", "kind": "chain", "requirement_id": "APP"},
+                    {"id": "coverage", "kind": "coverage"},
+                    {"id": "gaps", "kind": "gaps"},
+                    {"id": "registry", "kind": "registry"},
+                ]
+            )["results"]
+            self.assertEqual([item["id"] for item in queried], ["chain", "coverage", "gaps", "registry"])
             self.assertEqual(
-                commands.query(
-                    [
-                        {"id": "coverage", "kind": "coverage"},
-                        {"id": "registry", "kind": "registry"},
-                    ]
-                )["results"][0]["value"],
-                {"application_without_system": [], "system_without_application": []},
+                queried[0]["value"],
+                {
+                    "application": {"id": "APP", "level": "application", "status": "future", "text": "Future application requirement."},
+                    "systems": [{"id": "SYS", "level": "system", "status": "future", "text": "Future system requirement."}],
+                },
             )
+            self.assertEqual(queried[1]["value"], {"application_without_system": [], "system_without_application": []})
+            self.assertEqual(queried[2]["value"], [])
             before = commands.query([{"id": "registry", "kind": "registry"}])
             with self.assertRaisesRegex(Exception, "unknown|level|link"):
                 commands.apply(
@@ -205,6 +236,27 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             )
             self.assertTrue((root / "requirements.sqlite").is_file())
             self.assertFalse((root / "tasks.sqlite").exists())
+            with sqlite3.connect(root / "requirements.sqlite") as connection:
+                registry_tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            self.assertTrue({"requirements", "requirement_links"}.issubset(registry_tables))
+            self.assertFalse({"tasks", "task_state", "submissions"} & registry_tables)
+
+    def test_public_bootstrap_import_is_idempotent_and_read_back_from_database(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            store = CONTRACT["RequirementsStore"](root / "requirements.sqlite", root / "requirements.lock", lock_seconds=1.0, poll_seconds=0.01)
+            commands = CONTRACT["RequirementsCommands"](store, max_items=20)
+            bootstrap_path = REPOSITORY_ROOT / "delivery/requirements-bootstrap.json"
+
+            first = commands.import_bootstrap(bootstrap_path, request_id="bootstrap-1")
+            replay = commands.import_bootstrap(bootstrap_path, request_id="bootstrap-1")
+            self.assertFalse(first["replayed"])
+            self.assertTrue(replay["replayed"])
+            registry = commands.query([{"id": "registry", "kind": "registry"}])["results"][0]["value"]
+            self.assertIn("bootstrap-system-requirements-traceability", registry["requirements"])
+            self.assertEqual(registry["requirements"]["bootstrap-system-requirements-traceability"]["status"], "future")
+            chains = commands.query([{"id": "chain", "kind": "chain", "requirement_id": "bootstrap-harness-task-traceability"}])["results"][0]["value"]
+            self.assertEqual(chains["systems"][0]["id"], "bootstrap-system-requirements-traceability")
 
     def test_query_prepares_task_snapshot_then_gate_rejects_drift_and_gaps(self):
         registry = populated_registry()
@@ -229,12 +281,29 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "requirements_snapshot"):
             gate.validate({"requirements": contract["requirements"]})
 
+    def test_explicit_full_text_agreement_publishes_persisted_immutable_snapshot(self):
+        live = {"registry": populated_registry()}
+        gate = CONTRACT["TaskRequirementsGate"].enabled(lambda: live["registry"])
+        links = [{"text": "Task must preserve registry provenance.", "applications": ["APP-1"]}]
+        plan = live["registry"].plan_task(links)
+        agreement = {"accepted": True, "chains": plan["chains"]}
+
+        with self.assertRaisesRegex(Exception, "agreement|соглас"):
+            gate.prepare(links, {"accepted": False, "chains": plan["chains"]})
+        published = gate.prepare(links, agreement)
+        persisted_task = json.loads(json.dumps({"requirements_snapshot": published}))
+        self.assertEqual(persisted_task["requirements_snapshot"]["requirements"]["SYS-1"]["text"], "System protects durable state.")
+        self.assertEqual(persisted_task["requirements_snapshot"]["requirements"]["APP-1"]["status"], "current")
+        self.assertEqual(persisted_task["requirements_snapshot"]["links"], [{"system": "SYS-1", "application": "APP-1"}, {"system": "SYS-2", "application": "APP-1"}])
+        live["registry"] = live["registry"].apply([put(requirement("SYS-1", "system", "obsolete", "Changed after publication."))], max_items=20)
+        self.assertEqual(persisted_task["requirements_snapshot"]["requirements"]["SYS-1"]["text"], "System protects durable state.")
+
     def test_common_task_creation_preflight_always_invokes_the_explicit_gate(self):
         class RejectingGate:
             def __init__(self):
                 self.called = False
 
-            def validate(self, _contract):
+            def prepare_contract(self, contract):
                 self.called = True
                 raise ValueError("registry gate called")
 
@@ -255,6 +324,32 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
 
 
 class RequirementsRegistryDeliveryTests(unittest.TestCase):
+    def test_project_config_requires_and_resolves_distinct_requirements_storage(self):
+        source_path = REPOSITORY_ROOT / "config/projects/ai-poise/project.json"
+        source = json.loads(source_path.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            config_root = root / "config"
+            config_root.mkdir()
+            for relative in source["processes"].values():
+                target = config_root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text((source_path.parent / relative).read_text(encoding="utf-8"), encoding="utf-8")
+            source["paths"]["state"] = str(root / "project-data")
+            config_path = config_root / "project.json"
+            config_path.write_text(json.dumps(source), encoding="utf-8")
+            state, config, _ = CONTRACT["load_config"](config_path)
+            requirements_db = (state / config["paths"]["requirements_database"]).resolve()
+            task_db = (state / config["paths"]["database"]).resolve()
+            self.assertEqual(requirements_db, root / "project-data/database/requirements.sqlite")
+            self.assertNotEqual(requirements_db, task_db)
+            self.assertFalse(requirements_db.is_relative_to(Path(config["git"]["repository"])))
+
+            del source["paths"]["requirements_database"]
+            config_path.write_text(json.dumps(source), encoding="utf-8")
+            with self.assertRaisesRegex(Exception, "requirements_database|paths"):
+                CONTRACT["load_config"](config_path)
+
     def test_repository_delivery_declares_config_bootstrap_docs_and_skill_links(self):
         root = REPOSITORY_ROOT
         project = json.loads(
@@ -262,10 +357,9 @@ class RequirementsRegistryDeliveryTests(unittest.TestCase):
         )
         self.assertEqual(project["paths"]["requirements_database"], "database/requirements.sqlite")
         self.assertEqual(project["paths"]["requirements_lock"], "database/requirements.lock")
-        bootstrap = json.loads(
-            (root / "delivery/requirements-bootstrap.json").read_text(encoding="utf-8")
-        )
-        self.assertTrue(bootstrap["requirements"])
+        bootstrap = json.loads((root / "delivery/requirements-bootstrap.json").read_text(encoding="utf-8"))
+        self.assertTrue(bootstrap["system_requirements"])
+        self.assertTrue(bootstrap["application_requirements"])
         documentation = (root / "docs/workflows/requirements-registry.md").read_text(encoding="utf-8")
         self.assertIn("System → Application → Task", documentation)
         self.assertIn("requirements.sqlite", documentation)

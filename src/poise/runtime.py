@@ -216,6 +216,65 @@ class Poise:
     def recover_empty_advance(self, task_id: str, reason: str) -> dict:
         return self._recover_empty_transition(task_id, reason, "advance")
 
+    def advance(self, request_id: str, task_id: str, target_stage: str) -> dict:
+        self._identifier(task_id)
+        data = self.task_queries.record(task_id)
+        if data is None:
+            raise PoiseError("Unknown progression Task")
+        entry_tree = self._current_tree(data)
+        outcome = self.task_commands.advance_progression(
+            task_id,
+            self.session,
+            request_id,
+            target_stage,
+            entry_tree,
+            self._artifact_facts(self._existing_artifacts(data)),
+        )
+        progression = outcome["progression"]
+        if outcome["kind"] == "entry_blocked":
+            step = outcome["step"]
+            return self._entry_blocked(
+                data,
+                outcome["gate"],
+                stage_id=step.next_stage,
+                blocked_transition={
+                    "from_stage": step.current_stage,
+                    "to_stage": step.next_stage,
+                },
+                progression=progression,
+            )
+        current = self._task()
+        if outcome["kind"] == "role_handoff_required":
+            step = outcome["step"]
+            return {
+                **self._context(current, False),
+                "status": "role_handoff_required",
+                "progression": progression,
+                "next_stage": step.next_stage,
+                "from_role": step.from_role,
+                "to_role": step.to_role,
+                "next_work": (
+                    "Save the result, complete public handoff, then directly notify "
+                    "the named counterpart with this progression target."
+                ),
+            }
+        status = (
+            "progression_target_reached"
+            if outcome["kind"] == "target_reached"
+            else "progression_work_required"
+        )
+        return {
+            **self._context(current, current["status"] == "active"),
+            "status": status,
+            "progression": progression,
+            "target_stage": target_stage,
+            "next_work": (
+                "Work on the current stage, verify it, then replay this exact advance request."
+                if status == "progression_work_required"
+                else "The requested stage is current; perform its work."
+            ),
+        }
+
     def _recover_empty_transition(
         self, task_id: str, reason: str, transition: str
     ) -> dict:
@@ -403,6 +462,7 @@ class Poise:
                 'runtime_root': str(self.runtime), 'task_root': str(task_root),
                 'sprint_root': None if sprint_root is None else str(sprint_root),
                 'result_template': payload,
+                'progression': data.get('progression'),
                 'agents_files': [] if data['worktree'] is None else
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
@@ -727,11 +787,18 @@ class Poise:
         )
         return assessment.to_dict()
 
-    def _entry_blocked(self, data: dict, gate: dict) -> dict:
-        return {
+    def _entry_blocked(
+        self,
+        data: dict,
+        gate: dict,
+        stage_id: str | None = None,
+        blocked_transition: dict | None = None,
+        progression: dict | None = None,
+    ) -> dict:
+        result = {
             'status': 'broken',
             'task': data['id'],
-            'stage': self._stage(data)['id'],
+            'stage': self._stage(data)['id'] if stage_id is None else stage_id,
             'failure': {
                 'kind': 'content_requirements_failed',
                 'phase': gate['phase'],
@@ -752,6 +819,11 @@ class Poise:
                 },
             ],
         }
+        if blocked_transition is not None:
+            result['blocked_transition'] = blocked_transition
+        if progression is not None:
+            result['progression'] = progression
+        return result
 
     def _require_entry(self, data: dict) -> dict | None:
         gate = self.validate_stage_entry(data)

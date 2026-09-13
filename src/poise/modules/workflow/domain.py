@@ -153,6 +153,22 @@ class RouteDefinition:
     def index(self, stage_id: str) -> int:
         return tuple(n.stage_id for n in self.nodes).index(self.node(stage_id).stage_id)
 
+    def can_reach(self, start: str, target: str) -> bool:
+        self.node(start)
+        self.node(target)
+        reached, pending = set(), [start]
+        while pending:
+            current = pending.pop()
+            if current in reached:
+                continue
+            reached.add(current)
+            pending.extend(
+                destination
+                for _, destination in self.node(current).transitions
+                if destination is not None
+            )
+        return target in reached
+
     def enter(self, progress: RouteProgress, target: str) -> RouteProgress:
         self.node(target)
         visits = dict(progress.visits)

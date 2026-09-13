@@ -9,6 +9,9 @@ from batch.helpers import request, result, verify
 from conftest import WorkPoise as Poise, add_test, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
+from poise.modules.tasks.progression import stage_role
+from poise.modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
+from poise.modules.workflow.domain import HandlerKind
 
 
 def configure_progression(project, *, gated=False):
@@ -77,6 +80,19 @@ def advance(tools, target="code_review"):
         "task_id": "T1",
         "target_stage": target,
     }))
+
+
+@pytest.mark.parametrize("handler", tuple(HandlerKind))
+def test_only_inspection_stages_belong_to_the_reviewer(handler):
+    expected = "reviewer" if handler == HandlerKind.INSPECT else "executor"
+    assert stage_role(handler) == expected
+
+
+def test_progression_pause_statuses_are_business_incomplete():
+    assert {
+        "progression_work_required",
+        "role_handoff_required",
+    } <= BUSINESS_INCOMPLETE_STATUSES
 
 
 def bootstrap(tools, task):
@@ -185,7 +201,16 @@ def test_progression_checks_next_entry_gate_before_transition_and_resumes_after_
         "to_stage": "implementation",
     }
     after = state_snapshot(tools.runtime, ("executor",))
-    assert after["task"] == before["task"]
+    assert {
+        key: value for key, value in after["task"].items() if key != "progression"
+    } == {
+        key: value for key, value in before["task"].items() if key != "progression"
+    }
+    assert after["task"]["progression"] == {
+        "request_id": "reach-code-review",
+        "target_stage": "code_review",
+        "status": "active",
+    }
     assert after["execution"] == before["execution"]
     assert after["ownership"] == before["ownership"]
     assert before["progression_journal"] == []

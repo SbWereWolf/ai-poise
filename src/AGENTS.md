@@ -46,6 +46,8 @@ Keep domain code independent of I/O. Application services coordinate domain obje
 
 `ResultIntegration` keeps the accepted commit immutable and advances only the existing task branch in its existing task worktree. Run update, conflict resolution, and checks there; do not create an integration branch or worktree. Serialize publication per target, reread it under that lock, repeat update and checks on drift, and publish only through `git merge --ff-only <task-branch>` in the main checkout. On a blocked fast-forward, record proof that the checkout state is unchanged. The hook route for `integrate` is installation-owned so the finisher runs current installed source. Persist replay phases and limit cleanup to the task worktree, task branch, and scoped temporary backups.
 
+Stage progression belongs to Tasks: keep the durable target and replay identity in the Task journal, derive role boundaries from route handlers, and perform every move through the existing Task transition. Application services may coordinate progression, entry-gate preflight and confirmed handoff resumption; transport only parses and presents it. Never add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
+
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type defines its own process; it does not require a new execution engine.
 
 ## Explicit configuration

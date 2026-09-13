@@ -86,6 +86,8 @@ class TaskQueries:
         if row is None: return None
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
         metadata = json.loads(row['metadata'])
+        from .tasks import progression_view
+        progression = progression_view(db, task_id)
         history = [json.loads(item[0]) for item in db.execute(
             "SELECT data FROM task_events WHERE task_id=? ORDER BY seq", (task_id,)
         )]
@@ -116,6 +118,7 @@ class TaskQueries:
                 '_execution_version':row['execution_version'] if restarted else None,
                 'result_commit':None,
                 'history':history,
+                'progression':progression,
             }
         from .tasks import without_retired_method_timeout
         items = [without_retired_method_timeout(json.loads(r[0])) for r in db.execute(
@@ -135,7 +138,7 @@ class TaskQueries:
                 "status":row["status"],"stage_index":row["stage_index"],"iteration":row["iteration"],
                 "claimed_by":row["claimed_by"],"result_commit":None if report is None else report["commit"],
                 "version":row["version"],"_version":row["version"],"_execution_version":row["execution_version"],
-                "history":history}
+                "history":history,"progression":progression}
 
     def history(self, task_id: str) -> list[dict]:
         with self.database.transaction() as db:

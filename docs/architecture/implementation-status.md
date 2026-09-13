@@ -126,6 +126,19 @@ target drift с повтором checks, blocked fast-forward fingerprint, crash
 и installation-source routing. Это не сертификация push, remote publication или multi-codebase
 integration.
 
+## Durable stage progression — 2026-09-13
+
+Реализована публичная операция `advance` с устойчивыми `request_id`, `task_id` и
+`target_stage`. Она сохраняет цель в Task journal, использует обычные route transitions и
+останавливается на работе этапа, entry gate, границе executor/reviewer либо достигнутой цели.
+Точный replay после process loss, correction, restart и handoff продолжает тот же intent;
+изменение цели конфликтует. Переход роли требует public handoff и bootstrap другой сессии.
+
+Операция не запускает работу этапа, проверки или сообщения и не выдаёт полномочия на приёмку,
+публикацию и интеграцию. Профильные тесты покрывают последовательные этапы одной роли, реальную
+смену сессий, repeated RED/GREEN correction, entry gate без частичной мутации, owner/pending и
+недостижимые цели, replay и бизнес-статусы остановок.
+
 ## Terminal task-owned cleanup — 2026-09-12
 
 Реализован единый `TaskResourceCleanup` для standalone `cancel`, Sprint `cancel_tasks`/`cancel`,

@@ -528,26 +528,112 @@ class TaskCommands:
             uow.execution.patch(task_id,{"last_report":report,"publication":None})
             return change.task.state
 
+    @staticmethod
+    def _accept_in_uow(
+        uow, task: Task, actor: str, advance: bool, entry_tree: str | None
+    ) -> TaskState:
+        change = task.accept(actor, advance)
+        updates = {}
+        if change.task.state.version != task.state.version:
+            execution, _ = uow.execution.load(task.state.task_id)
+            report = execution["last_report"]
+            if report is None:
+                raise DomainError("Нет сохранённого доклада проверенного этапа")
+            updates["last_report"] = {
+                **report,
+                "status": (
+                    "completed"
+                    if change.task.state.status == TaskStatus.COMPLETED
+                    else "accepted"
+                ),
+            }
+            if (
+                change.task.state.stage_index,
+                change.task.state.iteration,
+            ) != (task.state.stage_index, task.state.iteration):
+                if not isinstance(entry_tree, str) or not entry_tree:
+                    raise DomainError("Для нового этапа требуется наблюдаемое entry_tree")
+                if entry_tree != report["verified_tree"]:
+                    raise DomainError(
+                        "Результат изменён после доклада: сначала явный rework, "
+                        "не переход к осмотру другого дерева"
+                    )
+                updates.update(
+                    entry_tree=entry_tree,
+                    attempts=0,
+                    publication=None,
+                    pending=None,
+                )
+        uow.tasks.save(change, task.state.version)
+        uow.execution.patch(task.state.task_id, updates)
+        return change.task.state
+
+    def advance_progression(
+        self,
+        task_id: str,
+        actor: str,
+        request_id: str,
+        target_stage: str,
+        entry_tree: str,
+        artifacts: tuple[ArtifactFact, ...],
+    ) -> dict:
+        from ..modules.tasks.progression import progression_step
+
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError("Progression request_id is required")
+        identity = _action_digest("advance", {
+            "task_id": task_id,
+            "target_stage": target_stage,
+        })
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            if task.state.claimed_by != actor:
+                raise DomainError("Progression Task is owned by another session")
+            execution, _ = uow.execution.load(task_id)
+            if execution["pending"] is not None:
+                raise DomainError(
+                    "Progression cannot continue with a pending unknown external outcome"
+                )
+            handoff = uow.handoffs.latest_recovery_candidate(task_id)
+            crossed = bool(
+                handoff is not None
+                and handoff["state"] == "resumed"
+                and handoff["actor"] != actor
+                and task.state.version == handoff["version"] + 2
+                and handoff["receipt"]["stage"] == task.stage.stage_id
+            )
+            step = progression_step(task, target_stage, crossed)
+            progression = uow.tasks.begin_progression(
+                task_id, actor, request_id, identity, target_stage
+            )
+            if progression["status"] == "reached" or step.kind == "target_reached":
+                uow.tasks.finish_progression(
+                    task_id, actor, request_id, task.stage.stage_id
+                )
+                return {"kind": "target_reached", "progression": {
+                    **progression, "status": "reached",
+                }}
+            if step.kind != "advance":
+                return {"kind": step.kind, "progression": progression, "step": step}
+            gate = task.assess_stage_content(step.next_stage, "pre", artifacts)
+            if not gate.passed:
+                return {
+                    "kind": "entry_blocked",
+                    "gate": gate.to_dict(),
+                    "progression": progression,
+                    "step": step,
+                }
+            state = self._accept_in_uow(uow, task, actor, True, entry_tree)
+            if state.stage_index == task.route.index(target_stage):
+                uow.tasks.finish_progression(task_id, actor, request_id, target_stage)
+                progression = {**progression, "status": "reached"}
+                return {"kind": "target_reached", "progression": progression}
+            return {"kind": "work_required", "progression": progression}
+
     def accept(self, task_id: str, actor: str, advance: bool, entry_tree: str | None) -> TaskState:
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
-            change=task.accept(actor,advance)
-            updates={}
-            if change.task.state.version != task.state.version:
-                execution,_=uow.execution.load(task_id)
-                report=execution["last_report"]
-                if report is None:
-                    raise DomainError("Нет сохранённого доклада проверенного этапа")
-                updates["last_report"]={**report,"status":"completed" if change.task.state.status == TaskStatus.COMPLETED else "accepted"}
-                if (change.task.state.stage_index, change.task.state.iteration) != (task.state.stage_index, task.state.iteration):
-                    if not isinstance(entry_tree,str) or not entry_tree:
-                        raise DomainError("Для нового этапа требуется наблюдаемое entry_tree")
-                    if entry_tree != report["verified_tree"]:
-                        raise DomainError("Результат изменён после доклада: сначала явный rework, не переход к осмотру другого дерева")
-                    updates.update(entry_tree=entry_tree,attempts=0,publication=None,pending=None)
-            uow.tasks.save(change,task.state.version)
-            uow.execution.patch(task_id,updates)
-            return change.task.state
+            return self._accept_in_uow(uow, task, actor, advance, entry_tree)
 
     def rework(self, task_id: str, actor: str, feedback: str, entry_tree: str, target: str | None = None) -> TaskState:
         if not isinstance(entry_tree,str) or not entry_tree:

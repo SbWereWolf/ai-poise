@@ -47,4 +47,3 @@ class CallerIdentity:
 class EstablishedSession:
     session_id: str
     origin: str
-

@@ -35,4 +35,3 @@ class SessionEstablisher:
             session = self.registry.reserve(caller.key, candidate, inventory)
             if session is not None:
                 return self._result(caller, session)
-

@@ -26,7 +26,10 @@ def _binding_id(path):
     target = Path(path)
     if not target.is_absolute() or target.is_symlink():
         raise PoiseError('POISE_CALLER_BINDING must be an absolute regular-file path')
-    parent = target.parent.resolve(strict=True)
+    try:
+        parent = target.parent.resolve(strict=True)
+    except OSError as exc:
+        raise PoiseError('POISE_CALLER_BINDING parent directory must already exist') from exc
     if parent != target.parent:
         raise PoiseError('POISE_CALLER_BINDING must not contain symlinked path components')
 
@@ -50,6 +53,8 @@ def _binding_id(path):
         descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
         return read()
+    except OSError as exc:
+        raise PoiseError('POISE_CALLER_BINDING cannot be created') from exc
     try:
         with os.fdopen(descriptor, 'wb') as stream:
             stream.write(raw);stream.flush();os.fsync(stream.fileno())

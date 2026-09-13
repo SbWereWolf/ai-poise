@@ -218,7 +218,7 @@ def test_newborn_goal_type_change_can_remove_forbidden_draft_fields(project):
     stable_draft = deepcopy(record["newborn"]["draft"])
     stable_process = deepcopy(record["process"])
 
-    with pytest.raises(PoiseError, match="request|digest|different|belongs"):
+    with pytest.raises(PoiseError, match="Request|request|digest|different|belongs"):
         edit(
             creator,
             "TYPE-CHANGE",

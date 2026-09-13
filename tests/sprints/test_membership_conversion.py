@@ -91,6 +91,7 @@ def extract(tools, revision, task_ids, sprint_id="S", request_id="extract"):
 def public_view(tools, sprint_id="S"):
     result = tools.invoke(request("show", {"queries": [
         {"id": "sprint", "kind": "sprint", "sprint_id": sprint_id, "view": "current"},
+        {"id": "history", "kind": "sprint", "sprint_id": sprint_id, "view": "history"},
         {
             "id": "work",
             "kind": "work_overview",
@@ -99,6 +100,56 @@ def public_view(tools, sprint_id="S"):
         },
     ]}))
     return {item["id"]: item["value"] for item in result["results"]}
+
+
+def add_execution(tools, task_id, **updates):
+    snapshot = {
+        "worktree": None,
+        "branch": None,
+        "base": None,
+        "attempts": 0,
+        "publication": None,
+        "pending": None,
+        "entry_tree": None,
+        "last_report": None,
+    }
+    snapshot.update(updates)
+    with tools.runtime.store.unit_of_work() as uow:
+        uow.execution.create(task_id, snapshot)
+
+
+def start(tools, task_id):
+    return tools.invoke(request("bootstrap", {
+        "task": {"id": task_id},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+
+
+def release_started(tools, task_id):
+    started = start(tools, task_id)
+    handed_off = tools.invoke(request("handoff", {
+        "request_id": f"release-{task_id.lower()}",
+        "reason": "Create a released started Task fixture through the public lifecycle.",
+        "result": None,
+        "commit_message": None,
+        "artifact_paths": [],
+    }))
+    assert handed_off["status"] == "handed_off"
+    return started
+
+
+def assert_rejected(call, message):
+    try:
+        call()
+    except PoiseError as exc:
+        if str(exc) in {"Unknown sprint change", "Unknown sprint action"}:
+            pytest.fail(f"EXPECTED_PRODUCT_RED: {exc}", pytrace=False)
+        if message not in str(exc):
+            pytest.exit(f"UNEXPECTED_PRODUCT_FAILURE: {exc}")
+    else:
+        pytest.fail(f"Expected rejection containing {message!r}")
 
 
 def state_snapshot(tools, sprint_id, task_ids):
@@ -143,18 +194,15 @@ def test_adoption_rejections_are_atomic(project):
     create_available(project, planner, "STANDALONE-ENDPOINT")
     create_available(project, planner, "PENDING")
     create_available(project, planner, "RESULT")
-
-    with planner.runtime.store.unit_of_work() as uow:
-        uow.execution.patch("PENDING", {"pending": {"kind": "test-pending"}})
-        uow.execution.patch("RESULT", {"last_report": {"commit": "a" * 40}})
+    create_available(project, planner, "FOREIGN-ACTIVE")
+    create_available(project, planner, "STARTED-RELEASED")
+    add_execution(planner, "PENDING", pending={"kind": "test-pending"})
+    add_execution(planner, "RESULT", last_report={"commit": "a" * 40})
 
     foreign = client(project, "foreign-owner")
-    foreign.invoke(request("bootstrap", {
-        "task": {"id": "STANDALONE-ENDPOINT"},
-        "decision": None,
-        "feedback": None,
-        "rework_stage": None,
-    }))
+    start(foreign, "FOREIGN-ACTIVE")
+    released = client(project, "released-owner")
+    release_started(released, "STARTED-RELEASED")
     prepare_published(project, "OTHER", ["OTHER-MEMBER"])
 
     all_ids = [
@@ -162,6 +210,8 @@ def test_adoption_rejections_are_atomic(project):
         "STANDALONE-ENDPOINT",
         "PENDING",
         "RESULT",
+        "FOREIGN-ACTIVE",
+        "STARTED-RELEASED",
         "OTHER-MEMBER",
     ]
     cases = [
@@ -170,7 +220,8 @@ def test_adoption_rejections_are_atomic(project):
             [{"predecessor": "ELIGIBLE", "successor": "STANDALONE-ENDPOINT", "kind": "result"}],
             "same Sprint",
         ),
-        (["STANDALONE-ENDPOINT"], [], "unclaimed available"),
+        (["FOREIGN-ACTIVE"], [], "unclaimed available"),
+        (["STARTED-RELEASED"], [], "never started and has no worktree"),
         (["OTHER-MEMBER"], [], "another Sprint"),
         (["PENDING"], [], "pending external operation"),
         (["RESULT"], [], "existing result"),
@@ -178,14 +229,16 @@ def test_adoption_rejections_are_atomic(project):
     ]
     for index, (task_ids, edges, message) in enumerate(cases):
         before = state_snapshot(planner, "S", all_ids)
-        with pytest.raises(PoiseError, match=message):
-            adopt(
+        invoke = lambda: adopt(
                 planner,
                 draft["revision"],
                 task_ids,
                 edges,
                 request_id=f"rejected-adoption-{index}",
             )
+        assert_rejected(invoke, message)
+        assert state_snapshot(planner, "S", all_ids) == before
+        assert_rejected(invoke, message)
         assert state_snapshot(planner, "S", all_ids) == before
 
 
@@ -199,13 +252,18 @@ def test_adopt_publish_dependency_and_preserve_tasks(project):
     draft = draft_empty(planner, request_id="draft-migration")
     edge = {"predecessor": "0097", "successor": "0098", "kind": "result"}
 
-    adopted = adopt(
-        planner,
-        draft["revision"],
-        ["0097", "0098"],
-        [edge],
-        request_id="adopt-migration-tasks",
-    )
+    try:
+        adopted = adopt(
+            planner,
+            draft["revision"],
+            ["0097", "0098"],
+            [edge],
+            request_id="adopt-migration-tasks",
+        )
+    except PoiseError as exc:
+        if str(exc) == "Unknown sprint change":
+            pytest.fail(f"EXPECTED_PRODUCT_RED: {exc}", pytrace=False)
+        pytest.exit(f"UNEXPECTED_PRODUCT_FAILURE: {exc}")
     assert adopted["dependencies"] == [edge]
     assert {item["id"] for item in adopted["tasks"]} == {"0097", "0098"}
     for task_id in before:
@@ -237,17 +295,50 @@ def test_extraction_rejects_every_edge_direction_atomically(project):
         {"predecessor": "A", "successor": "B", "kind": "completion"},
         {"predecessor": "C", "successor": "A", "kind": "result"},
     ]
-    planner, published = prepare_published(project, "S", ["A", "B", "C"], edges)
+    invalid_ids = ["FOREIGN", "STARTED", "PENDING", "RESULT"]
+    planner, published = prepare_published(
+        project,
+        "S",
+        ["A", "B", "C", *invalid_ids],
+        edges,
+    )
+    foreign = client(project, "extraction-foreign-owner")
+    start(foreign, "FOREIGN")
+    released = client(project, "extraction-released-owner")
+    release_started(released, "STARTED")
+    add_execution(planner, "PENDING", pending={"kind": "test-pending"})
+    add_execution(planner, "RESULT", last_report={"commit": "b" * 40})
     for task_ids in (["A"], ["B"], ["C"], ["A", "B"]):
         before = state_snapshot(planner, "S", ["A", "B", "C"])
-        with pytest.raises(PoiseError, match="incoming or outgoing dependenc"):
-            extract(
+        invoke = lambda: extract(
                 planner,
                 published["revision"],
                 task_ids,
                 request_id="reject-extract-" + "-".join(task_ids),
             )
+        assert_rejected(invoke, "incoming or outgoing dependenc")
         assert state_snapshot(planner, "S", ["A", "B", "C"]) == before
+        assert_rejected(invoke, "incoming or outgoing dependenc")
+        assert state_snapshot(planner, "S", ["A", "B", "C"]) == before
+
+    for task_id in invalid_ids:
+        before = state_snapshot(planner, "S", ["A", "B", "C", *invalid_ids])
+        message = {
+            "FOREIGN": "unclaimed available",
+            "STARTED": "never started and has no worktree",
+            "PENDING": "pending external operation",
+            "RESULT": "existing result",
+        }[task_id]
+        invoke = lambda task_id=task_id: extract(
+            planner,
+            published["revision"],
+            [task_id],
+            request_id=f"reject-extract-state-{task_id.lower()}",
+        )
+        assert_rejected(invoke, message)
+        assert state_snapshot(planner, "S", ["A", "B", "C", *invalid_ids]) == before
+        assert_rejected(invoke, message)
+        assert state_snapshot(planner, "S", ["A", "B", "C", *invalid_ids]) == before
 
 
 def test_extraction_success_preserves_task_and_overviews(project):
@@ -257,12 +348,17 @@ def test_extraction_success_preserves_task_and_overviews(project):
     ])
     before = deepcopy(planner.runtime.task_queries.record("ISOLATED"))
 
-    extracted = extract(
-        planner,
-        published["revision"],
-        ["ISOLATED"],
-        request_id="extract-isolated",
-    )
+    try:
+        extracted = extract(
+            planner,
+            published["revision"],
+            ["ISOLATED"],
+            request_id="extract-isolated",
+        )
+    except PoiseError as exc:
+        if str(exc) == "Unknown sprint action":
+            pytest.fail(f"EXPECTED_PRODUCT_RED: {exc}", pytrace=False)
+        pytest.exit(f"UNEXPECTED_PRODUCT_FAILURE: {exc}")
 
     assert {item["id"] for item in extracted["tasks"]} == {"A", "B"}
     assert extracted["dependencies"] == [
@@ -329,11 +425,19 @@ def test_membership_conversion_documentation_contract():
         assert "extract_tasks" in text
         assert "входящих и исходящих зависимостей" in text
         assert "атомар" in text.lower()
+        assert "status=available, claimed_by=null, worktree=null, pending=null, last_report=null и attempts=0" in text
+        assert "identity, immutable history, goal, contract и readiness" in text
+        assert "membership, граф, revision и request receipt" in text
+        assert "повтор после отказа не считается replay" in text
     for text in english:
         assert "adopt_tasks" in text
         assert "extract_tasks" in text
         assert "incoming or outgoing dependency" in text
         assert "atomic" in text.lower()
+        assert "status=available, claimed_by=null, worktree=null, pending=null, last_report=null, and attempts=0" in text
+        assert "Identity, immutable history, goal, contract, and readiness are preserved" in text
+        assert "membership, graph, revision, and the request receipt" in text
+        assert "retry after rejection is not a replay" in text
     workflow = russian[0]
     assert "0097" in workflow and "0098" in workflow
     assert "0097 -> 0098" in workflow

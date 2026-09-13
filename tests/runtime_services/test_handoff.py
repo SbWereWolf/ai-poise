@@ -77,9 +77,7 @@ def test_selected_runtime_file_promoted_before_cleanup(project):
     assert len(out['preserved_artifacts'])==1 and Path(out['preserved_artifacts'][0]).read_text()=='Resume this'
 
 
-def test_new_task_replaces_the_same_sessions_previous_assignment(project):
+def test_new_task_cannot_be_started_without_handoff(project):
     h=Poise(project['config_path'],'A');a=WorkTools(h);bootstrap(a,project)
     other=deepcopy(project['task']);other['id']='T2'
-    result=a.invoke(request('bootstrap',{'task':other,'decision':None,'feedback':None,'rework_stage':None}))
-    assert result['task']=='T2'
-    assert h.task_queries.record('T1')['claimed_by'] is None
+    with pytest.raises(PoiseError):a.invoke(request('bootstrap',{'task':other,'decision':None,'feedback':None,'rework_stage':None}))

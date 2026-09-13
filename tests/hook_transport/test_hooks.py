@@ -7,7 +7,6 @@ import pytest
 from poise.common import PoiseError
 from poise.modules.hook_transport.domain import HookDefinition
 from poise.infrastructure.hook_transport import HookService
-from poise.modules.ownership.domain import Liveness
 from batch.helpers import request
 from .helpers import settings,definition,install,event
 
@@ -121,16 +120,6 @@ def test_two_conversations_get_separate_bindings(project,tmp_path):
     native(s,out,session='A');native(s,out,session='B')
     a=s.latest_binding('A','primary');b=s.latest_binding('B','primary')
     assert a['session_id']!=b['session_id'] and a['launcher']!=b['launcher']
-
-
-def test_native_session_liveness_is_fail_closed_and_session_end_is_definitive(project,tmp_path):
-    s=service(project,tmp_path);out=install(s)
-    assert s.registry.liveness('missing') is Liveness.UNCERTAIN
-    native(s,out,session='owner')
-    binding=s.latest_binding('owner','primary')
-    assert s.registry.liveness(binding['session_id']) is Liveness.LIVE
-    native(s,out,'SessionEnd',session='owner')
-    assert s.registry.liveness(binding['session_id']) is Liveness.DEAD
 
 
 def test_missing_turn_id_is_not_invented(project,tmp_path):

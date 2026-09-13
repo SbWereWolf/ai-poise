@@ -65,7 +65,7 @@ def values():
 
 
 def process():
-    return {'goal_type':'custom','worktree_required':True,'route':{'entry':'draft'},
+    return {'goal_type':'custom','route':{'entry':'draft'},
             'content_contract':{'sections':[],'routes':[],'requirements':[]},
             'benefit':{'git_categories':[],'sections':['note']},'stages':[{
             'id':'draft','handler':'produce','instruction':'Write a note and report.',

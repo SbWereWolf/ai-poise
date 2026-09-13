@@ -6,7 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 
 from ..foundation.errors import DomainError
-from .definition import path_identifier
+from .definition import creation_fields, path_identifier
 from .domain import Task, TaskStatus
 
 
@@ -144,17 +144,32 @@ class NewbornTask:
                    tuple(deepcopy(restart_history)),
                    tuple(deepcopy(stage_contract_history)))
 
-    def edit(self, patch: dict, processes: dict, actor: str):
+    def edit(self, patch: dict, remove: list, processes: dict, actor: str):
         if self.ready:
             raise DomainError("Ready newborn Task cannot be edited")
-        if not isinstance(patch, dict) or not patch or not set(patch) <= NEWBORN_FIELDS:
-            raise DomainError("Newborn Task edit requires a nonempty known-field patch")
+        if not isinstance(patch, dict) or not set(patch) <= NEWBORN_FIELDS:
+            raise DomainError("Newborn Task edit patch requires known fields")
+        if (
+            not isinstance(remove, list)
+            or any(not isinstance(field, str) for field in remove)
+            or len(remove) != len(set(remove))
+            or not set(remove) <= NEWBORN_FIELDS
+        ):
+            raise DomainError("Newborn Task edit remove requires unique known fields")
+        if not patch and not remove:
+            raise DomainError("Newborn Task edit requires patch or remove")
         patch = deepcopy(patch)
+        removals = frozenset(remove)
+        if removals & {'id', 'sprint_id'}:
+            raise DomainError('Newborn Task identity and Sprint membership are immutable')
+        conflicts = set(patch) & removals
+        if conflicts:
+            raise DomainError(f'Newborn Task edit patch/remove conflict: {sorted(conflicts)}')
         if 'id' in patch and patch.pop('id') != self.task_id:
             raise DomainError('Newborn Task identity is immutable')
         if 'sprint_id' in patch and patch.pop('sprint_id') != self.sprint_id:
             raise DomainError('Newborn Task Sprint membership is immutable')
-        if not patch:
+        if not patch and not removals:
             raise DomainError('Newborn Task edit must change draft fields')
         if "goal_type" in patch:
             selected = patch["goal_type"]
@@ -163,7 +178,34 @@ class NewbornTask:
             process = deepcopy(processes[selected])
         else:
             process = self.process
+        changes_goal_type = (
+            self.process is not None
+            and process is not None
+            and self.process.get('goal_type') != process.get('goal_type')
+        )
         draft = {**deepcopy(self.draft), **patch}
+        if removals and process is None:
+            raise DomainError('Select goal_type before removing draft fields')
+        if process is not None:
+            allowed = creation_fields(process) - {'id', 'sprint_id'}
+            required_removals = removals & allowed
+            if required_removals:
+                raise DomainError(
+                    f'Cannot remove fields required by target goal_type: '
+                    f'{sorted(required_removals)}'
+                )
+            absent = removals - set(draft)
+            if absent:
+                raise DomainError(
+                    f'Cannot remove absent newborn draft fields: {sorted(absent)}'
+                )
+            for field in removals:
+                draft.pop(field)
+            invalid = set(draft) - allowed
+            if changes_goal_type and invalid:
+                raise DomainError(
+                    f'Target goal_type requires explicit removal of fields: {sorted(invalid)}'
+                )
         if process is not None and draft.get("goal_type") != process.get("goal_type"):
             raise DomainError("Newborn Task goal_type and process snapshot disagree")
         if self.claimed_by not in (None, actor):

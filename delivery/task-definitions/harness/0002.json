@@ -46,14 +46,11 @@
       "stdout_contains": [],
       "stderr_contains": [],
       "verification_plan": {
-        "responsibility": "Preserve the legacy BASELINE command and tested hook/runtime surface; run it at test_inspection, the earliest legal GREEN stage in the current process.",
-        "change_surface": [
-          "tests/hook_transport/**",
-          "tests/runtime_services/**"
-        ],
+        "responsibility": "Guard the pre-existing hook transport and runtime service baseline before Task-produced changes.",
+        "change_surface": [],
         "red_stages": [],
         "green_stages": [
-          "test_inspection"
+          "baseline"
         ],
         "red_failure": null
       }

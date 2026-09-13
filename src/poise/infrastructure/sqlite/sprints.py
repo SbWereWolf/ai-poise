@@ -74,14 +74,17 @@ class SqliteSprintRepository:
         record=self.get(sprint_id)
         if record is None:return {}
         current={task_identity(t) for t in record['aggregate']['plan']['tasks']}
+        if not current:return {}
+        placeholders=','.join('?' for _ in current)
         rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
             "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available "
-            'FROM sprint_members m JOIN tasks t ON t.id=m.task_id '
-            'LEFT JOIN task_execution e ON e.task_id=t.id WHERE m.sprint_id=? ORDER BY t.id',(sprint_id,)).fetchall()
+            'FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id '
+            f'WHERE t.id IN ({placeholders}) ORDER BY t.id',tuple(sorted(current))).fetchall()
         result={}
         for r in rows:
             if r['id'] not in current:continue
             meta=json.loads(r['metadata']);exe=None if r['execution'] is None else json.loads(r['execution'])
+            if meta['sprint_id'] != sprint_id:continue
             if r['status'] == 'newborn':
                 newborn = meta['newborn']
                 draft = newborn['draft']
@@ -91,6 +94,8 @@ class SqliteSprintRepository:
                     'claimed_by':r['claimed_by'],'handoff_available':False,
                     'result_commit':None,'worktree':None,'pending':None,
                     'ready':newborn['ready'],
+                    '_newborn_draft':draft,
+                    '_newborn_process':meta.get('process'),
                 }
                 continue
             report=None if exe is None else exe['last_report']
@@ -104,6 +109,12 @@ class SqliteSprintRepository:
     def add_draft_member(self, sprint_id, task_id):
         self.db.execute(
             'INSERT INTO sprint_members VALUES(?,?)', (sprint_id, task_id)
+        )
+
+    def remove_draft_member(self, sprint_id, task_id):
+        self.db.execute(
+            'DELETE FROM sprint_members WHERE sprint_id=? AND task_id=?',
+            (sprint_id, task_id),
         )
 
     def published_ids(self,project):

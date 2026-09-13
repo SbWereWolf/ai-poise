@@ -96,6 +96,11 @@ class NewbornTask:
             return self
         return replace(self, version=self.version + 1, ready=True)
 
+    def detach_from_sprint(self):
+        if self.sprint_id is None:
+            return self
+        return replace(self, sprint_id=None, version=self.version + 1)
+
     def acquire(self, actor: str):
         path_identifier(actor)
         if self.claimed_by not in (None, actor):

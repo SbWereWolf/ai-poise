@@ -141,7 +141,9 @@ class TaskQueries:
     def summary(self) -> list[dict]:
         with self.database.transaction() as db:
             return [{"id":r["id"],"status":r["status"],"goal":json.loads(r["metadata"])["goal"]}
-                    for r in db.execute("SELECT id,status,metadata FROM tasks ORDER BY id")]
+                    for r in db.execute(
+                        "SELECT id,status,metadata FROM tasks WHERE status!='newborn' ORDER BY id"
+                    )]
 
     def standalone_summary(self) -> list[dict]:
         with self.database.transaction() as db:

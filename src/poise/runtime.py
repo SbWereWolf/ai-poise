@@ -141,17 +141,19 @@ class Poise:
             if args['sprint_id'] is not None:
                 self._identifier(args['sprint_id'])
             return self.task_commands.create_newborn(
-                args['task_id'], args['sprint_id'], self.session, self.config_hash
+                args['task_id'], args['sprint_id'], self.session, self.config_hash,
+                args['request_id'],
             )
         if action == 'edit':
             return self.task_commands.edit_newborn(
                 args['task_id'], self.session, args['expected_revision'], args['patch'],
-                self.processes, self.config_hash,
+                self.processes, self.config_hash, args['request_id'],
             )
         if action == 'ready':
             return self.task_commands.ready_newborn(
                 args['task_id'], self.session, args['expected_revision'],
-                self.cfg['automatic_checks'], self.config_hash,
+                self.cfg['automatic_checks'], self.config_hash, args['request_id'],
+                self._creation_base(),
             )
         raise PoiseError('Unknown Task action')
 
@@ -431,6 +433,17 @@ class Poise:
                     ),
                     self.cfg.get('task_ids'),base)
                 allocation_receipt=allocation.receipt()
+                if allocation.replayed:
+                    data=self.task_queries.record(allocation.task_id)
+                    if data['claimed_by'] not in (None,self.session):
+                        return {**self._context(data,data['status']=='active'),
+                                'allocation':allocation_receipt}
+                    self._reconcile_task_worktree(data)
+                    data=self.task_queries.record(allocation.task_id)
+                    self.ownership.acquire_task(data['id'])
+                    current=self.store.current(self.session)
+                    result=self._context(current,current['status']=='active')
+                    return {**result,'allocation':allocation_receipt}
                 started = self.sprint_tools.start(allocation.task_id)
                 return {**started, **({'allocation':allocation_receipt}
                                       if allocation_receipt is not None else {})}

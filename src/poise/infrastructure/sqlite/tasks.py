@@ -76,6 +76,30 @@ class SqliteTaskRepository:
             "iteration": 1,
         })
 
+    def action_receipt(self, task_id: str, request_id: str, digest: str):
+        for row in self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event='newborn.action' ORDER BY seq",
+            (task_id,),
+        ):
+            data = json.loads(row[0])
+            if data.get("request_id") != request_id:
+                continue
+            if data.get("digest") != digest:
+                raise PoiseError("Request ID already used with another Task action intent")
+            return deepcopy(data["result"])
+        return None
+
+    def remember_action(self, task_id: str, actor: str, request_id: str,
+                        digest: str, result: dict) -> None:
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), actor, task_id, "newborn.action", encode({
+                "request_id": request_id,
+                "digest": digest,
+                "result": deepcopy(result),
+            })),
+        )
+
     def load_newborn(self, task_id: str) -> NewbornTask:
         row = self.db.execute(
             "SELECT status,claimed_by,version,metadata FROM tasks WHERE id=?", (task_id,)
@@ -123,6 +147,16 @@ class SqliteTaskRepository:
             "stage": "newborn",
             "iteration": 1,
         })
+
+    def detach_newborn(self, task_id: str, expected_sprint: str) -> None:
+        newborn = self.load_newborn(task_id)
+        if newborn.sprint_id != expected_sprint:
+            raise VersionConflict("Newborn Task Sprint membership changed")
+        changed = newborn.detach_from_sprint()
+        metadata = json.loads(self.db.execute(
+            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()[0])
+        self.save_newborn(changed, newborn.version, metadata["config_hash"], "sprint_detached")
 
     def acquire_newborn(self, task_id: str, actor: str) -> None:
         newborn = self.load_newborn(task_id)

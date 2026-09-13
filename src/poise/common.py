@@ -77,7 +77,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     exact_keys(cfg, keys | ({'task_ids'} if 'task_ids' in cfg else set()), 'project config')
     if cfg['schema'] != 'ddd-accounting-12':
         raise PoiseError('Версия конфигурации не поддерживается; автоматических миграций нет')
-    exact_keys(cfg['paths'], {'state','database','lock','runtime','tasks','sprints','worktrees',
+    exact_keys(cfg['paths'], {'state','database','lock','runtime','standalone_tasks','sprints','worktrees',
                              'git_index','runs','stdout','stderr','response'}, 'paths')
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
@@ -106,11 +106,11 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     state = configured_root(root, cfg['paths']['state'])
     if state.is_relative_to(path.resolve()) or path.resolve().is_relative_to(state):
         raise PoiseError('Mutable state root overlaps the project manifest')
-    for key in ('database','lock','runtime','tasks','sprints','worktrees'):
+    for key in ('database','lock','runtime','standalone_tasks','sprints','worktrees'):
         descendant(state, cfg['paths'][key])
     for key in ('git_index','runs','stdout','stderr','response'):
         descendant(state, cfg['paths'][key])
-    homes = [descendant(state, cfg['paths'][k]) for k in ('runtime','tasks','sprints','worktrees')]
+    homes = [descendant(state, cfg['paths'][k]) for k in ('runtime','standalone_tasks','sprints','worktrees')]
     if any(a.is_relative_to(b) or b.is_relative_to(a) for i,a in enumerate(homes) for b in homes[i+1:]):
         raise PoiseError('Корни runtime/task/sprint/worktree не должны пересекаться')
     if not isinstance(cfg['processes'],dict) or not cfg['processes']:

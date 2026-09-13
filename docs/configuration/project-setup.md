@@ -250,7 +250,7 @@ Task, multi-codebase, настройка живого IDE/Gmail и устано�
 
 ## Локальный проект ai-poise
 
-Настройка от 2026-09-10 для `/home/sbwerewolf/workdata/ai-poise` создана публичной командой `poise project` из явно выбранного `linux-reference`. Реестр `wsl-poise` расходится с текущей версией своего шаблона; он не исправляется этой настройкой. Проект получает 13 самостоятельных конфигураций процессов.
+Настройка от 2026-09-10 для `/home/sbwerewolf/workdata/ai-poise` создана публичной командой `poise project` из явно выбранного `linux-reference`. Реестр reference templates публикует текущие версии и digest шаблонов с обязательным `paths.standalone_tasks`. Проект получает 13 самостоятельных конфигураций процессов.
 
 | Назначение | Путь относительно корня ai-poise |
 |---|---|
@@ -264,7 +264,8 @@ Task, multi-codebase, настройка живого IDE/Gmail и устано�
 | База редактора конфигурации целей | `projects/ai-poise/database/config-editor.sqlite` |
 | Временные данные сессий | `projects/ai-poise/.runtime/` |
 | Временные ответы редакторов | `projects/ai-poise/.runtime/catalogue-responses/`, `projects/ai-poise/.runtime/config-responses/` |
-| Задачи и их артефакты | `projects/ai-poise/task/` |
+| Самостоятельные Task и их артефакты | `projects/ai-poise/standalone/` |
+| Task в составе Sprint | `projects/ai-poise/sprint/<sprint-id>/task/` |
 | Спринты и их артефакты | `projects/ai-poise/sprint/` |
 | Рабочие деревья Git | `projects/ai-poise/worktrees/` |
 | Локальный Python 3.13 | `projects/ai-poise/.python/` |
@@ -335,4 +336,11 @@ JSON
 
 Изменение размещения выполнено повторной публикацией нового комплекта штатным инструментом после сохранения исходного комплекта. Рабочих задач в первоначальной базе не было; её проверочные журналы сохранены отдельно, не перенесены как задачи. Текущая база создана runtime в новом месте. Lock генератора находится в `projects/.project-setup.lock` и исключён из Git.
 
-Сейчас файлы любой задачи находятся в `projects/ai-poise/task/<task-id>/`, а артефакты спринта — в `projects/ai-poise/sprint/<sprint-id>/`. Принадлежность задачи спринту хранится в SQLite через `sprint_id`. Ожидаемое пользователем размещение `sprint/<sprint-id>/task/<task-id>/` не реализовано текущим кодом и не получается подстановкой `paths.tasks`: это отдельное изменение механизма вычисления путей и его потребителей. Пустые папки не подтверждают такую вложенность.
+Самостоятельная Task хранит файлы в
+`projects/ai-poise/standalone/<task-id>/`. Для Task с сохранённым `sprint_id` единый
+владелец путей выбирает `projects/ai-poise/sprint/<sprint-id>/task/<task-id>/`; Sprint-level
+артефакты остаются в `projects/ai-poise/sprint/<sprint-id>/`. Конфигурация обязана содержать
+`paths.standalone_tasks`; прежнее `paths.tasks` отклоняется без alias, fallback или dual read.
+Существующие каталоги прежнего формата не переносятся автоматически. Ответственный агент
+перемещает только конкретную мешающую запись по отдельному разрешённому lifecycle и сообщает
+об этом; само наличие исторического каталога не включает совместимость.

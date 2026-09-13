@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import zipfile
 
 import pytest
 
@@ -13,6 +14,15 @@ from poise.artifacts import inspect_paths
 from poise.common import PoiseError, load_config
 from poise.interfaces.work import execute
 from sprints.helpers import draft, publish, setup as sprint_setup, task as sprint_task
+from transfer.helpers import (
+    destination,
+    enabled as enable_transfer,
+    export,
+    handoff_args,
+    pick,
+    restore,
+)
+from batch.helpers import request
 
 
 def configured(project, *, standalone_tasks="standalone"):
@@ -125,3 +135,51 @@ def test_published_sprint_task_bootstrap_and_response_are_nested(project):
     context = json.loads(Path(receipt["response_path"]).read_text(encoding="utf-8"))
     assert Path(context["task_root"]) == expected
     assert Path(receipt["response_path"]).is_relative_to(expected / "runs")
+
+
+def test_transfer_separates_nested_task_and_sprint_artifacts(project, tmp_path):
+    sprint_setup(project)
+    enable_transfer(project)
+    planner = WorkTools(Poise(project["config_path"], "planner"))
+    planned = draft(planner, [sprint_task(project, "MEMBER")])
+    publish(planner, planned["revision"])
+
+    member = WorkTools(Poise(project["config_path"], "member"))
+    context = member.invoke(request("bootstrap", {
+        "task": {"id": "MEMBER"},
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    made = member.invoke(request("artifacts", {"items": [
+        {"scope": "task", "path": "task-note.txt", "source": {"kind": "text", "text": "task"}},
+        {"scope": "sprint", "path": "sprint-note.txt", "source": {"kind": "text", "text": "sprint"}},
+    ]}))
+    payload = deepcopy(context["result_template"])
+    payload["sections"]["report"] = "Preserve nested owners."
+    payload["artifact_paths"] = made["artifact_paths"]
+    payload["commit_message"] = "test: preserve nested owners"
+    saved = export(
+        member,
+        sprint="S",
+        handoff=handoff_args(payload),
+    )
+
+    with zipfile.ZipFile(saved["package_path"]) as archive:
+        names = archive.namelist()
+    assert any(name.startswith("files/task/MEMBER/") and name.endswith("task-note.txt") for name in names)
+    assert any(name.startswith("files/sprint/S/") and name.endswith("sprint-note.txt") for name in names)
+    assert not any("files/sprint/S/task/MEMBER" in name for name in names)
+
+    target = destination(project, tmp_path / "destination")
+    receiver = WorkTools(Poise(target["config_path"], "receiver"))
+    restore(receiver, saved["package_path"], saved["package_digest"])
+    restored = pick(receiver, "MEMBER")
+    expected = target["root"] / "state" / "sprints" / "S" / "task" / "MEMBER"
+    assert Path(restored["task_root"]) == expected
+    restored_paths = [Path(path) for path in restored["result_template"]["artifact_paths"]]
+    assert any(path.is_relative_to(expected) for path in restored_paths)
+    assert any(
+        path.is_relative_to(expected.parents[1]) and not path.is_relative_to(expected)
+        for path in restored_paths
+    )

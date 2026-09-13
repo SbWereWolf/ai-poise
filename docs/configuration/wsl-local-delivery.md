@@ -1,6 +1,6 @@
 # Локальная поставка AI poise для WSL
 
-Обновлено: **2026-09-09**.
+Обновлено: **2026-09-13**.
 
 Для текущего локального проекта `ai-poise` действует [конкретная настройка](project-setup.md#локальный-проект-ai-poise): по поручению пользователя состояние находится внутри репозитория в исключённом из Git `projects/ai-poise/`. Описанная ниже исходная поставка `poise` не заменяет эту настройку.
 
@@ -17,13 +17,19 @@ AI poise — отдельное приложение и точка входа в
 Пути задаёт только project configuration. В WSL template `wsl-poise` поле `paths.state` — абсолютный project-data root вне Git checkout обслуживаемой кодовой базы. Остальные operational paths заданы относительно него:
 
 ```text
-paths.database  = tasks.sqlite
-paths.lock      = tasks.lock
-paths.tasks     = artifacts/tasks
-paths.sprints   = artifacts/sprints
-paths.runtime   = runtime
-paths.worktrees = worktrees
+paths.database         = tasks.sqlite
+paths.lock             = tasks.lock
+paths.standalone_tasks = artifacts/standalone
+paths.sprints          = artifacts/sprints
+paths.runtime          = runtime
+paths.worktrees        = worktrees
 ```
+
+Standalone Task хранит файлы в
+`artifacts/standalone/<task-id>/`. Task, принадлежащая Sprint, использует
+`artifacts/sprints/<sprint-id>/task/<task-id>/`; её файлы не дублируются в standalone
+namespace. Поле `paths.standalone_tasks` обязательно. Удалённое `paths.tasks` не является
+alias и отклоняется при загрузке конфигурации.
 
 Задача `0001` добавляет отдельный явный путь Requirements DB в project configuration. Каноническая `requirements.sqlite` должна находиться в project-data AI poise, отдельно от `tasks.sqlite` и отдельно от обслуживаемой кодовой базы. Код AI poise не должен иметь скрытого универсального пути Requirements DB.
 

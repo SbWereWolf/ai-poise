@@ -495,7 +495,10 @@ def _lifecycle_state(client, project):
             for table in tables
         }
     rows["worktree_paths"] = sorted(
-        path.name for path in (project["root"] / "worktrees").glob("*")
+        path.name
+        for path in (
+            client.runtime.state / client.runtime.paths["worktrees"]
+        ).glob("*")
     )
     return rows
 

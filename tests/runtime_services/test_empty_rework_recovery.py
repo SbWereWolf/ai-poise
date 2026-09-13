@@ -66,8 +66,11 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
                 )
             )
         except PoiseError as exc:
-            if str(exc) == "Unknown work operation":
-                self.fail("public recover_empty_rework operation is missing")
+            if str(exc) in (
+                "Unknown work operation",
+                "Recovery requires the exact preceding user_rework event",
+            ):
+                self.fail(f"public recovery behavior is missing: {exc}")
             raise
 
     def _simple_empty_rework(self, *, release=True):
@@ -164,6 +167,36 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
         )
         pending = reviewer["workflow"]["feedback"]["pending_resolutions"]
         self.assertEqual([item["id"] for item in pending], ["R1"])
+
+    def test_recovers_across_ownership_only_handoff_suffix(self):
+        _, verified, active = self._simple_empty_rework()
+        for number in (1, 2):
+            reviewer = WorkPoise(
+                self.project["config_path"], f"INTERMEDIATE-REVIEWER-{number}"
+            )
+            context = WorkTools(reviewer).invoke(
+                request(
+                    "bootstrap",
+                    {
+                        "task": {"id": "T1"},
+                        "decision": None,
+                        "feedback": None,
+                        "rework_stage": None,
+                    },
+                )
+            )
+            self.assertEqual(context["status"], "active")
+            self.assertEqual(context["iteration"], active["iteration"])
+            self._handoff(
+                reviewer,
+                request_id=f"ownership-only-handoff-{number}",
+            )
+
+        recovered = self._recover()
+
+        self.assertEqual(recovered["status"], "recovered")
+        self.assertEqual(recovered["stage"], verified["stage"])
+        self.assertEqual(recovered["iteration"], verified["iteration"])
 
     def test_rejects_claimed_task(self):
         self._simple_empty_rework(release=False)

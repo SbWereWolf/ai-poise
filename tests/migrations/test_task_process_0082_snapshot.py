@@ -119,6 +119,15 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         task["evidence_plan"]["test_remediation"] = task["evidence_plan"].pop(
             "draft"
         )
+        task["stage_contracts"] = [
+            {
+                "stage_id": stage["id"],
+                "allowed_paths": list(stage["allowed_paths"]),
+                "entry_requirements": [],
+                "exit_requirements": [],
+            }
+            for stage in process["stages"]
+        ]
         for method in task["methods"]:
             plan = method["verification_plan"]
             plan["red_stages"] = [

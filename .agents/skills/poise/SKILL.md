@@ -33,6 +33,12 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
+Every newborn Task `edit` request explicitly supplies both `patch` and `remove`; at least one
+is nonempty. Use `remove` in the same optimistic request when a goal-type change makes a saved
+draft field invalid. Never encode deletion with null, silently clean the draft, or omit `remove`
+as a compatibility path. Preserve exact replay and reject unknown, absent, duplicate, required,
+immutable, or patch-conflicting removals before mutation.
+
 When a saved execution contract makes DoD unattainable or the next stage fails its own DoR,
 treat the outcome as `broken`, never as successful completion. A reviewer may repair only the
 defective stage contract, or an authorized owner may restart the same Task to newborn through

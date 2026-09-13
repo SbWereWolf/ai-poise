@@ -1,6 +1,20 @@
 # Статус реализации
 
-Обновлено: **2026-09-13T00:00:00+05:00**.
+Обновлено: **2026-09-14T00:00:00+05:00**.
+
+## Explicit newborn field removal — task 0110
+
+Публичный `operation: task`, `action: edit` принимает обязательные `patch` и `remove` в одном
+optimistic/idempotent intent. При смене `goal_type` caller явно удаляет сохранённые draft-поля,
+которые запрещены целевым процессом; например, переход development → integration удаляет
+`executable_obligations` без отмены или замены Task. `null`, скрытая очистка, compatibility
+reader и ручное исправление БД не используются.
+
+Domain определяет точный набор полей через тот же владеющий creation contract, что и `ready`.
+До мутации отклоняются неизвестные, повторные, отсутствующие, обязательные, immutable и
+одновременно patched/removed поля. Digest включает `remove`; точный replay, identity, Sprint
+membership, append-only history, process snapshot, ownership и revision guards сохраняются.
+Путь проверен focused lifecycle 5/5, bounded smoke 6/6 и независимым inspection.
 
 ## Broken Task recovery — task 0079
 

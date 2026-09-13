@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
@@ -18,6 +18,13 @@ from tests.backups.helpers import backup_commands, backup_directory, run_cli
 
 TASKS = ("0077", "0081", "0079", "0078", "0074", "0063")
 FIXED_NOW = datetime(2026, 9, 13, 8, 0, tzinfo=timezone.utc)
+
+
+class FakeClock:
+    def observe(self):
+        from poise.modules.accounting.clock import ClockObservation
+
+        return ClockObservation(FIXED_NOW.isoformat(), 1, "task-process-migration-test")
 
 
 def _database(project: dict) -> Path:
@@ -337,10 +344,11 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
 
     with sqlite3.connect(database) as connection:
         journal = connection.execute(
-            "SELECT session_id,task_id,event,data FROM journal ORDER BY seq DESC LIMIT 1"
+            "SELECT at,session_id,task_id,event,data FROM journal ORDER BY seq DESC LIMIT 1"
         ).fetchone()
-    assert journal[:3] == ("task-process-migrate", None, "task_process_snapshot_migrated")
-    audit = json.loads(journal[3])
+    assert journal[1:4] == ("task-process-migrate", None, "task_process_snapshot_migrated")
+    assert datetime.fromisoformat(journal[0]).utcoffset() == timedelta(0)
+    audit = json.loads(journal[4])
     assert set(audit) == {"request_digest", "request_id", "result"}
     assert audit["request_id"] == result["request_id"]
     assert audit["result"] == result
@@ -361,6 +369,26 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
         assert "request_id" in json.loads(conflict.stdout)["reason"]
         assert _snapshot(database) == conflicting_before
 
+    with sqlite3.connect(database) as connection:
+        original_audit = connection.execute(
+            "SELECT data FROM journal WHERE event='task_process_snapshot_migrated'"
+        ).fetchone()[0]
+        malformed = {**audit, "result": {"bogus": "accepted"}}
+        connection.execute(
+            "UPDATE journal SET data=? WHERE event='task_process_snapshot_migrated'",
+            (json.dumps(malformed, ensure_ascii=False, sort_keys=True, separators=(",", ":")),),
+        )
+    malformed_before = _snapshot(database)
+    rejected_replay = _invoke_cli(project, _request(backup["name"]))
+    assert rejected_replay.returncode == 2
+    assert "audit" in json.loads(rejected_replay.stdout)["reason"].lower()
+    assert _snapshot(database) == malformed_before
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE journal SET data=? WHERE event='task_process_snapshot_migrated'",
+            (original_audit,),
+        )
+
     replay = _invoke_cli(project, _request(backup["name"]))
     assert replay.returncode == 0, replay.stderr
     replayed = json.loads(replay.stdout)
@@ -375,17 +403,27 @@ def test_rolls_back_complete_batch_and_receipt_on_fault(project):
     database, _ = _seed_legacy_tasks(project)
     backup = backup_commands(project).create()
     before = _snapshot(database)
+    with pytest.raises(TypeError):
+        SqliteTaskProcessMigration(project["config_path"])
 
     def fail_after_first(task_id: str) -> None:
         if task_id == TASKS[0]:
             raise RuntimeError("injected migration failure")
 
-    port = SqliteTaskProcessMigration(project["config_path"], clock=lambda: FIXED_NOW,
+    port = SqliteTaskProcessMigration(project["config_path"], clock=FakeClock(),
                                       after_update=fail_after_first)
     with pytest.raises(RuntimeError, match="injected migration failure"):
         TaskProcessMigrationCommands(port).migrate(_request(backup["name"]))
 
     assert _snapshot(database) == before
+    completed = TaskProcessMigrationCommands(
+        SqliteTaskProcessMigration(project["config_path"], clock=FakeClock())
+    ).migrate(_request(backup["name"]))
+    assert completed["status"] == "migrated"
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "SELECT at FROM journal WHERE event='task_process_snapshot_migrated'"
+        ).fetchone()[0] == FIXED_NOW.isoformat()
 
 
 def test_rejects_invalid_targets_and_conflicting_process_values(project):
@@ -403,6 +441,7 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
     claimed = deepcopy(good); claimed[0]["claimed_by"] = "foreign"; variants.append(claimed)
     conflicting = deepcopy(good); conflicting[0]["metadata"]["process"]["worktree_required"] = False; variants.append(conflicting)
     mismatch = deepcopy(good); mismatch[0]["metadata"]["process"]["goal_type"] = "documentation"; variants.append(mismatch)
+    invalid_goal = deepcopy(good); invalid_goal[0]["metadata"]["contract"]["goal_type"] = []; variants.append(invalid_goal)
     for rows in variants:
         with pytest.raises(DomainError):
             ProcessSnapshotMigration.plan(request, rows, configured)
@@ -504,7 +543,7 @@ def test_stale_backup_or_live_row_drift_rejects_every_update(project):
             connection.execute("UPDATE tasks SET version=version+1 WHERE id=?", (TASKS[1],))
 
     port = SqliteTaskProcessMigration(
-        project["config_path"], clock=lambda: FIXED_NOW, after_preflight=drift_after_preflight
+        project["config_path"], clock=FakeClock(), after_preflight=drift_after_preflight
     )
     with pytest.raises(
         PoiseError,

@@ -206,6 +206,8 @@ publication и last_report очищаются. Task возвращается в 
 external outcome отклоняют операцию до мутации; pending сначала завершается своим явным
 recovery protocol. Идентичный replay возвращает первоначальный receipt.
 
+Существующая non-newborn Task возвращает точное текущее поле `version` через `bootstrap` и текущую проекцию `show`. Приватное имя `_version` не входит в публичный DTO. Taskless-ответы не содержат `version`, а newborn Task использует `revision`. Передавайте это значение без изменений как `expected_version` для защищённых `restart` и исправления stage contract; при конфликте версии заново прочитайте публичный `bootstrap`/`show`, а не угадывайте значение.
+
 ```json
 {
   "operation": "task",

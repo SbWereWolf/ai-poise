@@ -217,6 +217,37 @@ class Sprint:
             waivers=tuple(w for w in self.waivers if (w['predecessor'],w['successor']) in unchanged),
             decisions=self.decisions+({'kind':'dependencies_changed','reason':reason},))
 
+    def extract_tasks(self, ids):
+        if self.state != 'published':
+            raise DomainError('Task extraction requires a published Sprint')
+        known = {task_identity(item) for item in self.plan.data['tasks']}
+        if (not isinstance(ids,list) or not ids
+                or any(not isinstance(item,str) for item in ids)
+                or len(ids) != len(set(ids)) or set(ids) - known):
+            raise DomainError('Extraction requires unique existing Sprint members')
+        selected = set(ids)
+        if any(
+            edge['predecessor'] in selected or edge['successor'] in selected
+            for edge in self.plan.data['dependencies']
+        ):
+            raise DomainError(
+                'Task with an incoming or outgoing dependency cannot be extracted'
+            )
+        if selected == known:
+            raise DomainError('A published Sprint must retain at least one Task')
+        plan = deepcopy(self.plan.data)
+        plan['tasks'] = [
+            item for item in plan['tasks'] if task_identity(item) not in selected
+        ]
+        return replace(
+            self,
+            plan=SprintPlan(plan),
+            revision=self.revision + 1,
+            decisions=self.decisions + ({
+                'kind':'tasks_extracted', 'tasks':sorted(selected),
+            },),
+        )
+
     def cancellation_scope(self,ids,mode):
         known={task_identity(t) for t in self.plan.data['tasks']}
         if not isinstance(ids,list) or not ids or any(not isinstance(i,str) for i in ids) or len(set(ids))!=len(ids) or set(ids)-known:

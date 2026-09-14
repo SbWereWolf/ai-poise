@@ -95,3 +95,18 @@ Do not prepare, edit, or resolve conflicts in the main checkout or foreign WIP, 
 Repository snapshots use an invocation-owned temporary Git index and must clean only that exact owned directory. Never delete `snapshot.index.lock` manually or remove another invocation's directory; preserve real Git conflict evidence and use the owning public recovery path. Read the canonical [snapshot index contract](../../../docs/workflows/batch-work.md#изоляция-временного-git-index).
 
 When a skill relies on canonical documentation, link to the smallest exact normative section needed by the operational rule.
+
+
+## Inputs for behavior and verification work
+
+Use the current Task/stage contract, real owner, observable result, source/runtime identity and selected Poise-owned commands/configuration. Target-worktree manifests and documentation are facts, not a place to persist Poise routing configuration.
+
+## Procedure for migrated development skills
+
+For changed executable behavior load [tdd](../tdd/SKILL.md) and its [independent test-data policy](../../references/test-data-and-assertion-policy.md). For selecting/running checks load [direct-checks](../direct-checks/SKILL.md). For a terminal failure or confirmed loss of its runner load [debugging-and-recovery](../debugging-and-recovery/SKILL.md); no competing active-run observer or blind retry is authorized.
+
+Ordinary Task completion and integration use only targeted behavior/boundary checks plus maintained fast smoke. Full/unfiltered regression is reserved for explicit release preparation; unresolved target selection never falls back to all tests. Preserve C004/C016/C017 ownership and C018 cache semantics. Current Poise verification-method declarations do not have a per-method timeout; infrastructure runner limits remain owned by their configured runner. Do not reintroduce method timeouts, copied ERP command wrappers, mandatory serializer packages or manual review registries through these skills.
+
+## Output from migrated development skills
+
+Persist exact test/requirement/RED/GREEN/inspection and terminal check references through existing Task/evidence owners. Report unavailable checks and capability gaps. Static instruction links provide discovery, not implementation of the missing automatic area/stage routing owner; independently reviewed acceptance and result integration remain separate gates.

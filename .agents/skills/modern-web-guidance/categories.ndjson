@@ -1,0 +1,17 @@
+{"category": "accessibility", "description": "Local guides: Accessibility Coding Guidelines, Accessible Error Announcement", "count": 2}
+{"category": "built-in-ai", "description": "Local guides: language-detection, language-model, prompt-api, summarizer, translator", "count": 5}
+{"category": "canvas", "description": "Local guides: Apply WebGL shaders to HTML content, Export HTML content from canvas, Expose canvas content to browser features, Enable interactive HTML content in 3D scenes", "count": 4}
+{"category": "css", "description": "Local guides: Adapt scrollbar to high-contrast preferences, child-state-based-styling, complex-shapes, Component-specific light/dark themes, content-based-styling, CSS: Modern Architecture and P", "count": 16}
+{"category": "css-layout", "description": "Local guides: Animate to Intrinsic Sizes, calculate-with-intrinsic-sizes, CSS Layouts and Responsive Design, design-token-reactivity, fluid-scaling, Overflow Clipping Control, size-aware-styling", "count": 7}
+{"category": "datetime", "description": "Local guides: Calculating Event Differentials with Temporal, Capturing Location-Agnostic Data with Temporal, Coordinating Global Events with Temporal, Formatting Human-Readable Durations with Te", "count": 8}
+{"category": "forms", "description": "Local guides: Animated Select Picker, Build an address form that follows best practice, Use the CSS :autofill pseudo-class to highlight form fields that have been autofilled by the browser and n", "count": 15}
+{"category": "html", "description": "Local guides: Custom Button Actions, html, move-dom-element-without-losing-state, persistent-top-layer-ui, Search hidden content", "count": 5}
+{"category": "motion", "description": "Local guides: anchor-positioning-tab-underline, animate-element-entry-exit, Consistent Cross-Document Transitions, cross-document-transitions, directional-navigation-transitions, Creating a stag", "count": 10}
+{"category": "overlays", "description": "Local guides: animate-to-from-top-layer, Overview, interest-triggered-action-previews, Show a tooltip when hovering, light-dismiss-a-dialog, navigation-drawer, Creating Persistent App Tours, Cre", "count": 11}
+{"category": "passkeys", "description": "Local guides: Passkey Authentication Guide, Passkey Conditional Create (Post-Login Promotion), Passkey Management Guide, Passkey Reauthentication Guide, Passkey Registration Guide, Passkeys Orie", "count": 6}
+{"category": "performance", "description": "Local guides: Debounce and batch multiple analytics events, break-up-long-tasks, Calculate total foreground time, conditional-async-dependencies, Defer rendering heavy content, Defer Work Until ", "count": 24}
+{"category": "privacy", "description": "Local guides: Web Privacy Guidelines for Developers", "count": 1}
+{"category": "scroll", "description": "Local guides: Build Carousel Slide Effects, carousel-snap-highlights, Build a Parallax Effect on Scroll, Pull to Reveal, Add entry and exit effects to elements as they enter or exit the scrollpo", "count": 15}
+{"category": "security", "description": "Local guides: Web Security", "count": 1}
+{"category": "typography", "description": "Local guides: Improve Text Layout and Legibility, Precise Text Alignment, Prevent text wrapping, visually-stable-font-fallbacks, visually-stable-mixed-fonts", "count": 5}
+{"category": "webmcp", "description": "Local guides: agentic-forms, agentic-javascript-tools, WebMCP (Web Model Context Protocol)", "count": 3}

@@ -193,3 +193,18 @@ When an operational rule is owned by canonical documentation, link to and read t
 Route definitions contain an explicit `entry`; stage outcomes, targets and rework targets own transition semantics. Preserve visits and transitions only for history, identity and audit. Never impose an execution limit through route counts, depth, watchdogs, timeouts or recursion bounds. A finite graph-reachability check is structural validation, not an execution budget.
 
 Do not request rework while a pending resolution still requires independent inspection. Follow the exact inspection stage reported by Poise, decide every pending resolution there, and only then retry an authorized rework target. The rejection is state-preserving; do not create a workaround Task or edit the Task DB. Use `recover_empty_rework` only for a legacy task already stranded by the former defect. Recovery requires an unowned Task and an ownership-only event suffix, not a synthetic handoff. A cleaned worktree is recoverable only when Poise proves the saved commit is integrated into the configured base and has the exact verified tree; never recreate that worktree manually. Read [Batch work → rework with pending resolutions](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях) (Task 0063 RD-013) and [empty rework recovery](../../../docs/workflows/batch-work.md#восстановление-ошибочно-открытой-пустой-rework-итерации) (Task 0063 RD-008).
+
+
+## Inputs for migrated skills
+
+The project-local `.agents/skills/` tree supplies discoverable instruction files, not a second managed routing policy. Use the selected Poise project and actual Task/stage inputs. Read skill classes and area declarations from the project's existing `task_decomposition`; resolve other project settings through their current owner. Target-worktree files remain read-only sources of facts for this configuration boundary.
+
+## Procedure for migrated skill selection
+
+For current Task discipline load [exec-task](../exec-task/SKILL.md); for preparing focused Tasks or Sprint graphs load [sprint-design](../sprint-design/SKILL.md). Keep the exact packets, launcher, lifecycle and evidence semantics in this skill and its canonical documentation. Load other catalogue skills only when relevant to the current stage and real project stack, not as a blanket catalogue read.
+
+The current decomposition validator checks declarations; it does not by itself return a complete ordered area/stage skill-and-input packet. Do not label instruction discovery as implemented automatic routing, synthesize undocumented profile fields, or place a Harness config in the target repository. An absent required routing/aggregation capability is a concrete dependency for the owning Poise work, not a reason to invent a parallel router.
+
+## Output boundary for migrated skills
+
+Persist the current skill's result through the existing Task/content/evidence/artifact owners and release via public handoff. Saving remains distinct from acceptance. Planned universal phase recovery and cross-project next selection are not activated by these instruction files; connect them only when the corresponding public capability actually exists.

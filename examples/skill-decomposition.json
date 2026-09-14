@@ -1,0 +1,164 @@
+{
+  "operation": "validate",
+  "skill_ids": [
+    "documentation",
+    "laravel",
+    "php-modernization",
+    "sprint-design",
+    "tdd",
+    "vue-best-practices"
+  ],
+  "areas": [
+    {
+      "path": "app/**",
+      "responsibility": "laravel-backend"
+    },
+    {
+      "path": "web/**",
+      "responsibility": "vue-frontend"
+    },
+    {
+      "path": "docs/**",
+      "responsibility": "documentation"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "backend",
+      "stages": [
+        "planning",
+        "implementation",
+        "documentation"
+      ],
+      "decomposition": {
+        "kind": "ordinary",
+        "phases": [
+          {
+            "stage": "planning",
+            "skills": [
+              "sprint-design"
+            ],
+            "areas": []
+          },
+          {
+            "stage": "implementation",
+            "skills": [
+              "laravel",
+              "php-modernization",
+              "tdd"
+            ],
+            "areas": [
+              "app/**"
+            ]
+          },
+          {
+            "stage": "documentation",
+            "skills": [
+              "documentation"
+            ],
+            "areas": [
+              "docs/**"
+            ]
+          }
+        ],
+        "integration": null
+      }
+    },
+    {
+      "id": "frontend",
+      "stages": [
+        "planning",
+        "implementation",
+        "documentation"
+      ],
+      "decomposition": {
+        "kind": "ordinary",
+        "phases": [
+          {
+            "stage": "planning",
+            "skills": [
+              "sprint-design"
+            ],
+            "areas": []
+          },
+          {
+            "stage": "implementation",
+            "skills": [
+              "vue-best-practices",
+              "tdd"
+            ],
+            "areas": [
+              "web/**"
+            ]
+          },
+          {
+            "stage": "documentation",
+            "skills": [
+              "documentation"
+            ],
+            "areas": [
+              "docs/**"
+            ]
+          }
+        ],
+        "integration": null
+      }
+    },
+    {
+      "id": "integrate",
+      "stages": [
+        "planning",
+        "implementation",
+        "documentation"
+      ],
+      "decomposition": {
+        "kind": "integration",
+        "phases": [
+          {
+            "stage": "planning",
+            "skills": [
+              "sprint-design"
+            ],
+            "areas": []
+          },
+          {
+            "stage": "implementation",
+            "skills": [
+              "laravel",
+              "vue-best-practices",
+              "tdd"
+            ],
+            "areas": [
+              "app/**",
+              "web/**"
+            ]
+          },
+          {
+            "stage": "documentation",
+            "skills": [
+              "documentation"
+            ],
+            "areas": [
+              "docs/**"
+            ]
+          }
+        ],
+        "integration": {
+          "component_inputs": [
+            "backend: accepted API result",
+            "frontend: accepted client result"
+          ],
+          "combined_result": "The client uses the accepted API with an explicit error contract.",
+          "integration_checks": [
+            "Verify the client/API contract including rejection and failure paths."
+          ],
+          "allowed_paths": [
+            "app/**",
+            "web/**",
+            "docs/**"
+          ]
+        }
+      }
+    }
+  ]
+}

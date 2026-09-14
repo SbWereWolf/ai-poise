@@ -112,9 +112,7 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
             raise DomainError(f'{field}: требуются непустые уникальные строки')
     stages=tuple(s['id'] for s in process['stages'])
     from .decomposition import FocusedDecomposition
-    FocusedDecomposition.parse(contract['decomposition'], stages).validate(
-        decomposition_policy
-    )
+    FocusedDecomposition.require_valid(contract['decomposition'], stages, decomposition_policy)
     route = RouteDefinition.from_process(process)
     registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
         executable_obligations(contract, process),

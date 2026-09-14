@@ -146,6 +146,7 @@ def _integration():
         "allowed_paths": [
             "src/poise/modules/sprints/**",
             "src/poise/modules/tasks/**",
+            "docs/**",
         ],
     }
     return value
@@ -157,7 +158,10 @@ def _assert_error(policy, declaration, expected):
 
     with pytest.raises(DomainError) as error:
         FocusedDecomposition.parse(declaration, STAGES).validate(policy)
-    assert str(error.value) == expected
+    # C012 adds complete diagnostics. Retain every historical obligation while
+    # checking the exact aggregate separately in tests/skills/test_decomposition.py.
+    messages = [item["message"] for item in error.value.diagnostics]
+    assert expected in messages, messages
 
 
 def run_contract():
@@ -274,7 +278,7 @@ def run_contract():
     _assert_error(
         policy,
         outside,
-        "integration areas outside allowed_paths: ['src/poise/modules/sprints/**']",
+        "integration areas outside allowed_paths: ['docs/**', 'src/poise/modules/sprints/**']",
     )
 
     unknown_skill = _ordinary(skills=("erp-private-route",))
@@ -536,7 +540,30 @@ def _lifecycle_state(client, project):
     return rows
 
 
-def test_automatic_task_creation_rejects_unfocused_plan(project):
+def _install_catalog_policy(project):
+    from conftest import write_json
+
+    previous = project["cfg"]["task_decomposition"]
+    classes = {"meta": "meta", "general": "common", "narrow": "working"}
+    rows = [
+        {"id": item["id"], "path": f".agents/skills/{item['id']}/SKILL.md",
+         "purpose": f"Fixture skill for {item['id']}.",
+         "class": classes[item["class"]],
+         "level": 1 if item["class"] == "narrow" else None,
+         "responsibility": item["responsibility"]}
+        for item in previous["skills"]
+    ]
+    project["cfg"]["task_decomposition"] = {
+        "catalog": {"schema": "poise-skill-catalog-1", "skills": rows},
+        "skill_ids": [item["id"] for item in rows], "areas": previous["areas"],
+    }
+    write_json(project["config_path"], project["cfg"])
+
+
+@pytest.mark.parametrize("catalog_backed", [False, True])
+def test_automatic_task_creation_rejects_unfocused_plan(project, catalog_backed):
+    if catalog_backed:
+        _install_catalog_policy(project)
     from batch.helpers import configure, request
     from conftest import WorkPoise
     from poise.application.work import WorkTools
@@ -583,7 +610,10 @@ def test_automatic_task_creation_rejects_unfocused_plan(project):
     assert started["status"] == "active"
 
 
-def test_newborn_ready_rejects_unfocused_plan(project):
+@pytest.mark.parametrize("catalog_backed", [False, True])
+def test_newborn_ready_rejects_unfocused_plan(project, catalog_backed):
+    if catalog_backed:
+        _install_catalog_policy(project)
     from batch.helpers import configure, request
     from conftest import WorkPoise
     from poise.application.work import WorkTools
@@ -680,7 +710,10 @@ def test_newborn_ready_rejects_unfocused_plan(project):
     assert ready["status"] == "available"
 
 
-def test_sprint_publish_rejects_unfocused_plan(project):
+@pytest.mark.parametrize("catalog_backed", [False, True])
+def test_sprint_publish_rejects_unfocused_plan(project, catalog_backed):
+    if catalog_backed:
+        _install_catalog_policy(project)
     from conftest import WorkPoise
     from poise.application.work import WorkTools
     from poise.modules.foundation.errors import PoiseError

@@ -385,3 +385,12 @@ Cleanup state хранится в существующем Task execution snapsh
 `CheckRegistry` владеет структурой `verification_plan` и сопоставляет
 `change_surface` с route-путями. `RouteDefinition` предоставляет настроенные
 `allowed_paths`; отдельного планировщика или анализа исходников теста нет.
+
+
+## Метаданные skills (C005.1)
+
+Обновлено: 2026-09-15. `modules/skills` владеет неизменяемыми дескрипторами навыков.
+Infrastructure проверяет явно выбранный каталог и пути, но не читает тела инструкций.
+Task/Sprint продолжают владеть готовностью и жизненным циклом; чистый владелец
+FocusedDecomposition потребляет классификацию, а не поддерживает второй inventory.
+Контракт и отображение классов: [каталог skills](../configuration/skill-catalog.md).

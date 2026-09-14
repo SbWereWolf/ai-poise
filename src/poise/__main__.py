@@ -27,6 +27,9 @@ def parser():
     editor.add_argument('--settings',type=Path,required=True)
     catalogue=sub.add_parser('catalogue',help='Batch install independent processes or prepare typed tasks')
     catalogue.add_argument('--settings',type=Path,required=True)
+    skills=sub.add_parser('skills',help='Read skill metadata or validate decomposition without a Task session')
+    skills.add_argument('--catalog',type=Path,required=True)
+    skills.add_argument('--root',type=Path,required=True)
     creation=sub.add_parser('runtime-setup',help='Create explicit hook settings and install with one packet')
     creation.add_argument('--settings',type=Path,required=True)
     creation.add_argument('--max-input-bytes',type=int,required=True)
@@ -82,6 +85,9 @@ def main():
     if args.command=='catalogue':
         from .interfaces.catalogue import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)
+    if args.command=='skills':
+        from .interfaces.skills import execute
+        return execute(args.catalog,args.root,sys.stdin.buffer,sys.stdout)
     if args.command=='runtime-setup':
         from .interfaces.hook_transport import setup
         return setup(args,sys.stdin.buffer,sys.stdout,sys.stderr)

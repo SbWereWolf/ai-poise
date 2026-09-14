@@ -110,3 +110,10 @@ Ordinary Task completion and integration use only targeted behavior/boundary che
 ## Output from migrated development skills
 
 Persist exact test/requirement/RED/GREEN/inspection and terminal check references through existing Task/evidence owners. Report unavailable checks and capability gaps. Static instruction links provide discovery, not implementation of the missing automatic area/stage routing owner; independently reviewed acceptance and result integration remain separate gates.
+
+## Shared skill metadata
+
+Use the explicit [skill catalog contract](../../../docs/configuration/skill-catalog.md)
+for skill identity, path, purpose and specialization. `SkillCatalog` owns metadata;
+routing and decomposition consume it rather than copying instruction bodies or
+inferring classes from names. `poise skills` reads metadata without Task ownership.

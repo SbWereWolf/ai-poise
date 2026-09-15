@@ -1,0 +1,116 @@
+{
+  "schema": "ai-poise-architecture-boundaries-1",
+  "rules": [
+    {
+      "id": "DDD-DOMAIN-NO-IO",
+      "paths": [
+        "src/poise/modules/*/domain.py",
+        "src/poise/modules/workflow/*.py",
+        "src/poise/modules/inspection/*.py",
+        "src/poise/modules/skills/*.py",
+        "src/poise/modules/verification/*.py"
+      ],
+      "forbidden_imports": [
+        "sqlite3",
+        "subprocess",
+        "pathlib",
+        "os",
+        "fcntl",
+        "time",
+        "datetime",
+        "socket",
+        "poise.infrastructure",
+        "poise.application"
+      ],
+      "forbidden_calls": [
+        "open",
+        "eval",
+        "exec",
+        "__import__",
+        "builtins.open",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "importlib.import_module"
+      ],
+      "protected_subscripts": {
+        "variables": [],
+        "fields": []
+      },
+      "protected_attributes": [],
+      "forbidden_sql_tables": []
+    },
+    {
+      "id": "DDD-APPLICATION-NO-IO",
+      "paths": [
+        "src/poise/application/*.py"
+      ],
+      "forbidden_imports": [
+        "sqlite3",
+        "subprocess",
+        "pathlib",
+        "os",
+        "fcntl",
+        "time",
+        "socket",
+        "poise.infrastructure"
+      ],
+      "forbidden_calls": [
+        "open",
+        "eval",
+        "exec",
+        "__import__",
+        "builtins.open",
+        "builtins.eval",
+        "builtins.exec",
+        "builtins.__import__",
+        "importlib.import_module"
+      ],
+      "protected_subscripts": {
+        "variables": [],
+        "fields": []
+      },
+      "protected_attributes": [],
+      "forbidden_sql_tables": []
+    },
+    {
+      "id": "DDD-TASK-STATE-OWNER",
+      "paths": [
+        "src/poise/runtime.py",
+        "src/poise/application/runner.py"
+      ],
+      "forbidden_imports": [],
+      "forbidden_calls": [],
+      "protected_subscripts": {
+        "variables": [
+          "data",
+          "task"
+        ],
+        "fields": [
+          "status",
+          "stage_index",
+          "iteration",
+          "claimed_by",
+          "history"
+        ]
+      },
+      "protected_attributes": [
+        "status",
+        "stage_index",
+        "iteration",
+        "claimed_by",
+        "history"
+      ],
+      "forbidden_sql_tables": [
+        "tasks",
+        "submissions",
+        "section_layers",
+        "task_events",
+        "task_results",
+        "content_contracts",
+        "trace_point_layers",
+        "task_methods"
+      ]
+    }
+  ]
+}

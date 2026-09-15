@@ -145,5 +145,22 @@ class AiPoiseTestPackages:
             "members": members,
         }
 
+    def impact(self, checkout: Path, changed_paths: list[str]) -> dict:
+        """Inspect declared input paths, including deleted files, without execution."""
+        from ..modules.verification.impact import select_package_impact
+        root = self._assert_ai_poise_checkout(checkout)
+        if not isinstance(changed_paths, list) or len(changed_paths) > 4096:
+            raise PoiseError("Expected a bounded list of changed AI-poise paths")
+        for value in changed_paths:
+            name = _relative_pattern(value, "changed_paths")
+            path = PurePosixPath(name)
+            if (path.as_posix() != name or name == '.' or len(path.parts) > 128
+                    or any(c in name for c in '*?[]') or not (root / name).resolve().is_relative_to(root)):
+                raise PoiseError("Changed paths must be concrete relative files inside the AI-poise checkout")
+        declarations = [{'id': p.id, 'owner': p.owner,
+                         'integration_boundaries': list(p.integration_boundaries),
+                         'members': p.patterns} for p in self._packages]
+        return select_package_impact(declarations, changed_paths)
+
     def enumerate(self, checkout: Path) -> list[dict]:
         return [self.membership(checkout, package_id) for package_id in self.package_ids]

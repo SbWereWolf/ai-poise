@@ -168,5 +168,11 @@
         "documentation-links"
       ]
     }
-  ]
+  ],
+  "authoring_boundary_gate": {
+    "policy": "../testing/architecture-boundaries.json",
+    "handlers": [
+      "produce"
+    ]
+  }
 }

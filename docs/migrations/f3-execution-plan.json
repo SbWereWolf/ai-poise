@@ -1,0 +1,213 @@
+{
+  "schema": "ai-poise-f3-execution-plan-1",
+  "updated": "2026-09-16",
+  "baseline": "a51647d8f7cac029b54d7024d82e0adf8de30569",
+  "sprint": "SPRINT-ERP-MIGRATION-F3-ROUTING-HOOKS",
+  "draft_revision": 5,
+  "database_sha256": "3a6f51b6c7b61e0243e2291abeb7b35a38d47a27ec48d60a0931c43e4844d55c",
+  "tasks": [
+    {
+      "id": "ERP-MIG-F3-10-C002",
+      "contract": {
+        "goal": "CONDITIONAL DUPLICATE of C002 for F3. Before implementation inspect equivalent AI-poise scoped development-rule/architecture-boundary functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "d301978966ff36595bdf9087dfa90895713f95aa"
+    },
+    {
+      "id": "ERP-MIG-F3-11-C015",
+      "contract": {
+        "goal": "CONDITIONAL DUPLICATE of C015 for F3. Before implementation inspect the existing AI-poise registered check runner. If it satisfies F3 needs, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing runner behavior. Do not create a cross-Sprint dependency."
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "3c1f89ad8adc31a8b878102707d2ef69cb04fa66"
+    },
+    {
+      "id": "ERP-MIG-F3-13-C026-2",
+      "contract": {
+        "goal": "CONDITIONAL DUPLICATE of C026.2 for F3. Before implementation inspect existing AI-poise IDE/AST navigation behavior for the concrete checkout path being inspected. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise fill only confirmed gaps. Do not create a cross-Sprint dependency."
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "cbd5c14e923185a13c747511c9bb9f375e7b6c0b"
+    },
+    {
+      "id": "ERP-MIG-F3-03-C003",
+      "contract": {
+        "definition_of_done": [
+          "Selection metadata is declarative, testable and consumed by C004.",
+          "No duplicate profile documents or second router are introduced.",
+          "Project-specific external technology assumptions are absent."
+        ],
+        "goal": "Express selection conditions for AI-poise shipped skills as routing metadata for development of AI poise, without creating a universal target-repository profile system.",
+        "requirements": [
+          "Do not copy ERP profiles C073-C079 as separately loaded documents.",
+          "Represent only selection facts needed by the single C004 router for AI-poise development.",
+          "Use explicit changed paths/task facts and the existing skill catalogue; external repositories are not required to adopt this schema."
+        ]
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "914402ac14e8bda5f8726fefb2ae1d5e993105c5"
+    },
+    {
+      "id": "ERP-MIG-F3-12-C016",
+      "contract": {
+        "goal": "CONDITIONAL DUPLICATE of C016 for F3. Before implementation inspect existing AI-poise test-package metadata and ownership boundaries. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "bb45751b81cab124e37ebb1e48d1f6cefcf32b2c"
+    },
+    {
+      "id": "ERP-MIG-F3-04-C004",
+      "contract": {
+        "definition_of_done": [
+          "Bootstrap/update paths use one routing owner.",
+          "Changing explicit scope/facts can recompute the route deterministically.",
+          "No target-repository policy engine or path-resolution override is introduced."
+        ],
+        "goal": "Implement one AI-poise routing owner that derives applicable scoped rules, shipped skills and registered checks from explicit task/change facts and paths.",
+        "requirements": [
+          "The router accepts needed checkout paths, changed paths and task facts as explicit inputs; it does not alter global path resolution.",
+          "It may read branch-local AGENTS.md, skills and references from the explicitly supplied AI-poise checkout when those branch-local instructions are part of the work.",
+          "Return applicable rule/skill/check identities, missing inputs and stage/result contract facts needed by downstream owners.",
+          "Persist only the routing result required for handoff/replay; do not create a second lifecycle."
+        ]
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "15621ac81c1d2e49339b55cbe1b51636c872ef3f"
+    },
+    {
+      "id": "ERP-MIG-F3-05-C043",
+      "contract": {
+        "definition_of_done": [
+          "One IDE skill/owner remains.",
+          "Confirmed requirement gaps are covered by focused tests/documentation.",
+          "Unavailable capabilities are reported without pretending configuration proves live support."
+        ],
+        "goal": "Audit the existing AI-poise IDE skill against useful ERP jetbrains-ide requirements and fill only confirmed gaps; do not ship a second IDE skill or router.",
+        "requirements": [
+          "Retain IDE-first semantics, real exposed-tool capability checks and AST fallback only where needed.",
+          "IDE/AST operations receive the concrete AI-poise checkout path they should inspect.",
+          "Use C004 for selection and C026.2 for navigation/index behavior."
+        ]
+      },
+      "decision": "verify-reuse",
+      "prior_commit": "a51647d8f7cac029b54d7024d82e0adf8de30569"
+    },
+    {
+      "id": "ERP-MIG-F3-06-C017",
+      "contract": {
+        "definition_of_done": [
+          "Focused selection is deterministic for mapped paths and requirements.",
+          "Unknown paths are surfaced with a repairable diagnostic.",
+          "Selection feeds existing verification owners and does not become a finalizer."
+        ],
+        "goal": "Select focused AI-poise verification methods from task requirements, explicit diff paths and AI-poise test-package impact using C004, C015 and C016.",
+        "requirements": [
+          "Task-assigned methods remain authoritative for new behavior; diff-based impact augments rather than replaces them.",
+          "Interpret changed paths against the explicitly supplied AI-poise checkout and C016 package map.",
+          "Unknown paths produce a reasoned diagnostic/mapping gap instead of silently skipping checks or launching the full suite.",
+          "Recompute when task scope or relevant diff facts change."
+        ]
+      },
+      "decision": "implement",
+      "prior_commit": null
+    },
+    {
+      "id": "ERP-MIG-F3-07-C029-4",
+      "contract": {
+        "definition_of_done": [
+          "Known AI-poise boundary violations fail with actionable diagnostics.",
+          "Valid boundaries pass in focused tests.",
+          "No generic language-dispatch analyzer layer is added."
+        ],
+        "goal": "Gate AI-poise architecture-boundary violations at the authoring stage using existing or explicitly registered AI-poise Python checks, without creating a generic multi-language analyzer.",
+        "requirements": [
+          "Limit analysis to boundaries owned by the AI-poise Python codebase and its documented architecture.",
+          "Operate on the explicitly supplied code checkout/path and report file/symbol/rule diagnostics.",
+          "A violation blocks delivery from the authoring stage but remains fixable in the same Task/stage.",
+          "Do not migrate C029.2/C029.3 as hidden prerequisites or impose PHP/JS analyzers on unrelated projects."
+        ]
+      },
+      "decision": "implement",
+      "prior_commit": null
+    }
+  ],
+  "dependencies": [
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-03-C003",
+      "successor": "ERP-MIG-F3-04-C004"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-04-C004",
+      "successor": "ERP-MIG-F3-05-C043"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-04-C004",
+      "successor": "ERP-MIG-F3-06-C017"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-04-C004",
+      "successor": "ERP-MIG-F3-07-C029-4"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-10-C002",
+      "successor": "ERP-MIG-F3-03-C003"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-10-C002",
+      "successor": "ERP-MIG-F3-12-C016"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-11-C015",
+      "successor": "ERP-MIG-F3-06-C017"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-12-C016",
+      "successor": "ERP-MIG-F3-06-C017"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F3-13-C026-2",
+      "successor": "ERP-MIG-F3-05-C043"
+    }
+  ],
+  "execution_order": [
+    "ERP-MIG-F3-10-C002",
+    "ERP-MIG-F3-11-C015",
+    "ERP-MIG-F3-13-C026-2",
+    "ERP-MIG-F3-03-C003",
+    "ERP-MIG-F3-12-C016",
+    "ERP-MIG-F3-04-C004",
+    "ERP-MIG-F3-05-C043",
+    "ERP-MIG-F3-06-C017",
+    "ERP-MIG-F3-07-C029-4"
+  ],
+  "retired": [
+    "C026.1",
+    "C051",
+    "C093"
+  ],
+  "out_of_scope": [
+    "C031/F4",
+    "worktree placement",
+    "generic PHP/JS analysis",
+    "lifecycle repairs",
+    "merge/push"
+  ],
+  "constraints": [
+    "Migration improves AI-poise, not all target projects.",
+    "Existing executable/hook/config path resolution is unchanged. An operation accepts a concrete filesystem path/cwd.",
+    "Reuse equivalent functionality and retain local Task provenance, no cross-Sprint dependency.",
+    "Direct migration by user authorization; sealed Task DB is not rewritten to simulate completion.",
+    "Focused tests plus bounded smoke, never full-suite discovery.",
+    "Checkpoint after each Task; remote delivery and local restore are distinct facts."
+  ]
+}

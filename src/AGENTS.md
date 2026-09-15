@@ -135,3 +135,11 @@ Every stage-authorized `test_registry` mutation supplies the full explicit list;
 infer it from all requirements/DoD. Restore the current classification only
 from validated registry state, without rewriting historical methods or receipts and
 without a migration or fallback to immutable creation metadata.
+
+For AI-poise's own changed-input test selection, use the existing package owner and
+single router; preserve Task-assigned methods, report unmapped inputs, and never fall
+back to unfiltered discovery. Read [package input impact](../docs/configuration/development-routing.md#выбор-проверок-по-входам-тестовых-пакетов).
+
+For AI-poise's authoring boundary gate, follow [pre-submission architecture checks](../docs/workflows/architecture-boundaries.md#проверка-архитектуры-перед-авторской-сдачей).
+Use the configured running tool to check concrete changed paths. Do not execute subject
+code in a static check, replace assigned Task methods, or mutate Task state after a failed gate.

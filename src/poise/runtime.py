@@ -627,16 +627,20 @@ class Poise:
             context['development_route'] = self._development_route(data, [], persist=prepare)
         return context
 
-    def _development_route(self, data, facts, *, persist):
-        if self.development_routing is None:
-            raise PoiseError('AI-poise development routing is not configured')
+    def _development_changes(self, data):
         directory = self._verification_workspace(data)
         revision = data['base']
-        changed = sorted(set(
+        return sorted(set(
             p for p in (self._git(directory, 'diff', '--name-only', '--no-renames', '-z', revision, '--')
                         + self._git(directory, 'ls-files', '--others', '--exclude-standard', '-z')).split('\0')
             if p
         ))
+
+    def _development_route(self, data, facts, *, persist):
+        if self.development_routing is None:
+            raise PoiseError('AI-poise development routing is not configured')
+        directory = self._verification_workspace(data)
+        changed = self._development_changes(data)
         stage = self._stage(data)
         selected = self._select_checks(data, changed)
         required = list(dict.fromkeys(m for check in selected for m in check['obligations']))
@@ -1091,6 +1095,19 @@ class Poise:
         tree = scope_state['tree']
         changed = scope_state['changed']
         scope = scope_state['allowed_paths']
+        if self.development_routing is not None:
+            boundary_paths = self._development_changes(data)
+            removed = [name for name in self._git(
+                worktree, 'diff', '--name-only', '--no-renames', '--diff-filter=D',
+                '-z', data['base'], '--'
+            ).split('\0') if name]
+            architecture = self.development_routing.check_authoring_boundaries(
+                str(worktree), stage['handler'], boundary_paths, removed
+            )
+            if architecture['passed'] is False:
+                # No submission or Task mutation: repair and retry in this same authoring stage.
+                return {'status': 'architecture_boundaries_failed', 'task': data['id'],
+                        'stage': stage['id'], 'architecture': architecture, 'checks': [], 'replayed': False}
         if pending_checks:
             submitted_digest = self.runner.matching_submission_digest(
                 data['id'], self.session, payload

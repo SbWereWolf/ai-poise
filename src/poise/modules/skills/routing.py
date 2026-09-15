@@ -12,7 +12,10 @@ class RoutingPolicy:
 
     @classmethod
     def parse(cls, raw, selection, package_ids):
-        exact(raw, {'schema', 'known_paths', 'handler_facts', 'checks'}, 'development routing')
+        keys = {'schema', 'known_paths', 'handler_facts', 'checks'}
+        if isinstance(raw, dict) and 'authoring_boundary_gate' in raw:
+            keys.add('authoring_boundary_gate')
+        exact(raw, keys, 'development routing')
         if raw['schema'] != 'ai-poise-development-routing-1':
             raise DomainError('Unsupported AI-poise development routing schema')
         strings(raw['known_paths'], 'known paths', True)
@@ -41,6 +44,15 @@ class RoutingPolicy:
             strings(check['packages'], 'check packages', True)
             if set(check['packages']) - set(package_ids):
                 raise DomainError('Unknown registered AI-poise package')
+        if 'authoring_boundary_gate' in raw:
+            gate = raw['authoring_boundary_gate']
+            exact(gate, {'policy', 'handlers'}, 'authoring boundary gate')
+            strings([gate['policy']], 'architecture policy path', True)
+            if '\0' in gate['policy']:
+                raise DomainError('Invalid architecture policy path')
+            strings(gate['handlers'], 'authoring handlers', True)
+            if set(gate['handlers']) - set(raw['handler_facts']):
+                raise DomainError('Unknown authoring boundary handler')
         return cls(raw)
 
 

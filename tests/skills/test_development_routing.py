@@ -217,3 +217,145 @@ def test_domain_and_application_do_not_access_io():
                      [node.module or ''] if isinstance(node,ast.ImportFrom) else [])
             assert not any('infrastructure' in m or m.split('.')[0] in
                 {'os','pathlib','subprocess','sqlite3','time'} for m in imports)
+
+
+def test_c017_catalog_input_impact_augments_policy_and_preserves_methods(configured):
+    paths, req, checkout = configured
+    raw = json.loads(Path(paths['packages']).read_text())
+    raw['packages'][0]['integration_boundaries'] = ['boundary']
+    raw['packages'].append({'id': 'boundary', 'owner': 'api', 'integration_boundaries': [],
+        'members': {'source': ['src/api.py'], 'tests': ['tests/test_api.py'], 'support': [], 'fixtures': []}})
+    write(Path(paths['packages']), raw)
+    result = service(paths).route(req)
+    assert result['checks']['required_methods'] == ['M']
+    assert result['checks']['suggested_packages'] == ['boundary', 'targeted']
+    assert result['test_impact']['direct_packages'] == ['targeted']
+    assert result['test_impact']['integration_packages'] == ['boundary']
+    assert result['checks']['executed'] is False
+
+
+def test_c017_unmapped_diff_within_known_scope_is_not_silently_skipped(configured):
+    paths, req, _ = configured
+    req['changed_paths'] = ['src/new_owner.py']
+    result = service(paths).route(req)
+    assert result['status'] == 'needs_inputs'
+    assert 'unmapped_test_input:src/new_owner.py' in result['missing_inputs']
+    assert result['checks']['required_methods'] == ['M']
+    assert result['test_impact']['suggested_packages'] == []
+
+
+def test_c017_receipt_changes_with_diff_but_not_order(configured):
+    paths, req, _ = configured
+    router = service(paths)
+    first = router.route(req)
+    req['changed_paths'] = ['src/example.py', 'tests/test_example.py']
+    second = router.route(req)
+    assert second['route_digest'] != first['route_digest']
+    req['changed_paths'].reverse()
+    # Input order is preserved by existing C004, but impact itself is canonical.
+    assert router.route(req)['test_impact'] == second['test_impact']
+
+
+def enable_boundary_gate(paths):
+    policy_path = Path(paths['policy'])
+    config = policy_path.parent / 'architecture.json'
+    write(config, {'schema': 'ai-poise-architecture-boundaries-1', 'rules': [{
+        'id': 'domain-no-io', 'paths': ['src/poise/modules/*/domain.py'],
+        'forbidden_imports': ['os', 'poise.infrastructure', 'poise.application'],
+        'forbidden_calls': ['open', 'builtins.open', 'importlib.import_module'],
+        'protected_subscripts': {'variables': [], 'fields': []},
+        'protected_attributes': [], 'forbidden_sql_tables': [],
+    }]})
+    raw = json.loads(policy_path.read_text())
+    raw['handler_facts']['revise'] = []
+    raw['authoring_boundary_gate'] = {'policy': 'architecture.json', 'handlers': ['produce', 'revise']}
+    write(policy_path, raw)
+    return config
+
+
+def test_c029_boundary_config_is_loaded_from_running_policy_not_subject(configured):
+    paths, req, checkout = configured
+    enable_boundary_gate(paths)
+    write(checkout / 'config/testing/architecture.json', 'not executable policy')
+    target = 'src/poise/modules/demo/domain.py'
+    write(checkout / target, 'import os\n')
+    result = service(paths).check_authoring_boundaries(str(checkout), 'produce', [target], [])
+    assert result['status'] == 'failed'
+    assert result['diagnostics'] == [{'file': target, 'line': 1, 'rule': 'domain-no-io',
+                                     'kind': 'import', 'symbol': 'os'}]
+
+
+def test_c029_no_gate_is_an_explicit_non_configuration_not_a_pass(configured):
+    paths, _, checkout = configured
+    result = service(paths).check_authoring_boundaries(str(checkout), 'produce', [], [])
+    assert result == {'status': 'not_configured', 'passed': None}
+
+
+@pytest.mark.parametrize('dedicated', [True, False])
+@pytest.mark.parametrize('bad_source,expected_status', [('import os\n', 'failed'), ('def broken(:\n', 'inconclusive')])
+def test_c029_gate_blocks_before_submit_and_can_retry_same_stage(configured, project, dedicated, bad_source, expected_status):
+    from conftest import WorkPoise, git, write_json, fill, add_test
+    import shutil
+    paths, _, copy_path = configured
+    enable_boundary_gate(paths)
+    for name in ('pyproject.toml', '.agents'):
+        source, target = copy_path / name, project['app'] / name
+        shutil.copytree(source, target) if source.is_dir() else shutil.copyfile(source, target)
+    git(project['app'], 'add', '.'); git(project['app'], 'commit', '-m', 'AI-poise test identity')
+    project['process']['worktree_required'] = dedicated
+    project['process']['stages'][0]['allowed_paths'] = ['src/**', 'tests/**']
+    project['task']['stage_contracts'][0]['allowed_paths'] = ['src/**', 'tests/**']
+    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    project['cfg']['development_routing'] = paths
+    write_json(project['config_path'], project['cfg'])
+    runtime = WorkPoise(project['config_path'], 'BOUNDARY')
+    ctx = runtime.bootstrap(project['task'])
+    directory = Path(ctx['worktree']) if dedicated else project['app']
+    add_test(directory)
+    target = directory / 'src/poise/modules/demo/domain.py'
+    write(target, bad_source)
+    before = runtime.current_task()
+    history = runtime.task_queries.history(project['task']['id'])
+    result = runtime.verify(fill(ctx))
+    assert result['status'] == 'architecture_boundaries_failed'
+    assert result['architecture']['status'] == expected_status
+    assert result['checks'] == []
+    after = runtime.current_task()
+    for field in ('version', 'status', 'stage_index', 'claimed_by', 'attempts', 'pending', 'iteration'):
+        assert after[field] == before[field]
+    assert runtime.task_queries.history(project['task']['id']) == history
+    write(target, 'VALUE = 1\n')
+    repaired = runtime.verify(fill(ctx))
+    assert repaired['status'] == 'verified', repaired
+    assert runtime.current_task()['id'] == before['id']
+    assert runtime.current_task()['stage_index'] == before['stage_index']
+
+
+def test_c029_non_authoring_handler_does_not_run_a_different_gate(configured):
+    paths, _, checkout = configured
+    enable_boundary_gate(paths)
+    result = service(paths).check_authoring_boundaries(str(checkout), 'inspect', [], [])
+    assert result == {'status': 'not_applicable', 'passed': None}
+
+
+@pytest.mark.parametrize('override', [None, {}, {'policy': '', 'handlers': ['produce']},
+    {'policy': 'architecture.json', 'handlers': ['unknown']},
+    {'policy': 'architecture.json', 'handlers': []}])
+def test_c029_invalid_registration_fails_instead_of_disabling_a_gate(configured, override):
+    paths, _, _ = configured
+    enable_boundary_gate(paths)
+    raw = json.loads(Path(paths['policy']).read_text())
+    raw['authoring_boundary_gate'] = override
+    write(Path(paths['policy']), raw)
+    with pytest.raises(PoiseError): service(paths)
+
+
+def test_c029_policy_digest_is_bound_to_existing_route_snapshot(configured):
+    paths, req, _ = configured
+    policy = enable_boundary_gate(paths)
+    before = service(paths).route(req)
+    raw = json.loads(policy.read_text()); raw['rules'][0]['id'] = 'revised-policy'
+    write(policy, raw)
+    after = service(paths).route(req)
+    assert before['configuration_digests']['architecture'] != after['configuration_digests']['architecture']
+    assert before['route_digest'] != after['route_digest']

@@ -10,6 +10,7 @@ from ..modules.skills.selection import SkillSelection
 from ..modules.skills.routing import RoutingPolicy
 from .goal_config import atomic_write
 from .test_packages import AiPoiseTestPackages
+from .architecture_checks import AiPoiseArchitectureChecks
 
 
 _LIMIT = 4 * 1024 * 1024
@@ -34,11 +35,21 @@ def _document(data):
 
 
 class RoutingFiles:
-    def __init__(self, configuration_digests):
+    def __init__(self, configuration_digests, packages, boundaries=None):
         self.configuration_digests = dict(configuration_digests)
+        self.packages = packages
+        self.boundaries = boundaries
 
     def checkout(self, path):
         return str(AiPoiseTestPackages._assert_ai_poise_checkout(Path(path)))
+
+    def test_impact(self, checkout, paths):
+        return self.packages.impact(Path(checkout), paths)
+
+    def check_boundaries(self, checkout, paths, deleted_paths):
+        if self.boundaries is None:
+            raise PoiseError('Configured authoring boundary checker is unavailable')
+        return self.boundaries.check(Path(checkout), paths, deleted_paths=deleted_paths)
 
     def rules(self, checkout, paths):
         base = Path(checkout)
@@ -108,4 +119,11 @@ def load_development_routing(*, catalog, selection, policy, packages):
         raise PoiseError('Package configuration changed during routing load')
     rules = RoutingPolicy.parse(_document(contents['policy']), conditions, package_catalog.package_ids)
     hashes = {name: hashlib.sha256(data).hexdigest() for name, data in contents.items()}
-    return DevelopmentRouting(metadata, conditions, rules, RoutingFiles(hashes))
+    boundaries = None
+    if 'authoring_boundary_gate' in rules.document:
+        name = Path(rules.document['authoring_boundary_gate']['policy'])
+        # Resolve operational configuration from the supplied routing file, never task code.
+        boundary_path = name if name.is_absolute() else Path(policy).parent / name
+        boundaries = AiPoiseArchitectureChecks.load(boundary_path)
+        hashes['architecture'] = boundaries.policy_sha256
+    return DevelopmentRouting(metadata, conditions, rules, RoutingFiles(hashes, package_catalog, boundaries))

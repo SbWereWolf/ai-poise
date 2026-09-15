@@ -15,7 +15,8 @@
           "src/poise/modules/verification/**/*.py",
           "src/poise/infrastructure/test_packages.py",
           "src/poise/infrastructure/test_package_cache.py",
-          "src/poise/infrastructure/sqlite/hook_transport.py"
+          "src/poise/infrastructure/sqlite/hook_transport.py",
+          "src/poise/infrastructure/architecture_checks.py"
         ],
         "tests": [
           "tests/runner/test_*.py",
@@ -25,7 +26,9 @@
         "support": [
           "tools/run_test_packages.py",
           "tools/run_ai_poise_test_package.py",
-          "tests/runner/helpers.py"
+          "tests/runner/helpers.py",
+          "tools/check_architecture.py",
+          "config/testing/architecture-boundaries.json"
         ],
         "fixtures": [
           "tests/conftest.py",

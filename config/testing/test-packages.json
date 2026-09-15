@@ -4,100 +4,285 @@
     {
       "id": "verification-runner",
       "owner": "verification",
-      "integration_boundaries": ["evidence", "runtime-services"],
+      "integration_boundaries": [
+        "evidence",
+        "runtime-services"
+      ],
       "members": {
-        "source": ["src/poise/execution.py", "src/poise/application/runner.py", "src/poise/modules/verification/**/*.py", "src/poise/infrastructure/test_packages.py", "src/poise/infrastructure/test_package_cache.py"],
-        "tests": ["tests/runner/test_*.py", "tests/verification/test_*.py", "tests/test_package_execution.py"],
-        "support": ["tools/run_test_packages.py", "tools/run_ai_poise_test_package.py", "tests/runner/helpers.py"],
-        "fixtures": ["tests/conftest.py"]
+        "source": [
+          "src/poise/execution.py",
+          "src/poise/application/runner.py",
+          "src/poise/modules/verification/**/*.py",
+          "src/poise/infrastructure/test_packages.py",
+          "src/poise/infrastructure/test_package_cache.py",
+          "src/poise/infrastructure/sqlite/hook_transport.py"
+        ],
+        "tests": [
+          "tests/runner/test_*.py",
+          "tests/verification/test_*.py",
+          "tests/test_package_execution.py"
+        ],
+        "support": [
+          "tools/run_test_packages.py",
+          "tools/run_ai_poise_test_package.py",
+          "tests/runner/helpers.py"
+        ],
+        "fixtures": [
+          "tests/conftest.py",
+          "tests/hook_transport/helpers.py"
+        ]
       }
     },
     {
       "id": "evidence",
       "owner": "evidence",
-      "integration_boundaries": ["verification-runner", "runtime-services"],
+      "integration_boundaries": [
+        "verification-runner",
+        "runtime-services"
+      ],
       "members": {
-        "source": ["src/poise/application/evidence.py", "src/poise/modules/evidence/**/*.py", "src/poise/infrastructure/sqlite/evidence.py"],
-        "tests": ["tests/evidence/test_*.py"],
+        "source": [
+          "src/poise/application/evidence.py",
+          "src/poise/modules/evidence/**/*.py",
+          "src/poise/infrastructure/sqlite/evidence.py"
+        ],
+        "tests": [
+          "tests/evidence/test_*.py"
+        ],
         "support": [],
-        "fixtures": ["tests/conftest.py"]
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "tasks",
       "owner": "tasks",
-      "integration_boundaries": ["evidence", "runtime-services", "sprints"],
+      "integration_boundaries": [
+        "evidence",
+        "runtime-services",
+        "sprints"
+      ],
       "members": {
-        "source": ["src/poise/application/tasks.py", "src/poise/modules/tasks/**/*.py", "src/poise/infrastructure/sqlite/tasks.py"],
-        "tests": ["tests/tasks/test_*.py", "tests/ddd/test_task_*.py"],
+        "source": [
+          "src/poise/application/tasks.py",
+          "src/poise/modules/tasks/**/*.py",
+          "src/poise/infrastructure/sqlite/tasks.py"
+        ],
+        "tests": [
+          "tests/tasks/test_*.py",
+          "tests/ddd/test_task_*.py"
+        ],
         "support": [],
-        "fixtures": ["tests/conftest.py"]
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "sprints",
       "owner": "sprints",
-      "integration_boundaries": ["tasks", "runtime-services"],
+      "integration_boundaries": [
+        "tasks",
+        "runtime-services"
+      ],
       "members": {
-        "source": ["src/poise/application/sprints.py", "src/poise/modules/sprints/**/*.py", "src/poise/infrastructure/sprint_work.py"],
-        "tests": ["tests/sprints/test_*.py"],
+        "source": [
+          "src/poise/application/sprints.py",
+          "src/poise/modules/sprints/**/*.py",
+          "src/poise/infrastructure/sprint_work.py"
+        ],
+        "tests": [
+          "tests/sprints/test_*.py"
+        ],
         "support": [],
-        "fixtures": ["tests/conftest.py"]
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "runtime-services",
       "owner": "runtime-services",
-      "integration_boundaries": ["verification-runner", "evidence", "tasks", "sprints", "result-integration", "hooks"],
+      "integration_boundaries": [
+        "verification-runner",
+        "evidence",
+        "tasks",
+        "sprints",
+        "result-integration",
+        "hooks"
+      ],
       "members": {
-        "source": ["src/poise/runtime.py", "src/poise/application/work.py", "src/poise/modules/work/**/*.py", "src/poise/infrastructure/work.py"],
-        "tests": ["tests/runtime_services/test_*.py"],
+        "source": [
+          "src/poise/runtime.py",
+          "src/poise/application/work.py",
+          "src/poise/modules/work/**/*.py",
+          "src/poise/infrastructure/work.py"
+        ],
+        "tests": [
+          "tests/runtime_services/test_*.py"
+        ],
         "support": [],
-        "fixtures": ["tests/conftest.py"]
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "projects",
       "owner": "projects",
-      "integration_boundaries": ["runtime-services"],
+      "integration_boundaries": [
+        "runtime-services"
+      ],
       "members": {
-        "source": ["src/poise/application/projects.py", "src/poise/application/project_config.py", "src/poise/modules/projects/**/*.py", "src/poise/infrastructure/projects.py", "src/poise/infrastructure/project_config.py"],
-        "tests": ["tests/projects/test_*.py", "tests/goal_config/test_*.py"],
-        "support": ["tests/projects/helpers.py", "tests/goal_config/helpers.py"],
-        "fixtures": ["tests/conftest.py"]
+        "source": [
+          "src/poise/application/projects.py",
+          "src/poise/application/project_config.py",
+          "src/poise/modules/projects/**/*.py",
+          "src/poise/infrastructure/projects.py",
+          "src/poise/infrastructure/project_config.py"
+        ],
+        "tests": [
+          "tests/projects/test_*.py",
+          "tests/goal_config/test_*.py"
+        ],
+        "support": [
+          "tests/projects/helpers.py",
+          "tests/goal_config/helpers.py"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "hooks",
       "owner": "hook-transport",
-      "integration_boundaries": ["runtime-services", "verification-runner"],
+      "integration_boundaries": [
+        "runtime-services",
+        "verification-runner"
+      ],
       "members": {
-        "source": ["src/poise/application/hook_transport.py", "src/poise/modules/hook_transport/**/*.py", "src/poise/infrastructure/hook_transport.py"],
-        "tests": ["tests/hook_transport/test_*.py"],
-        "support": ["tests/hook_transport/helpers.py", "tests/hook_transport/mcp_fixture.py"],
-        "fixtures": ["tests/conftest.py"]
+        "source": [
+          "src/poise/application/hook_transport.py",
+          "src/poise/modules/hook_transport/**/*.py",
+          "src/poise/infrastructure/hook_transport.py",
+          "src/poise/infrastructure/sqlite/hook_transport.py",
+          "src/poise/execution.py"
+        ],
+        "tests": [
+          "tests/hook_transport/test_*.py"
+        ],
+        "support": [
+          "tests/hook_transport/helpers.py",
+          "tests/hook_transport/mcp_fixture.py"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "result-integration",
       "owner": "result-integration",
-      "integration_boundaries": ["runtime-services", "verification-runner"],
+      "integration_boundaries": [
+        "runtime-services",
+        "verification-runner"
+      ],
       "members": {
-        "source": ["src/poise/application/result_integration.py", "src/poise/modules/result_integration/**/*.py", "src/poise/infrastructure/result_integration.py"],
-        "tests": ["tests/result_integration/test_*.py"],
+        "source": [
+          "src/poise/application/result_integration.py",
+          "src/poise/modules/result_integration/**/*.py",
+          "src/poise/infrastructure/result_integration.py"
+        ],
+        "tests": [
+          "tests/result_integration/test_*.py"
+        ],
         "support": [],
-        "fixtures": ["tests/conftest.py"]
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     },
     {
       "id": "skills",
       "owner": "skills",
-      "integration_boundaries": ["tasks"],
+      "integration_boundaries": [
+        "tasks"
+      ],
       "members": {
-        "source": ["src/poise/application/skill_catalog.py", "src/poise/modules/skills/**/*.py", "src/poise/infrastructure/skill_catalog.py", "src/poise/modules/tasks/decomposition.py"],
-        "tests": ["tests/skills/test_*.py", "tests/tasks/test_focused_decomposition.py"],
-        "support": [".agents/skill-catalog.json"],
-        "fixtures": ["tests/conftest.py"]
+        "source": [
+          "src/poise/application/skill_catalog.py",
+          "src/poise/modules/skills/**/*.py",
+          "src/poise/infrastructure/skill_catalog.py",
+          "src/poise/modules/tasks/decomposition.py"
+        ],
+        "tests": [
+          "tests/skills/test_*.py",
+          "tests/tasks/test_focused_decomposition.py"
+        ],
+        "support": [
+          ".agents/skill-catalog.json"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
+      }
+    },
+    {
+      "id": "tooling-fast",
+      "owner": "repository-tooling",
+      "integration_boundaries": [
+        "verification-runner",
+        "skills"
+      ],
+      "members": {
+        "source": [
+          "tools/*.py"
+        ],
+        "tests": [
+          "tests/delivery/test_tooling_catalog.py",
+          "tests/delivery/test_migration_planning_policy.py",
+          "tests/delivery/test_migration_current_state.py"
+        ],
+        "support": [
+          "config/testing/test-packages.json",
+          "AGENTS.md",
+          "docs/migrations/*.md",
+          "docs/migrations/sprint-dependency-closure-2026-09-15.json",
+          "docs/workflows/sprints.md",
+          "tests/smoke.sh",
+          ".agents/skills/poise-development/SKILL.md"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
+      }
+    },
+    {
+      "id": "tooling-recovery",
+      "owner": "repository-tooling",
+      "integration_boundaries": [
+        "verification-runner"
+      ],
+      "members": {
+        "source": [
+          "tools/work_checkpoint.py",
+          "tools/run_test_packages.py",
+          "src/poise/execution.py"
+        ],
+        "tests": [
+          "tests/delivery/test_work_checkpoint.py",
+          "tests/test_package_execution.py"
+        ],
+        "support": [
+          "config/testing/test-packages.json",
+          "AGENTS.md",
+          "docs/workflows/checkpoint-recovery.md"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
       }
     }
   ]

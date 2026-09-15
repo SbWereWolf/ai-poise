@@ -1,0 +1,347 @@
+{
+  "schema": "ai-poise-skill-selection-1",
+  "subject": "ai-poise",
+  "facts": [
+    "database_migration",
+    "execution",
+    "infrastructure",
+    "performance",
+    "questions",
+    "recovery",
+    "release",
+    "remediation",
+    "remediation_review",
+    "review",
+    "security",
+    "self_review",
+    "task_design"
+  ],
+  "rules": [
+    {
+      "id": "foundation",
+      "priority": 0,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": []
+      },
+      "skills": [
+        "poise",
+        "poise-development",
+        "repo-tooling"
+      ]
+    },
+    {
+      "id": "changed-code",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/**",
+          "tests/**",
+          "tools/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "tdd",
+        "direct-checks"
+      ]
+    },
+    {
+      "id": "changed-docs",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "docs/**",
+          ".agents/**",
+          "**/AGENTS.md",
+          "AGENTS.md"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "documentation"
+      ]
+    },
+    {
+      "id": "domain",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/modules/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "ddd"
+      ]
+    },
+    {
+      "id": "interfaces",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/interfaces/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "api-contracts"
+      ]
+    },
+    {
+      "id": "database",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [
+          "src/poise/infrastructure/sqlite/**"
+        ],
+        "facts_all": []
+      },
+      "skills": [
+        "sql"
+      ]
+    },
+    {
+      "id": "execution",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "execution"
+        ]
+      },
+      "skills": [
+        "exec-task"
+      ]
+    },
+    {
+      "id": "review",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "review"
+        ]
+      },
+      "skills": [
+        "review"
+      ]
+    },
+    {
+      "id": "self_review",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "self_review"
+        ]
+      },
+      "skills": [
+        "self-review"
+      ]
+    },
+    {
+      "id": "remediation",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "remediation"
+        ]
+      },
+      "skills": [
+        "remediation"
+      ]
+    },
+    {
+      "id": "remediation_review",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "remediation_review"
+        ]
+      },
+      "skills": [
+        "remediation-review"
+      ]
+    },
+    {
+      "id": "recovery",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "recovery"
+        ]
+      },
+      "skills": [
+        "debugging-and-recovery"
+      ]
+    },
+    {
+      "id": "task_design",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "task_design"
+        ]
+      },
+      "skills": [
+        "sprint-design"
+      ]
+    },
+    {
+      "id": "release",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "release"
+        ]
+      },
+      "skills": [
+        "release-gate"
+      ]
+    },
+    {
+      "id": "performance",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "performance"
+        ]
+      },
+      "skills": [
+        "performance-and-observability"
+      ]
+    },
+    {
+      "id": "security",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "security"
+        ]
+      },
+      "skills": [
+        "security-and-privacy"
+      ]
+    },
+    {
+      "id": "database_migration",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "database_migration"
+        ]
+      },
+      "skills": [
+        "strict-database-migrations"
+      ]
+    },
+    {
+      "id": "infrastructure",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "infrastructure"
+        ]
+      },
+      "skills": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "questions",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "questions"
+        ]
+      },
+      "skills": [
+        "grilling"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "laravel",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "layout-and-design",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "modern-web-guidance",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "moonshine-native",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "php-modernization",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "phpunit",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "redis-queues",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "tailwind-4-docs",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "vitest",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "vue-best-practices",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "vue-debug-guides",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "vue-pinia-best-practices",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    },
+    {
+      "id": "vue-router-best-practices",
+      "reason": "Not part of the current Python AI-poise implementation; retained in the shipped catalog, not auto-selected for external codebases."
+    }
+  ]
+}

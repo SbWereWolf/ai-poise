@@ -117,10 +117,20 @@ class RegisteredCheckRunner:
         self.preview_chars = preview_chars
         self._lock = threading.Lock()
         self._active: dict[str, dict] = {}
+        self.cancellation_requested = None
+
+    def bind_cancellation(self, check):
+        """Attach a read-only session observation; the runner remains process owner."""
+        if check is not None and not callable(check):
+            raise ValueError('Cancellation observation must be callable or None')
+        with self._lock:
+            if self._active:
+                raise PoiseError('Cannot replace cancellation observation during a run')
+            self.cancellation_requested = check
 
     def active_ids(self) -> tuple[str, ...]:
         with self._lock:
-            return tuple(sorted(self._active))
+            return tuple(sorted(key for key, state in self._active.items() if state['child'] is not None))
 
     @staticmethod
     def _kill_group(child: subprocess.Popen) -> None:
@@ -137,7 +147,8 @@ class RegisteredCheckRunner:
                 return False
             state['cancel_requested'] = True
             child = state['child']
-        self._kill_group(child)
+        if child is not None:
+            self._kill_group(child)
         return True
 
     def run(
@@ -161,83 +172,115 @@ class RegisteredCheckRunner:
             raise ValueError('progress_gap_seconds must be positive or None')
         if isinstance(poll_seconds, bool) or not isinstance(poll_seconds, (int, float)) or poll_seconds <= 0:
             raise ValueError('poll_seconds must be positive')
+        if not isinstance(argv, list) or not argv or any(not isinstance(x, str) for x in argv):
+            raise ValueError('argv must be a non-empty list of strings')
         prohibit_git_push(argv)
         start = time.monotonic()
-        stdout_path.parent.mkdir(parents=True, exist_ok=True)
-        stderr_path.parent.mkdir(parents=True, exist_ok=True)
+        state = {'child': None, 'cancel_requested': False, 'last_progress': start}
+        # Reserve before files or subprocesses: rejected duplicates have no effects.
+        with self._lock:
+            if run_id in self._active:
+                raise PoiseError(f'Проверка уже запущена: {run_id}')
+            self._active[run_id] = state
+            cancellation_check = self.cancellation_requested
+        child = None
+        threads = []
+        streams = []
+        errors = []
         timed_out = False
-        with stdout_path.open('wb') as out, stderr_path.open('wb') as err:
-            try:
-                child = subprocess.Popen(
-                    argv,
-                    cwd=cwd,
-                    env=env,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True,
-                )
-            except OSError as exc:
-                raise PoiseError(f'Не удалось запустить точную команду {argv[0]}: {exc}') from exc
-            state = {'child': child, 'cancel_requested': False, 'last_progress': start}
-            with self._lock:
-                if run_id in self._active:
-                    self._kill_group(child)
-                    child.wait()
-                    raise PoiseError(f'Проверка уже запущена: {run_id}')
-                self._active[run_id] = state
-
-            def pump(stream, target):
+        timeout_reason = None
+        cancellation_reason = None
+        try:
+            if cancellation_check is not None and cancellation_check():
+                raise PoiseError('Native session has ended; registered launch rejected')
+            stdout_path.parent.mkdir(parents=True, exist_ok=True)
+            stderr_path.parent.mkdir(parents=True, exist_ok=True)
+            with stdout_path.open('wb') as out, stderr_path.open('wb') as err:
                 try:
-                    while True:
-                        chunk = stream.read1(64 * 1024)
-                        if not chunk:
-                            break
-                        target.write(chunk)
-                        target.flush()
-                        state['last_progress'] = time.monotonic()
-                finally:
-                    stream.close()
+                    with self._lock:
+                        if state['cancel_requested']:
+                            raise PoiseError('Registered launch cancelled before spawn')
+                        try:
+                            child = subprocess.Popen(
+                                argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                start_new_session=True,
+                            )
+                        except OSError as exc:
+                            raise PoiseError(f'Не удалось запустить точную команду {argv[0]}: {exc}') from exc
+                        state['child'] = child
+                    streams = [child.stdout, child.stderr]
 
-            stdout_thread = threading.Thread(target=pump, args=(child.stdout, out), daemon=True)
-            stderr_thread = threading.Thread(target=pump, args=(child.stderr, err), daemon=True)
-            stdout_thread.start(); stderr_thread.start()
-            timeout_reason = None
-            try:
-                while True:
-                    code = child.poll()
-                    if code is not None:
-                        break
-                    now = time.monotonic()
-                    if progress_gap_seconds is not None and now - state['last_progress'] >= progress_gap_seconds:
-                        timed_out = True
-                        timeout_reason = 'progress_gap'
+                    def pump(stream, target):
+                        try:
+                            while True:
+                                chunk = stream.read1(64 * 1024)
+                                if not chunk:
+                                    break
+                                target.write(chunk)
+                                target.flush()
+                                state['last_progress'] = time.monotonic()
+                        except Exception as exc:
+                            errors.append(exc)
+                        finally:
+                            stream.close()
+
+                    for stream, target in ((child.stdout, out), (child.stderr, err)):
+                        thread = threading.Thread(target=pump, args=(stream, target), daemon=True)
+                        thread.start()
+                        threads.append(thread)
+                    while True:
+                        if errors:
+                            raise PoiseError(f'Registered output capture failed: {errors[0]}')
+                        if cancellation_check is not None and cancellation_check():
+                            self.cancel(run_id)
+                            cancellation_reason = 'native_session_end'
+                        code = child.poll()
+                        if code is not None:
+                            break
+                        now = time.monotonic()
+                        if progress_gap_seconds is not None and now - state['last_progress'] >= progress_gap_seconds:
+                            timed_out = True
+                            timeout_reason = 'progress_gap'
+                        elif timeout is not None and now - start >= timeout:
+                            timed_out = True
+                            timeout_reason = 'hard_limit'
+                        if timed_out:
+                            self._kill_group(child)
+                            code = child.wait()
+                            break
+                        time.sleep(poll_seconds)
+                finally:
+                    # Release our group even on observer/I/O error, interruption or
+                    # a parent that exited leaving descendants holding output pipes.
+                    if child is not None:
                         self._kill_group(child)
-                        code = child.wait()
-                        break
-                    if timeout is not None and now - start >= timeout:
-                        timed_out = True
-                        timeout_reason = 'hard_limit'
-                        self._kill_group(child)
-                        code = child.wait()
-                        break
-                    time.sleep(poll_seconds)
-            finally:
-                stdout_thread.join(); stderr_thread.join()
-                with self._lock:
-                    current = self._active.pop(run_id, state)
-                    cancelled = bool(current['cancel_requested'])
-        return {
-            'actual_exit_code': code,
-            'timed_out': timed_out,
-            'timeout_reason': timeout_reason,
-            'cancelled': cancelled,
-            'duration_seconds': time.monotonic() - start,
-            'stdout': str(stdout_path),
-            'stderr': str(stderr_path),
-            'stdout_preview': preview(stdout_path, self.preview_chars),
-            'stderr_preview': preview(stderr_path, self.preview_chars),
-        }
+                        child.wait()
+                    for thread in threads:
+                        thread.join()
+                    for stream in streams:
+                        if not stream.closed:
+                            stream.close()
+                if errors:
+                    raise PoiseError(f'Registered output capture failed: {errors[0]}')
+            cancelled = bool(state['cancel_requested'])
+            if cancelled and cancellation_reason is None:
+                cancellation_reason = 'explicit_cancel'
+            return {
+                'actual_exit_code': code,
+                'timed_out': timed_out,
+                'timeout_reason': timeout_reason,
+                'cancelled': cancelled,
+                'cancellation_reason': cancellation_reason,
+                'duration_seconds': time.monotonic() - start,
+                'stdout': str(stdout_path),
+                'stderr': str(stderr_path),
+                'stdout_preview': preview(stdout_path, self.preview_chars),
+                'stderr_preview': preview(stderr_path, self.preview_chars),
+            }
+        finally:
+            with self._lock:
+                self._active.pop(run_id, None)
 
 
 def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float | None,

@@ -254,7 +254,7 @@ class HookService:
             context=definition.data['context_template'].format(launcher=binding['launcher'],state=state)
             return {'hookSpecificOutput':{'hookEventName':native['event'],'additionalContext':context}}
         if native['event']=='Stop':return {'systemMessage':definition.data['stop_template'].format(state=state)}
-        return {}  # SessionEnd is advisory; no handoff/accept/cancel is attempted.
+        return {}  # Advisory session observation; no Task transition or direct PID signal.
 
     def probes(self,definition_path,workspace):
         d=self.definition(definition_path)
@@ -262,6 +262,8 @@ class HookService:
             self.settings.raw['max_probes']).run(d.data['probes'],workspace)
 
     def _execute(self,h,record,req,definition):
+        if req['operation']=='verify':
+            h.check_runner.bind_cancellation(self.registry.runner_cancellation_check(h.session))
         def invoke():
             return WorkTools(h).invoke(req)
 

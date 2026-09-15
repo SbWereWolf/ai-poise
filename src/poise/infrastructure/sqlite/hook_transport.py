@@ -81,3 +81,26 @@ class HookRegistry:
             ).fetchone()
         if row is None:return Liveness.UNCERTAIN
         return Liveness.DEAD if row[0]=='SessionEnd' else Liveness.LIVE
+
+    def runner_cancellation_check(self, binding):
+        """Capture one native session episode, not a PID or another launch registry.
+
+        A runner polls committed SessionEnd observations across process boundaries.
+        A later resume cannot erase an end observed for an already running episode.
+        """
+        with self.transaction() as db:
+            start = db.execute(
+                "SELECT max(id) FROM hook_events WHERE binding=? AND event='SessionStart'",
+                (binding,),
+            ).fetchone()[0]
+        if start is None:
+            raise PoiseError('Registered hook launch requires an observed SessionStart')
+
+        def requested():
+            with self.transaction() as db:
+                row = db.execute(
+                    "SELECT 1 FROM hook_events WHERE binding=? AND event='SessionEnd' AND id>? LIMIT 1",
+                    (binding, start),
+                ).fetchone()
+            return row is not None
+        return requested

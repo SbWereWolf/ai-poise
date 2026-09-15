@@ -101,7 +101,7 @@ Keep all AI poise configuration in the AI poise codebase and select the project 
 
 ## Development workflow
 
-Use a dedicated Git worktree and the repository branch-naming rule before modifying code. Do not complicate read-only inspection with worktree creation.
+Follow the Task process' worktree requirement before modifying code. A required worktree belongs to the repository/codebase being changed; a Task that does not require one uses the configured repository checkout. See [worktree placement](../docs/governance/development-rules.md#размещение-task-worktree). Do not complicate read-only inspection with worktree creation.
 
 Follow the [TDD rules](../docs/governance/development-rules.md), [library boundaries](../docs/architecture/boundaries.md) and [declarative tool contract](../docs/architecture/declarative-tools.md). Write and inspect tests before implementation, verify the completed path, review fixes, and update tool, code and storage documentation with a timestamp.
 
@@ -109,9 +109,10 @@ Never run the full test suite during task work, including at a delivery boundary
 
 Every new Task worktree starts from the current configured base ref observed for that start. Sprint result dependencies expose predecessor commits through `result_provenance`; they do not select or merge a successor branch base.
 
-Every new verification method must declare `source_under_test`. Bind repository sources to
-paths inside the current task worktree; never infer a language layout, overwrite an existing
-environment value, or add a fallback checkout. External methods require an explicit reason.
+Every new verification method must declare `source_under_test`. Bind repository sources to explicit paths inside the checkout selected for the current Task. A
+Task without a dedicated worktree may bind the configured repository checkout; never infer a
+language layout or overwrite an existing environment value. External methods require an
+explicit reason.
 Verification methods never declare execution timeouts; after launch, wait for the process to
 reach a terminal result. Capability probes, hooks and other bounded infrastructure retain their
 own explicit timeout contracts.

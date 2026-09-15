@@ -6,9 +6,9 @@
       "owner": "verification",
       "integration_boundaries": ["evidence", "runtime-services"],
       "members": {
-        "source": ["src/poise/execution.py", "src/poise/application/runner.py", "src/poise/modules/verification/**/*.py"],
+        "source": ["src/poise/execution.py", "src/poise/application/runner.py", "src/poise/modules/verification/**/*.py", "src/poise/infrastructure/test_packages.py", "src/poise/infrastructure/test_package_cache.py"],
         "tests": ["tests/runner/test_*.py", "tests/verification/test_*.py", "tests/test_package_execution.py"],
-        "support": ["tools/run_test_packages.py", "tests/runner/helpers.py"],
+        "support": ["tools/run_test_packages.py", "tools/run_ai_poise_test_package.py", "tests/runner/helpers.py"],
         "fixtures": ["tests/conftest.py"]
       }
     },

@@ -17,3 +17,6 @@ dist/
 
 # Generated IDE project state
 /.idea/
+
+# AI-poise codebase-owned test package cache
+.poise-test-cache/

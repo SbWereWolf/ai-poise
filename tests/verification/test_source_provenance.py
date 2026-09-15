@@ -609,3 +609,44 @@ def test_example_task_methods_declare_source_provenance(tmp_path, monkeypatch):
     assert_declared(
         sprint_demo.task("CHECK", "development", "print('checked')")["methods"]
     )
+
+
+def test_declared_output_is_bound_to_exact_verification_receipt(project):
+    selected = method(source_under_test=repository_source(cwd_binding()))
+    selected['argv'] = [
+        sys.executable,
+        '-B',
+        '-c',
+        "import os; from pathlib import Path; (Path(os.environ['POISE_RUN_OUTPUT_DIR']) / 'verification-report.json').write_text('{\"ok\":true}'); print('OK')",
+    ]
+    selected['outputs'] = [
+        {'id': 'report', 'path': 'verification-report.json', 'required': True}
+    ]
+    tools, context = task_tools(project, selected, 'declared-output')
+
+    result = tools.invoke(request('verify', {'result': stage_result(context), 'artifacts': []}))
+
+    assert result['status'] == 'verified'
+    receipt = result['checks'][0]
+    assert receipt['passed'] is True
+    assert receipt['outputs'][0]['id'] == 'report'
+    assert receipt['outputs'][0]['status'] == 'captured'
+    captured = Path(receipt['outputs'][0]['path'])
+    assert captured.is_file()
+    assert captured.read_text() == '{"ok":true}'
+    assert captured.is_relative_to(Path(receipt['stdout']).parent)
+
+
+def test_missing_required_declared_output_fails_zero_exit_verification(project):
+    selected = method(source_under_test=repository_source(cwd_binding()))
+    selected['outputs'] = [
+        {'id': 'report', 'path': 'missing-report.json', 'required': True}
+    ]
+    tools, context = task_tools(project, selected, 'missing-declared-output')
+
+    result = tools.invoke(request('verify', {'result': stage_result(context), 'artifacts': []}))
+
+    receipt = result['checks'][0]
+    assert receipt['actual_exit_code'] == 0
+    assert receipt['outputs'][0]['status'] == 'missing'
+    assert receipt['passed'] is False

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import signal
+import shutil
 import subprocess
 import threading
 import time
@@ -114,6 +115,56 @@ def run_command(argv: list[str], cwd: Path, env: dict[str,str], timeout: float |
         'direct', argv, cwd, env, timeout, stdout_path, stderr_path
     )
 
+
+
+def capture_declared_outputs(declarations: list[dict], output_dir: Path, capture_dir: Path) -> tuple[list[dict], bool]:
+    """Snapshot declared files produced in the runner-owned output directory."""
+    root = output_dir.resolve()
+    capture_dir.mkdir(parents=True, exist_ok=True)
+    records = []
+    complete = True
+    for declaration in declarations:
+        source = (root / declaration['path']).resolve()
+        if not source.is_relative_to(root):
+            raise PoiseError(f"Declared output escapes runner output directory: {declaration['path']}")
+        base = {
+            'id': declaration['id'],
+            'declared_path': declaration['path'],
+            'required': declaration['required'],
+        }
+        if not source.exists():
+            records.append({**base, 'status': 'missing', 'path': None, 'digest': None, 'size': None})
+            if declaration['required']:
+                complete = False
+            continue
+        if source.is_symlink() or not source.is_file():
+            records.append({**base, 'status': 'invalid', 'path': None, 'digest': None, 'size': None})
+            complete = False
+            continue
+        target = capture_dir / declaration['id']
+        before_size = source.stat().st_size
+        before_digest = _file_sha256(source)
+        shutil.copyfile(source, target)
+        if source.stat().st_size != before_size or _file_sha256(source) != before_digest:
+            target.unlink(missing_ok=True)
+            raise PoiseError(f"Declared output changed while being captured: {declaration['path']}")
+        records.append({
+            **base,
+            'status': 'captured',
+            'path': str(target),
+            'digest': _file_sha256(target),
+            'size': target.stat().st_size,
+        })
+    return records, complete
+
+
+def _file_sha256(path: Path) -> str:
+    import hashlib
+    value = hashlib.sha256()
+    with path.open('rb') as stream:
+        while chunk := stream.read(64 * 1024):
+            value.update(chunk)
+    return value.hexdigest()
 
 def contains(path: Path, needle: str) -> bool:
     target = needle.encode('utf-8')

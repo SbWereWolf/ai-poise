@@ -29,6 +29,7 @@ METHOD_FIELDS = {
     'expected_exit_code', 'stdout_contains', 'stderr_contains',
 }
 EXPECTATION_FIELDS = {'expected_exit_code', 'stdout_contains', 'stderr_contains'}
+OUTPUT_FIELDS = {'id', 'path', 'required'}
 PLAN_FIELDS = {
     'responsibility', 'change_surface', 'red_stages', 'green_stages', 'red_failure',
 }
@@ -42,6 +43,29 @@ def _repository_path(value: object, where: str) -> str:
         raise DomainError(f'{where}: путь {value!r} должен находиться внутри repository; исправьте path')
     return value
 
+
+
+def _validate_outputs(method: dict, where: str) -> None:
+    if 'POISE_RUN_OUTPUT_DIR' in method['environment']:
+        raise DomainError(f'{where}.environment: POISE_RUN_OUTPUT_DIR зарезервирован runner')
+    outputs = method['outputs']
+    if not isinstance(outputs, list):
+        raise DomainError(f'{where}.outputs: требуется список declared outputs')
+    ids = set()
+    paths = set()
+    for index, output in enumerate(outputs):
+        label = f'{where}.outputs[{index}]'
+        exact_keys(output, OUTPUT_FIELDS, label)
+        output_id = output['id']
+        if (not isinstance(output_id, str) or not output_id or '/' in output_id
+                or '\\' in output_id or output_id in ('.', '..')):
+            raise DomainError(f'{label}.id: требуется безопасный уникальный id')
+        path = _repository_path(output['path'], f'{label}.path')
+        if type(output['required']) is not bool:
+            raise DomainError(f'{label}.required: требуется bool')
+        if output_id in ids or path in paths:
+            raise DomainError(f'{label}: повтор declared output id/path')
+        ids.add(output_id); paths.add(path)
 
 def _validate_source(method: dict, where: str) -> None:
     source = method['source_under_test']
@@ -161,6 +185,8 @@ def validate_method(
         fields.add('verification_plan')
     elif isinstance(method, dict) and 'verification_plan' in method:
         fields.add('verification_plan')
+    if isinstance(method, dict) and 'outputs' in method:
+        fields.add('outputs')
     exact_keys(method, fields, where)
     if not isinstance(method['argv'], list) or not method['argv'] or any(
         not isinstance(s, str) for s in method['argv']
@@ -179,6 +205,8 @@ def validate_method(
         raise DomainError(f'{where}: требуется id метода')
     if not isinstance(method['cwd'], str):
         raise DomainError(f'{where}: cwd должен быть задан')
+    if 'outputs' in method:
+        _validate_outputs(method, where)
     if 'source_under_test' in method:
         _repository_path(method['cwd'], f'{where}.cwd')
         if method['expected_exit_code'] != 0 and not any(

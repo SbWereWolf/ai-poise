@@ -19,7 +19,7 @@ from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import RegisteredCheckRunner, run_command, contains, method_passed, preview
+from .execution import RegisteredCheckRunner, capture_declared_outputs, run_command, contains, method_passed, preview
 from .infrastructure.task_paths import sprint_root, task_root
 
 
@@ -1216,6 +1216,7 @@ class Poise:
                 'stdout_contains': method['stdout_contains'],
                 'stderr_contains': method['stderr_contains'],
                 'red_failure': method.get('verification_plan', {}).get('red_failure'),
+                'outputs': method.get('outputs', []),
             })
             invocations.append(invocation)
         return invocations
@@ -1280,6 +1281,26 @@ class Poise:
                 path=Path(path_value)
                 if not path.is_file() or file_digest(path)!=digest_value:
                     return False
+            declarations = method.get('outputs', [])
+            outputs = r.get('outputs')
+            if not isinstance(outputs, list) or len(outputs) != len(declarations):
+                return False
+            for declaration, output in zip(declarations, outputs, strict=True):
+                expected_output = {
+                    'id': declaration['id'],
+                    'declared_path': declaration['path'],
+                    'required': declaration['required'],
+                }
+                if any(output.get(key) != value for key, value in expected_output.items()):
+                    return False
+                if output.get('status') == 'captured':
+                    captured = Path(output.get('path', ''))
+                    if (not captured.is_file() or captured.is_symlink()
+                            or output.get('digest') != file_digest(captured)
+                            or output.get('size') != captured.stat().st_size):
+                        return False
+                elif output.get('status') not in ('missing', 'invalid'):
+                    return False
         return True
 
     def _usable_receipts(self, task_id, receipts, invocations, tree):
@@ -1293,11 +1314,20 @@ class Poise:
         for method,invocation in zip(checks,invocations,strict=True):
             run_id=str(uuid.uuid4())
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
+            declared_output_dir = run_dir / 'declared-outputs'
+            declared_output_dir.mkdir(parents=True, exist_ok=True)
+            run_environment = {
+                **invocation['environment'],
+                'POISE_RUN_OUTPUT_DIR': str(declared_output_dir),
+            }
             result=self.check_runner.run(
-                run_id, method['argv'], Path(invocation['cwd']), invocation['environment'], None,
+                run_id, method['argv'], Path(invocation['cwd']), run_environment, None,
                 descendant(run_dir,self.paths['stdout']), descendant(run_dir,self.paths['stderr'])
             )
-            passed=method_passed(method, result)
+            outputs, outputs_complete = capture_declared_outputs(
+                method.get('outputs', []), declared_output_dir, run_dir / 'outputs'
+            )
+            passed=method_passed(method, result) and outputs_complete
             interpretable=(not result['timed_out'] and result['actual_exit_code'] is not None and result['actual_exit_code']>=0 and
                            all(result['actual_exit_code'] in rule['exit_codes'] and
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
@@ -1307,6 +1337,7 @@ class Poise:
                      'argv':method['argv'],'cwd':invocation['cwd'],'expected_exit_code':method['expected_exit_code'],
                      'passed':passed,'tree':tree,'stdout_digest':file_digest(Path(result['stdout'])),
                      'stderr_digest':file_digest(Path(result['stderr'])),
+                     'outputs':outputs,
                      'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]

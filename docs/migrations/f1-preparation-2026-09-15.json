@@ -1,0 +1,158 @@
+{
+  "schema": "erp-migration-f1-preparation-1",
+  "prepared_at": "2026-09-15",
+  "baseline_commit": "b03b6f4667c7deaf4bcb7a95996d5e28b2d8f9ea",
+  "task_database_sha256": "3a6f51b6c7b61e0243e2291abeb7b35a38d47a27ec48d60a0931c43e4844d55c",
+  "sprint": {
+    "id": "SPRINT-ERP-MIGRATION-F1-ROUTING-TOOLS",
+    "revision": 4,
+    "state": "draft",
+    "tasks": [
+      "ERP-MIG-F1-02-C027-4",
+      "ERP-MIG-F1-04-C026-2",
+      "ERP-MIG-F1-08-C025",
+      "ERP-MIG-F1-11-C002",
+      "ERP-MIG-F1-12-C003",
+      "ERP-MIG-F1-13-C004",
+      "ERP-MIG-F1-14-C043"
+    ],
+    "edges": [
+      [
+        "ERP-MIG-F1-04-C026-2",
+        "ERP-MIG-F1-14-C043"
+      ],
+      [
+        "ERP-MIG-F1-08-C025",
+        "ERP-MIG-F1-02-C027-4"
+      ],
+      [
+        "ERP-MIG-F1-11-C002",
+        "ERP-MIG-F1-08-C025"
+      ],
+      [
+        "ERP-MIG-F1-11-C002",
+        "ERP-MIG-F1-12-C003"
+      ],
+      [
+        "ERP-MIG-F1-12-C003",
+        "ERP-MIG-F1-13-C004"
+      ],
+      [
+        "ERP-MIG-F1-13-C004",
+        "ERP-MIG-F1-14-C043"
+      ]
+    ],
+    "topological_order": [
+      "ERP-MIG-F1-04-C026-2",
+      "ERP-MIG-F1-11-C002",
+      "ERP-MIG-F1-08-C025",
+      "ERP-MIG-F1-12-C003",
+      "ERP-MIG-F1-02-C027-4",
+      "ERP-MIG-F1-13-C004",
+      "ERP-MIG-F1-14-C043"
+    ]
+  },
+  "decisions": [
+    {
+      "task": "ERP-MIG-F1-11-C002",
+      "node": "C002",
+      "decision": "reuse-no-change",
+      "provenance": [
+        "d301978966ff36595bdf9087dfa90895713f95aa"
+      ],
+      "evidence": [
+        "docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии",
+        "AGENTS.md",
+        "tests/delivery/test_migration_planning_policy.py"
+      ],
+      "reason": "F2 already delivered the scoped rule/boundary and exact path semantics required by the duplicate; F1 must verify applicability and record reuse rather than reimplement it."
+    },
+    {
+      "task": "ERP-MIG-F1-04-C026-2",
+      "node": "C026.2",
+      "decision": "implement-narrow-owner",
+      "provenance": [],
+      "evidence": [
+        "docs/governance/jetbrains-mcp-policy.md",
+        ".agents/skills/poise-development/SKILL.md"
+      ],
+      "reason": "Policy exists, but the current Poise source has no owner that exposes IDE/AST navigation against an explicitly supplied AI-poise checkout with index identity/freshness diagnostics. Implement only that gap; do not bundle an indexer or second IDE owner."
+    },
+    {
+      "task": "ERP-MIG-F1-08-C025",
+      "node": "C025",
+      "decision": "audit-and-fill-gaps",
+      "provenance": [
+        "3c1f89ad8adc31a8b878102707d2ef69cb04fa66",
+        "553817a4c805a46ca224b4058710354a8ef12cfd"
+      ],
+      "evidence": [
+        "src/poise/infrastructure/capabilities.py",
+        "src/poise/infrastructure/runtime_adapter.py",
+        "docs/workflows/runner.md"
+      ],
+      "reason": "Exact argv/cwd execution, bounded process ownership, capability probing and clear failure paths largely exist. The Task should first demonstrate AI-poise-specific remaining helper gaps and add only those; no external-project runtime policy."
+    },
+    {
+      "task": "ERP-MIG-F1-02-C027-4",
+      "node": "C027.4",
+      "decision": "implement",
+      "provenance": [],
+      "evidence": [
+        "src/poise/infrastructure/documentation_checks.py"
+      ],
+      "reason": "No Markdown formatter fallback is shipped. Add an explicit-file check/fix fallback for AI-poise only, preserving fenced code/front matter/table behavior and IDE-first preference."
+    },
+    {
+      "task": "ERP-MIG-F1-12-C003",
+      "node": "C003",
+      "decision": "implement",
+      "provenance": [
+        "c784c174a0d67e23d120572a6d31634277347bde"
+      ],
+      "evidence": [
+        ".agents/skill-catalog.json",
+        "config/projects/ai-poise/project.json",
+        "src/poise/modules/skills/catalog.py"
+      ],
+      "reason": "The catalog and decomposition metadata exist, but there is no declarative selection-condition metadata for AI-poise shipped skills that a single router consumes. Add selection facts only; do not create ERP profile documents or a universal external-repository schema."
+    },
+    {
+      "task": "ERP-MIG-F1-13-C004",
+      "node": "C004",
+      "decision": "implement",
+      "provenance": [],
+      "evidence": [
+        "src/poise/application/skill_catalog.py",
+        "src/poise/interfaces/skills.py"
+      ],
+      "reason": "There is no current routing owner deriving scoped rules, skills and registered checks from explicit task/change facts. Implement one deterministic AI-poise routing owner without changing path resolution or lifecycle ownership."
+    },
+    {
+      "task": "ERP-MIG-F1-14-C043",
+      "node": "C043",
+      "decision": "reuse-then-gap-fill",
+      "provenance": [],
+      "evidence": [
+        "docs/governance/jetbrains-mcp-policy.md",
+        ".agents/skills/poise-development/SKILL.md"
+      ],
+      "reason": "The durable IDE-first policy and skill already exist. Re-evaluate only after C026.2 and C004; if those prerequisites make the existing owner sufficient, record reuse/no-change. Otherwise fill only confirmed documentation/test gaps, never ship a second IDE skill/router."
+    }
+  ],
+  "execution_policy": {
+    "recommended_order": [
+      "ERP-MIG-F1-04-C026-2",
+      "ERP-MIG-F1-11-C002",
+      "ERP-MIG-F1-08-C025",
+      "ERP-MIG-F1-12-C003",
+      "ERP-MIG-F1-02-C027-4",
+      "ERP-MIG-F1-13-C004",
+      "ERP-MIG-F1-14-C043"
+    ],
+    "conditional_duplicate_rule": "Before implementation, verify equivalent functionality. If sufficient, record local reuse/no-change and do not repeat implementation.",
+    "checkpoint_after_each_task": true,
+    "run_full_suite": false,
+    "task_db_mutation_during_direct_migration": false
+  }
+}

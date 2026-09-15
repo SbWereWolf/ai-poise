@@ -1,6 +1,6 @@
 # Repository documentation owner map
 
-This is a lookup procedure, not a fixed target directory taxonomy. Resolve documentation owners from the selected project's versioned index, applicable agent rules and the current session worktree. Read target settings as source facts; Poise-required routing/file maps, commands, versions and runtime/browser parameters remain inside the selected Poise project configuration.
+This is a lookup procedure, not a fixed target directory taxonomy. Resolve documentation owners from the selected project's versioned index, applicable agent rules and the explicitly selected checkout path. Read target settings as source facts; Poise-required routing/file maps, commands, versions and runtime/browser parameters remain inside AI poise configuration.
 
 ## Find the narrow owner
 

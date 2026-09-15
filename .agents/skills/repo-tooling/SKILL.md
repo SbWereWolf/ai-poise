@@ -8,7 +8,7 @@ version: 1.0.0
 
 ## Inputs
 
-The authorized tooling behavior, actual owner/API and protocol, current Task/stage/allowed paths, session-selected worktree root, relevant target-project facts and selected Poise configuration for commands, versions, runtime and C004 routing. Use [poise-workflow](../poise/SKILL.md) and bootstrap rather than inventing command, identity or state. The tool contract states input schema, validation, output schema, effects and exit statuses before implementation.
+The authorized tooling behavior, actual owner/API and protocol, current Task/stage/allowed paths, explicit filesystem path of the code under work, relevant target-project facts and selected Poise configuration for commands, versions, runtime and C004 routing. Use [poise-workflow](../poise/SKILL.md) and bootstrap rather than inventing command, identity or state. The tool contract states input schema, validation, output schema, effects and exit statuses before implementation.
 
 ## Procedure
 

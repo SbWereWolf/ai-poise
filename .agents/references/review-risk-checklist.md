@@ -1,6 +1,6 @@
 # Review risk checklist
 
-Select only boundaries affected by the actual requirements and diff. Read project-specific facts from the session worktree and resolve executable commands, versions, browsers and routing from the selected Poise-owned configuration. This is not a mandatory full-system audit.
+Select only boundaries affected by the actual requirements and diff. Read project-specific facts from the explicitly selected checkout path and resolve AI-poise-owned commands, versions, browsers and routing from AI poise configuration. This is not a mandatory full-system audit.
 
 ## Obligations and evidence
 

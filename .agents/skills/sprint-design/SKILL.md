@@ -10,7 +10,7 @@ Use when preparing a standalone Task or Sprint. Use `exec-task` for execution; p
 
 ## Inputs
 
-The feature goal, confirmed requirements/DoD, application/owner boundaries, existing contracts and results, target-project facts from the session worktree, and the selected Poise-owned project/process/routing configuration. The [existing decomposition contract](../../../docs/workflows/batch-work.md#декомпозиция-и-фокус-task) and [Sprint owner](../../../docs/workflows/sprints.md#владелец-и-основные-гарантии) define the actual schema.
+The feature goal, confirmed requirements/DoD, application/owner boundaries, existing contracts and results, target-project facts from the explicitly selected checkout path, and the selected Poise-owned project/process/routing configuration. The [existing decomposition contract](../../../docs/workflows/batch-work.md#декомпозиция-и-фокус-task) and [Sprint owner](../../../docs/workflows/sprints.md#владелец-и-основные-гарантии) define the actual schema.
 
 ## Procedure
 

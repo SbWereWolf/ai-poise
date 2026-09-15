@@ -10,7 +10,7 @@ Use when an existing Task is active or the current project's skill selection req
 
 ## Inputs
 
-Get the exact installation launcher, packets and current Task/stage through [poise-workflow](../poise/SKILL.md). Use bootstrap's actual identity, requirements, allowed paths, worktree/session roots, result template, findings and evidence. Read the selected Poise-owned routing/command/runtime/version/file-map configuration; target-project documentation is only a read-only source of facts. Do not copy another project's command or reconstruct state from every historical artifact.
+Get the exact installation launcher, packets and current Task/stage through [poise-workflow](../poise/SKILL.md). Use bootstrap's actual identity, requirements, allowed paths, explicit worktree path when present, result template, findings and evidence. Read the selected Poise-owned routing/command/runtime/version/file-map configuration; target-project documentation is only a read-only source of facts. Do not copy another project's command or reconstruct state from every historical artifact.
 
 ## Procedure
 

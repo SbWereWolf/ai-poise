@@ -83,7 +83,7 @@ an index, not a preload list.
 
 ## Inputs
 
-Current Poise Task/stage/scope, accepted observable contract and independent oracle, actual Vue/TypeScript/Vitest/Vite versions, session root, test topology and selected runtime/commands. Read project docs/manifests as facts while retaining Poise configuration inside Poise. Use [poise-workflow](../poise/SKILL.md).
+Current Poise Task/stage/scope, accepted observable contract and independent oracle, actual Vue/TypeScript/Vitest/Vite versions, explicit filesystem path of the checkout under test, test topology and selected runtime/commands. Read project docs/manifests as facts while retaining Poise configuration inside Poise. Use [poise-workflow](../poise/SKILL.md).
 
 ## Procedure
 

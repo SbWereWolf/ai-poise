@@ -1,0 +1,172 @@
+{
+  "schema": "ai-poise-development-routing-1",
+  "known_paths": [
+    "src/**",
+    "tests/**",
+    "tools/**",
+    "docs/**",
+    ".agents/**",
+    ".codex/**",
+    "config/**",
+    "examples/**",
+    "AGENTS.md",
+    "README.md",
+    "pyproject.toml",
+    "uv.lock",
+    ".gitignore",
+    ".editorconfig"
+  ],
+  "handler_facts": {
+    "produce": [
+      "execution"
+    ],
+    "inspect": [
+      "review"
+    ]
+  },
+  "checks": [
+    {
+      "id": "verification",
+      "paths_any": [
+        "src/poise/execution.py",
+        "src/poise/modules/verification/**",
+        "src/poise/application/runner.py",
+        "tests/runner/**",
+        "tests/verification/**"
+      ],
+      "packages": [
+        "verification-runner"
+      ]
+    },
+    {
+      "id": "evidence",
+      "paths_any": [
+        "src/poise/modules/evidence/**",
+        "src/poise/application/evidence.py",
+        "src/poise/infrastructure/sqlite/evidence.py",
+        "tests/evidence/**"
+      ],
+      "packages": [
+        "evidence"
+      ]
+    },
+    {
+      "id": "tasks",
+      "paths_any": [
+        "src/poise/modules/tasks/**",
+        "src/poise/application/tasks.py",
+        "tests/tasks/**"
+      ],
+      "packages": [
+        "tasks"
+      ]
+    },
+    {
+      "id": "sprints",
+      "paths_any": [
+        "src/poise/modules/sprints/**",
+        "tests/sprints/**"
+      ],
+      "packages": [
+        "sprints"
+      ]
+    },
+    {
+      "id": "runtime",
+      "paths_any": [
+        "src/poise/runtime.py",
+        "src/poise/common.py",
+        "src/poise/application/work.py",
+        "src/poise/modules/work/**",
+        "tests/runtime_services/**",
+        "tests/batch/**"
+      ],
+      "packages": [
+        "runtime-services"
+      ]
+    },
+    {
+      "id": "skills",
+      "paths_any": [
+        "src/poise/modules/skills/**",
+        "src/poise/application/skill_catalog.py",
+        "src/poise/application/development_routing.py",
+        "src/poise/infrastructure/development_routing.py",
+        "tests/skills/**",
+        "config/development/**"
+      ],
+      "packages": [
+        "skills"
+      ]
+    },
+    {
+      "id": "projects",
+      "paths_any": [
+        "src/poise/modules/projects/**",
+        "src/poise/application/projects.py",
+        "src/poise/infrastructure/projects.py",
+        "tests/projects/**"
+      ],
+      "packages": [
+        "projects"
+      ]
+    },
+    {
+      "id": "hooks",
+      "paths_any": [
+        "src/poise/modules/hooks/**",
+        "src/poise/modules/hook_transport/**",
+        "tests/hook_transport/**"
+      ],
+      "packages": [
+        "hooks"
+      ]
+    },
+    {
+      "id": "integration",
+      "paths_any": [
+        "src/poise/modules/result_integration/**",
+        "tests/result_integration/**"
+      ],
+      "packages": [
+        "result-integration"
+      ]
+    },
+    {
+      "id": "tooling",
+      "paths_any": [
+        "tools/**",
+        "src/poise/modules/capabilities/**",
+        "src/poise/application/navigation.py",
+        "src/poise/infrastructure/navigation.py",
+        "tests/capabilities/**"
+      ],
+      "packages": [
+        "tooling-fast"
+      ]
+    },
+    {
+      "id": "skill-docs",
+      "paths_any": [
+        ".agents/**",
+        "AGENTS.md",
+        "src/AGENTS.md"
+      ],
+      "packages": [
+        "skill-references",
+        "documentation-links"
+      ]
+    },
+    {
+      "id": "docs",
+      "paths_any": [
+        "docs/**",
+        "tests/documentation/**",
+        "src/poise/infrastructure/markdown_format.py"
+      ],
+      "packages": [
+        "documentation-links"
+      ]
+    }
+  ]
+}

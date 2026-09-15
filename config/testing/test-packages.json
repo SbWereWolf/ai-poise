@@ -208,6 +208,8 @@
       "id": "skills",
       "owner": "skills",
       "integration_boundaries": [
+        "projects",
+        "runtime-services",
         "tasks"
       ],
       "members": {
@@ -216,7 +218,14 @@
           "src/poise/modules/skills/**/*.py",
           "src/poise/infrastructure/skill_catalog.py",
           "src/poise/modules/tasks/decomposition.py",
-          "src/poise/infrastructure/documentation_checks.py"
+          "src/poise/infrastructure/documentation_checks.py",
+          "src/poise/application/development_routing.py",
+          "src/poise/infrastructure/development_routing.py",
+          "src/poise/runtime.py",
+          "src/poise/common.py",
+          "src/poise/application/work.py",
+          "src/poise/modules/work/**/*.py",
+          "src/poise/infrastructure/project_config.py"
         ],
         "tests": [
           "tests/skills/test_*.py",
@@ -225,7 +234,10 @@
         "support": [
           ".agents/skill-catalog.json",
           ".agents/**/*.md",
-          ".agents/skills/modern-web-guidance/catalogue.ndjson"
+          ".agents/skills/modern-web-guidance/catalogue.ndjson",
+          "config/development/*.json",
+          "tools/route_development.py",
+          "config/testing/test-packages.json"
         ],
         "fixtures": [
           "tests/conftest.py"

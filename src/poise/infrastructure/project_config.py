@@ -141,7 +141,9 @@ class FileProjectConfigUpdate:
             path = path_key(item["path"])
             if path[0] in {"paths", "processes", "project", "schema"}:
                 raise PoiseError(f"Manifest field {path[0]} has a dedicated owner")
-            field_at(config, path)
+            # Named optional C004 capability, not permission to create arbitrary fields.
+            if path != ("development_routing",):
+                field_at(config, path)
             if any(path[:len(old)] == old or old[:len(path)] == path for old in changed):
                 raise PoiseError("Conflicting manifest edits")
             parent = field_at(candidate, path[:-1])

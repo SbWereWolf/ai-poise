@@ -35,7 +35,7 @@ def status_filter(value, allowed, name):
 
 def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
-    shapes={'bootstrap':{'task','decision','feedback','rework_stage'},
+    shapes={'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
             'recover_empty_rework':{'task_id','reason'},
             'recover_empty_advance':{'task_id','reason'},
@@ -58,6 +58,11 @@ def parse_request(value, config):
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')
+    if op=='routing':
+        facts=value['input']['facts']
+        if (not isinstance(facts,list) or any(not isinstance(x,str) or not x.strip() or '\0' in x for x in facts)
+                or len(facts)!=len(set(facts))):
+            raise DomainError('Route facts must be explicit unique strings')
     if op=='bootstrap':
         if value['input']['task'] is not None and not isinstance(value['input']['task'],dict):
             raise DomainError('task must be an object or explicit null; files are not input')

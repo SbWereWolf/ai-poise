@@ -71,6 +71,13 @@ class Poise:
         self.root, self.cfg, self.processes = load_config(
             self.config_path, legacy_process_requirements
         )
+        self.development_routing = None
+        if 'development_routing' in self.cfg:
+            from .infrastructure.development_routing import load_development_routing
+            self.development_routing = load_development_routing(**{
+                name: (self.root / value).resolve()
+                for name, value in self.cfg['development_routing'].items()
+            })
         self.session = self._identifier(session)
         self.state = configured_root(self.root, self.cfg['paths']['state'])
         self.paths = self.cfg['paths']
@@ -602,7 +609,7 @@ class Poise:
                     if section['writable']:
                         name=section['id']
                         payload['sections'][name]=(content['sections_current'][name] if name in content['sections_current'] else section['template'])
-        return {'session': self.session, 'task': data['id'], 'goal': data['goal'], 'status': data['status'],
+        context = {'session': self.session, 'task': data['id'], 'goal': data['goal'], 'status': data['status'],
                 'version': data['version'],
                 'stage': stage['id'], 'iteration': data['iteration'], 'worktree': data['worktree'],
                 'instruction': stage['instruction'], 'requirements': data['contract']['requirements'],
@@ -615,6 +622,45 @@ class Poise:
                 'agents_files': [] if data['worktree'] is None else
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
+
+        if self.development_routing is not None:
+            context['development_route'] = self._development_route(data, [], persist=prepare)
+        return context
+
+    def _development_route(self, data, facts, *, persist):
+        if self.development_routing is None:
+            raise PoiseError('AI-poise development routing is not configured')
+        directory = self._verification_workspace(data)
+        revision = data['base']
+        changed = sorted(set(
+            p for p in (self._git(directory, 'diff', '--name-only', '--no-renames', '-z', revision, '--')
+                        + self._git(directory, 'ls-files', '--others', '--exclude-standard', '-z')).split('\0')
+            if p
+        ))
+        stage = self._stage(data)
+        selected = self._select_checks(data, changed)
+        required = list(dict.fromkeys(m for check in selected for m in check['obligations']))
+        request = {
+            'checkout': str(directory), 'stage': stage['id'], 'handler': stage['handler'],
+            'scope_paths': data['contract']['stage_contracts'][data['stage_index']]['allowed_paths'],
+            'changed_paths': changed, 'facts': facts, 'required_methods': required,
+            'registered_methods': [m['id'] for m in data['contract']['methods']],
+            'result_contract': {'task': data['id'], 'stage': stage['id'], 'iteration': data['iteration'],
+                                'required_sections': stage['required_sections'],
+                                'sections': sorted(stage['sections'])},
+        }
+        # One replaceable derived route in the existing session directory, not a ledger.
+        return self.development_routing.route(
+            request, snapshot=self.runtime / 'development-routing.json' if persist else None
+        )
+
+    def refresh_development_route(self, facts):
+        from .modules.skills.selection import strings
+        strings(facts, 'route facts')
+        if self.development_routing is None:
+            raise PoiseError('AI-poise development routing is not configured')
+        data = self._task()
+        return {'status': 'read_only', 'development_route': self._development_route(data, facts, persist=True)}
 
     def _terminal_context(self, data: dict) -> dict:
         return {

@@ -93,7 +93,13 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
-    exact_keys(cfg, keys | ({'task_ids'} if 'task_ids' in cfg else set()), 'project config')
+    exact_keys(cfg, keys | ({'task_ids', 'development_routing'} & cfg.keys()), 'project config')
+    if 'development_routing' in cfg:
+        exact_keys(cfg['development_routing'], {'catalog','selection','policy','packages'},
+                   'development_routing')
+        for name, value in cfg['development_routing'].items():
+            if not isinstance(value, str) or not value.strip() or '\0' in value:
+                raise PoiseError(f'development_routing.{name}: explicit filesystem path required')
     if cfg['schema'] != 'ddd-accounting-12':
         raise PoiseError('Версия конфигурации не поддерживается; автоматических миграций нет')
     exact_keys(cfg['paths'], {'state','database','lock','runtime','standalone_tasks','sprints','worktrees',

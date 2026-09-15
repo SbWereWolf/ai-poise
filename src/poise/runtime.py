@@ -19,7 +19,7 @@ from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import run_command, contains, method_passed, preview
+from .execution import RegisteredCheckRunner, run_command, contains, method_passed, preview
 from .infrastructure.task_paths import sprint_root, task_root
 
 
@@ -128,6 +128,7 @@ class Poise:
         self.plan_actions=RuntimePlanActions(self)
         from .infrastructure.result_views import ResultViews
         self.result_views=ResultViews(self.cfg['runtime_services']['output'],self._result_event)
+        self.check_runner=RegisteredCheckRunner(limits['preview_chars'])
         from .infrastructure.handoff import LocalHandoff
         self.handoff_tools=LocalHandoff(self)
         from .application.transfers import TransferCommands
@@ -1292,8 +1293,10 @@ class Poise:
         for method,invocation in zip(checks,invocations,strict=True):
             run_id=str(uuid.uuid4())
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
-            result=run_command(method['argv'],Path(invocation['cwd']),invocation['environment'],None,
-                               descendant(run_dir,self.paths['stdout']),descendant(run_dir,self.paths['stderr']))
+            result=self.check_runner.run(
+                run_id, method['argv'], Path(invocation['cwd']), invocation['environment'], None,
+                descendant(run_dir,self.paths['stdout']), descendant(run_dir,self.paths['stderr'])
+            )
             passed=method_passed(method, result)
             interpretable=(not result['timed_out'] and result['actual_exit_code'] is not None and result['actual_exit_code']>=0 and
                            all(result['actual_exit_code'] in rule['exit_codes'] and

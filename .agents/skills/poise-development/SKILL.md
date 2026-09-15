@@ -5,7 +5,7 @@ description: Change AI poise itself using its DDD, TDD, declarative-tool and pro
 
 # AI poise development
 
-Read the repository `AGENTS.md` and `src/AGENTS.md` first. Work in a dedicated `tasks/<task-id>` worktree.
+Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current process' explicit `worktree_required` policy; without a required worktree, use the configured repository checkout. See [Task worktree placement](../../../docs/governance/development-rules.md#размещение-task-worktree).
 
 ## Design boundaries
 
@@ -62,6 +62,21 @@ batch, and structural search. Do not claim that ast-index performed IDE inspecti
 refactoring, or IDE formatting. Follow [Fallback to ast-index](../../../docs/governance/jetbrains-mcp-policy.md#fallback-на-ast-index)
 and preserve the [capability evidence](../../../docs/governance/jetbrains-mcp-policy.md#проверка-и-evidence) separately from configuration intent.
 
+For AI-poise code navigation, use the existing [explicit-copy navigation proof](../../../docs/workflows/code-navigation.md#конкретная-папка-и-подтверждение-индекса)
+when the configured provider supports it. Its protocol fixture is not live IDE evidence.
+A concrete checkout path is the inspected subject; it must not replace live executable,
+hook or configuration resolution. For automatic skill/rule/check selection, use the single
+[bootstrap and refresh routing owner](../../../docs/configuration/development-routing.md#подключение-к-bootstrap-и-обновлению-контекста),
+not a second IDE profile. Missing configuration or observations remain explicit gaps.
+Read only the necessary candidate/receipt range before inspecting selected symbols.
+IDE diagnostics remain supporting evidence, never substitutes for registered checks.
+
+For Markdown, use an applicable IDE formatter first; otherwise invoke the
+[explicit-file fallback](../../../docs/workflows/markdown-formatting.md#явное-форматирование-при-недоступной-ide)
+with the actual reason. Do not chain another formatter after successful IDE formatting
+or treat the read-only navigation helper as a mutation tool. See the canonical
+[F1 tool application rule](../../../docs/governance/jetbrains-mcp-policy.md#применение-поставленных-инструментов-f1).
+
 ## Project-local configuration
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
@@ -99,17 +114,17 @@ When a skill relies on canonical documentation, link to the smallest exact norma
 
 ## Inputs for behavior and verification work
 
-Use the current Task/stage contract, real owner, observable result, source/runtime identity and selected Poise-owned commands/configuration. Target-worktree manifests and documentation are facts, not a place to persist Poise routing configuration.
+Use the current Task/stage contract, real owner, observable result, source/runtime identity and selected Poise-owned commands/configuration. Inspected-copy manifests and documentation are facts, not a place to persist or replace the running Poise routing configuration.
 
 ## Procedure for migrated development skills
 
 For changed executable behavior load [tdd](../tdd/SKILL.md) and its [independent test-data policy](../../references/test-data-and-assertion-policy.md). For selecting/running checks load [direct-checks](../direct-checks/SKILL.md). For a terminal failure or confirmed loss of its runner load [debugging-and-recovery](../debugging-and-recovery/SKILL.md); no competing active-run observer or blind retry is authorized.
 
-Ordinary Task completion and integration use only targeted behavior/boundary checks plus maintained fast smoke. Full/unfiltered regression is reserved for explicit release preparation; unresolved target selection never falls back to all tests. Preserve C004/C016/C017 ownership and C018 cache semantics. Current Poise verification-method declarations do not have a per-method timeout; infrastructure runner limits remain owned by their configured runner. Do not reintroduce method timeouts, copied ERP command wrappers, mandatory serializer packages or manual review registries through these skills.
+Ordinary Task completion and integration use only targeted behavior/boundary checks plus maintained fast smoke. Do not run full/unfiltered regression during task work; unresolved target selection never falls back to all tests. Preserve C004/C016/C017 ownership and C018 cache semantics. Current Poise verification-method declarations do not have a per-method timeout; infrastructure runner limits remain owned by their configured runner. Do not reintroduce method timeouts, copied ERP command wrappers, mandatory serializer packages or manual review registries through these skills.
 
 ## Output from migrated development skills
 
-Persist exact test/requirement/RED/GREEN/inspection and terminal check references through existing Task/evidence owners. Report unavailable checks and capability gaps. Static instruction links provide discovery, not implementation of the missing automatic area/stage routing owner; independently reviewed acceptance and result integration remain separate gates.
+Persist exact test/requirement/RED/GREEN/inspection and terminal check references through existing Task/evidence owners. Report unavailable checks and capability gaps. Static instruction links provide discovery, not proof that the configured router or an IDE operation actually ran. Independently reviewed acceptance and result integration remain separate gates.
 
 ## Shared skill metadata
 

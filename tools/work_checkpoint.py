@@ -18,7 +18,6 @@ import sqlite3
 import subprocess
 import tarfile
 import tempfile
-import textwrap
 
 SCHEMA = "ai-poise-work-checkpoint-1"
 TEXT_HEADER = "AI-POISE-RECOVERY-TEXT-1"
@@ -128,9 +127,9 @@ def create(repository: Path, base: str, database_snapshot: Path, state: Path,
         with tarfile.open(archive, "w:xz") as stream:
             stream.add(payload, arcname="payload")
         checksum = digest(archive)
-        encoded = base64.b64encode(archive.read_bytes()).decode("ascii")
+        encoded = base64.encodebytes(archive.read_bytes()).decode("ascii")
         (staging / "checkpoint.recovery.txt").write_text(
-            f"{TEXT_HEADER}\nsha256:{checksum}\n\n" + "\n".join(textwrap.wrap(encoded, 76)) + "\n",
+            f"{TEXT_HEADER}\nsha256:{checksum}\n\n" + encoded,
             encoding="ascii",
         )
         shutil.copyfile(payload / "changes.patch.txt", staging / "changes.patch.txt")

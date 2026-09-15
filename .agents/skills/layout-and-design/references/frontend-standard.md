@@ -1,21 +1,21 @@
-# Frontend routing reference
+# Frontend responsibility selection
 
-The broad `frontend` skill has been removed. Frontend work is routed
-through the browser application profile and focused owners instead:
+Use this reference only when deciding which focused owner a frontend change needs.
+The removed broad `frontend` skill is not a selectable skill. A link below is a
+conditional navigation aid, not a demand to load every reference.
 
-- `.agents/skills/ddd/SKILL.md` for frontend domain and layer placement;
-- `.agents/skills/vue-best-practices/SKILL.md` for Vue composition,
-  lifecycle, visible states, semantics, and accessibility;
-- `.agents/skills/vue-pinia-best-practices/SKILL.md` for shared state;
-- `.agents/skills/vue-router-best-practices/SKILL.md` for routes and
-  navigation;
-- `.agents/skills/tailwind-4-docs/SKILL.md` for Tailwind and custom-CSS
-  gaps;
-- `.agents/skills/layout-and-design/SKILL.md` for information
-  architecture, layout, interaction design, and usability review; for
-  web layout/design work, load it together with `tailwind-4-docs` and
-  `modern-web-guidance`, and do not load `modern-web-guidance` outside
-  that trio.
+- For domain/layer placement, consult [DDD](../../ddd/SKILL.md).
+- For Vue composition, lifecycle or visible behavior, consult
+  [Vue](../../vue-best-practices/SKILL.md).
+- For shared state, consult [Pinia](../../vue-pinia-best-practices/SKILL.md).
+- For routes/navigation, consult [Router](../../vue-router-best-practices/SKILL.md).
+- For an actual Tailwind styling/build change, consult
+  [Tailwind](../../tailwind-4-docs/SKILL.md).
+- For information architecture, responsive layout or interaction design, use
+  [layout and design](../SKILL.md).
+- For a concrete web-platform question, search the local index of
+  [modern web guidance](../../modern-web-guidance/SKILL.md) and read the matching guide.
 
-This file is a routing reference owned by `layout-and-design`; it is not
-a standalone routable skill. Do not select `frontend`.
+There is no mandatory layout/Tailwind/modern-web trio. Use only owners relevant to
+the current decision. This reference does not implement automatic skill routing or
+replace the existing Task/decomposition owners.

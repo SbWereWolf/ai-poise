@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ALLOWLIST = ROOT / "config" / "legacy-namespace-allowlist.json"
 LEGACY_LOWER = "har" + "ness"
 LEGACY_PATTERN = re.compile(LEGACY_LOWER, re.IGNORECASE)
-IGNORED_PARTS = {".git", ".pytest_cache", "__pycache__"}
+IGNORED_PARTS = {".git", ".pytest_cache", "__pycache__", ".poise-test-cache"}
 PROTECTED_PREFIXES = ("src/", "tests/", "tools/", "examples/", "skills/", "config/")
 PROTECTED_FILES = {"AGENTS.md", "README.md", "pyproject.toml"}
 APPROVED_HISTORICAL_PATTERNS = {
@@ -129,19 +129,11 @@ def test_current_documentation_links_and_commands_use_poise():
     assert f"pip uninstall -y {('agent-' + LEGACY_LOWER + '-happy-path')}" in upgrade
     assert "ai-poise" in upgrade and "poise --help" in upgrade
 
-    link_pattern = re.compile(r"\[[^]]+\]\(([^)]+)\)")
-    broken = []
-    for document, relative in _files():
-        if document.suffix.lower() != ".md" or _historical_markdown(document, rules):
-            continue
-        for raw in link_pattern.findall(document.read_text()):
-            target = raw.strip().strip("<>")
-            if not target or target.startswith(("#", "/", "http://", "https://", "mailto:", "codex:")):
-                continue
-            target_path = unquote(target.split("#", 1)[0])
-            if target_path and not (document.parent / target_path).resolve().exists():
-                broken.append(f"{relative} -> {target}")
-    assert not broken, "broken current documentation links:\n" + "\n".join(broken)
+    from poise.infrastructure.documentation_checks import check_links
+    documents = [document for document, _ in _files()
+                 if document.suffix.lower() == ".md" and not _historical_markdown(document, rules)]
+    result = check_links(ROOT, documents)
+    assert not result["errors"], result["errors"]
 
 
 def test_live_project_uses_allocator_owned_task_identity():

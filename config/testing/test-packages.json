@@ -215,14 +215,17 @@
           "src/poise/application/skill_catalog.py",
           "src/poise/modules/skills/**/*.py",
           "src/poise/infrastructure/skill_catalog.py",
-          "src/poise/modules/tasks/decomposition.py"
+          "src/poise/modules/tasks/decomposition.py",
+          "src/poise/infrastructure/documentation_checks.py"
         ],
         "tests": [
           "tests/skills/test_*.py",
           "tests/tasks/test_focused_decomposition.py"
         ],
         "support": [
-          ".agents/skill-catalog.json"
+          ".agents/skill-catalog.json",
+          ".agents/**/*.md",
+          ".agents/skills/modern-web-guidance/catalogue.ndjson"
         ],
         "fixtures": [
           "tests/conftest.py"
@@ -279,6 +282,34 @@
           "config/testing/test-packages.json",
           "AGENTS.md",
           "docs/workflows/checkpoint-recovery.md"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
+      }
+    },
+    {
+      "id": "skill-references",
+      "owner": "skills",
+      "integration_boundaries": [
+        "skills",
+        "tooling-fast"
+      ],
+      "members": {
+        "source": [
+          "src/poise/infrastructure/documentation_checks.py",
+          "src/poise/infrastructure/skill_catalog.py",
+          "src/poise/modules/skills/**/*.py",
+          "tools/check_skill_references.py"
+        ],
+        "tests": [
+          "tests/skills/test_reference_audit.py"
+        ],
+        "support": [
+          ".agents/skill-catalog.json",
+          ".agents/**/*.md",
+          ".agents/skills/modern-web-guidance/catalogue.ndjson",
+          "config/testing/test-packages.json"
         ],
         "fixtures": [
           "tests/conftest.py"

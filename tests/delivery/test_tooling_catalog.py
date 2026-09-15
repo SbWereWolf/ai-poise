@@ -33,7 +33,7 @@ def test_shipped_python_tool_parses_without_executing_it(path):
 
 
 @pytest.mark.parametrize('tool', ['work_checkpoint.py', 'run_ai_poise_test_package.py',
-                                  'run_test_packages.py', 'run_slice_tests.py'])
+                                  'run_test_packages.py', 'run_slice_tests.py', 'check_skill_references.py'])
 def test_supported_cli_help_works_from_an_arbitrary_filesystem_directory(tmp_path, tool):
     # Candidate tool under test; this does not alter live hook configuration.
     result = subprocess.run([sys.executable, '-B', str(ROOT / 'tools' / tool), '--help'],

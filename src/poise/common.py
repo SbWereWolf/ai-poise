@@ -154,7 +154,17 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
                 aliased=False
             if aliased:
                 raise PoiseError('accounting.storage физически совпадает с другим хранилищем')
-    exact_keys(cfg['runtime_services'],{'output','handoff','transfer'},'runtime_services')
+    exact_keys(cfg['runtime_services'],{'output','handoff','transfer','check_runner'},'runtime_services')
+    check_runner=cfg['runtime_services']['check_runner']
+    exact_keys(check_runner,{'initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'},'check_runner config')
+    for key in ('initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'):
+        value=check_runner[key]
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<=0:
+            raise PoiseError(f'check_runner.{key} must be a positive finite number')
+    if check_runner['history_multiplier']<1:
+        raise PoiseError('check_runner.history_multiplier must be at least 1')
+    if check_runner['diagnostic_override_max_seconds']<check_runner['initial_seconds']:
+        raise PoiseError('check_runner diagnostic override maximum must not be below initial timeout')
     from .modules.transfers.domain import TransferPolicy
     TransferPolicy.parse(cfg['runtime_services']['transfer'])
     transfer_root=descendant(state,cfg['runtime_services']['transfer']['directory'])

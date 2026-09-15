@@ -23,3 +23,7 @@ class EvidenceCommands:
     def list_for(self,task_id):
         with self.unit_of_work() as uow:
             return uow.evidence.list_for(task_id)
+
+    def timeout_history(self, profile):
+        with self.unit_of_work() as uow:
+            return uow.evidence.timeout_history(profile)

@@ -1,4 +1,11 @@
 {
+  "check_runner": {
+    "initial_seconds": 120,
+    "history_multiplier": 1.1,
+    "progress_gap_seconds": 120,
+    "poll_seconds": 0.1,
+    "diagnostic_override_max_seconds": 900
+  },
   "output": {
     "known": [
       {

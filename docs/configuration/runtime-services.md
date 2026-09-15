@@ -88,6 +88,10 @@ Settings имеет точные поля:
 
 В ChatGPT без локального rollout используется `transcript:null` и явные наблюдённые сообщения обычного Work envelope. CLI не получает скрытую историю разговора. Здесь нет подсчёта токенов по символам или предположения о списанных кредитах.
 
+## Политика времени registered checks
+
+Единый `RegisteredCheckRunner` использует проектную секцию `runtime_services.check_runner`. Точный профиль, verified-success history, progress-gap, diagnostic override и maintenance snapshot описаны в [политике таймаутов](check-runner-timeouts.md#профиль-таймаута). Конкретный `cwd` передаётся запуску как filesystem path; эта политика не вводит отдельной схемы разрешения путей и не определяет тестовые кэши внешних кодовых баз.
+
 ## Post-command parser hook
 Project config содержит обязательный `runtime_services.output` (исходный пример в ../config/runtime.example.json). Профили команд имеют matcher из точных argv tokens, parser, правила выбора, limits и имена файлов. Поддержаны два режима одного класса OutputParser:
 

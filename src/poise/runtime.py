@@ -19,7 +19,7 @@ from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import RegisteredCheckRunner, capture_declared_outputs, run_command, contains, method_passed, preview
+from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, run_command, contains, method_passed, preview, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
 
 
@@ -129,6 +129,7 @@ class Poise:
         from .infrastructure.result_views import ResultViews
         self.result_views=ResultViews(self.cfg['runtime_services']['output'],self._result_event)
         self.check_runner=RegisteredCheckRunner(limits['preview_chars'])
+        self.check_timeout_policy=RunnerTimeoutPolicy.parse(self.cfg['runtime_services']['check_runner'])
         from .infrastructure.handoff import LocalHandoff
         self.handoff_tools=LocalHandoff(self)
         from .application.transfers import TransferCommands
@@ -1281,6 +1282,13 @@ class Poise:
                 path=Path(path_value)
                 if not path.is_file() or file_digest(path)!=digest_value:
                     return False
+            maintenance=r.get('timeout_maintenance')
+            if maintenance is not None:
+                if not isinstance(maintenance,dict) or set(maintenance)!={'path','digest'}:
+                    return False
+                maintenance_path=Path(maintenance['path'])
+                if not maintenance_path.is_file() or file_digest(maintenance_path)!=maintenance['digest']:
+                    return False
             declarations = method.get('outputs', [])
             outputs = r.get('outputs')
             if not isinstance(outputs, list) or len(outputs) != len(declarations):
@@ -1320,9 +1328,26 @@ class Poise:
                 **invocation['environment'],
                 'POISE_RUN_OUTPUT_DIR': str(declared_output_dir),
             }
+            profile=timeout_profile(method['argv'],method['id'],run_environment)
+            history=self.evidence_commands.timeout_history(profile)
+            timeout_selection=self.check_timeout_policy.select(
+                history['durations'],None,history['evidence_ids']
+            )
+            timeout_snapshot={
+                'profile':profile,
+                'selection':timeout_selection,
+                'history_evidence_ids':history['evidence_ids'],
+            }
+            timeout_snapshot_path=run_dir/'timeout-policy.json'
+            timeout_snapshot_path.write_text(
+                json.dumps(timeout_snapshot,sort_keys=True,ensure_ascii=False,indent=2)+'\n',
+                encoding='utf-8',
+            )
             result=self.check_runner.run(
-                run_id, method['argv'], Path(invocation['cwd']), run_environment, None,
-                descendant(run_dir,self.paths['stdout']), descendant(run_dir,self.paths['stderr'])
+                run_id, method['argv'], Path(invocation['cwd']), run_environment, timeout_selection['seconds'],
+                descendant(run_dir,self.paths['stdout']), descendant(run_dir,self.paths['stderr']),
+                progress_gap_seconds=timeout_selection['progress_gap_seconds'],
+                poll_seconds=timeout_selection['poll_seconds'],
             )
             outputs, outputs_complete = capture_declared_outputs(
                 method.get('outputs', []), declared_output_dir, run_dir / 'outputs'
@@ -1338,6 +1363,12 @@ class Poise:
                      'passed':passed,'tree':tree,'stdout_digest':file_digest(Path(result['stdout'])),
                      'stderr_digest':file_digest(Path(result['stderr'])),
                      'outputs':outputs,
+                     'timeout_profile':profile,
+                     'timeout_selection':timeout_selection,
+                     'timeout_maintenance':{
+                         'path':str(timeout_snapshot_path),
+                         'digest':file_digest(timeout_snapshot_path),
+                     },
                      'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]

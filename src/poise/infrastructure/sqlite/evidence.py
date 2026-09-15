@@ -18,3 +18,19 @@ class SqliteEvidenceRepository:
 
     def list_for(self, task_id):
         return [json.loads(r[0]) for r in self.db.execute('SELECT data FROM evidence WHERE task_id=? ORDER BY rowid',(task_id,))]
+
+    def timeout_history(self, profile):
+        durations=[]
+        evidence_ids=[]
+        for row in self.db.execute('SELECT data FROM evidence ORDER BY rowid'):
+            receipt=json.loads(row[0])
+            if receipt.get('timeout_profile') != profile:
+                continue
+            if receipt.get('passed') is not True or receipt.get('timed_out') or receipt.get('cancelled'):
+                continue
+            duration=receipt.get('duration_seconds')
+            if isinstance(duration, bool) or not isinstance(duration, (int,float)) or duration < 0:
+                continue
+            durations.append(float(duration))
+            evidence_ids.append(receipt['id'])
+        return {'durations':durations,'evidence_ids':evidence_ids}

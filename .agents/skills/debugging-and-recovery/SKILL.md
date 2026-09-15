@@ -25,3 +25,7 @@ The failed operation and its stable identity, terminal result or confirmed loss 
 ## Output
 
 Save symptom/command, terminal identity, last completed step, side-effect state, inspected evidence, hypothesis, diagnostic change, actual result, justified retry/recovery and regression evidence through the existing Task/evidence/artifact owners. Distinguish recovered execution from unverified behavior. Release or transfer through public handoff; a blocker is not successful validation, and a conversation note is not durable state.
+
+## Checkpoint recovery
+
+For lost execution environments use [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Read the saved state and inspect existing attachments before repeating work or requesting an upload. Restore into a new directory; never use a rejected branch or an email summary as source code.

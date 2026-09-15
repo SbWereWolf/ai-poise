@@ -117,3 +117,7 @@ Use the explicit [skill catalog contract](../../../docs/configuration/skill-cata
 for skill identity, path, purpose and specialization. `SkillCatalog` owns metadata;
 routing and decomposition consume it rather than copying instruction bodies or
 inferring classes from names. `poise skills` reads metadata without Task ownership.
+
+## Resumable work
+
+After each task and before a risky transition apply [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление) using `tools/work_checkpoint.py`. Verify the full text transport read back from Gmail; on resume inspect provided attachments first. Preserve explicit next work and rejected baselines.

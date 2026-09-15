@@ -30,6 +30,8 @@ When an authorized external publication makes a goal-config editor head stale, u
 
 Count observed user messages without inventing missing messages or token usage. Preserve their source and coverage. Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI poise defects.
 
+Before every completed-task boundary or risky transition, create and round-trip a portable checkpoint; send the archive and readable text transport to Gmail and verify attachment readback. On resume, inspect already attached files before asking for another upload. Follow [checkpoint and recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a passed check, a delivery receipt, and Task completion.
+
 ## Shared agent policy
 
 Keep at most one Task and one worktree per session, with independent claims and all

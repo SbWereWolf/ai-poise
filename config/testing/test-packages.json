@@ -315,6 +315,38 @@
           "tests/conftest.py"
         ]
       }
+    },
+    {
+      "id": "documentation-links",
+      "owner": "documentation",
+      "integration_boundaries": [
+        "tooling-fast",
+        "skill-references"
+      ],
+      "members": {
+        "source": [
+          "src/poise/infrastructure/documentation_checks.py",
+          "tools/check_documentation.py",
+          "src/poise/infrastructure/skill_catalog.py",
+          "src/poise/modules/skills/**/*.py"
+        ],
+        "tests": [
+          "tests/delivery/test_documentation_checks.py"
+        ],
+        "support": [
+          "AGENTS.md",
+          "README.md",
+          "src/AGENTS.md",
+          "tests/AGENTS.md",
+          "docs/**/*.md",
+          ".agents/**/*.md",
+          "config/legacy-namespace-allowlist.json",
+          "config/testing/test-packages.json"
+        ],
+        "fixtures": [
+          "tests/conftest.py"
+        ]
+      }
     }
   ]
 }

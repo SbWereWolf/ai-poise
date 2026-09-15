@@ -4,7 +4,6 @@ import fnmatch
 import json
 from pathlib import Path
 import re
-from urllib.parse import unquote
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -129,10 +128,8 @@ def test_current_documentation_links_and_commands_use_poise():
     assert f"pip uninstall -y {('agent-' + LEGACY_LOWER + '-happy-path')}" in upgrade
     assert "ai-poise" in upgrade and "poise --help" in upgrade
 
-    from poise.infrastructure.documentation_checks import check_links
-    documents = [document for document, _ in _files()
-                 if document.suffix.lower() == ".md" and not _historical_markdown(document, rules)]
-    result = check_links(ROOT, documents)
+    from poise.infrastructure.documentation_checks import audit_documentation
+    result = audit_documentation(ROOT)
     assert not result["errors"], result["errors"]
 
 

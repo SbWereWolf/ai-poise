@@ -237,7 +237,7 @@ Sprint-команда является полномочием Sprint над со
 агент; непустая reason сохраняет это решение, но не является криптографическим удостоверением.
 Последующая судьба commit задаётся отдельным `cleanup` для каждой Task; статусы, dirty-worktree
 recovery и точная область ресурсов описаны в
-[пакетном workflow](batch-work.md#уборка-ресурсов-terminal-task).
+[terminal cleanup через native launcher](../configuration/runtime-hooks.md#terminal-cleanup-через-native-launcher).
 
 ## Исправить сломанную незавершённую Task
 

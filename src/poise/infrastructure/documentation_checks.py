@@ -9,6 +9,10 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 import json
+import fnmatch
+import html
+import os
+import unicodedata
 from pathlib import Path
 import re
 from urllib.parse import unquote, urlsplit
@@ -125,32 +129,161 @@ def links(text: str) -> list[Link]:
     return sorted(result, key=lambda x:x.line)
 
 
+def document_anchors(text: str) -> set[str]:
+    """IDs for supported ATX/Setext Markdown headings and explicit HTML anchors.
+
+    This is deliberately a structural checker, not a Markdown rendering engine.
+    HTML headings need an explicit id; other renderer extensions are not inferred.
+    """
+    visible = prose(text)
+    result = {
+        html.unescape(match[2])
+        for match in re.finditer(r"<[^>]+?\b(?:id|name)\s*=\s*([\"'])(.*?)\1", visible)
+    }
+    heading_ids: set[str] = set()
+    lines = visible.splitlines()
+    for number, line in enumerate(lines):
+        atx = re.match(r'^ {0,3}#{1,6}(?:[ \t]+(.*)|$)', line)
+        setext = (number + 1 < len(lines)
+                  and re.fullmatch(r' {0,3}(?:=+|-+)[ \t]*', lines[number + 1])
+                  and bool(line.strip()) and not line.startswith(('    ', '\t')))
+        if atx:
+            title = re.sub(r'[ \t]+#+[ \t]*$', '', atx[1] or '')
+        elif setext:
+            title = line.strip()
+        else:
+            continue
+        title = re.sub(r'!?\[([^\]]+)\]\([^)]*\)', r'\1', title)
+        title = re.sub(r'<[^>]*>', '', title)
+        title = html.unescape(title).strip().lower()
+        title = ''.join(char for char in title if char in '-_' or char.isspace()
+                        or unicodedata.category(char)[0] in 'LNM')
+        slug = re.sub(r'\s', '-', title)
+        candidate = slug
+        suffix = 1
+        while candidate in heading_ids:
+            candidate = f'{slug}-{suffix}'
+            suffix += 1
+        heading_ids.add(candidate)
+        result.add(candidate)
+    return result
+
+
 def check_links(checkout: Path, documents: list[Path]) -> dict:
-    """Check local file links; anchors are added by C027.3 in the same owner."""
-    checkout = checkout.resolve(); errors = []; edges = []
+    """Check local files and supported Markdown anchors, read-only and offline."""
+    checkout = checkout.resolve()
+    errors = []
+    edges = []
+    skipped = []
+    anchor_cache = {}
     for document in sorted(set(documents)):
         document = document.absolute()
         if not document.resolve().is_relative_to(checkout):
-            errors.append({'kind':'outside_checkout','source':str(document),'line':0,'target':None}); continue
+            errors.append({'kind': 'outside_checkout', 'source': str(document),
+                           'line': 0, 'target': None})
+            continue
         source = document.relative_to(checkout).as_posix()
-        try: text = document.read_text(encoding='utf-8')
+        try:
+            text = document.read_text(encoding='utf-8')
         except (OSError, UnicodeError) as exc:
-            errors.append({'kind':'unreadable_document','source':source,'line':0,'target':str(exc)}); continue
+            errors.append({'kind': 'unreadable_document', 'source': source,
+                           'line': 0, 'target': str(exc)})
+            continue
         for link in links(text):
-            row={'source':source,'line':link.line,'target':link.target}
+            row = {'source': source, 'line': link.line, 'target': link.target}
             if link.target is None:
-                errors.append({**row,'kind':'undefined_reference'}); continue
-            url=urlsplit(link.target)
+                errors.append({**row, 'kind': 'undefined_reference'})
+                continue
+            try:
+                url = urlsplit(link.target)
+            except ValueError:
+                errors.append({**row, 'kind': 'invalid_link_target'})
+                continue
             if url.scheme or url.netloc or url.path.startswith('/'):
-                continue  # External/root-relative web links: no network or host filesystem reads.
-            target=(document.parent/unquote(url.path)).resolve() if url.path else document.resolve()
+                skipped.append({**row, 'kind': 'external_link_not_checked'})
+                continue
+            target = ((document.parent / unquote(url.path)).resolve()
+                      if url.path else document.resolve())
             if not target.is_relative_to(checkout):
-                errors.append({**row,'kind':'outside_checkout'}); continue
+                errors.append({**row, 'kind': 'outside_checkout'})
+                continue
+            target_file = target.relative_to(checkout).as_posix()
+            row['target_file'] = target_file
             if not target.exists():
-                errors.append({**row,'kind':'missing_file'}); continue
-            edges.append({**row,'target':target.relative_to(checkout).as_posix(),
-                          'fragment':unquote(url.fragment),'context':link.context,'kind':link.kind})
-    return {'errors':errors,'edges':edges}
+                errors.append({**row, 'kind': 'missing_file'})
+                continue
+            fragment = unquote(url.fragment)
+            edges.append({**row, 'target': target_file, 'fragment': fragment,
+                          'context': link.context, 'kind': link.kind})
+            if not fragment:
+                continue
+            if target.suffix.lower() != '.md' or not target.is_file():
+                skipped.append({**row, 'kind': 'non_markdown_fragment_not_checked'})
+                continue
+            try:
+                if target_file not in anchor_cache:
+                    anchor_cache[target_file] = document_anchors(target.read_text(encoding='utf-8'))
+                if fragment not in anchor_cache[target_file]:
+                    errors.append({**row, 'fragment': fragment, 'kind': 'missing_anchor'})
+            except (OSError, UnicodeError) as exc:
+                errors.append({**row, 'kind': 'unreadable_target', 'detail': str(exc)})
+    return {'errors': errors, 'edges': edges, 'skipped': skipped}
+
+
+def current_documents(checkout: Path) -> list[Path]:
+    """The existing delivery namespace owner's current-doc scope, without caches."""
+    checkout = checkout.resolve()
+    allowlist = checkout / 'config/legacy-namespace-allowlist.json'
+    historical = []
+    if allowlist.exists():
+        data = json.loads(allowlist.read_text(encoding='utf-8'))
+        historical = [rule['path'] for rule in data['rules']
+                      if rule['classification'] == 'historical']
+    ignored = {'.git', '.venv', 'venv', 'node_modules', '.pytest_cache',
+               '__pycache__', '.poise-test-cache'}
+    documents = []
+    for directory, children, files in os.walk(checkout, followlinks=False):
+        children[:] = [name for name in children if name not in ignored
+                       and not name.endswith('.egg-info')]
+        for name in files:
+            path = Path(directory) / name
+            relative = path.relative_to(checkout).as_posix()
+            if (path.suffix.lower() == '.md'
+                    and not any(fnmatch.fnmatchcase(relative, pattern) for pattern in historical)):
+                documents.append(path)
+    return sorted(documents)
+
+
+def audit_documentation(checkout: Path, changed_paths: list[str] | None = None) -> dict:
+    """Include incoming links to changed/deleted targets, not just edited sources."""
+    checkout = checkout.resolve()
+    if not checkout.is_dir():
+        raise ValueError('Documentation checkout directory does not exist')
+    documents = current_documents(checkout)
+    report = check_links(checkout, documents)
+    changed = None
+    if changed_paths is not None:
+        if not changed_paths:
+            raise ValueError('Explicit changed path selection cannot be empty')
+        changed = set()
+        for value in changed_paths:
+            if not value or '\x00' in value:
+                raise ValueError('Changed path must be a concrete filesystem path')
+            path = (checkout / value).resolve()
+            if not path.is_relative_to(checkout):
+                raise ValueError('Changed path escapes inspected checkout')
+            changed.add(path.relative_to(checkout).as_posix())
+        def selected(relative):
+            return any(item == '.' or relative == item or relative.startswith(item + '/')
+                       for item in changed)
+        def relevant(row):
+            return selected(row['source']) or selected(row.get('target_file', ''))
+        report = {key: [row for row in rows if relevant(row)]
+                  for key, rows in report.items()}
+    return {**report, 'scanned_documents': len(documents),
+            'changed_paths': sorted(changed) if changed is not None else None,
+            'read_only': True, 'network_access': False,
+            'status': 'invalid' if report['errors'] else 'valid'}
 
 
 def audit_skills(checkout: Path, selected_ids: list[str] | None = None) -> dict:

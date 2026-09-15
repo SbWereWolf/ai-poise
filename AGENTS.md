@@ -11,6 +11,8 @@ Before any work, including a request without a formal task, establish the goal, 
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not present self-review as independent review.
 
 Turn every accepted agreement into product documentation. Make DDD decisions enforceable development rules and keep responsibility boundaries documented. Do not leave authoritative decisions only in conversation history.
+For changed documentation or rule targets, follow [local links and exact headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.
+
 
 Deliver the working path rather than delaying it for speculative combinations of conditions. Handle the ordinary routes and failures implied by the rules; resolve uncertain edge cases using actual usage and measurements. State current limits honestly.
 

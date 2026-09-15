@@ -164,6 +164,8 @@ class RegisteredCheckRunner:
         progress_gap_seconds: float | None = None,
         poll_seconds: float = 0.05,
     ) -> dict:
+        if os.name != 'posix' or not callable(getattr(os, 'killpg', None)):
+            raise PoiseError('RegisteredCheckRunner requires POSIX process groups; use Linux/WSL')
         if not isinstance(run_id, str) or not run_id:
             raise ValueError('run_id must be a non-empty string')
         if timeout is not None and (isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0):

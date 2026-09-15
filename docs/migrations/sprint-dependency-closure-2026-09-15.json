@@ -1,0 +1,443 @@
+{
+  "schema": "migration-dependency-closure-audit-2",
+  "generated_at": "2026-09-15",
+  "database_sha256": "3a6f51b6c7b61e0243e2291abeb7b35a38d47a27ec48d60a0931c43e4844d55c",
+  "results": {
+    "SPRINT-ERP-MIGRATION-F1-ROUTING-TOOLS": {
+      "state": "draft",
+      "revision": 4,
+      "tasks": [
+        "ERP-MIG-F1-02-C027-4",
+        "ERP-MIG-F1-04-C026-2",
+        "ERP-MIG-F1-08-C025",
+        "ERP-MIG-F1-11-C002",
+        "ERP-MIG-F1-12-C003",
+        "ERP-MIG-F1-13-C004",
+        "ERP-MIG-F1-14-C043"
+      ],
+      "edges": [
+        [
+          "ERP-MIG-F1-04-C026-2",
+          "ERP-MIG-F1-14-C043"
+        ],
+        [
+          "ERP-MIG-F1-08-C025",
+          "ERP-MIG-F1-02-C027-4"
+        ],
+        [
+          "ERP-MIG-F1-11-C002",
+          "ERP-MIG-F1-08-C025"
+        ],
+        [
+          "ERP-MIG-F1-11-C002",
+          "ERP-MIG-F1-12-C003"
+        ],
+        [
+          "ERP-MIG-F1-12-C003",
+          "ERP-MIG-F1-13-C004"
+        ],
+        [
+          "ERP-MIG-F1-13-C004",
+          "ERP-MIG-F1-14-C043"
+        ]
+      ],
+      "topological_order": [
+        "ERP-MIG-F1-04-C026-2",
+        "ERP-MIG-F1-11-C002",
+        "ERP-MIG-F1-08-C025",
+        "ERP-MIG-F1-12-C003",
+        "ERP-MIG-F1-02-C027-4",
+        "ERP-MIG-F1-13-C004",
+        "ERP-MIG-F1-14-C043"
+      ],
+      "dangling": [],
+      "isolated": [],
+      "cycles": [],
+      "published_projection": "not applicable: draft"
+    },
+    "SPRINT-ERP-MIGRATION-F2-RUNNER-EVIDENCE": {
+      "state": "draft",
+      "revision": 8,
+      "tasks": [
+        "ERP-MIG-F2-01A-C002",
+        "ERP-MIG-F2-02-C015",
+        "ERP-MIG-F2-02A-C016",
+        "ERP-MIG-F2-03-C019",
+        "ERP-MIG-F2-03A-C033",
+        "ERP-MIG-F2-04-C018",
+        "ERP-MIG-F2-04A-C020"
+      ],
+      "edges": [
+        [
+          "ERP-MIG-F2-01A-C002",
+          "ERP-MIG-F2-02A-C016"
+        ],
+        [
+          "ERP-MIG-F2-01A-C002",
+          "ERP-MIG-F2-03A-C033"
+        ],
+        [
+          "ERP-MIG-F2-02-C015",
+          "ERP-MIG-F2-03-C019"
+        ],
+        [
+          "ERP-MIG-F2-02-C015",
+          "ERP-MIG-F2-03A-C033"
+        ],
+        [
+          "ERP-MIG-F2-02-C015",
+          "ERP-MIG-F2-04-C018"
+        ],
+        [
+          "ERP-MIG-F2-02A-C016",
+          "ERP-MIG-F2-04-C018"
+        ],
+        [
+          "ERP-MIG-F2-03A-C033",
+          "ERP-MIG-F2-04A-C020"
+        ]
+      ],
+      "topological_order": [
+        "ERP-MIG-F2-01A-C002",
+        "ERP-MIG-F2-02-C015",
+        "ERP-MIG-F2-02A-C016",
+        "ERP-MIG-F2-03-C019",
+        "ERP-MIG-F2-03A-C033",
+        "ERP-MIG-F2-04-C018",
+        "ERP-MIG-F2-04A-C020"
+      ],
+      "dangling": [],
+      "isolated": [],
+      "cycles": [],
+      "published_projection": "not applicable: draft"
+    },
+    "SPRINT-ERP-MIGRATION-F3-ROUTING-HOOKS": {
+      "state": "draft",
+      "revision": 5,
+      "tasks": [
+        "ERP-MIG-F3-03-C003",
+        "ERP-MIG-F3-04-C004",
+        "ERP-MIG-F3-05-C043",
+        "ERP-MIG-F3-06-C017",
+        "ERP-MIG-F3-07-C029-4",
+        "ERP-MIG-F3-10-C002",
+        "ERP-MIG-F3-11-C015",
+        "ERP-MIG-F3-12-C016",
+        "ERP-MIG-F3-13-C026-2"
+      ],
+      "edges": [
+        [
+          "ERP-MIG-F3-03-C003",
+          "ERP-MIG-F3-04-C004"
+        ],
+        [
+          "ERP-MIG-F3-04-C004",
+          "ERP-MIG-F3-05-C043"
+        ],
+        [
+          "ERP-MIG-F3-04-C004",
+          "ERP-MIG-F3-06-C017"
+        ],
+        [
+          "ERP-MIG-F3-04-C004",
+          "ERP-MIG-F3-07-C029-4"
+        ],
+        [
+          "ERP-MIG-F3-10-C002",
+          "ERP-MIG-F3-03-C003"
+        ],
+        [
+          "ERP-MIG-F3-10-C002",
+          "ERP-MIG-F3-12-C016"
+        ],
+        [
+          "ERP-MIG-F3-11-C015",
+          "ERP-MIG-F3-06-C017"
+        ],
+        [
+          "ERP-MIG-F3-12-C016",
+          "ERP-MIG-F3-06-C017"
+        ],
+        [
+          "ERP-MIG-F3-13-C026-2",
+          "ERP-MIG-F3-05-C043"
+        ]
+      ],
+      "topological_order": [
+        "ERP-MIG-F3-10-C002",
+        "ERP-MIG-F3-11-C015",
+        "ERP-MIG-F3-13-C026-2",
+        "ERP-MIG-F3-03-C003",
+        "ERP-MIG-F3-12-C016",
+        "ERP-MIG-F3-04-C004",
+        "ERP-MIG-F3-05-C043",
+        "ERP-MIG-F3-06-C017",
+        "ERP-MIG-F3-07-C029-4"
+      ],
+      "dangling": [],
+      "isolated": [],
+      "cycles": [],
+      "published_projection": "not applicable: draft"
+    },
+    "SPRINT-ERP-MIGRATION-F4-HOOKS-TELEMETRY": {
+      "state": "draft",
+      "revision": 9,
+      "tasks": [
+        "ERP-MIG-F4-01-C021",
+        "ERP-MIG-F4-02-C023",
+        "ERP-MIG-F4-03-C028-4",
+        "ERP-MIG-F4-04-C028-5",
+        "ERP-MIG-F4-05-C031",
+        "ERP-MIG-F4-06-C002",
+        "ERP-MIG-F4-07-C003",
+        "ERP-MIG-F4-08-C004",
+        "ERP-MIG-F4-09-C015",
+        "ERP-MIG-F4-10-C033",
+        "ERP-MIG-F4-11-C020"
+      ],
+      "edges": [
+        [
+          "ERP-MIG-F4-01-C021",
+          "ERP-MIG-F4-02-C023"
+        ],
+        [
+          "ERP-MIG-F4-02-C023",
+          "ERP-MIG-F4-05-C031"
+        ],
+        [
+          "ERP-MIG-F4-03-C028-4",
+          "ERP-MIG-F4-04-C028-5"
+        ],
+        [
+          "ERP-MIG-F4-04-C028-5",
+          "ERP-MIG-F4-05-C031"
+        ],
+        [
+          "ERP-MIG-F4-06-C002",
+          "ERP-MIG-F4-07-C003"
+        ],
+        [
+          "ERP-MIG-F4-06-C002",
+          "ERP-MIG-F4-10-C033"
+        ],
+        [
+          "ERP-MIG-F4-07-C003",
+          "ERP-MIG-F4-08-C004"
+        ],
+        [
+          "ERP-MIG-F4-08-C004",
+          "ERP-MIG-F4-02-C023"
+        ],
+        [
+          "ERP-MIG-F4-08-C004",
+          "ERP-MIG-F4-05-C031"
+        ],
+        [
+          "ERP-MIG-F4-09-C015",
+          "ERP-MIG-F4-10-C033"
+        ],
+        [
+          "ERP-MIG-F4-10-C033",
+          "ERP-MIG-F4-11-C020"
+        ],
+        [
+          "ERP-MIG-F4-11-C020",
+          "ERP-MIG-F4-05-C031"
+        ]
+      ],
+      "topological_order": [
+        "ERP-MIG-F4-01-C021",
+        "ERP-MIG-F4-03-C028-4",
+        "ERP-MIG-F4-06-C002",
+        "ERP-MIG-F4-09-C015",
+        "ERP-MIG-F4-04-C028-5",
+        "ERP-MIG-F4-07-C003",
+        "ERP-MIG-F4-10-C033",
+        "ERP-MIG-F4-08-C004",
+        "ERP-MIG-F4-11-C020",
+        "ERP-MIG-F4-02-C023",
+        "ERP-MIG-F4-05-C031"
+      ],
+      "dangling": [],
+      "isolated": [],
+      "cycles": [],
+      "published_projection": "not applicable: draft"
+    },
+    "SPRINT-ERP-MIGRATION-SKILL-CATALOG": {
+      "state": "draft",
+      "revision": 2,
+      "tasks": [
+        "ERP-MIG-CATALOG-01-C005-1",
+        "ERP-MIG-CATALOG-02-C012"
+      ],
+      "edges": [
+        [
+          "ERP-MIG-CATALOG-01-C005-1",
+          "ERP-MIG-CATALOG-02-C012"
+        ]
+      ],
+      "topological_order": [
+        "ERP-MIG-CATALOG-01-C005-1",
+        "ERP-MIG-CATALOG-02-C012"
+      ],
+      "dangling": [],
+      "isolated": [],
+      "cycles": [],
+      "published_projection": "not applicable: draft"
+    }
+  },
+  "errors": [],
+  "conditional_duplicates": [
+    {
+      "task": "ERP-MIG-F1-11-C002",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C002 for F1. Before implementation inspect equivalent AI-poise scoped development-rule/architecture-boundary functionality already delivered elsewhere. If it fully satisfies this Task, do not reimplement it; verify applicability and record a local reuse/no-change result. Otherwise implement only the missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F1-12-C003",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C003 for F1. Before implementation inspect equivalent AI-poise shipped-skill selection metadata already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record a local reuse/no-change result. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F1-13-C004",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C004 for F1. Before implementation inspect equivalent AI-poise routing-owner functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record a local reuse/no-change result. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F1-14-C043",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C043 for F1. Before implementation inspect the existing AI-poise IDE skill and any equivalent migrated result. If sufficient, do not reimplement it; verify applicability and record a local reuse/no-change result. Otherwise fill only confirmed gaps. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F3-10-C002",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C002 for F3. Before implementation inspect equivalent AI-poise scoped development-rule/architecture-boundary functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F3-11-C015",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C015 for F3. Before implementation inspect the existing AI-poise registered check runner. If it satisfies F3 needs, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing runner behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F3-12-C016",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C016 for F3. Before implementation inspect existing AI-poise test-package metadata and ownership boundaries. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F3-13-C026-2",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C026.2 for F3. Before implementation inspect existing AI-poise IDE/AST navigation behavior for the concrete checkout path being inspected. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise fill only confirmed gaps. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F4-06-C002",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C002 for F4. Before implementation inspect equivalent AI-poise scoped development-rule/architecture-boundary functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F4-07-C003",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C003 for F4. Before implementation inspect equivalent AI-poise skill-selection routing metadata already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F4-08-C004",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C004 for F4. Before implementation inspect equivalent AI-poise routing-owner functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F4-09-C015",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C015 for F4. Before implementation inspect the existing AI-poise registered check runner. If it satisfies F4 needs, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing runner behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F4-10-C033",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C033 for F4. Before implementation inspect existing AI-poise runner timeout/progress/cancel behavior. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    {
+      "task": "ERP-MIG-F4-11-C020",
+      "contract_present": true,
+      "goal": "CONDITIONAL DUPLICATE of C020 for F4. Before implementation inspect existing host-hook control of AI-poise registered verification launches. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing confirmed-host-event behavior. Do not create a cross-Sprint dependency."
+    }
+  ],
+  "standalone": [
+    {
+      "task": "ERP-MIG-F1-05-C027-1",
+      "sprint_id": null,
+      "status": "newborn"
+    },
+    {
+      "task": "ERP-MIG-F1-06-C027-2",
+      "sprint_id": null,
+      "status": "newborn"
+    },
+    {
+      "task": "ERP-MIG-F1-07-C027-3",
+      "sprint_id": null,
+      "status": "newborn"
+    }
+  ],
+  "retired": [
+    {
+      "task": "ERP-MIG-F1-01-C026-1",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. C026.1 was removed: worktree/session paths are ordinary operation inputs and never a global path-resolution root."
+    },
+    {
+      "task": "ERP-MIG-F1-03-C002",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. Duplicate C002 removed; canonical migration Task is ERP-MIG-F2-01A-C002."
+    },
+    {
+      "task": "ERP-MIG-F1-09-C051",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. C051 Playwright removed: AI poise currently has no browser-owned test surface and the Skill Catalog excludes this skill."
+    },
+    {
+      "task": "ERP-MIG-F1-10-C043",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. Duplicate C043 removed; canonical migration Task is ERP-MIG-F3-05-C043."
+    },
+    {
+      "task": "ERP-MIG-F2-01-C026-1",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. C026.1 was removed: worktree/session paths are ordinary operation inputs and never a global path-resolution root."
+    },
+    {
+      "task": "ERP-MIG-F2-05-C017",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. Duplicate C017 removed; canonical migration Task is ERP-MIG-F3-06-C017."
+    },
+    {
+      "task": "ERP-MIG-F3-01-C026-1",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. C026.1 was removed: worktree/session paths are ordinary operation inputs and never a global path-resolution root."
+    },
+    {
+      "task": "ERP-MIG-F3-02-C002",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. Duplicate C002 removed; canonical migration Task is ERP-MIG-F2-01A-C002."
+    },
+    {
+      "task": "ERP-MIG-F3-08-C093",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. C093 is not a standalone migration Task; hook coverage is an integration property of C020/C021/C023/C028.* and F4 Definition of Done."
+    },
+    {
+      "task": "ERP-MIG-F3-09-C031",
+      "sprint_id": null,
+      "status": "newborn",
+      "instruction": "RETIRED MIGRATION-PLAN ARTIFACT — DO NOT EXECUTE. Old placement removed; canonical C031 is ERP-MIG-F4-05-C031 after its actual prerequisites."
+    }
+  ],
+  "result": "PASS",
+  "storage_semantics": "Draft plan aggregate + Task metadata are authoritative. Published member/dependency projections are populated by SqliteSprintRepository.publish_members; absent projection rows are expected before publication."
+}

@@ -254,3 +254,14 @@ foreign/ambiguous ownership, pending external effects or cleanup with a chosen
 commit disposition must not be bypassed. An old cancellation without a precise
 recovery point is not guessed. Do not issue direct Task DB edits.
 Read [the exact packet and guards](../../../docs/workflows/batch-work.md#восстановление-ошибочно-отменённой-task).
+
+
+### Registered artifacts after owner-root migration
+
+Updated: 2026-09-17. With explicit user authorization, recover one released Task's
+registered artifact collection through `recover_artifacts` from a taskless caller.
+Use observed version, existing IDs and exact old owner roots; do not edit registry
+rows, claim another Task or relax path/digest validation to get past this defect.
+Current configuration determines destinations. Missing historical bundle bytes
+must come from a real backup; a receipt is not a substitute. Read the
+[public root-recovery contract](../../../docs/workflows/batch-work.md#восстановление-зарегистрированных-артефактов).

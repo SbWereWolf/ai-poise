@@ -7,6 +7,7 @@ from .infrastructure.sqlite.database import Database
 from .infrastructure.sqlite.uow import SqliteUnitOfWork
 from .infrastructure.sqlite.tasks import EXECUTION_FIELDS
 from .infrastructure.sqlite.queries import TaskQueries
+from .infrastructure.sqlite.artifacts import SqliteArtifactRepository
 
 
 class Store:
@@ -52,21 +53,15 @@ class Store:
 
     def artifact_records(self, task_id: str) -> list[dict]:
         with self.transaction() as db:
-            return [dict(r) for r in db.execute('SELECT a.* FROM artifacts a JOIN task_artifacts t ON a.id=t.artifact_id WHERE t.task_id=?',(task_id,))]
+            return SqliteArtifactRepository(db).records(task_id)
 
     def link_artifacts(self, task_id: str, artifacts: list[dict]) -> None:
         with self.transaction() as db:
-            for a in artifacts:
-                db.execute('INSERT OR IGNORE INTO artifacts VALUES(?,?,?,?,?)',(a['id'],a['owner'],a['scope'],a['path'],a['digest']))
-                db.execute('INSERT OR IGNORE INTO task_artifacts VALUES(?,?)',(task_id,a['id']))
-                if a['scope']=='sprint':
-                    db.execute('INSERT OR IGNORE INTO sprint_artifacts VALUES(?,?)',(a['owner'],a['id']))
+            SqliteArtifactRepository(db).link_task(task_id, artifacts)
 
     def link_sprint_artifacts(self, artifacts):
         with self.transaction() as db:
-            for a in artifacts:
-                db.execute('INSERT OR IGNORE INTO artifacts VALUES(?,?,?,?,?)',(a['id'],a['owner'],a['scope'],a['path'],a['digest']))
-                db.execute('INSERT OR IGNORE INTO sprint_artifacts VALUES(?,?)',(a['owner'],a['id']))
+            SqliteArtifactRepository(db).link_sprint(artifacts)
 
     def counts(self, task_id: str) -> tuple[int,int]:
         with self.transaction() as db:

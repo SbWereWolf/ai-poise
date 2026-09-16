@@ -75,3 +75,38 @@ class ArtifactPlan:
                 raise DomainError('Conflicting content for the same artifact path')
             seen[key]=item
         return cls(tuple(seen.values()))
+
+
+@dataclass(frozen=True)
+class ArtifactRecoveryIntent:
+    request_id: str
+    task_id: str
+    expected_version: int
+    artifact_ids: tuple[str, ...]
+    source_roots: dict[str, str]
+    reason: str
+    authorization: str
+
+    @classmethod
+    def parse(cls, raw, max_items):
+        exact(raw, {'request_id','task_id','expected_version','artifact_ids',
+                    'source_roots','reason','authorization'}, 'artifact recovery')
+        for key in ('request_id','task_id','reason','authorization'):
+            if not isinstance(raw[key], str) or not raw[key].strip() or '\0' in raw[key]:
+                raise DomainError(f'Artifact recovery {key} is required')
+        if type(raw['expected_version']) is not int or raw['expected_version'] < 0:
+            raise DomainError('Artifact recovery expected_version must be nonnegative')
+        ids = raw['artifact_ids']
+        if (not isinstance(ids, list) or not 0 < len(ids) <= max_items
+                or any(not isinstance(x,str) or not x for x in ids)
+                or len(ids) != len(set(ids))):
+            raise DomainError('Artifact recovery requires unique bounded registered artifact IDs')
+        roots = raw['source_roots']
+        if not isinstance(roots,dict) or not roots or set(roots) - {'task','sprint'}:
+            raise DomainError('Artifact recovery requires explicit task/sprint source owner roots')
+        for root in roots.values():
+            if not isinstance(root,str) or not root.startswith('/'):
+                raise DomainError('Artifact recovery source owner root must be absolute')
+            relative(root[1:])
+        return cls(raw['request_id'],raw['task_id'],raw['expected_version'],tuple(ids),
+                   dict(roots),raw['reason'],raw['authorization'])

@@ -2,8 +2,11 @@
 from dataclasses import dataclass
 from pathlib import Path
 import os
+import hashlib
+import stat
 import tempfile
-from ..modules.artifact_factory.domain import ArtifactPlan
+from ..modules.artifact_factory.domain import ArtifactPlan, relative
+from ..artifacts import artifact_identity
 from ..common import PoiseError
 from .locking import exclusive_lock
 
@@ -82,3 +85,140 @@ class FileArtifactFactory:
             except OSError as exc:
                 raise PoiseError(f'Artifact publication incomplete; preserved paths={completed}; retry identical batch: {exc}') from exc
             return completed
+
+
+    @staticmethod
+    def _without_links(path, label):
+        if not path.is_absolute():
+            raise PoiseError(f'{label} must be absolute')
+        cursor = Path(path.anchor)
+        for part in path.parts[1:]:
+            cursor /= part
+            if cursor.is_symlink():
+                raise PoiseError(f'{label} contains a symlink: {cursor}')
+            if cursor.exists() and cursor != path and not cursor.is_dir():
+                raise PoiseError(f'{label} parent is not a directory: {cursor}')
+
+    @staticmethod
+    def _signature(info):
+        return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+    @classmethod
+    def _read_registered(cls, path, label, output=None):
+        """Read binary material without following links or blocking on a FIFO."""
+        cls._without_links(path, label)
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, 'rb') as source:
+            before = os.fstat(source.fileno())
+            if not stat.S_ISREG(before.st_mode):
+                raise PoiseError(f'{label} is not a regular file: {path}')
+            digest = hashlib.sha256()
+            remaining = before.st_size
+            while remaining:
+                chunk = source.read(min(remaining, 1024 * 1024))
+                if not chunk:
+                    raise PoiseError(f'{label} changed while reading: {path}')
+                digest.update(chunk)
+                if output is not None:
+                    output.write(chunk)
+                remaining -= len(chunk)
+            after = os.fstat(source.fileno())
+            cls._without_links(path, label)
+            if (cls._signature(before) != cls._signature(after)
+                    or cls._signature(path.lstat()) != cls._signature(before)):
+                raise PoiseError(f'{label} changed while reading: {path}')
+        return digest.hexdigest()
+
+    def _recovery_destination(self, scope, name):
+        # Registry-relative names include handoffs/, artifacts/, etc.; unlike
+        # new authored text, they must not receive an artifact-directory prefix.
+        root = Path(self.roots[scope])
+        target = root / relative(name)
+        self._without_links(root, 'Artifact destination owner root')
+        self._without_links(target, 'Artifact destination')
+        if not target.is_relative_to(root):
+            raise PoiseError('Artifact destination leaves its owner')
+        candidates = [(len(Path(r).parts), key) for key, r in self.roots.items()
+                      if target.is_relative_to(Path(r))]
+        depth = max(size for size, _ in candidates)
+        if [key for size, key in candidates if size == depth] != [scope]:
+            raise PoiseError('Artifact destination scope/owner identity changed')
+        return target
+
+    def recover_registered(self, records, source_roots, owners):
+        """Publish registered immutable bytes; registry commit belongs to caller.
+
+        Failed publication or later DB rollback leaves immutable, identical
+        destination files available for retry. Legacy sources are never removed.
+        """
+        scopes = {row['scope'] for row in records}
+        if set(source_roots) != scopes:
+            raise PoiseError('Explicit source owner roots must match selected artifact scopes')
+        completed = []
+        try:
+            with exclusive_lock(self.lock, self.wait, self.poll):
+                planned = []
+                for row in records:
+                    scope = row['scope']
+                    if scope not in self.roots or row['owner'] != owners.get(scope):
+                        raise PoiseError('Registered artifact owner identity does not match')
+                    old_root = Path(source_roots[scope])
+                    source = Path(row['path'])
+                    if str(source) != row['path'] or not source.is_absolute():
+                        raise PoiseError('Registered source path is not canonical')
+                    try:
+                        name = relative(source.relative_to(old_root).as_posix())
+                    except ValueError as exc:
+                        raise PoiseError('Registered source is outside explicit owner root') from exc
+                    if artifact_identity(scope, row['owner'], name) != row['id']:
+                        raise PoiseError('Registered relative path/owner identity does not match source root')
+                    self._without_links(old_root, 'Artifact source owner root')
+                    target = self._recovery_destination(scope, name)
+                    if self._read_registered(source, 'Artifact source file') != row['digest']:
+                        raise PoiseError(f'Artifact source digest mismatch: {source}')
+                    if target.exists() and self._read_registered(target, 'Artifact destination') != row['digest']:
+                        raise PoiseError(f'Artifact destination has different content: {target}')
+                    planned.append((row, source, name, target))
+                # The complete batch was checked before the first publication.
+                for row, source, name, target in planned:
+                    self._recovery_destination(row['scope'], name)
+                    if target.exists():
+                        if self._read_registered(target, 'Artifact destination') != row['digest']:
+                            raise PoiseError(f'Artifact destination conflict: {target}')
+                    else:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        self._recovery_destination(row['scope'], name)
+                        fd, temporary = tempfile.mkstemp(dir=target.parent)
+                        try:
+                            with os.fdopen(fd, 'wb') as output:
+                                os.fchmod(output.fileno(), self.config['file_mode'])
+                                digest = self._read_registered(source, 'Artifact source file', output)
+                                if digest != row['digest']:
+                                    raise PoiseError(f'Artifact source digest changed: {source}')
+                                output.flush()
+                                os.fsync(output.fileno())
+                            self._recovery_destination(row['scope'], name)
+                            try:
+                                os.link(temporary, target)
+                            except FileExistsError:
+                                if self._read_registered(target, 'Artifact destination') != row['digest']:
+                                    raise PoiseError(f'Artifact destination conflict: {target}')
+                            directory = os.open(target.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+                            try:
+                                os.fsync(directory)
+                            finally:
+                                os.close(directory)
+                        finally:
+                            Path(temporary).unlink(missing_ok=True)
+                    completed.append({**row, 'path':str(target), 'source_path':str(source),
+                                      'relative_path':name})
+                # Ordinary validation still checks content on future use; this
+                # validates the exact publication set immediately before rebind.
+                for row in completed:
+                    path = self._recovery_destination(row['scope'], row['relative_path'])
+                    if self._read_registered(path, 'Artifact destination') != row['digest']:
+                        raise PoiseError(f'Artifact destination digest changed: {path}')
+        except OSError as exc:
+            raise PoiseError(f'Artifact recovery file publication incomplete; preserved={completed}; '
+                             f'retry identical request: {exc}') from exc
+        return completed

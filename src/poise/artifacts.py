@@ -5,6 +5,10 @@ from .common import PoiseError, file_digest
 from .modules.content_requirements.domain import ArtifactFact, count_artifacts
 
 
+def artifact_identity(scope: str, owner: str, relative_path: str) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f'{scope}:{owner}:{relative_path}'))
+
+
 def inspect_paths(paths: list[str], roots: dict[str, Path], owners: dict[str,str]):
     """Вход агента — только пути. Scope, owner, ID и digest вычисляются здесь."""
     if not isinstance(paths, list) or any(not isinstance(p,str) for p in paths):
@@ -33,7 +37,7 @@ def inspect_paths(paths: list[str], roots: dict[str, Path], owners: dict[str,str
             raise PoiseError(f'Путь принадлежит нескольким областям одного уровня: {raw}')
         scope = scopes[0]
         key = (scope, str(path))
-        found[key] = {'id': str(uuid.uuid5(uuid.NAMESPACE_URL, f'{scope}:{owners[scope]}:{path.relative_to(roots[scope].resolve()).as_posix()}')),
+        found[key] = {'id': artifact_identity(scope, owners[scope], path.relative_to(roots[scope].resolve()).as_posix()),
                       'scope': scope, 'owner': owners[scope], 'path': str(path),
                       'relative_path': path.relative_to(roots[scope].resolve()).as_posix(),
                       'digest': file_digest(path)}

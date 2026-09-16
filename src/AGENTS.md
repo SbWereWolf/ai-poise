@@ -143,3 +143,20 @@ back to unfiltered discovery. Read [package input impact](../docs/configuration/
 For AI-poise's authoring boundary gate, follow [pre-submission architecture checks](../docs/workflows/architecture-boundaries.md#проверка-архитектуры-перед-авторской-сдачей).
 Use the configured running tool to check concrete changed paths. Do not execute subject
 code in a static check, replace assigned Task methods, or mutate Task state after a failed gate.
+
+
+## Registered artifact root recovery
+
+Updated: 2026-09-17. Use public `recover_artifacts` only for an explicitly
+user-authorized root migration, from a taskless caller for one released Task.
+Supply its observed version, registered artifact IDs and exact old task/sprint
+owner roots. The existing artifact registry and FileArtifactFactory validate
+scope/owner/relative-path identity, source digest, regular files, symlink-free
+paths and non-overwriting destinations derived from current configuration.
+Shared artifacts require all referencing Tasks to be released. Publish all
+immutable files before atomically rebinding selected registry paths and recording
+an audited receipt. Never rewrite Task lifecycle, historical submissions or
+handoffs, delete legacy sources, weaken ordinary validation, or invent missing
+bundle bytes. Failed DB/file publication may leave identical immutable files for
+safe retry; exact receipt replay is historical, not fresh material validation.
+Read [registered artifact recovery](../docs/workflows/batch-work.md#восстановление-зарегистрированных-артефактов).

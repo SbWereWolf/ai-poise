@@ -41,6 +41,7 @@ def parse_request(value, config):
             'recover_empty_advance':{'task_id','reason'},
             'advance':{'request_id','task_id','target_stage'},
             'recover_missing_worktree':{'task_id','reason'},
+            'recover_artifacts':{'request_id','task_id','expected_version','artifact_ids','source_roots','reason','authorization'},
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},
@@ -76,6 +77,9 @@ def parse_request(value, config):
         if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):raise DomainError('handoff result must be an object or null')
     if op=='artifacts' and not isinstance(value['input']['items'],list):
         raise DomainError('items must be a list')
+    if op=='recover_artifacts':
+        from ..artifact_factory.domain import ArtifactRecoveryIntent
+        ArtifactRecoveryIntent.parse(value['input'],config['max_items'])
     if op=='cleanup':
         from ..task_cleanup.domain import CleanupIntent
         CleanupIntent.parse(value['input'])

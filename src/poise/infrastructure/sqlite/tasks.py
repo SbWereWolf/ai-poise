@@ -71,6 +71,39 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
+    def review_identity(self, task_id: str) -> dict | None:
+        """Read the last produced result's actor, not a later relay's identity."""
+        row = self.db.execute(
+            "SELECT r.submission_id,r.data,s.stage,s.iteration FROM task_results r "
+            "JOIN submissions s ON s.seq=r.submission_id AND s.task_id=r.task_id "
+            "WHERE r.task_id=? AND json_extract(r.data,'$.handler')!='inspect' "
+            "ORDER BY s.seq DESC LIMIT 1", (task_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        event = self.db.execute(
+            "SELECT data FROM task_events WHERE task_id=? "
+            "AND json_extract(data,'$.event')='verified' "
+            "AND json_extract(data,'$.submission')=? ORDER BY seq DESC LIMIT 1",
+            (task_id, row["submission_id"]),
+        ).fetchone()
+        actor = None if event is None else json.loads(event["data"]).get("actor")
+        source = "verified_task_event" if actor else "unavailable"
+        if actor is None:
+            # Legacy journal records are evidence, not a fabricated caller binding.
+            report = json.loads(row["data"])
+            observed = self.db.execute(
+                "SELECT DISTINCT session_id FROM journal WHERE task_id=? AND event='verify.start' "
+                "AND json_extract(data,'$.stage')=? AND json_extract(data,'$.tree')=? "
+                "ORDER BY session_id",
+                (task_id, row["stage"], report.get("verified_tree")),
+            ).fetchall()
+            if len(observed) == 1:
+                actor, source = observed[0]["session_id"], "legacy_verify_start"
+        return {"executor_actor": actor, "source": source,
+                "stage": row["stage"], "iteration": row["iteration"],
+                "submission_id": row["submission_id"]}
+
     def ownership_event_suffix(
         self, task_id: str, after_version: int, through_version: int
     ) -> tuple[str, ...]:
@@ -762,8 +795,12 @@ class SqliteTaskRepository:
         if updated.rowcount != 1:
             raise VersionConflict("Конфликт версии задачи")
         for event in change.events:
-            self._event(state.task_id,state.version,{"event":event.kind,"stage":event.stage_id,
-                                                    "iteration":event.iteration,"reason":event.reason,"submission":submission_id})
+            data = {"event": event.kind, "stage": event.stage_id,
+                    "iteration": event.iteration, "reason": event.reason,
+                    "submission": submission_id}
+            if event.kind == "verified":
+                data["actor"] = state.claimed_by
+            self._event(state.task_id, state.version, data)
         return submission_id
 
     def _save_methods(self, task: Task) -> None:

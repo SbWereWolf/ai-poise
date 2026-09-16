@@ -45,6 +45,8 @@ class HandoffCommands:
             if record is None or record['state']!='released' or record['task_id']!=task_id:
                 raise PoiseError('No released handoff for this task')
             task=uow.tasks.load(task_id)
+            from .tasks import require_reviewer_identity_in
+            require_reviewer_identity_in(uow, task, actor, acquiring=True)
             if task.state.version!=record['version']+1:raise PoiseError('Task changed after preserved handoff')
             uow.tasks.save(task.resume_handoff(actor),task.state.version)
             if uow.ownership.worktree_required(task_id):

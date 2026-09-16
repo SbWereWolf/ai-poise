@@ -16,6 +16,14 @@ Use native identity when available and an explicit persistent `POISE_CALLER_BIND
 callers and agents must not substitute an arbitrary session value. Identity origin is provenance,
 not authorization, and read-only establishment must not create a business subject.
 
+A collaboration subagent is not an independent reviewer merely because its visible
+name or role differs. Require a distinct native session established by the common
+SessionEstablisher; never manufacture a session ID or caller binding. In Codex,
+use a separate task/session, public handoff and bootstrap of the same Task, then
+replay the exact progression request. Inspect `review_identity` provenance:
+distinct effective actors do not prove live-host delivery or review quality.
+See [reviewer identity](../../../docs/workflows/local-handoff.md#независимая-идентичность-проверяющего).
+
 ## Development method
 
 For repository changes follow TDD: contract/check design → tests → honest RED → test inspection → implementation → GREEN → code inspection → fixes → reinspection → documentation. Read [Development rules → TDD and inspection](../../../docs/governance/development-rules.md#tdd-и-осмотр) when working on implementation behaviour.

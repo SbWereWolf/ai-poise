@@ -248,6 +248,7 @@ class Poise:
         data = self.task_queries.record(task_id)
         if data is None:
             raise PoiseError("Unknown progression Task")
+        self.task_commands.reviewer_preflight(task_id, self.session)
         entry_tree = self._current_tree(data)
         outcome = self.task_commands.advance_progression(
             task_id,
@@ -280,6 +281,7 @@ class Poise:
                 "next_stage": step.next_stage,
                 "from_role": step.from_role,
                 "to_role": step.to_role,
+                "review_identity": outcome["review_identity"],
                 "next_work": (
                     "Save the result, complete public handoff, then directly notify "
                     "the named counterpart with this progression target."
@@ -831,6 +833,7 @@ class Poise:
                 selected_process = self.processes[contract['goal_type']]
             if existing is not None:
                 data = existing
+                self.task_commands.reviewer_preflight(data['id'], self.session, acquiring=True)
                 blocked = self._require_entry(data)
                 if blocked is not None:
                     return blocked
@@ -859,6 +862,7 @@ class Poise:
                     if data['claimed_by'] not in (None,self.session):
                         return {**self._context(data,data['status']=='active'),
                                 'allocation':allocation_receipt}
+                    self.task_commands.reviewer_preflight(data['id'], self.session, acquiring=True)
                     self._reconcile_task_worktree(data)
                     data=self.task_queries.record(allocation.task_id)
                     blocked = self._require_entry(data)
@@ -1109,6 +1113,7 @@ class Poise:
             self._cleanup_runtime()
             return {'status':'read_only_verified','project':self.cfg['project'],'checks':[], 'artifacts':[]}
         data = self._task(); stage = self._stage(data)
+        self.task_commands.reviewer_preflight(data['id'], self.session)
         worktree = self._verification_workspace(data)
         if data['claimed_by'] != self.session:
             raise PoiseError('Нет владения текущей работой')

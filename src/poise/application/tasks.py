@@ -20,6 +20,45 @@ from ..modules.tasks.newborn import NewbornTask
 from ..modules.tasks.definition import build_task, validate_creation
 
 
+def require_reviewer_identity_in(
+    uow: TaskUnitOfWork, task: Task, actor: str, *,
+    target_stage: str | None = None, acquiring: bool = False,
+) -> dict | None:
+    """One guard for public acquisition, handoff and progression owners."""
+    from ..modules.workflow.domain import HandlerKind
+    current = task.stage.stage_id
+    node = task.route.node(current)
+    if (target_stage is None and node.handler == HandlerKind.INSPECT
+            and task.state.status in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED)
+            and task.progress.outcome is not None):
+        following = node.target(task.progress.outcome)
+        if following is None or task.route.node(following).handler != HandlerKind.INSPECT:
+            return None  # Consuming a completed review is not performing that review.
+    target = current if target_stage is None else target_stage
+    if (acquiring and task.state.claimed_by is None
+            and task.state.status in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED)
+            and task.progress.outcome is not None):
+        target = task.route.node(current).target(task.progress.outcome) or current
+    if task.route.node(target).handler != HandlerKind.INSPECT:
+        return None
+    identity = uow.tasks.review_identity(task.state.task_id)
+    if identity is None:
+        return None  # An inspection route may begin with externally supplied input.
+    executor = identity["executor_actor"]
+    if executor is None:
+        raise DomainError(
+            "Reviewer identity provenance is unavailable for the produced result; "
+            "a distinct native reviewer session must be established from saved evidence"
+        )
+    if executor == actor:
+        raise DomainError(
+            f"Reviewer actor {actor!r} equals executor {executor!r} "
+            f"({identity['source']}, stage {identity['stage']}); "
+            "use a distinct native reviewer session and public handoff"
+        )
+    return {**identity, "reviewer_actor": actor, "distinct_actor": True}
+
+
 def _action_digest(action: str, payload: dict) -> str:
     value = {"action": action, **deepcopy(payload)}
     return hashlib.sha256(json.dumps(
@@ -121,6 +160,15 @@ class TaskCommands:
                  repository_tree: RepositoryTreeReader):
         self.unit_of_work = unit_of_work
         self.repository_tree = repository_tree
+
+    def reviewer_preflight(self, task_id: str, actor: str, *, acquiring: bool = False) -> dict | None:
+        """Reject self-review before filesystem preparation; writes recheck in their UoW."""
+        with self.unit_of_work() as uow:
+            if uow.tasks.is_newborn(task_id):
+                return None
+            return require_reviewer_identity_in(
+                uow, uow.tasks.load(task_id), actor, acquiring=acquiring,
+            )
 
     def prepare_creation(
         self, intent, process, automatic_checks, base_revision, decomposition_policy
@@ -498,6 +546,7 @@ class TaskCommands:
             raise DomainError("artifact_paths должен быть списком путей")
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
+            require_reviewer_identity_in(uow, task, actor)
             change = task.submit(actor, payload["sections"], tuple(payload["artifact_paths"]), payload["commit_message"],
                                  payload["content_additions"], payload["trace"], payload["method_additions"], payload["stage_work"], payload["evidence_work"])
             submission_id = uow.tasks.save(change, task.state.version)
@@ -560,6 +609,7 @@ class TaskCommands:
     def mark_verified(self, task_id: str, actor: str, digest: str, report: dict, artifacts: tuple[ArtifactFact, ...]) -> TaskState:
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
+            require_reviewer_identity_in(uow, task, actor)
             if task.route.node(task.stage.stage_id).handler.value in ('apply_plan','publish'):
                 import json
                 assessed = None if task.action_assessment is None else json.loads(task.action_assessment)
@@ -587,6 +637,11 @@ class TaskCommands:
     def _accept_in_uow(
         uow, task: Task, actor: str, advance: bool, entry_tree: str | None
     ) -> TaskState:
+        require_reviewer_identity_in(uow, task, actor)
+        if advance and task.progress.outcome is not None:
+            target = task.route.node(task.stage.stage_id).target(task.progress.outcome)
+            if target is not None:
+                require_reviewer_identity_in(uow, task, actor, target_stage=target)
         change = task.accept(actor, advance)
         updates = {}
         if change.task.state.version != task.state.version:
@@ -657,13 +712,18 @@ class TaskCommands:
                     task_id, handoff["version"], task.state.version
                 )
             )
-            crossed = bool(
+            resumed_boundary = bool(
                 handoff is not None
                 and handoff["state"] == "resumed"
-                and handoff["actor"] != actor
                 and handoff["receipt"]["stage"] == task.stage.stage_id
                 and ownership_suffix[:2] == ("handed_off", "handoff_resumed")
             )
+            crossed = resumed_boundary and handoff["actor"] != actor
+            require_reviewer_identity_in(uow, task, actor)
+            if resumed_boundary and task.progress.outcome is not None:
+                following = task.route.node(task.stage.stage_id).target(task.progress.outcome)
+                if following is not None:
+                    require_reviewer_identity_in(uow, task, actor, target_stage=following)
             step = progression_step(task, target_stage, crossed)
             progression = uow.tasks.begin_progression(
                 task_id, actor, request_id, identity, target_stage
@@ -676,7 +736,12 @@ class TaskCommands:
                     **progression, "status": "reached",
                 }}
             if step.kind != "advance":
-                return {"kind": step.kind, "progression": progression, "step": step}
+                identity = uow.tasks.review_identity(task_id)
+                return {"kind": step.kind, "progression": progression, "step": step,
+                        "review_identity": None if identity is None else {
+                            **identity, "candidate_actor": actor,
+                            "distinct_actor": identity["executor_actor"] not in (None, actor),
+                        }}
             gate = task.assess_stage_content(step.next_stage, "pre", artifacts)
             if not gate.passed:
                 return {

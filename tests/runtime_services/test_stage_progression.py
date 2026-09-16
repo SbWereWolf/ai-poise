@@ -41,6 +41,11 @@ def configure_progression(project, *, gated=False):
     project["process"] = process
     write_json(project["root"] / "config/processes/development.json", process)
     task = deepcopy(project["task"])
+    stage_ids = {stage["id"] for stage in stages}
+    task["decomposition"]["phases"] = [
+        phase for phase in task["decomposition"]["phases"]
+        if phase["stage"] in stage_ids
+    ]
     task["checks"] = {
         stages[0]["id"]: ["RED"],
         stages[1]["id"]: ["GREEN"],
@@ -176,6 +181,10 @@ def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(pro
     assert boundary["next_stage"] == "code_review"
     assert boundary["from_role"] == "executor"
     assert boundary["to_role"] == "reviewer"
+    assert boundary["review_identity"]["executor_actor"] == "executor"
+    assert boundary["review_identity"]["candidate_actor"] == "executor"
+    assert boundary["review_identity"]["distinct_actor"] is False
+    assert boundary["review_identity"]["source"] == "verified_task_event"
     assert executor.runtime.current_task()["status"] == "verified"
     receipt = handoff(executor)
     assert receipt["status"] == "handed_off"
@@ -410,6 +419,9 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
     project["cfg"]["automatic_checks"][0]["by_stage"]["publication"] = []
     write_json(project["config_path"], project["cfg"])
     project["task"]["checks"]["publication"] = []
+    project["task"]["decomposition"]["phases"].append({
+        "stage": "publication", "skills": ["task-domain"], "areas": [],
+    })
     project["task"]["evidence_plan"]["publication"] = {
         "subject_methods": {},
         "arguments": [],
@@ -461,3 +473,153 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
     assert publisher.runtime.task_queries.record("T1")["history"][-1]["event"] == (
         "user_accept_and_continue"
     )
+
+
+def _released_review_boundary(project):
+    configure_progression(project)
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    first = bootstrap(executor, project["task"])
+    add_test(first["worktree"])
+    assert verify(executor, result(first))["status"] == "verified"
+    implementation = advance(executor)
+    Path(implementation["worktree"], "src/double.py").write_text(
+        "def double(n):\n    return n * 2\n", encoding="utf-8",
+    )
+    assert verify(executor, result(implementation))["status"] == "verified"
+    assert advance(executor)["status"] == "role_handoff_required"
+    assert handoff(executor)["status"] == "handed_off"
+    return executor
+
+
+@pytest.mark.parametrize("entry", ["bootstrap", "acquire"])
+def test_shared_executor_identity_cannot_acquire_reviewer_boundary(project, entry):
+    executor = _released_review_boundary(project)
+    before = state_snapshot(executor.runtime, ("executor",))
+    same_native_actor = WorkTools(Poise(project["config_path"], "executor"))
+    with pytest.raises(PoiseError, match="distinct native reviewer session"):
+        if entry == "bootstrap":
+            bootstrap(same_native_actor, {"id": "T1"})
+        else:
+            same_native_actor.runtime.ownership.acquire_task("T1")
+    assert state_snapshot(executor.runtime, ("executor",)) == before
+
+
+def test_reviewer_relay_does_not_erase_the_original_executor_identity(project):
+    executor = _released_review_boundary(project)
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    bootstrap(reviewer, {"id": "T1"})
+    assert advance(reviewer)["stage"] == "code_review"
+    assert handoff(reviewer, "reviewer-session-archived")["status"] == "handed_off"
+    before = state_snapshot(reviewer.runtime, ("executor", "reviewer"))
+    with pytest.raises(PoiseError, match="distinct native reviewer session"):
+        bootstrap(executor, {"id": "T1"})
+    assert state_snapshot(reviewer.runtime, ("executor", "reviewer")) == before
+    resumed = WorkTools(Poise(project["config_path"], "reviewer"))
+    assert bootstrap(resumed, {"id": "T1"})["stage"] == "code_review"
+    assert advance(resumed)["status"] == "progression_target_reached"
+
+
+def test_review_guard_rejects_legacy_same_actor_progression_without_mutation(project):
+    executor = _released_review_boundary(project)
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    bootstrap(reviewer, {"id": "T1"})
+    with reviewer.runtime.store.transaction() as db:
+        db.execute("UPDATE tasks SET claimed_by='executor' WHERE id='T1'")
+        db.execute("UPDATE sessions SET task_id=NULL WHERE id='reviewer'")
+        db.execute("UPDATE sessions SET task_id='T1' WHERE id='executor'")
+    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
+    with pytest.raises(PoiseError, match="distinct native reviewer session"):
+        advance(executor)
+    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
+
+
+def test_same_actor_bootstrap_rejects_before_worktree_entry_checks(project, monkeypatch):
+    executor = _released_review_boundary(project)
+    before = state_snapshot(executor.runtime, ("executor",))
+
+    def unexpected_entry(_):
+        pytest.fail("Reviewer rejection must precede entry/worktree processing")
+
+    monkeypatch.setattr(executor.runtime, "_require_entry", unexpected_entry)
+    with pytest.raises(PoiseError, match="distinct native reviewer session"):
+        executor.runtime.bootstrap(task={"id": "T1"})
+    assert state_snapshot(executor.runtime, ("executor",)) == before
+
+
+def test_legacy_self_review_rejects_before_verification_workspace(project, monkeypatch):
+    executor = _released_review_boundary(project)
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    bootstrap(reviewer, {"id": "T1"})
+    review = advance(reviewer)
+    with reviewer.runtime.store.transaction() as db:
+        db.execute("UPDATE tasks SET claimed_by='executor' WHERE id='T1'")
+        db.execute("UPDATE sessions SET task_id=NULL WHERE id='reviewer'")
+        db.execute("UPDATE sessions SET task_id='T1' WHERE id='executor'")
+    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
+
+    def unexpected_workspace(_):
+        pytest.fail("Reviewer rejection must precede workspace or check execution")
+
+    monkeypatch.setattr(executor.runtime, "_verification_workspace", unexpected_workspace)
+    with pytest.raises(PoiseError, match="distinct native reviewer session"):
+        executor.runtime.verify(result(review))
+    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
+
+
+def test_completed_review_returns_to_original_executor_without_false_self_review(project):
+    process = deepcopy(project["process"])
+    for name, following, rework in [
+        ("test_review", "implementation", "tests"),
+        ("code_review", None, "implementation"),
+    ]:
+        stage = next(item for item in process["stages"] if item["id"] == name)
+        stage.update(handler="inspect", transitions={"clear": following, "changes_requested": rework})
+    write_json(project["root"] / "config/processes/development.json", process)
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    first = bootstrap(executor, project["task"])
+    add_test(first["worktree"])
+    assert verify(executor, result(first))["status"] == "verified"
+    assert advance(executor)["status"] == "role_handoff_required"
+    handoff(executor)
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    bootstrap(reviewer, {"id": "T1"})
+    inspection = advance(reviewer)
+    assert inspection["stage"] == "test_review"
+    payload = result(inspection)
+    payload["stage_work"]["coverage"] = "Reviewed the regression and its observed RED."
+    assert verify(reviewer, payload)["status"] == "verified"
+    assert advance(reviewer)["status"] == "role_handoff_required"
+    handoff(reviewer, "reviewer-back-to-original-executor")
+    bootstrap(executor, {"id": "T1"})
+    implementation = advance(executor)
+    assert implementation["stage"] == "implementation"
+    Path(implementation["worktree"], "src/double.py").write_text(
+        "def double(n):\n    return n * 2\n", encoding="utf-8",
+    )
+    assert verify(executor, result(implementation))["status"] == "verified"
+    assert advance(executor)["status"] == "role_handoff_required"
+
+
+def test_legacy_review_provenance_is_explicit_and_ambiguity_is_not_guessed(project):
+    executor = _released_review_boundary(project)
+    with executor.runtime.store.transaction() as db:
+        db.execute("UPDATE task_events SET data=json_remove(data,'$.actor') "
+                   "WHERE task_id='T1' AND json_extract(data,'$.event')='verified'")
+    with executor.runtime.store.unit_of_work() as unit:
+        identity = unit.tasks.review_identity("T1")
+    assert identity["source"] == "legacy_verify_start"
+    assert identity["executor_actor"] == "executor"
+    with executor.runtime.store.transaction() as db:
+        db.execute("INSERT INTO journal(at,session_id,task_id,event,data) "
+                   "SELECT at,'unrelated-later-actor',task_id,event,data FROM journal "
+                   "WHERE task_id='T1' AND event='verify.start' "
+                   "AND json_extract(data,'$.stage')='implementation'")
+    with executor.runtime.store.unit_of_work() as unit:
+        identity = unit.tasks.review_identity("T1")
+    assert identity["source"] == "unavailable"
+    assert identity["executor_actor"] is None
+    reviewer = WorkTools(Poise(project["config_path"], "reviewer"))
+    before = state_snapshot(executor.runtime, ("executor", "reviewer"))
+    with pytest.raises(PoiseError, match="identity provenance is unavailable"):
+        bootstrap(reviewer, {"id": "T1"})
+    assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before

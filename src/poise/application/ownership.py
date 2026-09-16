@@ -49,7 +49,10 @@ class OwnershipCommands:
     def _preflight(self, actor, task_id):
         with self.uow() as uow:
             if not uow.tasks.is_newborn(task_id):
-                uow.tasks.load(task_id)._require_stage_contracts()
+                from .tasks import require_reviewer_identity_in
+                task = uow.tasks.load(task_id)
+                task._require_stage_contracts()
+                require_reviewer_identity_in(uow, task, actor, acquiring=True)
             observed = uow.ownership.preflight(actor, task_id)
         self.after_preflight(observed)
         return observed
@@ -69,6 +72,9 @@ class OwnershipCommands:
     def acquire_task(self, actor, task_id):
         self._preflight(actor, task_id)
         with self.uow() as uow:
+            if not uow.tasks.is_newborn(task_id):
+                from .tasks import require_reviewer_identity_in
+                require_reviewer_identity_in(uow, uow.tasks.load(task_id), actor, acquiring=True)
             before = uow.ownership.snapshot(actor)
             target = uow.ownership.preflight(actor, task_id)
             recovered = set()

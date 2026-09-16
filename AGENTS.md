@@ -123,7 +123,16 @@ A current exact terminal failed-check batch authorizes rework to any configured 
 
 For taskless read-only work, use `bootstrap` with explicit null task/decision/feedback/rework_stage and `verify` with `result=null`, `artifacts=[]`. Confirm that the returned context is actually taskless; a session may already own work. An addressed `completed`, `cancelled`, or `superseded` Task returns a `terminal inspection snapshot` containing its preserved context, content, evidence, and history; inspection must not bind, resume, or claim that Task. Use that snapshot directly, then use taskless bootstrap before null-result verify. Cancellation is an emergency terminal outcome and does not require evidence. `read_only_verified` finalizes runtime with no substantive checks and must not be represented as validation of the answer. Independently validate factual claims. Persistent task results require a formal task and the managed artifact API.
 
-If configuration, runtime or a required operation is unavailable, report the concrete blocker and recovery needed; do not substitute a sample configuration, reference database or invented successful status. Successful completion remains unverified until the required operation succeeds. Repository instructions describe the obligation; they do not by themselves install an automatic enforcement hook.
+If configuration, runtime or a required operation is unavailable, report the exact
+blocker and observed state; do not substitute sample settings, a reference database,
+a fabricated identity or successful harness status. When Poise blocks otherwise
+executable subject work already authorized by the user, continue only that subject
+work manually, preserving real changes, checks, WIP and the incident. Do not repair
+Poise or create a parallel task harness without a separate assignment. Distinguish
+subject-work results from unperformed Poise operations; a broken ceremony is not a
+reason to fabricate evidence or abandon separately authorized work. Follow
+[configured-runtime preflight and operator restoration](docs/configuration/runtime-hooks.md#предварительная-проверка-настроенной-среды).
+Repository instructions do not by themselves install an automatic enforcement hook.
 
 ## Executable entry point for this installation
 

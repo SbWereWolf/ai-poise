@@ -8,6 +8,10 @@ import shutil
 import shlex
 import sys
 
+import pytest
+from poise.common import PoiseError
+from batch.helpers import request
+
 from conftest import write_json
 from poise.infrastructure.hook_transport import HookService
 
@@ -153,3 +157,111 @@ def test_exact_guarded_launcher_is_migrated_without_changing_session(project, tm
     assert "exec env PYTHONPATH=" in command
     assert " -B -m poise hook-work " in command
     assert "poise-runtime-guard" not in command
+
+
+def _break_executable(path, missing):
+    path.unlink()
+    if not missing:
+        path.write_text("not executable\n", encoding="utf-8")
+        path.chmod(0o600)
+
+
+def _assert_environment_failure(exc, path, missing):
+    message = str(exc.value)
+    assert str(path) in message
+    assert "environment/configuration" in message
+    assert ("missing" if missing else "not executable") in message
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_settings_report_exact_unavailable_python(project, tmp_path, missing):
+    service, selected = _service_with_selected_interpreter(project, tmp_path)
+    _break_executable(selected, missing)
+    with pytest.raises(PoiseError) as exc:
+        HookService(service.settings.path)
+    _assert_environment_failure(exc, selected, missing)
+    assert not service.settings.hooks_file.exists()
+
+
+@pytest.mark.parametrize("operation", ["install", "native", "work"])
+def test_cached_service_rechecks_python_before_mutation(project, tmp_path, monkeypatch, operation):
+    import poise.infrastructure.hook_transport as transport
+    service, selected = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    before = service.settings.hooks_file.read_bytes()
+    selected.unlink()
+    def forbidden(*args, **kwargs):
+        pytest.fail("runtime/Task establishment must not precede runtime preflight")
+    monkeypatch.setattr(transport, "establish_poise", forbidden)
+    with pytest.raises(PoiseError) as exc:
+        if operation == "install":
+            install(service, request_id="second", revision=service.revision())
+        elif operation == "native":
+            _native(service, installed)
+        else:
+            service.work(binding["binding_path"], request("bootstrap", {
+                "task": None, "decision": None, "feedback": None, "rework_stage": None}))
+    _assert_environment_failure(exc, selected, True)
+    assert service.settings.hooks_file.read_bytes() == before
+    assert service.latest_binding("conversation", "primary") == binding
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_bootstrap_reports_exact_bad_launcher_before_task_work(project, tmp_path, monkeypatch, missing):
+    import poise.infrastructure.hook_transport as transport
+    service, _ = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    launcher = Path(binding["launcher"])
+    _break_executable(launcher, missing)
+    def forbidden(*args, **kwargs):
+        pytest.fail("runtime/Task establishment must not precede launcher preflight")
+    monkeypatch.setattr(transport, "establish_poise", forbidden)
+    with pytest.raises(PoiseError) as exc:
+        service.work(binding["binding_path"], request("bootstrap", {
+            "task": None, "decision": None, "feedback": None, "rework_stage": None}))
+    _assert_environment_failure(exc, launcher, missing)
+    assert service.latest_binding("conversation", "primary") == binding
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_runtime_setup_rejects_bad_python_without_writes(project, tmp_path, missing):
+    from poise.infrastructure.hook_transport import setup_runtime
+    from .test_setup import prepared
+    path, packet = prepared(project, tmp_path)
+    selected = tmp_path / "unavailable selected python"
+    selected.write_text("not executable\n", encoding="utf-8")
+    selected.chmod(0o600)
+    if missing:
+        selected.unlink()
+    packet["settings"]["python"] = str(selected)
+    with pytest.raises(PoiseError) as exc:
+        setup_runtime(path, packet)
+    _assert_environment_failure(exc, selected, missing)
+    assert not path.exists()
+    assert not (project["root"] / ".codex/hooks.json").exists()
+
+
+def test_operator_restore_reuses_original_binding_and_direct_launcher(project, tmp_path):
+    service, selected = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    launcher = Path(binding["launcher"])
+    selected.unlink()
+    with pytest.raises(PoiseError, match="environment/configuration"):
+        service.bound_runtime(binding["binding_path"])
+    # Ordinary restoration of the explicitly selected environment, not a fallback.
+    selected.symlink_to(sys.executable)
+    launcher.unlink()
+    _native(service, installed)
+    restored = service.latest_binding("conversation", "primary")
+    assert restored == binding
+    assert " -B -m poise hook-work " in launcher.read_text()
+    assert "poise-runtime-guard" not in launcher.read_text()
+    result = service.work(binding["binding_path"], request("bootstrap", {
+        "task": None, "decision": None, "feedback": None, "rework_stage": None}))
+    assert result["status"] == "read_only"

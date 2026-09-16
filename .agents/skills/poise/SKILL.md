@@ -18,6 +18,14 @@ report or restore the installation through ordinary operator procedures, then re
 event. Do not improvise a system-Python `poise work` invocation as a task-work fallback or claim
 that AI poise emitted a recovery command.
 
+When a runtime preflight reports an environment/configuration failure, preserve its
+exact interpreter/launcher path and the existing native binding. Follow only
+[ordinary operator restoration](../../../docs/configuration/runtime-hooks.md#действия-оператора-при-потере-среды).
+If Poise blocks otherwise executable subject work explicitly authorized by the user,
+continue only that subject work manually and record actual changes, checks, WIP and
+the incident. Do not repair Poise or invent a replacement harness without a separate
+assignment; do not fabricate Poise completion, native delivery or a new identity.
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):

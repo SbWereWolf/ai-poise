@@ -58,7 +58,7 @@ class HookSettings:
         for key in ('python','source_root'):
             nonempty(s[key],key)
             if not Path(s[key]).is_absolute():raise PoiseError(f'{key} must be an explicit absolute path')
-        if not Path(s['python']).is_file() or not os.access(s['python'],os.X_OK):raise PoiseError('Configured interpreter is not executable')
+        self.require_runtime()
         if not (Path(s['source_root'])/'poise/__main__.py').is_file():raise PoiseError('Configured Poise source root missing')
         for key in ('max_input_bytes','output_chars','max_probes'):positive(s[key],key,True)
         for key in ('lock_seconds','lock_poll_seconds'):positive(s[key],key)
@@ -73,6 +73,19 @@ class HookSettings:
             raise PoiseError('Explicit distinct CLI exit codes required')
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
+
+    def require_runtime(self,launcher=None):
+        """Check selected executable paths without choosing a replacement runtime."""
+        paths=[('interpreter',Path(self.raw['python']))]
+        if launcher is not None:paths.append(('launcher',Path(launcher)))
+        for role,path in paths:
+            if not path.exists():reason='missing'
+            elif not path.is_file() or not os.access(path,os.X_OK):reason='not executable'
+            else:continue
+            raise PoiseError(
+                f'Configured runtime environment/configuration failure: {role} {str(path)!r} is {reason}. '
+                'Restore the selected environment or owned launcher, then repeat the native event '
+                'with the same session binding. No Task work was started.')
 
     def _direct_command(self,python_flags,verb,*args):
         return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],
@@ -128,6 +141,7 @@ class FileHookRepository:
 
     def install(self,request_id,expected_revision,definition):
         s=self.settings
+        s.require_runtime()
         if len(definition.data['probes'])>s.raw['max_probes']:raise PoiseError('Too many probes')
         _,project,_=load_config(s.project_config)
         if project['batch']['message_source']!={'id':definition.data['message_source'],'mode':'runtime_event'}:
@@ -205,6 +219,7 @@ class HookService:
         return HookDefinition.parse(value)
 
     def _bind(self,definition_path,event):
+        self.settings.require_runtime()
         definition=self.definition(definition_path)
         native=parse_native_event(event,definition)
         cwd=Path(native['cwd'])
@@ -243,6 +258,7 @@ class HookService:
         return definition,native,record
 
     def _record(self,path):
+        self.settings.require_runtime()
         p=Path(path)
         if not p.is_absolute() or p.is_symlink() or not p.resolve().is_relative_to(self.settings.bindings):
             raise PoiseError('Binding outside configured root')
@@ -252,6 +268,7 @@ class HookService:
         stored,message=self.registry.get(raw['session_id'])
         if raw!=stored or stored['settings_digest']!=digest(self.settings.raw):raise PoiseError('Stale or changed hook binding')
         self.definition(stored['definition_path'])
+        self.settings.require_runtime(stored['launcher'])
         return stored,message
 
     def bound_runtime(self,binding_path):

@@ -63,7 +63,7 @@ def selected_inventory(project: Path) -> tuple[dict, list[str]]:
 
 
 def prepare(project: Path, output: Path, checkpoint_id: str, recipient: str,
-            next_action: str, journal: str = 'WORKLOG.md', compression: str = 'xz') -> dict:
+            next_action: str, journal: str = 'WORKLOG.md', compression: str = 'xz', xz_preset: int = 1) -> dict:
     """Produce a full stopped-source snapshot and a connector send request."""
     project, output = project.resolve(), output.absolute()
     cloud.require_new(output)
@@ -96,7 +96,7 @@ def prepare(project: Path, output: Path, checkpoint_id: str, recipient: str,
         if before != after or before_git != cloud.git_state(project) or cloud.inventory(snapshot) != before:
             raise CheckpointError('Source changed during snapshot; no checkpoint was promoted')
         packed = stage / 'mail-package'
-        record = cloud.pack(snapshot, packed, compression)
+        record = cloud.pack(snapshot, packed, compression, xz_preset=xz_preset)
         archive_name = Path(record['archive']).name
         record['archive'] = str(output / archive_name)
         cloud.json_write(packed / 'CHECKPOINT.json', record)
@@ -218,6 +218,7 @@ def main() -> int:
         p.add_argument('--' + name, required=True)
     p.add_argument('--journal', default='WORKLOG.md')
     p.add_argument('--compression', choices=('xz', 'zstd', 'compare'), default='xz')
+    p.add_argument('--xz-preset', type=int, choices=range(10), default=1)
     p = commands.add_parser('confirm')
     for name in ('output', 'readback', 'destination'):
         p.add_argument('--' + name, required=True, type=Path)

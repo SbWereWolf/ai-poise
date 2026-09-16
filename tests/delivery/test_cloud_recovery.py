@@ -257,3 +257,20 @@ def test_explicit_unpack_limit_is_enforced(project, tmp_path):
     m = module(); out = tmp_path / 'delivery'; m.pack(project, out, 'xz')
     with pytest.raises(m.CheckpointError): m.restore(out / 'checkpoint.tar.xz', tmp_path / 'refused', max_unpacked_bytes=1)
     assert not (tmp_path / 'refused').exists()
+
+
+def test_explicit_fast_compression_preserves_full_restore(project, tmp_path):
+    m = module()
+    result = m.pack(project, tmp_path / 'packed', 'xz', xz_preset=1)
+    assert result['comparison']['xz']['argv'] == ['xz', '-1', '-T1', '-c']
+    restored = m.restore(tmp_path / 'packed/checkpoint.recovery.txt', tmp_path / 'restored')
+    assert restored['head'] == git(project, 'rev-parse', 'HEAD')
+    assert (tmp_path / 'restored/ai-poise/data/tasks.sqlite').read_bytes() == (project / 'data/tasks.sqlite').read_bytes()
+
+
+@pytest.mark.parametrize('preset', [-1, 10, True, 1.5])
+def test_invalid_compression_preset_does_not_publish(project, tmp_path, preset):
+    m = module()
+    with pytest.raises(m.CheckpointError, match='preset'):
+        m.pack(project, tmp_path / 'packed', 'xz', xz_preset=preset)
+    assert not (tmp_path / 'packed').exists()

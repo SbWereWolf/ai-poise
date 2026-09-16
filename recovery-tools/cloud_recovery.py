@@ -137,13 +137,15 @@ def _text_transport(archive: Path, output: Path) -> None:
             target.write(base64.encodebytes(block).decode('ascii'))
 
 
-def pack(project: Path, output: Path, compression: str = 'compare') -> dict:
+def pack(project: Path, output: Path, compression: str = 'compare', *, xz_preset: int = 9) -> dict:
     project, output = project.resolve(), output.absolute()
     require_new(output)
     if output.is_relative_to(project):
         raise CheckpointError('Checkpoint output must be outside its source project')
     if compression not in ('xz', 'zstd', 'compare'):
         raise CheckpointError('Choose xz, zstd or compare')
+    if type(xz_preset) is not int or not 0 <= xz_preset <= 9:
+        raise CheckpointError('XZ preset must be an integer in 0..9')
     manifest = project_manifest(project)
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.cloud-pack-', dir=output.parent) as temp:
@@ -163,7 +165,7 @@ def pack(project: Path, output: Path, compression: str = 'compare') -> dict:
         modes = ('xz', 'zstd') if compression == 'compare' else (compression,)
         timings = {}
         for mode in modes:
-            command = ['xz', '-9e', '-T1', '-c', str(tarpath)] if mode == 'xz' else ['zstd', '-q', '--ultra', '-22', '-T1', '-c', str(tarpath)]
+            command = ['xz', '-9e' if xz_preset == 9 else f'-{xz_preset}', '-T1', '-c', str(tarpath)] if mode == 'xz' else ['zstd', '-q', '--ultra', '-22', '-T1', '-c', str(tarpath)]
             compressed = stage / ('checkpoint.tar.xz' if mode == 'xz' else 'checkpoint.tar.zst')
             started = time.monotonic()
             with compressed.open('wb') as stream:
@@ -474,6 +476,7 @@ def main() -> int:
     sub = parser.add_subparsers(dest='command', required=True)
     pack_parser = sub.add_parser('pack'); pack_parser.add_argument('--project', type=Path, required=True)
     pack_parser.add_argument('--output', type=Path, required=True); pack_parser.add_argument('--compression', choices=('xz', 'zstd', 'compare'), default='compare')
+    pack_parser.add_argument('--xz-preset', type=int, choices=range(10), default=9)
     for command in ('restore', 'verify'):
         p = sub.add_parser(command); p.add_argument('--checkpoint', type=Path, required=True); p.add_argument('--sha256')
         p.add_argument('--max-unpacked-bytes', type=int, default=MAX_UNPACKED)
@@ -484,7 +487,7 @@ def main() -> int:
     p.add_argument('--output', type=Path); p.add_argument('--plan', type=Path)
     args = parser.parse_args()
     try:
-        if args.command == 'pack': result = pack(args.project, args.output, args.compression)
+        if args.command == 'pack': result = pack(args.project, args.output, args.compression, xz_preset=args.xz_preset)
         elif args.command == 'restore': result = restore(args.checkpoint, args.destination, args.sha256, args.max_unpacked_bytes)
         elif args.command == 'verify':
             with tempfile.TemporaryDirectory(prefix='poise-verify-') as temp:

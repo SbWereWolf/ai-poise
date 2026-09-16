@@ -265,3 +265,59 @@ def test_operator_restore_reuses_original_binding_and_direct_launcher(project, t
     result = service.work(binding["binding_path"], request("bootstrap", {
         "task": None, "decision": None, "feedback": None, "rework_stage": None}))
     assert result["status"] == "read_only"
+
+
+def test_fresh_native_launcher_bootstraps_and_verifies_without_injected_environment(project, tmp_path):
+    import os
+    import subprocess
+    service, _ = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    environment = {k: v for k, v in os.environ.items()
+                   if k not in ("PYTHONPATH", "POISE_CALLER_BINDING", "CODEX_THREAD_ID", "CODEX_SESSION_ID")}
+    packets = [request("bootstrap", {"task": None, "decision": None, "feedback": None, "rework_stage": None}),
+               request("verify", {"result": None, "artifacts": []})]
+    for packet, status in zip(packets, ("read_only", "read_only_verified")):
+        output = subprocess.run([binding["launcher"]], input=json.dumps(packet),
+                                text=True, capture_output=True, env=environment,
+                                cwd=project["root"], timeout=20)
+        assert output.returncode == 0, output.stderr
+        assert json.loads(output.stdout)["status"] == status
+    assert service.latest_binding("conversation", "primary") == binding
+    assert service.bound_runtime(binding["binding_path"]).session == binding["session_id"]
+
+
+def test_native_event_repairs_only_exact_owned_launcher_mode(project, tmp_path):
+    service, _ = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    path = Path(binding["launcher"])
+    original = path.read_bytes()
+    path.chmod(0o600)
+    _native(service, installed)
+    assert path.stat().st_mode & 0o777 == service.settings.raw["executable_mode"]
+    assert path.read_bytes() == original
+    assert service.latest_binding("conversation", "primary") == binding
+    path.write_text("#!/bin/sh\necho foreign code\n")
+    with pytest.raises(PoiseError, match="changed externally"):
+        _native(service, installed)
+    assert path.read_text() == "#!/bin/sh\necho foreign code\n"
+
+
+def test_cached_runtime_reports_exact_disappeared_entry_point_before_install(project, tmp_path):
+    selected_source = tmp_path / "installed source"
+    entry = selected_source / "poise" / "__main__.py"
+    entry.parent.mkdir(parents=True)
+    entry.write_text("# fixture entry point\n")
+    path = settings(project, tmp_path)
+    raw = json.loads(path.read_text()); raw["source_root"] = str(selected_source)
+    write_json(path, raw)
+    service = HookService(path)
+    entry.unlink()
+    with pytest.raises(PoiseError) as exc:
+        install(service)
+    assert str(entry) in str(exc.value)
+    assert "environment/configuration" in str(exc.value)
+    assert not service.settings.hooks_file.exists()

@@ -59,7 +59,6 @@ class HookSettings:
             nonempty(s[key],key)
             if not Path(s[key]).is_absolute():raise PoiseError(f'{key} must be an explicit absolute path')
         self.require_runtime()
-        if not (Path(s['source_root'])/'poise/__main__.py').is_file():raise PoiseError('Configured Poise source root missing')
         for key in ('max_input_bytes','output_chars','max_probes'):positive(s[key],key,True)
         for key in ('lock_seconds','lock_poll_seconds'):positive(s[key],key)
         for key in ('file_mode','executable_mode'):
@@ -86,6 +85,13 @@ class HookSettings:
                 f'Configured runtime environment/configuration failure: {role} {str(path)!r} is {reason}. '
                 'Restore the selected environment or owned launcher, then repeat the native event '
                 'with the same session binding. No Task work was started.')
+
+        entry=Path(self.raw['source_root'])/'poise/__main__.py'
+        if not entry.is_file():
+            raise PoiseError(
+                f'Configured runtime environment/configuration failure: entry point {str(entry)!r} is missing. '
+                'Restore the configured installation source; do not substitute a Task checkout. '
+                'No Task work was started.')
 
     def _direct_command(self,python_flags,verb,*args):
         return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],
@@ -350,6 +356,8 @@ class HookService:
             current=launcher.read_bytes()
             if current in priors:atomic_write(launcher,script,self.settings.raw['executable_mode'])
             elif current!=script:raise PoiseError('Launcher was changed externally')
+            elif launcher.stat().st_mode & 0o777 != self.settings.raw['executable_mode']:
+                atomic_write(launcher,script,self.settings.raw['executable_mode'])
         else:atomic_write(launcher,script,self.settings.raw['executable_mode'])
         return definition,native,record
 

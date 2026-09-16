@@ -164,3 +164,16 @@ For explicit hook/runtime effect diagnosis use
 [observable hook effects](docs/operations/hook-effect-diagnostics.md#диагностика-фактических-эффектов-hooks).
 Installation, native event observation, owner effect, host trust and Task completion are different claims.
 Do not start a standing observer or infer successful effects from hook registration alone.
+
+## Cloud-agent recovery
+
+Use [the cloud-agent recovery toolkit](recovery-tools/README.md#назначение-и-границы)
+for complete project checkpoints, binary/readable Gmail transport and isolated
+cloud/local reconciliation. It reuses the existing checkpoint owner and never
+replaces live inputs. Treat Task ID collisions as identity decisions, not equality.
+Follow [guarded SQL plans](recovery-tools/README.md#транзакционный-sql-план) for
+divergent database copies; preserve both histories and check the complete graph.
+A user-authorized workaround for a broken workflow never permits fabricated
+checks, loss of WIP or violated database integrity. Update an existing incident
+Task only with materially new information. Keep root HANDOFF.md and generated
+RECOVERY-MANIFEST.json untracked; include them in the delivery, not commits.

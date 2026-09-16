@@ -294,16 +294,19 @@
         "source": [
           "tools/work_checkpoint.py",
           "tools/run_test_packages.py",
-          "src/poise/execution.py"
+          "src/poise/execution.py",
+          "recovery-tools/cloud_recovery.py"
         ],
         "tests": [
           "tests/delivery/test_work_checkpoint.py",
-          "tests/test_package_execution.py"
+          "tests/test_package_execution.py",
+          "tests/delivery/test_cloud_recovery.py"
         ],
         "support": [
           "config/testing/test-packages.json",
           "AGENTS.md",
-          "docs/workflows/checkpoint-recovery.md"
+          "docs/workflows/checkpoint-recovery.md",
+          "recovery-tools/README.md"
         ],
         "fixtures": [
           "tests/conftest.py"

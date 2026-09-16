@@ -32,10 +32,17 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def git(repository: Path, *args: str) -> bytes:
+def git(repository: Path, *args: str, env: dict | None = None) -> bytes:
+    # Recovery reads must not refresh a live index or execute a configured monitor.
+    safe_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    safe_env.update({"GIT_OPTIONAL_LOCKS": "0", "GIT_CONFIG_NOSYSTEM": "1",
+                     "GIT_CONFIG_GLOBAL": os.devnull, "GIT_ATTR_NOSYSTEM": "1"})
+    if env:
+        safe_env.update(env)
     result = subprocess.run(
-        ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.autocrlf=false", *args],
-        cwd=repository, capture_output=True, check=False,
+        ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.autocrlf=false",
+         "-c", "core.fsmonitor=false", *args],
+        cwd=repository, capture_output=True, check=False, env=safe_env,
     )
     if result.returncode:
         raise CheckpointError(result.stderr.decode("utf-8", errors="replace").strip())

@@ -99,3 +99,17 @@ python tools/work_checkpoint.py restore \
 
 Затем читается `payload/state.json`, повторяются указанные bounded checks, и работа
 продолжается с `next_action`. Отдельный F3 с отклонённой моделью путей не является базой.
+
+## Полная копия для облачных агентов
+
+Для всей очищенной рабочей копии с `.git`, всеми refs, постоянными БД и конфигами
+используется [cloud recovery toolkit](../../recovery-tools/README.md#назначение-и-границы).
+Он переиспользует `tools/work_checkpoint.py` для legacy-формата и Git-операций;
+старый `payload/` не объявляется полной копией mutable project state. Новый формат
+включает обычный архив, ASCII-представление тех же байтов и проверяемый manifest.
+
+[Слияние cloud/local](../../recovery-tools/README.md#слияние-облачной-и-локальной-копий)
+создаёт только новый кандидат, сохраняет WIP и конфликтующие данные. Разные БД
+объединяются через явные INSERT/UPDATE с hashes, identity mapping и postconditions.
+Почтовую доставку выполняет подключённый Gmail-инструмент; недоступный readback
+не считается успешным. HANDOFF.md передаётся вне Git history.

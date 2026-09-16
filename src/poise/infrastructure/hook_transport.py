@@ -74,16 +74,33 @@ class HookSettings:
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
 
-    def _command(self,python_flags,verb,*args):
+    def _direct_command(self,python_flags,verb,*args):
         return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
     def command(self,verb,*args):
-        return self._command(['-B'],verb,*args)
+        recovery=str(Path(self.raw['source_root'])/'poise/recover_runtime.sh')
+        guard=(
+            'interpreter=$1; recovery=$2; settings=$3; source_root=$4; shift 4; '
+            'if [ ! -x "$interpreter" ]; then '
+            'printf "%s\\n" "Configured Poise interpreter is unavailable: $interpreter" >&2; '
+            'printf "%s\\n" "Recovery: bash $recovery --settings $settings '
+            '--python /absolute/path/to/compatible/python" >&2; '
+            'exit 126; fi; '
+            'exec env "PYTHONPATH=$source_root" "$interpreter" "$@"'
+        )
+        return shlex.join(['/bin/sh','-c',guard,'poise-runtime-guard',self.raw['python'],
+                           recovery,str(self.path),self.raw['source_root'],
+                           '-B','-m','poise',verb,'--settings',str(self.path),*args])
 
-    def prior_launcher_command(self,verb,*args):
-        """Exact superseded launcher form accepted only for an owned upgrade."""
-        return self._command([],verb,*args)
+    def prior_launcher_commands(self,verb,*args):
+        """Exact superseded forms accepted only for an owned launcher upgrade."""
+        current=self.command(verb,*args)
+        return (
+            current.replace(' -B -m poise ',' -m poise ',1),
+            self._direct_command(['-B'],verb,*args),
+            self._direct_command([],verb,*args),
+        )
 
 
 class FileHookRepository:
@@ -207,11 +224,11 @@ class HookService:
         if binding.exists() and binding.read_bytes()!=raw:raise PoiseError('Binding file was changed externally')
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
         script=('#!/bin/sh\nexec '+self.settings.command('hook-work','--binding',str(binding))+'\n').encode()
-        prior=('#!/bin/sh\nexec '+self.settings.prior_launcher_command(
-            'hook-work','--binding',str(binding))+'\n').encode()
+        priors=tuple(('#!/bin/sh\nexec '+command+'\n').encode() for command in
+            self.settings.prior_launcher_commands('hook-work','--binding',str(binding)))
         if launcher.exists():
             current=launcher.read_bytes()
-            if current==prior:atomic_write(launcher,script,self.settings.raw['executable_mode'])
+            if current in priors:atomic_write(launcher,script,self.settings.raw['executable_mode'])
             elif current!=script:raise PoiseError('Launcher was changed externally')
         else:atomic_write(launcher,script,self.settings.raw['executable_mode'])
         return definition,native,record

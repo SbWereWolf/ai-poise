@@ -45,6 +45,14 @@ def _bootstrap_packet(task):
     )
 
 
+def _full_payload(stdout):
+    payload = json.loads(stdout)
+    response_path = payload.get("response_path")
+    if response_path is not None:
+        return json.loads(Path(response_path).read_text(encoding="utf-8"))
+    return payload
+
+
 def test_missing_interpreter_rejects_with_exact_recovery_command_before_state_mutation(
     project, tmp_path
 ):
@@ -134,7 +142,7 @@ def test_exact_recovery_command_restores_same_launcher_session_and_task(project,
         timeout=15,
     )
     assert started.returncode == 0, started.stderr
-    started_payload = json.loads(started.stdout)
+    started_payload = _full_payload(started.stdout)
     task_id = started_payload["task"]
     before = deepcopy(service.bound_runtime(binding["binding_path"]).task_queries.record(task_id))
 
@@ -171,7 +179,7 @@ def test_exact_recovery_command_restores_same_launcher_session_and_task(project,
         timeout=15,
     )
     assert resumed.returncode == 0, resumed.stderr
-    resumed_payload = json.loads(resumed.stdout)
+    resumed_payload = _full_payload(resumed.stdout)
     assert resumed_payload["session"] == started_payload["session"]
     assert resumed_payload["hook_session"] == started_payload["hook_session"]
     assert service.latest_binding("conversation", "primary")["session_id"] == binding["session_id"]

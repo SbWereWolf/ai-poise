@@ -1,10 +1,9 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
-import sqlite3
 from contextlib import contextmanager
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded
-from ..locking import exclusive_lock
+from .transaction import write_transaction
 
 
 class HookRegistry:
@@ -13,30 +12,19 @@ class HookRegistry:
     @contextmanager
     def transaction(self):
         s=self.settings
-        with exclusive_lock(s.lock,s.raw['lock_seconds'],s.raw['lock_poll_seconds']):
-            s.database.parent.mkdir(parents=True,exist_ok=True)
-            db=sqlite3.connect(s.database,timeout=0,isolation_level=None);db.row_factory=sqlite3.Row
-            try:
-                db.execute('PRAGMA foreign_keys=ON')
-                version=db.execute('PRAGMA user_version').fetchone()[0]
-                if version==0:
-                    if db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
-                        raise PoiseError('Unknown nonempty hook database; migration forbidden')
-                    db.execute('BEGIN')
-                    db.execute('CREATE TABLE installations(id TEXT PRIMARY KEY, data TEXT NOT NULL)')
-                    db.execute('CREATE TABLE operations(id TEXT PRIMARY KEY, data TEXT NOT NULL)')
-                    db.execute('CREATE TABLE bindings(id TEXT PRIMARY KEY, data TEXT NOT NULL, latest_message TEXT)')
-                    db.execute('CREATE TABLE hook_events(id INTEGER PRIMARY KEY, at TEXT NOT NULL, binding TEXT, event TEXT NOT NULL, data TEXT NOT NULL)')
-                    db.execute('CREATE INDEX hook_events_binding ON hook_events(binding,id)')
-                    db.execute('PRAGMA user_version=1');db.execute('COMMIT')
-                elif version!=1:raise PoiseError('Unsupported hook registry schema; no migrations')
-                db.execute('BEGIN')
-                yield db
-                db.execute('COMMIT')
-            except BaseException:
-                if db.in_transaction:db.execute('ROLLBACK')
-                raise
-            finally:db.close()
+        with write_transaction(s.database,s.lock,s.raw['lock_seconds'],s.raw['lock_poll_seconds']) as db:
+            version=db.execute('PRAGMA user_version').fetchone()[0]
+            if version==0:
+                if db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
+                    raise PoiseError('Unknown nonempty hook database; migration forbidden')
+                db.execute('CREATE TABLE installations(id TEXT PRIMARY KEY, data TEXT NOT NULL)')
+                db.execute('CREATE TABLE operations(id TEXT PRIMARY KEY, data TEXT NOT NULL)')
+                db.execute('CREATE TABLE bindings(id TEXT PRIMARY KEY, data TEXT NOT NULL, latest_message TEXT)')
+                db.execute('CREATE TABLE hook_events(id INTEGER PRIMARY KEY, at TEXT NOT NULL, binding TEXT, event TEXT NOT NULL, data TEXT NOT NULL)')
+                db.execute('CREATE INDEX hook_events_binding ON hook_events(binding,id)')
+                db.execute('PRAGMA user_version=1')
+            elif version!=1:raise PoiseError('Unsupported hook registry schema; no migrations')
+            yield db
 
     @staticmethod
     def event_in(db,binding,kind,data):

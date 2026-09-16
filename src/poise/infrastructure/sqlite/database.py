@@ -1,10 +1,8 @@
 from __future__ import annotations
 import math
-import sqlite3
-from contextlib import contextmanager
 from pathlib import Path
 from ...modules.foundation.errors import PoiseError
-from ..locking import exclusive_lock
+from .transaction import write_transaction
 
 # Storage format identity, not a project/process policy or a fallback.
 SCHEMA_VERSION = 13
@@ -150,23 +148,5 @@ class Database:
         db.execute("CREATE UNIQUE INDEX sessions_single_worktree_owner ON sessions(task_id) WHERE task_id IS NOT NULL")
         db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
-    @contextmanager
     def transaction(self):
-        with exclusive_lock(self.lock, self.wait, self.poll):
-            db = None
-            try:
-                db = sqlite3.connect(self.path, timeout=0, isolation_level=None, autocommit=True)
-                db.row_factory = sqlite3.Row
-                db.execute("PRAGMA foreign_keys=ON")
-                if db.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
-                    raise PoiseError("SQLite foreign_keys не включён")
-                db.execute("BEGIN IMMEDIATE")
-                yield db
-                db.execute("COMMIT")
-            except BaseException:
-                if db is not None and db.in_transaction:
-                    db.execute("ROLLBACK")
-                raise
-            finally:
-                if db is not None:
-                    db.close()
+        return write_transaction(self.path, self.lock, self.wait, self.poll)

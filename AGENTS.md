@@ -132,3 +132,8 @@ replay is an explicit operation or a bounded worker step, never a Task gate.
 Keep source API metric parameters and their source timestamps unchanged; do not infer
 missing durations or equate delivery time with observation time. Follow
 [source metric provenance](docs/operations/source-api-metrics.md#сохранение-фактов-источника-без-вычисления-длительностей).
+
+For explicit hook/runtime effect diagnosis use
+[observable hook effects](docs/operations/hook-effect-diagnostics.md#диагностика-фактических-эффектов-hooks).
+Installation, native event observation, owner effect, host trust and Task completion are different claims.
+Do not start a standing observer or infer successful effects from hook registration alone.

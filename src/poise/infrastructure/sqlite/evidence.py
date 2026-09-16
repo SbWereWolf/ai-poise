@@ -34,3 +34,26 @@ class SqliteEvidenceRepository:
             durations.append(float(duration))
             evidence_ids.append(receipt['id'])
         return {'durations':durations,'evidence_ids':evidence_ids}
+
+    @staticmethod
+    def observe_runs(path, run_ids, max_bytes):
+        """Return only cancellation facts from exact immutable evidence IDs."""
+        from ..diagnostic_io import readonly_database, json_record
+        result = []
+        with readonly_database(path) as db:
+            for run_id in run_ids:
+                row = db.execute('SELECT task_id,stage,iteration,substr(data,1,?) AS data FROM evidence WHERE id=?', (max_bytes+1, run_id)).fetchone()
+                if row is None:
+                    result.append({'id': run_id, 'status': 'not_observed'})
+                    continue
+                receipt = json_record(row['data'], max_bytes)
+                if not isinstance(receipt, dict) or receipt.get('id') != run_id:
+                    raise PoiseError('Evidence receipt identity mismatch')
+                result.append({'id': run_id, 'status': 'observed', 'task_id': row['task_id'],
+                               'stage': row['stage'], 'iteration': row['iteration'],
+                               'actual_exit_code': receipt.get('actual_exit_code'),
+                               'timed_out': receipt.get('timed_out'),
+                               'cancelled': receipt.get('cancelled'),
+                               'cancellation_reason': receipt.get('cancellation_reason'),
+                               'cancellation_observation': receipt.get('cancellation_observation')})
+        return result

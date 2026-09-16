@@ -100,8 +100,42 @@ class HookRegistry:
         def requested():
             with self.transaction() as db:
                 row = db.execute(
-                    "SELECT 1 FROM hook_events WHERE binding=? AND event='SessionEnd' AND id>? LIMIT 1",
+                    "SELECT id FROM hook_events WHERE binding=? AND event='SessionEnd' AND id>? ORDER BY id LIMIT 1",
                     (binding, start),
                 ).fetchone()
+            requested.observation = (None if row is None else {
+                'session_id': binding, 'start_event_id': start, 'end_event_id': row[0]})
             return row is not None
+        requested.observation = None
         return requested
+
+    def observe(self, definition_id, session, event, event_id):
+        """Existing committed owner state only; never create a missing registry."""
+        from ..diagnostic_io import readonly_database, json_record
+        limit = self.settings.raw['max_input_bytes']
+        with readonly_database(self.settings.database) as db:
+            if db.execute('PRAGMA user_version').fetchone()[0] != 1:
+                raise PoiseError('Unsupported hook registry schema; no migrations')
+            installed = db.execute('SELECT substr(data,1,?) FROM installations WHERE id=?', (limit+1, definition_id)).fetchone()
+            binding = db.execute('SELECT substr(data,1,?) FROM bindings WHERE id=?', (limit+1, session)).fetchone()
+            params = [limit+1, session, event]
+            suffix = ''
+            if event_id is not None:
+                suffix = ' AND id=?'; params.append(event_id)
+            row = db.execute('SELECT id,at,binding,event,substr(data,1,?) AS data FROM hook_events WHERE binding=? AND event=?'
+                             + suffix + ' ORDER BY id DESC LIMIT 1', params).fetchone()
+            return {
+                'installation': None if installed is None else json_record(installed[0], limit),
+                'binding': None if binding is None else json_record(binding[0], limit),
+                'event': None if row is None else {**dict(row), 'data': json_record(row['data'], limit)},
+            }
+
+    def observed_start(self, session, start_id, end_id):
+        from ..diagnostic_io import readonly_database
+        with readonly_database(self.settings.database) as db:
+            if db.execute('PRAGMA user_version').fetchone()[0] != 1:
+                raise PoiseError('Unsupported hook registry schema')
+            return db.execute(
+                "SELECT 1 FROM hook_events WHERE binding=? AND event='SessionStart' AND id=? AND id<?",
+                (session, start_id, end_id),
+            ).fetchone() is not None

@@ -75,3 +75,23 @@ class InteractionStore:
                     'delivered_stages_count':len({r['stage'] for r in delivered}),
                     'delivered_iterations_count':len(delivered),
                     'delivery_observation':'tool_result_returned'}
+
+    @staticmethod
+    def observe_message(path, project, source, conversation, turn, max_bytes):
+        """Locate one existing source receipt without registering or rebinding it."""
+        import hashlib
+        from ..diagnostic_io import readonly_database, json_record
+        identity = hashlib.sha256(json.dumps(
+            [source['id'], conversation, turn], ensure_ascii=False, separators=(',', ':')
+        ).encode()).hexdigest()
+        with readonly_database(path) as db:
+            row = db.execute('SELECT substr(data,1,?) AS data,received_at FROM interaction_events WHERE id=? AND project=?',
+                             (max_bytes+1, identity, project)).fetchone()
+            if row is None:
+                return None
+            data = json_record(row['data'], max_bytes)
+            if (not isinstance(data, dict) or data.get('source') != source
+                    or data.get('conversation_id') != conversation or data.get('message_id') != turn):
+                raise PoiseError('Interaction receipt identity mismatch')
+            return {'receipt_id': identity, 'project': project, 'source': source,
+                    'conversation_id': conversation, 'message_id': turn, 'received_at': row['received_at']}

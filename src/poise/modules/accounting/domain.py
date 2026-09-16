@@ -2,10 +2,10 @@
 from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime
 from difflib import SequenceMatcher
 import hashlib
 import json
+from .clock import validate_source_observation
 from ..foundation.errors import DomainError
 
 COUNTERS = ('input_tokens','output_tokens','total_tokens','cached_input_tokens','reasoning_tokens')
@@ -154,11 +154,7 @@ def _source_metric(value, policy):
             raise DomainError(f'source metric {key}: nonempty source value required')
     if value['source'] not in policy.data['sources']:
         raise DomainError('Unknown source metric source')
-    try:
-        if datetime.fromisoformat(value['observed_at']).tzinfo is None:
-            raise ValueError('timezone missing')
-    except ValueError as exc:
-        raise DomainError('Source observation requires ISO datetime with timezone') from exc
+    validate_source_observation(value['observed_at'])
     if not isinstance(value['parameters'], dict):
         raise DomainError('Source metric parameters must be a JSON object')
     try:

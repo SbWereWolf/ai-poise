@@ -29,3 +29,12 @@ class ClockObservation:
 
 class Clock(Protocol):
     def observe(self) -> ClockObservation: ...
+
+
+def validate_source_observation(value):
+    """Validate a supplied timestamp without observing a clock or normalizing its offset."""
+    try:
+        if not isinstance(value, str) or datetime.fromisoformat(value).tzinfo is None:
+            raise ValueError('timezone missing')
+    except (TypeError, ValueError) as exc:
+        raise DomainError('Source observation requires ISO datetime with timezone') from exc

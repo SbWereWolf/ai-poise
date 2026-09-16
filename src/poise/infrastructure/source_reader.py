@@ -98,3 +98,19 @@ class FileSourceReader(SourceReader):
     def __init__(self, state, policy):
         limits = ReadLimits.parse(policy)
         super().__init__(SourceFiles(), ReadReceipts(state, limits), limits)
+
+    def observe_context(self):
+        """Read current generation without constructing an empty receipt store."""
+        from .diagnostic_io import json_file
+        state = json_file(self.receipts.path, 16 * 1024 * 1024)
+        if (not isinstance(state, dict) or state.get('schema') != 'source-read-receipts-1'
+                or type(state.get('generation')) is not int or state['generation'] < 1
+                or state.get('reason') not in ('startup', 'resume', 'clear', 'compact', 'manual')
+                or (state.get('event_id') is not None and not isinstance(state['event_id'], str))
+                or not isinstance(state.get('receipts'), list)
+                or len(state['receipts']) > self.limits.max_receipts
+                or any(not isinstance(r, dict) or type(r.get('acknowledged')) is not bool
+                       or not isinstance(r.get('receipt_id'), str)
+                       or r.get('generation') != state['generation'] for r in state['receipts'])):
+            raise PoiseError('Invalid source reader observation')
+        return self._context(state)

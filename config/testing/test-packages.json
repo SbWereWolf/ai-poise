@@ -163,7 +163,8 @@
       "owner": "hook-transport",
       "integration_boundaries": [
         "runtime-services",
-        "verification-runner"
+        "verification-runner",
+        "evidence"
       ],
       "members": {
         "source": [
@@ -171,7 +172,13 @@
           "src/poise/modules/hook_transport/**/*.py",
           "src/poise/infrastructure/hook_transport.py",
           "src/poise/infrastructure/sqlite/hook_transport.py",
-          "src/poise/execution.py"
+          "src/poise/execution.py",
+          "src/poise/application/hook_diagnostics.py",
+          "src/poise/infrastructure/hook_diagnostics.py",
+          "src/poise/infrastructure/diagnostic_io.py",
+          "src/poise/interfaces/hook_transport.py",
+          "src/poise/infrastructure/source_reader.py",
+          "src/poise/infrastructure/sqlite/interactions.py"
         ],
         "tests": [
           "tests/hook_transport/test_*.py"

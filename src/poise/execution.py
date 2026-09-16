@@ -192,6 +192,7 @@ class RegisteredCheckRunner:
         timed_out = False
         timeout_reason = None
         cancellation_reason = None
+        cancellation_observation = None
         try:
             if cancellation_check is not None and cancellation_check():
                 raise PoiseError('Native session has ended; registered launch rejected')
@@ -234,12 +235,15 @@ class RegisteredCheckRunner:
                     while True:
                         if errors:
                             raise PoiseError(f'Registered output capture failed: {errors[0]}')
-                        if cancellation_check is not None and cancellation_check():
-                            self.cancel(run_id)
-                            cancellation_reason = 'native_session_end'
                         code = child.poll()
                         if code is not None:
                             break
+                        if cancellation_check is not None and cancellation_check():
+                            self.cancel(run_id)
+                            cancellation_reason = 'native_session_end'
+                            observed = getattr(cancellation_check, 'observation', None)
+                            if isinstance(observed, dict):
+                                cancellation_observation = dict(observed)
                         now = time.monotonic()
                         if progress_gap_seconds is not None and now - state['last_progress'] >= progress_gap_seconds:
                             timed_out = True
@@ -274,6 +278,8 @@ class RegisteredCheckRunner:
                 'timeout_reason': timeout_reason,
                 'cancelled': cancelled,
                 'cancellation_reason': cancellation_reason,
+                **({} if cancellation_observation is None else
+                   {'cancellation_observation': cancellation_observation}),
                 'duration_seconds': time.monotonic() - start,
                 'stdout': str(stdout_path),
                 'stderr': str(stderr_path),

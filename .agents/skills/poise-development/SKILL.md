@@ -140,3 +140,9 @@ After each task and before a risky transition apply [checkpoint and recovery](..
 For authoring-stage Python boundary diagnostics and same-Task repair, use
 [the configured architecture gate](../../../docs/workflows/architecture-boundaries.md#проверка-архитектуры-перед-авторской-сдачей).
 This is AI-poise-specific, not a multi-language analyzer for every managed project.
+
+For a reported hook/runtime problem, use the explicit
+[hook effect diagnostics](../../../docs/operations/hook-effect-diagnostics.md#диагностика-фактических-эффектов-hooks).
+`runtime-config` accepts a declarative `diagnose` batch; it observes existing owners without
+bootstrapping work or replaying telemetry. Supply a concrete `probe_cwd` only when actively
+requesting the configured probes. A current-process provenance path is not another resolution root.

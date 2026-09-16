@@ -43,6 +43,10 @@ def execute(command,args,stream,output,error):
             _,project,_=load_config(service.settings.project_config)
             checks=service.probes(result['definition_path'],project['git']['repository'])
             result={**result,'capability_checks':checks}
+        elif packet['operation']=='diagnose':
+            result=service.diagnose(packet['input'])
+            _write(service,result,output)
+            return cfg['exit_codes']['success' if result['status']=='diagnosed' else 'incomplete']
         elif packet['operation']=='probe':
             exact_keys(packet['input'],{'definition_path','workspace'},'probe packet')
             value=packet['input']

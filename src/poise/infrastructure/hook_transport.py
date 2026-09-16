@@ -167,6 +167,11 @@ class HookService:
         self.repository=FileHookRepository(self.settings,self.registry)
         self.commands=HookCommands(self.repository)
 
+    def diagnose(self, packet):
+        from ..application.hook_diagnostics import HookDiagnostics
+        from .hook_diagnostics import HookObservationPort
+        return HookDiagnostics(HookObservationPort(self)).invoke(packet)
+
     def revision(self):return self.repository.revision()
     def install(self,packet):return self.commands.install(packet)
 

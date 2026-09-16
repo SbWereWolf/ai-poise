@@ -1,0 +1,13 @@
+{
+  "directory": "telemetry/spool",
+  "policy": {
+    "max_entries": 256,
+    "max_bytes": 33554432,
+    "max_event_bytes": 65536,
+    "max_attempts": 5,
+    "batch_items": 16,
+    "retry_seconds": 5,
+    "lock_seconds": 1,
+    "lock_poll_seconds": 0.01
+  }
+}

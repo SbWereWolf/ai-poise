@@ -109,12 +109,7 @@ class RuntimeAccounting:
         )
 
     def process(self,envelope):
-        data=envelope.data
-        started=self._observation(data['started']);finished=self._observation(data['finished'])
-        raw=data['telemetry'];prepared=None if raw is None else self.prepare(raw)
-        if not self.telemetry_repo.store_telemetry(envelope):return
-        selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
-        if prepared is not None:self.telemetry_repo.ingest_binding(prepared,data['session'],selected,False)
+        return self.telemetry_repo.accept_telemetry(envelope)
 
     def reconcile(self,observation):
         data=self.repo.snapshot()

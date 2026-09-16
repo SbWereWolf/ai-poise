@@ -142,7 +142,7 @@ class FileProjectConfigUpdate:
             if path[0] in {"paths", "processes", "project", "schema"}:
                 raise PoiseError(f"Manifest field {path[0]} has a dedicated owner")
             # Named optional C004 capability, not permission to create arbitrary fields.
-            if path not in (("development_routing",), ("source_reader",)):
+            if path not in (("development_routing",), ("source_reader",), ("telemetry_delivery",)):
                 field_at(config, path)
             if any(path[:len(old)] == old or old[:len(path)] == path for old in changed):
                 raise PoiseError("Conflicting manifest edits")

@@ -129,10 +129,18 @@ class Poise:
         self.accounting=AccountingCommands(RuntimeAccounting(self,telemetry_database))
         from .application.telemetry import OptionalTelemetry
         from .infrastructure.telemetry import AsyncTelemetryDispatcher,DetachedTelemetryProcessor
+        self.telemetry_delivery=None
+        process_telemetry=self.accounting.port.process
+        if 'telemetry_delivery' in self.cfg:
+            from .infrastructure.telemetry_spool import TelemetrySpool
+            delivery=self.cfg['telemetry_delivery']
+            self.telemetry_delivery=TelemetrySpool(
+                self.state / delivery['directory'], delivery['policy'], process_telemetry)
+            process_telemetry=self.telemetry_delivery
         self.telemetry=OptionalTelemetry(
             clock,
             AsyncTelemetryDispatcher(
-                DetachedTelemetryProcessor(self.accounting.port.process),
+                DetachedTelemetryProcessor(process_telemetry),
                 max_pending=self.cfg['batch']['max_items'],
             ),
             self.session,

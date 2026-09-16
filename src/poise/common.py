@@ -93,7 +93,14 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
-    exact_keys(cfg, keys | ({'task_ids', 'development_routing', 'source_reader'} & cfg.keys()), 'project config')
+    exact_keys(cfg, keys | ({'task_ids', 'development_routing', 'source_reader', 'telemetry_delivery'} & cfg.keys()), 'project config')
+    if 'telemetry_delivery' in cfg:
+        from .modules.accounting.delivery import TelemetryDeliveryPolicy
+        delivery = cfg['telemetry_delivery']
+        exact_keys(delivery, {'directory', 'policy'}, 'telemetry_delivery')
+        if not isinstance(delivery['directory'], str) or not delivery['directory'].strip() or '\0' in delivery['directory']:
+            raise PoiseError('telemetry_delivery.directory: explicit path required')
+        TelemetryDeliveryPolicy.parse(delivery['policy'])
     if 'source_reader' in cfg:
         exact_keys(cfg['source_reader'], {'policy', 'receipt_file'}, 'source_reader')
         for name, value in cfg['source_reader'].items():

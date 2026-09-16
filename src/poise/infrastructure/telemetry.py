@@ -1,10 +1,11 @@
-"""In-process best-effort dispatch; pending items are intentionally not durable."""
+"""Bounded nonblocking dispatch; optional durability belongs to the worker sink."""
 from __future__ import annotations
 
 from collections import deque
 from contextlib import contextmanager
 import json
 import os
+import select
 from pathlib import Path
 import sqlite3
 from threading import Condition, Lock, Thread
@@ -108,6 +109,8 @@ class AsyncTelemetryDispatcher:
         self.max_pending = max_pending
         self._pending = deque()
         self._seen = set()
+        self._recent_ids = deque()
+        self._inflight = 0
         self._lock = Lock()
         self._changed = Condition(self._lock)
         self._worker = None
@@ -130,14 +133,18 @@ class AsyncTelemetryDispatcher:
             return self._accept(envelope)
 
     def _accept(self, envelope):
+        self._harvest()
         if envelope.identity in self._seen:
             self._stats["duplicates"] += 1
             return True
-        outstanding = len(self._pending) + len(self._receipts) + self._captures
+        outstanding = len(self._pending) + len(self._receipts) + self._captures + self._inflight
         if self._closed or outstanding >= self.max_pending:
             self._stats["dropped"] += 1
             return False
         self._seen.add(envelope.identity)
+        self._recent_ids.append(envelope.identity)
+        if len(self._recent_ids) > self.max_pending * 2:
+            self._seen.discard(self._recent_ids.popleft())
         if getattr(self.processor, "detached", False):
             try:
                 self._receipts.append(self._spawn(envelope))
@@ -155,7 +162,8 @@ class AsyncTelemetryDispatcher:
     def begin_capture(self, clock, base, builder):
         with self._changed:
             self._stats["submitted"] += 1
-            outstanding = len(self._pending) + len(self._receipts) + self._captures
+            self._harvest()
+            outstanding = len(self._pending) + len(self._receipts) + self._captures + self._inflight
             if self._closed or outstanding >= self.max_pending:
                 self._stats["dropped"] += 1
                 return None
@@ -338,6 +346,7 @@ class AsyncTelemetryDispatcher:
                     self._changed.notify_all()
                     return
                 envelope = self._pending.popleft()
+                self._inflight += 1
             try:
                 self.processor(envelope)
             except Exception:
@@ -346,6 +355,24 @@ class AsyncTelemetryDispatcher:
             else:
                 with self._changed:
                     self._stats["processed"] += 1
+            finally:
+                with self._changed:
+                    self._inflight -= 1
+                    self._changed.notify_all()
+
+    def _harvest(self):
+        if not self._receipts:
+            return
+        poller = select.poll()
+        for descriptor in self._receipts:
+            poller.register(descriptor, select.POLLIN | select.POLLHUP | select.POLLERR)
+        for receipt, _ in poller.poll(0):
+            try:
+                outcome = os.read(receipt, 1)
+            finally:
+                os.close(receipt)
+                self._receipts.remove(receipt)
+            self._stats["processed" if outcome == b"1" else "failed"] += 1
 
     def flush(self):
         while True:
@@ -373,6 +400,7 @@ class AsyncTelemetryDispatcher:
 
     def summary(self):
         with self._changed:
+            self._harvest()
             coverage = "partial" if self._stats["submitted"] else "unavailable"
             pending = self._stats["submitted"] - sum(
                 self._stats[key]

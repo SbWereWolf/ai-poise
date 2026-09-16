@@ -127,3 +127,7 @@ scope: all/project/task/sprint; у all id=null, иначе точный ID. До
 Reasoning tokens включены в output: https://developers.openai.com/api/docs/guides/reasoning
 Cached input details: https://developers.openai.com/api/docs/guides/prompt-caching
 Проверено при подготовке среза 7 сентября 2026; фактических вызовов API или биллинга не было.
+
+## Отказоустойчивая необязательная доставка
+
+Для явно подключённого spool действуют [асинхронная доставка без блокирования работы](telemetry-delivery.md#асинхронная-доставка-без-блокирования-работы) и [ограниченный replay](telemetry-delivery.md#повтор-и-явная-диагностика). Успешная Task, постановка в оперативную очередь и commit optional DB — разные факты. Повреждение телеметрии не разрешает менять инварианты основной Task DB.

@@ -19,3 +19,5 @@
 - [ERP-MIG-F4-01-C021](C021.md): implemented.
 
 - [ERP-MIG-F4-02-C023](C023.md): implemented.
+
+- [C028.4: отказоустойчивая телеметрия](C028.4.md).

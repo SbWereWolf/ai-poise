@@ -124,3 +124,7 @@ pre-plan snapshots remain readable, but this is not a fallback for new methods.
 For bounded source/document reads, use [explicit ranges and context generations](docs/workflows/source-reader.md#явные-диапазоны-и-поколения-контекста). Do not suppress reads on unacknowledged delivery or carry read-memory assumptions across compaction/resume.
 
 After compaction/resume, use [current-owner context recovery](docs/workflows/context-recovery.md#возобновление-после-compaction-и-resume). Restore Task/route facts through their owners; reread only explicit ranges and never infer remembered text from old receipts.
+
+Keep optional telemetry persistence and retries off the work result path. Do not equate
+in-memory acceptance with durable delivery. Follow [bounded telemetry delivery](docs/operations/telemetry-delivery.md#асинхронная-доставка-без-блокирования-работы);
+replay is an explicit operation or a bounded worker step, never a Task gate.

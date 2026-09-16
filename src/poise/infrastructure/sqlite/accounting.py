@@ -4,7 +4,7 @@ import json
 from datetime import datetime,timezone
 from uuid import uuid4
 from ...common import PoiseError,encoded
-from ...modules.accounting.domain import UsageSample,usage_contribution,identity
+from ...modules.accounting.domain import UsageSample,usage_contribution,identity,parse_telemetry
 from ...modules.accounting.clock import ClockObservation
 from .queries import TaskQueries
 
@@ -48,88 +48,117 @@ class SqliteAccounting:
         return self.ingest_binding(prepared,session,binding(task))
 
     def ingest_binding(self,prepared,session,at_bind,persist_task_reference=True):
+        with self.database.transaction() as db:
+            return self._ingest_binding(db,prepared,session,at_bind,persist_task_reference)
+
+    def _ingest_binding(self,db,prepared,session,at_bind,persist_task_reference):
         p=self.policy.data
         task_reference=at_bind['task'] if persist_task_reference else None
-        with self.database.transaction() as db:
-            # Sort within the explicit batch. A late novel historical sample is not guessed.
-            for event in sorted(prepared['usage'],key=lambda e:(e.data['source'],e.data['stream'],e.data['sequence'])):
-                d=event.data;timestamp(d['occurred_at'])
-                old=db.execute('SELECT data FROM accounting_usage WHERE id=?',(event.key,)).fetchone()
-                if old is not None:
-                    if json.loads(old[0])['sample']!=d:raise PoiseError('Usage identity has conflicting content')
-                    continue
-                prev=db.execute('SELECT data FROM accounting_usage WHERE source=? AND stream=? ORDER BY sequence DESC LIMIT 1',(d['source'],d['stream'])).fetchone()
-                previous=None if prev is None else UsageSample.parse(json.loads(prev[0])['sample'],self.policy)
-                if previous is not None:
-                    if previous.data['sequence']>=d['sequence']:raise PoiseError('Out-of-order usage requires an explicit ordered source batch')
-                    if timestamp(previous.data['occurred_at'])>timestamp(d['occurred_at']):raise PoiseError('Usage timestamp went backwards')
-                delta=usage_contribution(previous,event)
-                record={'sample':d,'contribution':delta,'binding':at_bind,'cause':prepared['cause'],
-                        'source_mode':p['sources'][d['source']],'session':session,
-                        'finding_ids':[t['finding_id'] for t in prepared['finding_targets']]}
-                db.execute('INSERT INTO accounting_usage VALUES(?,?,?,?,?,?,?,?)',
-                   (event.key,task_reference,self.project,d['source'],d['stream'],d['sequence'],d['occurred_at'],encoded(record)))
-            for entry in prepared['intervals']:
-                a,b=timestamp(entry['started_at']),timestamp(entry['ended_at'])
-                if b<a:raise PoiseError('Time interval ends before it starts')
-                eid=identity([entry['source'],entry['stream'],entry['event_id']])
-                old=db.execute('SELECT data FROM accounting_cycles WHERE id=?',(eid,)).fetchone()
-                if old is not None:
-                    if json.loads(old[0])['event']!=entry:raise PoiseError('Time identity conflict')
-                    continue
-                for row in db.execute('SELECT started_at,ended_at,data FROM accounting_cycles WHERE project=?',(self.project,)):
-                    prior=json.loads(row['data'])
-                    if prior['kind']=='reported' and prior['event']['source']==entry['source'] and prior['event']['stream']==entry['stream']:
-                        if max(a,timestamp(row['started_at']))<min(b,timestamp(row['ended_at'])):raise PoiseError('Overlapping reported intervals in one stream')
-                data={'kind':'reported','event':entry,'binding':at_bind,'cause':prepared['cause'],
-                      'finding_ids':[t['finding_id'] for t in prepared['finding_targets']],
-                      'seconds':(b-a).total_seconds(),'closed_by':'source'}
-                db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
-                    (eid,task_reference,self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
-            for target in prepared['finding_targets']:
-                task_id=at_bind['task']
-                if task_id is None:raise PoiseError('Finding attribution requires current task')
-                row=db.execute('SELECT data FROM task_workflows WHERE task_id=?',(task_id,)).fetchone()
-                feedback=json.loads(row[0])['feedback']
-                finding=next((x for x in feedback['findings'] if x['id']==target['finding_id']),None)
-                if finding is None:raise PoiseError('Unknown finding for cost attribution')
-                delivered=db.execute('SELECT at FROM interaction_reports WHERE task_id=? AND stage=? AND iteration=?',
-                    (task_id,target['stage'],target['iteration'])).fetchone()
-                if delivered is None or (finding['stage'],finding['iteration'])==(target['stage'],target['iteration']):
-                    raise PoiseError('Quality finding must target a previously delivered iteration')
-                old=db.execute('SELECT data FROM accounting_findings WHERE task_id=? AND finding_id=?',(task_id,target['finding_id'])).fetchone()
-                if old is not None and json.loads(old[0])!=target:raise PoiseError('Finding attribution cannot silently change')
-                db.execute('INSERT OR IGNORE INTO accounting_findings VALUES(?,?,?)',(task_id,target['finding_id'],encoded(target)))
-            if prepared['cause'] is not None:
-                current=db.execute('SELECT id,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
-                if current is not None:
-                    data=json.loads(current['data'])
-                    if data['cause'] is None:
-                        data['cause']=prepared['cause'];data['finding_ids']=[t['finding_id'] for t in prepared['finding_targets']]
-                        db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(data),current['id']))
-                    elif data['cause']!=prepared['cause']:raise PoiseError('A work cycle already has an explicit cause')
+        # Sort within the explicit batch. A late novel historical sample is not guessed.
+        for event in sorted(prepared['usage'],key=lambda e:(e.data['source'],e.data['stream'],e.data['sequence'])):
+            d=event.data;timestamp(d['occurred_at'])
+            old=db.execute('SELECT data FROM accounting_usage WHERE id=?',(event.key,)).fetchone()
+            if old is not None:
+                if json.loads(old[0])['sample']!=d:raise PoiseError('Usage identity has conflicting content')
+                continue
+            prev=db.execute('SELECT data FROM accounting_usage WHERE source=? AND stream=? ORDER BY sequence DESC LIMIT 1',(d['source'],d['stream'])).fetchone()
+            previous=None if prev is None else UsageSample.parse(json.loads(prev[0])['sample'],self.policy)
+            if previous is not None:
+                if previous.data['sequence']>=d['sequence']:raise PoiseError('Out-of-order usage requires an explicit ordered source batch')
+                if timestamp(previous.data['occurred_at'])>timestamp(d['occurred_at']):raise PoiseError('Usage timestamp went backwards')
+            delta=usage_contribution(previous,event)
+            record={'sample':d,'contribution':delta,'binding':at_bind,'cause':prepared['cause'],
+                    'source_mode':p['sources'][d['source']],'session':session,
+                    'finding_ids':[t['finding_id'] for t in prepared['finding_targets']]}
+            db.execute('INSERT INTO accounting_usage VALUES(?,?,?,?,?,?,?,?)',
+               (event.key,task_reference,self.project,d['source'],d['stream'],d['sequence'],d['occurred_at'],encoded(record)))
+        for entry in prepared['intervals']:
+            a,b=timestamp(entry['started_at']),timestamp(entry['ended_at'])
+            if b<a:raise PoiseError('Time interval ends before it starts')
+            eid=identity([entry['source'],entry['stream'],entry['event_id']])
+            old=db.execute('SELECT data FROM accounting_cycles WHERE id=?',(eid,)).fetchone()
+            if old is not None:
+                if json.loads(old[0])['event']!=entry:raise PoiseError('Time identity conflict')
+                continue
+            for row in db.execute('SELECT started_at,ended_at,data FROM accounting_cycles WHERE project=?',(self.project,)):
+                prior=json.loads(row['data'])
+                if prior['kind']=='reported' and prior['event']['source']==entry['source'] and prior['event']['stream']==entry['stream']:
+                    if max(a,timestamp(row['started_at']))<min(b,timestamp(row['ended_at'])):raise PoiseError('Overlapping reported intervals in one stream')
+            data={'kind':'reported','event':entry,'binding':at_bind,'cause':prepared['cause'],
+                  'finding_ids':[t['finding_id'] for t in prepared['finding_targets']],
+                  'seconds':(b-a).total_seconds(),'closed_by':'source'}
+            db.execute('INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
+                (eid,task_reference,self.project,session,a.isoformat(),b.isoformat(),encoded(data)))
+        for target in prepared['finding_targets']:
+            task_id=at_bind['task']
+            if task_id is None:raise PoiseError('Finding attribution requires current task')
+            row=db.execute('SELECT data FROM task_workflows WHERE task_id=?',(task_id,)).fetchone()
+            feedback=json.loads(row[0])['feedback']
+            finding=next((x for x in feedback['findings'] if x['id']==target['finding_id']),None)
+            if finding is None:raise PoiseError('Unknown finding for cost attribution')
+            delivered=db.execute('SELECT at FROM interaction_reports WHERE task_id=? AND stage=? AND iteration=?',
+                (task_id,target['stage'],target['iteration'])).fetchone()
+            if delivered is None or (finding['stage'],finding['iteration'])==(target['stage'],target['iteration']):
+                raise PoiseError('Quality finding must target a previously delivered iteration')
+            old=db.execute('SELECT data FROM accounting_findings WHERE task_id=? AND finding_id=?',(task_id,target['finding_id'])).fetchone()
+            if old is not None and json.loads(old[0])!=target:raise PoiseError('Finding attribution cannot silently change')
+            db.execute('INSERT OR IGNORE INTO accounting_findings VALUES(?,?,?)',(task_id,target['finding_id'],encoded(target)))
+        if prepared['cause'] is not None:
+            current=db.execute('SELECT id,data FROM accounting_cycles WHERE session_id=? AND ended_at IS NULL',(session,)).fetchone()
+            if current is not None:
+                data=json.loads(current['data'])
+                if data['cause'] is None:
+                    data['cause']=prepared['cause'];data['finding_ids']=[t['finding_id'] for t in prepared['finding_targets']]
+                    db.execute('UPDATE accounting_cycles SET data=? WHERE id=?',(encoded(data),current['id']))
+                elif data['cause']!=prepared['cause']:raise PoiseError('A work cycle already has an explicit cause')
+
 
     def store_telemetry(self,envelope):
+        with self.database.transaction() as db:
+            return self._store_telemetry(db,envelope)
+
+    def accept_telemetry(self,envelope):
+        data=envelope.data
+        for name in ('started','finished'):
+            value=data[name]
+            ClockObservation(value['audit_utc'],value['monotonic_ns'],value['comparison_domain'])
+        raw=data['telemetry']
+        prepared=None if raw is None else parse_telemetry(raw,self.policy)
+        if prepared is not None:
+            for event in prepared['usage']:timestamp(event.data['occurred_at'])
+            for event in prepared['intervals']:
+                if timestamp(event['ended_at'])<timestamp(event['started_at']):
+                    raise PoiseError('Time interval ends before start')
+        return self.process_telemetry(envelope,prepared)
+
+    def process_telemetry(self,envelope,prepared):
         data=envelope.data
         selected=data['after_binding'] if data['after_binding']['task'] is not None else data['before_binding']
-        stored={'kind':'telemetry_envelope','envelope':data}
         with self.database.transaction() as db:
-            old=db.execute('SELECT data FROM accounting_cycles WHERE id=?',(envelope.identity,)).fetchone()
-            if old is not None:
-                if json.loads(old[0])!=stored:raise PoiseError('Telemetry identity has conflicting content')
-                return False
-            db.execute(
-                'INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
-                (
-                    envelope.identity,
-                    None,
-                    self.project,
-                    data['session'],
-                    data['started']['audit_utc'],
-                    data['finished']['audit_utc'],
-                    encoded(stored),
-                ),
-            )
+            if not self._store_telemetry(db,envelope):return False
+            if prepared is not None:
+                self._ingest_binding(db,prepared,data['session'],selected,False)
+        return True
+
+    def _store_telemetry(self,db,envelope):
+        data=envelope.data
+        stored={'kind':'telemetry_envelope','envelope':data}
+        old=db.execute('SELECT data FROM accounting_cycles WHERE id=?',(envelope.identity,)).fetchone()
+        if old is not None:
+            if json.loads(old[0])!=stored:raise PoiseError('Telemetry identity has conflicting content')
+            return False
+        db.execute(
+            'INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
+            (
+                envelope.identity,
+                None,
+                self.project,
+                data['session'],
+                data['started']['audit_utc'],
+                data['finished']['audit_utc'],
+                encoded(stored),
+            ),
+        )
         return True
 
     @staticmethod

@@ -11,14 +11,12 @@ For WSL project selection and storage layout, read only [Local installation → 
 
 For this local ai-poise installation, use [the concrete launcher and configuration](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise). `bootstrap` and `verify` are operations of AI poise `work`, not separate skills. For ordinary work invoke the session-scoped `work.sh` supplied by the native hook explicitly through Bash, keep `messages=[]`, and reuse the same launcher across calls. Direct `.venv/bin/poise work` uses a native Codex identity when available; otherwise it requires an absolute persistent `POISE_CALLER_BINDING` whose parent already exists. An agent must not substitute a caller-chosen session value, and a direct diagnostic call does not establish native event delivery. The user explicitly authorized state inside this repository.
 
-Treat launcher availability and configured interpreter capability separately. If a managed hook
-or launcher exits 126 with `Configured Poise interpreter is unavailable`, execute the exact
-shell-safe command printed after `Recovery:`, replacing only its compatible-Python placeholder
-with an absolute executable path. The supported `recover_runtime.sh` rebuilds and validates the
-configured environment without changing Task DB or inventing caller/session identity. After it
-succeeds, repeat the native event and continue through the supplied launcher. Do not improvise a
-system-Python `poise work` invocation as a task-work fallback. Read the canonical
-[runtime recovery contract](../../../docs/configuration/runtime-hooks.md#восстановление-настроенного-runtime).
+Treat launcher availability and configured interpreter capability separately. Managed hooks and
+launchers execute the interpreter selected by installation settings directly; they do not provide
+an alternate task-work runtime or a special recovery protocol. If that interpreter is unavailable,
+report or restore the installation through ordinary operator procedures, then repeat the native
+event. Do not improvise a system-Python `poise work` invocation as a task-work fallback or claim
+that AI poise emitted a recovery command.
 
 ## Start or resume work
 

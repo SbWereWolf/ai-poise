@@ -92,7 +92,7 @@ def test_existing_owned_launcher_is_upgraded_to_bytecode_safe_command(project,tm
     assert path.read_text()==current
 
 
-def test_changed_existing_launcher_is_not_overwritten(project,tmp_path):
+def test_external_launcher_edit_is_rejected(project,tmp_path):
     s=service(project,tmp_path);out=install(s);native(s,out)
     binding=s.latest_binding('conversation','primary')
     path=Path(binding['launcher']);changed='#!/bin/sh\necho external-change\n'

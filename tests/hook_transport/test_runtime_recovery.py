@@ -31,6 +31,47 @@ def _native(service, installed):
     return service.event(installed["definition_path"], native)
 
 
+def _guarded_command(service, binding_path):
+    recovery = str(Path(service.settings.raw["source_root"]) / "poise/recover_runtime.sh")
+    recovery_command = shlex.join(
+        [
+            "bash",
+            recovery,
+            "--settings",
+            str(service.settings.path),
+            "--python",
+            "/absolute/path/to/compatible/python",
+        ]
+    )
+    guard = (
+        "interpreter=$1; recovery_command=$2; source_root=$3; shift 3; "
+        'if [ ! -x "$interpreter" ]; then '
+        'printf "%s\\n" "Configured Poise interpreter is unavailable: $interpreter" >&2; '
+        'printf "%s\\n" "Recovery: $recovery_command" >&2; '
+        "exit 126; fi; "
+        'exec env "PYTHONPATH=$source_root" "$interpreter" "$@"'
+    )
+    return shlex.join(
+        [
+            "/bin/sh",
+            "-c",
+            guard,
+            "poise-runtime-guard",
+            service.settings.raw["python"],
+            recovery_command,
+            service.settings.raw["source_root"],
+            "-B",
+            "-m",
+            "poise",
+            "hook-work",
+            "--settings",
+            str(service.settings.path),
+            "--binding",
+            str(binding_path),
+        ]
+    )
+
+
 def test_managed_command_invokes_configured_interpreter_directly(project, tmp_path):
     service, selected = _service_with_selected_interpreter(project, tmp_path)
     binding = tmp_path / "binding.json"
@@ -90,3 +131,25 @@ def test_install_emits_one_direct_group_per_declared_event(project, tmp_path):
     assert all(command.startswith("env PYTHONPATH=") for command in commands)
     assert all(" -B -m poise hook " in command for command in commands)
     assert all("poise-runtime-guard" not in command for command in commands)
+
+
+def test_exact_guarded_launcher_is_migrated_without_changing_session(project, tmp_path):
+    service, _ = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    launcher = Path(binding["launcher"])
+    launcher.write_text(
+        f"#!/bin/sh\nexec {_guarded_command(service, binding['binding_path'])}\n",
+        encoding="utf-8",
+    )
+    launcher.chmod(service.settings.raw["executable_mode"])
+
+    _native(service, installed)
+    migrated = service.latest_binding("conversation", "primary")
+    command = launcher.read_text(encoding="utf-8")
+
+    assert migrated["session_id"] == binding["session_id"]
+    assert "exec env PYTHONPATH=" in command
+    assert " -B -m poise hook-work " in command
+    assert "poise-runtime-guard" not in command

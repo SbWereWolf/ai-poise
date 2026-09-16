@@ -1,0 +1,183 @@
+{
+  "schema": "erp-migration-f4-execution-1",
+  "baseline": "00e78c8f0db6802a20fa90fffdbde20582e90ba5",
+  "database_sha256": "3a6f51b6c7b61e0243e2291abeb7b35a38d47a27ec48d60a0931c43e4844d55c",
+  "sprint": "SPRINT-ERP-MIGRATION-F4-HOOKS-TELEMETRY",
+  "revision": 9,
+  "tasks": {
+    "ERP-MIG-F4-06-C002": {
+      "goal": "CONDITIONAL DUPLICATE of C002 for F4. Before implementation inspect equivalent AI-poise scoped development-rule/architecture-boundary functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    "ERP-MIG-F4-07-C003": {
+      "goal": "CONDITIONAL DUPLICATE of C003 for F4. Before implementation inspect equivalent AI-poise skill-selection routing metadata already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    "ERP-MIG-F4-08-C004": {
+      "goal": "CONDITIONAL DUPLICATE of C004 for F4. Before implementation inspect equivalent AI-poise routing-owner functionality already delivered elsewhere. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    "ERP-MIG-F4-09-C015": {
+      "goal": "CONDITIONAL DUPLICATE of C015 for F4. Before implementation inspect the existing AI-poise registered check runner. If it satisfies F4 needs, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing runner behavior. Do not create a cross-Sprint dependency."
+    },
+    "ERP-MIG-F4-10-C033": {
+      "goal": "CONDITIONAL DUPLICATE of C033 for F4. Before implementation inspect existing AI-poise runner timeout/progress/cancel behavior. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing behavior. Do not create a cross-Sprint dependency."
+    },
+    "ERP-MIG-F4-11-C020": {
+      "goal": "CONDITIONAL DUPLICATE of C020 for F4. Before implementation inspect existing host-hook control of AI-poise registered verification launches. If sufficient, do not reimplement it; verify applicability and record reuse/no-change. Otherwise implement only missing confirmed-host-event behavior. Do not create a cross-Sprint dependency."
+    },
+    "ERP-MIG-F4-01-C021": {
+      "definition_of_done": [
+        "Bounded range reads and batches are covered by tests.",
+        "Repeat suppression respects content/range/generation.",
+        "Explicit reread remains available and produces an auditable receipt."
+      ],
+      "goal": "Provide bounded, repeat-aware reading of explicitly supplied document file paths/ranges for AI poise.",
+      "requirements": [
+        "Accept explicit file paths/ranges and bounded batches; the caller supplies every path needed by the read operation.",
+        "Track path, content identity, range and context generation for repeat suppression.",
+        "After compaction/resume, do not claim unchanged memory merely because the file contents are unchanged.",
+        "Allow explicit reread of text when requested."
+      ]
+    },
+    "ERP-MIG-F4-02-C023": {
+      "definition_of_done": [
+        "Resume after context generation change restores required Task/route metadata deterministically.",
+        "Reader generation state causes needed text to be re-obtainable.",
+        "No second Task DB or copied lifecycle state is introduced."
+      ],
+      "goal": "Restore the AI-poise Task/routing/reader context needed after compaction or resume from existing durable owners without copying Task DB state.",
+      "requirements": [
+        "Reuse the existing Task, routing and reader owners rather than creating a parallel session state store.",
+        "Restore only facts needed to continue the current Poise workflow.",
+        "Any file rereads use explicit paths through C021.",
+        "Do not infer remembered document content solely from pre-compaction receipts."
+      ]
+    },
+    "ERP-MIG-F4-03-C028-4": {
+      "definition_of_done": [
+        "Telemetry failure cannot reject an otherwise valid work operation.",
+        "Retry/replay is idempotent and bounded.",
+        "Failure and backlog diagnostics are covered by tests."
+      ],
+      "goal": "Make AI-poise telemetry/accounting collection asynchronous and failure-isolated from the working path.",
+      "requirements": [
+        "Work operations must not wait for or fail because of telemetry API/database/worker failure.",
+        "Queue/spool handling is bounded, replayable and idempotent.",
+        "Coverage gaps and delivery errors remain observable.",
+        "Do not weaken invariants of the primary Task database."
+      ]
+    },
+    "ERP-MIG-F4-04-C028-5": {
+      "definition_of_done": [
+        "Raw metric parameters and source timestamps survive asynchronous persistence.",
+        "Late delivery keeps source-time provenance.",
+        "Missing durations remain missing rather than fabricated."
+      ],
+      "goal": "Persist available source API metrics and source timestamps through the asynchronous AI-poise accounting owner without inventing durations.",
+      "requirements": [
+        "Store available raw parameters and source observation timestamp.",
+        "Preserve an API-provided duration as a source value but do not recompute missing intervals/durations during collection.",
+        "Do not silently replace the source observation time with a later persistence timestamp.",
+        "Aggregation/derived time math belongs to analytics, not ingestion."
+      ]
+    },
+    "ERP-MIG-F4-05-C031": {
+      "definition_of_done": [
+        "Supported hook effects can be traced to receipts/state owned by their feature owner.",
+        "Unsupported/missing native event delivery is diagnosed rather than inferred.",
+        "No general agent-compliance observer or second messaging source is introduced."
+      ],
+      "goal": "Diagnose observable AI-poise hook/runtime effects using existing receipts and capability diagnostics after reader, telemetry and runner-hook work is available.",
+      "requirements": [
+        "Do not migrate the ERP fixed observer run, prompt/schema or rule-compliance validator.",
+        "For a specific hook, diagnose its observable effect from native events/receipts and report unsupported or missing delivery explicitly.",
+        "Active diagnostics are explicit operations, not a standing gate; passive telemetry remains asynchronous.",
+        "Where code/files must be inspected, use explicit filesystem paths and keep ordinary Poise path resolution unchanged."
+      ]
+    }
+  },
+  "dependencies": [
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-01-C021",
+      "successor": "ERP-MIG-F4-02-C023"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-02-C023",
+      "successor": "ERP-MIG-F4-05-C031"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-03-C028-4",
+      "successor": "ERP-MIG-F4-04-C028-5"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-04-C028-5",
+      "successor": "ERP-MIG-F4-05-C031"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-06-C002",
+      "successor": "ERP-MIG-F4-07-C003"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-06-C002",
+      "successor": "ERP-MIG-F4-10-C033"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-07-C003",
+      "successor": "ERP-MIG-F4-08-C004"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-08-C004",
+      "successor": "ERP-MIG-F4-02-C023"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-08-C004",
+      "successor": "ERP-MIG-F4-05-C031"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-09-C015",
+      "successor": "ERP-MIG-F4-10-C033"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-10-C033",
+      "successor": "ERP-MIG-F4-11-C020"
+    },
+    {
+      "kind": "result",
+      "predecessor": "ERP-MIG-F4-11-C020",
+      "successor": "ERP-MIG-F4-05-C031"
+    }
+  ],
+  "order": [
+    "ERP-MIG-F4-06-C002",
+    "ERP-MIG-F4-07-C003",
+    "ERP-MIG-F4-08-C004",
+    "ERP-MIG-F4-09-C015",
+    "ERP-MIG-F4-10-C033",
+    "ERP-MIG-F4-11-C020",
+    "ERP-MIG-F4-01-C021",
+    "ERP-MIG-F4-02-C023",
+    "ERP-MIG-F4-03-C028-4",
+    "ERP-MIG-F4-04-C028-5",
+    "ERP-MIG-F4-05-C031"
+  ],
+  "closure": {
+    "dangling": 0,
+    "isolated": 0,
+    "cycles": 0
+  },
+  "policy": {
+    "skip_reimplemented_duplicates": true,
+    "mutate_task_db": false,
+    "full_suite": false,
+    "checkpoint_and_gmail_readback_per_task": true
+  }
+}

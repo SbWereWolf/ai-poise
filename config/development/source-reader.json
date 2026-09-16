@@ -1,0 +1,10 @@
+{
+  "schema": "source-reader-1",
+  "max_items": 16,
+  "max_lines": 200,
+  "max_file_bytes": 4194304,
+  "max_output_bytes": 65536,
+  "max_receipts": 256,
+  "lock_wait_seconds": 2,
+  "lock_poll_seconds": 0.02
+}

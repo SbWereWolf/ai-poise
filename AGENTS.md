@@ -120,3 +120,5 @@ pre-existing baseline guard: no RED, sole GREEN at the route-entry `baseline`; p
 GREEN methods require a non-empty covered surface. RED uses exact stdout/stderr equality; additional
 failures invalidate it. Do not infer recursive test dependencies. Stored
 pre-plan snapshots remain readable, but this is not a fallback for new methods.
+
+For bounded source/document reads, use [explicit ranges and context generations](docs/workflows/source-reader.md#явные-диапазоны-и-поколения-контекста). Do not suppress reads on unacknowledged delivery or carry read-memory assumptions across compaction/resume.

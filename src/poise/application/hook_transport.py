@@ -15,3 +15,12 @@ class HookCommands:
         if packet['expected_revision'] is not None:nonempty(packet['expected_revision'],'expected_revision')
         definition=HookDefinition.parse(packet['definition'])
         return self.repository.install(packet['request_id'],packet['expected_revision'],definition)
+
+    def reconcile(self,packet):
+        exact(packet,{'request_id','expected_revision','previous_installation_id',
+                      'live_definition_path','definition'},'hook reconciliation packet')
+        for key in ('request_id','expected_revision','previous_installation_id','live_definition_path'):
+            nonempty(packet[key],key)
+        definition=HookDefinition.parse(packet['definition'])
+        return self.repository.reconcile(packet['request_id'],packet['expected_revision'],definition,
+                                         packet['previous_installation_id'],packet['live_definition_path'])

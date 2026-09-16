@@ -38,8 +38,9 @@ def execute(command,args,stream,output,error):
             bad = result['status'] in BUSINESS_INCOMPLETE_STATUSES
             return cfg['exit_codes']['incomplete' if bad else 'success']
         exact_keys(packet,{'operation','input'},'runtime-config packet')
-        if packet['operation']=='install':
-            result=service.install(packet['input'])
+        if packet['operation'] in ('install','reconcile'):
+            action=service.install if packet['operation']=='install' else service.reconcile
+            result=action(packet['input'])
             _,project,_=load_config(service.settings.project_config)
             checks=service.probes(result['definition_path'],project['git']['repository'])
             result={**result,'capability_checks':checks}

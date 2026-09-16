@@ -26,6 +26,13 @@ continue only that subject work manually and record actual changes, checks, WIP 
 the incident. Do not repair Poise or invent a replacement harness without a separate
 assignment; do not fabricate Poise completion, native delivery or a new identity.
 
+When native hooks and the registry carry different historical installation IDs,
+use the existing `runtime-config` `reconcile` operation with the observed live-file
+revision, explicit old ID, exact live immutable definition path and full new
+definition. Do not append another installation, delete foreign groups, or edit the
+hook SQLite registry manually. Reuse the same request after an interrupted write.
+Read [installation identity reconciliation](../../../docs/configuration/runtime-hooks.md#согласование-installation-identity-после-переименования).
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):

@@ -120,6 +120,15 @@ class HookSettings:
         )
 
 
+def _read_definition(settings,path):
+    p=Path(path)
+    if not p.is_absolute() or p.is_symlink() or not p.resolve().is_relative_to(settings.definitions):
+        raise PoiseError('Hook definition must be within configured definition root')
+    value=read_document(p)
+    if p.stem!=digest(value):raise PoiseError('Hook definition digest mismatch')
+    return HookDefinition.parse(value)
+
+
 class FileHookRepository:
     def __init__(self,settings,registry):self.settings,self.registry=settings,registry
 
@@ -139,17 +148,87 @@ class FileHookRepository:
             groups.append([e['event'],group])
         return groups
 
+    def _reject_unregistered_groups(self,document,previous,definition):
+        """Recognize only exact commands of this settings/source installation."""
+        if document is None:return
+        merge_hook_document(document,[],[])  # Validate the existing envelope without changing it.
+        prefixes=[shlex.split(self.settings.command('hook')),
+                  shlex.split(self.settings._direct_command([],'hook'))]
+        for event,groups in document.get('hooks',{}).items():
+            for group in groups:
+                if not isinstance(group,dict) or [event,group] in previous:continue
+                hooks=group.get('hooks',[])
+                if not isinstance(hooks,list):continue
+                for hook in hooks:
+                    if not isinstance(hook,dict) or hook.get('type')!='command':continue
+                    if not isinstance(hook.get('command'),str):continue
+                    try:argv=shlex.split(hook.get('command',''))
+                    except ValueError:continue
+                    if not any(argv[:len(prefix)]==prefix and len(argv)==len(prefix)+2
+                               and argv[-2]=='--definition' for prefix in prefixes):continue
+                    observed=_read_definition(self.settings,argv[-1])
+                    if observed.data['id']==definition.data['id']:
+                        raise PoiseError('Unregistered managed hook groups: use runtime-config reconcile '
+                                         'with explicit previous installation identity and live definition')
+
+    def _reconciled_groups(self,db,document,previous,definition,reconciliation):
+        old_id=reconciliation['previous_installation_id']
+        if old_id==definition.data['id']:raise PoiseError('Reconciliation requires distinct old/new installation identities')
+        row=db.execute('SELECT data FROM installations WHERE id=?',(old_id,)).fetchone()
+        if row is None:raise PoiseError('Unknown previous installation identity')
+        old=json.loads(row[0])
+        if old.get('migrated_to') is not None:raise PoiseError('Previous installation identity already migrated')
+        if old['receipt']['hooks_path']!=str(self.settings.hooks_file):
+            raise PoiseError('Previous installation belongs to another native hooks file')
+        live_path=reconciliation['live_definition_path']
+        live=_read_definition(self.settings,live_path)
+        if live.data['id']!=definition.data['id']:
+            raise PoiseError('Live definition does not prove the requested current installation identity')
+        if not isinstance(document,dict) or not isinstance(document.get('hooks'),dict):
+            raise PoiseError('Reconciliation requires an existing native hooks document')
+        removed=[]
+        # Every declared live group must be present exactly once. The only older
+        # direct form accepted here is the existing owned no-bytecode-flag form.
+        for event,group in self._groups(live,Path(live_path)):
+            older=deepcopy(group)
+            older['hooks'][0]['command']=self.settings._direct_command([],'hook','--definition',live_path)
+            choices=[group] if older==group else [group,older]
+            groups=document['hooks'].get(event,[])
+            found=[candidate for candidate in choices for _ in range(groups.count(candidate))]
+            if len(found)!=1:raise PoiseError('Exact live managed hook group is missing, changed or duplicated')
+            removed.append([event,found[0]])
+        for event,group in [*old['groups'],*previous]:
+            count=document['hooks'].get(event,[]).count(group)
+            if count>1:raise PoiseError('Previously owned group multiplicity is ambiguous')
+            if count==1 and [event,group] not in removed:removed.append([event,group])
+        self._reject_unregistered_groups(document,removed,definition)
+        proof={**reconciliation,'installation_id':definition.data['id'],
+               'group_fingerprints':[{'event':event,'sha256':digest(group)} for event,group in removed]}
+        return removed,proof,row[0]
+
     def install(self,request_id,expected_revision,definition):
+        return self._install(request_id,expected_revision,definition,None)
+
+    def reconcile(self,request_id,expected_revision,definition,previous_installation_id,live_definition_path):
+        return self._install(request_id,expected_revision,definition,{
+            'previous_installation_id':previous_installation_id,'live_definition_path':live_definition_path})
+
+    def _install(self,request_id,expected_revision,definition,reconciliation):
         s=self.settings
         s.require_runtime()
         if len(definition.data['probes'])>s.raw['max_probes']:raise PoiseError('Too many probes')
         _,project,_=load_config(s.project_config)
         if project['batch']['message_source']!={'id':definition.data['message_source'],'mode':'runtime_event'}:
             raise PoiseError('Project message source must explicitly match the hook event source')
-        packet=digest([request_id,expected_revision,definition.data,str(s.hooks_file)])
+        intent=[request_id,expected_revision,definition.data,str(s.hooks_file)]
+        if reconciliation is not None:intent.append(reconciliation)
+        packet=digest(intent)
         # External file effects are protected by the same bounded installer lock.
         # Pending intent is committed before replacement, so a retry can reconcile it.
         with self.registry.transaction() as db:
+            identity=db.execute('SELECT data FROM installations WHERE id=?',(definition.data['id'],)).fetchone()
+            if identity is not None and json.loads(identity[0]).get('migrated_to') is not None:
+                raise PoiseError(f"Installation identity migrated to {json.loads(identity[0])['migrated_to']}")
             row=db.execute('SELECT data FROM operations WHERE id=?',(request_id,)).fetchone()
             if row is not None:
                 operation=json.loads(row[0])
@@ -158,8 +237,16 @@ class FileHookRepository:
                 before=self.revision()
                 if before!=expected_revision:raise PoiseError(f'Hook configuration revision changed: {before}')
                 old=db.execute('SELECT data FROM installations WHERE id=?',(definition.data['id'],)).fetchone()
-                previous=[] if old is None else json.loads(old[0])['groups']
+                owned=None if old is None else json.loads(old[0])
+                if owned is not None and owned.get('migrated_to') is not None:
+                    raise PoiseError(f"Installation identity migrated to {owned['migrated_to']}")
+                previous=[] if owned is None else owned['groups']
                 document=None if before is None else read_document(s.hooks_file)
+                proof=None;prior_installation=None
+                if reconciliation is None:self._reject_unregistered_groups(document,previous,definition)
+                else:
+                    previous,proof,prior_installation=self._reconciled_groups(
+                        db,document,previous,definition,reconciliation)
                 definition_path=descendant(s.definitions,digest(definition.data)+'.json')
                 desired=self._groups(definition,definition_path)
                 candidate=merge_hook_document(document,previous,desired)
@@ -170,8 +257,10 @@ class FileHookRepository:
                     'definition_path':str(definition_path),'hooks_path':str(s.hooks_file),
                     'events':[e['event'] for e in definition.data['events']],
                     'trust_status':'requires_user_review','live_codex':'not_observed'}
+                if proof is not None:receipt['reconciliation']=proof
                 operation={'digest':packet,'phase':'pending','before':before,'candidate':candidate,
                     'groups':desired,'definition':definition.data,'receipt':receipt}
+                if proof is not None:operation['prior_installation']=prior_installation
                 db.execute('INSERT INTO operations VALUES(?,?)',(request_id,encoded(operation)))
                 self.registry.event_in(db,None,'install.pending',{'request_id':request_id})
         with self.registry.transaction() as db:
@@ -182,11 +271,23 @@ class FileHookRepository:
                 if now!=receipt['revision']:raise PoiseError('Installed hooks changed since the saved receipt')
                 return receipt
             if now not in (operation['before'],receipt['revision']):raise PoiseError('Pending hook installation conflicts with current file')
+            proof=receipt.get('reconciliation')
+            if proof is not None:
+                prior=db.execute('SELECT data FROM installations WHERE id=?',
+                                 (proof['previous_installation_id'],)).fetchone()
+                if prior is None or prior[0]!=operation['prior_installation']:
+                    raise PoiseError('Previous installation changed since reconciliation planning')
             path=Path(receipt['definition_path']);body=(json.dumps(operation['definition'],ensure_ascii=False,indent=2)+'\n').encode()
             if path.exists() and path.read_bytes()!=body:raise PoiseError('Immutable hook definition was changed')
             if not path.exists():atomic_write(path,body,s.raw['file_mode'])
             if now!=receipt['revision']:
                 atomic_write(s.hooks_file,(json.dumps(operation['candidate'],ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode(),s.raw['file_mode'])
+            if proof is not None:
+                prior=json.loads(operation['prior_installation'])
+                prior.update(migrated_to=proof['installation_id'],migration_request_id=request_id,
+                             migration_revision=receipt['revision'])
+                db.execute('UPDATE installations SET data=? WHERE id=?',
+                           (encoded(prior),proof['previous_installation_id']))
             operation['phase']='completed'
             db.execute('UPDATE operations SET data=? WHERE id=?',(encoded(operation),request_id))
             db.execute('INSERT INTO installations VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
@@ -209,14 +310,9 @@ class HookService:
 
     def revision(self):return self.repository.revision()
     def install(self,packet):return self.commands.install(packet)
+    def reconcile(self,packet):return self.commands.reconcile(packet)
 
-    def definition(self,path):
-        p=Path(path)
-        if not p.is_absolute() or p.is_symlink() or not p.resolve().is_relative_to(self.settings.definitions):
-            raise PoiseError('Hook definition must be within configured definition root')
-        value=read_document(p)
-        if p.stem!=digest(value):raise PoiseError('Hook definition digest mismatch')
-        return HookDefinition.parse(value)
+    def definition(self,path):return _read_definition(self.settings,path)
 
     def _bind(self,definition_path,event):
         self.settings.require_runtime()

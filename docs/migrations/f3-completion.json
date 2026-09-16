@@ -1,0 +1,131 @@
+{
+  "schema": "ai-poise-f3-completion-1",
+  "updated": "2026-09-16",
+  "sprint": "SPRINT-ERP-MIGRATION-F3-ROUTING-HOOKS",
+  "draft_revision": 5,
+  "implementation_status": "implemented-and-bounded-verified",
+  "base": "a51647d8f7cac029b54d7024d82e0adf8de30569",
+  "original_checkpoint_head": "8c0d7b49dff3d0783aa3e6fce4f5ffea28ae402e",
+  "source_recovery_commit": "c9dac0d4c6113fd0b2a8f1ea7ee21349063de7d3",
+  "source_recovery_tree": "519a768feb6121f9890dab0346ec24b429d4328f",
+  "source_patch_sha256": "09a1b3aac32f57a51ec7abe5b14c868fb0748738591f30e10744127e5c0f80d1",
+  "source_patch_blob_matches": 30,
+  "database_sha256": "3a6f51b6c7b61e0243e2291abeb7b35a38d47a27ec48d60a0931c43e4844d55c",
+  "task_database_mutated": false,
+  "tasks": [
+    {
+      "task": "ERP-MIG-F3-10-C002",
+      "node": "C002",
+      "commit": "7f38787be029e21bfb2b971b729ca36271c32315",
+      "report": "docs/migrations/f3-results/C002.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a73f147c611ea",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-11-C015",
+      "node": "C015",
+      "commit": "b65fdff6a555d72e418e75d6745821dc4378293c",
+      "report": "docs/migrations/f3-results/C015.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a7409c693b7b0",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-13-C026-2",
+      "node": "C026.2",
+      "commit": "37cd6f94b05bafc667c2bb8717db2b99ff586d98",
+      "report": "docs/migrations/f3-results/C026.2.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a741b16567ff8",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-03-C003",
+      "node": "C003",
+      "commit": "ffa40b34cc769778fe2fecded7d03cb9426cd738",
+      "report": "docs/migrations/f3-results/C003.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a742d0c38be00",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-12-C016",
+      "node": "C016",
+      "commit": "496ff854ad172b69ffb11aa06a47c708d6bec5d6",
+      "report": "docs/migrations/f3-results/C016.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a743eba7f82f3",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-04-C004",
+      "node": "C004",
+      "commit": "d08c61d504b631b4efd3687e6b97e711f8f863e1",
+      "report": "docs/migrations/f3-results/C004.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a744f5ed609e3",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-05-C043",
+      "node": "C043",
+      "commit": "eda63605e1e061d7e9233a389975cc067f1095cd",
+      "report": "docs/migrations/f3-results/C043.md",
+      "disposition": "reuse-no-change",
+      "gmail_message_id": "1a0a7460417dc9c5",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-06-C017",
+      "node": "C017",
+      "commit": "f09affa2ba3b271f5cb998891e4d9dacc19ecd32",
+      "report": "docs/migrations/f3-results/C017.md",
+      "disposition": "implemented",
+      "gmail_message_id": "1a0a74b0d3eb6bf9",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    },
+    {
+      "task": "ERP-MIG-F3-07-C029-4",
+      "node": "C029.4",
+      "commit": "8c0d7b49dff3d0783aa3e6fce4f5ffea28ae402e",
+      "report": "docs/migrations/f3-results/C029.4.md",
+      "disposition": "implemented",
+      "gmail_message_id": "1a0a75627acb8fca",
+      "commit_status": "recorded in original checkpoint; objects not recovered"
+    }
+  ],
+  "recovery_limit": "Original nine commit objects and original historical log bytes were not available through the supported attachment reader. Source was restored from the verified full-index cumulative patch on exact F1; current checkpoint has a new real recovery commit, not a fabricated original HEAD.",
+  "current_continuation_changes": "Finalization documentation only after restoring saved source; no repeated Task implementation.",
+  "determinism": {
+    "permutations": 200,
+    "seed": 2048,
+    "algorithm_change": false,
+    "scope": "C017 impact response; full route preserves original request representation"
+  },
+  "pending": [
+    "independent review and user acceptance if requested",
+    "integration into user master if authorized",
+    "F4 requires a separate assignment",
+    "worktree placement remains a separate product task"
+  ],
+  "do_not_repeat": [
+    "ERP-MIG-F3-10-C002",
+    "ERP-MIG-F3-11-C015",
+    "ERP-MIG-F3-13-C026-2",
+    "ERP-MIG-F3-03-C003",
+    "ERP-MIG-F3-12-C016",
+    "ERP-MIG-F3-04-C004",
+    "ERP-MIG-F3-05-C043",
+    "ERP-MIG-F3-06-C017",
+    "ERP-MIG-F3-07-C029-4"
+  ],
+  "prohibited": [
+    "restoring rejected old F3 as baseline",
+    "C026.1/C051/C093 implementation",
+    "generic target-project testing policy",
+    "changing executable/hook/config path resolution",
+    "fabricating Task completion"
+  ],
+  "delivery": "Current external CHECKPOINT.json and DELIVERY.json hold exact final HEAD and delivery outcome; sending and readback are distinct."
+}

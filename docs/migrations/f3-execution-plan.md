@@ -1,6 +1,7 @@
 # Актуализация F3 после F1/F2
 
-Обновлено: **2026-09-16**. Исполняется `SPRINT-ERP-MIGRATION-F3-ROUTING-HOOKS` из draft revision 5. Источник — восстановленный sealed Task DB; точные контракты, зависимости и SHA-256 сохранены в [плане JSON](f3-execution-plan.json).
+Обновлено: **2026-09-16**. `SPRINT-ERP-MIGRATION-F3-ROUTING-HOOKS` из draft revision 5 реализован в коде;
+[результаты и восстановление](f3-results/README.md) отделены от исторического плана исполнения. Источник — восстановленный sealed Task DB; точные контракты, зависимости и SHA-256 сохранены в [плане JSON](f3-execution-plan.json).
 
 ## База и область миграции
 

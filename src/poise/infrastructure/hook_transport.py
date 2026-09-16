@@ -78,7 +78,8 @@ class HookSettings:
         return shlex.join(['env','PYTHONPATH='+self.raw['source_root'],self.raw['python'],
                            *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
 
-    def command(self,verb,*args):
+    def _superseded_guarded_command(self,python_flags,verb,*args):
+        """Serialize only the exact Task 0152 launcher form for one-way migration."""
         recovery=str(Path(self.raw['source_root'])/'poise/recover_runtime.sh')
         recovery_command=shlex.join(['bash',recovery,'--settings',str(self.path),
                                      '--python','/absolute/path/to/compatible/python'])
@@ -92,14 +93,16 @@ class HookSettings:
         )
         return shlex.join(['/bin/sh','-c',guard,'poise-runtime-guard',self.raw['python'],
                            recovery_command,self.raw['source_root'],
-                           '-B','-m','poise',verb,'--settings',str(self.path),*args])
+                           *python_flags,'-m','poise',verb,'--settings',str(self.path),*args])
+
+    def command(self,verb,*args):
+        return self._direct_command(['-B'],verb,*args)
 
     def prior_launcher_commands(self,verb,*args):
         """Exact superseded forms accepted only for an owned launcher upgrade."""
-        current=self.command(verb,*args)
         return (
-            current.replace(' -B -m poise ',' -m poise ',1),
-            self._direct_command(['-B'],verb,*args),
+            self._superseded_guarded_command(['-B'],verb,*args),
+            self._superseded_guarded_command([],verb,*args),
             self._direct_command([],verb,*args),
         )
 

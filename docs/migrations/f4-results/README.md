@@ -7,3 +7,5 @@
 - [ERP-MIG-F4-06-C002](C002.md): reuse/no-change.
 
 - [ERP-MIG-F4-07-C003](C003.md): reuse/no-change.
+
+- [ERP-MIG-F4-08-C004](C004.md): reuse/no-change.

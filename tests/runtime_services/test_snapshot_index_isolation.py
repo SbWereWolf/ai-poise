@@ -112,3 +112,111 @@ def test_snapshot_captures_all_worktree_states_without_changing_real_index(proje
 
     assert {"staged.txt", "src/double.py", "untracked.txt"} <= changed
     assert real_index.read_bytes() == before
+
+
+def test_snapshot_survives_overlapping_session_cleanup_and_sibling_snapshot(project, monkeypatch):
+    """Force cleanup between read-tree and add, without timing sleeps."""
+    from threading import Event
+
+    runtime = _runtime(project, "SNAPSHOT-CLEANUP-RACE")
+    original = runtime._git
+    reached = Barrier(2, timeout=10)
+    resume = Event()
+    captured = []
+    capture_lock = Lock()
+    before = _real_index(project).read_bytes()
+
+    def observed_git(cwd, *args, env=None):
+        answer = original(cwd, *args, env=env)
+        if args[0] == "read-tree":
+            with capture_lock:
+                captured.append(Path(env["GIT_INDEX_FILE"]))
+                first = len(captured) == 1
+            if first:
+                reached.wait()
+                assert resume.wait(10), "main thread did not release snapshot"
+        return answer
+
+    monkeypatch.setattr(runtime, "_git", observed_git)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(runtime._tree, project["app"])
+        try:
+            reached.wait()
+            runtime._cleanup_runtime()
+            first_still_exists = captured[0].is_file()
+            second_tree = runtime._tree(project["app"])
+        finally:
+            resume.set()
+        first_tree = pending.result(timeout=10)
+    assert first_still_exists
+    assert captured[0] != captured[1]
+    assert first_tree == second_tree == git(project["app"], "write-tree")
+    assert all(not path.parent.exists() for path in captured)
+    assert _real_index(project).read_bytes() == before
+
+
+def test_snapshot_cleanup_is_idempotent_for_absent_invocation(project, monkeypatch):
+    import shutil
+
+    runtime = _runtime(project, "SNAPSHOT-ALREADY-CLEAN")
+    original = runtime._git
+
+    def observed_git(cwd, *args, env=None):
+        tree = original(cwd, *args, env=env)
+        if args[0] == "write-tree":
+            shutil.rmtree(Path(env["GIT_INDEX_FILE"]).parent)
+        return tree
+
+    monkeypatch.setattr(runtime, "_git", observed_git)
+    assert runtime._tree(project["app"]) == git(project["app"], "write-tree")
+
+
+def test_absent_snapshot_cleanup_preserves_the_original_git_failure(project, monkeypatch):
+    import shutil
+
+    runtime = _runtime(project, "SNAPSHOT-ORIGINAL-ERROR")
+    original = runtime._git
+
+    def observed_git(cwd, *args, env=None):
+        if args[0] == "add":
+            shutil.rmtree(Path(env["GIT_INDEX_FILE"]).parent)
+            raise PoiseError("real git operation failed")
+        return original(cwd, *args, env=env)
+
+    monkeypatch.setattr(runtime, "_git", observed_git)
+    with pytest.raises(PoiseError, match="real git operation failed"):
+        runtime._tree(project["app"])
+
+
+def test_snapshot_cleanup_does_not_suppress_permission_failure(project, monkeypatch):
+    import poise.runtime as module
+
+    runtime = _runtime(project, "SNAPSHOT-PERMISSIONS")
+
+    def denied(path, *args, **kwargs):
+        raise PermissionError("snapshot cleanup access denied")
+
+    monkeypatch.setattr(module.shutil, "rmtree", denied)
+    with pytest.raises(PermissionError, match="snapshot cleanup access denied"):
+        runtime._tree(project["app"])
+
+
+def test_overlapping_session_cleanup_is_idempotent(project, monkeypatch):
+    import poise.runtime as module
+
+    runtime = _runtime(project, "SESSION-DOUBLE-CLEANUP")
+    runtime.runtime.mkdir(parents=True)
+    original = module.shutil.rmtree
+    reached = Barrier(2, timeout=10)
+
+    def overlapping(path, *args, **kwargs):
+        if Path(path) == runtime.runtime:
+            reached.wait()
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(module.shutil, "rmtree", overlapping)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(runtime._cleanup_runtime) for _ in range(2)]
+        for future in futures:
+            future.result(timeout=10)
+    assert not runtime.runtime.exists()

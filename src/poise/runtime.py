@@ -560,12 +560,13 @@ class Poise:
 
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
-        self.runtime.mkdir(parents=True, exist_ok=True)
         configured_index = descendant(self.runtime, self.paths['git_index'])
-        configured_index.parent.mkdir(parents=True, exist_ok=True)
+        # Session cleanup may overlap another invocation of this same session.
+        # Its temporary index has an independent lifetime, outside that cache.
+        self.runtime.parent.mkdir(parents=True, exist_ok=True)
         invocation = Path(tempfile.mkdtemp(
-            prefix=f'{configured_index.name}.',
-            dir=configured_index.parent,
+            prefix=f'{self.session}.{configured_index.name}.',
+            dir=self.runtime.parent,
         ))
         index = invocation / 'index'
         env = {**os.environ, 'GIT_INDEX_FILE': str(index)}
@@ -574,7 +575,10 @@ class Poise:
             self._git(worktree, 'add', '--all', env=env)
             return self._git(worktree, 'write-tree', env=env)
         finally:
-            shutil.rmtree(invocation)
+            try:
+                shutil.rmtree(invocation)
+            except FileNotFoundError:
+                pass  # Only absence is idempotent; real I/O/lock errors propagate.
 
     def _changed(self, data: dict, tree: str) -> list[str]:
         if data['worktree'] is None:
@@ -943,7 +947,10 @@ class Poise:
 
     def _cleanup_runtime(self):
         self.result_views.finish()
-        if self.runtime.exists(): shutil.rmtree(self.runtime)
+        try:
+            shutil.rmtree(self.runtime)
+        except FileNotFoundError:
+            pass
 
     def _select_checks(self, data: dict, changed: list[str]) -> list[dict]:
         stage_id = self._stage(data)['id']

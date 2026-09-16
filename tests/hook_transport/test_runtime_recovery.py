@@ -21,13 +21,16 @@ ROOT = Path(__file__).resolve().parents[2]
 RECOVERY = ROOT / "src/poise/recover_runtime.sh"
 
 
-def _service_with_selected_interpreter(project, tmp_path):
+def _service_with_selected_interpreter(project, tmp_path, *, settings_with_space=False):
     selected = tmp_path / "selected runtime" / "bin" / "python"
     selected.parent.mkdir(parents=True)
     selected.symlink_to(sys.executable)
     settings_path = settings(project, tmp_path)
     document = json.loads(settings_path.read_text(encoding="utf-8"))
     document["python"] = str(selected)
+    if settings_with_space:
+        settings_path = settings_path.parent / "hook configuration" / settings_path.name
+        document["root"] = ".."
     write_json(settings_path, document)
     return HookService(settings_path), selected
 
@@ -126,6 +129,32 @@ def test_recovery_script_has_explicit_safe_interface():
     assert help_result.returncode == 0, help_result.stderr
     assert "--settings ABSOLUTE_PATH --python ABSOLUTE_PATH" in help_result.stdout
     assert "does not modify the Task database" in help_result.stdout
+
+
+def test_recovery_diagnostic_quotes_settings_path_with_spaces(project, tmp_path):
+    service, selected = _service_with_selected_interpreter(
+        project, tmp_path, settings_with_space=True
+    )
+    selected.unlink()
+
+    rejected = subprocess.run(
+        service.settings.command("hook-work", "--binding", str(tmp_path / "binding.json")),
+        shell=True,
+        text=True,
+        capture_output=True,
+        timeout=15,
+    )
+
+    assert rejected.returncode == 126
+    recovery_line = rejected.stderr.splitlines()[1].removeprefix("Recovery: ")
+    assert shlex.split(recovery_line) == [
+        "bash",
+        str(RECOVERY),
+        "--settings",
+        str(service.settings.path),
+        "--python",
+        "/absolute/path/to/compatible/python",
+    ]
 
 
 def test_exact_recovery_command_restores_same_launcher_session_and_task(project, tmp_path):

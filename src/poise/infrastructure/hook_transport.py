@@ -80,17 +80,18 @@ class HookSettings:
 
     def command(self,verb,*args):
         recovery=str(Path(self.raw['source_root'])/'poise/recover_runtime.sh')
+        recovery_command=shlex.join(['bash',recovery,'--settings',str(self.path),
+                                     '--python','/absolute/path/to/compatible/python'])
         guard=(
-            'interpreter=$1; recovery=$2; settings=$3; source_root=$4; shift 4; '
+            'interpreter=$1; recovery_command=$2; source_root=$3; shift 3; '
             'if [ ! -x "$interpreter" ]; then '
             'printf "%s\\n" "Configured Poise interpreter is unavailable: $interpreter" >&2; '
-            'printf "%s\\n" "Recovery: bash $recovery --settings $settings '
-            '--python /absolute/path/to/compatible/python" >&2; '
+            'printf "%s\\n" "Recovery: $recovery_command" >&2; '
             'exit 126; fi; '
             'exec env "PYTHONPATH=$source_root" "$interpreter" "$@"'
         )
         return shlex.join(['/bin/sh','-c',guard,'poise-runtime-guard',self.raw['python'],
-                           recovery,str(self.path),self.raw['source_root'],
+                           recovery_command,self.raw['source_root'],
                            '-B','-m','poise',verb,'--settings',str(self.path),*args])
 
     def prior_launcher_commands(self,verb,*args):

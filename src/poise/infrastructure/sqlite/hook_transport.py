@@ -40,8 +40,9 @@ class HookRegistry:
 
     @staticmethod
     def event_in(db,binding,kind,data):
-        db.execute('INSERT INTO hook_events(at,binding,event,data) VALUES(?,?,?,?)',
+        cursor=db.execute('INSERT INTO hook_events(at,binding,event,data) VALUES(?,?,?,?)',
             (datetime.now(timezone.utc).isoformat(),binding,kind,encoded(data)))
+        return cursor.lastrowid
 
     def bind(self,record):
         with self.transaction() as db:
@@ -52,10 +53,10 @@ class HookRegistry:
             else:db.execute('INSERT INTO bindings VALUES(?,?,NULL)',(record['session_id'],encoded(record)))
         return record
 
-    def record_event(self,binding,kind,turn,message):
+    def record_event(self,binding,kind,turn,message,metadata=None):
         with self.transaction() as db:
             if message is not None:db.execute('UPDATE bindings SET latest_message=? WHERE id=?',(encoded(message),binding))
-            self.event_in(db,binding,kind,{'turn_id':turn})
+            return self.event_in(db,binding,kind,{'turn_id':turn, **({} if metadata is None else metadata)})
 
     def get(self,session):
         with self.transaction() as db:

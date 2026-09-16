@@ -93,7 +93,13 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
-    exact_keys(cfg, keys | ({'task_ids', 'development_routing'} & cfg.keys()), 'project config')
+    exact_keys(cfg, keys | ({'task_ids', 'development_routing', 'source_reader'} & cfg.keys()), 'project config')
+    if 'source_reader' in cfg:
+        exact_keys(cfg['source_reader'], {'policy', 'receipt_file'}, 'source_reader')
+        for name, value in cfg['source_reader'].items():
+            if not isinstance(value, str) or not value.strip() or '\0' in value:
+                raise PoiseError(f'source_reader.{name}: explicit path required')
+        descendant(root, cfg['source_reader']['receipt_file'])
     if 'development_routing' in cfg:
         exact_keys(cfg['development_routing'], {'catalog','selection','policy','packages'},
                    'development_routing')

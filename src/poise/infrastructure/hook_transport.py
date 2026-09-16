@@ -248,10 +248,28 @@ class HookService:
             message={'conversation_id':native['session_id'],'message_id':native['turn_id'],
                      'occurred_at':None,'reason':None,'subject':None}
             h.interactions.record(h.interactions.prepare([message]),h.session,active)
-        self.registry.record_event(h.session,native['event'],native['turn_id'],message)
+        event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message,
+            {'source': event['source']} if native['event'] == 'SessionStart' else None)
+        recovery = None
+        if native['event'] == 'SessionStart' and h.context_reader is not None:
+            recovery = h.restore_context(reason=event['source'], event_id=f'hook-event:{event_id}',
+                facts=[], cwd=native['cwd'], reads=[])
+
         state='idle' if task is None else f"{task['id']} / {task['status']} / {task['process']['stages'][task['stage_index']]['id']}"
         if native['event'] in ('SessionStart','UserPromptSubmit'):
             context=definition.data['context_template'].format(launcher=binding['launcher'],state=state)
+            if recovery is not None:
+                # Only a bounded pointer/generation goes into automatic hook context.
+                # Full Task/route metadata and selected text use the explicit work operation.
+                context += ('\nContext generation: ' + str(recovery['reader']['generation'])
+                            + '; event: ' + recovery['reader']['event_id']
+                            + '; reason: ' + recovery['reader']['reason']
+                            + '. Use restore_context with that identity and explicit reads. '
+                            + 'Prior receipts do not prove remembered text.')
+                limit = next(e['context_limit'] for e in definition.data['events']
+                             if e['event'] == native['event'])
+                if len(context) > limit:
+                    raise PoiseError('Context recovery exceeds configured native context limit')
             return {'hookSpecificOutput':{'hookEventName':native['event'],'additionalContext':context}}
         if native['event']=='Stop':return {'systemMessage':definition.data['stop_template'].format(state=state)}
         return {}  # Advisory session observation; no Task transition or direct PID signal.

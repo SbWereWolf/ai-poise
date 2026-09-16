@@ -17,3 +17,5 @@
 - [ERP-MIG-F4-11-C020](C020.md): reuse/no-change.
 
 - [ERP-MIG-F4-01-C021](C021.md): implemented.
+
+- [ERP-MIG-F4-02-C023](C023.md): implemented.

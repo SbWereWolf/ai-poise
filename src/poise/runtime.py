@@ -84,6 +84,14 @@ class Poise:
         self.runtime = descendant(self.state, self.paths['runtime']) / self.session
         if self.runtime.is_symlink():
             raise PoiseError('Корень сессии не может быть symlink')
+        self.context_reader = None
+        if 'source_reader' in self.cfg:
+            from .infrastructure.source_reader import FileSourceReader
+            reader_config = self.cfg['source_reader']
+            self.context_reader = FileSourceReader(
+                descendant(self.runtime, reader_config['receipt_file']),
+                read_json((self.root / reader_config['policy']).resolve()),
+            )
         self.config_hash = digest(self.cfg)
         limits = self.cfg['limits']
         self.store = Store(descendant(self.state, self.paths['database']),
@@ -665,6 +673,32 @@ class Poise:
             raise PoiseError('AI-poise development routing is not configured')
         data = self._task()
         return {'status': 'read_only', 'development_route': self._development_route(data, facts, persist=True)}
+
+    def context_metadata(self, facts):
+        """Current read projection, never a second persisted Task/session snapshot."""
+        task = self.current_task()
+        if task is None:
+            return {'session': self.session, 'task': None,
+                    'development_route': {'status': 'not_applicable', 'reason': 'taskless'}}
+        stage = None if task['status'] == 'newborn' else self._stage(task)
+        context = {key: deepcopy(task.get(key)) for key in
+                   ('id', 'version', 'status', 'goal', 'iteration', 'worktree', 'pending', 'progression')}
+        context['stage'] = None if stage is None else stage['id']
+        context['handler'] = None if stage is None else stage['handler']
+        contract = task.get('contract') or {}
+        for name in ('requirements', 'definition_of_done'):
+            context[name] = deepcopy(contract.get(name, []))
+        context['required_sections'] = [] if stage is None else stage['required_sections']
+        route = {'status': 'not_configured'}
+        if stage is None or is_terminal_task_status(task['status']):
+            route = {'status': 'not_applicable', 'reason': task['status']}
+        elif self.development_routing is not None:
+            route = self._development_route(task, facts, persist=True)
+        return {'session': self.session, 'task': context, 'development_route': route}
+
+    def restore_context(self, **request):
+        from .application.context_recovery import ContextRecovery
+        return ContextRecovery(self, self.context_reader).restore(request)
 
     def _terminal_context(self, data: dict) -> dict:
         return {

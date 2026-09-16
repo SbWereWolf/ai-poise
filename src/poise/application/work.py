@@ -44,6 +44,7 @@ class WorkTools:
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
             elif op=='verify':out=self._verify(args)
             elif op=='routing':out=h.refresh_development_route(args['facts'])
+            elif op=='restore_context':out=h.restore_context(**args)
             elif op=='show':out=self._show(args['queries'])
             elif op=='accept':out=h.accept()
             elif op=='integrate':out=h.integration_tools.apply(args)

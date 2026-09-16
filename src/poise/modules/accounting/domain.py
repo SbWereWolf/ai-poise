@@ -2,6 +2,7 @@
 from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime
 from difflib import SequenceMatcher
 import hashlib
 import json
@@ -145,8 +146,38 @@ def line_delta(before:bytes,after:bytes):
     return {'added_lines':len(added),'removed_lines':len(removed),'added_bytes':len(add.encode()),'removed_bytes':len(rem.encode()),'added_text':add,'removed_text':rem}
 
 
+def _source_metric(value, policy):
+    """Validate a source fact without converting units or deriving a duration."""
+    exact(value, {'source', 'stream', 'event_id', 'observed_at', 'parameters'}, 'source metric')
+    for key in ('source', 'stream', 'event_id', 'observed_at'):
+        if not isinstance(value[key], str) or not value[key].strip():
+            raise DomainError(f'source metric {key}: nonempty source value required')
+    if value['source'] not in policy.data['sources']:
+        raise DomainError('Unknown source metric source')
+    try:
+        if datetime.fromisoformat(value['observed_at']).tzinfo is None:
+            raise ValueError('timezone missing')
+    except ValueError as exc:
+        raise DomainError('Source observation requires ISO datetime with timezone') from exc
+    if not isinstance(value['parameters'], dict):
+        raise DomainError('Source metric parameters must be a JSON object')
+    try:
+        canonical(value['parameters'])
+    except (TypeError, ValueError) as exc:
+        raise DomainError('Source metric parameters must contain finite JSON values') from exc
+
+
 def parse_telemetry(value,policy):
-    exact(value,{'usage','intervals','cause','finding_targets'},'telemetry')
+    fields = {'usage','intervals','cause','finding_targets'}
+    if isinstance(value, dict) and 'source_metrics' in value:
+        fields.add('source_metrics')
+    exact(value,fields,'telemetry')
+    if 'source_metrics' in value:
+        metrics = value['source_metrics']
+        if not isinstance(metrics, list) or len(metrics) > policy.data['max_events']:
+            raise DomainError('source_metrics: bounded batch required')
+        for item in metrics:
+            _source_metric(item, policy)
     for k in ('usage','intervals','finding_targets'):
         if not isinstance(value[k],list) or len(value[k])>policy.data['max_events']:raise DomainError(f'{k}: bounded batch required')
     if value['cause'] is not None and value['cause'] not in policy.data['causes']:raise DomainError('Unknown cost cause; no inferred alias')

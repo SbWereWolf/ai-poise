@@ -128,3 +128,7 @@ After compaction/resume, use [current-owner context recovery](docs/workflows/con
 Keep optional telemetry persistence and retries off the work result path. Do not equate
 in-memory acceptance with durable delivery. Follow [bounded telemetry delivery](docs/operations/telemetry-delivery.md#асинхронная-доставка-без-блокирования-работы);
 replay is an explicit operation or a bounded worker step, never a Task gate.
+
+Keep source API metric parameters and their source timestamps unchanged; do not infer
+missing durations or equate delivery time with observation time. Follow
+[source metric provenance](docs/operations/source-api-metrics.md#сохранение-фактов-источника-без-вычисления-длительностей).

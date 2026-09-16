@@ -6,6 +6,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 
@@ -117,3 +118,62 @@ def test_recovery_script_has_explicit_safe_interface():
     assert help_result.returncode == 0, help_result.stderr
     assert "--settings ABSOLUTE_PATH --python ABSOLUTE_PATH" in help_result.stdout
     assert "does not modify the Task database" in help_result.stdout
+
+
+def test_exact_recovery_command_restores_same_launcher_session_and_task(project, tmp_path):
+    service, selected = _service_with_selected_interpreter(project, tmp_path)
+    installed = install(service)
+    _native(service, installed)
+    binding = service.latest_binding("conversation", "primary")
+    launcher = Path(binding["launcher"])
+    started = subprocess.run(
+        [str(launcher)],
+        input=json.dumps(_bootstrap_packet(project["task"])),
+        text=True,
+        capture_output=True,
+        timeout=15,
+    )
+    assert started.returncode == 0, started.stderr
+    started_payload = json.loads(started.stdout)
+    task_id = started_payload["task"]
+    before = deepcopy(service.bound_runtime(binding["binding_path"]).task_queries.record(task_id))
+
+    shutil.rmtree(selected.parents[1])
+    rejected = subprocess.run(
+        [str(launcher)],
+        input=json.dumps(_bootstrap_packet(None)),
+        text=True,
+        capture_output=True,
+        timeout=15,
+    )
+    assert rejected.returncode == 126
+    recovery_line = rejected.stderr.splitlines()[1]
+    assert recovery_line.startswith("Recovery: ")
+    recovery_command = recovery_line.removeprefix("Recovery: ").replace(
+        "/absolute/path/to/compatible/python", sys.executable
+    )
+
+    recovered = subprocess.run(
+        shlex.split(recovery_command),
+        text=True,
+        capture_output=True,
+        timeout=60,
+        cwd=ROOT,
+    )
+    assert recovered.returncode == 0, recovered.stderr
+    assert selected.is_file()
+
+    resumed = subprocess.run(
+        [str(launcher)],
+        input=json.dumps(_bootstrap_packet(None)),
+        text=True,
+        capture_output=True,
+        timeout=15,
+    )
+    assert resumed.returncode == 0, resumed.stderr
+    resumed_payload = json.loads(resumed.stdout)
+    assert resumed_payload["session"] == started_payload["session"]
+    assert resumed_payload["hook_session"] == started_payload["hook_session"]
+    assert service.latest_binding("conversation", "primary")["session_id"] == binding["session_id"]
+    after = service.bound_runtime(binding["binding_path"]).task_queries.record(task_id)
+    assert after == before

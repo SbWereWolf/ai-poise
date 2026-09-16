@@ -93,6 +93,20 @@ and live revisions with `goal-config-status-1`, then adopt validated content onl
 `goal-config-reconcile-1` request carrying reason and authority. Do not create a fresh editor database
 to evade a stale managed head. Read [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией) before acting.
 
+## Planned stage-skill tooling and current documentation
+
+Apply the [planner-owned two-set draft](../../../docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+when preparing future stage-skill work. The current slice changes documentation and
+skills only; template fields, Task schemas, DB updates and enforcement need a later
+explicit Task after the user's updated DB and planning. Reuse existing owners;
+keep two roles and ordinary executable/hook path resolution. Report discovered
+missing specialist skills in the final answer, not just an internal note.
+
+For new commits follow [product effect and 50/70 formatting](../../../docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070).
+Use the existing owning workflow; no ERP commit wrapper or new validator is installed.
+The [telemetry pre-persistence loss window](../../../docs/operations/telemetry-delivery.md#принятый-риск-до-сохранения-события)
+is an accepted deferred risk, not a current blocker or authorization to repair it.
+
 ## Verification and delivery
 
 An idle reviewer starts on a received handoff. If several handoffs arrive, finish the review already started, save its result, release the Task and notify its executor, then immediately take the next already-received actionable Task in the same turn. Incoming handoffs do not interrupt the current review. Follow the canonical [direct-handoff rule](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).

@@ -10,6 +10,15 @@ version: 1.0.0
 
 A canonical requirement, one observable outcome, the real domain/integration boundary, the current stage/allowed paths and the project-owned command/runtime selected by Poise. Load the [test data and assertion policy](../../references/test-data-and-assertion-policy.md) for oracles, fixtures and boundaries. Documentation-only non-executable changes do not need artificial RED; check their paths, links and executable claims instead.
 
+## Skill assignment at test and code stages
+
+Pair this method with the subject skills assigned by the planner for the current
+stage; test authoring, test inspection, implementation and code inspection may need
+different selections. Do not treat this TDD skill as sufficient specialist knowledge
+or as authority to perform the other role's review. The [template-based two-set model](../../../docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+remains a draft, not new API fields. Report missing or insufficient skills and their
+impact on test/oracle quality in the final answer; escalate actual blockers when found.
+
 ## Procedure
 
 1. Identify what observation would disprove the required outcome. Choose the smallest standard test that can actually observe it: unit for isolated behavior, integration for real wiring/persistence, external entry-point/browser for externally visible interaction, architecture checks for dependency contracts. Raise the level when a lower test cannot observe the requirement; excessive mocks cannot substitute for the owner.

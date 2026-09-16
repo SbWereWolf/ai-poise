@@ -94,6 +94,18 @@ When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded
 
 Do not create a worktree for read-only queries. For repository-changing work, use the worktree supplied by AI poise and read the target repository's applicable `AGENTS.md` before edits.
 
+## Stage skills: draft contract and current reporting duty
+
+The [stage-skill proposal](../../../docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+describes two Task-owned assignments per stage: meta and subject skills, initially
+copied from the selected stage template and adjusted by the planner. It is not yet
+implemented in Task/template schemas or bootstrap/verify enforcement. Do not send
+invented fields or block existing Tasks on absent draft fields. Use actual current
+stage assignments; router recommendations do not silently replace them. Report any
+missing or insufficient specialist skill in the final answer with its stage, impact
+and proposed planner action. Escalate real blockers immediately and preserve gaps
+in existing allowed result/handoff sections, without inventing a new result schema.
+
 ## Complete the current stage
 
 Submit the stage result and related sections/findings/evidence/artifacts in one logical package. Use `verify`; do not hand-edit intermediate result files or the database. Read [Batch work → Verify](../../../docs/workflows/batch-work.md#verify) and, when files are required, [Batch work → File creation](../../../docs/workflows/batch-work.md#создание-файлов).

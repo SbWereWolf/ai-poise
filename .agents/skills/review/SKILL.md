@@ -14,6 +14,17 @@ Acquire the Task through the [Poise workflow](../poise/SKILL.md). Batch-read the
 
 If the runtime does not supply required routing or stage inputs, name the missing capability explicitly. Do not silently load the whole catalogue, invent another session, or derive a command from an ERP example.
 
+## Stage-specific review skills
+
+Inspect the result with both the assigned review-method skills and the concrete
+subject skills for this inspection stage. A general review skill does not replace
+test-framework or domain expertise. The planner owns additions/removals; do not
+silently weaken the assignment. The [two-set stage proposal](../../../docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+is a draft for later Task/template tooling, not an existing runtime guarantee or a
+new role. Report missing or insufficient specialist skills in the final answer,
+including the stage, affected conclusions and requested planner action. State review
+limits rather than inferring correctness from a skill name or acknowledgement.
+
 ## Procedure
 
 1. Confirm the inspected revision and reviewer ownership. Keep the inspection read-only. Mechanical receipts, task completeness and the executor's self-review are evidence inputs, not proof of correctness.

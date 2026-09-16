@@ -12,6 +12,20 @@ Use when preparing a standalone Task or Sprint. Use `exec-task` for execution; p
 
 The feature goal, confirmed requirements/DoD, application/owner boundaries, existing contracts and results, target-project facts from the explicitly selected checkout path, and the selected Poise-owned project/process/routing configuration. The [existing decomposition contract](../../../docs/workflows/batch-work.md#декомпозиция-и-фокус-task) and [Sprint owner](../../../docs/workflows/sprints.md#владелец-и-основные-гарантии) define the actual schema.
 
+## Draft: planner-owned stage skill assignments
+
+Use the [two-set proposal](../../../docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+when drafting the next Task: seed both meta skills (how this stage is performed)
+and subject skills (its concrete expertise) from its selected stage template, then
+remove inapplicable entries and add needed ones as the planner. Plan each real stage,
+including test/code inspection and remediation, not one Task-wide substitute list.
+The resulting assignment belongs to the Task; later template changes must not
+silently replace it. These are draft requirements for future tooling, not supported
+new API fields. Keep using only the current schema described below; do not edit
+managed configuration/DB or create a new task until planning is authorized.
+Distinguish executor/reviewer roles from meta-skill specializations. Report any
+missing specialist skill, its stage and impact in the final answer for the planner.
+
 ## Procedure
 
 1. Identify one coherent, verifiable result per ordinary Task. Follow real responsibilities, not folder or application count. Split unrelated areas or peer narrow specialties even inside one application or across different stages. General/meta skills alone do not force a split.

@@ -10,6 +10,15 @@ version: 1.0.0
 
 The exact owned diff, accepted requirement and observable boundary, current Task/stage/evidence plan, reusable evidence identity, selected Poise project commands/runtime/tool versions and current impact/routing result. Read target-worktree manifests and documentation as facts; do not store Poise configuration there. Use [poise-workflow](../poise/SKILL.md) for the actual executable API.
 
+## Assigned skills and missing expertise
+
+Use this execution method together with the subject skills assigned to the current
+stage. It does not replace knowledge of the checked behavior or test framework.
+Follow the [stage-skill draft and gap-reporting rule](../../../docs/workflows/task-stage-skills-draft.md#использование-навыков-и-сообщение-о-нехватке):
+report a missing/insufficient skill, the affected stage, impact and proposed planner
+action in the final answer. Do not claim the planned template fields are supported,
+change the planner's assignment silently, or treat missing tooling as product RED.
+
 ## Procedure
 
 1. Resolve checks against changed behavior and real interfaces. Preserve existing C004 selection, C016/C017 impact/evidence ownership and the unchanged C018 cache key. This skill does not reimplement their planner, runner, recorder or cache. Missing/ambiguous target selection is a diagnostic dependency, never permission to select all tests.

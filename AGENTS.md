@@ -34,6 +34,33 @@ Count observed user messages without inventing missing messages or token usage. 
 
 Before every completed-task boundary or risky transition, create and round-trip a portable checkpoint; send the archive and readable text transport to Gmail and verify attachment readback. On resume, inspect already attached files before asking for another upload. Follow [checkpoint and recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a passed check, a delivery receipt, and Task completion.
 
+## Stage skills and missing expertise
+
+The [two-set stage-skill contract](docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+is a draft for later tooling: copy meta and subject skill defaults from the selected
+stage template into a new Task, then let its planner remove/add skills for each stage.
+Executor and reviewer use the assigned current-stage skills; suggestions must not
+silently replace the planner's selection. Do not invent unsupported Task/template fields
+or claim automatic enforcement. If a needed specialist skill is missing or insufficient,
+report the stage, missing expertise, impact and proposed planner action in the final
+answer; raise actual blockers immediately. Follow [skill-gap reporting](docs/workflows/task-stage-skills-draft.md#использование-навыков-и-сообщение-о-нехватке).
+
+## Commit message example
+
+Describe the final product effect and why it matters, not which files/classes changed.
+Use a subject of at most 50 characters, one blank line, and meaningful body lines of
+at most 70 characters. For an authorized direct commit of reviewed staged files:
+
+```bash
+git commit -m 'Commit messages explain user-visible outcomes' \
+  -m 'Readers can understand the effect and purpose of each change.'
+```
+
+This is Git, not an installed validator or permission to bypass Task lifecycle.
+Use the same message format through Poise's existing `commit_message` when its
+workflow owns the commit. See [message policy](docs/workflows/commit-messages.md#продуктовый-смысл-и-формат-5070)
+and [execution limits](docs/workflows/commit-messages.md#запуск-и-границы-полномочий).
+
 ## Shared agent policy
 
 Keep at most one Task and one worktree per session, with independent claims and all

@@ -12,6 +12,18 @@ Use when an existing Task is active or the current project's skill selection req
 
 Get the exact installation launcher, packets and current Task/stage through [poise-workflow](../poise/SKILL.md). Use bootstrap's actual identity, requirements, allowed paths, explicit worktree path when present, result template, findings and evidence. Read the selected Poise-owned routing/command/runtime/version/file-map configuration; target-project documentation is only a read-only source of facts. Do not copy another project's command or reconstruct state from every historical artifact.
 
+## Current-stage skills and gaps
+
+Use the skills assigned to the current stage, both its method of work and the
+required subject expertise; do not replace the planner's selection with router
+suggestions or silently remove obligations. The [two-set template model](../../../docs/workflows/task-stage-skills-draft.md#два-набора-навыков-у-каждого-этапа)
+is still a draft: it does not add Task fields or automatic enforcement today.
+Consume only inputs actually supported by the installation; absence of proposed
+fields is not a new blocker. Load needed instructions, not all future-stage references.
+If expertise is missing or an assigned skill is unavailable/insufficient, report it
+in the final answer with stage, consequence and proposed planner action. Raise actual
+blockers immediately; do not invent skill use or grant yourself a contract edit.
+
 ## Procedure
 
 1. Establish the authorized outcome, DoD and current stage. Acquire through the existing owner; at most one Task and one worktree are owned, with independent claims governed by the [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree). Work only in the supplied worktree and preserve unrelated WIP.

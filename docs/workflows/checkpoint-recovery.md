@@ -1,6 +1,6 @@
 # Контрольные точки разработки и восстановление
 
-Обновлено: **2026-09-15**.
+Обновлено: **2026-09-17**.
 
 ## Контрольная точка и восстановление
 
@@ -113,3 +113,66 @@ python tools/work_checkpoint.py restore \
 объединяются через явные INSERT/UPDATE с hashes, identity mapping и postconditions.
 Почтовую доставку выполняет подключённый Gmail-инструмент; недоступный readback
 не считается успешным. HANDOFF.md передаётся вне Git history.
+
+
+## Полные резервные копии в Gmail при непрерывной разработке
+
+`recovery-tools/gmail_checkpoint.py` готовит самодостаточную копию остановленного
+источника через существующий `cloud_recovery.py`. Исходный формат, все Git refs,
+незакоммиченный WIP, постоянные БД, авторские материалы и `WORKLOG.md` сохраняются.
+Исключаются только известные воспроизводимые кэши и окружения; tracked-файлы
+сохраняются даже внутри каталогов с такими именами. Перед упаковкой остановить
+записывающие операции; живой SQLite WAL/journal или Git lock означает отказ,
+а не разрешение удалить этот файл. Архив и staging создаются вне репозитория.
+
+После значимого этапа делать новую полную копию независимо от времени. При
+продолжительной работе интервал между снимками не должен превышать 600 секунд.
+`due` считает возраст **снимка**, а не более позднего обратного чтения; старый
+receipt без времени снимка считается требующим новой копии. Это проверка в
+активной сессии, не фоновый планировщик. Запускать её также до длительных проверок.
+
+```bash
+python recovery-tools/gmail_checkpoint.py prepare \
+  --project /absolute/path/to/ai-poise \
+  --output /absolute/path/to/checkpoints/unique-id \
+  --checkpoint-id unique-id --recipient owner@example.org \
+  --next-action 'Resume the exact saved Task and stage'
+```
+
+Вызвать подключённый `Gmail.send_email` с параметрами из `SEND-REQUEST.json`.
+Helper не хранит credentials и сам по себе не выполняет почтовую отправку.
+Прочитать возвращённое письмо, затем получить полное `checkpoint.recovery.txt`
+через `Gmail.read_attachment`; передавать в проверку именно этот отдельный файл.
+
+```bash
+python recovery-tools/gmail_checkpoint.py confirm \
+  --output /absolute/path/to/checkpoints/unique-id \
+  --readback /absolute/path/to/downloaded/checkpoint.recovery.txt \
+  --message-id ACTUAL_GMAIL_ID --destination /absolute/path/to/new-verify-dir
+python recovery-tools/gmail_checkpoint.py due \
+  --receipt /absolute/path/to/checkpoints/unique-id/GMAIL-VERIFIED.json
+```
+
+`confirm` запрещает использовать исходный отправляемый файл вместо readback,
+сверяет контрольные суммы полного transport и архива, восстанавливает проект
+и сравнивает HEAD. Затем отправить `SEND-RECEIPT.json` через тот же коннектор.
+Локальный receipt не является подтверждением хранения самого receipt в Gmail.
+Журнал сохраняется и в архиве, и отдельным вложением, и в теле письма. Следующая
+копия должна включать уже полученные Gmail message IDs и результаты чтения.
+
+После потери контейнера найти последнее **полное** письмо, проверить его время,
+HEAD и следующий шаг; номер или слово VERIFIED сами по себе недостаточны. Скачать
+transport, `GMAIL-CHECKPOINT.json` и при необходимости три bootstrap-source
+вложения `.py.txt`. Восстановить их исходную структуру `recovery-tools/` и `tools/`,
+просмотреть код, затем выполнить:
+
+```bash
+python recovery-tools/gmail_checkpoint.py restore \
+  --metadata /absolute/path/to/GMAIL-CHECKPOINT.json \
+  --readback /absolute/path/to/downloaded/checkpoint.recovery.txt \
+  --destination /absolute/path/to/new-restored-dir
+```
+
+Существующие каталоги не перезаписываются. Восстановление не запускает hooks,
+не устанавливает продукт, не делает native session и не меняет Task lifecycle.
+Внешние Gmail-вложения и старые архивы не помещаются внутрь новой копии проекта.

@@ -168,3 +168,15 @@ For a reported hook/runtime problem, use the explicit
 `runtime-config` accepts a declarative `diagnose` batch; it observes existing owners without
 bootstrapping work or replaying telemetry. Supply a concrete `probe_cwd` only when actively
 requesting the configured probes. A current-process provenance path is not another resolution root.
+
+## Accidental cancellation recovery
+
+Use the public `task` action `recover_cancelled` only with real explicit user
+permission, exact `task_id`/`expected_version`, a stable `request_id`, nonempty
+`reason` and `authorization`. This restores the exact prior unfinished state;
+it is not `restart`, does not acquire a claim and never edits Git/WIP. Preserve
+its audit and use ordinary bootstrap afterwards. Completed/integrated work,
+foreign/ambiguous ownership, pending external effects or cleanup with a chosen
+commit disposition must not be bypassed. An old cancellation without a precise
+recovery point is not guessed. Do not issue direct Task DB edits.
+Read [the exact packet and guards](../../../docs/workflows/batch-work.md#восстановление-ошибочно-отменённой-task).

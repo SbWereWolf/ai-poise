@@ -893,6 +893,29 @@ class Task:
             "registry": self.check_registry.to_state(),
         }
 
+    def recover_cancelled(
+        self, actor: str, previous: TaskState, reason: str, authorization: str,
+    ) -> Change:
+        identifier(actor)
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Cancellation recovery reason is required")
+        if not isinstance(authorization, str) or not authorization.strip():
+            raise DomainError("Cancellation recovery authorization is required")
+        if self.state.status != TaskStatus.CANCELLED:
+            raise DomainError("Recovery requires a cancelled unfinished Task")
+        if previous.status not in (TaskStatus.AVAILABLE, TaskStatus.ACTIVE,
+                                   TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
+            raise DomainError("A terminal completed/integrated Task cannot be recovered")
+        if (previous.task_id != self.state.task_id
+                or previous.version + 1 != self.state.version
+                or previous.stage_index != self.state.stage_index
+                or previous.iteration != self.state.iteration
+                or previous.submission_digest != self.state.submission_digest):
+            raise DomainError("Cancellation recovery point does not match the exact Task")
+        # Recovery does not grant a claim, restart the route, or change evidence.
+        return self._change("cancellation_recovered", reason, None,
+                            status=previous.status, claimed_by=None)
+
     def cancel(self, actor: str, reason: str) -> Change:
         self._owned(actor)
         if not isinstance(reason, str) or not reason.strip():

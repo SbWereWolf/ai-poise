@@ -71,6 +71,27 @@ class SqliteTaskRepository:
     def exists(self, task_id):
         return self.db.execute("SELECT 1 FROM tasks WHERE id=?",(task_id,)).fetchone() is not None
 
+    def cancellation_recovery_point(self, task_id: str, version: int) -> TaskState:
+        row = self.db.execute(
+            "SELECT data FROM task_events WHERE task_id=? AND version=? "
+            "AND json_extract(data,'$.event')='user_cancel'", (task_id, version),
+        ).fetchone()
+        prior = None if row is None else json.loads(row["data"]).get("previous")
+        fields = {"status", "stage_index", "iteration", "claimed_by", "version", "current_submission_id"}
+        if not isinstance(prior, dict) or set(prior) != fields:
+            raise PoiseError("Cancellation has no exact recovery point; do not guess historical state")
+        digest = None
+        if prior["current_submission_id"] is not None:
+            submission = self.db.execute(
+                "SELECT digest FROM submissions WHERE seq=? AND task_id=?",
+                (prior["current_submission_id"], task_id),
+            ).fetchone()
+            if submission is None:
+                raise PoiseError("Cancellation recovery submission is missing")
+            digest = submission["digest"]
+        return TaskState(task_id, prior["stage_index"], prior["iteration"],
+                         TaskStatus(prior["status"]), prior["claimed_by"], prior["version"], digest)
+
     def review_identity(self, task_id: str) -> dict | None:
         """Read the last produced result's actor, not a later relay's identity."""
         row = self.db.execute(
@@ -743,7 +764,7 @@ class SqliteTaskRepository:
 
     def save(self, change: Change, expected_version: int) -> int | None:
         state = change.task.state
-        prior = self.db.execute("SELECT version,current_submission_id FROM tasks WHERE id=?", (state.task_id,)).fetchone()
+        prior = self.db.execute("SELECT status,stage_index,iteration,claimed_by,version,current_submission_id FROM tasks WHERE id=?", (state.task_id,)).fetchone()
         if prior is None or prior["version"] != expected_version:
             raise VersionConflict("Конфликт версии задачи; новая версия не перезаписана")
         submission_id = prior["current_submission_id"]
@@ -798,6 +819,8 @@ class SqliteTaskRepository:
             data = {"event": event.kind, "stage": event.stage_id,
                     "iteration": event.iteration, "reason": event.reason,
                     "submission": submission_id}
+            if event.kind == "user_cancel":
+                data["previous"] = dict(prior)
             if event.kind == "verified":
                 data["actor"] = state.claimed_by
             self._event(state.task_id, state.version, data)

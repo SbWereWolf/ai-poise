@@ -242,3 +242,15 @@ The current decomposition validator checks declarations; it does not by itself r
 ## Output boundary for migrated skills
 
 Persist the current skill's result through the existing Task/content/evidence/artifact owners and release via public handoff. Saving remains distinct from acceptance. Planned universal phase recovery and cross-project next selection are not activated by these instruction files; connect them only when the corresponding public capability actually exists.
+
+## Accidental cancellation recovery
+
+Use the public `task` action `recover_cancelled` only with real explicit user
+permission, exact `task_id`/`expected_version`, a stable `request_id`, nonempty
+`reason` and `authorization`. This restores the exact prior unfinished state;
+it is not `restart`, does not acquire a claim and never edits Git/WIP. Preserve
+its audit and use ordinary bootstrap afterwards. Completed/integrated work,
+foreign/ambiguous ownership, pending external effects or cleanup with a chosen
+commit disposition must not be bypassed. An old cancellation without a precise
+recovery point is not guessed. Do not issue direct Task DB edits.
+Read [the exact packet and guards](../../../docs/workflows/batch-work.md#восстановление-ошибочно-отменённой-task).

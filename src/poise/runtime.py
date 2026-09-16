@@ -230,12 +230,46 @@ class Poise:
                 self.config_hash, args['request_id'],
                 self._creation_base,
             )
+        if action == 'recover_cancelled':
+            return self.task_commands.recover_cancelled(
+                args['task_id'], self.session, args['expected_version'],
+                args['request_id'], args['reason'], args['authorization'],
+                lambda execution: self._validate_cancelled_worktree(args['task_id'], execution),
+            )
         if action == 'restart':
             return self.task_commands.restart_newborn(
                 args['task_id'], self.session, args['expected_version'],
                 args['request_id'], args['reason'], args['authorization'],
             )
         raise PoiseError('Unknown Task action')
+
+    def _validate_cancelled_worktree(self, task_id: str, execution: dict) -> None:
+        """Read exact existing Git ownership; never checkout, reset or recreate WIP."""
+        path, branch = execution['worktree'], execution['branch']
+        if path is None and branch is None:
+            return
+        if not isinstance(path, str) or not isinstance(branch, str) or not branch:
+            raise PoiseError('Cancelled Task worktree/branch identity is incomplete')
+        worktree = Path(path)
+        expected_root = descendant(self.state, self.paths['worktrees']) / task_id
+        if worktree.resolve() != expected_root.resolve():
+            raise PoiseError('Cancelled Task worktree is outside its exact registered root')
+        if worktree.is_symlink() or not worktree.is_dir():
+            raise PoiseError('Cancelled Task worktree is missing or ambiguous')
+        repository = Path(self.cfg['git']['repository']).resolve(strict=True)
+        observed = self._git(worktree, 'symbolic-ref', '--quiet', '--short', 'HEAD')
+        expected = branch.removeprefix('refs/heads/')
+        if observed != expected:
+            raise PoiseError('Cancelled Task worktree is on a different branch')
+        common = self._git(worktree, 'rev-parse', '--path-format=absolute', '--git-common-dir')
+        owner = self._git(repository, 'rev-parse', '--path-format=absolute', '--git-common-dir')
+        if Path(common).resolve() != Path(owner).resolve():
+            raise PoiseError('Cancelled Task worktree belongs to a different repository')
+        registered = self._git(repository, 'worktree', 'list', '--porcelain')
+        entries = [item.splitlines() for item in registered.split('\n\n') if item]
+        matches = [item for item in entries if item[0] == f'worktree {worktree.resolve()}']
+        if len(matches) != 1 or f'branch refs/heads/{expected}' not in matches[0]:
+            raise PoiseError('Cancelled Task worktree registration is ambiguous')
 
     def recover_empty_rework(self, task_id: str, reason: str) -> dict:
         return self._recover_empty_transition(task_id, reason, "rework")

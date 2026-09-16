@@ -257,6 +257,67 @@ class TaskCommands:
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
 
+    def recover_cancelled(
+        self, task_id, actor, expected_version, request_id, reason, authorization,
+        validate_execution: Callable[[dict], None],
+    ):
+        from ..modules.task_cleanup.domain import CleanupRun
+        if not isinstance(request_id, str) or not request_id:
+            raise DomainError("Cancellation recovery request_id is required")
+        if type(expected_version) is not int or expected_version < 0:
+            raise DomainError("Cancellation recovery expected_version must be nonnegative")
+        if not isinstance(authorization, str) or not authorization.strip():
+            raise DomainError("Cancellation recovery authorization is required")
+        identity = _action_digest("recover_cancelled", {
+            "task_id": task_id, "actor": actor, "expected_version": expected_version,
+            "reason": reason, "authorization": authorization,
+        })
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id, request_id, identity)
+            if replay is not None:
+                return {**replay, "replayed": True}
+            task = uow.tasks.load(task_id)
+            if task.state.version != expected_version:
+                raise VersionConflict("Cancellation recovery version changed")
+            if task.state.status != TaskStatus.CANCELLED:
+                raise DomainError("Recovery requires a cancelled unfinished Task")
+            ownership = uow.ownership.preflight(actor, task_id)
+            if ownership.task_owner not in (None, actor) or ownership.worktree_owner not in (None, actor):
+                raise DomainError("Recovery target is owned by another session")
+            before = uow.ownership.snapshot(actor)
+            if before.task_id not in (None, task_id):
+                raise DomainError("Recovery requires an idle or owning session")
+            previous = uow.tasks.cancellation_recovery_point(task_id, expected_version)
+            change = task.recover_cancelled(actor, previous, reason, authorization)
+            execution = None
+            pending = None
+            if uow.execution.exists(task_id):
+                execution, execution_version = uow.execution.load(task_id)
+                if execution["publication"] is not None:
+                    raise DomainError("Resolve publication/integration before cancellation recovery")
+                pending = execution["pending"]
+                if pending is not None:
+                    if not isinstance(pending, dict) or pending.get("kind") != "task_cleanup":
+                        raise DomainError("Resolve pending external outcome before recovery")
+                    cleanup = CleanupRun.restore(pending)
+                    if (cleanup.intent.task_id != task_id
+                            or cleanup.intent.request_id != f"cancel-{previous.version}"
+                            or cleanup.removed or cleanup.version > 1
+                            or (cleanup.disposition is not None
+                                and cleanup.disposition.kind != "no_resources")):
+                        raise DomainError("Resolve pending cleanup/disposition before recovery")
+                validate_execution(execution)
+            uow.tasks.save(change, expected_version)
+            if pending is not None:
+                uow.execution.save(task_id, {**execution, "pending": None}, execution_version)
+            result = {"status": "task_recovered", "task": task_id,
+                      "task_status": change.task.state.status.value,
+                      "version": change.task.state.version, "request_id": request_id,
+                      "authorization": authorization, "reason": reason,
+                      "withdrawn_cleanup": deepcopy(pending), "replayed": False}
+            uow.tasks.remember_action(task_id, actor, request_id, identity, result)
+            return result
+
     def restart_newborn(
         self, task_id, actor, expected_version, request_id, reason, authorization
     ):

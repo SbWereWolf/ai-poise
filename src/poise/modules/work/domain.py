@@ -110,6 +110,9 @@ def parse_request(value, config):
             'create': {'action','request_id','task_id','sprint_id'},
             'edit': {'action','request_id','task_id','expected_revision','patch','remove'},
             'ready': {'action','request_id','task_id','expected_revision'},
+            'recover_cancelled': {
+                'action','request_id','task_id','expected_version','reason','authorization'
+            },
             'restart': {
                 'action','request_id','task_id','expected_version','reason','authorization'
             },

@@ -248,11 +248,14 @@ class IntegrationRun:
             checks=checks, failure=failure,
         )
 
-    def retry_checks(self):
+    def retry_checks(self, integration_head=None):
         if self.phase != "checks_failed":
             raise DomainError("Only failed integration checks can be retried")
         return self._step(
             "running", "candidate_ready", "checks_retry_started", failure=None,
+            integration_head=_commit(self.integration_head if integration_head is None else integration_head, "integration head"),
+            details={"previous_head": self.integration_head,
+                     "candidate_head": self.integration_head if integration_head is None else integration_head},
         )
 
     def drifted(self, receipt):

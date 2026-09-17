@@ -104,3 +104,24 @@ def test_legacy_recovery_is_limited_to_the_named_saved_request():
             legacy, "refs/heads/tasks/T1", "/state/worktrees/T1",
             "/state/runtime/result-integration/T1/example",
         )
+
+
+def test_retry_records_new_candidate_without_rewriting_accepted_or_old_checks():
+    run = IntegrationRun.new(intent(), 'tasks/T1', '/worktrees/T1', '/runtime/T1')
+    failed = run.begin_update('b'*40).candidate_ready('c'*40, {}).checks_recorded([
+        {'method':'M', 'passed':False, 'integration_head':'c'*40}])
+    retried = failed.retry_checks('d'*40)
+    assert retried.accepted_commit == 'a'*40
+    assert retried.last_included_target == 'b'*40
+    assert retried.integration_head == 'd'*40
+    assert retried.checks == failed.checks
+    assert retried.history[:-1] == failed.history
+    assert retried.history[-1]['details'] == {'previous_head':'c'*40, 'candidate_head':'d'*40}
+
+
+@pytest.mark.parametrize('invalid', ['', 'short', 'F'*40])
+def test_retry_rejects_invalid_explicit_candidate(invalid):
+    run = IntegrationRun.new(intent(), 'tasks/T1', '/worktrees/T1', '/runtime/T1')
+    failed = run.begin_update('b'*40).candidate_ready('c'*40, {}).checks_recorded([{'passed':False}])
+    with pytest.raises(DomainError):
+        failed.retry_checks(invalid)

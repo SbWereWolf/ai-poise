@@ -28,7 +28,7 @@ def test_work_cli_exposes_one_result_integration_operation(project):
         env={
             **os.environ,
             "POISE_CONFIG": str(project["config_path"]),
-            "POISE_SESSION": "cli-integrator",
+            "POISE_CALLER_BINDING": str(project["root"] / "cli-integrator.json"),
             "PYTHONPATH": str(source_root),
         },
         timeout=30,

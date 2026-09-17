@@ -271,8 +271,41 @@ class RuntimeResultIntegration:
                 selected.append(method)
         return selected
 
-    def _run_checks(self, record, run):
+    def _checked_workspace(self, run, *, exact_head=True):
+        """Observe only: a bad retry must not advance the durable state machine."""
         worktree = Path(run.task_worktree).resolve(strict=True)
+        branch = self._git(worktree, "symbolic-ref", "--quiet", "--short", "HEAD")
+        if branch != self._short_branch(run.task_branch):
+            raise PoiseError("Integration worktree is not on its recorded task branch")
+        if self._git(worktree, "status", "--porcelain"):
+            raise PoiseError("Integration task worktree must be clean; preserve and commit authorized WIP before retry")
+        if any(value is not None for value in self._operation_refs(worktree).values()):
+            raise PoiseError("Integration task worktree has an unfinished Git operation")
+        head = self._git(worktree, "rev-parse", "HEAD")
+        if exact_head and head != run.integration_head:
+            raise PoiseError("Integration candidate changed after its recorded preflight")
+        for ancestor in (run.accepted_commit, run.last_included_target, run.integration_head):
+            if ancestor is None or not self._contains(worktree, ancestor, head):
+                raise PoiseError("Integration candidate lost accepted/target/previous candidate ancestry")
+        return worktree, head
+
+    def _retry_checks(self, record, run, repository):
+        source = self._validate_source(record, run.intent, repository, run)
+        if (source.resolve() != Path(run.task_worktree).resolve()
+                or self._short_branch(record["branch"]) != self._short_branch(run.task_branch)):
+            raise PoiseError("Integration task binding changed")
+        worktree, head = self._checked_workspace(run, exact_head=False)
+        common = self._git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir")
+        main_common = self._git(repository, "rev-parse", "--path-format=absolute", "--git-common-dir")
+        if common != main_common:
+            raise PoiseError("Integration task worktree belongs to another repository")
+        retried = run.retry_checks(head)
+        self._save(run.intent.task_id, retried, run.version)
+        return retried
+
+    def _run_checks(self, record, run):
+        worktree, head = self._checked_workspace(run)
+        verified_tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
         receipts = []
         owner_root = task_root(
             self.h.state,
@@ -281,6 +314,7 @@ class RuntimeResultIntegration:
             record["sprint_id"],
         )
         for method in self._select_checks(record):
+            self._checked_workspace(run)
             cwd = (worktree / method["cwd"]).resolve()
             if not cwd.is_relative_to(worktree) or not cwd.is_dir():
                 raise PoiseError("Integration check cwd must stay inside the task worktree")
@@ -297,8 +331,10 @@ class RuntimeResultIntegration:
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
+            self._checked_workspace(run)
             receipts.append({
                 **result, "id": check_id, "method": method["id"],
+                "integration_head": head, "verified_tree": verified_tree,
                 "argv": method["argv"], "cwd": str(cwd),
                 "expected_exit_code": method["expected_exit_code"],
                 "passed": method_passed(method, result),
@@ -401,6 +437,10 @@ class RuntimeResultIntegration:
                     run, "task_branch_changed",
                     {"expected": run.integration_head, "observed": branch_head},
                 )
+            try:
+                self._checked_workspace(run)
+            except PoiseError as exc:
+                return self._publication_failed(run, "task_worktree_changed", {"error": str(exc)})
             if not self._contains(repository, current, run.integration_head):
                 return self._publication_failed(
                     run, "candidate_is_not_fast_forward",
@@ -556,9 +596,7 @@ class RuntimeResultIntegration:
         if run.status == "integrated":
             return run.result(replayed=True)
         if run.phase == "checks_failed":
-            retried = run.retry_checks()
-            self._save(intent.task_id, retried, run.version)
-            run = retried
+            run = self._retry_checks(record, run, repository)
         if run.phase == "candidate_failed":
             retried = run.retry_candidate()
             self._save(intent.task_id, retried, run.version)

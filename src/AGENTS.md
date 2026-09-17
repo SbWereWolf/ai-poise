@@ -195,3 +195,10 @@ identity/owner/scope mismatches, symlinks and digest failures without semantic T
 writes. Never silently skip an unknown registered scope. Keep post-execution
 validation: preflight is not a filesystem/SQLite transaction. See the
 [artifact preflight contract](../docs/workflows/batch-work.md#предварительная-проверка-зарегистрированных-артефактов).
+
+After integration checks fail, preserve the immutable accepted commit and intent.
+Validate the clean recorded task branch/worktree, repository and accepted/target/
+previous-candidate ancestry before recording a repaired integration head. Bind new
+check receipts to its exact commit/tree, retain old checks, and revalidate before
+publication; never publish dirty or unchecked candidate state. See
+[integration remediation](../docs/workflows/batch-work.md#исправление-кандидата-после-checks_failed).

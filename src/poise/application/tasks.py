@@ -193,6 +193,18 @@ class TaskCommands:
                 uow, uow.tasks.load(task_id), actor, acquiring=acquiring,
             )
 
+    def require_bootstrap_contract(self, task_id: str, contract: dict) -> None:
+        """Accept only an exact saved canonical or full approved contract."""
+        with self.unit_of_work() as uow:
+            saved = uow.tasks.restart_context(task_id)
+        if contract == saved['contract']:
+            return  # Preserve the existing public canonical-contract continuation.
+        candidate, _ = self.requirements_gate.prepare_restarted_contract(
+            contract, saved['requirements_snapshot'], saved['requirements_agreement']
+        )
+        if candidate != saved['contract']:
+            raise DomainError('Existing task contract is immutable; bootstrap is not an editor')
+
     def prepare_creation(self, intent, process, automatic_checks, base_revision, decomposition_policy):
         return self._prepare_creation(
             intent,

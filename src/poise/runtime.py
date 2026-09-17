@@ -891,8 +891,7 @@ class Poise:
             contract = deepcopy(intent['task'] if automatic else intent)
             existing = None if automatic or not isinstance(contract.get('id'),str) else self.task_queries.record(contract['id'])
             if existing is not None:
-                if contract != existing['contract']:
-                    raise PoiseError('Existing task contract is immutable; bootstrap is not an editor')
+                self.task_commands.require_bootstrap_contract(existing['id'], contract)
                 if existing['status']=='available':
                     blocked = self._require_entry(existing)
                     return blocked if blocked is not None else self.sprint_tools.start(existing['id'])

@@ -26,7 +26,7 @@ class TaskRequirementsGate:
         return self._prepared(candidate, body, snapshot, agreement)
 
     def prepare_restarted_contract(self, intent, persisted_snapshot, persisted_agreement):
-        """Validate only the immutable context selected by the Task restart owner."""
+        """Validate only the immutable context selected by the Task restart/replay owner."""
         candidate, body = self._candidate(intent)
         if (
             body.get("requirements_snapshot") != persisted_snapshot

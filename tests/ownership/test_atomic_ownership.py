@@ -113,7 +113,7 @@ def test_storage_rejects_duplicate_task_and_worktree_claims(project):
             db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("tree-owner-b", "FIRST"))
 
 
-def test_v12_ownership_upgrade_keeps_the_session_bound_claim(tmp_path):
+def test_v12_ownership_upgrade_never_infers_task_claim_from_worktree(tmp_path):
     from poise.infrastructure.sqlite.database import Database, SCHEMA_VERSION
 
     path = tmp_path / "ownership.sqlite"
@@ -137,14 +137,15 @@ def test_v12_ownership_upgrade_keeps_the_session_bound_claim(tmp_path):
 
     Database(path, lock, 1, 0.01)
     with sqlite3.connect(path) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 13
+        assert SCHEMA_VERSION == 13
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 12
         assert db.execute("SELECT claimed_by FROM tasks WHERE id='RETAIN'").fetchone()[0] == "owner"
-        assert db.execute("SELECT claimed_by FROM tasks WHERE id='RELEASE'").fetchone()[0] is None
+        assert db.execute("SELECT claimed_by FROM tasks WHERE id='RELEASE'").fetchone()[0] == "owner"
         assert db.execute("SELECT task_id FROM sessions WHERE id='owner'").fetchone()[0] == "RETAIN"
-        assert db.execute("SELECT task_id FROM sessions WHERE id='stale-worktree-owner'").fetchone()[0] is None
+        assert db.execute("SELECT task_id FROM sessions WHERE id='stale-worktree-owner'").fetchone()[0] == "RETAIN"
 
 
-def test_v12_ownership_upgrade_refuses_an_ambiguous_task_owner(tmp_path):
+def test_v12_ownership_upgrade_defers_an_ambiguous_task_owner(tmp_path):
     from poise.infrastructure.sqlite.database import Database
 
     path = tmp_path / "ambiguous-ownership.sqlite"
@@ -163,8 +164,7 @@ def test_v12_ownership_upgrade_refuses_an_ambiguous_task_owner(tmp_path):
         db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("owner", None))
         db.execute("PRAGMA user_version=12")
 
-    with pytest.raises(PoiseError, match="cannot choose a Task claim"):
-        Database(path, lock, 1, 0.01)
+    Database(path, lock, 1, 0.01)
 
     with sqlite3.connect(path) as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 12

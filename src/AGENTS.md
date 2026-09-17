@@ -171,3 +171,11 @@ only for read-only retrieval, never identity repair. Keep external checks, Git
 commits and file preparation outside this transaction; preserve preparatory
 observations for an exact retry after rollback. Never claim filesystem/Git and
 SQLite are one atomic transaction. Read the [delivery contract](../docs/workflows/batch-work.md#атомарная-доставка-verified-результата).
+
+## Pending legacy ownership migration
+
+Keep ambiguous v12 Task/worktree components unchanged until an explicit public
+`recover_ownership` decision passes exact snapshot, scope and liveness guards.
+Do not globally reject unrelated work or infer Task ownership from a worktree.
+Use the existing OwnershipCommands/SQLite UoW and Task repository; recovery must
+not mutate Git/WIP. Read the [canonical public contract](../docs/workflows/batch-work.md#восстановление-неоднозначного-владения).

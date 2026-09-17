@@ -41,6 +41,7 @@ def parse_request(value, config):
             'recover_empty_advance':{'task_id','reason'},
             'advance':{'request_id','task_id','target_stage'},
             'recover_missing_worktree':{'task_id','reason'},
+            'recover_ownership':{'request_id','task_ids','expected_snapshot','task_claims','worktree_bindings','reason','authorization'},
             'recover_artifacts':{'request_id','task_id','expected_version','artifact_ids','source_roots','reason','authorization'},
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
@@ -77,6 +78,9 @@ def parse_request(value, config):
         if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):raise DomainError('handoff result must be an object or null')
     if op=='artifacts' and not isinstance(value['input']['items'],list):
         raise DomainError('items must be a list')
+    if op=='recover_ownership':
+        from ..ownership.domain import parse_legacy_repair
+        parse_legacy_repair(value['input'])
     if op=='recover_artifacts':
         from ..artifact_factory.domain import ArtifactRecoveryIntent
         ArtifactRecoveryIntent.parse(value['input'],config['max_items'])
@@ -92,7 +96,7 @@ def parse_request(value, config):
             if not isinstance(query,dict) or not isinstance(query.get('id'),str) or not query['id'] or query['id'] in ids:
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
-            shapes_q={'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
+            shapes_q={'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')

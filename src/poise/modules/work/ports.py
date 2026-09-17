@@ -23,6 +23,7 @@ class TaskOverviewPort(Protocol):
 
 
 class WorkRuntime(Protocol):
+    ownership: Any
     accounting: Any
     telemetry: Any
     transfer_tools:Any

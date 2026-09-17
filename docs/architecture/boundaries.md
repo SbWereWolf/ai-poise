@@ -56,6 +56,11 @@ preflight, liveness и повторную проверку в UoW. SQLite adapte
 `tasks.claimed_by` физически ограничивает сессию одной Task; `sessions.id` ограничивает
 сессию одним worktree, а уникальный непустой `sessions.task_id` — worktree одной сессией.
 Нельзя выводить владение Task только из `sessions.task_id`.
+При неоднозначных v12 claims установка индексов откладывается, но весь проект
+не блокируется: `OwnershipCommands` и его SQLite adapter предоставляют
+[локальное публичное согласование](../workflows/batch-work.md#восстановление-неоднозначного-владения)
+по точному снимку связанного компонента. Task repository сохраняет версионное
+освобождение claimant; ownership repository — bindings и receipt той же UoW.
 Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
 
 Process snapshot владеет обязательным boolean `worktree_required`; runtime, SprintWork

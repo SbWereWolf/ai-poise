@@ -17,7 +17,10 @@ class WorkTools:
         req=parse_request(packet,h.cfg['batch']); op=req['operation'];args=req['input']
         events=self.interactions.prepare(req['messages'])
         # A user message is a cost even when subsequent task work is rejected.
-        before=h.current_task()
+        ownership_recovery = op == 'recover_ownership' or (
+            op == 'show' and all(q['kind'] == 'ownership_conflicts' for q in args['queries']))
+        # A session in a conflicting component must still be able to inspect/release it.
+        before = None if ownership_recovery else h.current_task()
         # Count all received user messages during current work, independently
         # of the requested tool or the supplied reason. Completed work is not
         # charged for an unrelated later query.
@@ -39,6 +42,7 @@ class WorkTools:
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
             elif op=='advance':out=h.advance(**args)
+            elif op=='recover_ownership':out=h.ownership.recover_legacy(args)
             elif op=='recover_artifacts':out=self.resources.recover_artifacts(args)
             elif op=='recover_missing_worktree':out=h.recover_missing_worktree(**args)
             elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
@@ -62,11 +66,11 @@ class WorkTools:
                      'artifacts':[{'id':r['id'],'path':r['path'],'scope':r['scope']} for r in records]}
             else:raise PoiseError('Unreachable work operation')
         except Exception:
-            after=h.current_task()
+            after = None if ownership_recovery else h.current_task()
             self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
             h.telemetry.complete(telemetry,after,{'status':'rejected'})
             raise
-        current=h.current_task()
+        current = None if ownership_recovery else h.current_task()
         self.interactions.record(events,h.session,current if current is not None and not is_terminal_task_status(current['status']) else bound_before)
         self.interactions.delivered(current,out)
         h.telemetry.complete(telemetry,current,out)
@@ -75,7 +79,7 @@ class WorkTools:
                 and h.sprint_tools.known(sprint_subject['sprint_id'])
                 and op in ('verify','accept','cancel')):
             out={**out,'sprint':h.sprint_tools.overview(sprint_subject['sprint_id'])}
-        return {**out,'interaction':self.interactions.summary(h.report_task(out))}
+        return {**out,'interaction':self.interactions.summary(None if ownership_recovery else h.report_task(out))}
 
     def _verify(self,args):
         h=self.runtime;data=h.current_task()
@@ -122,6 +126,7 @@ class WorkTools:
                 sprints=h.sprint_tools.overviews();standalone=h.task_queries.standalone_summary()
                 value={'sprints':sprints if sprint_statuses is None else [x for x in sprints if x['status'] in sprint_statuses],
                        'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
+            elif kind=='ownership_conflicts':value=h.ownership.conflicts()
             elif kind=='task':value=h.show()
             elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])
             elif kind=='task_cleanup':value=h.cleanup_tools.query(query['task_id'],query['request_id'])

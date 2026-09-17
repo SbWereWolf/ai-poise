@@ -61,6 +61,17 @@ class SqliteTaskRepository:
     def __init__(self, connection):
         self.db = connection
 
+    def release_legacy_claim(self, task_id, version, owner, actor, request_id, reason):
+        """Exact operator-authorized ownership release; no workflow/content rewrite."""
+        changed = self.db.execute(
+            'UPDATE tasks SET claimed_by=NULL,version=version+1 '
+            'WHERE id=? AND version=? AND claimed_by=?', (task_id, version, owner))
+        if changed.rowcount != 1:
+            raise VersionConflict('Ownership snapshot changed')
+        self._event(task_id, version + 1, {
+            'event': 'ownership_released', 'actor': actor, 'recovery': 'legacy_ownership',
+            'previous_owner': owner, 'request_id': request_id, 'reason': reason})
+
     def restore_snapshot(self, tables: dict, binding: dict) -> None:
         """Controlled same-format import into absent identities; not a lifecycle edit."""
         from .transfer_records import restore_tasks
@@ -352,6 +363,8 @@ class SqliteTaskRepository:
         )
 
     def load_newborn(self, task_id: str) -> NewbornTask:
+        from .ownership import require_unambiguous
+        require_unambiguous(self.db, task_id)
         row = self.db.execute(
             "SELECT status,claimed_by,version,metadata FROM tasks WHERE id=?", (task_id,)
         ).fetchone()
@@ -573,6 +586,8 @@ class SqliteTaskRepository:
         self._event(s.task_id,s.version,{"event":"created","stage":task.stage.stage_id,"iteration":s.iteration})
 
     def load(self, task_id: str) -> Task:
+        from .ownership import require_unambiguous
+        require_unambiguous(self.db, task_id)
         row = self.db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, s.digest AS submission_digest FROM tasks t LEFT JOIN submissions s ON s.seq=t.current_submission_id WHERE t.id=?", (task_id,)).fetchone()
         if row is None:
             raise PoiseError(f"Задача не найдена: {task_id}")

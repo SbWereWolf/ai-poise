@@ -46,6 +46,33 @@ class OwnershipCommands:
         with self.uow() as uow:
             return uow.ownership.snapshot(actor)
 
+    def conflicts(self):
+        with self.uow() as uow:
+            return uow.ownership.conflicts()
+
+    def recover_legacy(self, actor, request):
+        from ..modules.ownership.domain import parse_legacy_repair, legacy_releases
+        intent = parse_legacy_repair(request)
+        with self.uow() as uow:
+            receipt = uow.ownership.legacy_receipt(intent['request_id'])
+            if receipt is not None:
+                if receipt['request'] != intent:
+                    raise PoiseError('Ownership recovery request conflict')
+                return {**receipt['result'], 'replayed': True}
+            components = uow.ownership.conflicts()['conflicts']
+            before = next((c for c in components if c['task_ids'] == sorted(intent['task_ids'])), None)
+            if before is None or before['expected_snapshot'] != intent['expected_snapshot']:
+                raise PoiseError('Ownership snapshot conflict; read the exact current component')
+            released = legacy_releases(intent, before)
+            for owner in sorted(released):
+                if owner != actor:
+                    _conflict(owner, self.liveness)
+            for task in before['tasks']:
+                if task['claimed_by'] is not None and intent['task_claims'][task['id']] is None:
+                    uow.tasks.release_legacy_claim(task['id'], task['version'], task['claimed_by'],
+                                                   actor, intent['request_id'], intent['reason'])
+            return uow.ownership.reconcile_legacy(intent, actor, before)
+
     def _preflight(self, actor, task_id):
         with self.uow() as uow:
             if not uow.tasks.is_newborn(task_id):
@@ -125,6 +152,12 @@ class OwnershipCommands:
 
 
 class BoundOwnership:
+    def conflicts(self):
+        return self.commands.conflicts()
+
+    def recover_legacy(self, request):
+        return self.commands.recover_legacy(self.actor, request)
+
     def __init__(self, commands, actor):
         self.commands = commands
         self.actor = actor

@@ -265,3 +265,14 @@ rows, claim another Task or relax path/digest validation to get past this defect
 Current configuration determines destinations. Missing historical bundle bytes
 must come from a real backup; a receipt is not a substitute. Read the
 [public root-recovery contract](../../../docs/workflows/batch-work.md#восстановление-зарегистрированных-артефактов).
+
+### Ambiguous legacy ownership
+
+Use `show` with `kind: ownership_conflicts` and then the explicitly authorized
+`recover_ownership` decision for one exact connected component. Copy its actual
+snapshot and Task/session identities. Keep existing values or release to null;
+never infer Task ownership from a worktree binding, invent a claimant, or select
+between live/uncertain owners. Only authoritative DEAD permits foreign release;
+explicit self-release is supported. Unrelated Tasks remain usable while v12
+uniqueness installation is pending. Repair never mutates Git/WIP and exact replay
+never repeats the mutation. Read the [public recovery contract](../../../docs/workflows/batch-work.md#восстановление-неоднозначного-владения).

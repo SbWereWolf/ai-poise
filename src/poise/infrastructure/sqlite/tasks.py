@@ -474,25 +474,28 @@ class SqliteTaskRepository:
         ).fetchone()[0])
         self.save_newborn(changed, newborn.version, metadata["config_hash"], "sprint_detached")
 
+    def _save_newborn_ownership(self, newborn: NewbornTask, expected_version: int, event: str) -> None:
+        if newborn.version == expected_version:
+            return
+        if newborn.version != expected_version + 1:
+            raise VersionConflict('Invalid newborn ownership version step')
+        updated = self.db.execute(
+            'UPDATE tasks SET claimed_by=?,version=? WHERE id=? AND status=? AND version=?',
+            (newborn.claimed_by, newborn.version, newborn.task_id, 'newborn', expected_version),
+        )
+        if updated.rowcount != 1:
+            raise VersionConflict('Newborn ownership version changed')
+        self._event(newborn.task_id, newborn.version, {
+            'event': event, 'stage': 'newborn', 'iteration': 1,
+        })
+
     def acquire_newborn(self, task_id: str, actor: str) -> None:
         newborn = self.load_newborn(task_id)
-        changed = newborn.acquire(actor)
-        metadata = json.loads(self.db.execute(
-            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
-        ).fetchone()[0])
-        self.save_newborn(
-            changed, newborn.version, metadata['config_hash'], 'ownership_acquired'
-        )
+        self._save_newborn_ownership(newborn.acquire(actor), newborn.version, 'ownership_acquired')
 
     def release_newborn(self, task_id: str, actor: str) -> None:
         newborn = self.load_newborn(task_id)
-        changed = newborn.release(actor)
-        metadata = json.loads(self.db.execute(
-            "SELECT metadata FROM tasks WHERE id=?", (task_id,)
-        ).fetchone()[0])
-        self.save_newborn(
-            changed, newborn.version, metadata['config_hash'], 'ownership_released'
-        )
+        self._save_newborn_ownership(newborn.release(actor), newborn.version, 'ownership_released')
 
     def promote_newborn(self, task: Task, metadata: dict, expected_version: int) -> None:
         if not self.is_newborn(task.state.task_id):

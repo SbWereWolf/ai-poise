@@ -179,3 +179,11 @@ Keep ambiguous v12 Task/worktree components unchanged until an explicit public
 Do not globally reject unrelated work or infer Task ownership from a worktree.
 Use the existing OwnershipCommands/SQLite UoW and Task repository; recovery must
 not mutate Git/WIP. Read the [canonical public contract](../docs/workflows/batch-work.md#восстановление-неоднозначного-владения).
+
+Newborn inspection and handoff must branch before reading an execution contract or
+stage, even after a process has been selected. Use the same handoff journal and
+ownership transaction to save/release and resume drafts. Keep staged candidates out
+of newborn handoff, preserve opaque metadata on ownership-only changes, and validate
+saved WIP/bundle before reacquiring a released draft. The registry projection must
+label draft methods and historical state as inactive; never synthesize readiness.
+See [newborn handoff](../docs/workflows/local-handoff.md#сохранение-незавершённого-newborn).

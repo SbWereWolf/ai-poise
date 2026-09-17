@@ -17,8 +17,9 @@ class HandoffCommands:
             if old is not None:
                 if old['digest']!=digest:raise PoiseError('Handoff request identity conflict')
                 return old
-            task=uow.tasks.load(task_id)
-            if task.state.version!=version or task.state.claimed_by!=actor:
+            state=(uow.tasks.load_newborn(task_id) if uow.tasks.is_newborn(task_id)
+                   else uow.tasks.load(task_id).state)
+            if state.version!=version or state.claimed_by!=actor:
                 raise PoiseError('Task changed before handoff preparation')
             record={'actor':actor,'request_id':request_id,'digest':digest,'task_id':task_id,
                     'version':version,'state':'preparing','plan':plan,'receipt':None}
@@ -33,8 +34,9 @@ class HandoffCommands:
             if record['state']=='released':
                 if record['receipt']!=receipt:raise PoiseError('Cannot replace a handoff receipt')
                 return
-            task=uow.tasks.load(record['task_id'])
-            if task.state.version!=record['version']:raise PoiseError('Task changed during handoff')
+            state=(uow.tasks.load_newborn(record['task_id']) if uow.tasks.is_newborn(record['task_id'])
+                   else uow.tasks.load(record['task_id']).state)
+            if state.version!=record['version']:raise PoiseError('Task changed during handoff')
             uow.accounting_cycles.release(actor,record['task_id'])
             release_task_in(uow, actor, record['task_id'], record['plan']['reason'])
             uow.handoffs.replace({**record,'state':'released','receipt':receipt})
@@ -44,11 +46,21 @@ class HandoffCommands:
             record=uow.handoffs.get(request_actor,request_id)
             if record is None or record['state']!='released' or record['task_id']!=task_id:
                 raise PoiseError('No released handoff for this task')
-            task=uow.tasks.load(task_id)
-            from .tasks import require_reviewer_identity_in
-            require_reviewer_identity_in(uow, task, actor, acquiring=True)
-            if task.state.version!=record['version']+1:raise PoiseError('Task changed after preserved handoff')
-            uow.tasks.save(task.resume_handoff(actor),task.state.version)
+            if uow.tasks.is_newborn(task_id):
+                newborn=uow.tasks.load_newborn(task_id)
+                if newborn.version!=record['version']+1:
+                    raise PoiseError('Task changed after preserved handoff')
+                from .ownership import release_task_in
+                before=uow.ownership.snapshot(actor)
+                if before.task_id not in (None,task_id):
+                    release_task_in(uow,actor,before.task_id)
+                uow.tasks.acquire_newborn(task_id,actor)
+            else:
+                task=uow.tasks.load(task_id)
+                from .tasks import require_reviewer_identity_in
+                require_reviewer_identity_in(uow, task, actor, acquiring=True)
+                if task.state.version!=record['version']+1:raise PoiseError('Task changed after preserved handoff')
+                uow.tasks.save(task.resume_handoff(actor),task.state.version)
             if uow.ownership.worktree_required(task_id):
                 target=uow.ownership.preflight(actor,task_id)
                 if target.worktree_owner not in (None,request_actor,actor):

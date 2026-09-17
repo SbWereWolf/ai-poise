@@ -22,9 +22,10 @@ def release_dependent_worktree_in(uow, actor, task_id):
 
 def _release_task_in(uow, actor, task_id, reason=None):
     if uow.tasks.is_newborn(task_id):
-        if reason is not None:
-            raise PoiseError('Newborn Task handoff requires readiness or explicit cancellation')
+        if reason is not None and (not isinstance(reason, str) or not reason.strip()):
+            raise PoiseError('Newborn Task handoff reason required')
         uow.tasks.release_newborn(task_id, actor)
+        release_dependent_worktree_in(uow, actor, task_id)
         return
     task = uow.tasks.load(task_id)
     change = task.handoff(actor, reason) if reason is not None else task.release_ownership(actor)

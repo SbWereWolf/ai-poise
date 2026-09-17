@@ -30,9 +30,12 @@ class LocalHandoff:
         data=h.current_task()
         if data is None:raise PoiseError('No current task to hand off')
         data=h._task();worktree_free=data['worktree'] is None
+        newborn=data['status']=='newborn'
+        if newborn and args['result'] is not None:
+            raise PoiseError('Newborn handoff requires null result; edit the draft instead of submitting a stage result')
         worktree=h._verification_workspace(data)
         if data['pending'] is not None:raise PoiseError('Determine pending execution outcome before handoff')
-        action=h.plan_actions.snapshot(data)
+        action=None if newborn else h.plan_actions.snapshot(data)
         if action is not None and action['status'] not in ('complete',):
             raise PoiseError('Finish or explicitly resolve the external plan before handoff')
         if not worktree_free and h.plan_actions._read_optional_ref(worktree,'MERGE_HEAD') is not None:
@@ -46,7 +49,7 @@ class LocalHandoff:
         if not isinstance(args['artifact_paths'],list):raise PoiseError('artifact_paths list required')
         records=h.validate_artifact_paths(args['artifact_paths'],data)
         payload=args['result']
-        if payload is None and not verified:
+        if payload is None and not verified and not newborn:
             payload=h.task_queries.latest_submission(data['id'],h._stage(data)['id'],data['iteration'])
         if payload is not None:
             if verified:raise PoiseError('Verified handoff does not accept a replacement result')
@@ -111,7 +114,9 @@ class LocalHandoff:
             heads=h._git(worktree,'bundle','list-heads',str(bundle))
             if not any(line.split()[0]==sha for line in heads.splitlines()):raise PoiseError('Bundle does not preserve current commit')
         receipt_path=descendant(directory,self.config['receipt'])
-        receipt={'status':'handed_off','task':data['id'],'stage':h._stage(data)['id'],'iteration':data['iteration'],
+        receipt={'status':'handed_off','task':data['id'],
+                 'stage':None if newborn else h._stage(data)['id'],'iteration':data['iteration'],
+                 'task_status':data['status'],
                  'verified':plan['verified'],'commit':sha,'tree':plan['tree'],
                  'worktree':None if worktree_free else str(worktree),
                  'receipt_path':str(receipt_path),'bundle_path':None if worktree_free else str(bundle),

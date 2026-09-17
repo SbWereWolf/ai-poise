@@ -844,6 +844,8 @@ class Poise:
             selected=self.task_queries.record(task['id'])
             if selected is None:raise PoiseError('Неизвестный task/sprint ID')
             if selected['status']=='newborn':
+                if selected['claimed_by'] is None and self.handoff_tools.commands.latest(selected['id']) is not None:
+                    self.handoff_tools.resume(selected)
                 self.ownership.acquire_task(selected['id'])
                 return self.task_queries.record(selected['id'])
             if selected['status']=='available':

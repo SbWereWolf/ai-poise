@@ -211,7 +211,20 @@ class TaskQueries:
     def verification_registry(self, task_id):
         from .tasks import SqliteTaskRepository
         with self.database.transaction() as db:
-            registry = SqliteTaskRepository(db).load(task_id).check_registry
+            repository = SqliteTaskRepository(db)
+            if repository.is_newborn(task_id):
+                newborn = repository.load_newborn(task_id)
+                workflow = db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()
+                historical = None if workflow is None else json.loads(workflow[0]).get('registry')
+                return {
+                    'status': 'read_only', 'task': task_id, 'task_status': 'newborn',
+                    'active_contract': False, 'revision': None, 'current': [],
+                    'executable_obligations': [],
+                    'draft_methods': newborn.describe()['draft'].get('methods', []),
+                    'historical_registry': historical,
+                    'notice': 'Draft methods and historical registry are not an active verification contract',
+                }
+            registry = repository.load(task_id).check_registry
             return {
                 'status': 'read_only',
                 'task': task_id,

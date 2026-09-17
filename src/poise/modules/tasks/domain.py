@@ -722,10 +722,39 @@ class Task:
             "исправление."
         )
 
+    def inspection_registry_blocker(self, target: str | None) -> str | None:
+        """Observe a current gate defect, never authorize an unchecked transition."""
+        node = self.route.node(self.stage.stage_id)
+        if (self.state.status != TaskStatus.ACTIVE or
+                self.state.submission_digest is None or self.progress.stage_work is None or
+                node.handler != HandlerKind.INSPECT or
+                self.stage.stage_id not in self.check_registry.inspection_stages or
+                target is None or target not in node.rework_targets):
+            return None
+        destination = self.stages[self.route.index(target)]
+        if not any(rule.name == "test_registry" for rule in destination.rules):
+            return None
+        try:
+            self.check_registry.validate_inspection_exit()
+        except DomainError as error:
+            return str(error)
+        return None
+
     def rework(self, actor: str, feedback: str, target: str | None = None) -> Change:
         self._owned(actor)
         if not isinstance(feedback, str) or not feedback.strip():
             raise DomainError("Для rework требуется замечание пользователя")
+        if self.state.status == TaskStatus.ACTIVE:
+            blocker = self.inspection_registry_blocker(target)
+            if blocker is None:
+                raise DomainError("Rework requires a reproducible inspection registry blocker")
+            self._ensure_pending_resolutions_inspected()
+            inspected = replace(self, feedback=self._handling().feedback)
+            inspected._ensure_pending_resolutions_inspected()
+            return inspected._enter(
+                "user_inspection_registry_rework", feedback, actor, target,
+                self.route.enter(self.progress, target),
+            )
         if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED, TaskStatus.COMPLETED):
             raise DomainError("Rework открывает ранее предъявленный результат")
         self._ensure_pending_resolutions_inspected()

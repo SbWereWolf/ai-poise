@@ -955,6 +955,9 @@ class Poise:
             else:
                 if data['status']=='active' and self._stage(data)['handler'] in ('apply_plan','publish'):
                     self.plan_actions.rework_failed(data,feedback,rework_stage,entry_tree)
+                elif (data['status'] == 'active' and
+                      self.task_commands.inspection_registry_rework_available(data['id'], rework_stage)):
+                    self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage)
                 elif data['status']=='active':
                     if data['pending'] is not None:
                         raise PoiseError('Неизвестен исход прерванной проверки; rework запрещён')

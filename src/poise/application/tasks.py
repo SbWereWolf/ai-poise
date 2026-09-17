@@ -855,6 +855,9 @@ class TaskCommands:
             raise DomainError("Для rework требуется наблюдаемое entry_tree")
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
+            execution, _ = uow.execution.load(task_id)
+            if execution["pending"] is not None:
+                raise DomainError("Неизвестен исход прерванной операции; rework запрещён")
             change=task.rework(actor,feedback,target)
             uow.tasks.save(change,task.state.version)
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
@@ -934,6 +937,11 @@ class TaskCommands:
             uow.tasks.save(change,task.state.version)
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
             return change.task.state
+
+    def inspection_registry_rework_available(self, task_id: str, target: str | None) -> bool:
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            return task.inspection_registry_blocker(target) is not None
 
     def failed_observation_batch(self, task_id, tree, execution_key):
         with self.unit_of_work() as uow:

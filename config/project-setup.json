@@ -7,11 +7,6 @@
       "version": "3",
       "digest": "a3c7e7e2c7c35a03aa2a73196e53360c84dcd7104e032b7bbf195630c3dd36ab"
     },
-    "wsl-system": {
-      "path": "config/project-templates/wsl-system.json",
-      "version": "2",
-      "digest": "16a8333f11988a75f3bf87a26481e514a89155db74a788e66a7cf87882ac8fbb"
-    },
     "wsl-poise": {
       "path": "config/project-templates/wsl-poise.json",
       "version": "5",

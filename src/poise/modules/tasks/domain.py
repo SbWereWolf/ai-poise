@@ -564,6 +564,17 @@ class Task:
         else:
             registry = self.check_registry.extend(method_additions)
         registry.validate_route(self.route)
+        # Rehydrate the prospective evidence contract before any submission is
+        # persisted. An otherwise valid registry can activate an empty observe
+        # stage or remove an observation still required by this plan.
+        evidence_plan = EvidencePlan.parse(
+            {node.stage_id: self.evidence_plan.describe(node.stage_id)
+             for node in self.route.nodes},
+            {node.stage_id: node.handler.value for node in self.route.nodes},
+            {node.stage_id: [entry.method_id for entry in registry.entries
+                             if node.stage_id in entry.stages]
+             for node in self.route.nodes},
+        )
         policy = replace(self.content_policy, method_ids=registry.method_ids).extend(content_additions)
         contracts = TaskStageContracts.parse(
             self._require_stage_contracts().to_list(), self.route, policy
@@ -587,7 +598,7 @@ class Task:
             return self._unchanged(registry_change)
         change = self._change("submitted", None, submission, submission_digest=submission.digest)
         events = change.events + (() if registry_event is None else (registry_event,))
-        return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, stage_contracts=contracts, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
+        return replace(change, task=replace(change.task, content_policy=policy, content_snapshot=snapshot, check_registry=registry, evidence_plan=evidence_plan, stage_contracts=contracts, evidence_input=submission.evidence_work, evidence_assessment=None, action_assessment=None,
                        progress=replace(change.task.progress, outcome=handling.outcome, stage_work=work_json)),
                        events=events, registry_change=registry_change)
 

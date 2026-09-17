@@ -213,3 +213,5 @@ verification_planning before the code-stage pre-gates, never required before the
 own first producer. Do not weaken reachability validation or rewrite cancelled
 historical tasks while fixing shipped definitions. See
 [delivery baseline repair](../delivery/README.md#исправление-baseline-контракта-первоначальной-поставки).
+
+- Validate a prospective method registry together with its EvidencePlan, content policy and stage contracts inside the existing Task owner before any submission is persisted. Rejected registry changes must remain reloadable; never rely on a later SQLite aggregate read to discover cross-contract errors. Preserve exact verified-packet replay after a late response or cleanup failure; first successful interaction delivery is distinct from business verification.

@@ -187,3 +187,11 @@ of newborn handoff, preserve opaque metadata on ownership-only changes, and vali
 saved WIP/bundle before reacquiring a released draft. The registry projection must
 label draft methods and historical state as inactive; never synthesize readiness.
 See [newborn handoff](../docs/workflows/local-handoff.md#сохранение-незавершённого-newborn).
+
+Verification must validate the full registered artifact set, not only submitted
+paths, before materializing files or saving a submission. Use the same artifact
+inspection owner in the public and direct runtime paths; reject stale roots,
+identity/owner/scope mismatches, symlinks and digest failures without semantic Task
+writes. Never silently skip an unknown registered scope. Keep post-execution
+validation: preflight is not a filesystem/SQLite transaction. See the
+[artifact preflight contract](../docs/workflows/batch-work.md#предварительная-проверка-зарегистрированных-артефактов).

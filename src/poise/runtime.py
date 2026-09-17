@@ -560,6 +560,10 @@ class Poise:
         return inspect_paths(paths,roots,owners)
 
 
+    def validate_verification_artifacts(self, paths, task):
+        """Read-only preflight shared by public and direct verification."""
+        return self._candidate_artifacts(task, paths, self._roots(task))
+
     def register_artifact_paths(self,paths,task):
         if task is None:
             roots={'runtime':self.runtime};owners={'runtime':self.session}
@@ -1027,8 +1031,11 @@ class Poise:
         merged = {(r['scope'],r['path']):r for r in records}
         for prior in previous:
             old = dict(prior)
-            if old['scope'] not in roots: continue
+            if old['scope'] not in roots:
+                raise PoiseError('Registered artifact scope has no current owner root; use explicit recover_artifacts')
             current = inspect_paths([old['path']], roots, owners)[0]
+            if any(current[key] != old[key] for key in ('id', 'owner', 'scope')):
+                raise PoiseError('Registered artifact identity/owner mismatch; inspect ownership before recovery')
             if current['digest'] != old['digest']:
                 raise PoiseError(f"Артефакт изменён после регистрации: {old['path']}; используйте новый путь")
             merged[(old['scope'],old['path'])] = current
@@ -1205,6 +1212,9 @@ class Poise:
                 # No submission or Task mutation: repair and retry in this same authoring stage.
                 return {'status': 'architecture_boundaries_failed', 'task': data['id'],
                         'stage': stage['id'], 'architecture': architecture, 'checks': [], 'replayed': False}
+        # Reject pre-existing path/identity failures before a submission can mutate
+        # the current registry, content layers, evidence or Task history.
+        self.validate_verification_artifacts(payload['artifact_paths'], data)
         if pending_checks:
             submitted_digest = self.runner.matching_submission_digest(
                 data['id'], self.session, payload

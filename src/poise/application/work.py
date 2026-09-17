@@ -107,8 +107,8 @@ class WorkTools:
             raise PoiseError('stage entry requirements are no longer satisfied')
         h.validate_stage_result(data['id'],payload)
         h.validate_stage_scope(data)
-        # Validate existing path-only inputs before producing any new file.
-        h.validate_artifact_paths(args['result']['artifact_paths'],data)
+        # Validate submitted AND registered artifacts before producing any new file.
+        h.validate_verification_artifacts(args['result']['artifact_paths'],data)
         factory.materialize(prepared)
         return h.verify(payload, packet_digest=packet_digest)
 

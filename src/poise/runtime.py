@@ -9,7 +9,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from .common import PoiseError, descendant, configured_root, digest, encoded, exact_keys, load_config, read_json, validate_method, file_digest, prohibit_git_push
+from .common import PoiseError, descendant, configured_root, configured_storage_path, digest, encoded, exact_keys, load_config, read_json, validate_method, file_digest, prohibit_git_push
 from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
@@ -101,7 +101,31 @@ class Poise:
         repository_tree = GitRepositoryTree(
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
         )
-        self.task_commands, self.task_queries = task_tools(self.store, repository_tree)
+        from .modules.requirements_registry.service import TaskRequirementsGate
+        from .application.requirements_registry import RequirementsCommands
+        from .infrastructure.requirements_registry import (
+            RequirementsStore,
+            TaskRequirementsMetadataStore,
+        )
+        self.requirements_store = RequirementsStore(
+            configured_storage_path(self.state, self.paths['requirements_database']),
+            configured_storage_path(self.state, self.paths['requirements_lock']),
+            limits['lock_seconds'],
+            limits['lock_poll_seconds'],
+        )
+        self.requirements_commands = RequirementsCommands(
+            self.requirements_store,
+            self.cfg['batch']['max_items'],
+        )
+        requirements_gate = TaskRequirementsGate.enabled(
+            self.requirements_store.registry,
+            TaskRequirementsMetadataStore(self.store.unit_of_work),
+        )
+        self.task_commands, self.task_queries = task_tools(
+            self.store,
+            repository_tree,
+            requirements_gate,
+        )
         from .application.ownership import BoundOwnership, OwnershipCommands
         from .modules.ownership.domain import UnobservedSessionLiveness
         ownership_commands = OwnershipCommands(

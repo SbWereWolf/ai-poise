@@ -56,6 +56,10 @@ def parser():
         'task-process-migrate', help='Migrate one explicitly authorized Task process-snapshot batch'
     )
     task_process_migration.add_argument('--config',type=Path,required=True)
+    requirements=sub.add_parser(
+        'requirements', help='Apply/query one project Requirements Registry JSON packet'
+    )
+    requirements.add_argument('--config',type=Path,required=True)
     return p
 
 
@@ -113,6 +117,9 @@ def main():
         return execute(args.config,sys.stdout)
     if args.command=='task-process-migrate':
         from .interfaces.task_process_migration import execute
+        return execute(args.config,sys.stdin.buffer,sys.stdout)
+    if args.command=='requirements':
+        from .interfaces.requirements_registry import execute
         return execute(args.config,sys.stdin.buffer,sys.stdout)
     if not os.environ.get('POISE_CONFIG'):
         print('Не задан POISE_CONFIG: выберите конфигурацию проекта.',file=sys.stderr)

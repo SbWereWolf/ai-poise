@@ -38,6 +38,7 @@ def create(directory: Path):
         stage.update(handler='produce', transitions={'complete': stages[i + 1]['id'] if i + 1 < len(stages) else None}, rework_targets=[stage['id']])
     save(home / 'config/processes/development.json', {'route': {'entry': 'tests'}, 'goal_type': 'development', 'worktree_required': True, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, 'stages': stages, 'content_contract': {'sections': [], 'routes': [], 'requirements': []}})
     cfg = {'schema': 'ddd-accounting-12', 'project': 'demo', 'paths': {'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock', 'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints', 'worktrees': 'worktrees', 'git_index': 'snapshot.index', 'runs': 'runs', 'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json'}, 'limits': {'lock_seconds': 2.0, 'lock_poll_seconds': 0.01, 'git_seconds': 15.0, 'verify_attempts': 5, 'output_chars': 2200, 'preview_chars': 300}, 'git': {'repository': str(app), 'base_ref': 'main', 'remote': 'backup', 'branch_template': 'tasks/{task_id}', 'commit_pattern': '.+', 'author_name': 'Demo agent', 'author_email': 'demo-agent@example.invalid', 'push_required': False}, 'processes': {'development': 'config/processes/development.json'}, 'environment_names': ['PATH', 'HOME', 'LANG'], 'automatic_checks': [{'paths': ['src/**', 'tests/**'], 'by_stage': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': []}}]}
+    cfg['paths'].update(requirements_database='database/requirements.sqlite', requirements_lock='database/requirements.lock')
     cfg['accounting'] = json.loads((SOURCE / 'config/accounting.example.json').read_text())
     cfg['accounting']['time_mode'] = 'reported'
     cfg['accounting']['storage'] = {'database':'telemetry/events.sqlite','lock':'telemetry/events.lock'}
@@ -79,6 +80,22 @@ def create(directory: Path):
         ],
         'integration': None,
     }
+    from poise.composition import requirements_tools
+    commands, _ = requirements_tools(home / 'project.json')
+    commands.apply({
+        'request_id': 'demo-requirements', 'expected_revision': 0,
+        'operations': [
+            {'kind': 'put_requirement', 'requirement': {'id': 'DEMO-SYS', 'level': 'system', 'status': 'current', 'text': 'Демонстрация сохраняет проверяемые результаты.'}},
+            {'kind': 'put_requirement', 'requirement': {'id': 'DEMO-APP', 'level': 'application', 'status': 'current', 'text': 'Учебное приложение правильно удваивает число.'}},
+            {'kind': 'link', 'system': 'DEMO-SYS', 'application': 'DEMO-APP'},
+        ],
+    })
+    plan = commands.store.registry().plan_task([
+        {'text': text, 'applications': ['DEMO-APP']} for text in task['requirements']
+    ])
+    task['requirements_snapshot'] = plan['snapshot']
+    # Explicit fixture agreement, not a claim of real user acceptance.
+    task['requirements_agreement'] = {'accepted': True, 'chains': plan['chains']}
     save(home / 'task.json', task)
     return home
 

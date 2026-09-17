@@ -22,6 +22,9 @@ class TaskRepository(Protocol):
         target_sprint: str | None, expected_version: int,
     ) -> None: ...
     def restart_context(self, task_id: str) -> dict: ...
+    def publish_requirements_context(
+        self, task_id: str, snapshot: dict, agreement: dict
+    ) -> None: ...
     def restart_newborn(
         self, newborn: object, expected_version: int, config_hash: str,
         reason: str, authorization: str,

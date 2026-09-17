@@ -10,12 +10,17 @@ from .definition import creation_fields, path_identifier
 from .domain import Task, TaskStatus
 
 
+REQUIREMENTS_CONTEXT_FIELDS = frozenset({"requirements_snapshot", "requirements_agreement"})
+
+
 NEWBORN_FIELDS = frozenset({
     "id",
     "sprint_id",
     "goal_type",
     "goal",
     "requirements",
+    "requirements_snapshot",
+    "requirements_agreement",
     "definition_of_done",
     "methods",
     "method_inputs",
@@ -189,7 +194,8 @@ class NewbornTask:
         if removals and process is None:
             raise DomainError('Select goal_type before removing draft fields')
         if process is not None:
-            allowed = creation_fields(process) - {'id', 'sprint_id'}
+            # Requirements context belongs to Task planning, not to a goal-type route.
+            allowed = (creation_fields(process) | REQUIREMENTS_CONTEXT_FIELDS) - {'id', 'sprint_id'}
             required_removals = removals & allowed
             if required_removals:
                 raise DomainError(

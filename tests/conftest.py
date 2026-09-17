@@ -17,6 +17,8 @@ if str(_TASK_SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(_TASK_SOURCE_ROOT))
 
 import poise
+from poise.application.requirements_registry import RequirementsCommands
+from poise.infrastructure.requirements_registry import RequirementsStore
 
 _LOADED_POISE = Path(poise.__file__).resolve() if poise.__file__ else None
 if _LOADED_POISE is None or not _LOADED_POISE.is_relative_to(_TASK_SOURCE_ROOT.resolve()):
@@ -46,6 +48,67 @@ def verification_plan(
         "green_stages": [] if green_stages is None else green_stages,
         "red_failure": red_failure,
     }
+
+
+_FIXTURE_SYSTEM_REQUIREMENT = "FIXTURE-SYSTEM"
+_FIXTURE_APPLICATION_REQUIREMENT = "FIXTURE-APPLICATION"
+
+
+def bind_task_requirements(task: dict, registry) -> dict:
+    """Bind a fixture Task's text requirements to the fixture registry."""
+    plan = registry.plan_task([
+        {
+            "text": text,
+            "applications": [_FIXTURE_APPLICATION_REQUIREMENT],
+        }
+        for text in task["requirements"]
+    ])
+    assert plan["status"] == "ready"
+    task["requirements_snapshot"] = plan["snapshot"]
+    task["requirements_agreement"] = {
+        "accepted": True,
+        "chains": plan["chains"],
+    }
+    return task
+
+
+def seed_fixture_requirements(root: Path, cfg: dict):
+    requirements_store = RequirementsStore(
+        root / cfg['paths']['state'] / cfg['paths']['requirements_database'],
+        root / cfg['paths']['state'] / cfg['paths']['requirements_lock'],
+        cfg['limits']['lock_seconds'],
+        cfg['limits']['lock_poll_seconds'],
+    )
+    RequirementsCommands(requirements_store, cfg['batch']['max_items']).apply({
+        'request_id': 'seed-fixture-requirements',
+        'expected_revision': 0,
+        'operations': [
+            {
+                'kind': 'put_requirement',
+                'requirement': {
+                    'id': _FIXTURE_SYSTEM_REQUIREMENT,
+                    'level': 'system',
+                    'status': 'current',
+                    'text': 'The fixture preserves an explicit Requirements chain.',
+                },
+            },
+            {
+                'kind': 'put_requirement',
+                'requirement': {
+                    'id': _FIXTURE_APPLICATION_REQUIREMENT,
+                    'level': 'application',
+                    'status': 'current',
+                    'text': 'Fixture Tasks declare their agreed Requirements context.',
+                },
+            },
+            {
+                'kind': 'link',
+                'system': _FIXTURE_SYSTEM_REQUIREMENT,
+                'application': _FIXTURE_APPLICATION_REQUIREMENT,
+            },
+        ],
+    })
+    return requirements_store.registry()
 
 
 def git(root: Path, *args: str) -> str:
@@ -101,9 +164,14 @@ def project(tmp_path, monkeypatch):
         'paths': {
             'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock',
             'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints',
+            'requirements_database': 'requirements.sqlite',
+            'requirements_lock': 'requirements.lock',
             'worktrees': 'worktrees',
-            'git_index': 'snapshot.index', 'runs': 'runs',
-            'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json',
+            'git_index': 'snapshot.index',
+            'runs': 'runs',
+            'stdout': 'stdout.txt',
+            'stderr': 'stderr.txt',
+            'response': 'response.json',
         },
         'limits': {
             'lock_seconds': 2.0, 'lock_poll_seconds': 0.01,
@@ -149,6 +217,7 @@ def project(tmp_path, monkeypatch):
         ],
     }
     cfg_path = write_json(poise_root / 'project.json', cfg)
+    requirements_registry = seed_fixture_requirements(poise_root, cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     red_argv = [
         sys.executable,
@@ -230,6 +299,7 @@ def project(tmp_path, monkeypatch):
          ],
          'integration': None,
      }}
+    bind_task_requirements(task, requirements_registry)
     task['evidence_plan'] = {s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in stages}
     task['stage_contracts'] = [{
         'stage_id': stage['id'],
@@ -239,7 +309,8 @@ def project(tmp_path, monkeypatch):
     } for stage in stages]
     task_path = write_json(poise_root / 'task.json', task)
     return {'root': poise_root, 'config_path': cfg_path, 'cfg': cfg, 'process': process,
-            'task_path': task_path, 'task': task, 'app': app, 'remote': remote}
+            'task_path': task_path, 'task': task, 'app': app, 'remote': remote,
+            'requirements_registry': requirements_registry}
 
 
 def fill(result: dict, report='Этап выполнен и проверен.', artifacts=None):

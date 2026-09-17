@@ -17,7 +17,7 @@ def test_installed_reference_template_builds_all_thirteen_processes(project):
     selection=cfg['templates']['linux-reference']
     blueprint=json.loads((root/selection['path']).read_text())
     values={'project':'real-probe','repository':str(project['app']),'base':'main','remote':'backup',
-            'author_name':'Fixture','author_email':'fixture@example.invalid','push':True,'state':'state',
+            'author_name':'Fixture','author_email':'fixture@example.invalid','push':False,'state':'state',
             'environment':['PATH','HOME']}
     request={'schema':'project-setup-1','request_id':'reference','destination':'configured/reference',
              'template':{'id':'linux-reference','version':selection['version'],'digest':selection['digest']},

@@ -292,3 +292,11 @@ parent-only signals must not mutate the parent's Task. The sender uses public ha
 a genuinely separate native session obtains its own SessionStart launcher and bootstraps
 the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
+
+## Requirements provenance
+
+Use the project Requirements batch API and show the full System → Application → Task
+texts and statuses before agreement. Never infer acceptance from a ready plan or IDs.
+Publish the exact agreed snapshot through the existing Task/Sprint owner; preserve
+historical snapshots on replay/restart. Follow [agreement and publication](../../../docs/workflows/requirements-registry.md#декларативный-api-и-согласование)
+and [immutable history](../../../docs/workflows/requirements-registry.md#публикация-и-исторический-снимок).

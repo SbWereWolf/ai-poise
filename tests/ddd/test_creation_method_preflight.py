@@ -9,7 +9,7 @@ import pytest
 
 from batch.helpers import request
 from conftest import WorkPoise as Poise
-from conftest import verification_plan, write_json
+from conftest import bind_task_requirements, verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.modules.foundation.errors import DomainError
@@ -106,6 +106,12 @@ def _task(project, process, *, method_inputs=...):
             stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
             for stage in process["stages"]
         },
+        stage_contracts=[{
+            "stage_id": stage["id"],
+            "allowed_paths": list(stage["allowed_paths"]),
+            "entry_requirements": [],
+            "exit_requirements": [],
+        } for stage in process["stages"]],
     )
     task["methods"][0]["verification_plan"]["green_stages"] = [
         stage["id"]
@@ -114,7 +120,11 @@ def _task(project, process, *, method_inputs=...):
     ]
     if method_inputs is not ...:
         task["method_inputs"] = deepcopy(method_inputs)
-    return task
+    task["decomposition"] = {"kind": "ordinary", "phases": [
+        {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
+        for stage in process["stages"]], "integration": None}
+    registry = Poise(project["config_path"], "requirements-fixture").requirements_store.registry()
+    return bind_task_requirements(task, registry)
 
 
 def _inputs(*, baseline=(), future=(), profile=PROFILE, method_id="CHECK"):

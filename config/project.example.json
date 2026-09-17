@@ -13,7 +13,9 @@
     "runs": "runs",
     "stdout": "stdout.txt",
     "stderr": "stderr.txt",
-    "response": "response.json"
+    "response": "response.json",
+    "requirements_database": "database/requirements.sqlite",
+    "requirements_lock": "database/requirements.lock"
   },
   "limits": {
     "lock_seconds": 2.0,
@@ -73,15 +75,40 @@
   ],
   "task_decomposition": {
     "skills": [
-      {"id": "workflow", "class": "meta", "responsibility": null},
-      {"id": "general", "class": "general", "responsibility": null},
-      {"id": "backend", "class": "narrow", "responsibility": "backend"},
-      {"id": "frontend", "class": "narrow", "responsibility": "frontend"}
+      {
+        "id": "workflow",
+        "class": "meta",
+        "responsibility": null
+      },
+      {
+        "id": "general",
+        "class": "general",
+        "responsibility": null
+      },
+      {
+        "id": "backend",
+        "class": "narrow",
+        "responsibility": "backend"
+      },
+      {
+        "id": "frontend",
+        "class": "narrow",
+        "responsibility": "frontend"
+      }
     ],
     "areas": [
-      {"path": "src/**", "responsibility": "application"},
-      {"path": "tests/**", "responsibility": "application"},
-      {"path": "docs/**", "responsibility": "documentation"}
+      {
+        "path": "src/**",
+        "responsibility": "application"
+      },
+      {
+        "path": "tests/**",
+        "responsibility": "application"
+      },
+      {
+        "path": "docs/**",
+        "responsibility": "documentation"
+      }
     ]
   },
   "batch": {

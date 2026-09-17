@@ -85,6 +85,9 @@ def process_contract(goal_type, process):
         "methods": [],
         "method_inputs": [],
         "checks": {stage["id"]: [] for stage in process["stages"]},
+        "decomposition": {"kind": "ordinary", "phases": [
+            {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
+            for stage in process["stages"]], "integration": None},
         "evidence_plan": {
             stage["id"]: {
                 "subject_methods": {},
@@ -183,12 +186,17 @@ def test_restarts_same_standalone_identity_and_preserves_history_and_worktree(pr
     assert restarted["status"] == "newborn"
     assert restarted["task"] == task_id
     assert restarted["sprint"] is None
-    assert restarted["draft"] == {
+    expected_draft = {
         key: deepcopy(value)
         for key, value in before["contract"].items()
         if key not in {"id", "sprint_id"}
     }
+    expected_draft["requirements_snapshot"] = before["requirements_snapshot"]
+    expected_draft["requirements_agreement"] = before["requirements_agreement"]
+    assert restarted["draft"] == expected_draft
     after = executor.runtime.task_queries.record(task_id)
+    assert after["requirements_snapshot"] == before["requirements_snapshot"]
+    assert after["requirements_agreement"] == before["requirements_agreement"]
     assert after["worktree"] == execution_before["worktree"] == context["worktree"]
     assert after["branch"] == execution_before["branch"]
     assert after["pending"] is None
@@ -276,6 +284,8 @@ def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(pr
     assert len(packet_before) == 1
     assert packet_before[0][1:3] == ("framing", 1)
 
+    with owner.runtime.task_commands.unit_of_work() as uow:
+        requirements_before = uow.tasks.restart_context(task_id)["requirements_snapshot"]
     current = owner.runtime.task_queries.record(task_id)
     newborn = restart(
         owner,
@@ -290,6 +300,9 @@ def test_restart_invalidates_work_packet_identity_and_preserves_audit_records(pr
         processes["development"],
         "integration-to-development",
     )["status"] == "available"
+
+    with owner.runtime.task_commands.unit_of_work() as uow:
+        assert uow.tasks.restart_context(task_id)["requirements_snapshot"] == requirements_before
 
     developer = WorkTools(Poise(project["config_path"], "packet-developer"))
     development = developer.invoke(request("bootstrap", {

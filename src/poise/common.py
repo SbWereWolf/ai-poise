@@ -84,6 +84,19 @@ def configured_root(config_root: Path, value: str) -> Path:
     return resolved
 
 
+def configured_storage_path(state: Path, value: str) -> Path:
+    """Resolve an explicit store file, with no default or implicit relocation."""
+    if not isinstance(value, str) or not value.strip() or '\x00' in value:
+        raise PoiseError('Requirements storage: explicit nonempty file path required')
+    path = Path(value)
+    if not path.is_absolute():
+        return descendant(state, value)
+    resolved = path.resolve()
+    if resolved == Path(resolved.anchor):
+        raise PoiseError('Requirements storage: filesystem root is not a store file')
+    return resolved
+
+
 from .modules.verification.domain import validate_method
 
 
@@ -115,8 +128,10 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
                 raise PoiseError(f'development_routing.{name}: explicit filesystem path required')
     if cfg['schema'] != 'ddd-accounting-12':
         raise PoiseError('Версия конфигурации не поддерживается; автоматических миграций нет')
-    exact_keys(cfg['paths'], {'state','database','lock','runtime','standalone_tasks','sprints','worktrees',
-                             'git_index','runs','stdout','stderr','response'}, 'paths')
+    task_paths = {'state','database','lock','runtime','standalone_tasks','sprints','worktrees',
+                  'git_index','runs','stdout','stderr','response'}
+    requirements_paths = {'requirements_database', 'requirements_lock'}
+    exact_keys(cfg['paths'], task_paths | requirements_paths, 'paths')
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
     for key, value in cfg['limits'].items():
@@ -148,6 +163,27 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
         raise PoiseError('Mutable state root overlaps the project manifest')
     for key in ('database','lock','runtime','standalone_tasks','sprints','worktrees'):
         descendant(state, cfg['paths'][key])
+    requirements_storage = [
+        configured_storage_path(state, cfg['paths'][key])
+        for key in ('requirements_database', 'requirements_lock')
+    ]
+    task_storage = [
+        descendant(state, cfg['paths'][key])
+        for key in ('database', 'lock')
+    ]
+    if len(set(requirements_storage + task_storage)) != 4:
+        raise PoiseError('Requirements DB/lock должны быть отделены от Task DB/lock')
+    codebase = Path(cfg['git']['repository']).resolve()
+    if any(path.is_relative_to(codebase) for path in requirements_storage):
+        raise PoiseError("Requirements storage must be outside the served codebase")
+    for index, left in enumerate(requirements_storage):
+        for right in [*task_storage, *requirements_storage[index + 1:]]:
+            try:
+                aliased = left.exists() and right.exists() and left.samefile(right)
+            except OSError:
+                aliased = False
+            if aliased:
+                raise PoiseError('Requirements storage физически совпадает с Task storage')
     for key in ('git_index','runs','stdout','stderr','response'):
         descendant(state, cfg['paths'][key])
     homes = [descendant(state, cfg['paths'][k]) for k in ('runtime','standalone_tasks','sprints','worktrees')]
@@ -162,7 +198,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     from .modules.accounting.domain import MetricPolicy
     accounting=MetricPolicy.parse(cfg['accounting']).data
     optional=[descendant(state,accounting['storage'][key]) for key in ('database','lock')]
-    authoritative=[descendant(state,cfg['paths'][key]) for key in ('database','lock')]
+    authoritative = task_storage + requirements_storage
     if optional[0]==optional[1] or any(item in authoritative for item in optional):
         raise PoiseError('accounting.storage должен использовать отдельные database и lock')
     for index,left in enumerate(optional):

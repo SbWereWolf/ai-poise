@@ -16,6 +16,14 @@ def fingerprint(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
 
 
+def _creation_definition(body):
+    """Return the Task schema owned below the external Requirements gate."""
+    result = deepcopy(body)
+    result.pop("requirements_snapshot", None)
+    result.pop("requirements_agreement", None)
+    return result
+
+
 class SprintCommands:
     def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
                  automatic_checks,decomposition_policy,execution_hash,
@@ -43,7 +51,7 @@ class SprintCommands:
                     process=fact['_newborn_process']
                     if process is None:raise DomainError('Unknown goal_type')
                     validate_creation(
-                        body, process, record['automatic_checks'],
+                        _creation_definition(body), process, record['automatic_checks'],
                         record['task_decomposition'],
                     )
                     if not fact.get('ready',False):
@@ -53,7 +61,8 @@ class SprintCommands:
                 kind=body.get('goal_type')
                 if not isinstance(kind,str) or kind not in record['processes']:raise DomainError('Unknown goal_type')
                 validate_creation_intent(
-                    t, record['processes'][kind], record['automatic_checks'],
+                    ({**t, 'task': _creation_definition(body)} if 'task' in t
+                     else _creation_definition(body)), record['processes'][kind], record['automatic_checks'],
                     record['task_decomposition'],
                 )
             except PoiseError as exc:errors.append(f"Task creation intent: {exc}")
@@ -208,7 +217,7 @@ class SprintCommands:
                     if process is None:raise DomainError('Unknown goal_type')
                     body={'id':task_id,'sprint_id':sid,**deepcopy(newborn.draft)}
                     validate_creation(
-                        body, process, self.automatic_checks,
+                        _creation_definition(body), process, self.automatic_checks,
                         self.decomposition_policy,
                     )
                 except PoiseError:
@@ -423,17 +432,20 @@ class SprintCommands:
                                     raise VersionConflict('Adopted Sprint member changed after publication preflight')
                                 continue
                             newborn,contract=u.tasks.newborn_creation(intent)
-                            if (not newborn.ready or prepared.intent!=contract
+                            if (not newborn.ready or prepared.source_intent!=contract
                                     or newborn!=item['newborn']):
                                 raise VersionConflict('Newborn Sprint member changed after creation preflight')
                             metadata=validate_creation(
-                                contract, newborn.process, record['automatic_checks'],
+                                prepared.intent, newborn.process, record['automatic_checks'],
                                 record['task_decomposition'],
                             )
                             metadata.update(sprint_id=sid,goal=contract['goal'],config_hash=record['execution_hash'])
                             if newborn.creation_request is not None:
                                 metadata['creation_request']=deepcopy(newborn.creation_request)
                             u.tasks.promote_newborn(build_task(metadata,None),metadata,newborn.version)
+                            prepared.requirements_gate.publish_created(
+                                u,newborn.task_id,prepared.requirements_context
+                            )
                             if newborn.creation_request is not None:
                                 allocations.append({
                                     'request_id':newborn.creation_request['request_id'],
@@ -442,7 +454,7 @@ class SprintCommands:
                                 })
                             continue
                         body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
-                        if prepared.intent!=intent:
+                        if prepared.source_intent!=intent:
                             raise VersionConflict('Sprint Task intent changed after creation preflight')
                         allocation,contract=create_planned_in_uow(
                             u,prepared,{'config_hash':record['execution_hash']},

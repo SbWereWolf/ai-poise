@@ -180,3 +180,12 @@ foreign/ambiguous ownership, pending external effects or cleanup with a chosen
 commit disposition must not be bypassed. An old cancellation without a precise
 recovery point is not guessed. Do not issue direct Task DB edits.
 Read [the exact packet and guards](../../../docs/workflows/batch-work.md#восстановление-ошибочно-отменённой-task).
+
+## Requirements Registry owner
+
+Keep canonical System/Application data in the explicitly configured Requirements DB;
+Task owns immutable agreed lineage. Route public planning queries and atomic changes
+through RequirementsCommands, and Task/Sprint publication through TaskRequirementsGate.
+Do not add implicit storage paths or rewrite historical Task context. See
+[storage ownership](../../../docs/workflows/requirements-registry.md#владение-и-явные-пути)
+and [publication](../../../docs/workflows/requirements-registry.md#публикация-и-исторический-снимок).

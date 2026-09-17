@@ -562,7 +562,7 @@ def test_legacy_self_review_rejects_before_verification_workspace(project, monke
 
     monkeypatch.setattr(executor.runtime, "_verification_workspace", unexpected_workspace)
     with pytest.raises(PoiseError, match="distinct native reviewer session"):
-        executor.runtime.verify(result(review))
+        executor.runtime.verify(result(review),packet_digest=executor.runtime.packet_digest({'result':result(review),'artifacts':[]}))
     assert state_snapshot(executor.runtime, ("executor", "reviewer")) == before
 
 

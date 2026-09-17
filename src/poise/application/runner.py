@@ -15,8 +15,9 @@ class StageRunner:
     def matching_submission_digest(self, task_id, actor, payload):
         return self.tasks.matching_submission_digest(task_id, actor, payload)
 
-    def verified(self, task_id, actor, digest, report, artifacts):
-        return self.tasks.mark_verified(task_id, actor, digest, report, artifacts)
+    def verified(self, task_id, actor, digest, report, artifacts, *, packet_digest, permanent_artifacts):
+        return self.tasks.mark_verified(task_id, actor, digest, report, artifacts,
+                                        packet_digest=packet_digest, permanent_artifacts=permanent_artifacts)
 
     def accept(self, task_id, actor, advance, entry_tree):
         return self.tasks.accept(task_id, actor, advance, entry_tree)

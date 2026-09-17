@@ -667,7 +667,13 @@ class TaskCommands:
                 "due": [item for item in context["due"] if item["id"] in active],
             }
 
-    def mark_verified(self, task_id: str, actor: str, digest: str, report: dict, artifacts: tuple[ArtifactFact, ...]) -> TaskState:
+    def mark_verified(self, task_id: str, actor: str, digest: str, report: dict,
+                      artifacts: tuple[ArtifactFact, ...], *, packet_digest: str,
+                      permanent_artifacts: list[dict]) -> TaskState:
+        # The full original work packet, not the normalized submission payload.
+        if (not isinstance(packet_digest,str) or len(packet_digest)!=64
+                or any(c not in '0123456789abcdef' for c in packet_digest)):
+            raise DomainError("Explicit SHA-256 work packet identity required")
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
             require_reviewer_identity_in(uow, task, actor)
@@ -686,12 +692,16 @@ class TaskCommands:
                 execution,_=uow.execution.load(task_id)
                 if execution["last_report"] != report:
                     raise DomainError("Повтор не может заменить сохранённый доклад/receipt")
+                if uow.work_packets.current(task_id,task.stage.stage_id,task.state.iteration)!=packet_digest:
+                    raise DomainError("Saved verified work packet identity does not match")
                 return task.state
             submission_id = uow.tasks.save(change,task.state.version)
             if submission_id is None:
                 raise DomainError("Нет submission для проверенного результата")
-            uow.tasks.record_result(task_id, submission_id, report)
+            uow.tasks.record_result(task_id, submission_id, report, actor=actor)
             uow.execution.patch(task_id,{"last_report":report,"publication":None})
+            uow.artifacts.link_task(task_id,permanent_artifacts)
+            uow.work_packets.remember(task_id,task.stage.stage_id,task.state.iteration,packet_digest)
             return change.task.state
 
     @staticmethod

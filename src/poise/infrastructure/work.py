@@ -47,10 +47,3 @@ class WorkResources:
             return SqliteWorkPacketRepository(db).current(
                 task['id'],stage,task['iteration'],
             )
-
-    def remember(self,task,digest):
-        stage=task['process']['stages'][task['stage_index']]['id']
-        with self.runtime.store.transaction() as db:
-            SqliteWorkPacketRepository(db).remember(
-                task['id'],stage,task['iteration'],digest,
-            )

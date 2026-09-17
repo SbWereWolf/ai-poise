@@ -847,8 +847,13 @@ class SqliteTaskRepository:
                     (task.state.version, data, task.state.task_id, entry.method_id),
                 )
 
-    def record_result(self, task_id: str, submission_id: int, report: dict) -> None:
+    def record_result(self, task_id: str, submission_id: int, report: dict, *, actor: str) -> None:
         self.db.execute("INSERT INTO task_results VALUES(?,?,?)", (task_id,submission_id,encode(report)))
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(),actor,task_id,'stage.verified',
+             encode({'commit':report['commit'],'tree':report['verified_tree']})),
+        )
 
     def _event(self, task_id: str, version: int, data: dict) -> None:
         self.db.execute("INSERT INTO task_events(task_id,version,at,data) VALUES(?,?,?,?)",

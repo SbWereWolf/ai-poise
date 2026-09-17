@@ -6,6 +6,7 @@ from .tasks import SqliteTaskRepository, SqliteExecutionRepository
 from .ownership import SqliteOwnershipRepository
 from .accounting import SqliteAccountingCycles
 from .work_packets import SqliteWorkPacketRepository
+from .artifacts import SqliteArtifactRepository
 
 
 class SqliteUnitOfWork:
@@ -26,6 +27,7 @@ class SqliteUnitOfWork:
         self.ownership = SqliteOwnershipRepository(connection,self.processes)
         self.accounting_cycles = SqliteAccountingCycles(connection)
         self.work_packets = SqliteWorkPacketRepository(connection)
+        self.artifacts = SqliteArtifactRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

@@ -233,7 +233,8 @@ def test_verified_report_replay_cannot_substitute_another_tree(project):
     with h.store.unit_of_work() as uow:
         digest=uow.tasks.load("T1").state.submission_digest
     with pytest.raises(PoiseError,match="доклад|receipt"):
-        h.task_commands.mark_verified("T1","S1",digest,{**report,"verified_tree":"unverified-tree"}, ())
+        h.task_commands.mark_verified("T1","S1",digest,{**report,"verified_tree":"unverified-tree"}, (),
+                                      packet_digest=h.work_resources.packet(h.current_task()),permanent_artifacts=[])
     assert h.store.current("S1")["last_report"] == report
 
 

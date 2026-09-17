@@ -323,6 +323,8 @@ class Poise(Runtime):
 
     def verify(self):
         draft=_SCENARIO_DRAFTS.get((str(self.config_path),self.session))
-        r=super().verify(None if draft is None else deepcopy(draft[1]))
+        payload=None if draft is None else deepcopy(draft[1])
+        digest=None if payload is None else self.packet_digest({'result':payload,'artifacts':[]})
+        r=super().verify(payload,packet_digest=digest)
         if 'context' in r:self._remember(r['context'])
         return r

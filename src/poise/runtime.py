@@ -1141,20 +1141,23 @@ class Poise:
                 'content_gate':gate,'checks':receipts,'replayed':False,
                 'context':self._context(data,True)}
 
-    def verify(self, payload: dict | None) -> dict:
+    def verify(self, payload: dict | None, *, packet_digest: str | None) -> dict:
         try:
-            result=self._verify(payload)
+            result=self._verify(payload, packet_digest=packet_digest)
         finally:
             incidents=self.result_views.finish()
         if incidents:result={**result,'incidents':incidents}
         return result
 
-    def _verify(self, payload: dict | None) -> dict:
+    def _verify(self, payload: dict | None, *, packet_digest: str | None) -> dict:
         data = self.store.current(self.session)
         if data is None:
             self.store.event(self.session,None,'read_only.finalize',{})
             self._cleanup_runtime()
             return {'status':'read_only_verified','project':self.cfg['project'],'checks':[], 'artifacts':[]}
+        if payload is not None and (not isinstance(packet_digest,str) or len(packet_digest)!=64
+                or any(c not in '0123456789abcdef' for c in packet_digest)):
+            raise PoiseError('Explicit SHA-256 work packet identity required')
         data = self._task(); stage = self._stage(data)
         self.task_commands.reviewer_preflight(data['id'], self.session)
         worktree = self._verification_workspace(data)
@@ -1168,6 +1171,8 @@ class Poise:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
+            if packet_digest is not None and self.work_resources.packet(data)!=packet_digest:
+                raise PoiseError('Different work packet after delivery requires rework')
             if tree != data['last_report']['verified_tree']:
                 raise PoiseError('Код изменён после доклада: сначала rework')
             self._cleanup_runtime()
@@ -1276,7 +1281,7 @@ class Poise:
         publication = data['publication']
         if (publication is not None and publication['tree']==tree and publication['payload_hash']==payload_hash
                 and publication['execution_key']==execution_key and usable):
-            return self._publish(data, publication)
+            return self._publish(data, publication, packet_digest=packet_digest)
         if intact:
             receipts = batch['receipts']
             attempt = data['attempts']
@@ -1334,7 +1339,7 @@ class Poise:
         if action is not None and 'allocations' in action:
             publication['allocations']=action['allocations']
         data['publication'] = publication; self.store.save(data)
-        return self._publish(data, publication)
+        return self._publish(data, publication, packet_digest=packet_digest)
 
     def _action_incomplete(self,data,payload,action):
         context=self._context(self._task(),True)
@@ -1532,7 +1537,7 @@ class Poise:
             self.store.event(self.session,data['id'],'check.finished',{'run':run_id,'passed':passed,'exit':result['actual_exit_code']})
         return receipts
 
-    def _publish(self, data: dict, publication: dict) -> dict:
+    def _publish(self, data: dict, publication: dict, *, packet_digest: str) -> dict:
         worktree = self._verification_workspace(data)
         tree = publication['tree']; stage = self._stage(data)
         if self._current_tree(data) != tree:
@@ -1565,7 +1570,6 @@ class Poise:
                 raise PoiseError('Коммит/hook изменил проверенное дерево; remote publication не выполнялась')
         # Только task/sprint links переживают cleanup. Runtime пути остаются временными.
         permanent = [r for r in publication['artifacts'] if r['scope']!='runtime']
-        self.store.link_artifacts(data['id'], permanent)
         workflow = self.runner.context(data['id'])
         if workflow['terminal']:
             check_counts(current_artifacts,data['contract']['artifact_requirements'])
@@ -1578,8 +1582,8 @@ class Poise:
         if 'allocations' in publication:report['allocations']=publication['allocations']
         if self.result_views.incidents:report['incidents']=list(self.result_views.incidents)
         self.runner.verified(data['id'], self.session, publication['payload_hash'], report,
-                                         self._artifact_facts(publication['artifacts']))
-        self.store.event(self.session,data['id'],'stage.verified',{'commit':sha,'tree':tree})
+                             self._artifact_facts(publication['artifacts']),
+                             packet_digest=packet_digest, permanent_artifacts=permanent)
         self._cleanup_runtime()
         return report
 

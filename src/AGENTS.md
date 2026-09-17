@@ -160,3 +160,14 @@ handoffs, delete legacy sources, weaken ordinary validation, or invent missing
 bundle bytes. Failed DB/file publication may leave identical immutable files for
 safe retry; exact receipt replay is historical, not fresh material validation.
 Read [registered artifact recovery](../docs/workflows/batch-work.md#восстановление-зарегистрированных-артефактов).
+
+## Atomic verified delivery
+
+The existing TaskCommands final verification UnitOfWork owns Task/result/proof,
+execution report, permanent artifact links, stage.verified journal and original
+full work-packet identity together. Do not call a late receipt writer after
+verification commits. Runtime callers pass packet_digest explicitly; null is
+only for read-only retrieval, never identity repair. Keep external checks, Git
+commits and file preparation outside this transaction; preserve preparatory
+observations for an exact retry after rollback. Never claim filesystem/Git and
+SQLite are one atomic transaction. Read the [delivery contract](../docs/workflows/batch-work.md#атомарная-доставка-verified-результата).

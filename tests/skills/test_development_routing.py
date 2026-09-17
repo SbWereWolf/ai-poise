@@ -316,7 +316,7 @@ def test_c029_gate_blocks_before_submit_and_can_retry_same_stage(configured, pro
     write(target, bad_source)
     before = runtime.current_task()
     history = runtime.task_queries.history(project['task']['id'])
-    result = runtime.verify(fill(ctx))
+    result = runtime.verify(fill(ctx),packet_digest=runtime.packet_digest({'result':fill(ctx),'artifacts':[]}))
     assert result['status'] == 'architecture_boundaries_failed'
     assert result['architecture']['status'] == expected_status
     assert result['checks'] == []
@@ -325,7 +325,7 @@ def test_c029_gate_blocks_before_submit_and_can_retry_same_stage(configured, pro
         assert after[field] == before[field]
     assert runtime.task_queries.history(project['task']['id']) == history
     write(target, 'VALUE = 1\n')
-    repaired = runtime.verify(fill(ctx))
+    repaired = runtime.verify(fill(ctx),packet_digest=runtime.packet_digest({'result':fill(ctx),'artifacts':[]}))
     assert repaired['status'] == 'verified', repaired
     assert runtime.current_task()['id'] == before['id']
     assert runtime.current_task()['stage_index'] == before['stage_index']

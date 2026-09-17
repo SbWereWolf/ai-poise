@@ -83,12 +83,12 @@ class WorkTools:
         if data is None:
             if args['result'] is not None or args['artifacts']:
                 raise PoiseError('Taskless read-only verify takes explicit null result and no artifacts')
-            return h.verify(None)
+            return h.verify(None, packet_digest=None)
         if data['status']=='verified':
             saved=self.resources.packet(data)
             if not (args['result'] is None and not args['artifacts']) and saved!=packet_digest:
                 raise PoiseError('Different result after delivery requires rework')
-            return h.verify(None)
+            return h.verify(None, packet_digest=None)
         if data['status']!='active' or args['result'] is None:
             raise PoiseError('Active verify requires an explicit result object')
         payload=deepcopy(args['result'])
@@ -106,9 +106,7 @@ class WorkTools:
         # Validate existing path-only inputs before producing any new file.
         h.validate_artifact_paths(args['result']['artifact_paths'],data)
         factory.materialize(prepared)
-        out=h.verify(payload)
-        if out['status']=='verified':self.resources.remember(h.current_task(),packet_digest)
-        return out
+        return h.verify(payload, packet_digest=packet_digest)
 
     def _show(self,queries):
         h=self.runtime;items=[]

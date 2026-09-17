@@ -150,7 +150,8 @@ def test_task_api_cannot_mark_verified_before_evidence_gate(project):
     payload=ctx['result_template']
     rec=h.runner.submit('T1','S1',payload)
     with pytest.raises(PoiseError):
-        h.task_commands.mark_verified('T1','S1',rec.digest,{'verified_tree':'anything'},())
+        h.task_commands.mark_verified('T1','S1',rec.digest,{'verified_tree':'anything'},(),
+                                      packet_digest='0'*64,permanent_artifacts=[])
     assert h.show()['status']=='active'
 
 

@@ -687,6 +687,11 @@ class SqliteTaskRepository:
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts)
 
+    def start_candidates(self) -> list[dict]:
+        """A coarse read projection; the Task and Sprint owners decide readiness."""
+        return [dict(row) for row in self.db.execute(
+            "SELECT id,metadata FROM tasks WHERE status='available' AND claimed_by IS NULL ORDER BY id")]
+
     def membership_snapshot(self, task_id: str) -> dict:
         row = self.db.execute(
             "SELECT t.status,t.claimed_by,t.version,t.metadata,e.data AS execution "

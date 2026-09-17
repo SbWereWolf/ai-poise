@@ -299,6 +299,38 @@ class Sprint:
         else:status='blocked'
         return {'status':status,'eligible':eligible,'blocked':blocked,'active':active}
 
+    def work_overview(self, facts):
+        """The shared dependency/result gate for work and taskless discovery."""
+        resumable = tuple(i for i, f in facts.items()
+                          if f['claimed_by'] is None and f['handoff_available']
+                          and f['status'] in ('active', 'verified', 'accepted'))
+        out = self.overview({i: f['status'] for i, f in facts.items()}, resumable)
+        waived = {(d['predecessor'], d['successor']) for d in self.waivers}
+        predecessors = {
+            tid: [e['predecessor'] for e in self.plan.data['dependencies']
+                  if e['successor'] == tid and e['kind'] == 'result'
+                  and (e['predecessor'], tid) not in waived]
+            for tid in facts
+        }
+        out['resumable'] = list(resumable)
+        out['result_provenance'] = {
+            tid: [{'predecessor': pre, 'result_commit': facts[pre]['result_commit']}
+                  for pre in required]
+            for tid, required in predecessors.items() if required
+        }
+        ready = []
+        for tid in out['eligible']:
+            required = predecessors[tid]
+            if tid not in resumable and any(facts[i]['result_commit'] is None for i in required):
+                out['blocked'].append({'task': tid, 'reasons': [
+                    {'reason': 'missing_predecessor_result', 'predecessors': required}]})
+            else:
+                ready.append(tid)
+        out['eligible'] = ready
+        if out['status'] not in ('draft', 'completed', 'cancelled') and not ready and not out['active']:
+            out['status'] = 'blocked'
+        return out
+
     def to_dict(self):
         return {'plan':deepcopy(self.plan.data),'policy':deepcopy(self.policy.data),'revision':self.revision,
                 'state':self.state,'waivers':deepcopy(list(self.waivers)),'decisions':deepcopy(list(self.decisions))}

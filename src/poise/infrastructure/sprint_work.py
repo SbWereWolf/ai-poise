@@ -51,30 +51,7 @@ class SprintWork:
     def overview(self,sprint_id):
         out=self.commands.read(sprint_id,'current')
         if out is None:return None
-        record=self.commands.read(out['sprint'],'plan')
-        plan=record['aggregate']['plan'];waived={(x['predecessor'],x['successor']) for x in record['aggregate']['waivers']}
-        facts={t['id']:t for t in out['tasks']};ready=[]
-        result_predecessors={
-            tid:[e['predecessor'] for e in plan['dependencies']
-                 if e['successor']==tid and e['kind']=='result'
-                 and (e['predecessor'],tid) not in waived]
-            for tid in facts
-        }
-        out['result_provenance']={
-            tid:[{'predecessor':predecessor,'result_commit':facts[predecessor]['result_commit']}
-                 for predecessor in predecessors]
-            for tid,predecessors in result_predecessors.items() if predecessors
-        }
-        for tid in out['eligible']:
-            if tid in out['resumable']:
-                # Resume the saved process/workspace; do not prepare a new baseline.
-                ready.append(tid);continue
-            predecessors=result_predecessors[tid]
-            if any(facts[i]['result_commit'] is None for i in predecessors):
-                out['blocked'].append({'task':tid,'reasons':[{'reason':'missing_predecessor_result','predecessors':predecessors}]});continue
-            ready.append(tid)
-        out['eligible']=ready
-        if out['status'] not in ('draft','completed','cancelled') and not ready and not out['active']:out['status']='blocked'
+        ready=out['eligible']
         current=self.h.current_task()
         out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled') and current['sprint_id']==out['sprint'] else None
         out['sprint_root']=str(descendant(self.h.state,self.h.paths['sprints'])/out['sprint'])

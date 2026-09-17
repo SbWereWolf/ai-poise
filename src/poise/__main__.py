@@ -13,6 +13,9 @@ def parser():
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
     project.add_argument('project_action',nargs='?',choices=('list',))
     project.add_argument('--settings',type=Path,required=True)
+    next_command=sub.add_parser('next',help='Read all startable Tasks across configured projects; never claim')
+    next_command.add_argument('--settings',type=Path,required=True)
+    next_command.add_argument('--project',help='Exact configured project ID (no prefix matching)')
     project_config=sub.add_parser('project-config',help='Update one existing configured project')
     project_config.add_argument('--settings',type=Path,required=True)
     wizard=sub.add_parser('project-init',help='Interactive project questionnaire: set/keep/back/abort')
@@ -68,6 +71,9 @@ def main():
     if args.command=='project':
         from .interfaces.projects import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout,args.project_action)
+    if args.command=='next':
+        from .interfaces.projects import next_tasks
+        return next_tasks(args.settings,args.project,sys.stdout)
     if args.command=='project-config':
         from .interfaces.project_config import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout)

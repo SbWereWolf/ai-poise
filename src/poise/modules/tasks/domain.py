@@ -394,6 +394,13 @@ class Task:
             raise DomainError("Only an available task can be started")
         return self._change("started",None,None,status=TaskStatus.ACTIVE,claimed_by=actor)
 
+    def can_start(self, artifacts=()) -> bool:
+        """Task-owned, side-effect-free readiness; resumable work is not a start."""
+        if self.state.status != TaskStatus.AVAILABLE or self.state.claimed_by is not None:
+            return False
+        self.start()  # Validate the same saved route contract; do not persist a change.
+        return self.assess_content('pre', artifacts).passed
+
     def handoff(self, actor: str, reason: str) -> Change:
         self._owned(actor)
         if self.state.claimed_by != actor or self.state.status not in (TaskStatus.ACTIVE,TaskStatus.VERIFIED,TaskStatus.ACCEPTED):

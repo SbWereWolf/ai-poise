@@ -1,7 +1,7 @@
 """Batch input through one port; no project-specific commands or storage access."""
-from ..modules.projects.ports import ProjectSetupPort
+from ..modules.projects.ports import ProjectSetupPort, ProjectAvailabilityPort
 from ..modules.verification.domain import exact_keys
-from ..modules.foundation.errors import DomainError
+from ..modules.foundation.errors import DomainError, PoiseError
 
 
 def validate_request(request):
@@ -17,7 +17,9 @@ def validate_request(request):
 
 
 class ProjectCommands:
-    def __init__(self,port:ProjectSetupPort):self.port=port
+    def __init__(self, port: ProjectSetupPort, availability: ProjectAvailabilityPort | None = None):
+        self.port = port
+        self.availability = availability
 
     def apply(self,request):
         validate_request(request)
@@ -25,6 +27,30 @@ class ProjectCommands:
 
     def list(self):
         return self.port.list()
+
+    def next(self, project: str | None = None) -> dict:
+        if project is not None and (not isinstance(project, str) or not project):
+            raise DomainError('An exact nonempty project ID is required')
+        if self.availability is None:
+            raise DomainError('No read-only project availability port configured')
+        registry = self.port.list()
+        projects = registry['projects']
+        errors = list(registry['errors'])
+        if project is not None:
+            projects = [p for p in projects if p['project'] == project]
+            errors = [e for e in errors if e['project'] == project]
+            if not projects and not errors:
+                errors.append({'project': project, 'status': 'unknown',
+                               'reason': 'Project is not in the configured-project registry'})
+        tasks = []
+        for entry in projects:
+            try:
+                tasks.extend(self.availability.startable(entry))
+            except PoiseError as exc:
+                errors.append({**entry, 'status': 'unavailable', 'reason': str(exc)})
+        return {'status': 'listed_with_errors' if errors else 'listed',
+                'tasks': sorted(tasks, key=lambda t: (t['project'], t['task'])),
+                'errors': sorted(errors, key=lambda e: e['project'])}
 
     def questionnaire(self,request):
         from ..modules.projects.domain import Survey

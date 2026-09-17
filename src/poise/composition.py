@@ -35,7 +35,8 @@ def goal_config_tools(settings_path):
 def project_tools(settings_path):
     from .application.projects import ProjectCommands
     from .infrastructure.projects import ProjectSettings, FileProjectSetup
-    return ProjectCommands(FileProjectSetup(ProjectSettings(settings_path)))
+    from .infrastructure.project_availability import ReadOnlyProjectAvailability
+    return ProjectCommands(FileProjectSetup(ProjectSettings(settings_path)), ReadOnlyProjectAvailability())
 
 
 def project_config_tools(settings_path):

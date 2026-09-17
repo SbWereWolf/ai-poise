@@ -58,3 +58,13 @@ def interactive(settings_path,request,stream,output,prompts):
         raise PoiseError('Questionnaire step limit reached; project not published')
     except (PoiseError,UnicodeError,RecursionError) as exc:
         return emit(settings,{'status':'rejected','reason':str(exc)},'rejected',output)
+
+
+def next_tasks(settings_path, project, output):
+    settings = None
+    try:
+        settings = ProjectSettings(settings_path)
+        result = project_tools(settings_path).next(project)
+        return emit(settings, result, 'rejected' if result['errors'] else 'success', output)
+    except (PoiseError, OSError, UnicodeError, RecursionError) as exc:
+        return emit(settings, {'status': 'rejected', 'reason': str(exc)}, 'rejected', output)

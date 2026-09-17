@@ -167,6 +167,15 @@ class SubmissionReceipt:
     registry_change: dict | None = None
 
 
+def require_start_execution(execution, restart_history):
+    """One execution prerequisite for start and read-only discovery."""
+    if execution is not None:
+        if not restart_history:
+            raise DomainError('Available Task has unexpected execution state')
+        if execution['pending'] is not None:
+            raise DomainError('Restarted Task execution recovery is still pending')
+
+
 class TaskCommands:
     """One application API for Task changes. Every call uses a short UoW."""
     def __init__(self, unit_of_work: Callable[[], TaskUnitOfWork], repository_tree: RepositoryTreeReader,
@@ -667,17 +676,15 @@ class TaskCommands:
     def start(self, task_id, actor, execution):
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
+            has_execution = uow.execution.exists(task_id)
+            if has_execution:
+                current, _ = uow.execution.load(task_id)
+                require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'])
             change=task.start(actor)
             uow.tasks.save(change,task.state.version)
             started=change.task
             uow.tasks.save(started.release_ownership(actor),started.state.version)
-            if uow.execution.exists(task_id):
-                if not uow.tasks.restart_context(task_id)['restart_history']:
-                    raise DomainError('Available Task has unexpected execution state')
-                current, _ = uow.execution.load(task_id)
-                if current['pending'] is not None:
-                    raise DomainError('Restarted Task execution recovery is still pending')
-            else:
+            if not has_execution:
                 uow.execution.create(task_id,execution)
 
     def submit(self, task_id: str, actor: str, payload: dict) -> SubmissionReceipt:

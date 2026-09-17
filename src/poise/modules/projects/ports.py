@@ -8,5 +8,10 @@ class ProjectSetupPort(Protocol):
     def list(self)->dict: ...
 
 
+class ProjectAvailabilityPort(Protocol):
+    """Read a configured project's Task/Sprint snapshot without runtime setup."""
+    def startable(self, project: dict) -> list[dict]: ...
+
+
 class ProjectConfigUpdatePort(Protocol):
     def apply(self,request:dict)->dict: ...

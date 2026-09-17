@@ -29,10 +29,6 @@ def create(directory: Path):
     (app / 'AGENTS.md').write_text('Использовать unittest; менять только заявленную область задачи.\n')
     git(app, 'add', '.')
     git(app, 'commit', '-m', 'Initial demo')
-    remote = directory / 'remote.git'
-    subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
-    git(app, 'remote', 'add', 'backup', str(remote))
-    git(app, 'push', 'backup', 'main')
     home = directory / 'poise'
     home.mkdir()
     stages = []
@@ -41,8 +37,10 @@ def create(directory: Path):
     for i, stage in enumerate(stages):
         stage.update(handler='produce', transitions={'complete': stages[i + 1]['id'] if i + 1 < len(stages) else None}, rework_targets=[stage['id']])
     save(home / 'config/processes/development.json', {'route': {'entry': 'tests'}, 'goal_type': 'development', 'worktree_required': True, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, 'stages': stages, 'content_contract': {'sections': [], 'routes': [], 'requirements': []}})
-    cfg = {'schema': 'ddd-accounting-12', 'project': 'demo', 'paths': {'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock', 'runtime': 'runtime', 'tasks': 'tasks', 'sprints': 'sprints', 'worktrees': 'worktrees', 'git_index': 'snapshot.index', 'runs': 'runs', 'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json'}, 'limits': {'lock_seconds': 2.0, 'lock_poll_seconds': 0.01, 'git_seconds': 15.0, 'verify_attempts': 5, 'output_chars': 2200, 'preview_chars': 300}, 'git': {'repository': str(app), 'base_ref': 'main', 'remote': 'backup', 'branch_template': 'tasks/{task_id}', 'commit_pattern': '.+', 'author_name': 'Demo agent', 'author_email': 'demo-agent@example.invalid', 'push_required': True}, 'processes': {'development': 'config/processes/development.json'}, 'environment_names': ['PATH', 'HOME'], 'automatic_checks': [{'paths': ['src/**', 'tests/**'], 'by_stage': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': []}}]}
+    cfg = {'schema': 'ddd-accounting-12', 'project': 'demo', 'paths': {'state': 'state', 'database': 'state.sqlite', 'lock': 'state.lock', 'runtime': 'runtime', 'standalone_tasks': 'standalone', 'sprints': 'sprints', 'worktrees': 'worktrees', 'git_index': 'snapshot.index', 'runs': 'runs', 'stdout': 'stdout.txt', 'stderr': 'stderr.txt', 'response': 'response.json'}, 'limits': {'lock_seconds': 2.0, 'lock_poll_seconds': 0.01, 'git_seconds': 15.0, 'verify_attempts': 5, 'output_chars': 2200, 'preview_chars': 300}, 'git': {'repository': str(app), 'base_ref': 'main', 'remote': 'backup', 'branch_template': 'tasks/{task_id}', 'commit_pattern': '.+', 'author_name': 'Demo agent', 'author_email': 'demo-agent@example.invalid', 'push_required': False}, 'processes': {'development': 'config/processes/development.json'}, 'environment_names': ['PATH', 'HOME', 'LANG'], 'automatic_checks': [{'paths': ['src/**', 'tests/**'], 'by_stage': {'tests': ['RED'], 'test_review': [], 'implementation': ['GREEN'], 'code_review': []}}]}
     cfg['accounting'] = json.loads((SOURCE / 'config/accounting.example.json').read_text())
+    cfg['accounting']['time_mode'] = 'reported'
+    cfg['accounting']['storage'] = {'database':'telemetry/events.sqlite','lock':'telemetry/events.lock'}
     cfg['sprint'] = json.loads((SOURCE / 'config/sprint.example.json').read_text())
     cfg['runtime_services'] = json.loads((SOURCE / 'config/runtime.example.json').read_text())
     cfg['batch'] = json.loads((SOURCE / 'config/batch.example.json').read_text())
@@ -59,7 +57,7 @@ def create(directory: Path):
     red_argv = [sys.executable, '-B', '-c', "import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"]
     red_output = '{"errors":[],"failures":["test_double.Regression.test_double"],"tests_run":1}\n'
     methods = [
-        {'id':'RED','argv':red_argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'verification_plan':{'responsibility':'Prove the regression test fails before implementation.','change_surface':['tests/**'],'red_stages':['tests'],'green_stages':[],'red_failure':{'exit_code':1,'stdout_equals':red_output,'stderr_equals':''}},'expected_exit_code':1,'stdout_contains':[red_output.strip()],'stderr_contains':[]},
+        {'id':'RED','argv':red_argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'verification_plan':{'responsibility':'Prove the regression test fails before implementation.','change_surface':['src/**'],'red_stages':['tests'],'green_stages':[],'red_failure':{'exit_code':1,'stdout_equals':red_output,'stderr_equals':''}},'expected_exit_code':1,'stdout_contains':[red_output.strip()],'stderr_contains':[]},
         {'id':'GREEN','argv':argv,'cwd':'.','environment':{'LANG':'C.UTF-8'},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'verification_plan':{'responsibility':'Verify implemented behaviour and final regression.','change_surface':['src/**'],'red_stages':[],'green_stages':['implementation','code_review'],'red_failure':None},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['test_double','Ran 1 test','OK']},
     ]
     method_inputs = [
@@ -86,7 +84,11 @@ def create(directory: Path):
 
 def run_demo(directory: Path) -> dict:
     home = create(directory)
-    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'demo-agent'}
+    env = {**{k:v for k,v in os.environ.items() if k not in
+               ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_CALLER_BINDING','POISE_SESSION')},
+           'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'),
+           'POISE_CALLER_BINDING': str(home / 'demo-caller.json'), 'LANG': 'C.UTF-8'}
+    # This synthetic non-native client owns a persistent binding inside its new example directory.
     calls = []
     client = WorkClient(env, 30)
     calls = client.calls

@@ -18,6 +18,9 @@ cd /home/sbwerewolf/workdata/ai-poise
 
 Для подготовки нового проекта см. [настройку проекта](docs/configuration/project-setup.md), для этой установки — [локальные пути и команды](docs/configuration/project-setup.md#локальный-проект-ai-poise). Повторно создавать конфигурацию или запускать seed для уже настроенного ai-poise не требуется.
 
+Автономные учебные сценарии без remote и подключения живой IDE описаны в
+[примерах](docs/workflows/runnable-examples.md#запуск-в-новом-каталоге).
+
 ## Работа с задачами
 
 `bootstrap` начинает или возобновляет работу, `verify` проверяет результат текущего этапа. Это JSON-операции команды `poise work`.

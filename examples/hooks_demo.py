@@ -34,7 +34,7 @@ def run(directory):
     settings=home/'hooks-settings.json'
     env={**{k:v for k,v in os.environ.items() if k not in
             ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_CALLER_BINDING')},
-         'PYTHONPATH':str(SOURCE/'src'), 'CODEX_THREAD_ID':'hook-demo'}
+         'PYTHONPATH':str(SOURCE/'src'), 'CODEX_THREAD_ID':'hook-demo', 'LANG':'C.UTF-8'}
     # Synthetic observed host identity matches the native-event fixtures below.
     def cli(args,packet):
         p=subprocess.run([sys.executable,'-B','-m','poise',*args],input=json.dumps(packet),

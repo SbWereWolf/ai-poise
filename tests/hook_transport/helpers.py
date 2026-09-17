@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from copy import deepcopy
@@ -66,3 +67,10 @@ def event(name='SessionStart',session='conversation',turn='turn1'):
     if name=='Stop':e['stop_hook_active']=False;e['last_assistant_message']='private assistant content'
     if name=='SessionEnd':e['reason']='other'
     return e
+
+
+def host_environment(session):
+    """Explicit simulated host identity; never read identity from a launcher."""
+    return {**{key: value for key, value in os.environ.items() if key not in
+               ('CODEX_SESSION_ID', 'CODEX_THREAD_ID', 'POISE_CALLER_BINDING')},
+            'CODEX_THREAD_ID': session}

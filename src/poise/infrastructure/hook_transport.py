@@ -17,7 +17,7 @@ from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
 from .capabilities import LocalProbeExecutor
 from .goal_config import read_document,atomic_write
-from .session_establishment import establish_poise
+from .session_establishment import establish_poise,native_session
 from .sqlite.hook_transport import HookRegistry
 
 
@@ -331,6 +331,7 @@ class HookService:
         d=definition.data
         if cfg['batch']['message_source']!={'id':d['message_source'],'mode':'runtime_event'}:
             raise PoiseError('Do not combine hook and transcript/reported message sources')
+        CallerIdentity.native(cfg['project'], native['session_id'])
         identity=RuntimeIdentity.parse(cfg['project'],d['message_source'],
             {'kind':'external','session_id':native['session_id'],'agent_id':d['agent_id']})
         root=descendant(self.settings.bindings,identity.key)
@@ -453,8 +454,11 @@ class HookService:
 
     def work(self,binding_path,packet):
         from .clock import SystemClock
+        observed = native_session(os.environ, required=True)
         record,message=self._record(binding_path)
-        caller=CallerIdentity.native(record['project'],record['external_session'])
+        if observed != record['external_session']:
+            raise PoiseError('Invoking native session identity does not own this launcher; use its own SessionStart launcher')
+        caller=CallerIdentity.native(record['project'],observed)
         h=establish_poise(
             self.settings.project_config,
             caller,

@@ -133,11 +133,12 @@ def test_native_session_liveness_is_fail_closed_and_session_end_is_definitive(pr
     assert s.registry.liveness(binding['session_id']) is Liveness.DEAD
 
 
-def test_public_native_dead_owner_recovery_moves_both_claims(project,tmp_path):
+def test_public_native_dead_owner_recovery_moves_both_claims(project,tmp_path,monkeypatch):
     s=service(project,tmp_path);out=install(s)
     native(s,out,session='owner');native(s,out,session='contender')
     owner=s.latest_binding('owner','primary')
     contender=s.latest_binding('contender','primary')
+    monkeypatch.setenv('CODEX_THREAD_ID', 'owner')
     started=s.work(owner['binding_path'],request('bootstrap',{
         'task':project['task'],'decision':None,'feedback':None,'rework_stage':None}))
     acquire=request('bootstrap',{
@@ -152,6 +153,7 @@ def test_public_native_dead_owner_recovery_moves_both_claims(project,tmp_path):
             )
 
     before=claims()
+    monkeypatch.setenv('CODEX_THREAD_ID', 'contender')
     with pytest.raises(PoiseError,match='live'):
         s.work(contender['binding_path'],acquire)
     assert claims()==before
@@ -277,3 +279,11 @@ def test_taskless_summary_not_blocked_by_missing_required_ide(project,tmp_path):
     summary=s.work(b['binding_path'],request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None}))
     assert summary['status']=='read_only'
     assert summary['capability_checks']['ready'] is False
+
+
+@pytest.fixture(autouse=True)
+def primary_native_host(monkeypatch):
+    """Primary-hook fixtures run as the conversation explicitly named in their events."""
+    monkeypatch.delenv('CODEX_SESSION_ID', raising=False)
+    monkeypatch.delenv('POISE_CALLER_BINDING', raising=False)
+    monkeypatch.setenv('CODEX_THREAD_ID', 'conversation')

@@ -267,7 +267,7 @@ def test_operator_restore_reuses_original_binding_and_direct_launcher(project, t
     assert result["status"] == "read_only"
 
 
-def test_fresh_native_launcher_bootstraps_and_verifies_without_injected_environment(project, tmp_path):
+def test_fresh_native_launcher_bootstraps_and_verifies_with_observed_host_identity(project, tmp_path):
     import os
     import subprocess
     service, _ = _service_with_selected_interpreter(project, tmp_path)
@@ -276,6 +276,7 @@ def test_fresh_native_launcher_bootstraps_and_verifies_without_injected_environm
     binding = service.latest_binding("conversation", "primary")
     environment = {k: v for k, v in os.environ.items()
                    if k not in ("PYTHONPATH", "POISE_CALLER_BINDING", "CODEX_THREAD_ID", "CODEX_SESSION_ID")}
+    environment["CODEX_THREAD_ID"] = "conversation"  # host fixture, not a launcher override
     packets = [request("bootstrap", {"task": None, "decision": None, "feedback": None, "rework_stage": None}),
                request("verify", {"result": None, "artifacts": []})]
     for packet, status in zip(packets, ("read_only", "read_only_verified")):
@@ -321,3 +322,11 @@ def test_cached_runtime_reports_exact_disappeared_entry_point_before_install(pro
     assert str(entry) in str(exc.value)
     assert "environment/configuration" in str(exc.value)
     assert not service.settings.hooks_file.exists()
+
+
+@pytest.fixture(autouse=True)
+def primary_native_host(monkeypatch):
+    """Primary-hook fixtures run as the conversation explicitly named in their events."""
+    monkeypatch.delenv('CODEX_SESSION_ID', raising=False)
+    monkeypatch.delenv('POISE_CALLER_BINDING', raising=False)
+    monkeypatch.setenv('CODEX_THREAD_ID', 'conversation')

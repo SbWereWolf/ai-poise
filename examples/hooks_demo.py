@@ -32,7 +32,10 @@ def run(directory):
     cfg=fill_template(json.loads((SOURCE/'config/hook-templates/settings.json').read_text()),parameters)
     plan=fill_template(json.loads((SOURCE/'config/hook-templates/codex-main.json').read_text()),parameters)
     settings=home/'hooks-settings.json'
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src')}
+    env={**{k:v for k,v in os.environ.items() if k not in
+            ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_CALLER_BINDING')},
+         'PYTHONPATH':str(SOURCE/'src'), 'CODEX_THREAD_ID':'hook-demo'}
+    # Synthetic observed host identity matches the native-event fixtures below.
     def cli(args,packet):
         p=subprocess.run([sys.executable,'-B','-m','poise',*args],input=json.dumps(packet),
                          text=True,capture_output=True,env=env,timeout=45)

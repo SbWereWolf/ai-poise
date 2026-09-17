@@ -59,6 +59,8 @@ class HookDefinition:
 
 def parse_native_event(raw,definition):
     if not isinstance(raw,dict):raise PoiseError('Native hook JSON object required')
+    if 'agent_id' in raw:
+        raise PoiseError('Subagent or ambiguous native agent context cannot bind the parent native session; open a distinct native session')
     kind=raw.get('hook_event_name')
     if kind not in {x['event'] for x in definition.data['events']}:raise PoiseError('Hook event is not installed for this definition')
     for key in ('session_id','cwd'):nonempty(raw.get(key),key)

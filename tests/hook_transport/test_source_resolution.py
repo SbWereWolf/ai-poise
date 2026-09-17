@@ -108,9 +108,11 @@ def _launcher(service, installed, session):
     return Path(binding["launcher"]), binding
 
 
-def _call(path, packet):
+def _call(path, packet, *, session):
+    from .helpers import host_environment
     result = subprocess.run(
         [str(path)],
+        env=host_environment(session),
         input=json.dumps(packet),
         text=True,
         capture_output=True,
@@ -191,6 +193,7 @@ def test_completed_integrate_runs_from_current_installation_source(project, tmp_
     attempted, result = _call(
         launcher,
         request("integrate", integration_input(project, source)),
+        session="completed-integration",
     )
 
     assert attempted.returncode == 0, attempted.stdout + attempted.stderr
@@ -214,7 +217,7 @@ def test_existing_task_bootstrap_uses_installation_source_without_rebinding(proj
     prompt["cwd"] = str(service.settings.root)
     service.event(installed["definition_path"], prompt)
 
-    started, context = _call(launcher, _bootstrap({"id": "T1"}))
+    started, context = _call(launcher, _bootstrap({"id": "T1"}), session="task-session")
     assert started.returncode == 0, started.stdout + started.stderr
     assert Path(context["loaded_source"]) == installation / "poise"
     assert context["session"] == binding["session_id"]
@@ -233,13 +236,13 @@ def test_existing_task_continuation_uses_installation_when_task_runtime_is_incom
 ):
     service, installed, installation = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "incompatible-task-runtime")
-    started, context = _call(launcher, _bootstrap(project["task"]))
+    started, context = _call(launcher, _bootstrap(project["task"]), session="incompatible-task-runtime")
     assert started.returncode == 0, started.stdout + started.stderr
 
     task_entrypoint = Path(context["worktree"]) / "src" / "poise" / "__main__.py"
     task_entrypoint.unlink()
 
-    continued, current = _call(launcher, _bootstrap(None))
+    continued, current = _call(launcher, _bootstrap(None), session="incompatible-task-runtime")
 
     assert continued.returncode == 0, continued.stdout + continued.stderr
     assert current["status"] == "active"
@@ -254,11 +257,12 @@ def test_existing_task_continuation_uses_installation_when_task_runtime_is_incom
 def test_terminal_task_bootstrap_uses_installation_source_without_binding(project, tmp_path):
     service, installed, installation = _service(project, tmp_path)
     owner_launcher, _ = _launcher(service, installed, "terminal-owner")
-    started, context = _call(owner_launcher, _bootstrap(project["task"]))
+    started, context = _call(owner_launcher, _bootstrap(project["task"]), session="terminal-owner")
     assert started.returncode == 0, started.stdout + started.stderr
     cancelled, report = _call(
         owner_launcher,
         request("cancel", {"reason": "Prepare a terminal source-resolution fixture."}),
+        session="terminal-owner",
     )
     assert cancelled.returncode == 0, cancelled.stdout + cancelled.stderr
     assert report["status"] == "cancelled"
@@ -268,7 +272,7 @@ def test_terminal_task_bootstrap_uses_installation_source_without_binding(projec
     prompt["cwd"] = str(service.settings.root)
     service.event(installed["definition_path"], prompt)
 
-    inspected, terminal = _call(reader_launcher, _bootstrap({"id": "T1"}))
+    inspected, terminal = _call(reader_launcher, _bootstrap({"id": "T1"}), session="terminal-reader")
 
     assert inspected.returncode == 0, inspected.stdout + inspected.stderr
     assert terminal["status"] == "cancelled"
@@ -284,16 +288,16 @@ def test_assigned_session_continuation_uses_installation_source_in_each_resumabl
 ):
     service, installed, installation = _service(project, tmp_path)
     launcher, binding = _launcher(service, installed, "continuation-" + state)
-    started, context = _call(launcher, _bootstrap(project["task"]))
+    started, context = _call(launcher, _bootstrap(project["task"]), session="continuation-" + state)
     assert started.returncode == 0, started.stdout + started.stderr
 
     if state in {"verified", "accepted"}:
         add_test(context["worktree"])
-        checked, report = _call(launcher, _result(context))
+        checked, report = _call(launcher, _result(context), session="continuation-" + state)
         assert checked.returncode == 0, checked.stdout + checked.stderr
         assert report["status"] == "verified"
     if state == "accepted":
-        accepted_call, report = _call(launcher, request("accept", {}))
+        accepted_call, report = _call(launcher, request("accept", {}), session="continuation-" + state)
         assert accepted_call.returncode == 0, accepted_call.stdout + accepted_call.stderr
         assert report["status"] == "accepted"
 
@@ -302,7 +306,7 @@ def test_assigned_session_continuation_uses_installation_source_in_each_resumabl
         config["limits"]["preview_chars"] += 1
         write_json(project["config_path"], config)
 
-    continued, current = _call(launcher, _bootstrap(None))
+    continued, current = _call(launcher, _bootstrap(None), session="continuation-" + state)
     assert continued.returncode == 0, continued.stdout + continued.stderr
     assert current["status"] == state
     assert Path(current["loaded_source"]) == installation / "poise"
@@ -321,7 +325,7 @@ def test_taskless_and_new_task_creation_use_configured_installation_source(proje
     service, installed, installation = _service(project, tmp_path)
     launcher, _ = _launcher(service, installed, "creation-session")
 
-    read, summary = _call(launcher, _bootstrap(None))
+    read, summary = _call(launcher, _bootstrap(None), session="creation-session")
     assert read.returncode == 0, read.stdout + read.stderr
     assert summary["status"] == "read_only"
     assert Path(summary["loaded_source"]) == installation / "poise"
@@ -331,6 +335,7 @@ def test_taskless_and_new_task_creation_use_configured_installation_source(proje
     created, context = _call(
         launcher,
         _bootstrap({"request_id": "automatic-new-task", "task": contract}),
+        session="creation-session",
     )
     assert created.returncode == 0, created.stdout + created.stderr
     assert context["task"] == "0001"
@@ -349,7 +354,7 @@ def test_existing_task_rejects_an_unregistered_lookalike_worktree(project, tmp_p
     lookalike = runtime.state / runtime.paths["worktrees"] / "GHOST" / "src" / "poise"
     shutil.copytree(installation / "poise", lookalike)
 
-    attempted, payload = _call(launcher, _bootstrap({"id": "GHOST"}))
+    attempted, payload = _call(launcher, _bootstrap({"id": "GHOST"}), session="unregistered-task")
 
     assert attempted.returncode == service.settings.raw["exit_codes"]["rejected"]
     assert payload["status"] == "rejected"
@@ -364,8 +369,8 @@ def test_two_bindings_use_one_installation_source_without_shared_mutation(projec
     task_b = deepcopy(project["task"])
     task_b["id"] = "T2"
 
-    first_a, context_a = _call(launcher_a, _bootstrap(project["task"]))
-    first_b, context_b = _call(launcher_b, _bootstrap(task_b))
+    first_a, context_a = _call(launcher_a, _bootstrap(project["task"]), session="parallel-a")
+    first_b, context_b = _call(launcher_b, _bootstrap(task_b), session="parallel-b")
     assert first_a.returncode == first_b.returncode == 0
     expected_a = Path(context_a["worktree"]) / "src" / "poise"
     expected_b = Path(context_b["worktree"]) / "src" / "poise"
@@ -386,8 +391,8 @@ def test_two_bindings_use_one_installation_source_without_shared_mutation(projec
     ]
     before = {str(path): _digest(path) for path in protected}
     with ThreadPoolExecutor(max_workers=2) as pool:
-        future_a = pool.submit(_call, launcher_a, _bootstrap(None))
-        future_b = pool.submit(_call, launcher_b, _bootstrap(None))
+        future_a = pool.submit(_call, launcher_a, _bootstrap(None), session="parallel-a")
+        future_b = pool.submit(_call, launcher_b, _bootstrap(None), session="parallel-b")
         (run_a, result_a), (run_b, result_b) = future_a.result(), future_b.result()
 
     assert run_a.returncode == run_b.returncode == 0
@@ -401,7 +406,7 @@ def test_two_bindings_use_one_installation_source_without_shared_mutation(projec
 def test_read_only_and_task_cancel_recover_after_configuration_change(project, tmp_path):
     service, installed, installation = _service(project, tmp_path)
     launcher, _ = _launcher(service, installed, "recovery-session")
-    started, context = _call(launcher, _bootstrap(project["task"]))
+    started, context = _call(launcher, _bootstrap(project["task"]), session="recovery-session")
     assert started.returncode == 0, started.stdout + started.stderr
 
     config = json.loads(Path(project["config_path"]).read_text(encoding="utf-8"))
@@ -410,6 +415,7 @@ def test_read_only_and_task_cancel_recover_after_configuration_change(project, t
     shown, view = _call(
         launcher,
         request("show", {"queries": [{"id": "content", "kind": "content"}]}),
+        session="recovery-session",
     )
     assert shown.returncode == 0, shown.stdout + shown.stderr
     assert view["status"] == "read_only"
@@ -418,6 +424,7 @@ def test_read_only_and_task_cancel_recover_after_configuration_change(project, t
     cancelled, result = _call(
         launcher,
         request("cancel", {"reason": "Explicit test cancellation after config change"}),
+        session="recovery-session",
     )
     assert cancelled.returncode == 0, cancelled.stdout + cancelled.stderr
     assert result["status"] == "cancelled"
@@ -446,7 +453,7 @@ def test_sprint_cancellation_remains_independent_of_live_configuration_hash(proj
     if action == "cancel_tasks":
         value.update(tasks=["A"], mode="single")
     packet = request("sprint", value)
-    cancelled, result = _call(launcher, packet)
+    cancelled, result = _call(launcher, packet, session="sprint-recovery")
     assert cancelled.returncode == 0, cancelled.stdout + cancelled.stderr
     if action == "cancel_tasks":
         assert result["tasks"][0]["status"] == "cancelled"

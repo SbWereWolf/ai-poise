@@ -282,3 +282,13 @@ after accepted clear inspection. Submit the exact target ref, expected local
 commit and explicit authorization. No remote is required or contacted; the
 receipt does not move the target and is not integration. Resume the same intent
 or use lawful rework when blocked; see [local publication](../../../docs/workflows/batch-work.md#локальная-фиксация-публикации).
+
+
+Native caller isolation: a session launcher is not caller identity. Use only the launcher
+for the host-observed CODEX_THREAD_ID/CODEX_SESSION_ID; both must agree when present.
+Never set these values to impersonate a stored binding or combine native identity with
+POISE_CALLER_BINDING. Configured agent_id is a profile, not a separate actor. A child with
+parent-only signals must not mutate the parent's Task. The sender uses public handoff;
+a genuinely separate native session obtains its own SessionStart launcher and bootstraps
+the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
+roles, overriding native identity or editing Task DB to get past the guard.

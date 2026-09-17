@@ -65,11 +65,33 @@ def _binding_id(path):
     return caller_id
 
 
+def native_session(environ, *, required=False):
+    """Read the invoking host, never infer identity from a copied launcher."""
+    values = []
+    for key in ('CODEX_SESSION_ID', 'CODEX_THREAD_ID'):
+        if key in environ:
+            value = environ[key]
+            if not isinstance(value, str) or not value.strip():
+                raise PoiseError(f'Invalid native session identity in {key}')
+            values.append(value)
+    if len(set(values)) > 1:
+        raise PoiseError('Conflicting native session identity; use a distinct native session and its own launcher')
+    if not values:
+        if required:
+            raise PoiseError('Missing native session identity; open a distinct native session and use its own launcher')
+        return None
+    # Validate the domain format before a binding file or any database is touched.
+    CallerIdentity.native('native-context-validation', values[0])
+    return values[0]
+
+
 def direct_caller(project, environ):
-    native = environ.get('CODEX_SESSION_ID') or environ.get('CODEX_THREAD_ID')
+    native = native_session(environ)
     binding = environ.get('POISE_CALLER_BINDING')
+    if native and binding:
+        raise PoiseError('POISE_CALLER_BINDING cannot be combined with native session identity; use the native session')
     if binding:
-        return CallerIdentity.generated(project, _binding_id(binding), native_session=native)
+        return CallerIdentity.generated(project, _binding_id(binding))
     if native:
         return CallerIdentity.native(project, native)
     raise PoiseError('No native caller identity; set POISE_CALLER_BINDING to an absolute persistent file')

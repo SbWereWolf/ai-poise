@@ -37,7 +37,7 @@ EXECUTABLE_OBLIGATIONS = {
 
 def _process(goal_type: str) -> dict:
     return json.loads(
-        (ROOT / "config" / "catalogue" / "process-templates" / f"{goal_type}.json")
+        (ROOT / "config" / "catalogue" / "processes" / f"{goal_type}.json")
         .read_text(encoding="utf-8")
     )
 
@@ -178,7 +178,7 @@ def case_baseline_guard_domain(_root: Path) -> None:
     task["executable_obligations"] = EXECUTABLE_OBLIGATIONS["0001"]
     task["stage_contracts"] = _stage_contracts(process, task)
     validated = _accept(
-        lambda: validate_creation(task, process, []),
+        lambda: validate_creation(task, process, [], json.loads((ROOT / "config/project-templates/wsl-poise.json").read_text())["config"]["task_decomposition"]),
         "change_surface",
     )
     baseline = next(method for method in validated["contract"]["methods"] if method["id"] == "BASELINE")
@@ -193,7 +193,7 @@ def case_baseline_guard_domain(_root: Path) -> None:
     produced["checks"]["baseline"] = []
     produced["checks"]["implementation"] = ["BASELINE"]
     _reject(
-        lambda: validate_creation(produced, process, []),
+        lambda: validate_creation(produced, process, [], json.loads((ROOT / "config/project-templates/wsl-poise.json").read_text())["config"]["task_decomposition"]),
         "route entry",
     )
 

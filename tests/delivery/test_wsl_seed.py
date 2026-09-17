@@ -24,8 +24,7 @@ LEGACY_BASELINE_CONTRACTS = {
     "0001": {
         "argv": ["python3.13", "-m", "pytest", "tests/projects", "-q"],
         "responsibility": (
-            "Preserve the legacy BASELINE command and tested project/requirements surface; "
-            "run it at test_inspection, the earliest legal GREEN stage in the current process."
+            "Guard the pre-existing project and requirements baseline before Task-produced changes."
         ),
     },
     "0002": {
@@ -34,8 +33,7 @@ LEGACY_BASELINE_CONTRACTS = {
             "tests/runtime_services", "-q",
         ],
         "responsibility": (
-            "Preserve the legacy BASELINE command and tested hook/runtime surface; run it at "
-            "test_inspection, the earliest legal GREEN stage in the current process."
+            "Guard the pre-existing hook transport and runtime service baseline before Task-produced changes."
         ),
     },
 }
@@ -92,8 +90,12 @@ def test_wsl_seed_creates_single_poise_project_sprint(tmp_path):
             assert baseline["argv"]==expected["argv"]
             assert baseline["expected_exit_code"]==0
             assert baseline["verification_plan"]["responsibility"]==expected["responsibility"]
-            assert task["checks"]["baseline"]==[]
-            assert task["checks"]["test_inspection"]==["BASELINE"]
+            assert task["checks"]["baseline"]==["BASELINE"]
+            assert task["checks"]["test_inspection"]==[]
+            assert task["evidence_plan"]["baseline"]["subject_methods"]=={
+                "BASELINE":{"exit_codes":[0],"stdout_contains":[],"stderr_contains":[]}}
+            assert baseline["verification_plan"]["green_stages"]==["baseline"]
+            assert baseline["verification_plan"]["change_surface"]==[]
     config=project_from_blueprint(tmp_path)
     result=subprocess.run([sys.executable,str(ROOT/"tools/seed_wsl_tasks.py"),"--poise-config",str(config)],env={**os.environ,"PYTHONPATH":str(ROOT/"src")},capture_output=True,text=True,timeout=60)
     assert result.returncode==0,result.stdout+result.stderr

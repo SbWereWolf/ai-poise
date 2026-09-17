@@ -202,3 +202,14 @@ previous-candidate ancestry before recording a repaired integration head. Bind n
 check receipts to its exact commit/tree, retain old checks, and revalidate before
 publication; never publish dirty or unchecked candidate state. See
 [integration remediation](../docs/workflows/batch-work.md#исправление-кандидата-после-checks_failed).
+
+
+### Delivery baseline contracts
+
+The temporary WSL seed uses current explicit decomposition and matching baseline
+schedule/evidence. BASELINE is an observe-stage guard with an empty change surface,
+not produced-result GREEN evidence. Verification trace references are authored in
+verification_planning before the code-stage pre-gates, never required before their
+own first producer. Do not weaken reachability validation or rewrite cancelled
+historical tasks while fixing shipped definitions. See
+[delivery baseline repair](../delivery/README.md#исправление-baseline-контракта-первоначальной-поставки).

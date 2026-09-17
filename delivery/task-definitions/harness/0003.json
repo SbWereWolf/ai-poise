@@ -294,5 +294,64 @@
       ],
       "exit_requirements": []
     }
-  ]
+  ],
+  "decomposition": {
+    "kind": "ordinary",
+    "phases": [
+      {
+        "stage": "framing",
+        "skills": [
+          "general"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "outline",
+        "skills": [
+          "general"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "drafting",
+        "skills": [
+          "general"
+        ],
+        "areas": [
+          "docs/**"
+        ]
+      },
+      {
+        "stage": "validation",
+        "skills": [
+          "general"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "inspection",
+        "skills": [
+          "general"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "remediation",
+        "skills": [
+          "general"
+        ],
+        "areas": [
+          "docs/**"
+        ]
+      },
+      {
+        "stage": "remediation_inspection",
+        "skills": [
+          "general"
+        ],
+        "areas": []
+      }
+    ],
+    "integration": null
+  }
 }

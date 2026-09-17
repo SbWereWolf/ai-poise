@@ -73,13 +73,13 @@
     }
   ],
   "checks": {
-    "baseline": [],
+    "baseline": [
+      "BASELINE"
+    ],
     "solution_planning": [],
     "verification_planning": [],
     "test_implementation": [],
-    "test_inspection": [
-      "BASELINE"
-    ],
+    "test_inspection": [],
     "test_remediation": [],
     "test_remediation_inspection": [],
     "implementation": [],
@@ -113,7 +113,8 @@
             "kind": "method",
             "fields": {},
             "write_stages": [
-              "verification_planning"
+              "verification_planning",
+              "test_implementation"
             ]
           },
           {
@@ -121,7 +122,8 @@
             "kind": "method",
             "fields": {},
             "write_stages": [
-              "verification_planning"
+              "verification_planning",
+              "implementation"
             ]
           }
         ]
@@ -134,7 +136,6 @@
         "route": "task-verification",
         "point": "red_method",
         "stages": [
-          "verification_planning",
           "test_implementation"
         ],
         "phase": "pre",
@@ -146,7 +147,6 @@
         "route": "task-verification",
         "point": "green_method",
         "stages": [
-          "verification_planning",
           "implementation"
         ],
         "phase": "pre",
@@ -156,7 +156,15 @@
   },
   "evidence_plan": {
     "baseline": {
-      "subject_methods": {},
+      "subject_methods": {
+        "BASELINE": {
+          "exit_codes": [
+            0
+          ],
+          "stdout_contains": [],
+          "stderr_contains": []
+        }
+      },
       "arguments": [],
       "review_arguments": []
     },
@@ -248,9 +256,7 @@
       "stage_id": "verification_planning",
       "allowed_paths": [],
       "entry_requirements": [
-        "verification_planning-input-solution_plan",
-        "task-red-method-before-test-code",
-        "task-green-method-before-production-code"
+        "verification_planning-input-solution_plan"
       ],
       "exit_requirements": []
     },
@@ -343,5 +349,105 @@
       ],
       "exit_requirements": []
     }
-  ]
+  ],
+  "decomposition": {
+    "kind": "ordinary",
+    "phases": [
+      {
+        "stage": "baseline",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "solution_planning",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "verification_planning",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_implementation",
+        "skills": [
+          "backend"
+        ],
+        "areas": [
+          "tests/**"
+        ]
+      },
+      {
+        "stage": "test_inspection",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "test_remediation",
+        "skills": [
+          "backend"
+        ],
+        "areas": [
+          "tests/**"
+        ]
+      },
+      {
+        "stage": "test_remediation_inspection",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "implementation",
+        "skills": [
+          "backend"
+        ],
+        "areas": [
+          "src/**"
+        ]
+      },
+      {
+        "stage": "implementation_inspection",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "implementation_remediation",
+        "skills": [
+          "backend"
+        ],
+        "areas": [
+          "src/**"
+        ]
+      },
+      {
+        "stage": "implementation_remediation_inspection",
+        "skills": [
+          "backend"
+        ],
+        "areas": []
+      },
+      {
+        "stage": "documentation",
+        "skills": [
+          "general"
+        ],
+        "areas": [
+          "docs/**"
+        ]
+      }
+    ],
+    "integration": null
+  }
 }

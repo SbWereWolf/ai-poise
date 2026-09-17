@@ -13,7 +13,7 @@ from poise.modules.foundation.errors import PoiseError, VersionConflict
 from poise.modules.tasks.domain import Change, TaskEvent, TaskStatus
 from poise.runtime import Poise
 from poise.application.work import WorkTools
-from tests.conftest import DeterministicClock, write_json
+from tests.conftest import DeterministicClock, seed_fixture_requirements, write_json
 from batch.helpers import request
 from sprints.helpers import (
     draft as draft_sprint,
@@ -33,6 +33,14 @@ def installed_project(project):
     settings, _, create = setup_case(project)
     created = project_tools(settings).apply(create)
     return settings, Path(created["config_path"]), created
+
+
+def work_tools(config_path, session):
+    # Project setup deliberately leaves each private Requirements store empty.
+    # Seed only executable test scenarios, through the existing registry API.
+    root, config, _ = load_config(config_path)
+    seed_fixture_requirements(root, config)
+    return WorkTools(Poise(config_path, session, DeterministicClock()))
 
 
 def project_revision(config_path):
@@ -226,7 +234,7 @@ def test_external_file_change_is_not_adopted_as_a_known_revision(project):
 
 def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(project):
     settings, config_path, created = installed_project(project)
-    active = WorkTools(Poise(config_path, "active-owner", DeterministicClock()))
+    active = work_tools(config_path, "active-owner")
     first = active.invoke({
         "operation": "bootstrap",
         "input": {"task": project["task"], "decision": None, "feedback": None, "rework_stage": None},
@@ -247,7 +255,7 @@ def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(pr
     })
     new_task = deepcopy(project["task"])
     new_task["id"] = "T2"
-    fresh = WorkTools(Poise(config_path, "new-owner", DeterministicClock())).invoke({
+    fresh = work_tools(config_path, "new-owner").invoke({
         "operation": "bootstrap",
         "input": {"task": new_task, "decision": None, "feedback": None, "rework_stage": None},
         "messages": [],
@@ -259,7 +267,7 @@ def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(pr
 
 def test_manifest_change_is_rejected_while_task_work_is_active(project):
     settings, config_path, created = installed_project(project)
-    WorkTools(Poise(config_path, "active-owner", DeterministicClock())).invoke({
+    work_tools(config_path, "active-owner").invoke({
         "operation": "bootstrap",
         "input": {"task": project["task"], "decision": None, "feedback": None, "rework_stage": None},
         "messages": [],
@@ -304,7 +312,7 @@ def test_cancelled_task_does_not_block_quiescent_manifest_update(project):
     settings, config_path, created = installed_project(project)
     original = deepcopy(project["task"])
     original.update(id="BAD", sprint_id="S", goal="Replace this fixture")
-    planner = WorkTools(Poise(config_path, "replacement-planner", DeterministicClock()))
+    planner = work_tools(config_path, "replacement-planner")
     planned = draft_sprint(planner, [original])
     publish_sprint(planner, planned["revision"])
     with planner.runtime.store.unit_of_work() as unit:
@@ -396,7 +404,7 @@ def test_state_relocation_rejects_occupied_destination_and_active_work(project):
     assert (destination / "foreign.txt").read_text() == "do not replace"
 
     empty_destination = project["root"].parent / "empty-relocation"
-    WorkTools(Poise(config_path, "active-owner", DeterministicClock())).invoke({
+    work_tools(config_path, "active-owner").invoke({
         "operation": "bootstrap",
         "input": {"task": project["task"], "decision": None, "feedback": None, "rework_stage": None},
         "messages": [],

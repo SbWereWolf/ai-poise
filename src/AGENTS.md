@@ -215,3 +215,11 @@ historical tasks while fixing shipped definitions. See
 [delivery baseline repair](../delivery/README.md#исправление-baseline-контракта-первоначальной-поставки).
 
 - Validate a prospective method registry together with its EvidencePlan, content policy and stage contracts inside the existing Task owner before any submission is persisted. Rejected registry changes must remain reloadable; never rely on a later SQLite aggregate read to discover cross-contract errors. Preserve exact verified-packet replay after a late response or cleanup failure; first successful interaction delivery is distinct from business verification.
+
+For Git `publish` with `push_required=false`, record the exact submitted intent
+and accepted clear inspection commit/tree through the existing PlanCommands.
+The receipt is local-only: no remote query, ref update, or fabricated delivery.
+Reject changed candidate/intent before submission; persist action and event in
+one transaction. A missing or drifted local target blocks without mutation.
+Only the separate authorized `integrate` lifecycle may move the target. See
+[local publication](../docs/workflows/batch-work.md#локальная-фиксация-публикации).

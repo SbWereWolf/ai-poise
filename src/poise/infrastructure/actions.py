@@ -11,7 +11,7 @@ import re
 import subprocess
 import uuid
 from ..application.actions import PlanCommands
-from ..modules.actions.domain import parse_apply_work
+from ..modules.actions.domain import Publication, PlanSpec, parse_apply_work
 from ..common import (
     PoiseError,
     descendant,
@@ -55,7 +55,34 @@ class RuntimePlanActions:
                 from ..modules.catalogue.publication import DataPublication
                 DataPublication.parse(work)
                 return
+            self._local_publication_facts(data, work)
+
+    def _local_publication_facts(self, data, work):
+        if self.h.cfg['git']['push_required'] is not False:
             prohibit_remote_git_publication()
+        intent = Publication.parse(work)
+        wt = self.h._verification_workspace(data)
+        self.h._git(wt, 'check-ref-format', intent.target_ref)
+        report = data.get('last_report')
+        if (data['worktree'] is None or not report
+                or report.get('status') != 'accepted'
+                or report.get('handler') != 'inspect'
+                or report.get('stage_outcome') != 'clear'):
+            raise PoiseError('Local publication requires the accepted clear inspection')
+        candidate = self.h._git(wt, 'rev-parse', 'HEAD')
+        tree = self.h._git(wt, 'rev-parse', 'HEAD^{tree}')
+        if (candidate != report['commit'] or tree != report['verified_tree']
+                or self.h._tree(wt) != tree or data['entry_tree'] != tree
+                or self.h._git(wt, 'symbolic-ref', '--short', 'HEAD') != data['branch']
+                or self._read_optional_ref(wt, 'MERGE_HEAD') is not None):
+            raise PoiseError('Local publication candidate differs from the accepted inspection')
+        plan = PlanSpec.parse({'kind': 'git_publish', 'intent': intent.to_dict(),
+                               'candidate': candidate}, self.h.cfg['batch']['max_items'])
+        saved = self.snapshot(data)
+        if saved is not None and digest(saved['plan']) != plan.digest:
+            raise PoiseError('Started publication intent is immutable; explicit rework is required')
+        target = self._read_optional_ref(wt, intent.target_ref)
+        return intent, candidate, tree, target
 
     def rework_failed(self,data,feedback,target,entry_tree):
         if self._read_optional_ref(Path(data['worktree']),'MERGE_HEAD') is not None:
@@ -229,4 +256,7 @@ class RuntimePlanActions:
                 h.cfg['task_decomposition'],h.config_hash,h.cfg['batch']['max_items'],
                 h.task_commands.prepare_creation,h._creation_base)
             return self._summary(service.publish(data['id'],h.session,payload['stage_work']))
-        prohibit_remote_git_publication()
+        intent, candidate, tree, target = self._local_publication_facts(data, payload['stage_work'])
+        run = self.commands.publish_local(data['id'], h.session, self.h._stage(data)['id'],
+                                          data['iteration'], intent, candidate, tree, target)
+        return self._summary(run)

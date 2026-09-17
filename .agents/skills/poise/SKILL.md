@@ -276,3 +276,9 @@ between live/uncertain owners. Only authoritative DEAD permits foreign release;
 explicit self-release is supported. Unrelated Tasks remain usable while v12
 uniqueness installation is pending. Repair never mutates Git/WIP and exact replay
 never repeats the mutation. Read the [public recovery contract](../../../docs/workflows/batch-work.md#восстановление-неоднозначного-владения).
+
+A Git `publish` stage with `push_required=false` records local-only publication
+after accepted clear inspection. Submit the exact target ref, expected local
+commit and explicit authorization. No remote is required or contacted; the
+receipt does not move the target and is not integration. Resume the same intent
+or use lawful rework when blocked; see [local publication](../../../docs/workflows/batch-work.md#локальная-фиксация-публикации).

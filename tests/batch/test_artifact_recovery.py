@@ -271,3 +271,29 @@ def test_fifo_source_rejected_without_blocking(legacy):
     with pytest.raises(PoiseError, match='regular file'):
         recover(legacy)
     assert legacy['runtime'].store.artifact_records('T1') == legacy['records']
+
+
+def test_two_explicit_root_changes_preserve_history_then_verify(legacy,project):
+    """0142: chained configuration changes use registered identities, not aliases."""
+    first=recover(legacy)
+    h=legacy['runtime'];before=history(h)
+    migrated=h.store.artifact_records('T1')
+    project['cfg']['paths']['standalone_tasks']='second-relocation'
+    write_json(project['config_path'],project['cfg'])
+    current=WorkPoise(project['config_path'],'second-migration-operator')
+    tools=WorkTools(current)
+    second={**legacy['args'],'request_id':'second-root-change',
+            'source_roots':{'task':str(legacy['new_root'])}}
+    saved=tools.invoke(request('recover_artifacts',second))
+    assert tools.invoke(request('recover_artifacts',deepcopy(second)))==saved
+    assert history(current)==before
+    latest=current.store.artifact_records('T1')
+    assert {r['id']:r['digest'] for r in latest}=={r['id']:r['digest'] for r in migrated}
+    assert all(Path(r['path']).is_relative_to(current.state/'second-relocation'/'T1') for r in latest)
+    for old in legacy['records']+migrated:
+        assert Path(old['path']).read_bytes()==legacy['bytes'][old['id']]
+    assert all(Path(r['path']).read_bytes()==legacy['bytes'][r['id']] for r in latest)
+    # Immutable historical receipts remain historical; current paths come from the registry.
+    assert tools.invoke(request('recover_artifacts',legacy['args']))==first
+    context=tools.invoke(request('bootstrap',{'task':{'id':'T1'},'decision':None,'feedback':None,'rework_stage':None}))
+    assert verify(tools,context['result_template'])['status']=='verified'

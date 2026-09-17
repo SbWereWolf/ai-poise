@@ -41,7 +41,7 @@ contract, or use the public Task `restart` action to return the same unfinished,
 Task to newborn. Preserve its ID, append-only history, Sprint membership, execution workspace,
 branch, base and WIP. Reject foreign ownership, stale versions, terminal Tasks and unresolved
 external outcomes before mutation. Sprint `replace_task` is not a correction writer; retain
-historical replacement relations only for reading.
+historical relations only as opaque revision/audit records, never a current replacement projection.
 
 For every new trace requirement, ensure that its due stages intersect the referenced
 point's `write_stages`. A `phase=pre` requirement additionally needs a declared write

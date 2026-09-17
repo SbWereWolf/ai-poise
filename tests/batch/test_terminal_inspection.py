@@ -20,7 +20,7 @@ from .helpers import request
 
 
 ROOT = Path(__file__).resolve().parents[2]
-TERMINAL_STATES = ("completed", "cancelled", "superseded")
+TERMINAL_STATES = ("completed", "cancelled")
 
 
 def _standalone_contract(project, identifier):
@@ -34,54 +34,29 @@ def _create_terminal_task(project, state):
     owner = WorkTools(Poise(project["config_path"], f"owner-{state}"))
     identifier = f"terminal-{state}"
 
-    if state == "superseded":
-        source = sprint_task(project, identifier)
-        planned = draft(owner, [source])
-        publish(owner, planned["revision"])
-        # Historical fixture from the retired pre-0079 replacement writer.
-        with owner.runtime.store.unit_of_work() as unit:
-            task = unit.tasks.load(identifier)
-            changed = replace(
-                task,
-                state=replace(
-                    task.state,
-                    status=TaskStatus.SUPERSEDED,
-                    version=task.state.version + 1,
-                ),
-            )
-            unit.tasks.save(Change(changed, None, (TaskEvent(
-                "superseded",
-                task.stage.stage_id,
-                task.state.iteration,
-                "Historical replacement fixture.",
-            ),)), task.state.version)
-    else:
-        context = owner.invoke(
-            request(
-                "bootstrap",
-                {
-                    "task": _standalone_contract(project, identifier),
-                    "decision": None,
-                    "feedback": None,
-                    "rework_stage": None,
-                },
-            )
+    context = owner.invoke(
+        request(
+            "bootstrap",
+            {
+                "task": _standalone_contract(project, identifier),
+                "decision": None,
+                "feedback": None,
+                "rework_stage": None,
+            },
         )
-        if state == "completed":
-            assert sprint_verify(owner, context)["status"] == "verified"
-            assert owner.invoke(request("accept", {}))["status"] == "completed"
-        else:
-            assert owner.invoke(
-                request("cancel", {"reason": "The fixture records a cancelled terminal Task."})
-            )["status"] == "cancelled"
+    )
+    if state == "completed":
+        assert sprint_verify(owner, context)["status"] == "verified"
+        assert owner.invoke(request("accept", {}))["status"] == "completed"
+    else:
+        assert owner.invoke(
+            request("cancel", {"reason": "The fixture records a cancelled terminal Task."})
+        )["status"] == "cancelled"
 
     record = owner.runtime.task_queries.record(identifier)
     assert record["status"] == state
-    snapshot = {
-        "content": owner.runtime.task_queries.content(identifier),
-        "evidence": owner.runtime.task_queries.evidence_view(identifier),
-        "history": owner.runtime.task_queries.history(identifier),
-    }
+    ledger = owner.runtime.task_queries.terminal_snapshot(identifier)
+    snapshot = {key: ledger[key] for key in ('content', 'evidence', 'history')}
     return identifier, snapshot
 
 
@@ -100,8 +75,8 @@ def test_terminal_task_inspection_is_non_binding_and_taskless_verify_succeeds(
     assert inspected["content"] == snapshot["content"]
     assert inspected["evidence"] == snapshot["evidence"]
     assert inspected["history"] == snapshot["history"]
-    assert reader.runtime.task_queries.content(identifier) == snapshot["content"]
-    assert reader.runtime.task_queries.evidence_view(identifier) == snapshot["evidence"]
+    assert reader.runtime.task_queries.terminal_snapshot(identifier)['content'] == snapshot["content"]
+    assert reader.runtime.task_queries.terminal_snapshot(identifier)['evidence'] == snapshot["evidence"]
     assert reader.runtime.task_queries.history(identifier) == snapshot["history"]
 
     taskless = sprint_bootstrap(reader)

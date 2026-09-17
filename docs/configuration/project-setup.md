@@ -230,7 +230,7 @@ overwrite или удалением проекта.
 Process update не переписывает process snapshot уже созданной Task: она продолжает работать
 по сохранённому определению, а новая revision применяется к будущим задачам. Manifest edit и
 перенос `paths.state` разрешены только у quiescent проекта без Task в незавершённом состоянии.
-Для этой проверки terminal считаются только `completed`, `cancelled` и `superseded`;
+Для этой проверки terminal считаются только `completed` и `cancelled`;
 сохранённая история заменённой Task не блокирует операцию, а любой другой status блокирует.
 Проверка quiescence и публикация защищены тем же state lock, который сериализует создание и
 claim Task.

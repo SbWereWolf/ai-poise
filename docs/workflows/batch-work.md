@@ -131,9 +131,12 @@ ownership. После законного rework/restart и исправлени�
 
 ### Просмотр терминальной Task
 
-`bootstrap` с адресом существующей Task в статусе `completed`, `cancelled` или
-`superseded` возвращает `terminal inspection snapshot`: обычный контекст с
-`result_template=null` и сохранённые проекции `content`, `evidence`, `history`. Это чтение не
+`bootstrap` с адресом существующей Task в статусе `completed` или `cancelled`
+возвращает `terminal inspection snapshot` формата `poise-terminal-inspection-1`:
+`result_template=null`, исходные `metadata`, `content` (contracts/sections/trace_points),
+`evidence` (records/proof/proof_layers), `execution`, `workflow` и `history`.
+Это исторический ledger, не повторная компиляция контракта, gate или свежее evidence.
+Отсутствующий исполняемый реестр либо stage contract не дописывается. Это чтение не
 возобновляет и не захватывает Task, не требует её worktree и не оставляет её текущей для
 сессии. Если сессия уже владеет Task в статусе `active`, `verified` или `accepted`, просмотр
 другой терминальной Task отклоняется до изменения binding.
@@ -355,8 +358,8 @@ Unit of Work, которая возвращает lifecycle в `newborn`. Эти
 сохраняются при переходе. Поддержанная прямая полная creation остаётся без изменений и сразу
 создаёт `available` Task после type-specific DoR. Массовой миграции прежних записей нет.
 Legacy embedded Sprint definitions превращаются в реальные newborn Task только явной
-Sprint-операцией `materialize_tasks`; сохранённые historical replacement relations и creation
-request остаются читаемой частью traceability, но новые replacement relations не создаются.
+Sprint-операцией `materialize_tasks`; creation request остаётся читаемой частью traceability.
+Исторические связи замены доступны только как revision layers и migration audit.
 
 ## Verify
 
@@ -845,7 +848,7 @@ Query не поддерживает pagination и не обещает один c
 ## Sprint в DDD-05
 Обновлено: **2026-09-13T08:10:00+05:00**. `operation: sprint` принимает actions `draft`, `materialize_tasks`, `publish`, `dependencies`, `cancel_tasks`, `cancel` и `waive_dependencies`; точные поля и примеры описаны в [Sprint API](sprints.md). Bootstrap с `task: {"id": "..."}` определяет существующий Task/Sprint по registry, не по префиксу. Прямая новая задача вне Sprint содержит `sprint_id: null`; задачи Sprint materialize получают ID до публикации и выбираются по ID. Сломанная опубликованная Task исправляется под тем же ID через `operation: task`, `action: restart`.
 
-Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и view `current`, `plan` либо `history` показывает текущий граф, сохранённый process/plan snapshot, revision layers и historical replacement relations. Публичный action `replace_task` удалён; старые `superseded` Task и их evidence по-прежнему доступны для read-only inspection.
+Поддержанные read projections не требуют SQL или чтения managed-файлов: `show` с `kind: sprint` и view `current`, `plan` либо `history` показывает текущий граф, сохранённый process/plan snapshot, revision layers. Типизированного поля `replacements` и публичного action `replace_task` нет. Исторические связи замен читаются из revision layers и аудита миграции; терминальные Task доступны через read-only ledger.
 
 ## DDD-06: внешние планы в том же пакете
 `stage_work` обработчика apply_plan принимает plan, phase, resolutions и finding_resolutions. Publish принимает target_ref, expected_commit и authorization. `awaiting_action_continuation` возвращает template для CONTINUE; `action_failed/action_blocked` возвращают nonzero business outcome, а не фиктивный PASS. Подробности: [Actions](actions.md).

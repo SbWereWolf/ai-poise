@@ -112,11 +112,11 @@ class AccountingQueries:
         if start is None and end is None:
             totals['benefit']=self._current_benefit(current)
         totals['open_work_cycles']=len(open_cycles)
-        totals['outcomes']={k:sum(t['status']==k for t in selected_tasks.values()) for k in ('completed','cancelled','superseded')}
+        totals['outcomes']={k:sum(t['status']==k for t in selected_tasks.values()) for k in ('completed','cancelled')}
         totals['unmeasured_completed_tasks']=sum(t['status']=='completed' and tid not in latest for tid,t in selected_tasks.items())
         if totals['unmeasured_completed_tasks']:
             totals['benefit']['coverage']='partial'
-        totals['unfinished_tasks']=sum(t['status'] not in ('completed','cancelled','superseded') for t in selected_tasks.values())
+        totals['unfinished_tasks']=sum(t['status'] not in ('completed','cancelled') for t in selected_tasks.values())
         groups={}
         for fact in facts:
             key=tuple(self._dimension(k,fact) for k in grouping)
@@ -180,7 +180,7 @@ class AccountingQueries:
                 'observed_messages_count':len(msgs),'message_coverage':'partial' if msgs else 'unavailable',
                 'cancelled_tokens':sum(f['data']['contribution']['total_tokens'] for f in usage if cancelled(f)),
                 'cancelled_seconds':sum(f['data']['seconds'] for f in times if cancelled(f)),
-                'unfinished_tokens':sum(f['data']['contribution']['total_tokens'] for f in usage if f['binding']['task'] in tasks and tasks[f['binding']['task']]['status'] not in ('completed','cancelled','superseded')),
+                'unfinished_tokens':sum(f['data']['contribution']['total_tokens'] for f in usage if f['binding']['task'] in tasks and tasks[f['binding']['task']]['status'] not in ('completed','cancelled')),
                 'by_cause':{}}
         for counter in ('input_tokens','output_tokens','cached_input_tokens','reasoning_tokens'):
             values=[f['data']['contribution'][counter] for f in usage]

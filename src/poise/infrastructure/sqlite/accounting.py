@@ -326,7 +326,7 @@ class SqliteAccounting:
             if version!=task['_version']:raise PoiseError('Task changed during result measurement')
             row=db.execute('SELECT data FROM accounting_credits WHERE task_id=? ORDER BY seq DESC LIMIT 1',(task['id'],)).fetchone()
             previous=None if row is None else json.loads(row[0])
-            state=task['status'] if task['status'] in ('completed','cancelled','superseded') else 'open'
+            state=task['status'] if task['status'] in ('completed','cancelled') else 'open'
             if previous is not None and previous['state']==state and previous['measurement']==measurement:return
             if previous is None and state=='open':return
             fields=('changed_lines','changed_bytes','changed_tokens')

@@ -63,6 +63,7 @@ def test_historical_replacement_relation_remains_readable(project):
         )
 
     current = runtime.sprint_tools.query("S", "current")
-    assert current["replacements"] == [{
-        key: value for key, value in relation.items() if key != "kind"
-    }]
+    assert "replacements" not in current
+    history = runtime.sprint_tools.query("S", "history")
+    assert "Historical correction" in str(history)
+    assert "task_replacement" in str(history)

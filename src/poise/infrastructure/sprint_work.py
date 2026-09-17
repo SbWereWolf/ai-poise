@@ -35,7 +35,7 @@ class SprintWork:
 
     def select(self,sprint_id):
         current=self.h.current_task()
-        if current is None or current['status'] in ('completed','cancelled','superseded') or current['sprint_id']==sprint_id:
+        if current is None or current['status'] in ('completed','cancelled') or current['sprint_id']==sprint_id:
             self.commands.select(sprint_id)
         return self.overview(sprint_id)
 
@@ -76,7 +76,7 @@ class SprintWork:
         out['eligible']=ready
         if out['status'] not in ('draft','completed','cancelled') and not ready and not out['active']:out['status']='blocked'
         current=self.h.current_task()
-        out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled','superseded') and current['sprint_id']==out['sprint'] else None
+        out['active_task']=current['id'] if current is not None and current['status'] not in ('completed','cancelled') and current['sprint_id']==out['sprint'] else None
         out['sprint_root']=str(descendant(self.h.state,self.h.paths['sprints'])/out['sprint'])
         if out['status'] in ('completed','cancelled'):out['next_work']='Доложить результат; новой работы по спринту нет'
         elif not ready and not out['active'] and out['status']!='draft':out['next_work']='Разрешить указанные блокировки; задачи автоматически не выбирать'

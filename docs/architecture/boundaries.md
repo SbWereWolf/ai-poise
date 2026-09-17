@@ -151,8 +151,8 @@ publication, pending и last_report, не изменяя worktree/branch/base/en
 Pending external outcome блокирует restart до выполнения его явного recovery protocol. Replay
 receipt проверяется до мутации; conflicting intent отклоняется. `ready` повторно валидирует
 сохранённый process, а `start` возобновляет прежнее execution/worktree. Public Sprint correction
-action `replace_task` удалён. Существующие `task_replacement` decisions, revision layers и
-`superseded` Task остаются читаемыми historical data через прежние projections.
+action `replace_task` удалён. Типизированная проекция замен Task удалена. Прежние решения читаются как
+неизменяемые revision layers и аудит явной миграции, не как текущий процесс.
 
 ### Публичный обзор работ — 2026-09-11
 
@@ -204,7 +204,7 @@ AI poise должна была прочитать текущую конфигу�
 предусмотрено задачей 0026. Task-owned process, contract и verification snapshots сохраняются;
 хеш остаётся диагностическим provenance. Lifecycle ownership и revision guards не меняются.
 
-Адресный `terminal inspection snapshot` для `completed`, `cancelled` и `superseded` также
+Адресный `terminal inspection snapshot` для `completed` и `cancelled` также
 проходит через installation source. Терминальная Task не обязана иметь доступную worktree;
 чтение снимка не меняет её lifecycle.
 
@@ -280,8 +280,8 @@ Task остаётся владельцем process snapshot и lifecycle. Обн
 manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
 проверкой активной работы и публикацией. Перенос не удаляет source до подтверждённой копии и
 переключения manifest; overlapping roots и отсутствующий source отклоняются. Quiescence
-использует terminal-набор Task `completed`/`cancelled`/`superseded`, поэтому исторический
-superseded snapshot не становится активной работой. Детерминированный relocation staging
+использует terminal-набор Task `completed`/`cancelled`; исходный статус старых записей сохраняется только
+в журнале явной миграции, не как исполняемый alias. Детерминированный relocation staging
 принадлежит операции только после проверки его отсутствия и публикации matching pending
 receipt: первый запрос не удаляет уже существующий staging, а очистка частичной копии
 разрешена только exact replay того же request digest.

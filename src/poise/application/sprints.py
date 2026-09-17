@@ -246,9 +246,7 @@ class SprintCommands:
         resumable=tuple(i for i,f in facts.items() if f['claimed_by'] is None and f['handoff_available']
                         and f['status'] in ('active','verified','accepted'))
         status=s.overview({i:f['status'] for i,f in facts.items()},resumable)
-        replacements=[{k:v for k,v in d.items() if k!='kind'} for d in s.decisions if d.get('kind')=='task_replacement']
         return {**status,'resumable':list(resumable),'sprint':sid,'goal':s.plan.data['goal'],'revision':s.revision,
-            'replacements':replacements,
             'dependencies':deepcopy(s.plan.data['dependencies']),
             'tasks':[{'id':i,**{k:value for k,value in v.items()
                                 if not k.startswith('_')}} for i,v in facts.items()],

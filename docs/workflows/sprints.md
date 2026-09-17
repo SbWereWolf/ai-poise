@@ -198,7 +198,7 @@ Action `extract_tasks` действует только для published Sprint �
 - **completion**: требуется принятый результат предшественника; его commit не включается в специальную result-provenance проекцию. Это годится для организационной предпосылки.
 - **result**: также требуется завершённый результат предшественника и дополнительно сохраняется его `result_commit` в `result_provenance`. Это provenance результата, а не выбор Git ancestry successor.
 
-Каждый **новый** Task worktree — самостоятельный, Sprint-участник или replacement — создаётся от commit, наблюдённого на текущей вершине явно настроенного Git `base_ref`. Наблюдение выполняется после проверки eligibility и до durable Task start; точный SHA сохраняется в reservation. Поэтому повтор частично выполненного worktree setup использует сохранённый SHA, даже если `base_ref` уже сдвинулся, а следующая новая Task наблюдает новую вершину. Resume и handoff существующего worktree не резолвят `base_ref` заново, не сбрасывают и не пересоздают worktree.
+Каждый **новый** Task worktree — самостоятельный или Sprint-участник — создаётся от commit, наблюдённого на текущей вершине явно настроенного Git `base_ref`. Наблюдение выполняется после проверки eligibility и до durable Task start; точный SHA сохраняется в reservation. Поэтому повтор частично выполненного worktree setup использует сохранённый SHA, даже если `base_ref` уже сдвинулся, а следующая новая Task наблюдает новую вершину. Resume и handoff существующего worktree не резолвят `base_ref` заново, не сбрасывают и не пересоздают worktree.
 
 У одного successor поддерживаются несколько result-рёбер с одинаковыми или различными result commits: они перечисляются в `result_provenance`, но не выбирают branch base и не требуют наличия этих Git objects для создания worktree. Инструмент не переносит и не сливает код предшественников; если successor действительно зависит от их кода, требуемый код должен быть доставлен в настроенный `base_ref` отдельным явным процессом до старта successor. Точные команды successor проверяют фактический результат.
 
@@ -250,8 +250,9 @@ worktree/branch и WIP. После `edit` и `ready` тот же участни�
 Restart требует актуальную Task `expected_version`, новый `request_id`, содержательную `reason`
 и явную `authorization`. Чужой live owner, pending external outcome и terminal Task отклоняются
 до мутации. Идентичный replay возвращает первый receipt; конфликтующий intent с тем же ID
-отклоняется. Сохранённые ранее Sprint decisions вида `task_replacement`, старые revision layers
-и `superseded` Task остаются читаемыми historical data, но новые relations этого вида API не создаёт.
+отклоняется. Исторические связи замен сохранены в неизменяемых revision layers и журнале
+[явной миграции](../task-status-retirement.md). В текущей проекции нет поля
+`replacements`; оставшиеся терминальные состояния — `completed` и `cancelled`.
 
 ## Закрытие и чтение
 Sprint progress — согласованная проекция из membership и Task states, а не дублируемые вручную счётчики. Нормальное закрытие определяется явным `acceptable_terminal_states` и отсутствием незавершённой работы/блокировок. Полное тестирование приложения при закрытии не запускается. Полный future closure process с артефактными post-gates пока не реализован.

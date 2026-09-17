@@ -76,5 +76,5 @@ def validate_saved_work(records, released_ids):
             raise DomainError(f"Task {record['id']} is still owned: handoff before export")
         if record['status'] in ('active','verified','accepted') and record['id'] not in released_ids:
             raise DomainError(f"Task {record['id']} lacks an explicit released handoff")
-        if record['status'] not in ('available','active','verified','accepted','completed','cancelled','superseded'):
+        if record['status'] not in ('available','active','verified','accepted','completed','cancelled'):
             raise DomainError('Unsupported saved Task state')

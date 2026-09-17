@@ -64,6 +64,8 @@ class SqliteTaskRepository:
     def restore_snapshot(self, tables: dict, binding: dict) -> None:
         """Controlled same-format import into absent identities; not a lifecycle edit."""
         from .transfer_records import restore_tasks
+        for row in tables["tasks"]:
+            TaskStatus.parse(row["status"])
         if any(self.exists(row['id']) for row in tables['tasks']):
             raise PoiseError('Task snapshot cannot overwrite an existing aggregate')
         restore_tasks(self.db,tables,binding)
@@ -90,7 +92,7 @@ class SqliteTaskRepository:
                 raise PoiseError("Cancellation recovery submission is missing")
             digest = submission["digest"]
         return TaskState(task_id, prior["stage_index"], prior["iteration"],
-                         TaskStatus(prior["status"]), prior["claimed_by"], prior["version"], digest)
+                         TaskStatus.parse(prior["status"]), prior["claimed_by"], prior["version"], digest)
 
     def review_identity(self, task_id: str) -> dict | None:
         """Read the last produced result's actor, not a later relay's identity."""
@@ -571,10 +573,10 @@ class SqliteTaskRepository:
         self._event(s.task_id,s.version,{"event":"created","stage":task.stage.stage_id,"iteration":s.iteration})
 
     def load(self, task_id: str) -> Task:
-        row = self.db.execute("SELECT t.*, s.digest AS submission_digest FROM tasks t LEFT JOIN submissions s ON s.seq=t.current_submission_id WHERE t.id=?", (task_id,)).fetchone()
+        row = self.db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, s.digest AS submission_digest FROM tasks t LEFT JOIN submissions s ON s.seq=t.current_submission_id WHERE t.id=?", (task_id,)).fetchone()
         if row is None:
             raise PoiseError(f"Задача не найдена: {task_id}")
-        state = TaskState(row["id"],row["stage_index"],row["iteration"],TaskStatus(row["status"]),
+        state = TaskState(row["id"],row["stage_index"],row["iteration"],TaskStatus.parse(row["status"]),
                           row["claimed_by"],row["version"],row["submission_digest"])
         metadata = json.loads(row["metadata"])
         record = self.db.execute("SELECT data FROM content_contracts WHERE task_id=? ORDER BY version DESC LIMIT 1", (task_id,)).fetchone()

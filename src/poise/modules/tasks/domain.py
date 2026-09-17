@@ -22,13 +22,18 @@ class TaskStatus(StrEnum):
     ACCEPTED = "accepted"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
-    SUPERSEDED = "superseded"
+
+    @classmethod
+    def parse(cls, value):
+        try:
+            return cls(value)
+        except (TypeError, ValueError) as exc:
+            raise DomainError(f"Unsupported Task status: {value!r}; explicit migration is required") from exc
 
 
 TERMINAL_TASK_STATUSES = frozenset({
     TaskStatus.COMPLETED,
     TaskStatus.CANCELLED,
-    TaskStatus.SUPERSEDED,
 })
 
 
@@ -251,6 +256,10 @@ class TaskState:
     version: int
     submission_digest: str | None
 
+    def __post_init__(self):
+        if not isinstance(self.status, TaskStatus):
+            raise DomainError(f"Unsupported Task status: {self.status!r}")
+
 
 @dataclass(frozen=True)
 class TaskEvent:
@@ -329,7 +338,7 @@ class Task:
         if (not 0 <= self.state.stage_index < len(self.stages) or
                 self.state.iteration < 1 or self.state.version < 0):
             raise DomainError("Нарушена позиция задачи")
-        if self.state.status in (TaskStatus.AVAILABLE, TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.SUPERSEDED) and self.state.claimed_by is not None:
+        if self.state.status in (TaskStatus.AVAILABLE, TaskStatus.COMPLETED, TaskStatus.CANCELLED) and self.state.claimed_by is not None:
             raise DomainError("Завершённая задача не может оставаться занятой")
 
     @classmethod
@@ -920,8 +929,6 @@ class Task:
         self._owned(actor)
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("Нужна инструкция пользователя об отмене")
-        if self.state.status == TaskStatus.SUPERSEDED:
-            raise DomainError("A superseded Task is immutable")
         if self.state.status == TaskStatus.CANCELLED:
             return self._unchanged()
         return self._change("user_cancel", reason, None, status=TaskStatus.CANCELLED, claimed_by=None)

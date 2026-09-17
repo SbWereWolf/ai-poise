@@ -79,7 +79,7 @@ the public `task` action. Preserve Task identity, immutable history, Sprint memb
 worktree/branch and all WIP; reject terminal work, a foreign live owner, stale version, or a
 pending external outcome before mutation. Resolve pending uncertainty through its explicit
 recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
-action. Historical replacement relations remain read-only provenance.
+action. Historical relations exist only as opaque revision/audit records, not a current replacement projection.
 
 Task restart atomically invalidates every mutable current `work-packet identity` for that
 Task in the same Unit of Work as the newborn lifecycle reset. This does not rewrite or delete
@@ -112,7 +112,7 @@ Adopt it only through an exact `goal-config-reconcile-1` request with the observ
 live revisions, reason and authority. Do not create a fresh editor database to bypass stale
 ownership metadata. Follow [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией).
 
-When `bootstrap` explicitly addresses a `completed`, `cancelled`, or `superseded` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.
+When `bootstrap` explicitly addresses a `completed` or `cancelled` Task, consume the returned `terminal inspection snapshot` with its preserved context, content, evidence, and history. Do not expect or create a current-task binding, and do not issue a follow-up `show` to recover terminal data. A cancelled Task may legitimately have no evidence. After inspection, taskless bootstrap must return `read_only`; only then may null-result verify return `read_only_verified`.
 
 Do not create a worktree for read-only queries. For repository-changing work, use the worktree supplied by AI poise and read the target repository's applicable `AGENTS.md` before edits.
 

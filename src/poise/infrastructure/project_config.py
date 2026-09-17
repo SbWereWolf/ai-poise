@@ -126,7 +126,7 @@ class FileProjectConfigUpdate:
             with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
                 row = connection.execute(
                     "SELECT 1 FROM tasks "
-                    "WHERE status NOT IN ('completed','cancelled','superseded') LIMIT 1"
+                    "WHERE status NOT IN ('completed','cancelled') LIMIT 1"
                 ).fetchone()
             return row is not None
         except sqlite3.Error as exc:

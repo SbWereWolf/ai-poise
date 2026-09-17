@@ -749,12 +749,14 @@ class Poise:
         return ContextRecovery(self, self.context_reader).restore(request)
 
     def _terminal_context(self, data: dict) -> dict:
-        return {
-            **self._context(data, False),
-            'content': self.task_queries.content(data['id']),
-            'evidence': self.task_queries.evidence_view(data['id']),
-            'history': self.task_queries.history(data['id']),
-        }
+        snapshot = self.task_queries.terminal_snapshot(data['id'])
+        sid = snapshot['metadata'].get('sprint_id')
+        return {**snapshot, 'session': self.session,
+                'goal': snapshot['metadata'].get('goal'),
+                'runtime_root': str(self.runtime),
+                'task_root': str(task_root(self.state, self.paths, data['id'], sid)),
+                'sprint_root': None if sid is None else str(sprint_root(self.state, self.paths, sid)),
+                'next_work': 'Read historical records; no current-task binding or execution'}
 
     def _validate_task(self, task: dict, process: dict) -> dict:
         from .modules.tasks.definition import validate_creation

@@ -300,31 +300,17 @@ def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_reques
     assert Path(result["receipt_path"]).is_file()
 
 
-def test_superseded_task_does_not_block_quiescent_manifest_update(project):
+def test_cancelled_task_does_not_block_quiescent_manifest_update(project):
     settings, config_path, created = installed_project(project)
     original = deepcopy(project["task"])
     original.update(id="BAD", sprint_id="S", goal="Replace this fixture")
     planner = WorkTools(Poise(config_path, "replacement-planner", DeterministicClock()))
     planned = draft_sprint(planner, [original])
     publish_sprint(planner, planned["revision"])
-    # Persist the state shape written by the retired pre-0079 replacement action.
     with planner.runtime.store.unit_of_work() as unit:
         task = unit.tasks.load("BAD")
-        historical = replace(
-            task,
-            state=replace(
-                task.state,
-                status=TaskStatus.SUPERSEDED,
-                version=task.state.version + 1,
-            ),
-        )
-        unit.tasks.save(Change(historical, None, (TaskEvent(
-            "superseded",
-            task.stage.stage_id,
-            task.state.iteration,
-            "Historical replacement fixture.",
-        ),)), task.state.version)
-    assert planner.runtime.task_queries.record("BAD")["status"] == "superseded"
+        unit.tasks.save(task.cancel_from_sprint("The fixture is no longer required."), task.state.version)
+    assert planner.runtime.task_queries.record("BAD")["status"] == "cancelled"
     update = update_request(
         config_path,
         created["revision"],

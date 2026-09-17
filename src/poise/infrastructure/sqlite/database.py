@@ -136,7 +136,7 @@ class Database:
                     "UPDATE sessions SET task_id=NULL WHERE task_id=? AND id<>?",
                     (task_id, retained),
                 )
-            elif task is not None and task["status"] in ("completed", "cancelled", "superseded") and retained is None:
+            elif task is not None and task["status"] in ("completed", "cancelled") and retained is None:
                 db.execute("UPDATE sessions SET task_id=NULL WHERE task_id=?", (task_id,))
             else:
                 raise PoiseError(

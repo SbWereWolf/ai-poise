@@ -124,8 +124,8 @@ class RuntimeTaskResourceCleanup:
     def load(self, task_id):
         record = self.h.task_queries.record(task_id)
         if record is None: raise PoiseError("Task does not exist")
-        if record["status"] not in ("cancelled", "superseded"):
-            raise PoiseError("Cleanup requires a terminal cancelled or superseded Task")
+        if record["status"] != "cancelled":
+            raise PoiseError("Cleanup requires a terminal cancelled Task")
         return record["pending"]
 
     def save(self, task_id, pending):
@@ -145,8 +145,8 @@ class RuntimeTaskResourceCleanup:
     def initialize(self, task_id, pending):
         with self.h.store.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
-            if task.state.status.value not in ("cancelled", "superseded"):
-                raise PoiseError("Cleanup initialization requires a terminal cancelled or superseded Task")
+            if task.state.status.value != "cancelled":
+                raise PoiseError("Cleanup initialization requires a terminal cancelled Task")
             data, version = uow.execution.load(task_id)
             if data["pending"] is not None:
                 raise PoiseError("Task acquired a pending external operation during cleanup initialization")

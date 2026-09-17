@@ -575,7 +575,7 @@ def test_restart_rejects_pending_unknown_outcome_without_mutation(project):
     assert tools.runtime.task_queries.record(context["task"]) == before
 
 
-@pytest.mark.parametrize("status", ["completed", "cancelled", "superseded"])
+@pytest.mark.parametrize("status", ["completed", "cancelled"])
 def test_restart_contract_rejects_terminal_work(status, project):
     configure(project)
     tools = WorkTools(Poise(project["config_path"], "executor"))

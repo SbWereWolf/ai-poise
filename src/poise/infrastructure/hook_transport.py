@@ -389,7 +389,7 @@ class HookService:
         caller=CallerIdentity.native(binding['project'],binding['external_session'])
         h=establish_poise(self.settings.project_config,caller,[],SystemClock(),binding['session_id']).runtime
         task=h.current_task()
-        active=task if task is not None and task['status'] not in ('completed','cancelled','superseded') else None
+        active=task if task is not None and task['status'] not in ('completed','cancelled') else None
         message=None
         if native['event']=='UserPromptSubmit':
             message={'conversation_id':native['session_id'],'message_id':native['turn_id'],
@@ -438,13 +438,13 @@ class HookService:
         if req['operation']=='bootstrap':result=invoke()
         if gated:
             task=h.current_task()
-            active_task=task is not None and task['status'] not in ('completed','cancelled','superseded')
+            active_task=task is not None and task['status'] not in ('completed','cancelled')
             workspace=(task['worktree'] if active_task and task['worktree'] is not None
                        else h.cfg['git']['repository'])
             checks=self.probes(record['definition_path'],workspace)
             if not checks['ready'] and not (req['operation']=='bootstrap' and not active_task):
                 h.interactions.record(h.interactions.prepare(req['messages']),h.session,
-                    task if task is not None and task['status'] not in ('completed','cancelled','superseded') else None)
+                    task if task is not None and task['status'] not in ('completed','cancelled') else None)
                 return {'status':'capabilities_unavailable','capability_checks':checks,
                         'context':result if result is not None else h.show(),
                         'interaction':h.interactions.summary(task)}

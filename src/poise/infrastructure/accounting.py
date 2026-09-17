@@ -116,7 +116,7 @@ class RuntimeAccounting:
         for a in data['accounts']:
             task=data['tasks'][a['task_id']]
             old=self.repo.latest_credit(task['id'])
-            state=task['status'] if task['status'] in ('completed','cancelled','superseded') else 'open'
+            state=task['status'] if task['status'] in ('completed','cancelled') else 'open'
             if state=='open' and (old is None or old['state']=='open'):continue
             if old is not None and old['state']==state and state!='completed':continue
             if old is not None and old['state']=='completed' and state=='completed':continue
@@ -159,7 +159,7 @@ class RuntimeAccounting:
         for event in snapshot['events']:
             event_times[event['task_id']]=event['at']
         for task_id,task in snapshot['tasks'].items():
-            if task_id in credited or task['status'] not in ('completed','cancelled','superseded'):
+            if task_id in credited or task['status'] not in ('completed','cancelled'):
                 continue
             definition=BenefitDefinition.parse(task['process']['benefit'])
             baseline={'git_base':task['base'],'sections':{name:'' for name in definition.sections},

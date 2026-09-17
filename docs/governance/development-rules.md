@@ -75,7 +75,7 @@ type-specific process snapshot, а переход в `available` разрешё�
 Task можно получить автоматически, запись при чужом живом владельце запрещена, независимый
 worktree не освобождается. Sprint materialization сохраняет частичные правки, историю,
 членство и граф в реальных newborn Task. Legacy embedded definitions переводятся явно, без
-массовой миграции; historical replacement relations сохраняют traceability от source Task. Если
+массовой миграции; исторические связи сохраняют traceability только в revision layers и migration audit. Если
 DoD недостижим или следующий DoR сломан, Task получает явный outcome `broken` и либо reviewer
 исправляет локальный stage contract, либо authorized `restart` возвращает ту же незавершённую
 неинтегрированную Task в newborn с сохранением identity, history, Sprint membership, worktree и WIP.

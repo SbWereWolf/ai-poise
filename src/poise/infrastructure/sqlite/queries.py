@@ -4,7 +4,7 @@ from ...modules.foundation.errors import PoiseError
 
 
 class TaskQueries:
-    """Queries never mutate the aggregate or load its full section history."""
+    """Targeted read projections; terminal history is requested explicitly."""
     def __init__(self, database):
         self.database = database
 
@@ -82,8 +82,19 @@ class TaskQueries:
 
     @staticmethod
     def record_in(db, task_id: str) -> dict | None:
-        row=db.execute("SELECT t.*, e.data AS execution, e.version AS execution_version FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id WHERE t.id=?",(task_id,)).fetchone()
+        row=db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, e.data AS execution, e.version AS execution_version FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id WHERE t.id=?",(task_id,)).fetchone()
         if row is None: return None
+        from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
+        status = TaskStatus.parse(row['status'])
+        if is_terminal_task_status(status):
+            metadata = json.loads(row['metadata'])
+            execution = {} if row['execution'] is None else json.loads(row['execution'])
+            return {**metadata, **execution, 'id': row['id'], 'status': status.value,
+                    'version': row['version'], '_version': row['version'],
+                    'stage_index': row['stage_index'], 'iteration': row['iteration'],
+                    'claimed_by': row['claimed_by'], '_execution_version': row['execution_version'],
+                    'sprint_id': metadata.get('sprint_id'), 'worktree': execution.get('worktree'),
+                    'result_commit': (execution.get('last_report') or {}).get('commit')}
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
         metadata = json.loads(row['metadata'])
         from .tasks import progression_view
@@ -139,6 +150,33 @@ class TaskQueries:
                 "claimed_by":row["claimed_by"],"result_commit":None if report is None else report["commit"],
                 "version":row["version"],"_version":row["version"],"_execution_version":row["execution_version"],
                 "history":history,"progression":progression}
+
+    def terminal_snapshot(self, task_id: str) -> dict:
+        """One immutable ledger view for every terminal Task, not an execution restore."""
+        from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
+        with self.database.transaction() as db:
+            row = db.execute('SELECT id,status,version,metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
+            if row is None or not is_terminal_task_status(TaskStatus.parse(row['status'])):
+                raise PoiseError('Terminal ledger requires a completed or cancelled Task')
+            def objects(sql):
+                return [json.loads(item[0]) for item in db.execute(sql, (task_id,))]
+            def rows(sql):
+                return [dict(item) for item in db.execute(sql, (task_id,))]
+            return {'schema': 'poise-terminal-inspection-1', 'task': task_id,
+                    'status': row['status'], 'version': row['version'],
+                    'metadata': json.loads(row['metadata']), 'result_template': None,
+                    'content': {
+                        'contracts': rows('SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version'),
+                        'sections': rows('SELECT submission_id,section_id,content,content_state FROM section_layers WHERE task_id=? ORDER BY submission_id,section_id'),
+                        'trace_points': rows('SELECT submission_id,route_id,point_id,data FROM trace_point_layers WHERE task_id=? ORDER BY submission_id,route_id,point_id')},
+                    'evidence': {
+                        'records': objects('SELECT data FROM evidence WHERE task_id=? ORDER BY id'),
+                        'proof': objects('SELECT data FROM task_proofs WHERE task_id=?'),
+                        'proof_layers': rows('SELECT version,data FROM task_proof_layers WHERE task_id=? ORDER BY version')},
+                    'history': objects('SELECT data FROM task_events WHERE task_id=? ORDER BY seq'),
+                    'execution': objects('SELECT data FROM task_execution WHERE task_id=?'),
+                    'workflow': objects('SELECT data FROM task_workflows WHERE task_id=?'),
+                    'notice': 'Stored historical material; not fresh verification or an executable contract'}
 
     def history(self, task_id: str) -> list[dict]:
         with self.database.transaction() as db:

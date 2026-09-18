@@ -8,7 +8,7 @@ import math
 from pathlib import Path
 import sqlite3
 
-from ..infrastructure.locking import exclusive_lock
+from .sqlite.transaction import write_transaction
 from ..modules.foundation.errors import DomainError, PoiseError, VersionConflict
 from ..modules.requirements_registry.domain import RequirementsRegistry
 
@@ -57,22 +57,12 @@ class RequirementsStore:
 
     @contextmanager
     def _transaction(self):
-        with exclusive_lock(self.lock, self.lock_seconds, self.poll_seconds):
-            connection = None
-            try:
-                connection = sqlite3.connect(self.database, timeout=0, isolation_level=None)
-                connection.row_factory = sqlite3.Row
-                connection.execute("PRAGMA foreign_keys=ON")
-                connection.execute("BEGIN")
-                yield connection
-                connection.execute("COMMIT")
-            except BaseException:
-                if connection is not None and connection.in_transaction:
-                    connection.execute("ROLLBACK")
-                raise
-            finally:
-                if connection is not None:
-                    connection.close()
+        # Reserve the writer before reading revision/request state. Only the
+        # shared BEGIN/COMMIT boundary may retry; this body is never replayed.
+        with write_transaction(
+            self.database, self.lock, self.lock_seconds, self.poll_seconds
+        ) as connection:
+            yield connection
 
     @staticmethod
     def _registry(connection):

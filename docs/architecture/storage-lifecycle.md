@@ -16,7 +16,7 @@
 
 Реализация: [Task Database](../../src/poise/infrastructure/sqlite/database.py), [RequirementsStore](../../src/poise/infrastructure/requirements_registry.py), [TelemetryDatabase](../../src/poise/infrastructure/telemetry.py), [HookRegistry](../../src/poise/infrastructure/sqlite/hook_transport.py), [GoalConfigRepository](../../src/poise/infrastructure/goal_config.py). Project-config сохраняет собственные pending/operation receipts в файлах; это не ещё одна каноническая Task DB.
 
-Общая Task write boundary получает `BEGIN IMMEDIATE` до чтений и ограниченно повторяет только SQL-границы `BEGIN`/`COMMIT`, а не тело операции. RequirementsStore сейчас использует отдельный flock и deferred `BEGIN` с SQLite `timeout=0`: краткая блокировка независимым writer может дать немедленный отказ. Общая гарантия ожидания на него пока не распространяется.
+Task и RequirementsStore используют одну ограниченную write boundary: собственный flock хранилища → `BEGIN IMMEDIATE` до чтения revision/request state → однократное тело → `COMMIT`. Повторяются только SQL-границы `BEGIN IMMEDIATE`/`COMMIT` при `SQLITE_BUSY`, не тело операции. `lock_seconds` — отдельный бюджет каждого ожидания flock, BEGIN и COMMIT, не общий timeout запроса. При исчерпании COMMIT-бюджета выполняется rollback. Requirements DB остаётся отдельной schema 1 со своими явно настроенными путями; revision и request digest сохраняются. См. [точную политику записи](sqlite-write-boundary-design.md).
 
 Task DB хранит собственные Task requirements и согласованный исторический снимок System → Application → Task. Это не копия изменяемого канонического Requirements Registry. Правила полноты, статусов и согласования — в [реестре требований](../workflows/requirements-registry.md#публикация-и-исторический-снимок).
 

@@ -866,6 +866,7 @@ class Poise:
             raise PoiseError('Выбор задачи и решение по текущему этапу — разные входы')
         current = self.store.current(self.session)
         allocation_receipt = None
+        selected_by_id = False
         if task is not None and isinstance(task,dict) and set(task)=={'id'}:
             self._identifier(task['id'])
             if self.sprint_tools.known(task['id']):
@@ -885,14 +886,18 @@ class Poise:
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
                 result = self._terminal_context(selected)
                 return result
-            task=deepcopy(selected['contract'])
+            # ID selection is a continuation, not a new creation contract. The
+            # current CheckRegistry projection may legally differ from the saved
+            # original contract; never feed that projection back as caller input.
+            selected_by_id = True
         if task is not None:
             intent = deepcopy(task)
             automatic = isinstance(intent,dict) and set(intent)=={'request_id','task'}
             contract = deepcopy(intent['task'] if automatic else intent)
             existing = None if automatic or not isinstance(contract.get('id'),str) else self.task_queries.record(contract['id'])
             if existing is not None:
-                self.task_commands.require_bootstrap_contract(existing['id'], contract)
+                if not selected_by_id:
+                    self.task_commands.require_bootstrap_contract(existing['id'], contract)
                 if existing['status']=='available':
                     blocked = self._require_entry(existing)
                     return blocked if blocked is not None else self.sprint_tools.start(existing['id'])

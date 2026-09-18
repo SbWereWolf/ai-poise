@@ -160,12 +160,9 @@ def test_stop_has_no_cancel_semantics_for_a_completed_check(project, tmp_path):
 
 def test_output_error_cannot_silently_produce_success(tmp_path, monkeypatch):
     from poise import execution
-    original = execution.threading.Thread
-    def failing_start(*args, **kwargs):
-        thread = original(*args, **kwargs)
-        thread.start = lambda: (_ for _ in ()).throw(OSError('cannot start capture'))
-        return thread
-    monkeypatch.setattr(execution.threading, 'Thread', failing_start)
+    def broken_selector():
+        raise OSError('cannot start capture')
+    monkeypatch.setattr(execution.selectors, 'DefaultSelector', broken_selector)
     runner = RegisteredCheckRunner()
     with pytest.raises(OSError, match='cannot start capture'):
         launch(runner, tmp_path, 'import time;time.sleep(4)')

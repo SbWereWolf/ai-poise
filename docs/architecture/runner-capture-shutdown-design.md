@@ -1,11 +1,11 @@
 # Ограниченное завершение runner и чтения вывода
 
-Решение `REVIEW-ARCH-A04`, 18 сентября 2026. Подготовлено для R02; это дизайн,
-не утверждение о выполненной реализации. База `43bd97b1a6073447aca61eb0b824a821c85f3c7b`.
+Решение `REVIEW-ARCH-A04`, 18 сентября 2026. Реализовано в `REVIEW-BUG-R02`: неблокирующий POSIX capture,
+ограниченное завершение и явная неполнота результата. База `43bd97b1a6073447aca61eb0b824a821c85f3c7b`.
 
 ## Дефект и выбранная граница
 
-[RegisteredCheckRunner](../../src/poise/execution.py) резервирует run_id, создаёт
+[RegisteredCheckRunner](../../src/poise/execution.py) в исходной версии резервировал run_id, создавал
 POSIX process group, два pump-потока и файлы логов. При завершении родителя или timeout
 он убивает принадлежащую группу, затем без ограничения делает join потоков. Процесс,
 создавший другую сессию, может продолжить держать унаследованный pipe: EOF не наступает.
@@ -30,7 +30,7 @@ NaN/Infinity не являются способом убрать deadline. `time
 неограниченный рабочий интервал, но не снимает конечный teardown после остановки.
 
 У run есть рабочий hard deadline `start + timeout`, progress deadline от последнего
-реально прочитанного вывода и отдельный `cleanup_seconds`. Предлагается keyword
+реально прочитанного вывода и отдельный `cleanup_seconds`. Используется keyword
 `cleanup_seconds=0.25` на уровне RegisteredCheckRunner.run: это документированный
 технический бюджет дренирования/ожидания SIGKILL, не бизнес-правило Task и не увеличение
 check timeout. Он записывается в результат. Дополнительного обязательного поля во всех
@@ -111,3 +111,11 @@ Stoppable threads с nonblocking FD возможны, но добавляют ev
 реализацию в середине capture.
 
 [Общий план](review-followup-2026-09-18.md)
+
+## Проверенная реализация R02
+
+Проверены оба retained-pipe сценария (exit и hard timeout), точный большой binary output,
+непрерывный producer, finite-positive budgets, faults на selector register/read/write,
+native cancellation и повторный запуск после ошибки. Explicit incomplete capture
+не даёт passed/interpretability/cache success; старые receipts без поля сохраняют
+прежнюю семантику. Исходные RED и GREEN результаты сохранены в материалах задачи.

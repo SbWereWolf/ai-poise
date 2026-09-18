@@ -169,7 +169,8 @@ class AiPoiseTestPackageCache:
         )
         cases,junit_error=_terminal_junit(junit)
         passed=(
-            result['actual_exit_code']==0
+            result.get('capture_complete', True) is True
+            and result['actual_exit_code']==0
             and not result['timed_out']
             and not result['cancelled']
             and junit_error is None
@@ -186,6 +187,7 @@ class AiPoiseTestPackageCache:
             'actual_exit_code':result['actual_exit_code'],
             'timed_out':result['timed_out'],
             'cancelled':result['cancelled'],
+            **{key: result[key] for key in ('capture_complete', 'capture_reason', 'cleanup_seconds') if key in result},
             'duration_seconds':result['duration_seconds'],
             'stdout':self._relative(stdout),
             'stderr':self._relative(stderr),

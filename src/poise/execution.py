@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 import os
 import signal
+import selectors
 import shutil
 import subprocess
 import sys
@@ -163,17 +164,21 @@ class RegisteredCheckRunner:
         *,
         progress_gap_seconds: float | None = None,
         poll_seconds: float = 0.05,
+        cleanup_seconds: float = 0.25,
     ) -> dict:
         if os.name != 'posix' or not callable(getattr(os, 'killpg', None)):
             raise PoiseError('RegisteredCheckRunner requires POSIX process groups; use Linux/WSL')
         if not isinstance(run_id, str) or not run_id:
             raise ValueError('run_id must be a non-empty string')
-        if timeout is not None and (isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0):
-            raise ValueError('timeout must be positive or None')
-        if progress_gap_seconds is not None and (isinstance(progress_gap_seconds, bool) or not isinstance(progress_gap_seconds, (int, float)) or progress_gap_seconds <= 0):
-            raise ValueError('progress_gap_seconds must be positive or None')
-        if isinstance(poll_seconds, bool) or not isinstance(poll_seconds, (int, float)) or poll_seconds <= 0:
-            raise ValueError('poll_seconds must be positive')
+        for name, value, optional in (
+            ('timeout', timeout, True), ('progress_gap_seconds', progress_gap_seconds, True),
+            ('poll_seconds', poll_seconds, False), ('cleanup_seconds', cleanup_seconds, False),
+        ):
+            if value is None and optional:
+                continue
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not math.isfinite(value) or value <= 0):
+                raise ValueError(f'{name} must be positive and finite' + (' or None' if optional else ''))
         if not isinstance(argv, list) or not argv or any(not isinstance(x, str) for x in argv):
             raise ValueError('argv must be a non-empty list of strings')
         prohibit_git_push(argv)
@@ -186,9 +191,10 @@ class RegisteredCheckRunner:
             self._active[run_id] = state
             cancellation_check = self.cancellation_requested
         child = None
-        threads = []
+        selector = None
         streams = []
-        errors = []
+        cleanup_deadline = None
+        capture_complete = False
         timed_out = False
         timeout_reason = None
         cancellation_reason = None
@@ -214,61 +220,81 @@ class RegisteredCheckRunner:
                         state['child'] = child
                     streams = [child.stdout, child.stderr]
 
-                    def pump(stream, target):
-                        try:
-                            while True:
-                                chunk = stream.read1(64 * 1024)
-                                if not chunk:
-                                    break
-                                target.write(chunk)
-                                target.flush()
-                                state['last_progress'] = time.monotonic()
-                        except Exception as exc:
-                            errors.append(exc)
-                        finally:
-                            stream.close()
-
+                    selector = selectors.DefaultSelector()
                     for stream, target in ((child.stdout, out), (child.stderr, err)):
-                        thread = threading.Thread(target=pump, args=(stream, target), daemon=True)
-                        thread.start()
-                        threads.append(thread)
+                        os.set_blocking(stream.fileno(), False)
+                        selector.register(stream, selectors.EVENT_READ, target)
                     while True:
-                        if errors:
-                            raise PoiseError(f'Registered output capture failed: {errors[0]}')
-                        code = child.poll()
-                        if code is not None:
-                            break
-                        if cancellation_check is not None and cancellation_check():
-                            self.cancel(run_id)
-                            cancellation_reason = 'native_session_end'
-                            observed = getattr(cancellation_check, 'observation', None)
-                            if isinstance(observed, dict):
-                                cancellation_observation = dict(observed)
                         now = time.monotonic()
-                        if progress_gap_seconds is not None and now - state['last_progress'] >= progress_gap_seconds:
-                            timed_out = True
-                            timeout_reason = 'progress_gap'
-                        elif timeout is not None and now - start >= timeout:
-                            timed_out = True
-                            timeout_reason = 'hard_limit'
-                        if timed_out:
-                            self._kill_group(child)
-                            code = child.wait()
-                            break
-                        time.sleep(poll_seconds)
+                        code = child.poll()
+                        if cleanup_deadline is None:
+                            if code is None and cancellation_check is not None and cancellation_check():
+                                self.cancel(run_id)
+                                cancellation_reason = 'native_session_end'
+                                observed = getattr(cancellation_check, 'observation', None)
+                                if isinstance(observed, dict):
+                                    cancellation_observation = dict(observed)
+                            now = time.monotonic()
+                            if code is None and not state['cancel_requested']:
+                                if progress_gap_seconds is not None and now - state['last_progress'] >= progress_gap_seconds:
+                                    timed_out, timeout_reason = True, 'progress_gap'
+                                elif timeout is not None and now - start >= timeout:
+                                    timed_out, timeout_reason = True, 'hard_limit'
+                            if code is not None or state['cancel_requested'] or timed_out:
+                                # One budget for both pipes and direct-child reaping.
+                                cleanup_deadline = now + cleanup_seconds
+                                self._kill_group(child)
+                        if cleanup_deadline is not None:
+                            if not selector.get_map():
+                                capture_complete = True
+                                break
+                            remaining = cleanup_deadline - time.monotonic()
+                            if remaining <= 0:
+                                break
+                            wait = min(poll_seconds, remaining)
+                        else:
+                            waits = [poll_seconds]
+                            if timeout is not None:
+                                waits.append(max(0, start + timeout - now))
+                            if progress_gap_seconds is not None:
+                                waits.append(max(0, state['last_progress'] + progress_gap_seconds - now))
+                            wait = min(waits)
+                        # Bounded chunks ensure a busy producer cannot starve deadlines.
+                        for key, _ in selector.select(wait):
+                            try:
+                                chunk = os.read(key.fd, 64 * 1024)
+                            except BlockingIOError:
+                                continue
+                            if chunk:
+                                key.data.write(chunk)
+                                key.data.flush()
+                                state['last_progress'] = time.monotonic()
+                            else:
+                                selector.unregister(key.fileobj)
+                                key.fileobj.close()
                 finally:
-                    # Release our group even on observer/I/O error, interruption or
-                    # a parent that exited leaving descendants holding output pipes.
-                    if child is not None:
-                        self._kill_group(child)
-                        child.wait()
-                    for thread in threads:
-                        thread.join()
-                    for stream in streams:
-                        if not stream.closed:
-                            stream.close()
-                if errors:
-                    raise PoiseError(f'Registered output capture failed: {errors[0]}')
+                    # This same thread owns the selector, pipes and files: no join
+                    # or cross-thread buffered close can wait for an escaped writer.
+                    try:
+                        if child is not None:
+                            if cleanup_deadline is None:
+                                cleanup_deadline = time.monotonic() + cleanup_seconds
+                            self._kill_group(child)
+                            try:
+                                code = child.wait(timeout=max(0, cleanup_deadline - time.monotonic()))
+                            except subprocess.TimeoutExpired as exc:
+                                raise PoiseError(f'Registered cleanup deadline exceeded: {run_id}') from exc
+                            finally:
+                                with self._lock:
+                                    state['child'] = None
+                    finally:
+                        try:
+                            if selector is not None:
+                                selector.close()
+                        finally:
+                            for stream in streams:
+                                if not stream.closed:
+                                    stream.close()
             cancelled = bool(state['cancel_requested'])
             if cancelled and cancellation_reason is None:
                 cancellation_reason = 'explicit_cancel'
@@ -276,6 +302,9 @@ class RegisteredCheckRunner:
                 'actual_exit_code': code,
                 'timed_out': timed_out,
                 'timeout_reason': timeout_reason,
+                'capture_complete': capture_complete,
+                'capture_reason': None if capture_complete else 'drain_limit',
+                'cleanup_seconds': cleanup_seconds,
                 'cancelled': cancelled,
                 'cancellation_reason': cancellation_reason,
                 **({} if cancellation_observation is None else
@@ -374,7 +403,8 @@ def equals(path: Path, expected: str) -> bool:
 
 def method_passed(method: dict, result: dict) -> bool:
     passed = (
-        not result['timed_out']
+        result.get('capture_complete', True) is True
+        and not result['timed_out']
         and not result.get('cancelled', False)
         and result['actual_exit_code'] == method['expected_exit_code']
         and all(contains(Path(result['stdout']), marker) for marker in method['stdout_contains'])

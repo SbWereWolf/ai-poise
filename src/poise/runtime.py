@@ -1574,7 +1574,7 @@ class Poise:
                 method.get('outputs', []), declared_output_dir, run_dir / 'outputs'
             )
             passed=method_passed(method, result) and outputs_complete
-            interpretable=(not result['timed_out'] and result['actual_exit_code'] is not None and result['actual_exit_code']>=0 and
+            interpretable=(result.get('capture_complete', True) is True and not result['timed_out'] and result['actual_exit_code'] is not None and result['actual_exit_code']>=0 and
                            all(result['actual_exit_code'] in rule['exit_codes'] and
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
                                all(contains(Path(result['stderr']),t) for t in rule['stderr_contains'])

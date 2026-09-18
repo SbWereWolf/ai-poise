@@ -18,11 +18,16 @@ AUDITED_TABLES = tuple(dict.fromkeys((*TABLES, 'task_methods', 'workflow_layers'
 
 
 def snapshot(runtime):
+    def rows(db, table, suffix):
+        # Inspect the test database schema, not a production mapper or serializer.
+        columns = ','.join('"' + row[1].replace('"', '""') + '"'
+                           for row in db.execute(f'PRAGMA table_info("{table}")'))
+        return [tuple(row) for row in db.execute(f'SELECT {columns} FROM "{table}" {suffix}')]
+
     with runtime.store.transaction() as db:
-        return {name: [tuple(row) for row in db.execute(f'SELECT * FROM {name} ORDER BY rowid')]
-                for name in AUDITED_TABLES} | {'journal': [tuple(row) for row in db.execute(
-                    "SELECT * FROM journal WHERE event IN ('stage.verified','content.gate',"
-                    "'verification_registry_changed') ORDER BY seq")]}
+        return {name: rows(db, name, 'ORDER BY rowid') for name in AUDITED_TABLES} | {
+            'journal': rows(db, 'journal', "WHERE event IN ('stage.verified','content.gate',"
+                            "'verification_registry_changed') ORDER BY seq")}
 
 
 @pytest.fixture
@@ -71,8 +76,17 @@ def test_invalid_registered_artifact_leaves_complete_task_snapshot_unchanged(
     damage(runtime, record, kind, tmp_path)
     before = snapshot(runtime)
     generated = Path(record['path']).parent / 'must-not-exist.md'
+    expected_error = {
+        'missing': 'Артефакт не существует',
+        'bytes': 'Артефакт изменён после регистрации',
+        'outside': 'Путь вне разрешённых областей',
+        'symlink': 'Путь вне разрешённых областей',
+        'digest': 'Артефакт изменён после регистрации',
+        'owner': 'Registered artifact identity/owner mismatch',
+        'scope': 'Registered artifact scope has no current owner root',
+    }[kind]
     try:
-        with pytest.raises(PoiseError):
+        with pytest.raises(PoiseError, match=expected_error):
             if entry == 'public':
                 tools.invoke(request('verify', {'result': payload,
                     'artifacts': [text_artifact(path=generated.name)]}))

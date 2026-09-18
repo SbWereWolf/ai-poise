@@ -227,7 +227,7 @@ def test_inspection_exit_requires_nonempty_complete_current_green_executable_cov
 
 
 def configure_public_registry_case(project: dict) -> None:
-    from conftest import write_json
+    from conftest import bind_task_requirements, write_json
 
     stages = project["process"]["stages"]
     stage_ids = (
@@ -272,6 +272,8 @@ def configure_public_registry_case(project: dict) -> None:
     project["task"]["definition_of_done"].append(
         "The operator-facing workflow documentation is synchronized."
     )
+    # The positive fixture adds a Task requirement, so bind its full new text set.
+    bind_task_requirements(project["task"], project["requirements_registry"])
     project["task"]["executable_obligations"] = list(OBLIGATIONS)
     project["task"]["decomposition"] = {
         **project["task"]["decomposition"],
@@ -391,6 +393,38 @@ def focused_product_registration(project: dict, covers: tuple[str, ...]) -> dict
     }
 
 
+def continue_as(project, tools, task_id, actor, request_id, *, legacy_contract=False):
+    """Explicitly transfer this positive fixture at a configured role boundary."""
+    from tests.batch.helpers import request
+
+    handed_off = tools.invoke(request("handoff", {
+        "request_id": request_id,
+        "reason": "The fixture crosses an executor/reviewer role boundary.",
+        "result": None,
+        "commit_message": None,
+        "artifact_paths": [],
+    }))
+    assert handed_off["status"] == "handed_off"
+    assert tools.runtime.current_task() is None
+    successor = public_tools(project, actor)
+    # Supply the test-owned original approved contract, not its mutable query projection.
+    # The ID-only replay defect is tracked separately; it is not this test's subject.
+    original = deepcopy(project["task"])
+    original["id"] = task_id
+    if legacy_contract:
+        original.pop("executable_obligations")
+    successor.invoke(request("bootstrap", {
+        "task": original, "decision": None,
+        "feedback": None, "rework_stage": None,
+    }))
+    assert successor.runtime.current_task()["id"] == task_id
+    continued = successor.invoke(request("bootstrap", {
+        "task": None, "decision": "continue",
+        "feedback": None, "rework_stage": None,
+    }))
+    return successor, continued
+
+
 def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_history(project):
     from conftest import add_test
     from tests.batch.helpers import bootstrap, request, result, verify
@@ -412,11 +446,9 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
     red_receipt = next(item for item in first["checks"] if item["method"] == "RED")["id"]
     remove_creation_classification_from_stored_fixture(project, project["task"]["id"])
 
-    inspection = tools.invoke(
-        request(
-            "bootstrap",
-            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
-        )
+    tools, inspection = continue_as(
+        project, tools, project["task"]["id"], "registry-reviewer", "registry-to-reviewer-1",
+        legacy_contract=True,
     )
     inspected = result(inspection)
     inspected["stage_work"] = {
@@ -433,11 +465,9 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
     }
     assert verify(tools, inspected)["stage_outcome"] == "changes_requested"
 
-    remediation = tools.invoke(
-        request(
-            "bootstrap",
-            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
-        )
+    tools, remediation = continue_as(
+        project, tools, project["task"]["id"], "registry-owner", "registry-to-executor-1",
+        legacy_contract=True,
     )
     corrected = result(remediation)
     corrected["method_additions"] = change(
@@ -490,11 +520,9 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
     preserved = next(item for item in evidence["observations"] if item["id"] == red_receipt)
     assert preserved["method"] == "RED" and preserved["passed"] is True
 
-    reinspection = restarted.invoke(
-        request(
-            "bootstrap",
-            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
-        )
+    restarted, reinspection = continue_as(
+        project, restarted, project["task"]["id"], "registry-reviewer", "registry-to-reviewer-2",
+        legacy_contract=True,
     )
     reinspected = result(reinspection)
     reinspected["stage_work"] = {
@@ -509,11 +537,9 @@ def test_sqlite_restart_preserves_current_projection_and_addressable_immutable_h
         ],
     }
     assert verify(restarted, reinspected)["status"] == "verified"
-    continued = restarted.invoke(
-        request(
-            "bootstrap",
-            {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
-        )
+    restarted, continued = continue_as(
+        project, restarted, project["task"]["id"], "registry-owner", "registry-to-executor-2",
+        legacy_contract=True,
     )
     assert continued["stage"] == "implementation"
 
@@ -564,11 +590,9 @@ def test_public_work_api_allows_only_stages_with_test_registry_section(project):
             request_id=f"registry-{case}",
         )
         assert verify(tools, prepared)["status"] == "verified"
-        inspection = tools.invoke(
-            request(
-                "bootstrap",
-                {"task": None, "decision": "continue", "feedback": None, "rework_stage": None},
-            )
+        tools, inspection = continue_as(
+            project, tools, scenario["task"]["id"],
+            f"registry-{case}-reviewer", f"registry-{case}-handoff",
         )
         inspected = result(inspection)
         inspected["stage_work"] = {

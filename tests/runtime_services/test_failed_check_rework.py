@@ -97,6 +97,11 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         "stderr_contains": [],
     }
     task = deepcopy(project["task"])
+    # This scenario replaces the route; inherited phase declarations are not valid.
+    task["decomposition"]["phases"] = [
+        {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
+        for stage in stages
+    ]
     task["stage_contracts"] = [
         {
             "stage_id": stage["id"],

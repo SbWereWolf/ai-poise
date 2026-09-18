@@ -233,7 +233,7 @@ def test_slow_optional_capture_does_not_delay_or_replace_work_result():
 
 def _configure_production_accounting(project):
     from conftest import write_json
-    from test_domain import policy
+    from .test_domain import policy
 
     process = {
         "goal_type": "development",
@@ -263,6 +263,9 @@ def _configure_production_accounting(project):
     write_json(project["root"] / "config/processes/development.json", process)
     write_json(project["config_path"], project["cfg"])
     task = deepcopy(project["task"])
+    task["decomposition"]["phases"] = [
+        {"stage": "write", "skills": ["task-domain"], "areas": []}
+    ]
     task["methods"] = []
     task["method_inputs"] = []
     task["checks"] = {"write": []}
@@ -341,18 +344,8 @@ def test_production_worktools_envelope_persists_once_across_restart(project):
     data = json.loads(stored[0]["data"])
     assert data["operation"] == "bootstrap"
     assert data["session"] == "original-session"
-    expected_turn = runtime.interactions.prepare(
-        [
-            {
-                "conversation_id": "conversation-A",
-                "message_id": "turn-0082",
-                "occurred_at": "2026-09-06T15:00:00+00:00",
-                "reason": "initial",
-                "subject": None,
-            }
-        ]
-    )[0].identity
-    assert data["turn_id"] == expected_turn
+    # Test-owned source/event tuple; do not call the producer to build its oracle.
+    assert data["turn_id"] == "3bcb0cf0e9cd659a5ceb6a9c996dffacfc275dd251472db6c3f0f9e89ef1558e"
     assert data["before_binding"] == {
         "task": None,
         "sprint": None,

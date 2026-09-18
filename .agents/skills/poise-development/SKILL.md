@@ -87,6 +87,12 @@ with the actual reason. Do not chain another formatter after successful IDE form
 or treat the read-only navigation helper as a mutation tool. See the canonical
 [F1 tool application rule](../../../docs/governance/jetbrains-mcp-policy.md#применение-поставленных-инструментов-f1).
 
+## Test cache identity and exclusive ownership
+
+For AI-poise test cache work, use the canonical [content-hash contract](../../../docs/configuration/test-package-cache.md#хеши-байтов-по-группам-входов): hash complete bytes, separately classified as sources, tests, fixtures and support. Names, timestamps and sizes alone never establish identity. Confirm that the executed inputs match the published fingerprint; hashing before a mutable run is not enough. See [execution input correspondence](../../../docs/configuration/test-package-cache.md#соответствие-результата-проверенным-байтам).
+
+Acquire exclusive interprocess ownership before cache record publication or replacement, reread under ownership, and keep crash-safe atomic publication separate from mutual exclusion. Fresh execution does not bypass ownership. Follow [exclusive cache publication](../../../docs/configuration/test-package-cache.md#монопольная-запись-через-владение). Do not describe these requirements as implemented merely because the documentation states them; [implementation status](../../../docs/configuration/test-package-cache.md#статус-выполнения-контракта) records the current gaps.
+
 ## Project-local configuration
 
 AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).

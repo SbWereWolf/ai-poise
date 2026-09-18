@@ -1,12 +1,14 @@
 # Устойчивая попытка исполнения проверок
 
 Решение `REVIEW-ARCH-A03`, 18 сентября 2026. Подготовлено для `REVIEW-BUG-R01`.
-Статус: проектирование завершено; реализация и проверка crash-сценариев — отдельная R01.
+Статус: протокол реализован в R01; crash-сценарии и legacy recovery проверяются
+в [регрессионных тестах](../../tests/runtime_services/test_durable_check_attempts.py).
+Владелец коротких границ — [CheckAttempts](../../src/poise/application/check_attempts.py).
 База: `388dd2bd3e9245964d0f3bd07339c28b211f12eb`.
 
 ## Исходный дефект и границы гарантий
 
-[Runtime](../../src/poise/runtime.py) сохраняет отдельные receipts после subprocess,
+До исправления [Runtime](../../src/poise/runtime.py) сохранял отдельные receipts после subprocess,
 затем снимает `pending=checks`, сохраняет execution и лишь затем вызывает
 `runner.record_observations`. [Исходное воспроизведение](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R01-check-reexecution.json)
 показало повтор успешной команды после ошибки последнего сохранения. Исключение из
@@ -22,7 +24,7 @@ SQLite не может атомарно зафиксировать произв�
 
 ```text
 kind = check_attempt, version = 1
-attempt_id, task_id, task_version, stage, iteration, submission_digest
+attempt_id, task_id, task_version, actor, stage, iteration, submission_digest
 verified_tree, execution_key
 runs = [{run_id, method_id, started: false}, ...]  // exact ordered set
 ```

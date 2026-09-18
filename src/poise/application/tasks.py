@@ -18,6 +18,7 @@ from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError, VersionConflict
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.tasks.definition import build_task, validate_creation
+from .check_attempts import CheckAttempts, is_check_attempt
 
 
 def require_reviewer_identity_in(
@@ -1088,8 +1089,23 @@ class TaskCommands:
     def record_observations(self, task_id, actor, tree, execution_key, receipts):
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
-            change=task.record_observations(actor,tree,execution_key,receipts)
-            uow.tasks.save(change,task.state.version)
+            execution, _ = uow.execution.load(task_id)
+            if is_check_attempt(execution['pending']):
+                CheckAttempts.finish_in(uow, task, actor, tree, execution_key, receipts)
+            else:
+                if execution['pending'] is not None:
+                    raise DomainError('Cannot finalize observations over another pending operation')
+                change=task.record_observations(actor,tree,execution_key,receipts)
+                uow.tasks.save(change,task.state.version)
+
+    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest):
+        return CheckAttempts(self.unit_of_work).begin(task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest)
+
+    def current_check_attempt(self, task_id, actor, tree, execution_key, methods):
+        return CheckAttempts(self.unit_of_work).current(task_id, actor, tree, execution_key, methods)
+
+    def start_check_run(self, task_id, actor, expected, run_id):
+        return CheckAttempts(self.unit_of_work).start_run(task_id, actor, expected, run_id)
 
     def recover_pending_checks(
         self, task_id, actor, submission_digest, tree, execution_key, receipts

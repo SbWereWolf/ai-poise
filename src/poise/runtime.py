@@ -13,6 +13,7 @@ from .common import PoiseError, descendant, configured_root, configured_storage_
 from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
+from .application.check_attempts import is_check_attempt, receipt_matches
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
 from .modules.evidence.domain import completed_receipts
@@ -1202,7 +1203,8 @@ class Poise:
                 and self._git(worktree,'symbolic-ref','--short','HEAD') != data['branch']):
             raise PoiseError('В worktree другая ветка')
         pending_checks = data['pending'] == 'checks'
-        if data['pending'] is not None and not pending_checks:
+        pending_attempt = is_check_attempt(data['pending'])
+        if data['pending'] is not None and not (pending_checks or pending_attempt):
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
@@ -1241,7 +1243,7 @@ class Poise:
         # Reject pre-existing path/identity failures before a submission can mutate
         # the current registry, content layers, evidence or Task history.
         self.validate_verification_artifacts(payload['artifact_paths'], data)
-        if pending_checks:
+        if pending_checks or pending_attempt:
             submitted_digest = self.runner.matching_submission_digest(
                 data['id'], self.session, payload
             )
@@ -1282,6 +1284,10 @@ class Poise:
         current_submission_digest = (
             submitted_digest if submitted is None else submitted.digest
         )
+        if pending_attempt:
+            data['pending'] = self.runner.current_check_attempt(
+                data['id'], self.session, tree, execution_key, [m['id'] for m in checks]
+            )
         if pending_checks:
             batch = self.task_commands.submission_observation_batch(
                 data['id'],current_submission_digest,tree,execution_key
@@ -1290,7 +1296,7 @@ class Poise:
             batch = self.task_commands.observation_batch(
                 data['id'],tree,execution_key
             )
-        intact = batch is not None and self._intact_receipts(
+        intact = not pending_attempt and batch is not None and self._intact_receipts(
             data['id'], batch['receipts'], invocations, tree
         )
         usable = intact and self._usable_receipts(
@@ -1324,23 +1330,23 @@ class Poise:
             receipts = batch['receipts']
             attempt = data['attempts']
         else:
-            if data['attempts'] >= self.cfg['limits']['verify_attempts']:
-                raise PoiseError('Достигнут явный лимит verify_attempts; требуется решение пользователя')
-            data['attempts'] += 1
+            if not pending_attempt:
+                self.runner.begin_check_attempt(
+                    data['id'], self.session, tree, execution_key,
+                    [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
+                    data['_version'], current_submission_digest
+                )
+                data = self._task()
             attempt = data['attempts']
-            data['pending'] = 'checks'
-            data['publication'] = None
-            self.store.save(data)
             self.store.event(self.session,data['id'],'verify.start',{'stage':stage['id'],'tree':tree,'attempt':attempt,'methods':[m['id'] for m in checks]})
             try:
                 receipts = self._execute_checks(data,stage,tree,checks,invocations,roots)
             except Exception as exc:
-                data['pending'] = None
-                self.store.save(data)
+                # Preserve durable intent even if spawn/receipt persistence failed.
                 self.store.event(self.session,data['id'],'verify.error',{'message':str(exc)})
                 raise
-            data['pending'] = None
-            self.store.save(data)
+            if not self._intact_receipts(data['id'], receipts, invocations, tree):
+                raise PoiseError('Unknown check outcome: immutable receipt files changed before finalization')
             self.runner.record_observations(data['id'],self.session,tree,execution_key,receipts)
             data = self._task()
         if not self._usable_receipts(data['id'], receipts, invocations, tree):
@@ -1515,8 +1521,26 @@ class Poise:
 
     def _execute_checks(self, data, stage, tree, checks, invocations, roots):
         receipts=[]
-        for method,invocation in zip(checks,invocations,strict=True):
-            run_id=str(uuid.uuid4())
+        attempt = data['pending']
+        recorded = {r['id']: r for r in self.evidence_commands.list_for(data['id'])}
+        # Inspect the whole finished prefix before permitting any new tail effect.
+        for run, invocation in zip(attempt['runs'], invocations, strict=True):
+            receipt = recorded.get(run['run_id'])
+            if run['started']:
+                if (not receipt_matches(attempt, run, receipt)
+                        or not self._intact_receipts(data['id'], [receipt], [invocation], tree)):
+                    raise PoiseError(
+                        f"Unknown check outcome: attempt={attempt['attempt_id']} run={run['run_id']}; "
+                        'restore the original immutable receipt and files, do not retry blindly'
+                    )
+            elif receipt is not None:
+                raise PoiseError('Unexpected receipt for a check run without start permission')
+        for index, (method,invocation) in enumerate(zip(checks,invocations,strict=True)):
+            run = attempt['runs'][index]
+            run_id = run['run_id']
+            if run['started']:
+                receipts.append(recorded[run_id])
+                continue
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
             declared_output_dir = run_dir / 'declared-outputs'
             declared_output_dir.mkdir(parents=True, exist_ok=True)
@@ -1539,6 +1563,7 @@ class Poise:
                 json.dumps(timeout_snapshot,sort_keys=True,ensure_ascii=False,indent=2)+'\n',
                 encoding='utf-8',
             )
+            attempt = self.runner.start_check_run(data['id'], self.session, attempt, run_id)
             result=self.check_runner.run(
                 run_id, method['argv'], Path(invocation['cwd']), run_environment, timeout_selection['seconds'],
                 descendant(run_dir,self.paths['stdout']), descendant(run_dir,self.paths['stderr']),
@@ -1554,7 +1579,9 @@ class Poise:
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
                                all(contains(Path(result['stderr']),t) for t in rule['stderr_contains'])
                                for rule in method['observation_rules']))
-            receipt={**result,'interpretable':interpretable,'id':run_id,'method':method['id'],'obligations':method['obligations'],'guard':method['guard'],
+            receipt={**result,'attempt_id':attempt['attempt_id'],
+                     'submission_digest':attempt['submission_digest'], 'execution_key':attempt['execution_key'],
+                     'interpretable':interpretable,'id':run_id,'method':method['id'],'obligations':method['obligations'],'guard':method['guard'],
                      'argv':method['argv'],'cwd':invocation['cwd'],'expected_exit_code':method['expected_exit_code'],
                      'passed':passed,'tree':tree,'stdout_digest':file_digest(Path(result['stdout'])),
                      'stderr_digest':file_digest(Path(result['stderr'])),

@@ -204,15 +204,15 @@ publication; never publish dirty or unchecked candidate state. See
 [integration remediation](../docs/workflows/batch-work.md#исправление-кандидата-после-checks_failed).
 
 
-### Delivery baseline contracts
+### Baseline and verification trace contracts
 
-The temporary WSL seed uses current explicit decomposition and matching baseline
-schedule/evidence. BASELINE is an observe-stage guard with an empty change surface,
-not produced-result GREEN evidence. Verification trace references are authored in
-verification_planning before the code-stage pre-gates, never required before their
-own first producer. Do not weaken reachability validation or rewrite cancelled
-historical tasks while fixing shipped definitions. See
-[delivery baseline repair](../delivery/README.md#исправление-baseline-контракта-первоначальной-поставки).
+BASELINE is an observe-stage guard at the route entry with an empty change
+surface, not produced-result GREEN evidence. Verification trace references are
+authored in verification_planning before code-stage pre-gates, never required
+before their own first producer. Preserve these rules when creating new Task
+contracts; do not rewrite cancelled historical Tasks. See the
+[verification registry](../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
+
 
 - Validate a prospective method registry together with its EvidencePlan, content policy and stage contracts inside the existing Task owner before any submission is persisted. Rejected registry changes must remain reloadable; never rely on a later SQLite aggregate read to discover cross-contract errors. Preserve exact verified-packet replay after a late response or cleanup failure; first successful interaction delivery is distinct from business verification.
 

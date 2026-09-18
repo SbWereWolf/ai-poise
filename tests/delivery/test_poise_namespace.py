@@ -14,8 +14,6 @@ IGNORED_PARTS = {".git", ".pytest_cache", "__pycache__", ".poise-test-cache"}
 PROTECTED_PREFIXES = ("src/", "tests/", "tools/", "examples/", "skills/", "config/")
 PROTECTED_FILES = {"AGENTS.md", "README.md", "pyproject.toml"}
 APPROVED_HISTORICAL_PATTERNS = {
-    f"delivery/task-definitions/{LEGACY_LOWER}/**",
-    "delivery/requirements-bootstrap.json",
     "docs/architecture-design/**",
     "docs/reference/**",
     "docs/*step*.md",

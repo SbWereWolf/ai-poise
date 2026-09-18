@@ -275,17 +275,23 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
             root = Path(raw)
             store = CONTRACT["RequirementsStore"](root / "requirements.sqlite", root / "requirements.lock", lock_seconds=1.0, poll_seconds=0.01)
             commands = CONTRACT["RequirementsCommands"](store, max_items=20)
-            bootstrap_path = REPOSITORY_ROOT / "delivery/requirements-bootstrap.json"
+            bootstrap_path = root / "synthetic-requirements.json"
+            bootstrap_path.write_text(json.dumps({
+                "schema": "requirements-bootstrap-1", "purpose": "Synthetic import fixture.",
+                "system_requirements": [{"id": "SYNTHETIC-SYSTEM", "status": "future", "text": "Preserve test data."}],
+                "application_requirements": [{"id": "SYNTHETIC-APP", "application": "fixture", "status": "future", "text": "Import fixture data."}],
+                "derivations": [{"child": "SYNTHETIC-APP", "parents": ["SYNTHETIC-SYSTEM"]}],
+            }), encoding="utf-8")
 
             first = commands.import_bootstrap(bootstrap_path, request_id="bootstrap-1")
             replay = commands.import_bootstrap(bootstrap_path, request_id="bootstrap-1")
             self.assertFalse(first["replayed"])
             self.assertTrue(replay["replayed"])
             registry = commands.query([{"id": "registry", "kind": "registry"}])["results"][0]["value"]
-            self.assertIn("bootstrap-system-requirements-traceability", registry["requirements"])
-            self.assertEqual(registry["requirements"]["bootstrap-system-requirements-traceability"]["status"], "future")
-            chains = commands.query([{"id": "chain", "kind": "chain", "requirement_id": "bootstrap-harness-task-traceability"}])["results"][0]["value"]
-            self.assertEqual(chains["systems"][0]["id"], "bootstrap-system-requirements-traceability")
+            self.assertIn("SYNTHETIC-SYSTEM", registry["requirements"])
+            self.assertEqual(registry["requirements"]["SYNTHETIC-SYSTEM"]["status"], "future")
+            chains = commands.query([{"id": "chain", "kind": "chain", "requirement_id": "SYNTHETIC-APP"}])["results"][0]["value"]
+            self.assertEqual(chains["systems"][0]["id"], "SYNTHETIC-SYSTEM")
 
     def test_query_prepares_task_snapshot_then_gate_rejects_drift_and_gaps(self):
         registry = populated_registry()
@@ -689,16 +695,13 @@ class RequirementsRegistryDeliveryTests(unittest.TestCase):
             self.assertFalse({"requirements", "requirement_links"} & task_tables)
             self.assertTrue(requirements_tables.isdisjoint(task_tables))
 
-    def test_repository_delivery_declares_config_bootstrap_docs_and_skill_links(self):
+    def test_repository_delivery_declares_registry_storage_docs_and_skill_links(self):
         root = REPOSITORY_ROOT
         project = json.loads(
             (root / "config/projects/ai-poise/project.json").read_text(encoding="utf-8")
         )
         self.assertEqual(Path(project["paths"]["requirements_database"]).name, "requirements.sqlite")
         self.assertEqual(Path(project["paths"]["requirements_lock"]).name, "requirements.lock")
-        bootstrap = json.loads((root / "delivery/requirements-bootstrap.json").read_text(encoding="utf-8"))
-        self.assertTrue(bootstrap["system_requirements"])
-        self.assertTrue(bootstrap["application_requirements"])
         documentation = (root / "docs/workflows/requirements-registry.md").read_text(encoding="utf-8")
         self.assertIn("System → Application → Task", documentation)
         self.assertIn("requirements.sqlite", documentation)

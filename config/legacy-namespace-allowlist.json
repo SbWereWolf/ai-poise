@@ -2,16 +2,6 @@
   "schema": "poise-legacy-namespace-allowlist-1",
   "rules": [
     {
-      "path": "delivery/task-definitions/harness/**",
-      "classification": "historical",
-      "reason": "Immutable seeded task definitions preserve their original product identity."
-    },
-    {
-      "path": "delivery/requirements-bootstrap.json",
-      "classification": "historical",
-      "reason": "The original requirements bootstrap is retained as delivered evidence."
-    },
-    {
       "path": "docs/architecture-design/**",
       "classification": "historical",
       "reason": "The architecture-design evidence bundle is an immutable historical record."

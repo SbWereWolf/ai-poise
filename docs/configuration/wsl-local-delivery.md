@@ -1,14 +1,14 @@
 # Локальная поставка AI poise для WSL
 
-Обновлено: **2026-09-14**.
+Обновлено: **2026-09-18**.
 
 Для текущего локального проекта `ai-poise` действует [конкретная настройка](project-setup.md#локальный-проект-ai-poise): по поручению пользователя состояние находится внутри репозитория в исключённом из Git `projects/ai-poise/`. Описанная ниже исходная поставка `poise` не заменяет эту настройку.
 
 ## Архитектура локальной установки
 
-AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный project manifest, собственный каталог process configs, собственная Task DB, собственная Requirements DB после реализации задачи `0001` и собственные task/sprint artifacts. Эти operational данные не являются частью обслуживаемой кодовой базы.
+AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный project manifest, собственный каталог process configs, собственная Task DB, собственная Requirements DB и собственные task/sprint artifacts. Эти operational данные не являются частью обслуживаемой кодовой базы.
 
-Текущая поставка создаёт один проект `poise` и один Sprint `SPRINT-0001`. Идентификаторы Task локальны для проекта и имеют формат `0001`, `0002`, ... .
+Настройка создаёт проект, но не создаёт задачи и Sprint автоматически. Идентификаторы Task локальны для проекта и выделяются штатным allocator при публикации постановки.
 
 13 process configs проекта создаются из reference templates AI poise и после публикации проекта являются самостоятельными конфигурациями проекта: изменение reference template не меняет их автоматически.
 
@@ -31,7 +31,7 @@ Standalone Task хранит файлы в
 namespace. Поле `paths.standalone_tasks` обязательно. Удалённое `paths.tasks` не является
 alias и отклоняется при загрузке конфигурации.
 
-Задача `0001` добавляет отдельный явный путь Requirements DB в project configuration. Каноническая `requirements.sqlite` должна находиться в project-data AI poise, отдельно от `tasks.sqlite` и отдельно от обслуживаемой кодовой базы. Код AI poise не должен иметь скрытого универсального пути Requirements DB.
+Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project configuration. Каноническая `requirements.sqlite` должна находиться в project-data AI poise, отдельно от `tasks.sqlite` и отдельно от обслуживаемой кодовой базы. Код AI poise не должен иметь скрытого универсального пути Requirements DB.
 
 ## Настройка проекта в WSL
 
@@ -49,32 +49,18 @@ python -m poise project-init \
 
 В анкете явно задаются repository исходников AI poise, base ref, неиспользуемое имя remote, Git author, обязательное `push_required=false`, абсолютный project-data root и наследуемые environment variables. `push_required=true` запрещён и отклоняется до Git-команды.
 
-## Создание Task DB
+## Реестры и постановка задач
 
-После публикации project manifest:
+Для новой установки требования регистрируются и согласуются через
+[Requirements API](../workflows/requirements-registry.md#декларативный-api-и-согласование),
+затем задачи и Sprint публикуются по [штатному workflow](../workflows/batch-work.md).
+Установка не повторяет историческую миграцию и не создаёт демонстрационные задачи
+в рабочей Task DB.
 
-```bash
-python tools/seed_wsl_tasks.py \
-  --poise-config "$PWD/projects/poise/project.json"
-```
-
-Seed использует публичные Sprint/Artifact API AI poise и не редактирует SQLite напрямую. Создаются один `SPRINT-0001` и три задачи:
-
-1. `0001` — project-local Requirements DB, граф требований, task-planning traceability и immutable Task snapshot;
-2. `0002` — discovery IDE MCP capabilities в bootstrap preflight;
-3. `0003` — исследование JetBrains MCP и документирование policy для AI-агентов.
-
-Зависимости имеют вид `0001 → 0002 → 0003` с `kind=result`. Поэтому только `0001` является eligible сразу после seed.
-
-Seed передаёт определения через тот же публичный Task creation contract, что и обычный
-клиент. У development-задач `0001` и `0002` поле `executable_obligations` присутствует явно,
-а метод `BASELINE` сохраняет исходный смысл guard: пустая произведённая поверхность, отсутствие
-RED и запуск ровно на entry-этапе `baseline`. У documentation-задачи `0003` процесс не содержит
-маршрута `test_registry`, поэтому поле `executable_obligations` по схеме отсутствует; публичная
-проекция её verification registry при этом содержит явный пустой список. Seed не добавляет
-поле, не переносит baseline на поздний этап и не исправляет определения напрямую в SQLite.
-
-Approved future requirements находятся в `delivery/requirements-bootstrap.json`. До реализации `0001` это bootstrap-артефакт первого Sprint. После импорта через новый Requirements API он не является вторым каноническим хранилищем.
+Для восстановления этой поставки использовать существующие снимки Task DB и
+Requirements DB из полного архива. Утверждённые 6 требований и 4 связи уже импортированы;
+[порядок восстановления](../workflows/requirements-registry.md#однократный-импорт-утверждённой-поставки)
+описывает их явные пути. Пустой реестр не заменяет сохранённый снимок.
 
 ## Начало работы над задачей
 
@@ -86,14 +72,16 @@ mkdir -p "$PWD/projects/poise/caller-bindings"
 export POISE_CALLER_BINDING="$PWD/projects/poise/caller-bindings/agent.json"
 ```
 
-Bootstrap Sprint:
+Список доступных к запуску задач читается без захвата:
 
 ```bash
-printf '%s\n' '{"operation":"bootstrap","input":{"task":{"id":"SPRINT-0001"},"decision":null,"feedback":null,"rework_stage":null},"messages":[]}' \
-  | python -m poise work
+python -m poise next --settings "$PWD/config/project-setup.json"
 ```
 
-Далее bootstrap конкретной eligible Task выполняется тем же API. Для repository-changing work AI poise выдаёт отдельный worktree.
+После выбора точного Task ID использовать `bootstrap` публичного `work` API.
+Не подставлять вымышленный Sprint ID. Для repository-changing работы AI poise
+выдаёт отдельный worktree. В native-среде launcher привязан к фактической сессии;
+нельзя выдавать чужой launcher или ручную переменную за эту идентичность.
 
 ## Skills для агента
 

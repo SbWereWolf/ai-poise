@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import fnmatch
 import json
 from pathlib import Path
@@ -41,13 +42,138 @@ def _allowlist():
     return data["rules"]
 
 
-def _files():
-    for path in ROOT.rglob("*"):
-        relative = path.relative_to(ROOT)
-        if any(part in IGNORED_PARTS or part.endswith(".egg-info") for part in relative.parts):
-            continue
+LIVE_DIRECTORIES = (
+    "src", "tests", "tools", "examples", "skills", "config", "docs", "delivery",
+    "recovery-tools", ".agents", ".codex",
+)
+
+
+def _files(root: Path = ROOT):
+    """Audit shipped surfaces, including untracked code, not mutable Task data."""
+    for name in sorted(PROTECTED_FILES):
+        path = root / name
         if path.is_file():
-            yield path, relative.as_posix()
+            yield path, name
+    for name in LIVE_DIRECTORIES:
+        for path in (root / name).rglob("*"):
+            relative = path.relative_to(root)
+            if any(part in IGNORED_PARTS or part.endswith(".egg-info") for part in relative.parts):
+                continue
+            if path.is_file():
+                yield path, relative.as_posix()
+
+
+# These are supported namespace surfaces, not a ban on the ordinary noun or on
+# immutable Task/installation IDs. Python fixture literals are not entry points.
+_IDENTIFIER = re.compile(
+    rf"^(?:{LEGACY_LOWER}(?:_|$)|{LEGACY_LOWER.title()}(?:[A-Z_]|$)|"
+    rf"{LEGACY_LOWER.upper()}(?:_|$))"
+)
+_ENVIRONMENT = re.compile(rf"\b{LEGACY_LOWER.upper()}_[A-Z0-9_]+\b")
+_ENTRY_POINT = re.compile(
+    rf"(?:\b(?:from|import)\s+{LEGACY_LOWER}\b|"
+    rf"(?:^|[\s\"'`])(?:-m\s+)?{LEGACY_LOWER}(?:\s+--|[:.]\w+|[\"']?\s*=)|"
+    rf"(?:^|[;`]|&&|\|\|)\s*(?:\S*/)?{LEGACY_LOWER}(?:\s+(?:--|work\b|bootstrap\b|verify\b)|$)|"
+    rf"[\"']command[\"']\s*:\s*[\"']{LEGACY_LOWER}[\"']|"
+    rf"\b{LEGACY_LOWER.title()}(?:Error)?\b|"
+    rf"(?:src/|skills/){LEGACY_LOWER}\b|agent-{LEGACY_LOWER}-happy-path)",
+    re.MULTILINE,
+)
+_MODULE_COMMAND = re.compile(rf"(?:^|\s)-m\s+{LEGACY_LOWER}(?:[.\s]|$)")
+_EXECUTORS = {
+    "subprocess.run", "subprocess.Popen", "subprocess.call",
+    "subprocess.check_call", "subprocess.check_output", "os.system", "os.popen",
+}
+
+
+def _literal_strings(node, bindings, seen=frozenset()):
+    """Resolve only explicit literals/aliases; never execute inspected code."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return [node.value]
+    if isinstance(node, (ast.List, ast.Tuple)):
+        return [value for item in node.elts for value in _literal_strings(item, bindings, seen)]
+    if isinstance(node, ast.Name) and node.id not in seen and node.id in bindings:
+        return _literal_strings(bindings[node.id], bindings, seen | {node.id})
+    return []
+
+
+def _qualified_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return _qualified_name(node.value) + "." + node.attr
+    return ""
+
+
+def _live_namespace_hits(relative: str, text: str) -> list[str]:
+    """A bounded static rename check; not whole-program dynamic analysis."""
+    if not relative.endswith(".py"):
+        return [str(number) for number, line in enumerate(text.splitlines(), 1)
+                if _ENTRY_POINT.search(line) or _ENVIRONMENT.search(line)
+                or _MODULE_COMMAND.search(line)]
+    tree = ast.parse(text, filename=relative)
+    hits = set()
+    aliases, bindings = {}, {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            aliases.update((item.asname or item.name, item.name) for item in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            aliases.update((item.asname or item.name, f"{node.module}.{item.name}")
+                           for item in node.names)
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    bindings[target.id] = node.value
+    for node in ast.walk(tree):
+        names = []
+        if isinstance(node, ast.Import):
+            names = [item.name.split(".")[0] for item in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            names = [(node.module or "").split(".")[0]] + [item.name for item in node.names]
+        elif isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            names = [node.name]
+        elif isinstance(node, ast.Name):
+            names = [node.id]
+        elif isinstance(node, ast.Attribute):
+            names = [node.attr]
+        if any(_IDENTIFIER.match(name) for name in names):
+            hits.add(str(node.lineno))
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if _ENVIRONMENT.search(node.value):
+                hits.add(str(node.lineno))
+        if not isinstance(node, ast.Call):
+            continue
+        name = _qualified_name(node.func)
+        first, _, tail = name.partition(".")
+        name = aliases.get(first, first) + ("." + tail if tail else "")
+        argument = node.args[0] if node.args else next(
+            (item.value for item in node.keywords if item.arg in {"args", "name"}), None
+        )
+        values = _literal_strings(argument, bindings)
+        if name in {"importlib.import_module", "__import__"}:
+            if any(value.split(".")[0] == LEGACY_LOWER for value in values):
+                hits.add(str(node.lineno))
+        elif name in _EXECUTORS:
+            command = " ".join(values)
+            if _MODULE_COMMAND.search(command) or re.match(
+                rf"^(?:\S*/)?{LEGACY_LOWER}(?:\s|$)", command
+            ):
+                hits.add(str(node.lineno))
+    return sorted(hits, key=int)
+
+
+def _namespace_occurrences():
+    for path, relative in _files():
+        if path == ALLOWLIST:
+            continue
+        if LEGACY_PATTERN.search(relative):
+            yield relative, "path"
+        try:
+            text = path.read_text()
+        except UnicodeDecodeError:
+            continue
+        for location in _live_namespace_hits(relative, text):
+            yield relative, location
 
 
 def _matches(relative: str, rules) -> bool:
@@ -73,7 +199,7 @@ def _legacy_occurrences():
 
 def test_live_namespace_has_no_unallowlisted_legacy_identifiers():
     rules = _allowlist()
-    offenders = [f"{relative}:{location}" for relative, location in _legacy_occurrences()
+    offenders = [f"{relative}:{location}" for relative, location in _namespace_occurrences()
                  if not _matches(relative, rules)]
     assert not offenders, "unallowlisted legacy namespace:\n" + "\n".join(offenders[:200])
     assert (ROOT / "src" / "poise").is_dir()

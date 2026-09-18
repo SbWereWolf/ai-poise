@@ -57,7 +57,7 @@ when integration is the subject. Run test and code self-review.
 
 ## Inputs
 
-Current Poise Task/stage, permitted state boundary, target model/routes and accepted lifecycle/refresh/persistence/privacy requirements. Resolve skill routing, commands, versions and runtime parameters from the selected Poise-owned project; read target-worktree facts without writing Harness configuration there. Use [poise-workflow](../poise/SKILL.md).
+Current Poise Task/stage, permitted state boundary, target model/routes and accepted lifecycle/refresh/persistence/privacy requirements. Resolve skill routing, commands, versions and runtime parameters from the selected Poise-owned project; read target-worktree facts without writing AI poise configuration there. Use [poise-workflow](../poise/SKILL.md).
 
 ## Procedure
 

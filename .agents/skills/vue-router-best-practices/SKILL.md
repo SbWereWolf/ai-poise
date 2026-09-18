@@ -58,4 +58,4 @@ Keep the navigation/problem/focus and testing rules above. **Eliminate `next()` 
 
 ## Output
 
-Route/state/focus ownership, accepted history/host facts, exact focused navigation results and unresolved discrepancies through existing Poise Task/evidence/handoff APIs. No target Harness configuration, alternate router, independent review or automatic skill routing is implied by file discovery.
+Route/state/focus ownership, accepted history/host facts, exact focused navigation results and unresolved discrepancies through existing Poise Task/evidence/handoff APIs. No target AI poise configuration, alternate router, independent review or automatic skill routing is implied by file discovery.

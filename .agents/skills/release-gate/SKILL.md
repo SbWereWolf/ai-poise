@@ -10,7 +10,7 @@ Use only for an **explicitly assigned release/prerelease/readiness or production
 
 ## Inputs
 
-Current Poise Task/stage/scope and release authorization, exact candidate source/build identity, explicit filesystem path of the candidate checkout, target environments, actual required checks/browsers/Playwright command, deployment/recovery requirements and explicitly permitted exceptions. Resolve commands, versions, runtime, file/evidence maps and skill routing from the selected Poise-owned project using target versioned docs/settings as read-only facts. Do not add Harness configuration to the target. Use [poise-workflow](../poise/SKILL.md) and the [existing evidence owner](../../../docs/workflows/evidence.md).
+Current Poise Task/stage/scope and release authorization, exact candidate source/build identity, explicit filesystem path of the candidate checkout, target environments, actual required checks/browsers/Playwright command, deployment/recovery requirements and explicitly permitted exceptions. Resolve commands, versions, runtime, file/evidence maps and skill routing from the selected Poise-owned project using target versioned docs/settings as read-only facts. Do not add AI poise configuration to the target. Use [poise-workflow](../poise/SKILL.md) and the [existing evidence owner](../../../docs/workflows/evidence.md).
 
 ## Procedure
 

@@ -58,7 +58,7 @@ DDD placement decision:
 
 ### Selected project placement
 
-Resolve bounded contexts, code locations, dependency direction and framework composition from the selected Poise project's routing/architecture profile. That profile is owned and stored by Poise. It may reference existing target-worktree architecture documents as read-only facts; do not create a target Harness config or duplicate the profile into mutable runtime state.
+Resolve bounded contexts, code locations, dependency direction and framework composition from the selected Poise project's routing/architecture profile. That profile is owned and stored by Poise. It may reference existing target-worktree architecture documents as read-only facts; do not create a target AI poise config or duplicate the profile into mutable runtime state.
 
 Record the actual owner/layer/port and rejected alternatives in current Task content. Use the project's real static/architecture checks where configured, rather than the former ERP application map. Missing mapping is explicit input to the owning configuration work, not an inferred framework requirement.
 

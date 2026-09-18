@@ -10,7 +10,7 @@ Infrastructure remains a separate skill. Treat runtime wiring, configuration, de
 
 ## Inputs
 
-The current Poise Task/stage/scope and session-selected worktree, changed operational scenario, exact target environment and authorization, actual runtime/build identity, owners/runbooks and explicit success/failure/recovery requirements. Resolve paths, commands, versions, runtime and file maps through the selected Poise-owned configuration using the target's versioned documentation as read-only facts. Never add a Harness configuration to the target repository. Use [poise-workflow](../poise/SKILL.md).
+The current Poise Task/stage/scope and session-selected worktree, changed operational scenario, exact target environment and authorization, actual runtime/build identity, owners/runbooks and explicit success/failure/recovery requirements. Resolve paths, commands, versions, runtime and file maps through the selected Poise-owned configuration using the target's versioned documentation as read-only facts. Never add an AI poise configuration to the target repository. Use [poise-workflow](../poise/SKILL.md).
 
 ## Procedure
 

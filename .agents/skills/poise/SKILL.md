@@ -237,7 +237,7 @@ The project-local `.agents/skills/` tree supplies discoverable instruction files
 
 For current Task discipline load [exec-task](../exec-task/SKILL.md); for preparing focused Tasks or Sprint graphs load [sprint-design](../sprint-design/SKILL.md). Keep the exact packets, launcher, lifecycle and evidence semantics in this skill and its canonical documentation. Load other catalogue skills only when relevant to the current stage and real project stack, not as a blanket catalogue read.
 
-The current decomposition validator checks declarations; it does not by itself return a complete ordered area/stage skill-and-input packet. Do not label instruction discovery as implemented automatic routing, synthesize undocumented profile fields, or place a Harness config in the target repository. An absent required routing/aggregation capability is a concrete dependency for the owning Poise work, not a reason to invent a parallel router.
+The current decomposition validator checks declarations; it does not by itself return a complete ordered area/stage skill-and-input packet. Do not label instruction discovery as implemented automatic routing, synthesize undocumented profile fields, or place an AI poise config in the target repository. An absent required routing/aggregation capability is a concrete dependency for the owning Poise work, not a reason to invent a parallel router.
 
 ## Output boundary for migrated skills
 

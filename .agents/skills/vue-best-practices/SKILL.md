@@ -266,7 +266,7 @@ core behavior is implemented and verified.
 
 ## Inputs
 
-The current Poise Task/stage/scope, session-selected target worktree, component responsibility map and actual Vue/toolchain/host facts. Read target documentation/configuration only as source facts. Poise-owned routing, area/skill selection, versions, commands, browser policy and file maps remain inside the selected Poise project, never in an added target Harness file. Use [poise-workflow](../poise/SKILL.md).
+The current Poise Task/stage/scope, session-selected target worktree, component responsibility map and actual Vue/toolchain/host facts. Read target documentation/configuration only as source facts. Poise-owned routing, area/skill selection, versions, commands, browser policy and file maps remain inside the selected Poise project, never in an added target AI poise file. Use [poise-workflow](../poise/SKILL.md).
 
 ## Procedure
 

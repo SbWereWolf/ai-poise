@@ -8,7 +8,7 @@ version: 1.0.0
 
 ## Inputs
 
-The observable behavior and requirement, business capability/bounded context, current Task/stage/scope, changed paths and the selected Poise project's routing/architecture profile. Read referenced target-repository architecture documents from the session-selected worktree as source facts. The profile stays inside Poise; do not duplicate it in mutable runtime state or store a Harness configuration in the target repository. Use [poise-workflow](../poise/SKILL.md) for current Task/content/evidence operations.
+The observable behavior and requirement, business capability/bounded context, current Task/stage/scope, changed paths and the selected Poise project's routing/architecture profile. Read referenced target-repository architecture documents from the session-selected worktree as source facts. The profile stays inside Poise; do not duplicate it in mutable runtime state or store an AI poise configuration in the target repository. Use [poise-workflow](../poise/SKILL.md) for current Task/content/evidence operations.
 
 ## Procedure
 

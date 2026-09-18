@@ -1,6 +1,15 @@
 # Статус реализации
 
-Обновлено: **2026-09-14T00:00:00+05:00**.
+Обновлено: **2026-09-18**.
+
+Текущее устройство хранения описано в [матрице владельцев и версий](storage-lifecycle.md#владельцы-и-версии). Числа проверок и сведения о review в датированных разделах ниже относятся к соответствующим историческим задачам, а не к новой проверке всей поставки.
+
+## Текущее хранение и восстановление
+
+Конфигурационный контракт `ddd-accounting-12` не является номером SQLite schema. Текущая Task DB имеет schema **13**, отдельная Requirements DB — **1**. Optional telemetry использует отдельные database/lock и ленивую инициализацию общей SQLite schema; её доступность не является условием успешности основной работы.
+
+Поддержан только [ограниченный переход Task DB 12 в 13](storage-lifecycle.md#ограниченный-переход-task-db-12-в-13). Неоднозначные legacy claims не разрешаются догадкой и не превращают upgrade в универсальную миграцию. Исходные данные и историю сначала сохраняют полной копией. Пути внешних БД при восстановлении сопоставляют явно.
+
 
 ## Explicit newborn field removal — task 0110
 
@@ -28,7 +37,7 @@ external outcome проверяются до фиксации изменений
 Невыполнимый контракт и отказ следующего DoR возвращаются как `broken` с точной причиной и
 явными recovery routes: локальная правка дефектного inspection gate проверяющим либо restart
 для изменения immutable Task contract. Старый публичный Sprint action `replace_task` удалён;
-ранее сохранённые replacement relations и `superseded` Task остаются читаемой историей.
+ранее сохранённые replacement relations остаются историческими метаданными. Действующий lifecycle не содержит статуса `superseded`; старые записи не возобновляются как новый способ замены Task.
 Путь проверен профильными runtime, Task, Sprint, ownership и terminal-inspection сценариями;
 полный набор репозитория этим утверждением не объявляется пройденным.
 
@@ -80,8 +89,7 @@ reviewer и пользовательские решения эталонных �
 SQLite, subprocess, конфликты, публикации, изоляция и проверки состояний. Исторические
 нормативные тест-кейсы не переназначаются в PASS по совпадению идентификаторов.
 
-Task/store: ddd-accounting-12 / SQLite 12; optional telemetry вынесена в отдельные database/lock.
-Schema 11 и автоматические миграции не поддерживаются.
+Актуальные версии и точные границы upgrade указаны в [текущем хранении и восстановлении](#текущее-хранение-и-восстановление); schema 11 и произвольные автоматические миграции не поддерживаются.
 Live Codex trust, JetBrains, Gmail-доставка, полные usage/latency источники и многомашинная
 синхронизация существующих владельцев всё ещё требуют отдельного доступа/работы.
 
@@ -91,7 +99,7 @@ Live Codex trust, JetBrains, Gmail-доставка, полные usage/latency 
 и repository/UoW атомарно выбирают явно настроенный numeric ID, создают aggregate и durable
 worktree reservation; replay возвращает стабильный ID. Reviewed standalone и Sprint
 publication используют тот же allocator, возвращают allocation receipts и резервируют весь
-explicit состав независимо от порядка. Explicit-ID path и SQLite schema 12 сохранены.
+explicit состав независимо от порядка. Explicit-ID path сохранён. В момент этой задачи использовалась SQLite schema 12; актуальная версия указана в [текущем хранении и восстановлении](#текущее-хранение-и-восстановление).
 
 Проверены последовательность/progression, конкурентность, replay другой сессии, digest
 conflict, occupied/exhausted namespace, конфигурация, идентичность downstream surfaces,
@@ -116,7 +124,7 @@ Process updates не меняют snapshots существующих Task. Manif
 state требуют quiescent проекта и сериализуются с Task creation/claim через state locks.
 Relocation проверяет source/destination, сохраняет всё дерево, поддерживает `retain` и
 `delete_after_publish`, удерживает locks обоих state roots до receipt и не допускает пустой
-замены. `superseded` учитывается как terminal history, а не активная работа. Первый запрос
+замены. В действующем коде терминальными являются `completed` и `cancelled`; исторические сведения о замене Task не вводят дополнительный статус. Первый запрос
 отклоняет занятый deterministic staging без удаления и без pending receipt; exact retry
 очищает только частичную staging-копию операции с matching pending receipt. Проверяемый
 контракт покрыт 27 сценариями `tests/projects/test_update.py`; это число

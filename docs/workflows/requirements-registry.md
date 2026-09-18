@@ -2,6 +2,8 @@
 
 ## Владение и явные пути
 
+Версии, допустимое создание и границы backup собраны в [матрице хранилищ](../architecture/storage-lifecycle.md#владельцы-и-версии); переносимая поставка и настроенные абсолютные пути различаются [явно](../architecture/storage-lifecycle.md#явные-пути-и-переносимая-поставка).
+
 Requirements Registry хранит канонические System и Application требования и связи
 System → Application в отдельной SQLite-базе. Требования Task, утверждённые цепочки
 System → Application → Task и их исторический снимок принадлежат Task DB.

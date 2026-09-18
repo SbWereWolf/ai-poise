@@ -33,7 +33,7 @@ blockers immediately; do not invent skill use or grant yourself a contract edit.
 5. Save one complete `verify` packet, including related content, evidence and artifacts. Inspect terminal status, checks, stage outcome and explicit continuations. An exit code or `awaiting_continuation` is not proof of completion; exact replay preserves request identity.
 6. Continue already-authorized executor stages with the public `advance` operation. At a role boundary, preserve the result, confirm public release, then follow the [handoff contract](../../references/context-handoff-contract.md). There are only executor and reviewer; self-review does not impersonate the other role.
 7. Diagnose failures from saved evidence. Before retrying an effectful action, determine what completed and how the owning API resumes it idempotently. Use only recovery operations actually exposed by the current installation. Do not simulate a planned universal phase-recovery capability or mutate lifecycle state manually.
-8. After release, continue only an already-authorized actionable Task/stage chain. Do not create a new Task or expand the assignment merely because one finished. Use cross-project `next` only when that public capability is implemented and returned by the installation; an overview is not an atomic selection/claim substitute.
+8. After release, continue only an already-authorized actionable Task/stage chain. Do not create a new Task or expand the assignment merely because one finished. Use the implemented [cross-project `next` overview](../../../docs/configuration/project-setup.md#доступные-задачи-во-всех-проектах) for discovery; it is not an atomic selection/claim substitute and does not resume already-started Tasks.
 
 ## Output
 

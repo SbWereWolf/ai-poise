@@ -7,6 +7,8 @@ description: Execute project-local AI poise task stages and hand off work betwee
 
 Use the explicitly selected project configuration. Each project owns its Task DB and its copied process catalogue; never edit managed SQLite, process JSON, or task artifacts as bookkeeping.
 
+Before storage setup or recovery, read the current [owners and schema versions](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии). Configuration schema and SQLite version are distinct; the [limited Task DB 12-to-13 upgrade](../../../docs/architecture/storage-lifecycle.md#ограниченный-переход-task-db-12-в-13) does not authorize a general migration.
+
 For WSL project selection and storage layout, read only [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Local installation → Mutable storage paths](../../../docs/configuration/wsl-local-delivery.md#пути-project-local-storage).
 
 For this local ai-poise installation, use [the concrete launcher and configuration](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise). `bootstrap` and `verify` are operations of AI poise `work`, not separate skills. For ordinary work invoke the session-scoped `work.sh` supplied by the native hook explicitly through Bash, keep `messages=[]`, and reuse the same launcher across calls. Direct `.venv/bin/poise work` uses a native Codex identity when available; otherwise it requires an absolute persistent `POISE_CALLER_BINDING` whose parent already exists. An agent must not substitute a caller-chosen session value, and a direct diagnostic call does not establish native event delivery. The user explicitly authorized state inside this repository.
@@ -193,7 +195,7 @@ Treat configured inventory and actually probed capability as different facts. Us
 
 ## Task DB backups
 
-Discover the public backup surface with `poise backup help`. Use `poise backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config PROJECT_JSON BACKUP_NAME`; do not substitute manual filesystem copies or database replacement. Create and restore require an exclusive operator window in which no agent or process writes the Task DB. Read the exact storage, integrity and recovery contract in [Task DB backups](../../../docs/task-db-backups.md).
+Discover the public backup surface with `poise backup help`. Use `poise backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config PROJECT_JSON BACKUP_NAME`; do not substitute manual filesystem copies or database replacement. Create and restore require an exclusive operator window in which no agent or process writes the Task DB. Read the exact [exclusive operator window](../../../docs/task-db-backups.md#обязательное-условие) and [Task DB restore contract](../../../docs/task-db-backups.md#восстановление). Task-only backup is not a full checkpoint: preserve the other databases, Git and materials under the [full backup boundary](../../../docs/architecture/storage-lifecycle.md#резервное-копирование-и-восстановление).
 
 ## Handoff and transfer
 
@@ -241,7 +243,7 @@ The current decomposition validator checks declarations; it does not by itself r
 
 ## Output boundary for migrated skills
 
-Persist the current skill's result through the existing Task/content/evidence/artifact owners and release via public handoff. Saving remains distinct from acceptance. Planned universal phase recovery and cross-project next selection are not activated by these instruction files; connect them only when the corresponding public capability actually exists.
+Persist the current skill's result through the existing Task/content/evidence/artifact owners and release via public handoff. Saving remains distinct from acceptance. Universal phase recovery remains capability-dependent. The implemented [cross-project next overview](../../../docs/configuration/project-setup.md#доступные-задачи-во-всех-проектах) is read-only: it neither reserves nor starts a Task. Use the normal owning bootstrap/start path for an already-authorized selection, with current-state validation.
 
 ## Accidental cancellation recovery
 

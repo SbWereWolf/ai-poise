@@ -9,6 +9,8 @@ Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current proce
 
 ## Design boundaries
 
+Use the current [storage ownership/version matrix](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии) and [explicit portable-path mapping](../../../docs/architecture/storage-lifecycle.md#явные-пути-и-переносимая-поставка). Keep Task and canonical Requirements ownership separate; optional telemetry must not determine authoritative success. Do not infer arbitrary migration support from the limited v12 ownership upgrade.
+
 Identify the domain owner before implementation. Task, Sprint, content, evidence, artifacts, project configuration and runtime state change only through their owning APIs. Reuse the common runner and stage-handler families rather than creating a goal-specific engine. Read [Architecture boundaries → owners and dependencies](../../../docs/architecture/boundaries.md#ddd-04b--новые-владельцы-и-зависимости).
 
 Keep caller-to-session establishment in `SessionEstablisher` for every public work composition.

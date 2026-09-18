@@ -1,0 +1,109 @@
+# Устойчивая попытка исполнения проверок
+
+Решение `REVIEW-ARCH-A03`, 18 сентября 2026. Подготовлено для `REVIEW-BUG-R01`.
+Статус: проектирование завершено; реализация и проверка crash-сценариев — отдельная R01.
+База: `388dd2bd3e9245964d0f3bd07339c28b211f12eb`.
+
+## Исходный дефект и границы гарантий
+
+[Runtime](../../src/poise/runtime.py) сохраняет отдельные receipts после subprocess,
+затем снимает `pending=checks`, сохраняет execution и лишь затем вызывает
+`runner.record_observations`. [Исходное воспроизведение](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R01-check-reexecution.json)
+показало повтор успешной команды после ошибки последнего сохранения. Исключение из
+`_execute_checks` тоже снимает pending, хотя часть команд уже могла выполниться.
+SQLite не может атомарно зафиксировать произвольный внешний эффект. Не обещаем
+универсальное exactly-once. Требуем: известное завершение не повторяется; неизвестное
+не превращается в разрешение запуска; достоверно не начатая команда может стартовать.
+
+## Выбранный протокол и данные
+
+Сохранять версионированный объект попытки **в существующем execution.pending JSON**,
+не добавляя БД, таблицу или новую schema. Иные виды pending не менять.
+
+```text
+kind = check_attempt, version = 1
+attempt_id, task_id, task_version, stage, iteration, submission_digest
+verified_tree, execution_key
+runs = [{run_id, method_id, started: false}, ...]  // exact ordered set
+```
+
+run_id и attempt_id резервируются до первого subprocess. execution_key уже содержит
+точную invocation/provenance и digest окружения: значения окружения не копировать в
+metadata. BEGIN фиксирует весь план, увеличивает attempts ровно один раз и снимает
+старую publication. Перед каждым spawn короткая START_RUN-транзакция меняет ровно
+один `started=false` на true. Это запись намерения, **не доказательство самого spawn**.
+Receipt остаётся неизменяемым в существующем EvidenceRepository; его run_id связывает
+результат с зарезервированным местом, attempt/submission provenance также сохраняется.
+
+| Состояние одного run | Достоверный вывод | Точный replay |
+|---|---|---|
+| planned, started=false, receipt отсутствует | Этот протокол ещё не разрешил spawn. | Атомарно разрешить START_RUN и выполнить один раз. |
+| started=true, точный terminal receipt сохранён и проверен | Известное завершение, включая отрицательный exit/timeout/cancel. | Использовать тот же receipt, никогда не повторять команду. |
+| started=true, receipt отсутствует/неполон/не совпадает | Исход неизвестен. Даже ошибка Popen и потеря receipt могут быть неразличимы. | Ограниченный диагностический отказ с attempt/run IDs; никаких новых effects. |
+| planned, но receipt уже существует | Нарушена последовательность либо подмена. | Отказ, не считать свидетельством завершения этой попытки. |
+
+После каждого terminal receipt следующий ещё не начатый run допустим, но не обход
+неизвестного предыдущего. Точный replay сначала сверяет Task owner/status/version,
+stage/iteration/submission, tree, execution_key и порядок методов; затем integrity
+зарегистрированных receipts и файлов. Чужие, старые, повторяющиеся или повреждённые
+receipts не подходят. Конкурентный повтор того же actor не получает второе разрешение
+START_RUN: started меняется под optimistic execution version в writer UoW.
+
+## Владельцы и атомарная финализация
+
+Небольшой application use case координирует Task repository, ExecutionRepository и
+EvidenceRepository через существующий UoW. StageRunner предоставляет узкий façade.
+Runtime выполняет только реальные subprocess и проверки файлов/provenance; не пишет
+Task/evidence SQL. Task.record_observations остаётся владельцем domain batch/event,
+EvidenceBook — модели наблюдений и аргументов, ownership не дублируется.
+
+FINISH в **одной** writer-транзакции: повторно сверить сохранённую попытку и immutable
+receipts → Task.record_observations/save → execution.pending=None/save → commit.
+Ошибка любого save откатывает обе записи, но не удаляет уже сохранённые receipts.
+Ошибка доставки ответа после commit оставляет текущий batch; обычный replay использует
+его без новой попытки. Неочевидный исход ошибки persistence никогда не снимает pending.
+Журнал/preview — диагностика, не источник разрешения повторного исполнения.
+
+## Матрица сбоев и целевые проверки R01
+
+| Место сбоя | Ожидаемое долговечное состояние | Наблюдаемый тест |
+|---|---|---|
+| До commit BEGIN | Нет плана и запуска. | Inject save failure, counter=0; следующий запрос запускает один раз. |
+| После BEGIN, до START_RUN | План с started=false. | Перезапустить объект runtime; exact replay выполняет каждый planned run единожды. |
+| После START_RUN, до/после spawn, до receipt | started=true, нет подтверждённого результата. | Counter 0 или 1; replay выдаёт unknown и не увеличивает counter. |
+| После receipt первого из двух run | Первый started+receipt, второй planned. | Replay берёт первый run_id и выполняет только второй. |
+| После всех receipts, до batch | Полный набор immutable receipts, pending сохранён. | Исходный R01 fault, replay завершается с одним фактическим запуском. |
+| После save batch, до save execution / commit | Обе записи откатываются. | Fault execution.save; receipts сохранены, pending не снят, retry без subprocess. |
+| После commit FINISH, до ответа | Batch сохранён, pending снят. | Fault acknowledgement; exact replay не меняет run IDs и не вызывает runner. |
+| Новый payload/tree/invocation/owner или повреждённый файл | Прежняя попытка сохранена. | Отказ до новой Task mutation/subprocess; проверить snapshots. |
+
+Неизвестный исход согласуется только по **той же** попытке: восстановить её подлинный
+зарегистрированный terminal receipt и файлы из надёжного источника, затем exact verify
+вновь валидирует их и завершает. Без такого доказательства результат остаётся unknown;
+текст «команда наверняка не запускалась», ручное обнуление pending или иной run_id не
+являются reconciliation. Номер попытки и отсутствующие IDs должны быть видимы в ошибке.
+Изменение работы после unknown — явное отдельное операторское решение после исследования
+эффекта, а не скрытое автоматическое повторение. Нового универсального force-retry API
+не добавлять. Это сохранение неопределённости, а не требование невыполнимой церемонии.
+
+## Альтернативы, совместимость, ввод и откат
+
+Только переставить снятие pending после batch недостаточно: после потери batch старый
+строковый marker не идентифицирует отдельные receipts и частично выполненную группу.
+Повторить весь verify под SQL retry — запрещено: повторит внешние эффекты. Объединить
+subprocess с долгой SQL-транзакцией не создаёт распределённой атомарности и ухудшает
+конкуренцию. Сохранять журналы без run identity недостаточно для надёжного сопоставления.
+
+Старый `pending='checks'` продолжает восстанавливаться **только** по точному уже
+сохранённому submission batch через существующий recover_pending_checks. Из отдельных
+старых receipts не угадывать новую попытку. JSON version/kind должны строго проверяться;
+неизвестная версия отказывает безопасно. Старые completed records не переписывать.
+Schema Task DB остаётся 13; новый формат касается только новых pending операций.
+
+Ввод: сначала fault tests, затем use case и runtime integration, после этого соседние
+pending recovery, registry atomicity, delivery и smoke. Отрицательные receipts не
+становятся положительными. Для отката версии кода сначала завершить новые pending;
+старый runtime откажет на неизвестном объекте, но не должен удалять его. Сохранённая
+полная Gmail-копия и исходные receipts обязательны; нельзя понижать протокол в полёте.
+
+[План](review-followup-2026-09-18.md) · [Границы runtime](runtime-boundaries-analysis.md)

@@ -33,9 +33,9 @@ def configured(tmp_path):
     policy=write(assets/'policy.json',{'schema':'ai-poise-development-routing-1','known_paths':['src/**','docs/**','AGENTS.md'],
          'handler_facts':{'produce':[],'inspect':['review']},
          'checks':[{'id':'code-checks','paths_any':['src/**'],'packages':['targeted']} ]})
-    packages=write(assets/'packages.json',{'schema':'ai-poise-test-packages-1','packages':[
+    packages=write(assets/'packages.json',{'schema':'ai-poise-test-packages-2','packages':[
         {'id':'targeted','owner':'test','integration_boundaries':[],
-         'members':{'source':['src/example.py'],'tests':['tests/test_example.py'],'support':[],'fixtures':[]}}]})
+         'members':{'source':['src/example.py'],'tests':['tests/test_example.py'],'fixtures':[]}}]})
     paths={'catalog':str(catalog),'selection':str(selection),'policy':str(policy),'packages':str(packages)}
     request={'checkout':str(checkout),'stage':'implementation','handler':'produce','scope_paths':['src/example.py'],
              'changed_paths':['src/example.py'],'facts':[],'required_methods':['M'], 'registered_methods':['M'],
@@ -224,7 +224,7 @@ def test_c017_catalog_input_impact_augments_policy_and_preserves_methods(configu
     raw = json.loads(Path(paths['packages']).read_text())
     raw['packages'][0]['integration_boundaries'] = ['boundary']
     raw['packages'].append({'id': 'boundary', 'owner': 'api', 'integration_boundaries': [],
-        'members': {'source': ['src/api.py'], 'tests': ['tests/test_api.py'], 'support': [], 'fixtures': []}})
+        'members': {'source': ['src/api.py'], 'tests': ['tests/test_api.py'], 'fixtures': []}})
     write(Path(paths['packages']), raw)
     result = service(paths).route(req)
     assert result['checks']['required_methods'] == ['M']

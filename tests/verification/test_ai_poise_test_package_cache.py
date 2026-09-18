@@ -9,23 +9,20 @@ def checkout(tmp_path: Path) -> tuple[Path,Path]:
     root=tmp_path/'ai-poise'
     (root/'src/pkg').mkdir(parents=True)
     (root/'tests').mkdir()
-    (root/'tools').mkdir()
     (root/'fixtures').mkdir()
     (root/'config/testing').mkdir(parents=True)
     (root/'pyproject.toml').write_text('[project]\nname="ai-poise"\nversion="1"\n')
     (root/'src/pkg/value.py').write_text('VALUE=1\n')
     (root/'tests/test_value.py').write_text('from pkg.value import VALUE\ndef test_value(): assert VALUE == 1\n')
-    (root/'tools/helper.py').write_text('HELPER=True\n')
     (root/'fixtures/data.json').write_text('{"x":1}\n')
     catalog=root/'config/testing/test-packages.json'
     catalog.write_text(json.dumps({
-        'schema':'ai-poise-test-packages-1',
+        'schema':'ai-poise-test-packages-2',
         'packages':[{
             'id':'sample','owner':'verification','integration_boundaries':[],
             'members':{
                 'source':['src/pkg/*.py'],
                 'tests':['tests/test_*.py'],
-                'support':['tools/*.py'],
                 'fixtures':['fixtures/*.json'],
             },
         }],
@@ -37,6 +34,8 @@ def test_fingerprint_is_membership_and_content_only_and_relocatable(tmp_path):
     root,catalog=checkout(tmp_path)
     cache=AiPoiseTestPackageCache(root,catalog)
     first=cache.fingerprint('sample')
+    assert set(first['membership']) == {'source', 'tests', 'fixtures'}
+    assert set(first['content']) == {'source', 'tests', 'fixtures'}
     moved=tmp_path/'elsewhere'
     shutil.copytree(root,moved)
     second=AiPoiseTestPackageCache(moved,moved/'config/testing/test-packages.json').fingerprint('sample')

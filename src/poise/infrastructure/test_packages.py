@@ -7,7 +7,7 @@ import tomllib
 from ..common import PoiseError
 
 
-_MEMBER_KINDS = ("source", "tests", "support", "fixtures")
+_MEMBER_KINDS = ("source", "tests", "fixtures")
 
 
 def _relative_pattern(value: object, where: str) -> str:
@@ -47,7 +47,7 @@ class AiPoiseTestPackages:
             raise PoiseError(f"Cannot read AI-poise test-package catalogue: {exc}") from exc
         if not isinstance(raw, dict) or set(raw) != {"schema", "packages"}:
             raise PoiseError("AI-poise test-package catalogue has an invalid top-level shape")
-        if raw["schema"] != "ai-poise-test-packages-1" or not isinstance(raw["packages"], list):
+        if raw["schema"] != "ai-poise-test-packages-2" or not isinstance(raw["packages"], list):
             raise PoiseError("Unsupported AI-poise test-package schema")
         packages = []
         ids = set()

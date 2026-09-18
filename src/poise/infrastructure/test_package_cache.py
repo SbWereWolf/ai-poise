@@ -17,7 +17,7 @@ from .test_packages import AiPoiseTestPackages
 _CACHE_SCHEMA = 'ai-poise-test-package-cache-2'
 _PRIMARY_SCHEMA = 'ai-poise-primary-evidence-1'
 _PRIMARY_FILES = {'stdout': 'stdout.log', 'stderr': 'stderr.log', 'junit': 'junit.xml'}
-_MEMBER_KINDS = ('source', 'tests', 'support', 'fixtures')
+_MEMBER_KINDS = ('source', 'tests', 'fixtures')
 
 
 def _sha256(path: Path) -> str:

@@ -89,7 +89,7 @@ or treat the read-only navigation helper as a mutation tool. See the canonical
 
 ## Test cache identity and exclusive ownership
 
-For AI-poise test cache work, follow the [content-hash contract](../../../docs/configuration/test-package-cache.md#хеши-байтов-по-группам-входов): include hashes of complete bytes separately for checked sources, tests and fixtures. Names, timestamps and sizes alone do not establish identity. Recalculate input bytes before reuse. The existing catalogue's `support` category is an implementation fact, not an additional user requirement; do not impose a fourth mandatory digest or a new wire schema. See the [key scope](../../../docs/configuration/test-package-cache.md#состав-целевого-ключа-и-сохраняемого-манифеста).
+For AI-poise test cache work, follow the [content-hash contract](../../../docs/configuration/test-package-cache.md#хеши-байтов-по-группам-входов): include hashes of complete bytes separately for checked sources, tests and fixtures. Names, timestamps and sizes alone do not establish identity. Recalculate input bytes before reuse. The catalogue has only these three input categories; do not add a fourth digest category or a new wire schema. See the [key scope](../../../docs/configuration/test-package-cache.md#состав-целевого-ключа-и-сохраняемого-манифеста).
 
 Use the [ordinary test workflow](../../../docs/configuration/test-package-cache.md#обычный-режим-выполнения-тестов): finish edits before running tests and resume editing afterwards. Do not add protections against an agent deliberately changing and restoring input files during the run. RV2-01 is withdrawn as outside the requested scope; do not turn it into a gate or a mandatory regression.
 

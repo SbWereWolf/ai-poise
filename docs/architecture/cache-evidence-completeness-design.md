@@ -64,7 +64,7 @@ SHA сверяется над полными байтами, не preview. Пу�
 | Пользователь передал --fresh | Явный новый запуск, успешный результат становится новым origin; старый каталог не удалять. |
 
 C018 сохраняется: [fingerprint](../configuration/test-package-cache.md) состоит **только**
-из membership и содержимого source/tests/support/fixtures. Python/env/timeout/absolute
+из membership и содержимого source/tests/fixtures. Python/env/timeout/absolute
 checkout path не добавляются в ключ. Полный cache hit не доказывает работоспособность
 в новой среде; для такой проверки нужен --fresh. Перенос всего checkout вместе с cache
 остаётся допустимым благодаря относительным путям и неизменным байтам.

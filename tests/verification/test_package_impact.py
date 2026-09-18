@@ -8,10 +8,10 @@ from poise.common import PoiseError
 from poise.infrastructure.test_packages import AiPoiseTestPackages
 
 
-def package(name, sources, tests, boundaries=(), support=(), fixtures=()):
+def package(name, sources, tests, boundaries=(), fixtures=()):
     return {'id': name, 'owner': name + '-owner', 'integration_boundaries': list(boundaries),
             'members': {'source': list(sources), 'tests': list(tests),
-                        'support': list(support), 'fixtures': list(fixtures)}}
+                        'fixtures': list(fixtures)}}
 
 
 @pytest.fixture
@@ -19,9 +19,9 @@ def subject(tmp_path):
     copy = tmp_path / 'arbitrary checkout'
     copy.mkdir()
     (copy / 'pyproject.toml').write_text('[project]\nname="ai-poise"\nversion="1"\n')
-    raw = {'schema': 'ai-poise-test-packages-1', 'packages': [
+    raw = {'schema': 'ai-poise-test-packages-2', 'packages': [
         package('domain', ['src/domain/**/*.py'], ['tests/domain/test_*.py'], ['api'],
-                ['support/domain.json'], ['fixtures/input.json']),
+                ['fixtures/input.json']),
         package('api', ['src/api.py'], ['tests/test_api.py'], ['ui']),
         package('ui', ['src/ui.py'], ['tests/test_ui.py']),
     ]}
@@ -45,10 +45,11 @@ def test_deleted_and_new_files_are_matched_from_declarations_without_globbing_cu
 
 
 @pytest.mark.parametrize('path,kind', [
-    ('tests/domain/test_new.py', 'tests'), ('support/domain.json', 'support'),
+    ('src/domain/new.py', 'source'),
+    ('tests/domain/test_new.py', 'tests'),
     ('fixtures/input.json', 'fixtures'),
 ])
-def test_all_four_member_kinds_contribute_to_impact(subject, path, kind):
+def test_all_three_member_kinds_contribute_to_impact(subject, path, kind):
     catalog, copy, _ = subject
     result = catalog.impact(copy, [path])
     assert result['direct_packages'] == ['domain']
@@ -121,7 +122,7 @@ def test_selected_packages_feed_existing_cache_and_registered_runner_only(tmp_pa
     for name, body in files.items():
         path = copy / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(body)
     path = copy / 'config/testing/test-packages.json'; path.parent.mkdir(parents=True)
-    path.write_text(json.dumps({'schema': 'ai-poise-test-packages-1', 'packages': [
+    path.write_text(json.dumps({'schema': 'ai-poise-test-packages-2', 'packages': [
         package('calc', ['src/calc.py'], ['tests/test_calc.py']),
         package('unrelated', [], ['tests/test_unrelated.py']),
     ]}))

@@ -1,5 +1,5 @@
 {
-  "schema": "ai-poise-test-packages-1",
+  "schema": "ai-poise-test-packages-2",
   "packages": [
     {
       "id": "verification-runner",
@@ -16,23 +16,21 @@
           "src/poise/infrastructure/test_packages.py",
           "src/poise/infrastructure/test_package_cache.py",
           "src/poise/infrastructure/sqlite/hook_transport.py",
-          "src/poise/infrastructure/architecture_checks.py"
+          "src/poise/infrastructure/architecture_checks.py",
+          "tools/run_test_packages.py",
+          "tools/run_ai_poise_test_package.py",
+          "tests/runner/helpers.py",
+          "tools/check_architecture.py"
         ],
         "tests": [
           "tests/runner/test_*.py",
           "tests/verification/test_*.py",
           "tests/test_package_execution.py"
         ],
-        "support": [
-          "tools/run_test_packages.py",
-          "tools/run_ai_poise_test_package.py",
-          "tests/runner/helpers.py",
-          "tools/check_architecture.py",
-          "config/testing/architecture-boundaries.json"
-        ],
         "fixtures": [
           "tests/conftest.py",
-          "tests/hook_transport/helpers.py"
+          "tests/hook_transport/helpers.py",
+          "config/testing/architecture-boundaries.json"
         ]
       }
     },
@@ -52,7 +50,6 @@
         "tests": [
           "tests/evidence/test_*.py"
         ],
-        "support": [],
         "fixtures": [
           "tests/conftest.py"
         ]
@@ -76,7 +73,6 @@
           "tests/tasks/test_*.py",
           "tests/ddd/test_task_*.py"
         ],
-        "support": [],
         "fixtures": [
           "tests/conftest.py"
         ]
@@ -98,7 +94,6 @@
         "tests": [
           "tests/sprints/test_*.py"
         ],
-        "support": [],
         "fixtures": [
           "tests/conftest.py"
         ]
@@ -125,7 +120,6 @@
         "tests": [
           "tests/runtime_services/test_*.py"
         ],
-        "support": [],
         "fixtures": [
           "tests/conftest.py"
         ]
@@ -143,15 +137,13 @@
           "src/poise/application/project_config.py",
           "src/poise/modules/projects/**/*.py",
           "src/poise/infrastructure/projects.py",
-          "src/poise/infrastructure/project_config.py"
+          "src/poise/infrastructure/project_config.py",
+          "tests/projects/helpers.py",
+          "tests/goal_config/helpers.py"
         ],
         "tests": [
           "tests/projects/test_*.py",
           "tests/goal_config/test_*.py"
-        ],
-        "support": [
-          "tests/projects/helpers.py",
-          "tests/goal_config/helpers.py"
         ],
         "fixtures": [
           "tests/conftest.py"
@@ -178,14 +170,12 @@
           "src/poise/infrastructure/diagnostic_io.py",
           "src/poise/interfaces/hook_transport.py",
           "src/poise/infrastructure/source_reader.py",
-          "src/poise/infrastructure/sqlite/interactions.py"
+          "src/poise/infrastructure/sqlite/interactions.py",
+          "tests/hook_transport/helpers.py",
+          "tests/hook_transport/mcp_fixture.py"
         ],
         "tests": [
           "tests/hook_transport/test_*.py"
-        ],
-        "support": [
-          "tests/hook_transport/helpers.py",
-          "tests/hook_transport/mcp_fixture.py"
         ],
         "fixtures": [
           "tests/conftest.py"
@@ -208,7 +198,6 @@
         "tests": [
           "tests/result_integration/test_*.py"
         ],
-        "support": [],
         "fixtures": [
           "tests/conftest.py"
         ]
@@ -235,22 +224,20 @@
           "src/poise/common.py",
           "src/poise/application/work.py",
           "src/poise/modules/work/**/*.py",
-          "src/poise/infrastructure/project_config.py"
+          "src/poise/infrastructure/project_config.py",
+          "tools/route_development.py"
         ],
         "tests": [
           "tests/skills/test_*.py",
           "tests/tasks/test_focused_decomposition.py"
         ],
-        "support": [
+        "fixtures": [
+          "tests/conftest.py",
           ".agents/skill-catalog.json",
           ".agents/**/*.md",
           ".agents/skills/modern-web-guidance/catalogue.ndjson",
           "config/development/*.json",
-          "tools/route_development.py",
           "config/testing/test-packages.json"
-        ],
-        "fixtures": [
-          "tests/conftest.py"
         ]
       }
     },
@@ -263,24 +250,22 @@
       ],
       "members": {
         "source": [
-          "tools/*.py"
+          "tools/*.py",
+          "tests/smoke.sh"
         ],
         "tests": [
           "tests/delivery/test_tooling_catalog.py",
           "tests/delivery/test_migration_planning_policy.py",
           "tests/delivery/test_migration_current_state.py"
         ],
-        "support": [
+        "fixtures": [
+          "tests/conftest.py",
           "config/testing/test-packages.json",
           "AGENTS.md",
           "docs/migrations/*.md",
           "docs/migrations/sprint-dependency-closure-2026-09-15.json",
           "docs/workflows/sprints.md",
-          "tests/smoke.sh",
           ".agents/skills/poise-development/SKILL.md"
-        ],
-        "fixtures": [
-          "tests/conftest.py"
         ]
       }
     },
@@ -302,14 +287,12 @@
           "tests/test_package_execution.py",
           "tests/delivery/test_cloud_recovery.py"
         ],
-        "support": [
+        "fixtures": [
+          "tests/conftest.py",
           "config/testing/test-packages.json",
           "AGENTS.md",
           "docs/workflows/checkpoint-recovery.md",
           "recovery-tools/README.md"
-        ],
-        "fixtures": [
-          "tests/conftest.py"
         ]
       }
     },
@@ -330,14 +313,12 @@
         "tests": [
           "tests/skills/test_reference_audit.py"
         ],
-        "support": [
+        "fixtures": [
+          "tests/conftest.py",
           ".agents/skill-catalog.json",
           ".agents/**/*.md",
           ".agents/skills/modern-web-guidance/catalogue.ndjson",
           "config/testing/test-packages.json"
-        ],
-        "fixtures": [
-          "tests/conftest.py"
         ]
       }
     },
@@ -358,7 +339,8 @@
         "tests": [
           "tests/delivery/test_documentation_checks.py"
         ],
-        "support": [
+        "fixtures": [
+          "tests/conftest.py",
           "AGENTS.md",
           "README.md",
           "src/AGENTS.md",
@@ -367,9 +349,6 @@
           ".agents/**/*.md",
           "config/legacy-namespace-allowlist.json",
           "config/testing/test-packages.json"
-        ],
-        "fixtures": [
-          "tests/conftest.py"
         ]
       }
     }

@@ -16,6 +16,23 @@ Fingerprint строится только из объявленного C016 mem
 
 Успешный fresh run сохраняет terminal evidence и cache record с `package_id`, `input_fingerprint`, `origin_run_id`, относительным `evidence_path` и digest evidence. Cache hit не создаёт вымышленный новый запуск: результат возвращается с `reused=true`, `executed=false` и тем же `origin_run_id`.
 
-Повреждённый/исчезнувший origin evidence является ошибкой, а не cache hit. Неуспешный или прерванный запуск evidence сохраняет, но reusable record не создаёт.
+Cache schema `ai-poise-test-package-cache-2` сохраняет в result.json manifest
+`ai-poise-primary-evidence-1`: относительный путь, размер и SHA-256 каждого
+stdout/stderr/JUnit. stdout и stderr обязательны даже при нулевой длине. Обычный
+hit проверяет весь комплект, provenance origin и terminal JUnit, а не только
+сохранённое поле passed. Symlink-компоненты и ссылки на другой run запрещены.
+
+Повреждённый/исчезнувший первичный файл или несовместимый старый record дают
+контролируемую ошибку с указанием `--fresh`, без автоматического повторного запуска
+и без удаления прошлого record. Только отсутствие самого record является обычным
+cache miss. Неуспешный, прерванный или incomplete-capture запуск сохраняет диагностику,
+но reusable record не создаёт. Новая версия record не меняет content fingerprint.
+
+Проверка устанавливает целостность на момент чтения, не гарантирует последующее
+существование файлов и не является подписью против субъекта, способного изменить
+record вместе с evidence. Полный reuse не подтверждает новую среду исполнения:
+для проверки другой Python/environment требуется `--fresh`.
+
+[Решение о полноте evidence](../architecture/cache-evidence-completeness-design.md).
 
 `--fresh` в `tools/run_ai_poise_test_package.py` явно обходит reuse и выполняет пакет повторно; успешный новый запуск становится новым origin для того же content fingerprint.

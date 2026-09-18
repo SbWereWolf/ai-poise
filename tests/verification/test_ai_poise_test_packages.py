@@ -60,3 +60,30 @@ def test_catalog_rejects_escape_and_stale_patterns(tmp_path):
     packages = AiPoiseTestPackages.load(bad)
     with pytest.raises(PoiseError, match='matched no files'):
         packages.membership(ROOT, 'verification-runner')
+
+
+def test_runtime_services_check_attempts_tracks_local_bytes(tmp_path):
+    from poise.infrastructure.test_package_cache import AiPoiseTestPackageCache
+
+    source = 'src/poise/application/check_attempts.py'
+    packages = AiPoiseTestPackages.load(CATALOG)
+    assert source in packages.membership(ROOT, 'runtime-services')['members']['source']
+    impact = packages.impact(ROOT, [source])
+    assert impact['direct_packages'] == ['runtime-services']
+    assert impact['unmapped_paths'] == []
+
+    checkout = tmp_path / 'owned-checkout'
+    shutil.copytree(ROOT, checkout, ignore=shutil.ignore_patterns(
+        '.git', '__pycache__', '.pytest_cache', '.poise-test-cache'))
+    local = AiPoiseTestPackageCache(checkout, checkout / 'config/testing/test-packages.json')
+    other = AiPoiseTestPackageCache(ROOT, CATALOG)
+    before = local.fingerprint('runtime-services')['input_fingerprint']
+    other_before = other.fingerprint('runtime-services')['input_fingerprint']
+    assert before == other_before
+    assert local.cache == checkout / '.poise-test-cache'
+    assert other.cache == ROOT / '.poise-test-cache'
+
+    changed = checkout / source
+    changed.write_bytes(changed.read_bytes() + b'\n# Cache input regression.\n')
+    assert local.fingerprint('runtime-services')['input_fingerprint'] != before
+    assert other.fingerprint('runtime-services')['input_fingerprint'] == other_before

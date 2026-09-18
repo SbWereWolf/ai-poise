@@ -114,6 +114,7 @@
         "source": [
           "src/poise/runtime.py",
           "src/poise/application/work.py",
+          "src/poise/application/check_attempts.py",
           "src/poise/modules/work/**/*.py",
           "src/poise/infrastructure/work.py"
         ],

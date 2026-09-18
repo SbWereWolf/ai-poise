@@ -175,6 +175,15 @@ Never use the main checkout or foreign WIP for preparation or conflict resolutio
 
 ## Sprint work
 
+Plan only one connected dependency chain per Sprint. Keep independent Tasks standalone;
+neither a shared topic nor execution priority creates a dependency. When splitting a long
+Sprint, copy required prerequisite Tasks or chains as local conditional duplicates with new
+IDs and local edges. Explicitly require each duplicate to check whether its requirements
+are already implemented in the current worktree before implementation; reuse verified
+existing results without implementing them again. Follow the existing
+[dependency closure and local duplicates](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
+Do not claim graph connectivity is automatically enforced merely because DAG validation exists.
+
 Bootstrap the sprint to get the eligible set instead of calculating dependencies manually. `verified` is not `completed`; predecessor completion follows the task's acceptance policy. Read [Sprint API → Work selection](../../../docs/workflows/sprints.md#выбор-работы-и-один-пакет-контекста) and [Sprint API → Dependency kinds](../../../docs/workflows/sprints.md#два-явных-вида-зависимостей).
 
 Treat result dependencies as readiness plus `result_provenance`, not Git ancestry. Every new successor worktree starts from the current configured base ref; AI poise does not use or merge predecessor result commits as its branch base.

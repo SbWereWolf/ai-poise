@@ -1,7 +1,7 @@
 from poise.modules.evidence.domain import EvidencePlan
 import pytest
 from poise.modules.content.domain import SectionRule
-from poise.modules.tasks.domain import Task, StageSpec
+from poise.modules.tasks.domain import Task, StageSpec, TaskStageContracts
 from poise.modules.foundation.errors import DomainError
 
 
@@ -17,9 +17,15 @@ def new_task(task_id, stages, actor):
     cfg={"route":{"entry":ids[0] if ids else "absent"},
          "stages":[{"id":sid,"handler":"produce","transitions":{"complete":ids[i+1] if i+1<len(ids) else None},
                     "rework_targets":[sid],"read_only":False,"allowed_paths":[]} for i,sid in enumerate(ids)]}
-    return Task.new(task_id, stages, actor, policy, registry, RouteDefinition.from_process(cfg), EvidencePlan.parse(
+    route = RouteDefinition.from_process(cfg)
+    contracts = TaskStageContracts.parse([
+        {"stage_id": stage_id, "allowed_paths": [],
+         "entry_requirements": [], "exit_requirements": []}
+        for stage_id in ids
+    ], route, policy)
+    return Task.new(task_id, stages, actor, policy, registry, route, EvidencePlan.parse(
         {s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in cfg["stages"]},
-        {s["id"]:s["handler"] for s in cfg["stages"]}, {s["id"]:[] for s in cfg["stages"]}))
+        {s["id"]:s["handler"] for s in cfg["stages"]}, {s["id"]:[] for s in cfg["stages"]}), contracts)
 
 
 def task():
@@ -122,8 +128,9 @@ def test_cancel_skips_completion_requirements_but_requires_reason():
 
 
 def test_wrong_owner_and_mutation_after_verified_are_rejected():
-    with pytest.raises(DomainError): task().submit("S2", {"report":"x"}, (), "", {"sections":[],"routes":[],"requirements":[]}, {}, [], {}, {"phase":"prepare","arguments":[],"decisions":[]})
-    with pytest.raises(DomainError): verified().submit("S1", {"report":"x"}, (), "", {"sections":[],"routes":[],"requirements":[]}, {}, [], {}, {"phase":"prepare","arguments":[],"decisions":[]})
+    with pytest.raises(DomainError, match="^Задача связана с другой сессией$"): task().submit("S2", {"report":"x"}, (), "", {"sections":[],"routes":[],"requirements":[]}, {}, [], {}, {"phase":"prepare","arguments":[],"decisions":[]})
+    current = verified()
+    with pytest.raises(DomainError, match="^Результат принимается только в активный этап текущей сессии$"): current.submit("S1", {"report":"x"}, (), "", {"sections":[],"routes":[],"requirements":[]}, {}, [], {}, {"phase":"prepare","arguments":[],"decisions":[]})
 
 
 def test_route_is_data_not_goal_type_branching():

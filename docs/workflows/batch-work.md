@@ -178,6 +178,14 @@ snapshot уже возвращён адресным `bootstrap`.
 успеха для аварийной отмены: `cancelled` может не иметь evidence, а просмотр возвращает ровно
 то, что было сохранено до отмены.
 
+## Планирование Task из шаблона
+
+Целевой контракт создания отделяет **template provenance** от **resolved Task contract**. Агент выбирает `goal_type`; harness подставляет подходящий template и материализует полноценный newborn draft, чтобы не заставлять агента вручную собирать типовые поля. После этого template не является whitelist допустимой задачи: до `ready` планировщик может одним/несколькими декларативными `edit` переработать все task-owned mutable части draft, включая scope, requirements, DoD, checks, artifact obligations, stage contracts и выбранный process. Если типовой process не подходит, планировщик должен иметь штатный способ выбрать или задать валидный task-local process; создавать новый глобальный template только ради одной уникальной Task не требуется.
+
+При проектировании также задаётся неизменяемая после `ready` **restart revision policy**: какие части frozen Task contract проверяющий вправе менять при санкционированном restart. `ready` фиксирует resolved contract и эту policy. Runtime после этого проверяет resolved contract, а не исходный template. Исполнитель не расширяет policy сам. Пользователь может явно разрешить более широкую Task revision; глобальные project/harness rules меняются отдельным пользовательским решением.
+
+Эта гибкость **ещё не реализована** текущими DTO/process validators на `f982561`: существующие ограничения нельзя обходить ручной правкой DB/config. После реализации через публичные owners ранее созданные тестовые maintenance Task `0159`–`0163` должны быть штатно перезапущены/пересобраны через Task lifecycle, чтобы проверить новый путь на реальных случаях, где прежняя конструкция была слишком жёсткой.
+
 ## Автоматическое создание Task
 
 Новый Task создаётся одним `bootstrap`-пакетом. Вызывающая сторона задаёт устойчивый
@@ -359,11 +367,7 @@ identity, Sprint membership и history, выбирает целевой process,
 `newborn`, пока контракт не пройдёт readiness. Standalone Task после `ready` становится
 `available`; готовый участник draft Sprint остаётся newborn до атомарной публикации Sprint.
 
-Если сохранённый контракт исполнения не позволяет достичь DoD либо следующий stage не
-проходит собственный DoR, результат обозначается `status: broken`, а не успешным завершением.
-Ответ содержит точную failure phase и два явных пути: reviewer исправляет только дефектный
-stage contract через `repair_stage_contract`, либо владелец выполняет `operation: task` с
-`action: restart`, `expected_version`, непустыми `reason` и `authorization`. Restart разрешён
+Если сохранённый контракт исполнения не позволяет достичь DoD, следующий stage не проходит собственный DoR либо исполнитель обоснованно показывает, что доступный обход не соответствует смыслу Task, результат не маскируется успешным завершением. Исполнитель сохраняет evidence и предлагает проверяющему/пользователю restart с конкретным изменением. Проверяющий или пользователь принимает решение; reviewer меняет только разрешённые restart revision policy части Task contract, а изменение project/harness rules эскалирует пользователю. Ответ содержит точную failure phase и явные recovery routes: reviewer исправляет разрешённую часть контракта (в текущей реализации — только дефектный stage contract через `repair_stage_contract`) либо владелец выполняет `operation: task` с `action: restart`, `expected_version`, непустыми `reason` и `authorization`. Restart разрешён
 только для незавершённой неинтегрированной Task (`available`, `active`, `verified`, `accepted`),
 сохраняет её ID, Sprint membership, immutable history, branch, worktree и tracked,
 staged/untracked WIP. Текущее исполнение сбрасывается согласованно: attempts становится нулём,

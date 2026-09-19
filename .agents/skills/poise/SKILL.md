@@ -5,6 +5,8 @@ description: Execute project-local AI poise task stages and hand off work betwee
 
 # AI poise task workflow
 
+AI poise is a declarative harness whose job is to remove mechanical administration and tooling implementation details from the agent's work. Templates accelerate planning; they must not become a reason to force a valid Task into a starter shape. The planner owns the newborn draft before `ready`; execution consumes the resolved Task contract.
+
 Use the explicitly selected project configuration. Each project owns its Task DB and its copied process catalogue; never
 edit managed SQLite, process JSON, or task artifacts as bookkeeping.
 
@@ -65,9 +67,7 @@ Use one `bootstrap` package to obtain the current task/sprint, stage, process sn
 findings/evidence and available capabilities. For the WSL invocation, read [Local installation → Start
 work](../../../docs/configuration/wsl-local-delivery.md#начало-работы-над-задачей).
 
-Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has
-a permanent identity and history, uses the shared ownership API, and preserves no route entry before goal_type
-selection.
+Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has a permanent identity and history and uses the shared ownership API. In the agreed target model, selecting a `goal_type` materializes a template-backed starter draft, after which the planner may reshape task-owned mutable fields and select/design the suitable process before `ready`; template provenance is not the runtime policy. The current installation may still enforce narrower process/template constraints until that functionality is implemented, so do not bypass them through managed-file or DB edits.
 Sprint draft materialization creates each newborn member without a claim, so the planning
 session keeps ownership of only its current Task while it edits the draft graph.
 `create`, `edit`, `ready`, and `restart` require stable request IDs; preserve exact
@@ -95,14 +95,7 @@ draft field invalid. Never encode deletion with null, silently clean the draft, 
 as a compatibility path. Preserve exact replay and reject unknown, absent, duplicate, required,
 immutable, or patch-conflicting removals before mutation.
 
-When a saved execution contract makes DoD unattainable or the next stage fails its own DoR,
-treat the outcome as `broken`, never as successful completion. A reviewer may repair only the
-defective stage contract, or an authorized owner may restart the same Task to newborn through
-the public `task` action. Preserve Task identity, immutable history, Sprint membership,
-worktree/branch and all WIP; reject terminal work, a foreign live owner, stale version, or a
-pending external outcome before mutation. Resolve pending uncertainty through its explicit
-recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction
-action. Historical relations exist only as opaque revision/audit records, not a current replacement projection.
+When a saved execution contract makes DoD unattainable, the next stage fails its own DoR, or the executor concludes from evidence that the available workaround is not adequate to the Task, do not bypass Poise or manufacture success. Preserve the evidence and propose the exact restart/Task-contract change to the reviewer or user. The reviewer/user decides whether to restart. An authorized owner may restart the same Task to newborn through the public Task action. Reviewer changes stay within the Task's frozen restart-revision policy; broader Task changes require explicit user authority. Proposed project/harness rule changes are escalated to the user and are not mutated by restart. Preserve Task identity, immutable history, Sprint membership, worktree/branch and all WIP; reject terminal work, a foreign live owner, stale version, or a pending external outcome before mutation. Resolve pending uncertainty through its explicit recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction action. Historical relations exist only as opaque revision/audit records, not a current replacement projection.
 
 Task restart atomically invalidates every mutable current `work-packet identity` for that
 Task in the same Unit of Work as the newborn lifecycle reset. This does not rewrite or delete

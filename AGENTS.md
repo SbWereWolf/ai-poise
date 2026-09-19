@@ -6,12 +6,9 @@ expires. Platform safety constraints and storage integrity are not project rules
 
 ## Purpose and outcomes
 
-Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool
-calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear
-documentation.
+AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
-Before any work, including a request without a formal task, establish the goal, the requirements for the result, the
-definition of done and how completion will be demonstrated. Keep this preparation proportional to the request.
+Before any work, including a request without a formal task, establish the goal, the requirements for the result, the definition of done and how completion will be demonstrated. Keep this preparation proportional to the request. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. `ready` freezes the resolved Task contract and its restart-revision authority; runtime enforces that resolved contract, not the original template.
 
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
@@ -46,14 +43,7 @@ project's configured repository checkout. See [worktree
 placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
 not register them manually.
 
-One session works on one task. Stage ownership follows the canonical [executor/reviewer
-policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its
-executor and reviewer to continue their respective stages, including checks and remediation, without a new command at
-each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role
-handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. Stop for
-a real blocker, a new required user decision, or separately controlled acceptance/publication/integration. Before
-changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only
-query about another task does not switch ownership.
+One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and propose a restart plus the exact requested changes to the reviewer or user instead of bypassing the harness. The reviewer/user decides the restart and Task-contract revision; a reviewer escalates proposed project/harness rule changes to the user, whose approval is required. Stop for a real blocker, a new required user decision, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
@@ -129,6 +119,8 @@ Keep this English projection and its Russian source consistent in the same chang
 - Keep the existing path resolution of AI poise-owned hooks, tools, runtime code and configuration. Pass a checkout or
   working directory as an explicit filesystem path/cwd only to the operation that needs it; see [path resolution and
   working copies](docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии).
+- Keep Requirements at exactly three semantic levels: System → Application → Task. Bottom-up Task discovery may create proposed System/Application requirements. Future/projected chains may use explicit typed empty placeholders at missing levels once the owner supports them; placeholders are gaps, not satisfaction and not a fourth level. Virtual grouping is orthogonal. Never invent ancestry when the mapping is unclear; ask for the missing decision.
+- Reuse evidence and artifacts through their owners. Repository evidence is valid only for the exact commit hash it proves (plus its compatible requirement/method provenance); a changed commit hash requires fresh evidence. Do not manually copy receipts to manufacture reuse.
 - Read applicable nested agent rules before working on their surface. Use specific rules within root constraints,
   subject to higher-priority platform and user instructions. Load only skills and reference sections needed for the
   active phase.

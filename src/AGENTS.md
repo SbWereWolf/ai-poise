@@ -1,8 +1,10 @@
 # AI poise source development
 
-Updated: 2026-09-13.
+Updated: 2026-09-20.
 
 ## Declarative, reusable tools
+
+AI poise is a harness: its primary job is to remove mechanical administration and implementation-detail knowledge from the agent's work. Evaluate every tooling proposal by whether the agent can state the desired semantic result declaratively while the owners handle IDs, paths, persistence, hashes, receipts, recovery and other mechanics. A template or router may accelerate work but must not become a hidden business restriction merely because its starter shape is narrower than a valid Task design. Runtime enforcement belongs to the resolved Task contract, ownership and integrity rules.
 
 Whenever a required workflow contains two or more mechanical actions with no reasoning decision between them, provide one tool that performs the sequence.
 
@@ -27,22 +29,13 @@ Apply domain-driven design throughout the codebase, not just to stage handlers. 
 
 Document and respect the responsibility boundaries of libraries and data owners. Change Task, Sprint, content, evidence, configuration and artifact state only through their owning APIs. CLI adapters, runners and hooks must not bypass those APIs with direct lifecycle assignments or table updates.
 
-Model early planning as a real newborn Task with permanent identity and history. Route its
-create/edit/ready transitions through the shared ownership API, preserve no route entry before goal_type selection,
-and apply type-specific readiness before `available`. Sprint
+Model early planning as a real newborn Task with permanent identity and history. A selected goal type/template materializes starter data; before `ready`, the planner must be able to reshape task-owned mutable fields without being constrained by template provenance. `ready` freezes the resolved Task contract and its restart-revision policy; runtime enforces that saved contract rather than re-reading the template. Route create/edit/ready transitions through the shared ownership API, preserve no route entry before goal_type selection, and apply structural readiness before `available`. Sprint
 `materialize_tasks` owns conversion of legacy embedded definitions into real newborn Task
 members while preserving partial edits, history, membership, graph aliases, immutable request
 replay, and source Task traceability. Keep direct complete creation supported; do not add a
 hidden broad migration.
 
-Keep broken execution-contract recovery in the Task owner. Report an unattainable DoD or a
-failed next-stage DoR as `broken`; let a reviewer revise only the defective inspection-stage
-contract, or use the public Task `restart` action to return the same unfinished, unintegrated
-Task to newborn. Preserve its ID, append-only history, Sprint membership, execution workspace,
-branch, base and WIP. Reject foreign ownership, stale versions and terminal Tasks before mutation. An
-explicitly authorized restart may archive a quiescent unknown check_attempt without
-replaying or claiming success; other external outcomes keep their recovery owners. Sprint `replace_task` is not a correction writer; retain
-historical relations only as opaque revision/audit records, never a current replacement projection.
+Keep broken execution-contract recovery in the Task owner. Report an unattainable DoD, a failed next-stage DoR, or an executor's evidenced conclusion that the available workaround is not adequate to the Task as a recovery decision rather than hidden success. The executor proposes the exact restart/contract change to the reviewer or user. The reviewer/user decides whether to restart; reviewer-owned revisions are limited by the Task's frozen restart-revision policy, while the user may explicitly authorize a broader Task revision. Project/harness rule changes are escalated for separate user approval and are not mutated by restart. Preserve Task ID, append-only history, Sprint membership, execution workspace, branch, base and WIP. Reject foreign ownership, stale versions and terminal Tasks before mutation. An explicitly authorized restart may archive a quiescent unknown check_attempt without replaying or claiming success; other external outcomes keep their recovery owners. Sprint `replace_task` is not a correction writer; retain historical relations only as opaque revision/audit records, never a current replacement projection.
 
 For every new trace requirement, ensure that its due stages intersect the referenced
 point's `write_stages`. A `phase=pre` requirement additionally needs a declared write
@@ -96,7 +89,7 @@ branch and configured Task path registered to that repository. Reject independen
 at the same path. Roll back only Git resources created by the failed invocation, and never change
 Task ownership or lifecycle in that recovery.
 
-Each goal type has its own complete, self-contained process configuration. Define its task template and rules for creation, stages, checks and completion. Reusing library code does not imply inheritance between goal-type business configurations.
+Each goal type may provide a complete, self-contained process/template as a fast starting point. Template provenance is not runtime policy: the planner may reshape the newborn Task before `ready`, including choosing or defining a valid task-local process when the standard one is not appropriate. The resolved Task contract, not template identity, owns execution restrictions. Reusing library code does not imply inheritance between goal-type business configurations.
 
 Keep all AI poise configuration in the AI poise codebase and select the project explicitly. Do not infer executable commands from a target application's prose instructions; register the exact invocation in the task or project configuration.
 
@@ -120,6 +113,7 @@ own explicit timeout contracts.
 Reject semantic duplicates and conflicting methods before execution. Accept RED evidence only
 when the declared failure predicate matches and the recorded source provenance is valid; an
 import error or execution against another checkout is not a valid RED.
+Repository evidence reuse must additionally bind to the exact commit hash on which it was obtained and to compatible requirement/method provenance. A different commit hash requires fresh evidence even when an agent believes the changed files are unrelated. Artifact bytes may be reused through their owner/digest rules; never reuse a PASS receipt across a changed commit.
 Keep `verification_plan` validation in `CheckRegistry` and route scope ownership
 in `RouteDefinition`. New methods declare `change_surface`, `red_stages`, and
 `green_stages`; every required GREEN path must be covered by configured

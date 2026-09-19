@@ -75,9 +75,7 @@ blockers immediately; do not invent skill use or grant yourself a contract edit.
 6. Continue already-authorized executor stages with the public `advance` operation. At a role boundary, preserve the
    result, confirm public release, then follow the [handoff contract](../../references/context-handoff-contract.md).
    There are only executor and reviewer; self-review does not impersonate the other role.
-7. Diagnose failures from saved evidence. Before retrying an effectful action, determine what completed and how the
-   owning API resumes it idempotently. Use only recovery operations actually exposed by the current installation. Do not
-   simulate a planned universal phase-recovery capability or mutate lifecycle state manually.
+7. Diagnose failures from saved evidence. Before retrying an effectful action, determine what completed and how the owning API resumes it idempotently. If the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve the evidence and send the reviewer or user a concrete proposal for restart plus the exact requirement/contract changes needed; do not bypass the harness. The reviewer/user decides. Project/harness rule changes require user approval. Use only recovery operations actually exposed by the current installation. Do not simulate a planned universal phase-recovery capability or mutate lifecycle state manually.
 8. After release, continue only an already-authorized actionable Task/stage chain. Do not create a new Task or expand
    the assignment merely because one finished. Use the implemented [cross-project `next`
    overview](../../../docs/configuration/project-setup.md#доступные-задачи-во-всех-проектах) for discovery; it is not an
@@ -85,8 +83,7 @@ blockers immediately; do not invent skill use or grant yourself a contract edit.
 
 ## Output
 
-A durable current-stage result with requirement coverage, exact checks, unresolved findings/dependencies, source/result
-identity and next authorized action. Existing Poise owners store, verify and transfer it. The [handoff
+A durable current-stage result with requirement coverage, exact checks, unresolved findings/dependencies, source/result identity and next authorized action. Reuse evidence/artifacts only through their owners: repository evidence is tied to the exact commit hash and compatible requirement/method provenance, so a changed commit requires fresh proof. Existing Poise owners store, verify and transfer it. The [handoff
 protocol](../../../docs/workflows/local-handoff.md#пакет) preserves incomplete work honestly. Acceptance, publication
 and integration retain their separate gates and authority; this skill never grants push permission or a second
 lifecycle.

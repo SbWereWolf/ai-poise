@@ -179,21 +179,29 @@ Plan only one connected dependency chain per Sprint. Keep independent Tasks stan
 neither a shared topic nor execution priority creates a dependency. When splitting a long
 Sprint, copy required prerequisite Tasks or chains as local conditional duplicates with new
 IDs and local edges. Do not search similar Tasks or manually maintain a reciprocal family
-list. The requested Sprint-Duplicate Task behavior stores an explicit original-parent
-relation and derives the parent's duplicate list and each duplicate's siblings from it.
-On acquisition/resume and refreshed stage context, the harness must return all ahead
-relatives and all same-noninitial-stage peers with Task/Sprint IDs, actual stages, status,
-iteration and owning session IDs. Initial-stage equality alone is not a collision.
-Agents use this context to determine one continuing executor; do not duplicate the work
-or automatically seize, cancel or reset another Task. Apply the same check to an original
-parent that already has duplicates. Compare corresponding process stages, not arbitrary
-numeric indexes or historical maximum progress. Cancelled, ownerless and completed
-relatives retain their distinct meanings. Reuse still requires integration into the
-configured main base, availability in the local branch and local requirement verification.
+list. Task has two axes: ordinary/duplicate, then parent/child for a duplicate. A root
+with children is itself a parent duplicate. Role changes family lookup, not the gate.
+The harness derives reciprocal family views from a canonical parent relation.
+For each noncancelled member, d is the shortest directed transition count from its current
+stage to positive termination, computed equivalently by reverse traversal from positive
+terminals. Success is d=0; cancellation is not success. Rework changes current distance;
+stage names, array indexes, branch position and past maximum progress do not rank Tasks.
+Include the current Task in d_min. Stage start MUST be rejected when d(current)>d_min,
+even by one transition; equality permits this family gate subject to existing ownership
+and stage preconditions. Return only all other relatives at d_min, with Task/Sprint IDs,
+stage, distance, status, iteration and owning session IDs. Do not include intermediate
+leaders or tied-but-lagging peers. Equal distances on different stages are ties too.
+For noninitial tied-minimum work, agents coordinate one executor using these session IDs;
+the gate does not pick one or reject all ties. Initial-stage equality alone is not a
+collision, but a lagging initial stage is blocked. Check on acquisition/resume and every
+actual stage start before execution effects; a context warning is not enforcement.
+Invalid or unavailable distance is not permission. Do not seize foreign ownership or WIP.
+Completed family results still require main-base integration and local availability;
+reuse must not bypass a denied ordinary-stage start or forge terminal progress/acceptance.
+Its local completion lifecycle must be specified during implementation.
 See [automatic family check](../../../docs/workflows/sprints.md#задача-спринта-дубль-автоматическая-проверка-семейства).
-This runtime type/relation/projection is specified, not implemented in the current API.
-Do not invent schema fields, claim automatic coordination already works, or replace it
-with mandatory manual similarity/family searches.
+This type/relation/distance/start gate is specified, not implemented by the policy patch.
+Do not invent API fields or replace missing automation with manual similarity searches.
 Follow the existing
 [dependency closure and local duplicates](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
 Do not claim graph connectivity is automatically enforced merely because DAG validation exists.

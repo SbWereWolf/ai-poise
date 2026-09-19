@@ -178,25 +178,22 @@ Never use the main checkout or foreign WIP for preparation or conflict resolutio
 Plan only one connected dependency chain per Sprint. Keep independent Tasks standalone;
 neither a shared topic nor execution priority creates a dependency. When splitting a long
 Sprint, copy required prerequisite Tasks or chains as local conditional duplicates with new
-IDs and local edges. Before creating any Task, search similar Tasks by goal, requirements
-and expected result; repeat this check before executing a duplicate. Each duplicate names its original parent; the parent
-lists all its duplicates with their IDs and Sprints, including copies made from a duplicate.
-Read the whole family, not only the immediate source. If the parent or any duplicate is
-already being worked on (including WIP, review or pending acceptance), do not implement
-again: wait for completion and integration into master, the explicitly configured main
-base ref. A completed Task with an unmerged result is not reusable code in the next branch.
-For reuse, create a new duplicate branch from the updated main base after integration. For an older
-branch, require an authorized update preserving WIP; absence in that old tree does not
-justify reimplementation. Then verify local requirement coverage and record reuse/no-change,
-or implement only the uncovered scope when no other family member is doing it. If all
-are unstarted, the planner selects one implementation; do not make pending duplicates wait
-on each other. Recheck the family before starting or resuming work. A displayed eligible
-flag does not override this preflight. Record the waiting reason and source Task ID, not
-a fabricated runtime status or cross-Sprint dependency. No background polling is required.
-Use supported Task-owned planning records for both link directions; the current creation
-schema has no parent/duplicate fields and no automatic family scheduler. Do not rewrite
-immutable terminal contracts or claim a reciprocal link was saved when the installed API
-cannot write it. Report that capability gap before treating a duplicate as executable.
+IDs and local edges. Do not search similar Tasks or manually maintain a reciprocal family
+list. The requested Sprint-Duplicate Task behavior stores an explicit original-parent
+relation and derives the parent's duplicate list and each duplicate's siblings from it.
+On acquisition/resume and refreshed stage context, the harness must return all ahead
+relatives and all same-noninitial-stage peers with Task/Sprint IDs, actual stages, status,
+iteration and owning session IDs. Initial-stage equality alone is not a collision.
+Agents use this context to determine one continuing executor; do not duplicate the work
+or automatically seize, cancel or reset another Task. Apply the same check to an original
+parent that already has duplicates. Compare corresponding process stages, not arbitrary
+numeric indexes or historical maximum progress. Cancelled, ownerless and completed
+relatives retain their distinct meanings. Reuse still requires integration into the
+configured main base, availability in the local branch and local requirement verification.
+See [automatic family check](../../../docs/workflows/sprints.md#задача-спринта-дубль-автоматическая-проверка-семейства).
+This runtime type/relation/projection is specified, not implemented in the current API.
+Do not invent schema fields, claim automatic coordination already works, or replace it
+with mandatory manual similarity/family searches.
 Follow the existing
 [dependency closure and local duplicates](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
 Do not claim graph connectivity is automatically enforced merely because DAG validation exists.

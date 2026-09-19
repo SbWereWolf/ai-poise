@@ -54,7 +54,9 @@ blockers immediately; do not invent skill use or grant yourself a contract edit.
    request_id, expected_version) instead of ordinary stage work. It checks main integration, local availability and own
    checks; reuse_verified still needs explicitly authorized accept. Keep the original packet on retry or handoff resume;
    the preserved native handoff bundle is validated before reacquisition. A completed replay is historical, not a new
-   run. Artifact-bound contracts remain rejected until local delivery is implemented. Acquire through the existing
+   run. Reuse delivers accepted permanent Task/Sprint files through the existing artifact owner with new local identities,
+   digest validation and non-overwriting retry. Do not manually copy source receipts or session runtime files. Optional
+   empty sets follow the actual contract; missing required delivery or conflicting paths still reject. Acquire through the existing
    owner; at most one Task and one worktree are owned, with independent claims governed by the [ownership
    rule](../../../docs/governance/development-rules.md#владение-task-и-worktree). Work only in the supplied worktree and
    preserve unrelated WIP.

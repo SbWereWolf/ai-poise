@@ -230,8 +230,10 @@ Keep this English projection and its Russian source consistent in the same chang
   family result locally. It returns reuse_verified, not completed; a separately authorized accept rechecks provenance
   and local receipts before completing the Task. Exact replay preserves the original packet; terminal replay returns
   accepted history without reacquiring or recreating a cleaned worktree. Native handoff validates the preserved bundle
-  and consumes its receipt on reuse resume. Artifact-bound contracts are still rejected until verified local delivery is
-  supported; see known-bugs. Use work/task action duplicate with an explicit parent_id and destination draft sprint_id;
+  and consumes its receipt on reuse resume. Reuse now automatically delivers accepted permanent Task/Sprint artifacts
+  through the existing publisher with local owner identities, no overwrites, digest checks and local registry links.
+  Missing required files or conflicts reject reuse; optional empty sets are allowed by their actual contracts. Do not
+  copy foreign runtime-session files or receipts. Use work/task action duplicate with an explicit parent_id and destination draft sprint_id;
   no manual family searches or SQLite edits. See [dependency closure and local
   duplicates](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли). Use `adopt_tasks` atomically only
   for Tasks with `status=available, claimed_by=null, worktree=null, pending=null, last_report=null, and attempts=0`. Use

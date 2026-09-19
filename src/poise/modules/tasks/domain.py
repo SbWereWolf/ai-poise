@@ -631,6 +631,19 @@ class Task:
             requirement_ids,
         )
 
+    def assess_artifact_delivery(
+        self, stage_id: str, artifacts: tuple[ArtifactFact, ...],
+    ) -> tuple[Assessment, ...]:
+        """Assess delivery obligations without simulating section or trace work."""
+        self.route.node(stage_id)
+        contract = self._require_stage_contracts().stage(stage_id)
+        artifact_ids = {r.id for r in self.content_policy.requirements if r.kind == "artifact"}
+        return tuple(self.content_policy.evaluate(
+            stage_id, phase, self.content_snapshot, artifacts,
+            tuple(identifier for identifier in required if identifier in artifact_ids),
+        ) for phase, required in (("pre", contract.entry_requirements),
+                                  ("post", contract.exit_requirements)))
+
     @property
     def check_candidate_digest(self) -> str | None:
         if self.duplicate_reuse is None:

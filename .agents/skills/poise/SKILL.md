@@ -277,7 +277,10 @@ verifies the matching accepted family contract, base_ref integration and own loc
 authorized accept completes it. Replay the original packet, including its original expected_version, without inventing a
 stage result. Before acceptance replay validates local inputs; after completion it returns the historical accepted
 receipt without reacquiring a Task/worktree. Native handoff resume repeats reuse and validates the preserved bundle.
-Artifact-bound contracts remain unsupported; see known-bugs.
+Reuse automatically delivers the accepted permanent Task/Sprint artifact set into local owner roots. It preserves bytes,
+assigns local identities, checks the active delivery obligations and refuses conflicting paths. Replay preserves identical
+files; accept rechecks delivery. Do not copy files/receipts manually or treat foreign runtime-session artifacts as permanent
+results. Optional empty artifact sets are valid only when their actual counts and delivery obligations allow them.
 See [automatic family check](../../../docs/workflows/sprints.md#задача-спринта-дубль-автоматическая-проверка-семейства).
 Create a duplicate with work/task action duplicate: request_id, new task_id, parent_id,
 and an existing destination draft sprint_id. It starts as an unowned newborn and follows

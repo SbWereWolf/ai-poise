@@ -143,8 +143,13 @@
           "src/poise/modules/tasks/domain.py",
           "tests/tasks/test_duplicate_creation.py",
           "src/poise/modules/tasks/newborn.py",
+          "src/poise/infrastructure/repository_tree.py",
+          "src/poise/infrastructure/artifact_factory.py",
+          "src/poise/infrastructure/sqlite/artifacts.py",
           "src/poise/modules/tasks/ports.py",
-          "src/poise/infrastructure/repository_tree.py"
+          "src/poise/artifacts.py",
+          "src/poise/infrastructure/task_paths.py",
+          "src/poise/modules/content_requirements/domain.py"
         ],
         "tests": [
           "tests/runtime_services/test_*.py"

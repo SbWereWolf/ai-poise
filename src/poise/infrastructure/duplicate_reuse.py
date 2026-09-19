@@ -4,6 +4,10 @@ from pathlib import Path
 
 from ..modules.foundation.errors import PoiseError
 from ..application.check_attempts import is_check_attempt
+from ..artifacts import check_counts
+from .artifact_factory import FileArtifactFactory
+from .task_paths import task_root, sprint_root
+from ..common import descendant
 
 
 class DuplicateReuseWorkspace:
@@ -94,6 +98,85 @@ class DuplicateReuseWorkspace:
     def reconcile(self, task_id):
         self.h._reconcile_task_worktree(self.h.task_queries.record(task_id))
 
+    def _artifact_locations(self, task_id, sprint_id):
+        h = self.h
+        roots = {'task': task_root(h.state, h.paths, task_id, sprint_id)}
+        owners = {'task': task_id}
+        if sprint_id is not None:
+            roots['sprint'] = sprint_root(h.state, h.paths, sprint_id)
+            owners['sprint'] = sprint_id
+        return roots, owners
+
+    def _artifact_factory(self, roots):
+        h = self.h
+        return FileArtifactFactory(roots, h.cfg['batch'],
+            descendant(h.state, h.cfg['batch']['artifact_lock']),
+            h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds'])
+
+    def _artifact_rules(self, task_id, context, stage_id, records):
+        # Reuse delivers the accepted result, not artifacts for simulated prior stages.
+        stage = next((s for s in context['process']['stages'] if s['id'] == stage_id), None)
+        if stage is None:
+            raise PoiseError('Accepted artifact stage is not in the local process')
+        check_counts(records, context['contract']['artifact_requirements'])
+        check_counts(records, stage['artifact_requirements'])
+        with self.h.store.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            for assessment in task.assess_artifact_delivery(stage_id, self.h._artifact_facts(records)):
+                assessment.require()
+
+    def plan_artifacts(self, task_id, context, source):
+        roots, owners = self._artifact_locations(task_id, context['sprint_id'])
+        source_roots, source_owners = self._artifact_locations(source['task_id'], source['sprint_id'])
+        source_roots = {s: str(source_roots[s]) for s in {a['scope'] for a in source['records']}}
+        planned = self._artifact_factory(roots).plan_registered_copy(
+            source['records'], source_roots, source_owners, owners)
+        existing = self.h._candidate_artifacts(
+            {'id': task_id, 'sprint_id': context['sprint_id']}, [], roots)
+        merged = {a['id']: a for a in existing}
+        for a in planned:
+            if a['id'] in merged and any(merged[a['id']][k] != a[k]
+                    for k in ('owner', 'scope', 'path', 'digest')):
+                raise PoiseError('Artifact reuse conflicts with a registered local file')
+            merged[a['id']] = a
+        self._artifact_rules(task_id, context, source['stage'], list(merged.values()))
+        return planned
+
+    def deliver_artifacts(self, task_id):
+        data = self.h.task_queries.record(task_id)
+        candidate = data['duplicate_reuse']['candidate']
+        source = candidate['artifact_source']
+        roots, owners = self._artifact_locations(task_id, data['sprint_id'])
+        source_roots, source_owners = self._artifact_locations(source['task_id'], source['sprint_id'])
+        source_roots = {s: str(source_roots[s]) for s in {a['scope'] for a in source['records']}}
+        # Recheck the immutable plan before any new file is published on retry.
+        factory = self._artifact_factory(roots)
+        planned = factory.plan_registered_copy(source['records'], source_roots, source_owners, owners)
+        if planned != candidate['artifact_delivery']:
+            raise PoiseError('Artifact reuse delivery plan changed')
+        published = (factory.copy_registered(source['records'], source_roots, source_owners, owners)
+                     if planned else [])
+        if published != planned:
+            raise PoiseError('Artifact reuse publication differs from its candidate')
+        return self.validate_artifacts(task_id)
+
+    def validate_artifacts(self, task_id):
+        data = self.h.task_queries.record(task_id)
+        candidate = data['duplicate_reuse']['candidate']
+        roots, owners = self._artifact_locations(task_id, data['sprint_id'])
+        factory = self._artifact_factory(roots)
+        # Identical owner roots make the shared planner a no-write integrity check.
+        expected = candidate['artifact_delivery']
+        own_roots = {s: str(roots[s]) for s in {a['scope'] for a in expected}}
+        factory.plan_registered_copy(expected, own_roots, owners, owners)
+        actual = self.h._candidate_artifacts(data, [a['path'] for a in expected], roots)
+        by_id = {a['id']: a for a in actual}
+        if any(a['id'] not in by_id or any(by_id[a['id']][k] != a[k]
+               for k in ('owner', 'scope', 'path', 'digest')) for a in expected):
+            raise PoiseError('Reuse local artifact delivery changed')
+        self._artifact_rules(task_id, data, candidate['artifact_stage'], actual)
+        return actual
+
     @staticmethod
     def _checks(methods):
         return [dict(m, obligations=[m['id']], guard=True, observation_rules=[]) for m in methods]
@@ -105,6 +188,7 @@ class DuplicateReuseWorkspace:
         observed = self._observe(data, candidate['source_commit'])
         if any(observed[k] != candidate[k] for k in ('head', 'verified_tree', 'base_ref', 'worktree')):
             raise PoiseError('Reuse workspace changed after local verification')
+        self.validate_artifacts(task_id)
         checks = self._checks(methods)
         tree = observed['verified_tree']
         invocations, key = h._verification_execution(data, tree, checks, Path(observed['worktree']))

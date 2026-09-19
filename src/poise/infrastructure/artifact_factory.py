@@ -145,40 +145,70 @@ class FileArtifactFactory:
             raise PoiseError('Artifact destination scope/owner identity changed')
         return target
 
-    def recover_registered(self, records, source_roots, owners):
-        """Publish registered immutable bytes; registry commit belongs to caller.
-
-        Failed publication or later DB rollback leaves immutable, identical
-        destination files available for retry. Legacy sources are never removed.
-        """
+    def _registered_plan(self, records, source_roots, owners):
         scopes = {row['scope'] for row in records}
         if set(source_roots) != scopes:
             raise PoiseError('Explicit source owner roots must match selected artifact scopes')
+        planned = []
+        for row in records:
+            scope = row['scope']
+            if scope not in self.roots or row['owner'] != owners.get(scope):
+                raise PoiseError('Registered artifact owner identity does not match')
+            old_root = Path(source_roots[scope])
+            source = Path(row['path'])
+            if str(source) != row['path'] or not source.is_absolute():
+                raise PoiseError('Registered source path is not canonical')
+            try:
+                name = relative(source.relative_to(old_root).as_posix())
+            except ValueError as exc:
+                raise PoiseError('Registered source is outside explicit owner root') from exc
+            if artifact_identity(scope, row['owner'], name) != row['id']:
+                raise PoiseError('Registered relative path/owner identity does not match source root')
+            self._without_links(old_root, 'Artifact source owner root')
+            target = self._recovery_destination(scope, name)
+            if self._read_registered(source, 'Artifact source file') != row['digest']:
+                raise PoiseError(f'Artifact source digest mismatch: {source}')
+            if target.exists() and self._read_registered(target, 'Artifact destination') != row['digest']:
+                raise PoiseError(f'Artifact destination has different content: {target}')
+            planned.append((row, source, name, target))
+        return planned
+
+    def plan_registered_copy(self, records, source_roots, owners, destination_owners):
+        """Observe the complete delivery without publishing or changing ownership."""
+        try:
+            plan = self._registered_plan(records, source_roots, owners)
+            return [self._copy_record(row, source, name, target, destination_owners)
+                    for row, source, name, target in plan]
+        except OSError as exc:
+            raise PoiseError(f'Artifact copy preflight failed: {exc}') from exc
+
+    @staticmethod
+    def _copy_record(row, source, name, target, owners):
+        scope = row['scope']
+        if scope not in owners:
+            raise PoiseError('Artifact copy has no destination owner')
+        return {**row, 'id': artifact_identity(scope, owners[scope], name),
+                'owner': owners[scope], 'path': str(target), 'relative_path': name,
+                'source_id': row['id'], 'source_path': str(source)}
+
+    def copy_registered(self, records, source_roots, owners, destination_owners):
+        """Deliver new owner-specific references; never rebind source references."""
+        return self._publish_registered(records, source_roots, owners, destination_owners)
+
+    def recover_registered(self, records, source_roots, owners):
+        """Restore the same identities; registry rebind belongs to the caller."""
+        return self._publish_registered(records, source_roots, owners)
+
+    def _publish_registered(self, records, source_roots, owners, destination_owners=None):
+        """One non-overwriting binary publication path for recovery and delivery."""
         completed = []
         try:
             with exclusive_lock(self.lock, self.wait, self.poll):
-                planned = []
-                for row in records:
-                    scope = row['scope']
-                    if scope not in self.roots or row['owner'] != owners.get(scope):
-                        raise PoiseError('Registered artifact owner identity does not match')
-                    old_root = Path(source_roots[scope])
-                    source = Path(row['path'])
-                    if str(source) != row['path'] or not source.is_absolute():
-                        raise PoiseError('Registered source path is not canonical')
-                    try:
-                        name = relative(source.relative_to(old_root).as_posix())
-                    except ValueError as exc:
-                        raise PoiseError('Registered source is outside explicit owner root') from exc
-                    if artifact_identity(scope, row['owner'], name) != row['id']:
-                        raise PoiseError('Registered relative path/owner identity does not match source root')
-                    self._without_links(old_root, 'Artifact source owner root')
-                    target = self._recovery_destination(scope, name)
-                    if self._read_registered(source, 'Artifact source file') != row['digest']:
-                        raise PoiseError(f'Artifact source digest mismatch: {source}')
-                    if target.exists() and self._read_registered(target, 'Artifact destination') != row['digest']:
-                        raise PoiseError(f'Artifact destination has different content: {target}')
-                    planned.append((row, source, name, target))
+                planned = self._registered_plan(records, source_roots, owners)
+                if destination_owners is not None:
+                    # Validate all owner mappings before the first file effect.
+                    for row, source, name, target in planned:
+                        self._copy_record(row, source, name, target, destination_owners)
                 # The complete batch was checked before the first publication.
                 for row, source, name, target in planned:
                     self._recovery_destination(row['scope'], name)
@@ -210,8 +240,10 @@ class FileArtifactFactory:
                                 os.close(directory)
                         finally:
                             Path(temporary).unlink(missing_ok=True)
-                    completed.append({**row, 'path':str(target), 'source_path':str(source),
-                                      'relative_path':name})
+                    completed.append(
+                        {**row, 'path': str(target), 'source_path': str(source), 'relative_path': name}
+                        if destination_owners is None else
+                        self._copy_record(row, source, name, target, destination_owners))
                 # Ordinary validation still checks content on future use; this
                 # validates the exact publication set immediately before rebind.
                 for row in completed:

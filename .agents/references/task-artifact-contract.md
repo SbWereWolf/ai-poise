@@ -15,3 +15,17 @@ The API returns artifact identity and digest. Link the exact revision in the sta
 ## Completion boundary
 
 Inspect required fields, links, executable checks and stage outcome through `verify`. Preserve failures and unavailable observations. A verified stage can still have an inconclusive or negative substantive outcome and is not user acceptance. Use the [existing handoff](context-handoff-contract.md), not a copied ERP folder layout or manual self-review/report ledger.
+
+## Accepted duplicate-result delivery
+
+Use the existing `reuse` operation for accepted permanent Task/Sprint artifacts from an explicitly related completed
+source. The harness validates source registration, owner-relative identity, bytes and local delivery obligations before
+acquisition, then uses the common non-overwriting publisher. Local references have the destination Task/Sprint owner;
+source files and registrations remain unchanged. Verified local links and Task verification commit together. Retry the
+original reuse request after an interrupted delivery; do not overwrite a conflicting file as a retry or manufacture a receipt.
+Accept rechecks local bytes. Completed replay returns history, not restored files; use `recover_artifacts` for physical
+recovery. Foreign runtime-session artifacts are not transferable permanent results.
+
+Failed local verification or an unusable source deliverable is not a permanent block. Preserve WIP and use the existing
+authorized restart to repair or regenerate the local result, then verify and accept normally. Do not edit the accepted
+source or erase failed evidence. A saved pre-delivery candidate requests restart; completed replay remains historical.

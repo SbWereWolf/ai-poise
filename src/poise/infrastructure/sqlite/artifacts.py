@@ -22,6 +22,16 @@ class SqliteArtifactRepository:
             if item['scope'] == 'sprint':
                 self._link_sprint(item)
 
+    def link_reused(self, task_id, artifacts):
+        """Reuse may share identical Sprint files, never conflicting registry data."""
+        for item in artifacts:
+            old = self.db.execute(
+                'SELECT id,owner,scope,path,digest FROM artifacts WHERE id=?',
+                (item['id'],)).fetchone()
+            if old is not None and any(old[key] != item[key] for key in old.keys()):
+                raise PoiseError('Artifact reuse conflicts with an existing registered identity')
+        self.link_task(task_id, artifacts)
+
     def _register(self, item):
         self.db.execute('INSERT OR IGNORE INTO artifacts(id,owner,scope,path,digest) VALUES(?,?,?,?,?)',
                         (item['id'],item['owner'],item['scope'],item['path'],item['digest']))

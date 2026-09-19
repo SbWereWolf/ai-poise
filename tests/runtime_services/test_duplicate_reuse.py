@@ -417,7 +417,7 @@ def test_completed_reuse_receipt_replay_survives_later_sprint_cancellation(proje
     assert h.current_task() is None
 
 
-def test_artifact_bound_contract_refuses_before_claim_or_execution(project):
+def test_missing_required_artifact_refuses_before_claim_or_execution(project):
     import json
     h, _ = family_result(project)
     # Test-owned stored-contract variant: even a purported accepted source does not
@@ -431,7 +431,7 @@ def test_artifact_bound_contract_refuses_before_claim_or_execution(project):
             db.execute('UPDATE tasks SET metadata=? WHERE id=?',
                        (json.dumps(metadata), row['id']))
     before = deepcopy(h.task_queries.record('D'))
-    with pytest.raises(PoiseError, match='artifact-bound contracts requires verified local delivery'):
+    with pytest.raises(PoiseError, match='количество'):
         reuse(WorkTools(h))
     assert h.task_queries.record('D') == before
     assert h.current_task() is None

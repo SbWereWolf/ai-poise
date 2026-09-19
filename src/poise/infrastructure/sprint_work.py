@@ -59,17 +59,19 @@ class SprintWork:
         elif not ready and not out['active'] and out['status']!='draft':out['next_work']='Разрешить указанные блокировки; задачи автоматически не выбирать'
         return out
 
-    def start(self,task_id):
+    def start(self,task_id, *, force_duplicate_start=False):
         h=self.h;record=h.task_queries.record(task_id)
         if record is None:raise PoiseError('Task does not exist')
         sid=record['sprint_id']
         if sid is not None and not self.known(sid):raise PoiseError('Task is not a published sprint member')
         state=None if sid is None else self.overview(sid)
         if state is not None and task_id not in state['eligible']:raise PoiseError('Task is not eligible: '+str(state['blocked']))
+        h.task_commands.duplicate_preflight(task_id,h.session,
+            force_duplicate_start=force_duplicate_start)
         base=h._creation_base()
         execution=h._execution_reservation(task_id,base,record['process']['worktree_required'])
-        h.task_commands.start(task_id,h.session,execution)
+        h.task_commands.start(task_id,h.session,execution,force_duplicate_start=force_duplicate_start)
         h._reconcile_task_worktree(h.task_queries.record(task_id))
-        h.ownership.acquire_task(task_id)
+        h.ownership.acquire_task(task_id,force_duplicate_start=force_duplicate_start)
         if sid is not None:self.commands.select(sid)
-        return h._context(h._task(),True)
+        return h._context(h._task(),True,force_duplicate_start=force_duplicate_start)

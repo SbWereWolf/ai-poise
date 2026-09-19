@@ -84,10 +84,10 @@ class RuntimePlanActions:
         target = self._read_optional_ref(wt, intent.target_ref)
         return intent, candidate, tree, target
 
-    def rework_failed(self,data,feedback,target,entry_tree):
+    def rework_failed(self,data,feedback,target,entry_tree, *, force_duplicate_start=False):
         if self._read_optional_ref(Path(data['worktree']),'MERGE_HEAD') is not None:
             raise PoiseError('A pending merge must be resolved or explicitly aborted before restarting work')
-        self.commands.restart(data['id'],self.h.session,feedback,target,entry_tree)
+        self.commands.restart(data['id'],self.h.session,feedback,target,entry_tree,force_duplicate_start=force_duplicate_start)
 
     def _command(self,data,argv,cwd,environment,timeout):
         root=descendant(self.h._roots(data)['task'],self.h.paths['runs'])/str(uuid.uuid4())

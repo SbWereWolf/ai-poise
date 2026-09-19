@@ -61,6 +61,33 @@ class SqliteTaskRepository:
     def __init__(self, connection):
         self.db = connection
 
+    def read_duplicate_family(self, task_id):
+        from .duplicate_tasks import read_duplicate_family
+        # Library use outside an existing UoW still gets one read snapshot.
+        own_view = not self.db.in_transaction
+        if own_view:
+            self.db.execute('BEGIN')
+        try:
+            return read_duplicate_family(self.db, task_id)
+        finally:
+            if own_view:
+                self.db.execute('ROLLBACK')
+
+    def link_duplicate(self, task_id, parent_id, actor):
+        if task_id == parent_id or not self.exists(parent_id):
+            raise PoiseError('Duplicate requires a different existing parent')
+        row = self.db.execute('SELECT status,version,metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
+        if row is None or row['status'] != 'newborn':
+            raise PoiseError('Duplicate lineage is assigned only on newborn creation')
+        metadata = json.loads(row['metadata'])
+        if 'duplicate_parent_id' in metadata:
+            raise PoiseError('Duplicate parent is immutable')
+        metadata['duplicate_parent_id'] = parent_id
+        self.db.execute('UPDATE tasks SET metadata=? WHERE id=?', (encode(metadata),task_id))
+        self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+            (datetime.now(timezone.utc).isoformat(),actor,task_id,'duplicate.created',
+             encode({'parent_id':parent_id})))
+
     def release_legacy_claim(self, task_id, version, owner, actor, request_id, reason):
         """Exact operator-authorized ownership release; no workflow/content rewrite."""
         changed = self.db.execute(
@@ -161,17 +188,18 @@ class SqliteTaskRepository:
 
     def _newborn_metadata(self, newborn, config_hash):
         metadata = newborn.metadata(config_hash)
-        if not newborn.restart_history:
-            return metadata
         row = self.db.execute(
             "SELECT metadata FROM tasks WHERE id=?", (newborn.task_id,)
         ).fetchone()
         if row is None:
             raise PoiseError(f"Задача не найдена: {newborn.task_id}")
         previous = json.loads(row[0])
-        for key in ("requirements_snapshot", "requirements_agreement"):
-            if key in previous:
-                metadata[key] = deepcopy(previous[key])
+        if 'duplicate_parent_id' in previous:
+            metadata['duplicate_parent_id'] = previous['duplicate_parent_id']
+        if newborn.restart_history:
+            for key in ("requirements_snapshot", "requirements_agreement"):
+                if key in previous:
+                    metadata[key] = deepcopy(previous[key])
         return metadata
 
     def is_newborn(self, task_id):
@@ -540,6 +568,11 @@ class SqliteTaskRepository:
     def promote_newborn(self, task: Task, metadata: dict, expected_version: int) -> None:
         if not self.is_newborn(task.state.task_id):
             raise PoiseError("Only a newborn Task can become available")
+        previous = json.loads(self.db.execute(
+            'SELECT metadata FROM tasks WHERE id=?', (task.state.task_id,)).fetchone()[0])
+        metadata = deepcopy(metadata)
+        if 'duplicate_parent_id' in previous:
+            metadata['duplicate_parent_id'] = previous['duplicate_parent_id']
         promoted = replace(
             task,
             state=replace(

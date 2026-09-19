@@ -11,6 +11,7 @@ STAGE_CONTRACT_OPERATIONS = frozenset({
     'revise_stage_contract',
 })
 BUSINESS_INCOMPLETE_STATUSES = frozenset({
+    'duplicate_start_blocked',
     'action_blocked',
     'action_failed',
     'broken',
@@ -56,6 +57,10 @@ def parse_request(value, config):
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
+    if op in ('bootstrap','advance') and isinstance(value['input'],dict) and 'force_duplicate_start' in value['input']:
+        if type(value['input']['force_duplicate_start']) is not bool:
+            raise DomainError('force_duplicate_start must be boolean')
+        shapes[op] = shapes[op] | {'force_duplicate_start'}
     if op not in ('task','sprint','transfer','integrate'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
@@ -116,6 +121,7 @@ def parse_request(value, config):
     if op == 'task':
         task_shapes = {
             'create': {'action','request_id','task_id','sprint_id'},
+            'duplicate': {'action','request_id','task_id','parent_id','sprint_id'},
             'edit': {'action','request_id','task_id','expected_revision','patch','remove'},
             'ready': {'action','request_id','task_id','expected_revision'},
             'recover_cancelled': {

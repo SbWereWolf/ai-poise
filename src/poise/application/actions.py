@@ -79,12 +79,15 @@ class PlanCommands:
             change=task.record_action_result(actor,tree,receipt)
             uow.tasks.save(change,task.state.version)
 
-    def restart(self,task_id,actor,feedback,target,entry_tree):
+    def restart(self,task_id,actor,feedback,target,entry_tree, *, force_duplicate_start=False):
         with self.uow() as uow:
             task=uow.tasks.load(task_id)
             saved=uow.actions.load(task_id,task.stage.stage_id,task.state.iteration)
             if saved is None or saved['status'] not in ('failed','blocked'):
                 raise DomainError('Only a known failed/blocked action permits this explicit restart')
             change=task.restart_action(actor,feedback,target)
+            from .duplicate_tasks import require_duplicate_transition_in
+            require_duplicate_transition_in(uow,task,change,actor,
+                force_duplicate_start=force_duplicate_start)
             uow.tasks.save(change,task.state.version)
             uow.execution.patch(task_id,{'entry_tree':entry_tree,'attempts':0,'publication':None,'pending':None})

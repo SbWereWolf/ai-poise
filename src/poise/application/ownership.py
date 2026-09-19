@@ -97,12 +97,15 @@ class OwnershipCommands:
             uow.ownership.bind_worktree(owner, None)
         recovered.add(owner)
 
-    def acquire_task(self, actor, task_id):
+    def acquire_task(self, actor, task_id, *, force_duplicate_start=False):
         self._preflight(actor, task_id)
         with self.uow() as uow:
             if not uow.tasks.is_newborn(task_id):
                 from .tasks import require_reviewer_identity_in
                 require_reviewer_identity_in(uow, uow.tasks.load(task_id), actor, acquiring=True)
+                from .duplicate_tasks import require_duplicate_start_in
+                require_duplicate_start_in(uow, task_id, actor,
+                    force_duplicate_start=force_duplicate_start)
             before = uow.ownership.snapshot(actor)
             target = uow.ownership.preflight(actor, task_id)
             recovered = set()
@@ -166,8 +169,9 @@ class BoundOwnership:
     def snapshot(self, actor):
         return self.commands.snapshot(actor)
 
-    def acquire_task(self, task_id):
-        return self.commands.acquire_task(self.actor, task_id)
+    def acquire_task(self, task_id, *, force_duplicate_start=False):
+        return self.commands.acquire_task(self.actor, task_id,
+            force_duplicate_start=force_duplicate_start)
 
     def acquire_worktree(self, task_id):
         return self.commands.acquire_worktree(self.actor, task_id)

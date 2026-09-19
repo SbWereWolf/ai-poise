@@ -22,6 +22,7 @@ from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
 from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, run_command, contains, method_passed, preview, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
+from .infrastructure.duplicate_admission import duplicate_admission
 
 
 def resolve_source_under_test(
@@ -236,6 +237,13 @@ class Poise:
         action = args['action']
         self._identifier(args['request_id'])
         self._identifier(args['task_id'])
+        if action == 'duplicate':
+            self._identifier(args['parent_id'])
+            if args['sprint_id'] is not None:
+                self._identifier(args['sprint_id'])
+            return self.task_commands.create_duplicate(
+                args['task_id'],args['parent_id'],args['sprint_id'],self.session,
+                self.config_hash,args['request_id'])
         if action == 'create':
             if args['sprint_id'] is not None:
                 self._identifier(args['sprint_id'])
@@ -302,7 +310,8 @@ class Poise:
     def recover_empty_advance(self, task_id: str, reason: str) -> dict:
         return self._recover_empty_transition(task_id, reason, "advance")
 
-    def advance(self, request_id: str, task_id: str, target_stage: str) -> dict:
+    @duplicate_admission
+    def advance(self, request_id: str, task_id: str, target_stage: str, *, force_duplicate_start=False) -> dict:
         self._identifier(task_id)
         data = self.task_queries.record(task_id)
         if data is None:
@@ -316,6 +325,7 @@ class Poise:
             target_stage,
             entry_tree,
             self._artifact_facts(self._existing_artifacts(data)),
+            force_duplicate_start=force_duplicate_start,
         )
         progression = outcome["progression"]
         if outcome["kind"] == "entry_blocked":
@@ -363,7 +373,7 @@ class Poise:
             else "progression_work_required"
         )
         return {
-            **self._context(current, current["status"] == "active"),
+            **self._context(current, current["status"] == "active",force_duplicate_start=force_duplicate_start),
             "status": status,
             "progression": progression,
             "target_stage": target_stage,
@@ -676,7 +686,13 @@ class Poise:
             path.mkdir(parents=True, exist_ok=True)
         return roots
 
-    def _context(self, data: dict, prepare: bool) -> dict:
+    def _context(self, data: dict, prepare: bool, *, force_duplicate_start=False) -> dict:
+        from .modules.tasks.duplicates import assess_duplicate_start
+        family = self.task_commands.read_duplicate_family(data['id'])
+        duplicate_gate = assess_duplicate_start(family,data['id'],self.session,
+            force_duplicate_start=force_duplicate_start)
+        if duplicate_gate is not None and not duplicate_gate['allowed']:
+            prepare = False
         stage = self._stage(data)
         current_task_root = task_root(self.state, self.paths, data['id'], data['sprint_id'])
         current_sprint_root = None if data['sprint_id'] is None else sprint_root(self.state, self.paths, data['sprint_id'])
@@ -708,6 +724,10 @@ class Poise:
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
                 'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
 
+        if duplicate_gate is not None:
+            context['duplicate_gate'] = duplicate_gate
+            if not duplicate_gate['allowed']:
+                context['next_work'] = 'Старт заблокирован контролем семейства дублей'
         if self.development_routing is not None:
             context['development_route'] = self._development_route(data, [], persist=prepare)
         return context
@@ -858,8 +878,10 @@ class Poise:
         with self.store.unit_of_work() as uow:
             uow.execution.patch(data['id'],{'pending':None,'entry_tree':tree})
 
-    def bootstrap(self, task: dict | None = None, decision: str | None = None,
-                  feedback: str | None = None, rework_stage: str | None = None) -> dict:
+    @duplicate_admission
+    def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
+        if type(force_duplicate_start) is not bool:
+            raise PoiseError('force_duplicate_start must be boolean')
         if rework_stage is not None and decision != 'rework':
             raise PoiseError('rework_stage требует явное решение rework')
         if task is not None and decision is not None:
@@ -880,7 +902,7 @@ class Poise:
                 return self.task_queries.record(selected['id'])
             if selected['status']=='available':
                 blocked = self._require_entry(selected)
-                return blocked if blocked is not None else self.sprint_tools.start(task['id'])
+                return blocked if blocked is not None else self.sprint_tools.start(task['id'],force_duplicate_start=force_duplicate_start)
             if is_terminal_task_status(selected['status']):
                 if current and not is_terminal_task_status(current['status']):
                     raise PoiseError('Сначала прекратить/передать текущую задачу')
@@ -900,7 +922,7 @@ class Poise:
                     self.task_commands.require_bootstrap_contract(existing['id'], contract)
                 if existing['status']=='available':
                     blocked = self._require_entry(existing)
-                    return blocked if blocked is not None else self.sprint_tools.start(existing['id'])
+                    return blocked if blocked is not None else self.sprint_tools.start(existing['id'],force_duplicate_start=force_duplicate_start)
                 selected_process = existing['process']
             else:
                 if contract.get('goal_type') not in self.processes:
@@ -908,6 +930,7 @@ class Poise:
                 selected_process = self.processes[contract['goal_type']]
             if existing is not None:
                 data = existing
+                self.task_commands.duplicate_preflight(data['id'],self.session,force_duplicate_start=force_duplicate_start)
                 self.task_commands.reviewer_preflight(data['id'], self.session, acquiring=True)
                 blocked = self._require_entry(data)
                 if blocked is not None:
@@ -915,7 +938,7 @@ class Poise:
                 if data['claimed_by'] is None and not is_terminal_task_status(data['status']):
                     released = self.handoff_tools.commands.latest(data['id'])
                     if released is not None:
-                        self.handoff_tools.resume(data)
+                        self.handoff_tools.resume(data,force_duplicate_start=force_duplicate_start)
                         data=self.task_queries.record(data['id'])
                 self._reconcile_task_worktree(data)
                 data=self.task_queries.record(data['id'])
@@ -937,28 +960,30 @@ class Poise:
                     if data['claimed_by'] not in (None,self.session):
                         return {**self._context(data,data['status']=='active'),
                                 'allocation':allocation_receipt}
+                    self.task_commands.duplicate_preflight(data['id'],self.session,force_duplicate_start=force_duplicate_start)
                     self.task_commands.reviewer_preflight(data['id'], self.session, acquiring=True)
                     self._reconcile_task_worktree(data)
                     data=self.task_queries.record(allocation.task_id)
                     blocked = self._require_entry(data)
                     if blocked is not None:
                         return {**blocked, 'allocation':allocation_receipt}
-                    self.ownership.acquire_task(data['id'])
+                    self.ownership.acquire_task(data['id'],force_duplicate_start=force_duplicate_start)
                     current=self.store.current(self.session)
-                    result=self._context(current,current['status']=='active')
+                    result=self._context(current,current['status']=='active',
+                        force_duplicate_start=force_duplicate_start)
                     return {**result,'allocation':allocation_receipt}
                 data = self.task_queries.record(allocation.task_id)
                 blocked = self._require_entry(data)
                 if blocked is not None:
                     return {**blocked, **({'allocation': allocation_receipt}
                                           if allocation_receipt is not None else {})}
-                started = self.sprint_tools.start(allocation.task_id)
+                started = self.sprint_tools.start(allocation.task_id,force_duplicate_start=force_duplicate_start)
                 return {**started, **({'allocation':allocation_receipt}
                                       if allocation_receipt is not None else {})}
             blocked = self._require_entry(data)
             if blocked is not None:
                 return blocked
-            self.ownership.acquire_task(data['id'])
+            self.ownership.acquire_task(data['id'],force_duplicate_start=force_duplicate_start)
             current = self.store.current(self.session)
         if task is None and decision is None and current is not None and is_terminal_task_status(current['status']):
             current = None
@@ -971,22 +996,23 @@ class Poise:
                     'task':None,'result_template':None,'runtime_root':str(self.runtime),
                     'next_work':'передать task object через work bootstrap; сводка — batch show'}
         data = self._task()
+        self.task_commands.duplicate_preflight(data['id'],self.session,force_duplicate_start=force_duplicate_start)
         if decision is not None:
             if decision not in ('continue','rework'):
                 raise PoiseError('Решение должно быть continue или rework')
             entry_tree = self._current_tree(data)
             if decision == 'continue':
-                state = self.runner.accept(data['id'], self.session, True, entry_tree)
+                state = self.runner.accept(data['id'], self.session, True, entry_tree,force_duplicate_start=force_duplicate_start)
                 data = self.task_queries.record(data['id'])
                 if state.status == 'completed':
                     self._cleanup_runtime()
                     return {**data['last_report'], 'version': data['version']}
             else:
                 if data['status']=='active' and self._stage(data)['handler'] in ('apply_plan','publish'):
-                    self.plan_actions.rework_failed(data,feedback,rework_stage,entry_tree)
+                    self.plan_actions.rework_failed(data,feedback,rework_stage,entry_tree,force_duplicate_start=force_duplicate_start)
                 elif (data['status'] == 'active' and
                       self.task_commands.inspection_registry_rework_available(data['id'], rework_stage)):
-                    self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage)
+                    self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage,force_duplicate_start=force_duplicate_start)
                 elif data['status']=='active':
                     if data['pending'] is not None:
                         raise PoiseError('Неизвестен исход прерванной проверки; rework запрещён')
@@ -1000,15 +1026,15 @@ class Poise:
                     ):
                         raise PoiseError('Нет точного доступного failed check batch текущего результата')
                     self.runner.rework_failed(
-                        data['id'],self.session,feedback,entry_tree,execution_key,rework_stage)
+                        data['id'],self.session,feedback,entry_tree,execution_key,rework_stage,force_duplicate_start=force_duplicate_start)
                 else:
-                    self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage)
+                    self.runner.rework(data['id'], self.session, feedback, entry_tree, rework_stage,force_duplicate_start=force_duplicate_start)
                 data = self._task()
             self._cleanup_runtime()
         blocked = self._require_entry(data)
         if blocked is not None:
             return blocked
-        result=self._context(data, data['status']=='active')
+        result=self._context(data, data['status']=='active',force_duplicate_start=force_duplicate_start)
         return result if allocation_receipt is None else {**result,'allocation':allocation_receipt}
 
     def accept(self) -> dict:

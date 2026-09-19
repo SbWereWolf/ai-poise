@@ -87,3 +87,20 @@ def test_runtime_services_check_attempts_tracks_local_bytes(tmp_path):
     changed.write_bytes(changed.read_bytes() + b'\n# Cache input regression.\n')
     assert local.fingerprint('runtime-services')['input_fingerprint'] != before
     assert other.fingerprint('runtime-services')['input_fingerprint'] == other_before
+
+
+def test_duplicate_family_inputs_are_explicitly_owned_by_packages():
+    packages = AiPoiseTestPackages.load(CATALOG)
+    family_sources = {
+        'src/poise/application/duplicate_tasks.py',
+        'src/poise/modules/tasks/duplicates.py',
+        'src/poise/infrastructure/sqlite/duplicate_tasks.py',
+    }
+    task_members = packages.membership(ROOT, 'tasks')['members']
+    assert family_sources <= set(task_members['source'])
+    assert 'tests/tasks/fixtures/duplicate_route.json' in task_members['fixtures']
+    runtime_members = packages.membership(ROOT, 'runtime-services')['members']
+    assert family_sources | {'src/poise/infrastructure/duplicate_admission.py'} <= set(runtime_members['source'])
+    for path in family_sources | {'src/poise/infrastructure/duplicate_admission.py',
+                                 'tests/tasks/fixtures/duplicate_route.json'}:
+        assert packages.impact(ROOT, [path])['unmapped_paths'] == []

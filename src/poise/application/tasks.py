@@ -309,6 +309,18 @@ class TaskCommands:
             )
             return allocation
 
+    def create_duplicate(self, task_id, parent_id, sprint_id, actor, config_hash, request_id):
+        from .duplicate_tasks import create_duplicate_in
+        identity = _action_digest('duplicate', {
+            'task_id':task_id,'parent_id':parent_id,'sprint_id':sprint_id})
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id,request_id,identity)
+            if replay is not None:
+                return replay
+            result = create_duplicate_in(uow,task_id,parent_id,sprint_id,actor,config_hash)
+            uow.tasks.remember_action(task_id,actor,request_id,identity,result)
+            return result
+
     def create_newborn(self, task_id, sprint_id, actor, config_hash, request_id):
         from ..application.ownership import release_task_in
         from ..modules.sprints.domain import Sprint
@@ -686,9 +698,22 @@ class TaskCommands:
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
 
-    def start(self, task_id, actor, execution):
+    def read_duplicate_family(self, task_id):
+        with self.unit_of_work() as uow:
+            return uow.tasks.read_duplicate_family(task_id)
+
+    def duplicate_preflight(self, task_id, actor, *, force_duplicate_start=False):
+        from .duplicate_tasks import require_duplicate_start_in
+        with self.unit_of_work() as uow:
+            return require_duplicate_start_in(uow, task_id, actor,
+                force_duplicate_start=force_duplicate_start)
+
+    def start(self, task_id, actor, execution, *, force_duplicate_start=False):
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
+            from .duplicate_tasks import require_duplicate_start_in
+            duplicate = require_duplicate_start_in(uow, task_id, actor,
+                force_duplicate_start=force_duplicate_start)
             has_execution = uow.execution.exists(task_id)
             if has_execution:
                 current, _ = uow.execution.load(task_id)
@@ -696,7 +721,10 @@ class TaskCommands:
             change=task.start(actor)
             uow.tasks.save(change,task.state.version)
             started=change.task
-            uow.tasks.save(started.release_ownership(actor),started.state.version)
+            # Reserve a duplicate's claim in the admission transaction. Otherwise
+            # a second family start could slip in during worktree preparation.
+            if duplicate is None:
+                uow.tasks.save(started.release_ownership(actor),started.state.version)
             if not has_execution:
                 uow.execution.create(task_id,execution)
 
@@ -806,7 +834,8 @@ class TaskCommands:
 
     @staticmethod
     def _accept_in_uow(
-        uow, task: Task, actor: str, advance: bool, entry_tree: str | None
+        uow, task: Task, actor: str, advance: bool, entry_tree: str | None,
+        *, force_duplicate_start=False,
     ) -> TaskState:
         require_reviewer_identity_in(uow, task, actor)
         if advance and task.progress.outcome is not None:
@@ -814,6 +843,9 @@ class TaskCommands:
             if target is not None:
                 require_reviewer_identity_in(uow, task, actor, target_stage=target)
         change = task.accept(actor, advance)
+        from .duplicate_tasks import require_duplicate_transition_in
+        require_duplicate_transition_in(uow,task,change,actor,
+            force_duplicate_start=force_duplicate_start)
         updates = {}
         if change.task.state.version != task.state.version:
             execution, _ = uow.execution.load(task.state.task_id)
@@ -857,8 +889,10 @@ class TaskCommands:
         target_stage: str,
         entry_tree: str,
         artifacts: tuple[ArtifactFact, ...],
+        *, force_duplicate_start=False,
     ) -> dict:
         from ..modules.tasks.progression import progression_step
+        from .duplicate_tasks import require_duplicate_start_in, require_duplicate_transition_in
 
         if not isinstance(request_id, str) or not request_id:
             raise DomainError("Progression request_id is required")
@@ -896,6 +930,7 @@ class TaskCommands:
                 if following is not None:
                     require_reviewer_identity_in(uow, task, actor, target_stage=following)
             step = progression_step(task, target_stage, crossed)
+            require_duplicate_start_in(uow,task_id,actor,force_duplicate_start=force_duplicate_start)
             progression = uow.tasks.begin_progression(
                 task_id, actor, request_id, identity, target_stage
             )
@@ -931,6 +966,8 @@ class TaskCommands:
                     "The result changed after verification; use explicit rework"
                 )
             change = task.progress_stage(actor, step.next_stage)
+            require_duplicate_transition_in(uow,task,change,actor,
+                force_duplicate_start=force_duplicate_start)
             uow.tasks.save(change, task.state.version)
             uow.execution.patch(task_id, {
                 "entry_tree": entry_tree,
@@ -945,12 +982,12 @@ class TaskCommands:
                 return {"kind": "target_reached", "progression": progression}
             return {"kind": "work_required", "progression": progression}
 
-    def accept(self, task_id: str, actor: str, advance: bool, entry_tree: str | None) -> TaskState:
+    def accept(self, task_id: str, actor: str, advance: bool, entry_tree: str | None, *, force_duplicate_start=False) -> TaskState:
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
-            return self._accept_in_uow(uow, task, actor, advance, entry_tree)
+            return self._accept_in_uow(uow, task, actor, advance, entry_tree,force_duplicate_start=force_duplicate_start)
 
-    def rework(self, task_id: str, actor: str, feedback: str, entry_tree: str, target: str | None = None) -> TaskState:
+    def rework(self, task_id: str, actor: str, feedback: str, entry_tree: str, target: str | None = None, *, force_duplicate_start=False) -> TaskState:
         if not isinstance(entry_tree,str) or not entry_tree:
             raise DomainError("Для rework требуется наблюдаемое entry_tree")
         with self.unit_of_work() as uow:
@@ -959,6 +996,9 @@ class TaskCommands:
             if execution["pending"] is not None:
                 raise DomainError("Неизвестен исход прерванной операции; rework запрещён")
             change=task.rework(actor,feedback,target)
+            from .duplicate_tasks import require_duplicate_transition_in
+            require_duplicate_transition_in(uow,task,change,actor,
+                force_duplicate_start=force_duplicate_start)
             uow.tasks.save(change,task.state.version)
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
             return change.task.state
@@ -1025,7 +1065,7 @@ class TaskCommands:
             }
 
     def rework_failed(self, task_id: str, actor: str, feedback: str, entry_tree: str,
-                      execution_key: str, target: str | None = None) -> TaskState:
+                      execution_key: str, target: str | None = None, *, force_duplicate_start=False) -> TaskState:
         if not isinstance(entry_tree,str) or not entry_tree or not isinstance(execution_key,str) or not execution_key:
             raise DomainError("Failed-check rework требует точные tree и execution key")
         with self.unit_of_work() as uow:
@@ -1034,6 +1074,9 @@ class TaskCommands:
             if execution["pending"] is not None:
                 raise DomainError("Неизвестен исход прерванной проверки; failed-check rework запрещён")
             change=task.rework_failed(actor,feedback,entry_tree,execution_key,target)
+            from .duplicate_tasks import require_duplicate_transition_in
+            require_duplicate_transition_in(uow,task,change,actor,
+                force_duplicate_start=force_duplicate_start)
             uow.tasks.save(change,task.state.version)
             uow.execution.patch(task_id,{"entry_tree":entry_tree,"attempts":0,"publication":None,"pending":None})
             return change.task.state

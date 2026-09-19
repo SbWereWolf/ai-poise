@@ -19,14 +19,14 @@ class StageRunner:
         return self.tasks.mark_verified(task_id, actor, digest, report, artifacts,
                                         packet_digest=packet_digest, permanent_artifacts=permanent_artifacts)
 
-    def accept(self, task_id, actor, advance, entry_tree):
-        return self.tasks.accept(task_id, actor, advance, entry_tree)
+    def accept(self, task_id, actor, advance, entry_tree, **admission):
+        return self.tasks.accept(task_id, actor, advance, entry_tree, **admission)
 
-    def rework(self, task_id, actor, feedback, entry_tree, target):
-        return self.tasks.rework(task_id, actor, feedback, entry_tree, target)
+    def rework(self, task_id, actor, feedback, entry_tree, target, **admission):
+        return self.tasks.rework(task_id, actor, feedback, entry_tree, target, **admission)
 
-    def rework_failed(self, task_id, actor, feedback, entry_tree, execution_key, target):
-        return self.tasks.rework_failed(task_id,actor,feedback,entry_tree,execution_key,target)
+    def rework_failed(self, task_id, actor, feedback, entry_tree, execution_key, target, **admission):
+        return self.tasks.rework_failed(task_id,actor,feedback,entry_tree,execution_key,target, **admission)
 
     def record_observations(self, task_id, actor, tree, execution_key, receipts):
         return self.tasks.record_observations(task_id,actor,tree,execution_key,receipts)

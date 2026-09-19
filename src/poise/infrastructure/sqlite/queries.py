@@ -86,8 +86,12 @@ class TaskQueries:
         if row is None: return None
         from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
         status = TaskStatus.parse(row['status'])
+        from .tasks import SqliteTaskRepository
+        from ...modules.tasks.duplicates import family_projection
+        duplicate = family_projection(SqliteTaskRepository(db).read_duplicate_family(task_id),task_id)
+        family_fields = {} if duplicate is None else {'duplicate':duplicate}
         if is_terminal_task_status(status):
-            metadata = json.loads(row['metadata'])
+            metadata = json.loads(row['metadata']) | family_fields
             execution = {} if row['execution'] is None else json.loads(row['execution'])
             return {**metadata, **execution, 'id': row['id'], 'status': status.value,
                     'version': row['version'], '_version': row['version'],
@@ -96,7 +100,7 @@ class TaskQueries:
                     'sprint_id': metadata.get('sprint_id'), 'worktree': execution.get('worktree'),
                     'result_commit': (execution.get('last_report') or {}).get('commit')}
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
-        metadata = json.loads(row['metadata'])
+        metadata = json.loads(row['metadata']) | family_fields
         from .tasks import progression_view
         progression = progression_view(db, task_id)
         history = [json.loads(item[0]) for item in db.execute(

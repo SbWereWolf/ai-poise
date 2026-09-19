@@ -67,14 +67,19 @@
         "source": [
           "src/poise/application/tasks.py",
           "src/poise/modules/tasks/**/*.py",
-          "src/poise/infrastructure/sqlite/tasks.py"
+          "src/poise/infrastructure/sqlite/tasks.py",
+          "src/poise/application/duplicate_tasks.py",
+          "src/poise/infrastructure/sqlite/duplicate_tasks.py",
+          "tests/sprints/helpers.py",
+          "tests/batch/helpers.py"
         ],
         "tests": [
           "tests/tasks/test_*.py",
           "tests/ddd/test_task_*.py"
         ],
         "fixtures": [
-          "tests/conftest.py"
+          "tests/conftest.py",
+          "tests/tasks/fixtures/*.json"
         ]
       }
     },
@@ -116,7 +121,23 @@
           "src/poise/application/work.py",
           "src/poise/application/check_attempts.py",
           "src/poise/modules/work/**/*.py",
-          "src/poise/infrastructure/work.py"
+          "src/poise/infrastructure/work.py",
+          "src/poise/application/duplicate_tasks.py",
+          "src/poise/infrastructure/sqlite/duplicate_tasks.py",
+          "tests/sprints/helpers.py",
+          "tests/batch/helpers.py",
+          "src/poise/modules/tasks/duplicates.py",
+          "src/poise/infrastructure/duplicate_admission.py",
+          "src/poise/application/tasks.py",
+          "src/poise/application/ownership.py",
+          "src/poise/application/handoff.py",
+          "src/poise/application/actions.py",
+          "src/poise/application/runner.py",
+          "src/poise/infrastructure/sprint_work.py",
+          "src/poise/infrastructure/sqlite/tasks.py",
+          "src/poise/infrastructure/sqlite/queries.py",
+          "src/poise/infrastructure/handoff.py",
+          "src/poise/infrastructure/actions.py"
         ],
         "tests": [
           "tests/runtime_services/test_*.py"

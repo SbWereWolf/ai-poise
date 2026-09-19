@@ -41,7 +41,7 @@ class HandoffCommands:
             release_task_in(uow, actor, record['task_id'], record['plan']['reason'])
             uow.handoffs.replace({**record,'state':'released','receipt':receipt})
 
-    def resume(self,task_id,actor,request_actor,request_id):
+    def resume(self,task_id,actor,request_actor,request_id, *, force_duplicate_start=False):
         with self.uow() as uow:
             record=uow.handoffs.get(request_actor,request_id)
             if record is None or record['state']!='released' or record['task_id']!=task_id:
@@ -57,6 +57,8 @@ class HandoffCommands:
                 uow.tasks.acquire_newborn(task_id,actor)
             else:
                 task=uow.tasks.load(task_id)
+                from .duplicate_tasks import require_duplicate_start_in
+                require_duplicate_start_in(uow,task_id,actor,force_duplicate_start=force_duplicate_start)
                 from .tasks import require_reviewer_identity_in
                 require_reviewer_identity_in(uow, task, actor, acquiring=True)
                 if task.state.version!=record['version']+1:raise PoiseError('Task changed after preserved handoff')

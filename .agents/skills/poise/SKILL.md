@@ -194,7 +194,7 @@ even by one transition. Equality is necessary but not sufficient: when two or mo
 Tasks have sessions, refuse start until agents agree one executor and that executor explicitly
 supplies force_duplicate_start=true for this request. Count the requesting session prospectively
 for an unclaimed current Task, without first persisting its claim; do not double-count on resume.
-The proposed flag clears only this tied-session refusal, never distance, ownership or stage guards. Return only all other relatives at d_min, with Task/Sprint IDs,
+The optional bootstrap/advance flag clears only this tied-session refusal, never distance, ownership or stage guards. Return only all other relatives at d_min, with Task/Sprint IDs,
 stage, distance, status, iteration and owning session IDs. Do not include intermediate
 leaders or tied-but-lagging peers. Equal distances on different stages are ties too.
 Multiple sessions at equal minimum distance require agreement and the flag even on initial
@@ -204,10 +204,12 @@ actual stage start before execution effects; a context warning is not enforcemen
 Invalid or unavailable distance is not permission. Do not seize foreign ownership or WIP.
 Completed family results still require main-base integration and local availability;
 reuse must not bypass a denied ordinary-stage start or forge terminal progress/acceptance.
-Its local completion lifecycle must be specified during implementation.
+Its local verification-only completion lifecycle is still unimplemented; see known-bugs.
 See [automatic family check](../../../docs/workflows/sprints.md#задача-спринта-дубль-автоматическая-проверка-семейства).
-This type, library method, relation, distance and flagged start gate are specified, not implemented.
-Do not invent API fields or replace missing automation with manual similarity searches.
+Create a duplicate with work/task action duplicate: request_id, new task_id, parent_id,
+and an existing destination draft sprint_id. It starts as an unowned newborn and follows
+ordinary ready/publication. The shared reader and start gate are implemented. Do not
+invent fields, automatically set force_duplicate_start or perform manual similarity searches.
 Follow the existing
 [dependency closure and local duplicates](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
 Do not claim graph connectivity is automatically enforced merely because DAG validation exists.

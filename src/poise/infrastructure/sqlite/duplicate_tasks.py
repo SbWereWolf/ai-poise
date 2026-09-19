@@ -19,8 +19,10 @@ def read_duplicate_family(db, task_id):
     ids = sorted(set([parent_id, *children]))
     # json_each keeps the bind count constant even for large families.
     rows = db.execute(
-        'SELECT id,status,stage_index,iteration,claimed_by,version,metadata FROM tasks '
-        'WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id', (json.dumps(ids),),
+        'SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.metadata, '
+        "json_extract(e.data,'$.last_report.commit') AS result_commit FROM tasks t "
+        'LEFT JOIN task_execution e ON e.task_id=t.id '
+        'WHERE t.id IN (SELECT value FROM json_each(?)) ORDER BY t.id', (json.dumps(ids),),
     ).fetchall()
     if {row['id'] for row in rows} != set(ids) or task_id not in ids:
         raise PoiseError('Incomplete duplicate family')
@@ -38,5 +40,8 @@ def read_duplicate_family(db, task_id):
             'stage_id': stage, 'process': process, 'status': row['status'],
             'iteration': row['iteration'], 'session_id': row['claimed_by'],
             'version': row['version'],
+            'result_commit': row['result_commit'] if row['status'] == 'completed' else None,
+            'local_repair': next((r['local_repair'] for r in reversed(
+                metadata.get('restart_history', [])) if 'local_repair' in r), None),
         })
     return {'parent_id': parent_id, 'members': members}

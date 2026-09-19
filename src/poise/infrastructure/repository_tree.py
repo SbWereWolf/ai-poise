@@ -35,3 +35,17 @@ class GitRepositoryTree:
             for path in paths
             if path in entries or any(entry.startswith(path + "/") for entry in entries)
         )
+
+    def contains_commit(self, revision, commit):
+        """Check the exact reserved creation base before any Task start effects."""
+        try:
+            result = subprocess.run(
+                ['git', '-C', str(self.repository), 'merge-base', '--is-ancestor', commit, revision],
+                capture_output=True, timeout=self.timeout_seconds,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise PoiseError(f'Git ancestry preflight did not finish: {exc}') from exc
+        if result.returncode not in (0, 1):
+            raise PoiseError('Git ancestry preflight: ' +
+                             result.stderr.decode(errors='replace')[-self.preview_chars:])
+        return result.returncode == 0

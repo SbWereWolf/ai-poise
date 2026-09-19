@@ -141,7 +141,10 @@
           "src/poise/application/duplicate_reuse.py",
           "src/poise/infrastructure/duplicate_reuse.py",
           "src/poise/modules/tasks/domain.py",
-          "tests/tasks/test_duplicate_creation.py"
+          "tests/tasks/test_duplicate_creation.py",
+          "src/poise/modules/tasks/newborn.py",
+          "src/poise/modules/tasks/ports.py",
+          "src/poise/infrastructure/repository_tree.py"
         ],
         "tests": [
           "tests/runtime_services/test_*.py"

@@ -121,6 +121,20 @@ class CheckAttempts:
             raise DomainError('Run is not in the reserved check attempt')
 
     @staticmethod
+    def abandon_for_restart_in(uow, task, actor, validate_quiescent):
+        """Explicit restart supersedes an uncertain attempt without replay/success."""
+        execution, version = uow.execution.load(task.state.task_id)
+        attempt = execution['pending']
+        if not is_check_attempt(attempt):
+            return None  # Other external protocols keep their existing recovery guards.
+        validate_attempt(task, actor, attempt, attempt['verified_tree'], attempt['execution_key'])
+        if validate_quiescent is None:
+            raise DomainError('Task restart requires a check-runner recovery preflight')
+        validate_quiescent(attempt)
+        uow.execution.save(task.state.task_id, {**execution, 'pending': None}, version)
+        return deepcopy(attempt)
+
+    @staticmethod
     def finish_in(uow, task, actor, tree, execution_key, receipts):
         """Batch and pending removal share the caller's single Unit of Work."""
         execution, version = uow.execution.load(task.state.task_id)

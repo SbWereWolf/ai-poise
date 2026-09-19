@@ -78,7 +78,7 @@ def assess_duplicate_start(family, current_id, actor, *, force_duplicate_start=F
         'relatives': [m for m in nearest if m['task_id'] != current_id],
         'allowed': False, 'reason': 'invalid_duplicate_distance',
     }
-    if invalid:
+    if invalid and (not current.get('local_repair') or current_id in invalid):
         return result | {'invalid_task_ids': sorted(invalid)}
     if current['status'] in ('completed', 'cancelled', 'newborn'):
         return result | {'reason': 'task_not_executable'}
@@ -86,6 +86,9 @@ def assess_duplicate_start(family, current_id, actor, *, force_duplicate_start=F
         return result | {'reason': 'foreign_owner'}
     if now is None or minimum is None:
         return result
+    if current.get('local_repair'):
+        return result | {'allowed': True, 'reason': 'local_repair',
+                         'source': current['local_repair']}
     if now['distance'] > minimum:
         return result | {'reason': 'family_ahead'}
     owned = sum(m['session_id'] is not None or (m['task_id'] == current_id and actor is not None)

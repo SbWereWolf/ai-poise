@@ -119,3 +119,17 @@ def test_duplicate_reuse_sources_and_test_helpers_are_cache_inputs():
     assert 'tests/runtime_services/test_duplicate_reuse.py' in membership['tests']
     for path in sources:
         assert 'runtime-services' in packages.impact(ROOT, [path])['direct_packages']
+
+
+def test_restart_repair_sources_are_runtime_cache_inputs():
+    packages = AiPoiseTestPackages.load(CATALOG)
+    expected = {
+        'src/poise/modules/tasks/newborn.py',
+        'src/poise/modules/tasks/ports.py',
+        'src/poise/infrastructure/repository_tree.py',
+    }
+    membership = packages.membership(ROOT, 'runtime-services')['members']
+    assert expected <= set(membership['source'])
+    assert 'tests/runtime_services/test_restart_local_repair.py' in membership['tests']
+    for path in expected:
+        assert 'runtime-services' in packages.impact(ROOT, [path])['direct_packages']

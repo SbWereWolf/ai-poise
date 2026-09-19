@@ -370,7 +370,14 @@ staged/untracked WIP. Текущее исполнение сбрасываетс
 publication и last_report очищаются. Task возвращается в `newborn`, после `edit`/`ready`
 возобновляется в прежнем worktree. Чужой живой owner, terminal status, stale version и pending
 external outcome отклоняют операцию до мутации; pending сначала завершается своим явным
-recovery protocol. Идентичный replay возвращает первоначальный receipt.
+recovery protocol. Для неизвестного `check_attempt` после остановки/разбора реальных эффектов
+явно разрешённый restart архивирует попытку в `restart_history.abandoned_check_attempt`,
+не повторяя команду и не объявляя успех. Идентичный replay возвращает первоначальный receipt.
+
+Если дубль уже получил принятый commit родственника, restart записывает проверенный факт
+`local_repair` и открывает обычную локальную доработку; расстояние завершённого источника
+больше не запрещает исправлять собственную ветку. Идентичность, WIP, локальные prerequisites
+и требования проверки сохраняются. См. [локальное восстановление](sprints.md#локальная-доработка-через-общий-restart).
 
 Перезапуск атомарно инвалидирует все текущие записи `work-packet identity` этой Task в той же
 Unit of Work, которая возвращает lifecycle в `newborn`. Эти записи — изменяемый

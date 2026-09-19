@@ -411,7 +411,8 @@ class TaskCommands:
             return result
 
     def restart_newborn(
-        self, task_id, actor, expected_version, request_id, reason, authorization
+        self, task_id, actor, expected_version, request_id, reason, authorization,
+        *, validate_reuse_restart=None, validate_check_restart=None,
     ):
         from ..application.ownership import release_task_in
         if not isinstance(request_id, str) or not request_id:
@@ -445,6 +446,17 @@ class TaskCommands:
                 restart_contract["requirements_agreement"] = deepcopy(
                     context["requirements_agreement"]
                 )
+            from .duplicate_tasks import restart_local_repair_in
+            recovery = {}
+            local_repair = restart_local_repair_in(
+                uow, task, context['restart_history'], validate_reuse_restart)
+            if local_repair is not None:
+                recovery['local_repair'] = local_repair
+            if uow.execution.exists(task_id):
+                abandoned = CheckAttempts.abandon_for_restart_in(
+                    uow, task, actor, validate_check_restart)
+                if abandoned is not None:
+                    recovery['abandoned_check_attempt'] = abandoned
             newborn = NewbornTask.restart(
                 task,
                 restart_contract,
@@ -456,6 +468,7 @@ class TaskCommands:
                 context["restart_history"],
                 context["creation_request"],
                 context["stage_contract_history"],
+                recovery=recovery,
             )
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
@@ -715,6 +728,10 @@ class TaskCommands:
             duplicate = require_duplicate_start_in(uow, task_id, actor,
                 force_duplicate_start=force_duplicate_start)
             has_execution = uow.execution.exists(task_id)
+            if not has_execution and duplicate is not None and duplicate['reason'] == 'local_repair':
+                if self.repository_tree is None or not self.repository_tree.contains_commit(
+                        execution['base'], duplicate['source']['source_commit']):
+                    raise DomainError('Local repair source is absent from reserved base; import it before start')
             if has_execution:
                 current, _ = uow.execution.load(task_id)
                 require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'])

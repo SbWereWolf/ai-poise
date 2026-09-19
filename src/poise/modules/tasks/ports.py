@@ -60,6 +60,7 @@ class TaskRepository(Protocol):
 
 
 class RepositoryTreeReader(Protocol):
+    def contains_commit(self, revision: str, commit: str) -> bool: ...
     def existing_paths(self, revision: str, paths: tuple[str, ...]) -> frozenset[str]: ...
 
 

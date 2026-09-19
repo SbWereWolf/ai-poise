@@ -129,7 +129,10 @@ class DuplicateReuseCommands:
         tree, key, receipts = self.workspace.check(task_id, methods)
         if not all(r['passed'] and r['interpretable'] for r in receipts):
             return {'status': 'checks_failed', 'task': task_id, 'checks': receipts,
-                    'completion_kind': 'duplicate_reuse'}
+                    'completion_kind': 'duplicate_reuse',
+                    'recovery': {'action': 'restart', 'task_id': task_id,
+                        'expected_version': self._version(task_id),
+                        'reason': 'Verify imported input, then repair this branch locally; retain failed evidence'}}
         with self.uow() as uow:
             current, _, current_commit, current_digest, current_methods = reuse_inputs_in(uow, task_id, source_task_id)
             if current_commit != commit or current_digest != contract_digest or current_methods != methods:
@@ -142,6 +145,10 @@ class DuplicateReuseCommands:
                       'stage': current.stage.stage_id, 'iteration': current.state.iteration}
             uow.execution.patch(task_id, {'last_report': report, 'publication': None})
         return report
+
+    def _version(self, task_id):
+        with self.uow() as uow:
+            return uow.tasks.load(task_id).state.version
 
     def accept(self, task_id, actor):
         with self.uow() as uow:

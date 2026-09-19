@@ -71,6 +71,7 @@ class NewbornTask:
         history: list[dict],
         creation_request: dict | None,
         stage_contract_history: list[dict],
+        *, recovery: dict | None = None,
     ):
         path_identifier(actor)
         if task.state.status not in (
@@ -101,6 +102,11 @@ class NewbornTask:
             "from_version": task.state.version,
             "reason": reason,
         }
+        if recovery is not None:
+            if not isinstance(recovery, dict) or not set(recovery) <= {
+                    'local_repair', 'abandoned_check_attempt'}:
+                raise DomainError('Unsupported Task restart recovery facts')
+            audit.update(deepcopy(recovery))
         return cls(
             task.state.task_id,
             sprint_id,

@@ -13,18 +13,24 @@ class DuplicateReuseWorkspace:
     def _git(self, cwd, *args):
         return self.h._git(cwd, *args)
 
-    def _integrated(self, commit):
+    def _repository_base(self):
         repository = Path(self.h.cfg['git']['repository']).resolve(strict=True)
         base_ref = self.h.cfg['git']['base_ref']
         base = self._git(repository, 'rev-parse', '--verify', base_ref + '^{commit}')
+        return repository, base_ref, base
+
+    def _integrated(self, commit):
+        repository, base_ref, base = self._repository_base()
         try:
             self._git(repository, 'merge-base', '--is-ancestor', commit, base)
         except PoiseError as exc:
             raise PoiseError('Reuse source is not integrated into configured base_ref') from exc
         return repository, base_ref, base
 
-    def _observe(self, execution, source_commit):
-        repository, base_ref, base = self._integrated(source_commit)
+    def _observe(self, execution, source_commit, *, require_clean=True,
+                 require_main=True, allow_missing_source=False):
+        repository, base_ref, base = (self._integrated(source_commit) if require_main
+                                      else self._repository_base())
         path = repository if execution['worktree'] is None else Path(execution['worktree']).resolve(strict=True)
         if self._git(path, 'rev-parse', '--path-format=absolute', '--git-common-dir') != self._git(
                 repository, 'rev-parse', '--path-format=absolute', '--git-common-dir'):
@@ -37,15 +43,27 @@ class DuplicateReuseWorkspace:
                 marker_path = path / marker_path
             if marker_path.exists():
                 raise PoiseError('Reuse cannot run during an unfinished Git operation')
-        if self._git(path, 'status', '--porcelain'):
+        if require_clean and self._git(path, 'status', '--porcelain'):
             raise PoiseError('Reuse requires a clean local workspace; preserve WIP')
         head = self._git(path, 'rev-parse', 'HEAD')
         try:
             self._git(path, 'merge-base', '--is-ancestor', source_commit, head)
         except PoiseError as exc:
+            if allow_missing_source:
+                return None
             raise PoiseError('Reuse source is absent from local branch; update it explicitly') from exc
         return {'head': head, 'verified_tree': self._git(path, 'rev-parse', 'HEAD^{tree}'),
                 'base_ref': base_ref, 'base_commit': base, 'worktree': str(path)}
+
+    def validate_restart(self, execution, saved):
+        observed = self._observe(execution or {'worktree': None, 'branch': None},
+                                 saved['source_commit'], require_clean=False,
+                                 require_main=False, allow_missing_source=True)
+        if observed is None:
+            return None
+        if saved.get('worktree') is not None and observed['worktree'] != saved['worktree']:
+            raise PoiseError('Local repair must preserve its acquired worktree')
+        return observed
 
     def prepare(self, task_id, context, source_commit, execution, saved):
         h = self.h

@@ -212,7 +212,7 @@ Keep this English projection and its Russian source consistent in the same chang
   d as the shortest directed transition count from the current stage to positive termination (equivalently traverse
   reversed edges from positive terminals). Use current position after rework, not stage index, stage-name equality or
   maximum past progress. Success has d=0; cancellation is not success. Include the current Task in d_min over its
-  noncancelled family. Block stage start whenever d(current)>d_min, even by one; equality is necessary but not
+  noncancelled family. For ordinary repeated implementation, block stage start whenever d(current)>d_min, even by one; equality is necessary but not
   sufficient: reject by default if two or more nearest Tasks have sessions, counting the requesting session
   prospectively before claiming an unowned current Task. After agents agree one executor, only an explicit per-request
   force_duplicate_start=true may clear this tied-session refusal. The flag is an optional boolean on bootstrap and
@@ -460,3 +460,18 @@ parent-only signals must not mutate the parent's Task. The sender uses public ha
 a genuinely separate native session obtains its own SessionStart launcher and bootstraps
 the exact Task. Preserve WIP and diagnose missing/conflicting signals instead of renaming
 roles, overriding native identity or editing Task DB to get past the guard.
+
+## Local recovery after imported duplicate results
+
+An accepted relative is an input, not proof that this branch satisfies its requirements.
+After importing the exact accepted commit, a failed/stale reuse candidate must not trap
+the local Task behind family_ahead. Use the existing authorized task/restart, optional
+contract edit, ready and normal bootstrap/verify/accept in the preserved worktree.
+The Task owner records validated local_repair provenance; this local correction is
+not governed by the relative's distance and never requires another repair Task.
+Keep ordinary ownership, stage requirements and local Sprint dependencies. Do not
+use force_duplicate_start as a repair bypass, fabricate success or remove family links.
+A verifier may explicitly revise a defective check through the existing authorized
+contract operations; never weaken checks automatically. Unknown checks require effects
+inspection/stoppage before authorized restart archives their attempt without replay.
+See [the recovery contract](docs/workflows/sprints.md#локальная-доработка-через-общий-restart).

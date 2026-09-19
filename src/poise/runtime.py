@@ -270,11 +270,19 @@ class Poise:
                 lambda execution: self._validate_cancelled_worktree(args['task_id'], execution),
             )
         if action == 'restart':
+            from .infrastructure.duplicate_reuse import DuplicateReuseWorkspace
             return self.task_commands.restart_newborn(
                 args['task_id'], self.session, args['expected_version'],
                 args['request_id'], args['reason'], args['authorization'],
+                validate_reuse_restart=DuplicateReuseWorkspace(self).validate_restart,
+                validate_check_restart=self._validate_check_restart,
             )
         raise PoiseError('Unknown Task action')
+
+    def _validate_check_restart(self, attempt):
+        active = set(self.check_runner.active_ids())
+        if any(run['run_id'] in active for run in attempt['runs']):
+            raise PoiseError('Check still running; stop it before an authorised task/restart')
 
     def _validate_cancelled_worktree(self, task_id: str, execution: dict) -> None:
         """Read exact existing Git ownership; never checkout, reset or recreate WIP."""
@@ -1583,7 +1591,9 @@ class Poise:
                         or not self._intact_receipts(data['id'], [receipt], [invocation], tree)):
                     raise PoiseError(
                         f"Unknown check outcome: attempt={attempt['attempt_id']} run={run['run_id']}; "
-                        'restore the original immutable receipt and files, do not retry blindly'
+                        'restore the original immutable receipt and files, or use authorised task/restart '
+                        'to archive this uncertain attempt after stopping/inspecting its effects; '
+                        'do not retry blindly'
                     )
             elif receipt is not None:
                 raise PoiseError('Unexpected receipt for a check run without start permission')

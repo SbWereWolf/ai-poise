@@ -71,3 +71,42 @@ def require_duplicate_transition_in(uow, task, change, actor, *, force_duplicate
         force_duplicate_start=force_duplicate_start)
     if not decision['allowed']:
         raise DuplicateStartBlocked(decision)
+
+
+def restart_local_repair_in(uow, task, history, validate_workspace):
+    """Record acquired family input, never inherit a relative's successful checks."""
+    import json
+    from copy import deepcopy
+    from ..modules.foundation.errors import DomainError
+
+    saved = (json.loads(task.duplicate_reuse)['candidate']
+             if task.duplicate_reuse is not None else
+             next((r['local_repair'] for r in reversed(history) if 'local_repair' in r), None))
+    family = uow.tasks.read_duplicate_family(task.state.task_id)
+    if family is None:
+        return None
+    completed = [m['task_id'] for m in family['members']
+                 if m['task_id'] != task.state.task_id and m['status'] == 'completed']
+    if saved is not None and saved['source_task_id'] not in completed:
+        raise DomainError('Local repair requires its completed family input')
+    execution = (uow.execution.load(task.state.task_id)[0]
+                 if uow.execution.exists(task.state.task_id) else None)
+    for source_id in ([saved['source_task_id']] if saved is not None else completed):
+        source_execution, _ = uow.execution.load(source_id)
+        report = source_execution['last_report']
+        if report is None or report.get('status') != 'completed' or not report.get('commit'):
+            raise DomainError('Local repair requires an accepted source receipt')
+        if saved is not None and report['commit'] != saved['source_commit']:
+            raise DomainError('Local repair source receipt changed')
+        proposal = saved or {'source_task_id': source_id, 'source_commit': report['commit']}
+        if validate_workspace is None:
+            raise DomainError('Task restart requires local Git input validation')
+        observed = validate_workspace(execution, proposal)
+        if observed is not None:
+            return {**deepcopy(observed), 'source_task_id': source_id,
+                    'source_commit': report['commit'],
+                    'branch': None if execution is None else execution['branch'],
+                    'worktree': None if execution is None else observed['worktree']}
+    if saved is not None:
+        raise DomainError('Reuse source is absent from local branch; import it before restart')
+    return None  # Restart does not invent a local acquisition that never happened.

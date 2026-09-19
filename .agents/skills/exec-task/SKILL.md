@@ -36,7 +36,7 @@ blockers immediately; do not invent skill use or grant yourself a contract edit.
    original parent, lists all children and batch-reads the whole family's stages, processes, statuses and session owners
    in one consistent DB view. Only parent resolution differs by role. Consume the harness-supplied [family distance and
    stage-start decision](../../../docs/workflows/sprints.md#задача-спринта-дубль-автоматическая-проверка-семейства). The
-   metric is the shortest directed path from the current stage to positive termination, equivalently reverse traversal
+   metric for ordinary repeated implementation is the shortest directed path from the current stage to positive termination, equivalently reverse traversal
    from the positive terminal. The harness must deny stage start if this distance exceeds the noncancelled family
    minimum by even one transition; equality is necessary but not sufficient. If two or more nearest Tasks have sessions,
    the default request is refused; agents must agree one executor, who explicitly sends force_duplicate_start=true for
@@ -88,3 +88,18 @@ identity and next authorized action. Existing Poise owners store, verify and tra
 protocol](../../../docs/workflows/local-handoff.md#пакет) preserves incomplete work honestly. Acceptance, publication
 and integration retain their separate gates and authority; this skill never grants push permission or a second
 lifecycle.
+
+## Local recovery after imported duplicate results
+
+An accepted relative is an input, not proof that this branch satisfies its requirements.
+After importing the exact accepted commit, a failed/stale reuse candidate must not trap
+the local Task behind family_ahead. Use the existing authorized task/restart, optional
+contract edit, ready and normal bootstrap/verify/accept in the preserved worktree.
+The Task owner records validated local_repair provenance; this local correction is
+not governed by the relative's distance and never requires another repair Task.
+Keep ordinary ownership, stage requirements and local Sprint dependencies. Do not
+use force_duplicate_start as a repair bypass, fabricate success or remove family links.
+A verifier may explicitly revise a defective check through the existing authorized
+contract operations; never weaken checks automatically. Unknown checks require effects
+inspection/stoppage before authorized restart archives their attempt without replay.
+See [the recovery contract](../../../docs/workflows/sprints.md#локальная-доработка-через-общий-restart).

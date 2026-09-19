@@ -39,8 +39,9 @@ Keep broken execution-contract recovery in the Task owner. Report an unattainabl
 failed next-stage DoR as `broken`; let a reviewer revise only the defective inspection-stage
 contract, or use the public Task `restart` action to return the same unfinished, unintegrated
 Task to newborn. Preserve its ID, append-only history, Sprint membership, execution workspace,
-branch, base and WIP. Reject foreign ownership, stale versions, terminal Tasks and unresolved
-external outcomes before mutation. Sprint `replace_task` is not a correction writer; retain
+branch, base and WIP. Reject foreign ownership, stale versions and terminal Tasks before mutation. An
+explicitly authorized restart may archive a quiescent unknown check_attempt without
+replaying or claiming success; other external outcomes keep their recovery owners. Sprint `replace_task` is not a correction writer; retain
 historical relations only as opaque revision/audit records, never a current replacement projection.
 
 For every new trace requirement, ensure that its due stages intersect the referenced
@@ -223,3 +224,8 @@ Reject changed candidate/intent before submission; persist action and event in
 one transaction. A missing or drifted local target blocks without mutation.
 Only the separate authorized `integrate` lifecycle may move the target. See
 [local publication](../docs/workflows/batch-work.md#локальная-фиксация-публикации).
+
+For completed-family input already present in the Task branch, the same restart owner
+records local repair provenance and permits normal local work despite family distance.
+Preserve lineage/WIP and require fresh own evidence; no extra repair Task or broad force.
+See [restart recovery](../docs/workflows/sprints.md#локальная-доработка-через-общий-restart).

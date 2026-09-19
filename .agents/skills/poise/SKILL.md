@@ -255,7 +255,7 @@ For each noncancelled member, d is the shortest directed transition count from i
 stage to positive termination, computed equivalently by reverse traversal from positive
 terminals. Success is d=0; cancellation is not success. Rework changes current distance;
 stage names, array indexes, branch position and past maximum progress do not rank Tasks.
-Include the current Task in d_min. Stage start MUST be rejected when d(current)>d_min,
+Include the current Task in d_min. Ordinary repeated implementation MUST be rejected when d(current)>d_min,
 even by one transition. Equality is necessary but not sufficient: when two or more nearest
 Tasks have sessions, refuse start until agents agree one executor and that executor explicitly
 supplies force_duplicate_start=true for this request. Count the requesting session prospectively
@@ -484,3 +484,18 @@ Publish the exact agreed snapshot through the existing Task/Sprint owner; preser
 historical snapshots on replay/restart. Follow [agreement and
 publication](../../../docs/workflows/requirements-registry.md#декларативный-api-и-согласование)
 and [immutable history](../../../docs/workflows/requirements-registry.md#публикация-и-исторический-снимок).
+
+## Local recovery after imported duplicate results
+
+An accepted relative is an input, not proof that this branch satisfies its requirements.
+After importing the exact accepted commit, a failed/stale reuse candidate must not trap
+the local Task behind family_ahead. Use the existing authorized task/restart, optional
+contract edit, ready and normal bootstrap/verify/accept in the preserved worktree.
+The Task owner records validated local_repair provenance; this local correction is
+not governed by the relative's distance and never requires another repair Task.
+Keep ordinary ownership, stage requirements and local Sprint dependencies. Do not
+use force_duplicate_start as a repair bypass, fabricate success or remove family links.
+A verifier may explicitly revise a defective check through the existing authorized
+contract operations; never weaken checks automatically. Unknown checks require effects
+inspection/stoppage before authorized restart archives their attempt without replay.
+See [the recovery contract](../../../docs/workflows/sprints.md#локальная-доработка-через-общий-restart).

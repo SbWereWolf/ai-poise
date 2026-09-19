@@ -180,27 +180,33 @@ neither a shared topic nor execution priority creates a dependency. When splitti
 Sprint, copy required prerequisite Tasks or chains as local conditional duplicates with new
 IDs and local edges. Do not search similar Tasks or manually maintain a reciprocal family
 list. Task has two axes: ordinary/duplicate, then parent/child for a duplicate. A root
-with children is itself a parent duplicate. Role changes family lookup, not the gate.
+with children is itself a parent duplicate. One shared library method resolves the original
+parent, lists all children, then batch-reads the parent's and all children's stages, processes,
+statuses and session owners in a consistent DB read. Only parent resolution differs by role.
+Context and stage admission reuse this method; no per-task lookup loop or copied traversal.
 The harness derives reciprocal family views from a canonical parent relation.
 For each noncancelled member, d is the shortest directed transition count from its current
 stage to positive termination, computed equivalently by reverse traversal from positive
 terminals. Success is d=0; cancellation is not success. Rework changes current distance;
 stage names, array indexes, branch position and past maximum progress do not rank Tasks.
 Include the current Task in d_min. Stage start MUST be rejected when d(current)>d_min,
-even by one transition; equality permits this family gate subject to existing ownership
-and stage preconditions. Return only all other relatives at d_min, with Task/Sprint IDs,
+even by one transition. Equality is necessary but not sufficient: when two or more nearest
+Tasks have sessions, refuse start until agents agree one executor and that executor explicitly
+supplies force_duplicate_start=true for this request. Count the requesting session prospectively
+for an unclaimed current Task, without first persisting its claim; do not double-count on resume.
+The proposed flag clears only this tied-session refusal, never distance, ownership or stage guards. Return only all other relatives at d_min, with Task/Sprint IDs,
 stage, distance, status, iteration and owning session IDs. Do not include intermediate
 leaders or tied-but-lagging peers. Equal distances on different stages are ties too.
-For noninitial tied-minimum work, agents coordinate one executor using these session IDs;
-the gate does not pick one or reject all ties. Initial-stage equality alone is not a
-collision, but a lagging initial stage is blocked. Check on acquisition/resume and every
+Multiple sessions at equal minimum distance require agreement and the flag even on initial
+stages; unowned initial equality alone is not a collision. A lagging initial stage is blocked.
+Every request, including a flagged retry, rereads the family; never auto-add or persist the flag. Check on acquisition/resume and every
 actual stage start before execution effects; a context warning is not enforcement.
 Invalid or unavailable distance is not permission. Do not seize foreign ownership or WIP.
 Completed family results still require main-base integration and local availability;
 reuse must not bypass a denied ordinary-stage start or forge terminal progress/acceptance.
 Its local completion lifecycle must be specified during implementation.
 See [automatic family check](../../../docs/workflows/sprints.md#задача-спринта-дубль-автоматическая-проверка-семейства).
-This type/relation/distance/start gate is specified, not implemented by the policy patch.
+This type, library method, relation, distance and flagged start gate are specified, not implemented.
 Do not invent API fields or replace missing automation with manual similarity searches.
 Follow the existing
 [dependency closure and local duplicates](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).

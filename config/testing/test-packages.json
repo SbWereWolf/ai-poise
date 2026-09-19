@@ -137,7 +137,11 @@
           "src/poise/infrastructure/sqlite/tasks.py",
           "src/poise/infrastructure/sqlite/queries.py",
           "src/poise/infrastructure/handoff.py",
-          "src/poise/infrastructure/actions.py"
+          "src/poise/infrastructure/actions.py",
+          "src/poise/application/duplicate_reuse.py",
+          "src/poise/infrastructure/duplicate_reuse.py",
+          "src/poise/modules/tasks/domain.py",
+          "tests/tasks/test_duplicate_creation.py"
         ],
         "tests": [
           "tests/runtime_services/test_*.py"

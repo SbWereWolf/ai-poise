@@ -133,7 +133,8 @@ class LocalHandoff:
         h._cleanup_runtime()
         return receipt
 
-    def resume(self,data, *, force_duplicate_start=False):
+    def validate_resume(self, data):
+        """Check preserved handoff bytes without acquiring or executing the Task."""
         h=self.h;record=self.commands.latest(data['id'])
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
@@ -149,5 +150,11 @@ class LocalHandoff:
                 raise PoiseError('Worktree changed since handoff; do not adopt external changes silently')
             if not Path(receipt['bundle_path']).is_file() or file_digest(Path(receipt['bundle_path']))!=receipt['bundle_digest']:
                 raise PoiseError('Preserved source bundle missing or changed')
+        return record
+
+    def resume(self,data, *, force_duplicate_start=False):
+        h = self.h
+        record = self.validate_resume(data)
+        receipt = record['receipt']
         self.commands.resume(data['id'],h.session,record['actor'],record['request_id'],force_duplicate_start=force_duplicate_start)
         h.store.event(h.session,data['id'],'handoff.resumed',{'from_session':record['actor'],'commit':receipt['commit']})

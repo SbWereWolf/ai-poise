@@ -178,3 +178,21 @@ class BoundOwnership:
 
     def release_task(self, task_id):
         return self.commands.release_task(self.actor, task_id)
+
+
+def reserve_reuse_in(uow, task, change, actor):
+    """Acquire only the current verification scope, preserving all foreign ownership."""
+    task_id = task.state.task_id
+    before = uow.ownership.snapshot(actor)
+    target = uow.ownership.preflight(actor, task_id)
+    required = uow.ownership.worktree_required(task_id)
+    if before.task_id not in (None, task_id):
+        raise PoiseError("Reuse caller already owns another Task")
+    if target.task_owner not in (None, actor):
+        raise PoiseError("Reuse cannot take foreign Task ownership")
+    if required and (target.worktree_owner not in (None, actor)
+                     or before.worktree_task_id not in (None, task_id)):
+        raise PoiseError("Reuse cannot replace independent or foreign worktree ownership")
+    uow.tasks.save(change, task.state.version)
+    if required:
+        uow.ownership.bind_worktree(actor, task_id)

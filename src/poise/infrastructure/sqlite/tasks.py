@@ -718,7 +718,8 @@ class SqliteTaskRepository:
         return Task(state, stages_from_process(metadata["process"]), policy, snapshot, registry,
                     RouteDefinition.from_process(metadata["process"]),
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
-                    evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts)
+                    evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts,
+                    None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]))
 
     def start_candidates(self) -> list[dict]:
         """A coarse read projection; the Task and Sprint owners decide readiness."""

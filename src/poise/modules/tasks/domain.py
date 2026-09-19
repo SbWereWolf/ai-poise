@@ -306,6 +306,7 @@ class Task:
     evidence_assessment: str | None
     action_assessment: str | None
     stage_contracts: TaskStageContracts | None = None
+    duplicate_reuse: str | None = None
 
     def __post_init__(self) -> None:
         identifier(self.state.task_id)
@@ -387,6 +388,7 @@ class Task:
         ))
 
     def start(self, actor=None):
+        self._require_ordinary_stage()
         self._require_stage_contracts()
         if actor is not None:
             identifier(actor)
@@ -531,6 +533,7 @@ class Task:
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
                commit_message: str, content_additions: dict, trace: dict,
                method_additions: list[dict] | dict, stage_work: dict, evidence_work: dict) -> Change:
+        self._require_ordinary_stage()
         self._require_stage_contracts()
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
@@ -628,7 +631,72 @@ class Task:
             requirement_ids,
         )
 
+    @property
+    def check_candidate_digest(self) -> str | None:
+        if self.duplicate_reuse is None:
+            return self.state.submission_digest
+        return hashlib.sha256(json.dumps(json.loads(self.duplicate_reuse)["candidate"],
+            sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    def prepare_duplicate_reuse(self, actor: str, candidate: dict) -> Change:
+        """Reserve verification-only work without entering a different route stage."""
+        self._owned(actor)
+        self._require_stage_contracts()
+        if self.state.status not in (TaskStatus.AVAILABLE, TaskStatus.ACTIVE,
+                                     TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
+            raise DomainError("Reuse requires an unfinished executable Task")
+        if self.feedback.open_findings or self.feedback.pending_resolutions:
+            raise DomainError("Reuse cannot discard unresolved local findings")
+        if self.duplicate_reuse is not None:
+            saved = json.loads(self.duplicate_reuse)
+            if saved["candidate"] != candidate:
+                raise DomainError("Reuse candidate changed; restart explicitly")
+            if self.state.claimed_by == actor:
+                return self._unchanged()
+            return self._change("duplicate_reuse_resumed", None, None, claimed_by=actor)
+        change = self._change("duplicate_reuse_prepared", candidate["source_task_id"], None,
+                              status=TaskStatus.ACTIVE, claimed_by=actor)
+        return replace(change, task=replace(change.task, duplicate_reuse=json.dumps({
+            "candidate": candidate, "verified": False, "execution_key": None,
+        }, sort_keys=True)))
+
+    def mark_duplicate_reuse_verified(self, actor: str, tree: str,
+                                     execution_key: str, receipts: list[dict]) -> Change:
+        self._owned(actor)
+        if (self.duplicate_reuse is None or self.state.status != TaskStatus.ACTIVE
+                or self.state.claimed_by != actor):
+            raise DomainError("No active owned reuse verification")
+        reuse = json.loads(self.duplicate_reuse)
+        candidate = reuse["candidate"]
+        batch = self.evidence_book.submission_batch(
+            self.stage.stage_id, self.state.iteration, self.check_candidate_digest,
+            tree, execution_key)
+        if (tree != candidate["verified_tree"] or batch is None
+                or batch["receipts"] != receipts
+                or [r["method"] for r in receipts] != candidate["method_ids"]
+                or any(not r["passed"] or not r["interpretable"] for r in receipts)):
+            raise DomainError("Reuse requires its complete successful local checks")
+        change = self._change("duplicate_reuse_verified", candidate["source_task_id"], None,
+                              status=TaskStatus.VERIFIED)
+        return replace(change, task=replace(change.task, duplicate_reuse=json.dumps({
+            **reuse, "verified": True, "execution_key": execution_key,
+        }, sort_keys=True)))
+
+    def accept_duplicate_reuse(self, actor: str) -> Change:
+        self._owned(actor)
+        if (self.duplicate_reuse is None or self.state.status != TaskStatus.VERIFIED
+                or self.state.claimed_by != actor
+                or not json.loads(self.duplicate_reuse)["verified"]):
+            raise DomainError("Reuse acceptance requires a locally verified owned result")
+        return self._change("duplicate_reuse_accepted", None, None,
+                            status=TaskStatus.COMPLETED, claimed_by=None)
+
+    def _require_ordinary_stage(self) -> None:
+        if self.duplicate_reuse is not None:
+            raise DomainError("Verification-only reuse does not permit ordinary stage work")
+
     def mark_verified(self, actor: str, submission_digest: str, artifacts: tuple[ArtifactFact, ...]) -> Change:
+        self._require_ordinary_stage()
         self._require_stage_contracts()
         self._owned(actor)
         if self.state.submission_digest is None or submission_digest != self.state.submission_digest:
@@ -655,6 +723,7 @@ class Task:
                                            progress=replace(self.progress, outcome=handling.outcome)))
 
     def accept(self, actor: str, advance: bool) -> Change:
+        self._require_ordinary_stage()
         self._owned(actor)
         if type(advance) is not bool:
             raise DomainError("Нужно явное решение о продолжении")
@@ -678,6 +747,7 @@ class Task:
 
     def progress_stage(self, actor: str, target: str) -> Change:
         """Enter an ordinary next stage without recording user acceptance."""
+        self._require_ordinary_stage()
         self._owned(actor)
         if self.state.status not in (TaskStatus.VERIFIED, TaskStatus.ACCEPTED):
             raise DomainError("Stage progression requires a verified result")
@@ -748,6 +818,7 @@ class Task:
         return None
 
     def rework(self, actor: str, feedback: str, target: str | None = None) -> Change:
+        self._require_ordinary_stage()
         self._owned(actor)
         if not isinstance(feedback, str) or not feedback.strip():
             raise DomainError("Для rework требуется замечание пользователя")
@@ -774,6 +845,7 @@ class Task:
     def recover_empty_transition(
         self, reason: str, point: EmptyReworkRecoveryPoint, recovery_event: str
     ) -> Change:
+        self._require_ordinary_stage()
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("Empty rework recovery requires an explicit reason")
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by is not None:
@@ -817,6 +889,7 @@ class Task:
 
     def rework_failed(self, actor: str, feedback: str, tree: str, execution_key: str,
                       target: str | None = None) -> Change:
+        self._require_ordinary_stage()
         self._owned(actor)
         if not isinstance(feedback,str) or not feedback.strip():
             raise DomainError("Для rework требуется замечание пользователя")
@@ -834,6 +907,7 @@ class Task:
         return self._enter("user_failed_check_rework",feedback,actor,destination,progress)
 
     def restart_action(self, actor, feedback, target):
+        self._require_ordinary_stage()
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.route.node(self.stage.stage_id).handler.value not in ('apply_plan','publish'):
             raise DomainError('Only a current action can be explicitly restarted')
@@ -880,6 +954,14 @@ class Task:
 
     def record_observations(self, actor, tree, execution_key, receipts):
         self._owned(actor)
+        if self.duplicate_reuse is not None:
+            if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
+                raise DomainError("Reuse observations require the active owner")
+            book = self.evidence_book.record_submission_batch(
+                self.stage.stage_id, self.state.iteration, tree, execution_key,
+                self.check_candidate_digest, receipts)
+            change = self._change("duplicate_reuse_observations", None, None)
+            return replace(change, task=replace(change.task, evidence_book=book))
         if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
             raise DomainError("Наблюдения принадлежат активному submitted этапу")
         book = self.evidence_book.record_submission_batch(
@@ -893,12 +975,14 @@ class Task:
                                            progress=replace(self.progress,outcome=base.outcome)))
 
     def recover_pending_checks(self, actor):
+        self._require_ordinary_stage()
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
             raise DomainError("Check recovery requires the current active submission")
         return self._change("pending_checks_recovered", None, None)
 
     def assess_evidence(self, actor, tree, execution_key):
+        self._require_ordinary_stage()
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.evidence_input is None:
             raise DomainError("Нет текущего результата для оценки evidence")
@@ -915,6 +999,7 @@ class Task:
         return replace(change,task=updated), assessment
 
     def record_action_result(self, actor, tree, receipt):
+        self._require_ordinary_stage()
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.state.submission_digest is None:
             raise DomainError("Action receipt requires an active submitted iteration")
@@ -947,6 +1032,8 @@ class Task:
             "feedback": self.feedback.to_dict(),
             "action_assessment": self.action_assessment,
             "registry": self.check_registry.to_state(),
+            **({"duplicate_reuse": json.loads(self.duplicate_reuse)}
+               if self.duplicate_reuse is not None else {}),
         }
 
     def recover_cancelled(

@@ -70,3 +70,16 @@ class HandoffCommands:
                 if target.worktree_owner==request_actor:uow.ownership.bind_worktree(request_actor,None)
                 uow.ownership.bind_worktree(actor,task_id)
             uow.handoffs.replace({**record,'state':'resumed'})
+
+    @staticmethod
+    def resume_reuse_in(uow, task, actor, candidate, observed):
+        """Consume an externally checked handoff with the reuse reservation UoW."""
+        record = uow.handoffs.get(observed['actor'], observed['request_id'])
+        if (record != observed or record['state'] != 'released'
+                or record['task_id'] != task.state.task_id
+                or task.state.claimed_by is not None
+                or task.state.version != record['version'] + 1):
+            raise PoiseError('Task changed after preserved handoff')
+        change = task.prepare_duplicate_reuse(actor, candidate)
+        uow.handoffs.replace({**record, 'state': 'resumed'})
+        return change

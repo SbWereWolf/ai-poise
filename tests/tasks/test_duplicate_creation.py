@@ -8,10 +8,10 @@ from sprints.helpers import setup, task, draft, publish
 from batch.helpers import request
 
 
-def prepared(project):
+def prepared(project, *, command='print("checked")'):
     setup(project)
     runtime = WorkPoise(project['config_path'], 'planner')
-    contract = task(project, 'P');contract['sprint_id'] = None
+    contract = task(project, 'P', command=command);contract['sprint_id'] = None
     runtime.task_commands.create(contract,runtime.session,runtime.processes['development'],[],
         {'config_hash':runtime.config_hash},None,runtime.cfg.get('task_ids'),runtime._creation_base(),
         runtime.cfg['task_decomposition'])

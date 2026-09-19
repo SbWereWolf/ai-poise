@@ -1037,8 +1037,27 @@ class Poise:
         result=self._context(data, data['status']=='active',force_duplicate_start=force_duplicate_start)
         return result if allocation_receipt is None else {**result,'allocation':allocation_receipt}
 
+    def reuse(self, task_id, source_task_id, request_id, expected_version) -> dict:
+        from .application.duplicate_reuse import DuplicateReuseCommands
+        from .infrastructure.duplicate_reuse import DuplicateReuseWorkspace
+        try:
+            result = DuplicateReuseCommands(self.store.unit_of_work, DuplicateReuseWorkspace(self)).verify(
+                task_id, source_task_id, self.session, request_id, expected_version)
+        finally:
+            incidents = self.result_views.finish()
+        return {**result, 'incidents': incidents} if incidents else result
+
     def accept(self) -> dict:
         data = self._task()
+        if data.get('duplicate_reuse') is not None:
+            from .application.duplicate_reuse import DuplicateReuseCommands
+            from .infrastructure.duplicate_reuse import DuplicateReuseWorkspace
+            result = DuplicateReuseCommands(self.store.unit_of_work, DuplicateReuseWorkspace(self)).accept(
+                data['id'], self.session)
+            self.store.event(self.session, data['id'], 'user.accept',
+                {'stage': self._stage(data)['id'], 'status': result['status'],
+                 'completion_kind': 'duplicate_reuse'})
+            return result
         self.runner.accept(data['id'], self.session, False, None)
         data = self.task_queries.record(data['id'])
         self.store.event(self.session, data['id'], 'user.accept',
@@ -1226,6 +1245,8 @@ class Poise:
                 or any(c not in '0123456789abcdef' for c in packet_digest)):
             raise PoiseError('Explicit SHA-256 work packet identity required')
         data = self._task(); stage = self._stage(data)
+        if data.get('duplicate_reuse') is not None:
+            raise PoiseError('Verification-only reuse requires the reuse operation')
         self.task_commands.reviewer_preflight(data['id'], self.session)
         worktree = self._verification_workspace(data)
         if data['claimed_by'] != self.session:

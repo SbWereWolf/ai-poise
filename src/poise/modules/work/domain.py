@@ -38,6 +38,7 @@ def parse_request(value, config):
     exact(value,{'operation','input','messages','telemetry'} if isinstance(value,dict) and 'telemetry' in value else {'operation','input','messages'},'work packet')
     shapes={'restore_context':{'reason','event_id','facts','cwd','reads'},'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
+            'reuse':{'task_id','source_task_id','request_id','expected_version'},
             'recover_empty_rework':{'task_id','reason'},
             'recover_empty_advance':{'task_id','reason'},
             'advance':{'request_id','task_id','target_stage'},

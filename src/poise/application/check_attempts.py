@@ -13,14 +13,16 @@ def is_check_attempt(value):
 def validate_attempt(task, actor, attempt, tree, execution_key, methods=None):
     """Reject drift or unsupported persisted JSON before granting any run permission."""
     task._owned(actor)
+    if task.duplicate_reuse is not None and task.state.claimed_by != actor:
+        raise DomainError('Reuse checks require their current owner')
     expected = {
         'kind': 'check_attempt', 'version': 1, 'task_id': task.state.task_id,
         'task_version': task.state.version, 'actor': actor,
         'stage': task.stage.stage_id, 'iteration': task.state.iteration,
-        'submission_digest': task.state.submission_digest,
+        'submission_digest': task.check_candidate_digest,
         'verified_tree': tree, 'execution_key': execution_key,
     }
-    if (task.state.status != TaskStatus.ACTIVE or task.state.submission_digest is None
+    if (task.state.status != TaskStatus.ACTIVE or task.check_candidate_digest is None
             or not isinstance(attempt, dict)
             or type(attempt.get('version')) is not int
             or set(attempt) != set(expected) | {'attempt_id', 'runs'}
@@ -68,7 +70,7 @@ class CheckAttempts:
             task = uow.tasks.load(task_id)
             execution, version = uow.execution.load(task_id)
             if (task.state.version != expected_version
-                    or task.state.submission_digest != submission_digest):
+                    or task.check_candidate_digest != submission_digest):
                 raise DomainError('Check candidate changed before attempt reservation')
             if execution['pending'] is not None:
                 raise DomainError('An external attempt is already pending')
@@ -78,7 +80,7 @@ class CheckAttempts:
                 'kind': 'check_attempt', 'version': 1, 'attempt_id': str(uuid4()),
                 'task_id': task_id, 'task_version': task.state.version, 'actor': actor,
                 'stage': task.stage.stage_id, 'iteration': task.state.iteration,
-                'submission_digest': task.state.submission_digest,
+                'submission_digest': task.check_candidate_digest,
                 'verified_tree': tree, 'execution_key': execution_key,
                 'runs': [{'run_id': str(uuid4()), 'method_id': method, 'started': False}
                          for method in methods],

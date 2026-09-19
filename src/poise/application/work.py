@@ -47,6 +47,7 @@ class WorkTools:
             elif op=='recover_missing_worktree':out=h.recover_missing_worktree(**args)
             elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)
+            elif op=='reuse':out=h.reuse(**args)
             elif op=='verify':out=self._verify(args)
             elif op=='routing':out=h.refresh_development_route(args['facts'])
             elif op=='restore_context':out=h.restore_context(**args)
@@ -77,7 +78,7 @@ class WorkTools:
         sprint_subject = current if current is not None else before
         if (sprint_subject is not None and sprint_subject['sprint_id'] is not None
                 and h.sprint_tools.known(sprint_subject['sprint_id'])
-                and op in ('verify','accept','cancel')):
+                and op in ('verify','reuse','accept','cancel')):
             out={**out,'sprint':h.sprint_tools.overview(sprint_subject['sprint_id'])}
         return {**out,'interaction':self.interactions.summary(None if ownership_recovery else h.report_task(out))}
 

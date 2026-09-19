@@ -104,3 +104,18 @@ def test_duplicate_family_inputs_are_explicitly_owned_by_packages():
     for path in family_sources | {'src/poise/infrastructure/duplicate_admission.py',
                                  'tests/tasks/fixtures/duplicate_route.json'}:
         assert packages.impact(ROOT, [path])['unmapped_paths'] == []
+
+
+def test_duplicate_reuse_sources_and_test_helpers_are_cache_inputs():
+    packages = AiPoiseTestPackages.load(CATALOG)
+    sources = {
+        'src/poise/application/duplicate_reuse.py',
+        'src/poise/infrastructure/duplicate_reuse.py',
+        'src/poise/modules/tasks/domain.py',
+        'tests/tasks/test_duplicate_creation.py',
+    }
+    membership = packages.membership(ROOT, 'runtime-services')['members']
+    assert sources <= set(membership['source'])
+    assert 'tests/runtime_services/test_duplicate_reuse.py' in membership['tests']
+    for path in sources:
+        assert 'runtime-services' in packages.impact(ROOT, [path])['direct_packages']

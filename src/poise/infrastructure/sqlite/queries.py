@@ -82,7 +82,7 @@ class TaskQueries:
 
     @staticmethod
     def record_in(db, task_id: str) -> dict | None:
-        row=db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, e.data AS execution, e.version AS execution_version FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id WHERE t.id=?",(task_id,)).fetchone()
+        row=db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, e.data AS execution, e.version AS execution_version,w.data AS workflow FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id LEFT JOIN task_workflows w ON w.task_id=t.id WHERE t.id=?",(task_id,)).fetchone()
         if row is None: return None
         from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
         status = TaskStatus.parse(row['status'])
@@ -90,6 +90,9 @@ class TaskQueries:
         from ...modules.tasks.duplicates import family_projection
         duplicate = family_projection(SqliteTaskRepository(db).read_duplicate_family(task_id),task_id)
         family_fields = {} if duplicate is None else {'duplicate':duplicate}
+        workflow = {} if row['workflow'] is None else json.loads(row['workflow'])
+        if 'duplicate_reuse' in workflow:
+            family_fields['duplicate_reuse'] = workflow['duplicate_reuse']
         if is_terminal_task_status(status):
             metadata = json.loads(row['metadata']) | family_fields
             execution = {} if row['execution'] is None else json.loads(row['execution'])

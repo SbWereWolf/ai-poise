@@ -172,7 +172,8 @@ Let the exact process schema decide whether Task creation contains
 including an explicit empty list; a schema without it must omit the field and receives an empty
 public registry classification without requirement/DoD inference. For repository verification,
 an empty `change_surface` represents only a pre-existing baseline guard with no RED and sole
-GREEN at the route-entry `baseline`. Produced-result GREEN methods require a non-empty surface
+GREEN at the saved route entry, whatever its Task-owned name (for example, `baseline` or `reproduce`).
+Produced-result GREEN methods require a non-empty surface
 covered by their stage. Follow [Batch work → Current verification
 registry](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
 

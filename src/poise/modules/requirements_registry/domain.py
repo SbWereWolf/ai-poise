@@ -34,8 +34,11 @@ def _requirement(value):
         raise DomainError("requirement level must be system or application")
     if result["status"] not in STATUSES:
         raise DomainError("requirement status must be current, future or obsolete")
-    if not isinstance(result["text"], str) or not result["text"].strip():
-        raise DomainError("requirement text must be nonempty")
+    if not isinstance(result["text"], str) or (
+        not result["text"].strip()
+        and not (result["status"] == "future" and result["text"] == "")
+    ):
+        raise DomainError("requirement text must be nonempty, except an explicit future placeholder")
     return result
 
 
@@ -183,6 +186,11 @@ class RequirementsRegistry:
                 "text": self._requirements[identifier]["text"],
             }
             for identifier in coverage["system_without_application"]
+        ] + [
+            {"kind": "projected_placeholder", "level": item["level"],
+             "requirement_id": identifier, "text": ""}
+            for identifier, item in sorted(self._requirements.items())
+            if item["status"] == "future" and item["text"] == ""
         ]
 
     def plan_task(self, task_requirements):
@@ -194,18 +202,32 @@ class RequirementsRegistry:
         selected_links = set()
         normalized_tasks = []
         for index, item in enumerate(task_requirements):
-            _exact(item, {"text", "applications"}, f"task requirement {index}")
+            fields = {"text", "applications"}
+            if isinstance(item, dict) and "status" in item:
+                fields.add("status")
+            _exact(item, fields, f"task requirement {index}")
+            status = item.get("status", "current")
+            if status not in ("current", "future"):
+                raise DomainError("Task requirement status must be current or future")
             text = item["text"]
             applications = item["applications"]
-            if not isinstance(text, str) or not text.strip():
-                raise DomainError("Task requirement text must be nonempty")
+            if not isinstance(text, str) or (
+                not text.strip() and not (status == "future" and text == "")
+            ):
+                raise DomainError("Task requirement text must be nonempty, except an explicit future placeholder")
+            if text == "":
+                gaps.append({"kind": "projected_placeholder", "level": "task",
+                             "task_index": index, "task_text": text})
             if (
                 not isinstance(applications, list)
                 or any(not isinstance(value, str) or not value for value in applications)
                 or len(applications) != len(set(applications))
             ):
                 raise DomainError("Task applications must be unique requirement identifiers")
-            normalized_tasks.append({"text": text, "applications": list(applications)})
+            normalized = {"text": text, "applications": list(applications)}
+            if "status" in item:
+                normalized["status"] = status
+            normalized_tasks.append(normalized)
             if not applications:
                 gaps.append({
                     "kind": "missing_application",
@@ -228,6 +250,9 @@ class RequirementsRegistry:
                     raise DomainError(f"obsolete application requirement cannot plan a Task: {application_id}")
                 chain_applications.append(deepcopy(application))
                 selected_requirements[application_id] = deepcopy(application)
+                if application["status"] == "future" and application["text"] == "":
+                    gaps.append({"kind": "projected_placeholder", "level": "application",
+                                 "requirement_id": application_id, "task_text": text})
                 systems = [
                     system for system, linked_application in self._links
                     if linked_application == application_id
@@ -244,6 +269,11 @@ class RequirementsRegistry:
                     chain_system_ids.add(system_id)
                     selected_requirements[system_id] = deepcopy(self._requirements[system_id])
                     selected_links.add((system_id, application_id))
+            for system_id in sorted(chain_system_ids):
+                system = self._requirements[system_id]
+                if system["status"] == "future" and system["text"] == "":
+                    gaps.append({"kind": "projected_placeholder", "level": "system",
+                                 "requirement_id": system_id, "task_text": text})
             chains.append({
                 "task_text": text,
                 "applications": chain_applications,

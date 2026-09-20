@@ -31,6 +31,7 @@ NEWBORN_FIELDS = frozenset({
     "executable_obligations",
     "stage_contracts",
     "decomposition",
+    "planning",
 })
 
 
@@ -85,8 +86,8 @@ class NewbornTask:
             raise DomainError("Task is owned by another session; handoff is required")
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError("Task restart reason is required")
-        if not isinstance(authorization, str) or not authorization.strip():
-            raise DomainError("Task restart authorization is required")
+        from .planning import revision_authority
+        authority = revision_authority(contract, process, actor, authorization)
         if not isinstance(contract, dict) or contract.get("id") != task.state.task_id:
             raise DomainError("Task restart requires its exact stored contract")
         if contract.get("sprint_id") != sprint_id:
@@ -102,6 +103,8 @@ class NewbornTask:
             "from_version": task.state.version,
             "reason": reason,
         }
+        if authority is not None:
+            audit["planning_revision"] = authority
         if recovery is not None:
             if not isinstance(recovery, dict) or not set(recovery) <= {
                     'local_repair', 'abandoned_check_attempt'}:
@@ -119,6 +122,38 @@ class NewbornTask:
             tuple(deepcopy(history)) + (audit,),
             tuple(deepcopy(stage_contract_history)),
         )
+
+    def restart_draft(self, actor, reason, authorization):
+        from .planning import revision_authority
+        path_identifier(actor)
+        if self.claimed_by not in (None, actor):
+            raise DomainError("Newborn Task is owned by another session")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Task restart reason is required")
+        # An unfinished draft has not frozen a contract; an explicit user/reviewer
+        # decision is recorded without inventing a historical execution contract.
+        if isinstance(authorization, dict):
+            if (set(authorization) != {"role", "decision"}
+                    or authorization['role'] not in ('user', 'reviewer')
+                    or not isinstance(authorization['decision'], str)
+                    or not authorization['decision'].strip()):
+                raise DomainError("Task restart authorization requires a decision")
+        elif not isinstance(authorization, str) or not authorization.strip():
+            raise DomainError("Task restart authorization is required")
+        audit = {"authorization": deepcopy(authorization), "from_status": "newborn",
+                 "from_version": self.version, "reason": reason}
+        if self.ready and self.draft.get('planning') is not None:
+            frozen = {'id': self.task_id, 'sprint_id': self.sprint_id, **self.draft}
+            audit['planning_revision'] = revision_authority(
+                frozen, self.process, actor, authorization)
+        elif self.restart_history and 'planning_revision' in self.restart_history[-1]:
+            previous = self.restart_history[-1]['planning_revision']
+            # Escalation reselects authority from the original frozen contract,
+            # not from a draft that may already contain proposed changes.
+            audit['planning_revision'] = revision_authority(
+                previous['before_contract'], previous['before_process'], actor, authorization)
+        return replace(self, claimed_by=actor, version=self.version + 1, ready=False,
+                       restart_history=self.restart_history + (audit,))
 
     @classmethod
     def restore(cls, task_id: str, claimed_by: str | None, version: int, metadata: dict):
@@ -160,7 +195,7 @@ class NewbornTask:
     def edit(self, patch: dict, remove: list, processes: dict, actor: str):
         if self.ready:
             raise DomainError("Ready newborn Task cannot be edited")
-        if not isinstance(patch, dict) or not set(patch) <= NEWBORN_FIELDS:
+        if not isinstance(patch, dict) or not set(patch) <= NEWBORN_FIELDS | {"process", "process_changes"}:
             raise DomainError("Newborn Task edit patch requires known fields")
         if (
             not isinstance(remove, list)
@@ -184,13 +219,33 @@ class NewbornTask:
             raise DomainError('Newborn Task Sprint membership is immutable')
         if not patch and not removals:
             raise DomainError('Newborn Task edit must change draft fields')
-        if "goal_type" in patch:
-            selected = patch["goal_type"]
-            if not isinstance(selected, str) or selected not in processes:
-                raise DomainError("Unknown explicit goal_type")
+        from ..goal_config.domain import GoalTypeDefinition
+        selected = patch.get("goal_type", self.draft.get("goal_type"))
+        if "goal_type" in patch and (not isinstance(selected, str) or not selected.strip()):
+            raise DomainError("Explicit goal_type must be a nonempty string")
+        if "process" in patch and not isinstance(patch["process"], dict):
+            raise DomainError("Explicit process must be a process definition")
+        if "process_changes" in patch and not isinstance(patch["process_changes"], list):
+            raise DomainError("Explicit process_changes must be a list")
+        explicit = patch.pop("process", None)
+        changes = patch.pop("process_changes", None)
+        if explicit is not None:
+            process = GoalTypeDefinition.parse(explicit).data
+        elif self.process is not None and selected == self.draft.get("goal_type"):
+            process = deepcopy(self.process)
+        elif selected in processes:
             process = deepcopy(processes[selected])
+        elif selected is not None:
+            raise DomainError("Unknown explicit goal_type; supply a task-local process")
         else:
-            process = self.process
+            process = None
+        if changes is not None:
+            if process is None:
+                raise DomainError("Select a process before declaring process_changes")
+            process = GoalTypeDefinition.build(selected, process, changes).data
+        if "planning" in patch:
+            from .planning import validate_planning
+            validate_planning(patch["planning"])
         changes_goal_type = (
             self.process is not None
             and process is not None
@@ -201,9 +256,9 @@ class NewbornTask:
             raise DomainError('Select goal_type before removing draft fields')
         if process is not None:
             # Requirements context belongs to Task planning, not to a goal-type route.
-            allowed = (creation_fields(process) | REQUIREMENTS_CONTEXT_FIELDS) - {'id', 'sprint_id'}
+            allowed = (creation_fields(process) | REQUIREMENTS_CONTEXT_FIELDS | {'planning'}) - {'id', 'sprint_id'}
             required_removals = removals & allowed
-            if required_removals:
+            if required_removals and "planning" not in draft:
                 raise DomainError(
                     f'Cannot remove fields required by target goal_type: '
                     f'{sorted(required_removals)}'
@@ -224,6 +279,8 @@ class NewbornTask:
             raise DomainError("Newborn Task goal_type and process snapshot disagree")
         if self.claimed_by not in (None, actor):
             raise DomainError("Newborn Task is owned by another session")
+        from .planning import require_revision
+        require_revision(draft, process, self.restart_history)
         return replace(self, version=self.version + 1, draft=draft, process=process,
                        claimed_by=actor)
 
@@ -295,4 +352,5 @@ class NewbornTask:
             "route_entry": None if self.process is None else self.process["route"]["entry"],
             "ready": self.ready,
             "draft": deepcopy(self.draft),
+            **({"process": deepcopy(self.process)} if "planning" in self.draft else {}),
         }

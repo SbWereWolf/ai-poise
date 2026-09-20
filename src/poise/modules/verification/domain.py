@@ -163,10 +163,10 @@ def _validate_plan(method: dict, where: str, stage_ids: tuple[str, ...] | None =
     if plan['green_stages'] and method['expected_exit_code'] != 0:
         raise DomainError(f'{where}.verification_plan.green_stages требуют expected_exit_code=0')
     if (not surface and isinstance(source, dict) and source.get('kind') == 'repository'
-            and (plan['red_stages'] or plan['green_stages'] != ['baseline'])):
+            and (plan['red_stages'] or len(plan['green_stages']) != 1)):
         raise DomainError(
             f'{where}.verification_plan.change_surface: repository baseline guard '
-            'требует единственный GREEN stage baseline как route entry и не допускает RED'
+            'требует единственный GREEN stage как route entry и не допускает RED'
         )
 
 

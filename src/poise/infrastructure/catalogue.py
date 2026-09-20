@@ -34,6 +34,14 @@ class FileCatalogue:
 
     def configured_process(self,goal_type):return read_document(self.editor.target(goal_type))
 
+    def task_selection(self, goal_type):
+        matches = [{'id': ident, 'version': entry['version'], 'digest': entry['digest']}
+                   for ident, entry in self.raw['task_templates'].items()
+                   if entry['goal_type'] == goal_type]
+        if len(matches) != 1:
+            raise PoiseError('Select exactly one registered Task starter for this goal type')
+        return matches[0]
+
     def task_blueprint(self,selection):
         exact_keys(selection,{'id','version','digest'},'task template selection')
         if selection['id'] not in self.raw['task_templates']:raise PoiseError('Unregistered task template')

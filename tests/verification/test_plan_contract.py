@@ -48,7 +48,7 @@ def test_new_method_without_verification_plan_is_rejected():
     ("mutate", "token"),
     [
         (lambda plan: plan.update(responsibility=""), "responsibility"),
-        (lambda plan: plan.update(change_surface=[]), "change_surface"),
+        (lambda plan: plan.update(change_surface=["../outside"]), "change_surface"),
         (lambda plan: plan.update(green_stages=["unknown"]), "unknown"),
         (lambda plan: plan.update(green_stages=["product_change", "product_change"]), "green_stages"),
         (lambda plan: plan.update(red_stages=["tests_written"], red_failure=None), "red_failure"),

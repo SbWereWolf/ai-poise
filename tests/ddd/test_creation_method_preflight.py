@@ -565,3 +565,27 @@ def test_invalid_exact_replay_stays_empty_and_corrected_new_request_uses_digest(
     assert result["task"] == "0001"
     assert record["creation_request"]["digest"]
     assert record["contract"]["method_inputs"] == corrected["method_inputs"]
+
+
+def test_distinct_pytest_selectors_share_one_declared_file():
+    """Input identity is the file; callable selections stay in the command."""
+    from poise.modules.tasks.creation_preflight import MethodInputs
+
+    path = 'tests/transfer/test_paths.py'
+    method = _method(path + '::test_first')
+    method['argv'].append(path + '::test_second')
+    original = deepcopy(method)
+    parsed = MethodInputs.parse(_inputs(baseline=(path,))[0], method)
+    assert parsed.repository_inputs == (path,)
+    assert parsed.references == (path,)
+    assert method == original
+
+
+def test_duplicate_pytest_inputs_still_reject_conflicting_classification():
+    from poise.modules.tasks.creation_preflight import MethodInputs
+
+    path = 'tests/transfer/test_paths.py'
+    method = _method(path + '::test_first')
+    method['argv'].append(path + '::test_second')
+    with pytest.raises(DomainError, match='baseline/future classification conflict'):
+        MethodInputs.parse(_inputs(baseline=(path,), future=((path, 'producer'),))[0], method)

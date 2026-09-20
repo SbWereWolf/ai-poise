@@ -135,7 +135,8 @@ def parse_request(value, config):
         action = value['input'].get('action') if isinstance(value['input'],dict) else None
         if action not in task_shapes:
             raise DomainError('Unknown Task action')
-        exact(value['input'], task_shapes[action], f'task {action} input')
+        optional = ({'goal_type', 'patch'} & set(value['input'])) if action == 'create' else set()
+        exact(value['input'], task_shapes[action] | optional, f'task {action} input')
     # Bound all object collections, not just top-level operations.
     def check(node):
         if isinstance(node,(list,dict)):

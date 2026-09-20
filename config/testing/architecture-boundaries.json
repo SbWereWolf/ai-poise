@@ -9,7 +9,8 @@
         "src/poise/modules/inspection/*.py",
         "src/poise/modules/skills/*.py",
         "src/poise/modules/verification/*.py",
-        "src/poise/modules/tasks/duplicates.py"
+        "src/poise/modules/tasks/duplicates.py",
+        "src/poise/modules/tasks/planning.py"
       ],
       "forbidden_imports": [
         "sqlite3",

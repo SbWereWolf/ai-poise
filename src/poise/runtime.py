@@ -233,6 +233,16 @@ class Poise:
     def stage_contract_context(self, task_id):
         return self.task_commands.stage_contract_context(task_id)
 
+    def _task_planning_source(self, goal_type, task_id, sprint_id):
+        from .infrastructure.catalogue import FileCatalogue
+        from .application.catalogue import CatalogueCommands
+        settings = self.cfg.get('task_planning')
+        if settings is None:
+            raise PoiseError('Goal-to-template materialization requires task_planning configuration')
+        repository = FileCatalogue((self.root / settings['catalogue']).resolve())
+        return CatalogueCommands(repository, None, repository.raw['max_items']).materialize_draft(
+            goal_type, task_id, sprint_id, self.processes, settings['restart_revision_policy'])
+
     def task_action(self, args):
         action = args['action']
         self._identifier(args['request_id'])
@@ -249,12 +259,14 @@ class Poise:
                 self._identifier(args['sprint_id'])
             return self.task_commands.create_newborn(
                 args['task_id'], args['sprint_id'], self.session, self.config_hash,
-                args['request_id'],
+                args['request_id'], goal_type=args.get('goal_type'), patch=args.get('patch'),
+                processes=self.processes, planning_source=self._task_planning_source,
             )
         if action == 'edit':
             return self.task_commands.edit_newborn(
                 args['task_id'], self.session, args['expected_revision'], args['patch'],
                 args['remove'], self.processes, self.config_hash, args['request_id'],
+                planning_source=(self._task_planning_source if 'task_planning' in self.cfg else None),
             )
         if action == 'ready':
             return self.task_commands.ready_newborn(
@@ -325,6 +337,7 @@ class Poise:
         if data is None:
             raise PoiseError("Unknown progression Task")
         self.task_commands.reviewer_preflight(task_id, self.session)
+        self._require_report_identity(data)
         entry_tree = self._current_tree(data)
         outcome = self.task_commands.advance_progression(
             task_id,
@@ -674,6 +687,55 @@ class Poise:
         return (Path(self.cfg['git']['repository']) if data['worktree'] is None
                 else Path(data['worktree']))
 
+    def _require_verification_identity(self, data, commit, tree):
+        workspace = self._verification_workspace(data)
+        if (not isinstance(commit, str) or not commit
+                or self._git(workspace, 'rev-parse', 'HEAD') != commit
+                or self._git(workspace, 'rev-parse', 'HEAD^{tree}') != tree
+                or self._tree(workspace) != tree):
+            raise PoiseError(
+                'Commit or code changed after verification; preserve WIP and use '
+                'rework or authorised task/restart, then prove the new commit'
+            )
+
+    def _require_report_identity(self, data):
+        # Terminal replay is historical; it must not need a cleaned-up worktree.
+        if data['status'] not in ('verified', 'accepted'):
+            return
+        report = data['last_report']
+        if (report is None or report.get('verification_commit') != report.get('commit')
+                or not report.get('verification_commit')):
+            raise PoiseError(
+                'Legacy report has no exact commit proof; use authorised task/restart '
+                'and obtain fresh verification without discarding existing artifacts'
+            )
+        self._require_verification_identity(data, report['commit'], report['verified_tree'])
+
+    def _prepare_verification_commit(self, data, tree, changed, message):
+        workspace = self._verification_workspace(data)
+        pending_merge = (data['worktree'] is not None and
+                         self.plan_actions._read_optional_ref(workspace, 'MERGE_HEAD') is not None)
+        needs_commit = self._git(workspace, 'rev-parse', 'HEAD^{tree}') != tree or pending_merge
+        if needs_commit:
+            if data['pending'] is not None:
+                raise PoiseError('Unknown pending check outcome: restore its inputs or use authorised task/restart')
+            if data['worktree'] is None or not (changed or pending_merge):
+                raise PoiseError('Worktree-free or unchanged Task cannot commit repository changes')
+            if not isinstance(message, str) or not re.fullmatch(self.cfg['git']['commit_pattern'], message):
+                raise PoiseError('Сообщение коммита не соответствует правилу проекта')
+            self._git(workspace, 'add', '--all')
+            if self._git(workspace, 'write-tree') != tree:
+                raise PoiseError('Индекс не равен проверяемому дереву')
+            actor = {'GIT_AUTHOR_NAME': self.cfg['git']['author_name'],
+                     'GIT_AUTHOR_EMAIL': self.cfg['git']['author_email'],
+                     'GIT_COMMITTER_NAME': self.cfg['git']['author_name'],
+                     'GIT_COMMITTER_EMAIL': self.cfg['git']['author_email']}
+            self._git(workspace, 'commit', '-m', message, env={**os.environ, **actor})
+        commit = self._git(workspace, 'rev-parse', 'HEAD')
+        # A hook may change the candidate; never call that change tested.
+        self._require_verification_identity(data, commit, tree)
+        return commit
+
     def _task(self) -> dict:
         task = self.store.current(self.session)
         if task is None:
@@ -1010,6 +1072,7 @@ class Poise:
                 raise PoiseError('Решение должно быть continue или rework')
             entry_tree = self._current_tree(data)
             if decision == 'continue':
+                self._require_report_identity(data)
                 state = self.runner.accept(data['id'], self.session, True, entry_tree,force_duplicate_start=force_duplicate_start)
                 data = self.task_queries.record(data['id'])
                 if state.status == 'completed':
@@ -1066,6 +1129,7 @@ class Poise:
                 {'stage': self._stage(data)['id'], 'status': result['status'],
                  'completion_kind': 'duplicate_reuse'})
             return result
+        self._require_report_identity(data)
         self.runner.accept(data['id'], self.session, False, None)
         data = self.task_queries.record(data['id'])
         self.store.event(self.session, data['id'], 'user.accept',
@@ -1268,6 +1332,7 @@ class Poise:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
+            self._require_report_identity(data)
             if packet_digest is not None and self.work_resources.packet(data)!=packet_digest:
                 raise PoiseError('Different work packet after delivery requires rework')
             if tree != data['last_report']['verified_tree']:
@@ -1336,6 +1401,7 @@ class Poise:
             changed = scope_state['changed']
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
+        commit = self._prepare_verification_commit(data, tree, changed, payload['commit_message'])
         checks = self._select_checks(data, changed)
         invocations, execution_key = self._verification_execution(
             data, tree, checks, worktree
@@ -1409,6 +1475,7 @@ class Poise:
                 raise PoiseError('Unknown check outcome: immutable receipt files changed before finalization')
             self.runner.record_observations(data['id'],self.session,tree,execution_key,receipts)
             data = self._task()
+        self._require_verification_identity(data, commit, tree)
         if not self._usable_receipts(data['id'], receipts, invocations, tree):
             return {'status':'checks_failed','task':data['id'],'stage':stage['id'],'attempt':attempt,'checks':receipts,'replayed':False}
         if self._current_tree(data) != tree:
@@ -1439,7 +1506,7 @@ class Poise:
             self.plan_actions.commands.record_assessment(data['id'],self.session,tree,action)
             data=self._task()
         publication = {'tree':tree,'payload_hash':payload_hash,'execution_key':execution_key,'checks':receipts,'artifacts':artifacts,
-                       'attempt':attempt,'commit_message':payload['commit_message'],'changed':changed,'commit':None}
+                       'attempt':attempt,'commit_message':payload['commit_message'],'changed':changed,'commit':commit}
         if action is not None and 'allocations' in action:
             publication['allocations']=action['allocations']
         data['publication'] = publication; self.store.save(data)
@@ -1486,7 +1553,11 @@ class Poise:
 
     def _verification_execution(self, data, tree, checks, worktree):
         invocations = self._invocations(checks, worktree)
+        commit = self._git(worktree, 'rev-parse', 'HEAD')
+        for invocation in invocations:
+            invocation['commit'] = commit
         execution_key = digest({
+            'commit': commit,
             'stage': self._stage(data)['id'],
             'iteration': data['iteration'],
             'tree': tree,
@@ -1522,6 +1593,7 @@ class Poise:
             method=invocation['method']
             expected={
                 'argv': method['argv'],
+                'commit': invocation['commit'],
                 'cwd': invocation['cwd'],
                 'expectation_digest': invocation['expectation_digest'],
                 'expected_exit_code': method['expected_exit_code'],
@@ -1575,7 +1647,7 @@ class Poise:
 
     def _usable_receipts(self, task_id, receipts, invocations, tree):
         return self._intact_receipts(task_id, receipts, invocations, tree) and all(
-            r['interpretable'] and (not r['guard'] or r['passed'])
+            r['interpretable'] and r.get('source_unchanged') is True and (not r['guard'] or r['passed'])
             for r in receipts
         )
 
@@ -1603,6 +1675,7 @@ class Poise:
             if run['started']:
                 receipts.append(recorded[run_id])
                 continue
+            self._require_verification_identity(data, invocation['commit'], tree)
             run_dir=descendant(roots['task'],self.paths['runs'])/run_id
             declared_output_dir = run_dir / 'declared-outputs'
             declared_output_dir.mkdir(parents=True, exist_ok=True)
@@ -1632,6 +1705,9 @@ class Poise:
                 progress_gap_seconds=timeout_selection['progress_gap_seconds'],
                 poll_seconds=timeout_selection['poll_seconds'],
             )
+            observed_commit = self._git(self._verification_workspace(data), 'rev-parse', 'HEAD')
+            source_unchanged = (observed_commit == invocation['commit']
+                                and self._tree(self._verification_workspace(data)) == tree)
             outputs, outputs_complete = capture_declared_outputs(
                 method.get('outputs', []), declared_output_dir, run_dir / 'outputs'
             )
@@ -1641,7 +1717,9 @@ class Poise:
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
                                all(contains(Path(result['stderr']),t) for t in rule['stderr_contains'])
                                for rule in method['observation_rules']))
-            receipt={**result,'attempt_id':attempt['attempt_id'],
+            receipt={**result,'commit':invocation['commit'],
+                     'observed_commit_after':observed_commit,'source_unchanged':source_unchanged,
+                     'attempt_id':attempt['attempt_id'],
                      'submission_digest':attempt['submission_digest'], 'execution_key':attempt['execution_key'],
                      'interpretable':interpretable,'id':run_id,'method':method['id'],'obligations':method['obligations'],'guard':method['guard'],
                      'argv':method['argv'],'cwd':invocation['cwd'],'expected_exit_code':method['expected_exit_code'],
@@ -1675,26 +1753,8 @@ class Poise:
             if not gate['passed']:
                 return self._content_blocked(data,gate,publication['checks'])
         publication['artifacts'] = current_artifacts
-        sha = data['base'] if data['worktree'] is None else self._git(worktree,'rev-parse','HEAD')
-        pending_merge = (False if data['worktree'] is None else
-                         self.plan_actions._read_optional_ref(worktree,'MERGE_HEAD') is not None)
-        if data['worktree'] is None and publication['changed']:
-            raise PoiseError('Worktree-free Task cannot publish repository changes')
-        if publication['changed'] or pending_merge:
-            if self._git(worktree,'rev-parse','HEAD^{tree}') != tree or pending_merge:
-                self._git(worktree,'add','--all')
-                if self._git(worktree,'write-tree') != tree:
-                    raise PoiseError('Индекс не равен проверенному дереву')
-                actor = {'GIT_AUTHOR_NAME':self.cfg['git']['author_name'],
-                         'GIT_AUTHOR_EMAIL':self.cfg['git']['author_email'],
-                         'GIT_COMMITTER_NAME':self.cfg['git']['author_name'],
-                         'GIT_COMMITTER_EMAIL':self.cfg['git']['author_email']}
-                self._git(worktree,'commit','-m',publication['commit_message'],env={**os.environ,**actor})
-                sha = self._git(worktree,'rev-parse','HEAD')
-            publication['commit'] = sha; data['publication'] = publication; self.store.save(data)
-            if self._git(worktree,'rev-parse','HEAD^{tree}') != tree or self._tree(worktree) != tree:
-                self.store.event(self.session,data['id'],'incident.tree_changed_during_commit',{'commit':sha,'tested_tree':tree})
-                raise PoiseError('Коммит/hook изменил проверенное дерево; remote publication не выполнялась')
+        sha = publication.get('commit')
+        self._require_verification_identity(data, sha, tree)
         # Только task/sprint links переживают cleanup. Runtime пути остаются временными.
         permanent = [r for r in publication['artifacts'] if r['scope']!='runtime']
         workflow = self.runner.context(data['id'])
@@ -1703,7 +1763,7 @@ class Poise:
         self.result_views.finish()
         report = {'action':self.plan_actions.snapshot(data), 'evidence':workflow['evidence'], 'handler':workflow['handler'], 'stage_outcome':workflow['outcome'], 'next_stage':workflow['next_stage'],
                   'feedback':workflow['feedback'], 'status':'verified','task':data['id'],'stage':stage['id'],'iteration':data['iteration'],
-                  'attempt':publication['attempt'],'commit':sha,'verified_tree':tree,'checks':publication['checks'],
+                  'attempt':publication['attempt'],'commit':sha,'verification_commit':sha,'verified_tree':tree,'checks':publication['checks'],
                   'artifacts':[{'id':r['id'],'path':r['path']} for r in permanent],
                   'replayed':False,'next_work':'доложить пользователю; следующий этап не начинать'}
         if 'allocations' in publication:report['allocations']=publication['allocations']

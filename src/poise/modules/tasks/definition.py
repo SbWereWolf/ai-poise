@@ -98,7 +98,11 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
         raise DomainError(
             f"methods {method_ids}: method_inputs declaration missing; declare one entry for every method"
         )
-    exact_keys(contract, creation_fields(process), 'task')
+    extra = {'planning'} if 'planning' in contract else set()
+    exact_keys(contract, creation_fields(process) | extra, 'task')
+    if extra:
+        from .planning import validate_planning
+        validate_planning(contract['planning'])
     path_identifier(contract['id'])
     if contract['sprint_id'] is not None:path_identifier(contract['sprint_id'])
     GoalTypeDefinition.parse(process)

@@ -37,6 +37,28 @@ class CatalogueCommands:
         for request in prepared:results.append(self.editor.apply_batch(request))
         return {'status':'installed','results':results,'count':len(results)}
 
+    def materialize_draft(self, goal_type, task_id, sprint_id, processes, revision_policy):
+        """Goal selection is declarative; template revisions are resolved by the owner."""
+        from ..modules.tasks.planning import validate_planning
+        selection = self.repository.task_selection(goal_type)
+        blueprint = self.repository.task_blueprint(selection)
+        # Identity and membership are mechanical. No requirement text is fabricated.
+        supplied = {}
+        for field, value in (('id', task_id), ('sprint_id', sprint_id)):
+            binding = blueprint.data['task'].get(field)
+            if isinstance(binding, dict) and set(binding) == {'$input'}:
+                supplied[binding['$input']] = value
+        draft = blueprint.materialize_draft(supplied)
+        draft.pop('id', None)
+        draft.pop('sprint_id', None)
+        draft['planning'] = validate_planning({
+            'schema': 'task-planning-1', 'template': selection,
+            'restart_revision_policy': deepcopy(revision_policy),
+        })
+        process = (deepcopy(processes[goal_type]) if goal_type in processes
+                   else self.repository.process_template(self.repository.process_selection(goal_type)))
+        return draft, process
+
     def tasks(self,items,processes,automatic_checks,decomposition_policy):
         self._batch(items);tasks=[];ids=set()
         for item in items:

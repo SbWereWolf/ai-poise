@@ -458,6 +458,10 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                 self._exact_task(task_id)
                 return self.task
 
+            def is_newborn(self, task_id):
+                self._exact_task(task_id)
+                return self.newborn is not None
+
             def load_newborn(self, task_id):
                 self._exact_task(task_id)
                 if self.newborn is None:

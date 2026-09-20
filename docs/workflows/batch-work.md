@@ -180,11 +180,16 @@ snapshot уже возвращён адресным `bootstrap`.
 
 ## Планирование Task из шаблона
 
-Целевой контракт создания отделяет **template provenance** от **resolved Task contract**. Агент выбирает `goal_type`; harness подставляет подходящий template и материализует полноценный newborn draft, чтобы не заставлять агента вручную собирать типовые поля. После этого template не является whitelist допустимой задачи: до `ready` планировщик может одним/несколькими декларативными `edit` переработать все task-owned mutable части draft, включая scope, requirements, DoD, checks, artifact obligations, stage contracts и выбранный process. Если типовой process не подходит, планировщик должен иметь штатный способ выбрать или задать валидный task-local process; создавать новый глобальный template только ради одной уникальной Task не требуется.
+Публичный `task/create` принимает дополнительные `goal_type` и `patch`. При явно
+подключённом `task_planning` harness материализует starter из каталога; planner
+редактирует Task draft и локальный process до `ready`. `task/edit` поддерживает
+`process` и `process_changes`; исходный template больше не является whitelist.
+`planning` фиксирует происхождение и допустимые reviewer/user изменения при restart.
+Полный [исполнимый контракт, примеры и границы](task-planning.md) описывают фиксацию
+ready newborn в Sprint, повторный restart и пересогласование Requirements.
 
-При проектировании также задаётся неизменяемая после `ready` **restart revision policy**: какие части frozen Task contract проверяющий вправе менять при санкционированном restart. `ready` фиксирует resolved contract и эту policy. Runtime после этого проверяет resolved contract, а не исходный template. Исполнитель не расширяет policy сам. Пользователь может явно разрешить более широкую Task revision; глобальные project/harness rules меняются отдельным пользовательским решением.
-
-Эта гибкость **ещё не реализована** текущими DTO/process validators на `f982561`: существующие ограничения нельзя обходить ручной правкой DB/config. После реализации через публичные owners ранее созданные тестовые maintenance Task `0159`–`0163` должны быть штатно перезапущены/пересобраны через Task lifecycle, чтобы проверить новый путь на реальных случаях, где прежняя конструкция была слишком жёсткой.
+Существующие полные creation intents и старые Task без planning сохраняют свои
+прежние протоколы. Наличие новой возможности не переписывает их историю автоматически.
 
 ## Автоматическое создание Task
 

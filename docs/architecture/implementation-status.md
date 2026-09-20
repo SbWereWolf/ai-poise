@@ -13,13 +13,22 @@
 
 ## Task planning flexibility — согласованный следующий срез
 
-Согласовано 2026-09-20, **runtime ещё не реализован**. Template должен стать только ускорителем materialization: агент выбирает `goal_type`, harness создаёт полный newborn draft, затем планировщик свободно перерабатывает task-owned mutable contract до `ready`. Существующие template/process restrictions `f982561` не считаются новой возможностью и не обходятся прямой правкой SQLite/config.
+Runtime-часть проектирования реализована: goal type материализует Task-owned draft,
+planner меняет его границы и process, ready фиксирует результат, авторизованный restart
+открывает только разрешённые прежней policy изменения. Используются существующие
+Task, catalogue, process validator и транзакции; новая SQLite schema не введена.
+Полный [контракт runtime](../workflows/task-planning.md) отделяет работающие действия
+от оставшихся ограничений. Историческое имя раздела сохранено для входящих ссылок.
 
-Целевой `ready` замораживает resolved Task contract и заранее определённую restart revision policy. Обычное исполнение не меняет их. При доказанном тупике исполнитель может предложить проверяющему/пользователю restart и изменение требований/контракта; reviewer действует в пределах policy, пользователь может разрешить более широкую Task revision. Предложения изменить project/harness rules передаются пользователю и реализуются только после его согласия.
+System → Application → Task поддерживает явно пустые future-узлы без новых уровней;
+они сохраняют связи и отображаются как gaps. Доставка артефактов при reuse сохранена.
+Обычный verify теперь создаёт локальный commit-кандидат **до** проверок и сохраняет
+exact-commit identity в execution key, receipt и report. Приёмка, replay и продвижение
+повторно проверяют hash и дерево; сохранённый legacy report без этой привязки требует
+штатного restart вместо приписывания старому evidence новой достоверности.
 
-Requirements остаются трёхуровневыми `System → Application → Task`. Проектируемые (`future`) цепочки должны поддержать typed empty placeholders любого отсутствующего уровня System/Application/Task без введения нового уровня; placeholders видимы как gaps и не считаются current coverage. Evidence/artifact reuse должен стать owner-driven; repository evidence привязывается к точному commit hash и требует нового доказательства после изменения hash.
-
-После поставки этого среза использовать сохранённые maintenance Task `0159`–`0163` как реальный acceptance path: без ручной DB правки штатно restart/re-edit/ready (или пересоздать только там, где это требует публичный контракт) и проверить, что прежние template/process ограничения больше не мешают корректному проектированию.
+Сохранённые maintenance Task 0159–0163 используются для штатного restart/re-edit/ready
+после поставки; чужое владение не снимается догадкой о завершении сессии.
 
 ## Explicit newborn field removal — task 0110
 

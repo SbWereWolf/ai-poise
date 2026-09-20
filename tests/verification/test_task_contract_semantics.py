@@ -150,6 +150,26 @@ def test_trace_can_be_planned_but_is_required_before_code():
         assert policy.evaluate(stage, "pre", planned, ()).passed
 
 
+@pytest.mark.parametrize('entry_name', ['reproduce', 'initial_observation'])
+def test_empty_surface_observation_accepts_planner_named_entry(entry_name):
+    task, process = definition()
+    previous = process['route']['entry']
+
+    def rename(value):
+        if isinstance(value, str):
+            return entry_name if value == previous else value
+        if isinstance(value, list):
+            return [rename(item) for item in value]
+        if isinstance(value, dict):
+            return {rename(key): rename(item) for key, item in value.items()}
+        return value
+
+    task, process = rename(task), rename(process)
+    validated = validate_creation(task, process, [], decomposition_policy())
+    assert validated['process']['route']['entry'] == entry_name
+    assert validated['contract']['methods'][0]['verification_plan']['change_surface'] == []
+
+
 if __name__ == "__main__":
     if sys.argv[1:] != ["regression"]:
         raise SystemExit("usage: test_task_contract_semantics.py regression")

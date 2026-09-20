@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections.abc import Callable
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import json
 from ..modules.tasks.domain import (
@@ -321,15 +321,37 @@ class TaskCommands:
             uow.tasks.remember_action(task_id,actor,request_id,identity,result)
             return result
 
-    def create_newborn(self, task_id, sprint_id, actor, config_hash, request_id):
+    def create_newborn(self, task_id, sprint_id, actor, config_hash, request_id, *,
+                       goal_type=None, patch=None, processes=None, planning_source=None):
         from ..application.ownership import release_task_in
         from ..modules.sprints.domain import Sprint
-        identity = _action_digest("create", {"task_id": task_id, "sprint_id": sprint_id})
+        intent = {"task_id": task_id, "sprint_id": sprint_id}
+        if goal_type is not None or patch is not None:
+            intent.update(goal_type=goal_type, patch=deepcopy(patch))
+        identity = _action_digest("create", intent)
         newborn = NewbornTask.create(task_id, sprint_id, actor)
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
             if replay is not None:
                 return replay
+            if goal_type is not None or patch is not None:
+                if patch is not None and not isinstance(patch, dict):
+                    raise DomainError('Task creation patch must be an object')
+                changes = deepcopy(patch) if patch is not None else {}
+                mapping = deepcopy(processes) if processes is not None else {}
+                if goal_type is not None:
+                    if not isinstance(goal_type, str) or not goal_type.strip():
+                        raise DomainError('Task goal_type must be a nonempty string')
+                    if 'goal_type' in changes and changes['goal_type'] != goal_type:
+                        raise DomainError('Task goal_type selection conflicts with creation patch')
+                    changes['goal_type'] = goal_type
+                    if 'process' not in changes:
+                        if planning_source is None:
+                            raise DomainError('Task starter source is not configured')
+                        defaults, process = planning_source(goal_type, task_id, sprint_id)
+                        changes = {**defaults, **changes}
+                        mapping[goal_type] = process
+                newborn = newborn.edit(changes, [], mapping, actor)
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
                 release_task_in(uow, actor, before.task_id)
@@ -429,6 +451,28 @@ class TaskCommands:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
             if replay is not None:
                 return {**replay, "replayed": True}
+            if uow.tasks.is_newborn(task_id):
+                current = uow.tasks.load_newborn(task_id)
+                if current.version != expected_version:
+                    raise VersionConflict("Task restart version changed")
+                target = uow.ownership.preflight(actor, task_id)
+                if target.worktree_owner not in (None, actor):
+                    raise DomainError('Task workspace is owned by another session; handoff is required')
+                if (isinstance(authorization, dict) and authorization.get('role') == 'reviewer'
+                        and (current.draft.get('planning') is not None or current.restart_history)):
+                    reviewer = uow.tasks.review_identity(task_id, include_unsubmitted=True)
+                    if reviewer is not None and reviewer['executor_actor'] in (None, actor):
+                        raise DomainError('Task restart requires a distinct reviewer or user decision')
+                changed = current.restart_draft(actor, reason, authorization)
+                before = uow.ownership.snapshot(actor)
+                if before.task_id not in (None, task_id):
+                    release_task_in(uow, actor, before.task_id)
+                context = uow.tasks.restart_context(task_id)
+                uow.tasks.save_newborn(changed, current.version, context['config_hash'],
+                                       'restarted_newborn')
+                result = {**changed.describe(), 'replayed': False}
+                uow.tasks.remember_action(task_id, actor, request_id, identity, result)
+                return result
             task = uow.tasks.load(task_id)
             if task.state.version != expected_version:
                 raise VersionConflict("Task restart version changed")
@@ -438,6 +482,12 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Task worktree is owned by another session; handoff is required")
             context = uow.tasks.restart_context(task_id)
+            if (context['contract'].get('planning') is not None
+                    and isinstance(authorization, dict)
+                    and authorization.get('role') == 'reviewer'):
+                reviewer = uow.tasks.review_identity(task_id, include_unsubmitted=True)
+                if reviewer is not None and reviewer['executor_actor'] in (None, actor):
+                    raise DomainError('Task restart requires a distinct reviewer or user decision')
             restart_contract = deepcopy(context["contract"])
             if context["requirements_snapshot"] is not None:
                 restart_contract["requirements_snapshot"] = deepcopy(
@@ -539,6 +589,9 @@ class TaskCommands:
             raise DomainError("stage contract revision reason is required")
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
+            context = uow.tasks.restart_context(task_id)
+            if context['contract'].get('planning') is not None:
+                raise DomainError('Frozen Task planning contract requires authorized restart')
             old = task._require_stage_contracts().stage(stage_id).to_dict()
             audit = {
                 "action": "revise_stage_contract",
@@ -588,7 +641,7 @@ class TaskCommands:
             return uow.tasks.stage_contract_context(task_id)
 
     def edit_newborn(self, task_id, actor, expected_revision, patch, remove, processes,
-                     config_hash, request_id):
+                     config_hash, request_id, *, planning_source=None):
         from ..application.ownership import release_task_in
         if type(expected_revision) is not int:
             raise DomainError('Newborn edit requires expected_revision')
@@ -611,7 +664,22 @@ class TaskCommands:
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
                 release_task_in(uow, actor, before.task_id)
-            changed = newborn.edit(patch, remove, processes, actor)
+            effective_patch = deepcopy(patch)
+            effective_processes = processes
+            if (planning_source is not None and isinstance(patch, dict)
+                    and 'goal_type' in patch and 'process' not in patch
+                    and (newborn.process is None or patch['goal_type'] != newborn.draft.get('goal_type'))):
+                defaults, process = planning_source(patch['goal_type'], task_id, newborn.sprint_id)
+                effective_patch = {**{key: value for key, value in defaults.items()
+                                     if key not in newborn.draft}, **patch}
+                effective_processes = {**processes, patch['goal_type']: process}
+            changed = newborn.edit(effective_patch, remove, effective_processes, actor)
+            if (newborn.process is not None and changed.process is not None
+                    and newborn.process['worktree_required'] != changed.process['worktree_required']
+                    and uow.execution.exists(task_id)):
+                raise DomainError(
+                    'Restart preserves the allocated workspace; changing worktree_required '
+                    'requires resolving that resource through its owner, not a draft edit')
             uow.tasks.save_newborn(changed, newborn.version, config_hash, 'newborn_edited')
             result = changed.describe()
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
@@ -639,20 +707,27 @@ class TaskCommands:
             contract = {'id':task_id, 'sprint_id':newborn.sprint_id, **deepcopy(newborn.draft)}
             snapshot = newborn
             context = uow.tasks.restart_context(task_id)
-            effective_hash = context['config_hash'] if newborn.restart_history else config_hash
+            executed_restart = any(item.get('from_status') != 'newborn' for item in newborn.restart_history)
+            effective_hash = context['config_hash'] if executed_restart else config_hash
             effective_checks = automatic_checks
             effective_decomposition = decomposition_policy
             restart_base = None
             if newborn.restart_history and uow.execution.exists(task_id):
                 restart_base = uow.execution.load(task_id)[0]['base']
-            if newborn.sprint_id is not None and newborn.restart_history:
+            if newborn.sprint_id is not None and executed_restart:
                 sprint = uow.sprints.get(newborn.sprint_id)
                 if sprint is None or sprint['aggregate']['state'] != 'published':
                     raise DomainError('Restarted Sprint Task requires its published Sprint')
                 effective_checks = sprint['automatic_checks']
                 effective_decomposition = sprint['task_decomposition']
         base_revision = restart_base if restart_base is not None else creation_base()
-        if newborn.restart_history:
+        from ..modules.tasks.planning import require_revision
+        resolved_revision = require_revision(contract, snapshot.process, snapshot.restart_history)
+        frozen_context_unchanged = (
+            contract.get('requirements_snapshot') == context['requirements_snapshot']
+            and contract.get('requirements_agreement') == context['requirements_agreement']
+        )
+        if executed_restart and (resolved_revision is None or frozen_context_unchanged):
             prepared = self._prepare_restarted_creation(
                 contract,
                 snapshot.process,
@@ -685,24 +760,28 @@ class TaskCommands:
                 metadata['creation_request'] = deepcopy(newborn.creation_request)
             if newborn.restart_history:
                 metadata['restart_history'] = list(deepcopy(newborn.restart_history))
+                if resolved_revision is not None:
+                    metadata['restart_history'][-1]['resolved_revision'] = resolved_revision
             if newborn.stage_contract_history:
                 metadata['stage_contract_history'] = list(
                     deepcopy(newborn.stage_contract_history)
                 )
-            if newborn.sprint_id is not None and not newborn.restart_history:
+            if newborn.sprint_id is not None and not executed_restart:
                 ready = newborn.mark_ready()
+                if resolved_revision is not None:
+                    ready = replace(ready, restart_history=tuple(metadata['restart_history']))
                 uow.tasks.save_newborn(ready, newborn.version, effective_hash, 'newborn_ready')
                 result = ready.describe()
                 uow.tasks.remember_action(task_id, actor, request_id, identity, result)
                 return result
             task = build_task(metadata, None)
+            if newborn.restart_history and restart_base is not None:
+                from ..application.ownership import release_dependent_worktree_in
+                release_dependent_worktree_in(uow, actor, task_id)
             uow.tasks.promote_newborn(task, metadata, newborn.version)
             self.requirements_gate.publish_created(
                 uow, task_id, prepared.requirements_context
             )
-            if newborn.restart_history and restart_base is not None:
-                from ..application.ownership import release_dependent_worktree_in
-                release_dependent_worktree_in(uow, actor, task_id)
             result = {
                 'status':'available','task':task_id,'revision':newborn.version + 1,
                 'sprint':newborn.sprint_id,'claimed_by':None,'goal_type':contract['goal_type'],

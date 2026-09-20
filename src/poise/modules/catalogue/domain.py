@@ -69,6 +69,16 @@ class TaskBlueprint:
             raise DomainError('Task template has a different goal identity')
         return cls(json.dumps(raw,ensure_ascii=False,sort_keys=True,allow_nan=False))
 
+    def materialize_draft(self, values):
+        """Copy known starter values; unresolved parameters remain absent, not fake requirements."""
+        raw = self.data
+        if not isinstance(values, dict) or set(values) - set(raw['parameters']):
+            raise DomainError('Task draft parameters must be declared by its template')
+        for key, value in values.items():
+            _parameter(value, raw['parameters'][key], key)
+        return {key: _render(value, values) for key, value in raw['task'].items()
+                if _references(value) <= set(values)}
+
     def instantiate(self,values,process,automatic_checks,decomposition_policy):
         raw=self.data
         exact_keys(values,set(raw['parameters']),'task template parameters')

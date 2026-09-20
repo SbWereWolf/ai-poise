@@ -180,3 +180,29 @@ SHA-256 архива обзора:
 добавляются как продуктовые баги. Отсутствие автоматического контроля всей политики
 планирования не освобождает агента от её соблюдения; граница текущего graph validator
 описана в [Sprint workflow](../workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
+
+## TEST-CATALOGUE-BASELINE — прежние отказы соседних проверок
+
+**Статус:** парный запуск на df32403 и новом planning runtime даёт те же 50 успехов
+и восемь отказов из 58. Один fixture ожидает `paths.tasks` вместо текущего
+`standalone_tasks`; два route fixtures вызывают Git push в недоступный `backup`;
+пять publication fixtures пытаются выполнить review тем же PLANNER. Assertions
+не ослаблены. Сравнение не означает исправления этих сценариев; нужны адресные
+исправления подготовки через согласованный maintenance workflow.
+
+В `test_registry_contract` сценарий historical_task_context на df32403 также
+останавливается на неполном Task double (`duplicate_reuse` отсутствует). Дополнение
+нового `is_newborn` к протоколу double в planning-правке не устраняет прежний отказ.
+Парные логи/JUnit входят в контрольную точку FLEX RUNTIME.
+
+## TEST-LEGACY-WORK-BASELINE — соседние старые work/happy-path сценарии
+
+**Статус:** семь одинаковых отказов на сохранённом FLEX RUNTIME 007 и версии
+с exact-commit proof; не исправлены этим изменением. Два content-additions сценария
+ожидают блокировку/активный candidate, третий использует несовпадающие decomposition
+phases. Четыре happy-path сценария расходятся с текущим newborn/ownership состоянием,
+ранней проверкой method schedule или переиспользованием уже сохранённого failed batch.
+Парный адресный запуск воспроизвёл все семь до и после изменения; это не утверждение
+правильности их контрактов. Причины требуют отдельной maintenance-задачи после разбора,
+а не ослабления assertion. Primary evidence: FLEX RUNTIME `proof-runtime-regression.xml`
+и `pre-proof-failures.xml`.

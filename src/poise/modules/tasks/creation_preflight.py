@@ -83,7 +83,8 @@ def _pytest_references(method, method_id):
             continue
         reference = argument.split("::", 1)[0]
         references.append(_path(reference, method_id))
-    return tuple(references)
+    # Several callable selectors may name the same repository input.
+    return tuple(dict.fromkeys(references))
 
 
 def _unittest_discover_references(method, method_id):
@@ -222,6 +223,12 @@ class CreationPreflight:
         parsed = tuple(MethodInputs.parse(by_id[method["id"]], method) for method in methods)
         route = RouteDefinition.from_process(process)
         stages = {stage["id"]: stage for stage in process["stages"]}
+        # The planner's resolved Task scope, not the starter process's suggestion.
+        if 'planning' in contract:
+            scopes = {item['stage_id']: item['allowed_paths']
+                      for item in contract.get('stage_contracts', [])}
+            stages = {key: {**stage, 'allowed_paths': scopes.get(key, [])}
+                      for key, stage in stages.items()}
         for inputs in parsed:
             execution_stages = tuple(
                 stage["id"] for stage in process["stages"]

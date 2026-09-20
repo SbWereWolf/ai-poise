@@ -149,7 +149,14 @@
           "src/poise/modules/tasks/ports.py",
           "src/poise/artifacts.py",
           "src/poise/infrastructure/task_paths.py",
-          "src/poise/modules/content_requirements/domain.py"
+          "src/poise/modules/content_requirements/domain.py",
+          "src/poise/modules/tasks/planning.py",
+          "src/poise/modules/tasks/definition.py",
+          "src/poise/modules/tasks/creation_preflight.py",
+          "src/poise/modules/goal_config/domain.py",
+          "src/poise/application/catalogue.py",
+          "src/poise/infrastructure/catalogue.py",
+          "src/poise/modules/catalogue/domain.py"
         ],
         "tests": [
           "tests/runtime_services/test_*.py"

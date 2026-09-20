@@ -106,7 +106,15 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
-    exact_keys(cfg, keys | ({'task_ids', 'development_routing', 'source_reader', 'telemetry_delivery'} & cfg.keys()), 'project config')
+    exact_keys(cfg, keys | ({'task_ids', 'development_routing', 'source_reader', 'telemetry_delivery', 'task_planning'} & cfg.keys()), 'project config')
+    if 'task_planning' in cfg:
+        from .modules.tasks.planning import validate_planning
+        settings = cfg['task_planning']
+        exact_keys(settings, {'catalogue', 'restart_revision_policy'}, 'task_planning')
+        if not isinstance(settings['catalogue'], str) or not settings['catalogue'].strip():
+            raise PoiseError('task_planning.catalogue requires an explicit path')
+        validate_planning({'schema': 'task-planning-1', 'template': None,
+                           'restart_revision_policy': settings['restart_revision_policy']})
     if 'telemetry_delivery' in cfg:
         from .modules.accounting.delivery import TelemetryDeliveryPolicy
         delivery = cfg['telemetry_delivery']

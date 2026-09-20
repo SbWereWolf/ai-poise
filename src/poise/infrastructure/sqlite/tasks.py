@@ -132,7 +132,7 @@ class SqliteTaskRepository:
         return TaskState(task_id, prior["stage_index"], prior["iteration"],
                          TaskStatus.parse(prior["status"]), prior["claimed_by"], prior["version"], digest)
 
-    def review_identity(self, task_id: str) -> dict | None:
+    def review_identity(self, task_id: str, *, include_unsubmitted=False) -> dict | None:
         """Read the last produced result's actor, not a later relay's identity."""
         row = self.db.execute(
             "SELECT r.submission_id,r.data,s.stage,s.iteration FROM task_results r "
@@ -141,7 +141,19 @@ class SqliteTaskRepository:
             "ORDER BY s.seq DESC LIMIT 1", (task_id,),
         ).fetchone()
         if row is None:
-            return None
+            if not include_unsubmitted:
+                return None
+            started = self.db.execute(
+                "SELECT data FROM task_events WHERE task_id=? "
+                "AND json_extract(data,'$.event')='started' ORDER BY seq DESC LIMIT 1",
+                (task_id,),
+            ).fetchone()
+            if started is None:
+                return None
+            data = json.loads(started['data'])
+            return {'executor_actor': data.get('actor'), 'source': 'started_task_event',
+                    'stage': data['stage'], 'iteration': data['iteration'],
+                    'submission_id': None}
         event = self.db.execute(
             "SELECT data FROM task_events WHERE task_id=? "
             "AND json_extract(data,'$.event')='verified' "
@@ -440,7 +452,7 @@ class SqliteTaskRepository:
             "config_hash": metadata["config_hash"],
             "contract": deepcopy(metadata.get("contract")),
             "creation_request": deepcopy(metadata.get("creation_request")),
-            "process": deepcopy(metadata["process"]),
+            "process": deepcopy(metadata.get("process")),
             "requirements_agreement": deepcopy(
                 metadata.get("requirements_agreement")
             ),
@@ -920,7 +932,7 @@ class SqliteTaskRepository:
                     "submission": submission_id}
             if event.kind == "user_cancel":
                 data["previous"] = dict(prior)
-            if event.kind == "verified":
+            if event.kind in ("verified", "started"):
                 data["actor"] = state.claimed_by
             self._event(state.task_id, state.version, data)
         return submission_id

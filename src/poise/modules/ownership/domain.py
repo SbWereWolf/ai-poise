@@ -91,3 +91,42 @@ def legacy_releases(intent, component):
     if not released:
         raise PoiseError('Ownership repair must resolve an actual conflict')
     return released
+
+
+CRASH_RECOVERY_FIELDS = frozenset({
+    'mode', 'request_id', 'task_ids', 'expected_snapshot', 'reason',
+    'writers_stopped', 'authorization',
+})
+
+
+def recovery_task_ids(value):
+    from ..foundation.errors import PoiseError
+    if (not isinstance(value, list) or not value
+            or any(not isinstance(t, str) or not t.strip() or '\0' in t for t in value)
+            or len(set(value)) != len(value)):
+        raise PoiseError('Ownership recovery requires unique explicit task_ids')
+    return sorted(value)
+
+
+def parse_crash_recovery(value):
+    """An operator revocation decision, not inferred native session termination."""
+    from copy import deepcopy
+    from ..foundation.errors import PoiseError
+    if not isinstance(value, dict) or set(value) != CRASH_RECOVERY_FIELDS:
+        raise PoiseError('Crash recovery requires an exact decision object')
+    if value['mode'] != 'after_crash' or value['writers_stopped'] is not True:
+        raise PoiseError('Crash recovery requires after_crash and confirmed stopped writers')
+    recovery_task_ids(value['task_ids'])
+    for key in ('request_id', 'expected_snapshot', 'reason'):
+        text = value[key]
+        if not isinstance(text, str) or not text.strip() or '\0' in text:
+            raise PoiseError(f'Crash recovery requires explicit {key}')
+    digest = value['expected_snapshot']
+    if len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+        raise PoiseError('Crash recovery requires an exact snapshot digest')
+    auth = value['authorization']
+    if (not isinstance(auth, dict) or set(auth) != {'role', 'decision'}
+            or auth['role'] != 'user' or not isinstance(auth['decision'], str)
+            or not auth['decision'].strip() or '\0' in auth['decision']):
+        raise PoiseError('Crash ownership recovery requires explicit user authorization')
+    return deepcopy(value)

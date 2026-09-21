@@ -10,7 +10,11 @@ def _conflict(owner, liveness):
         return True
     if state not in (Liveness.LIVE, Liveness.UNCERTAIN):
         raise PoiseError(f"Unknown liveness result for owner {owner}")
-    raise PoiseError(f"Owner {owner} has uncertain live status; ownership was not stolen")
+    raise PoiseError(
+        f"Owner {owner} has uncertain live status; ownership was not stolen; "
+        "after a confirmed crash use show ownership_recovery and "
+        "recover_ownership mode=after_crash with user authorization"
+    )
 
 
 def release_dependent_worktree_in(uow, actor, task_id):
@@ -70,9 +74,64 @@ class OwnershipCommands:
                     _conflict(owner, self.liveness)
             for task in before['tasks']:
                 if task['claimed_by'] is not None and intent['task_claims'][task['id']] is None:
-                    uow.tasks.release_legacy_claim(task['id'], task['version'], task['claimed_by'],
-                                                   actor, intent['request_id'], intent['reason'])
+                    uow.tasks.release_recovery_claim(task['id'], task['version'], task['claimed_by'],
+                                                   actor, intent['request_id'], intent['reason'],
+                                                   'legacy_ownership')
             return uow.ownership.reconcile_legacy(intent, actor, before)
+
+    def recovery_snapshot(self, task_ids):
+        from ..modules.ownership.domain import recovery_task_ids
+        ids = recovery_task_ids(task_ids)
+        with self.uow() as uow:
+            snapshot = uow.ownership.crash_snapshot(ids)
+        owners = {item['actor'] for item in snapshot['revoked']}
+        return {**snapshot, 'observed_liveness': {
+            owner: self.liveness(owner).value for owner in sorted(owners)},
+            'recovery_template': {'operation': 'recover_ownership', 'input': {
+                'mode': 'after_crash',
+                'request_id': 'crash-' + snapshot['expected_snapshot'],
+                'task_ids': ids, 'expected_snapshot': snapshot['expected_snapshot'],
+                'reason': '', 'writers_stopped': False,
+                'authorization': {'role': 'user', 'decision': ''}}, 'messages': []}}
+
+    def recover_after_crash(self, actor, request):
+        from ..modules.ownership.domain import parse_crash_recovery
+        intent = parse_crash_recovery(request)
+        with self.uow() as uow:
+            receipt = uow.ownership.crash_receipt(intent['request_id'])
+            if receipt is not None:
+                if receipt['request'] != intent:
+                    raise PoiseError('Ownership recovery request conflict')
+                return {**receipt['result'], 'replayed': True}
+            before = uow.ownership.crash_snapshot(sorted(intent['task_ids']))
+            if before['expected_snapshot'] != intent['expected_snapshot']:
+                raise PoiseError('Ownership snapshot conflict; inspect the current recovery scope')
+            if not before['revoked']:
+                raise PoiseError('Recovery scope has no abandoned claims')
+            if any(t['status'] in ('completed', 'cancelled') for t in before['tasks']):
+                raise PoiseError('Crash recovery does not change terminal Task ownership')
+            owners = {item['actor'] for item in before['revoked']}
+            if actor in owners:
+                raise PoiseError('Use normal release for your own claims, not crash recovery')
+            observed = {owner: self.liveness(owner) for owner in sorted(owners)}
+            if any(state not in (Liveness.LIVE, Liveness.DEAD, Liveness.UNCERTAIN)
+                   for state in observed.values()):
+                raise PoiseError('Unknown liveness result during crash recovery')
+            # User decision + quiescence overrides stale lifecycle observations.
+            # It never fabricates SessionEnd, clears pending work or accepts a result.
+            for task in before['tasks']:
+                if task['claimed_by'] is not None:
+                    uow.tasks.release_recovery_claim(
+                        task['id'], task['version'], task['claimed_by'], actor,
+                        intent['request_id'], intent['reason'], 'after_crash')
+            for binding in before['worktree_bindings']:
+                uow.ownership.bind_worktree(binding['id'], None)
+            result = {'status': 'ownership_recovered', 'request_id': intent['request_id'],
+                      'task_ids': sorted(intent['task_ids']), 'revoked': before['revoked'],
+                      'replayed': False,
+                      'next_action': 'bootstrap the same Task from a new session; retain pending recovery protocols'}
+            uow.ownership.record_crash_recovery(intent, actor, before, observed, result)
+            return result
 
     def _preflight(self, actor, task_id):
         with self.uow() as uow:
@@ -156,6 +215,14 @@ class OwnershipCommands:
 
 
 class BoundOwnership:
+    def recovery_snapshot(self, task_ids):
+        return self.commands.recovery_snapshot(task_ids)
+
+    def recover(self, request):
+        if 'mode' in request:
+            return self.commands.recover_after_crash(self.actor, request)
+        return self.recover_legacy(request)
+
     def conflicts(self):
         return self.commands.conflicts()
 

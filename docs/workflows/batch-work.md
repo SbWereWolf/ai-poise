@@ -20,7 +20,7 @@
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | recover_artifacts | request_id, task_id, expected_version, artifact_ids, source_roots, reason, authorization | Восстановить зарегистрированные файлы освобождённой Task после смены корней |
-| recover_ownership | request_id, task_ids, expected_snapshot, task_claims, worktree_bindings, reason, authorization | Согласовать один конфликтующий компонент владения старой схемы |
+| recover_ownership | legacy: request_id, task_ids, expected_snapshot, task_claims, worktree_bindings, reason, authorization; after_crash: mode, request_id, task_ids, expected_snapshot, reason, writers_stopped, authorization | Согласовать legacy-компонент либо явно отозвать владение после подтверждённой аварии |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
 | sprint | Поля выбранного action | Создать или изменить Sprint и его зависимости/отмены |
 | accept | пустой объект | Принять verified результат без автоматического продолжения |
@@ -1250,3 +1250,11 @@ Task, submission, evidence, реестра методов, его revision/reque
 исправления входов повторите тот же пакет. Проверка артефактов после выполнения
 команд также остаётся обязательной: ранний preflight не обещает неизменность
 файловой системы и не объединяет Git/файлы и SQLite в одну транзакцию.
+
+## Сброс владения после аварии
+
+`show` с `kind: ownership_recovery` и явными `task_ids` возвращает точный снимок
+и `recovery_template` для режима `recover_ownership/after_crash`. Агент заполняет
+реальное решение пользователя и подтверждение остановки писателей. Сброс, аудит
+и запрет повторного захвата отозванной сессией атомарны; Task и WIP сохраняются.
+Полный [контракт аварийного восстановления](crash-ownership-recovery.md).

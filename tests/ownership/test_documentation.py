@@ -51,3 +51,14 @@ def test_english_agent_projection_links_the_canonical_rule_and_handoff_policy():
         assert canonical_link in body
     assert "directly messages the known counterpart" in root_rules
     assert "directly messages the known counterpart" in skill
+
+
+def test_crash_recovery_documents_operator_decision_not_fabricated_liveness():
+    body = text('docs/workflows/crash-ownership-recovery.md')
+    for term in ('after_crash', 'ownership_recovery', 'recovery_template',
+                 'writers_stopped', 'expected_snapshot', 'SessionEnd', 'restart'):
+        assert term in body
+    for path in ('AGENTS.md', 'src/AGENTS.md', '.agents/skills/poise/SKILL.md',
+                 '.agents/skills/debugging-and-recovery/SKILL.md',
+                 'docs/workflows/checkpoint-recovery.md'):
+        assert 'crash-ownership-recovery.md' in text(path)

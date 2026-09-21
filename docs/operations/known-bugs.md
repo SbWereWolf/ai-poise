@@ -108,24 +108,6 @@ git -C "$OWNED_WORKTREE" diff --name-only --diff-filter=U -z
 из этого не следуют. Доказательства: `evidence/RV2-08-task.json`, `RV2-08-sprint.json`,
 `RV2-08-project.json` и `probes/test_accounting_scope.py`.
 
-## Неактуальная подготовка backup-теста
-
-**Статус:** тестовая фикстура, не продуктовый дефект.
-
-В [tests/backups/test_service.py](../../tests/backups/test_service.py)
-`test_create_rejects_non_database_without_success_or_leftover_copy` вызывает
-`mkdir(parents=True)` на уже существующем каталоге и получает `FileExistsError`
-до продуктового вызова. Исправлению подлежит подготовка, а не backup service.
-
-## Неактуальная подготовка двух transfer-тестов
-
-**Статус:** тестовые фикстуры, не продуктовая регрессия.
-
-В [tests/transfer](../../tests/transfer) сценарии сохранения посторонней задачи и
-отказа замены существующего ID не подготавливают destination Requirements Registry
-для предварительно создаваемой Task. Они падают до импорта. В обзоре оба исходных
-тела прошли после предоставления только отсутствующего предусловия в отдельной
-фикстуре. Исправление исходных фикстур пока не внесено.
 
 ## TEST-DDD-BASELINE — отказы прежних проверок Task и ContentPolicy
 
@@ -147,16 +129,22 @@ ContentPolicy/пример: невалидные stage/trace prerequisites и ar
 реализации reuse (`ordinary-task-domain.xml`, `ordinary-task-baseline.xml`,
 `BASELINE-COMPARISON.json`). Удалять запись после адресного исправления и проверки причин.
 
-## TEST-REWORK-IMPORT — ошибка сбора batch-тестов rework
+## RESTART-ENTRY-BASELINE — сохранённые правки блокируют read-only вход после restart
 
-**Статус:** отдельно подтверждён на `bbcd8ce`; продуктовый отказ из этого не выводится.
+**Статус:** воспроизведён при реальном выполнении Task 0161 на runtime `a9fba66`.
 
-`tests/batch/test_failed_check_rework.py` импортирует отсутствующую функцию
-`test_failed_check_can_rework_to_declared_stage_without_recreating_task` из
-`tests/runtime_services/test_failed_check_rework.py`. Адресный `--collect-only` завершается
-ImportError до исполнения тестов. Исходное обнаружение произошло при ошибочно запущенном
-общем сборе; общий test suite не выполнялся и не объявляется проверенным. Исправление
-этого тестового связывания не входит в аудит recovery; протокол `collection-diagnostic.xml`.
+После прерывания внешнего вызова проверки штатный `restart` сохранил коммит с исправлением
+и архивировал попытку с неизвестным исходом. Однако сохранённый `entry_tree` остался от
+прежнего исполнения: новый read-only `baseline` отклонил уже существующие правки как
+изменение репозитория на этом этапе. Автоматическое продолжение такого маршрута не работает.
+
+Штатный выход в этом случае: явно разрешённый Task-local `restart → edit → ready` со входом
+в существующий этап `repair`. Исторический baseline сохранён; требования, методы проверок,
+граница repair и отдельный review не ослаблены. Повторная проверка прошла. Это обход через
+планирование конкретной задачи, **не исправление общего расчёта точки сравнения при restart**.
+Требуется отдельно согласовать и проверить семантику read-only входа с сохранённым WIP;
+нельзя стирать WIP или объявлять неполный вывод проверок успешным. Протоколы сохранены
+в handoff maintenance-008: `0161-baseline-recovered-verify` и `0161-edit-recovery-route-complete`.
 
 ## Происхождение доказательств и границы
 
@@ -196,3 +184,20 @@ phases. Четыре happy-path сценария расходятся с тек�
 правильности их контрактов. Причины требуют отдельной maintenance-задачи после разбора,
 а не ослабления assertion. Primary evidence: FLEX RUNTIME `proof-runtime-regression.xml`
 и `pre-proof-failures.xml`.
+
+## WORKTREE-FREE-PROOF — прежний отказ проверки без worktree
+
+**Статус:** открытый продуктовый дефект, воспроизведён на исходном `ceac486`.
+
+[Runtime](../../src/poise/runtime.py) передаёт сохранённый `entry_tree` задачи без
+worktree в exact-commit preparation; в проверенном сценарии это commit hash, тогда
+как сравнение ожидает tree hash. Неизменённая Task получает
+`Worktree-free or unchanged Task cannot commit repository changes`.
+[Сценарий](../../tests/ownership/test_atomic_ownership.py)
+`test_worktree_free_task_verifies_hands_off_and_resumes` падает одинаково до и после
+правки crash ownership. Не исправлять это ослаблением exact-commit проверки.
+
+Четыре параметризации [test_completion.py](../../tests/ownership/test_completion.py)
+также падают на обеих версиях: оставляют decomposition четырёх этапов при процессе
+из одного этапа. Это отдельная неактуальная подготовка, не доказательство дефекта
+завершения. Эти пять отказов не включаются в успешную приёмку crash recovery.

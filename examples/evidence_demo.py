@@ -27,11 +27,52 @@ def run(directory: Path, scenario: str):
     method = {'id': 'MEASURE', 'argv': [sys.executable, '-B', '-c', command], 'cwd': '.', 'environment': {}, 'source_under_test': {'kind': 'external', 'reason': 'The observer records generated evidence and reads no repository source.'}, 'verification_plan': {'responsibility': 'Observe the declared external evidence value.', 'change_surface': [], 'red_stages': [], 'green_stages': ['measure'], 'red_failure': None}, 'expected_exit_code': 0, 'stdout_contains': ['VALUE=3'], 'stderr_contains': []}
     task = json.loads((home / 'task.json').read_text())
     task.update(goal_type=goal, goal='Получить воспроизводимое наблюдение/аргумент и осмотреть его.', requirements=['Результат относится к выбранному состоянию и воспроизводим.'], definition_of_done=['Аргумент, когда требуется, осмотрен; отрицательный предметный результат не скрыт.'], methods=[] if logical else [method], method_inputs=[] if logical else [{'method_id':'MEASURE','repository_inputs':[],'future_outputs':[],'reference_profile':{'runner':'python','parser':'inline-no-path-arguments','version':1}}], checks={'measure': [] if logical else ['MEASURE'], 'audit': []}, artifact_requirements=[], evidence_plan={'measure': {'subject_methods': {} if logical else {'MEASURE': {'exit_codes': [0, 1], 'stdout_contains': ['VALUE=3'], 'stderr_contains': []}}, 'arguments': [{'id': 'A', 'kind': 'logical', 'phase': 'prepare' if logical else 'continue', 'observation_methods': [] if logical else ['MEASURE']}] if argument_required else [], 'review_arguments': []}, 'audit': {'subject_methods': {}, 'arguments': [], 'review_arguments': ['A'] if argument_required else []}})
+    # The generic demo starts with a doubling task. This scenario owns a
+    # different contract: rebuild all process-dependent fields and obtain
+    # matching evidence requirements through the existing registry owner.
+    task['stage_contracts'] = [
+        {'stage_id': stage['id'], 'allowed_paths': list(stage['allowed_paths']),
+         'entry_requirements': [], 'exit_requirements': []}
+        for stage in process['stages']
+    ]
+    task['decomposition'] = {
+        'kind': 'ordinary', 'integration': None,
+        'phases': [{'stage': stage['id'], 'skills': ['workflow'], 'areas': []}
+                   for stage in process['stages']],
+    }
+    from poise.composition import requirements_tools
+    requirements, _ = requirements_tools(home / 'project.json')
+    requirements.apply({
+        'request_id': 'evidence-demo-requirements',
+        'expected_revision': requirements.store.revision(),
+        'operations': [
+            {'kind': 'put_requirement', 'requirement': {
+                'id': 'DEMO-EVIDENCE', 'level': 'application', 'status': 'current',
+                'text': 'Пример сохраняет воспроизводимые наблюдения, аргументы и решения осмотра.'}},
+            {'kind': 'link', 'system': 'DEMO-SYS', 'application': 'DEMO-EVIDENCE'},
+        ],
+    })
+    plan = requirements.store.registry().plan_task([
+        {'text': text, 'applications': ['DEMO-EVIDENCE']} for text in task['requirements']
+    ])
+    task['requirements_snapshot'] = plan['snapshot']
+    # Scenario fixture agreement, not an independent user's acceptance.
+    task['requirements_agreement'] = {'accepted': True, 'chains': plan['chains']}
     save(home / 'task.json', task)
-    env = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'), 'POISE_CONFIG': str(home / 'project.json'), 'POISE_SESSION': 'evidence-demo'}
+    # This disposable scenario must not claim the invoking agent's identity.
+    # Poise creates the binding itself through SessionEstablisher.
+    outer_identity = {'CODEX_SESSION_ID', 'CODEX_THREAD_ID',
+                      'POISE_CALLER_BINDING', 'POISE_SESSION'}
+    env = {key: value for key, value in os.environ.items() if key not in outer_identity}
+    env.update(PYTHONPATH=str(SOURCE / 'src'), POISE_CONFIG=str(home / 'project.json'),
+               POISE_CALLER_BINDING=str(home / 'caller.json'), LANG='C.UTF-8')
     calls = []
-    client = WorkClient(env, 30)
-    calls = client.calls
+    executor = WorkClient(env, 30)
+    reviewer = WorkClient({**env, 'POISE_CALLER_BINDING': str(home / 'reviewer-caller.json')}, 30)
+    # These are synthetic scenario roles. Distinct bindings and the public
+    # handoff exercise the identity gates; they are not independent reviewers.
+    executor.calls = reviewer.calls = calls
+    client = executor
     artifact_specs = []
 
     def proposal(ids, iteration):
@@ -44,6 +85,17 @@ def run(directory: Path, scenario: str):
         if ctx['handler'] == 'inspect':
             value['stage_work'] = {'coverage': 'Осмотрены факты, предпосылки и вывод.', 'findings': [], 'resolution_decisions': []}
         return value
+    def hand_over(sender, receiver, request_id):
+        receipt = sender.invoke('handoff', {
+            'request_id': request_id,
+            'reason': 'Transfer between synthetic evidence-demo participants.',
+            'result': None, 'commit_message': 'Preserve evidence scenario state',
+            'artifact_paths': [],
+        })
+        assert receipt['status'] == 'handed_off'
+        receiver.bootstrap({'id': task['id']})
+        return receiver.bootstrap(None, decision='continue')
+
     ctx = client.bootstrap(json.loads(Path(str(home / 'task.json')).read_text()))
     reports = []
     for iteration in range(1, 3 if observer else 2):
@@ -57,7 +109,8 @@ def run(directory: Path, scenario: str):
             assert counter.read_text() == count_before
         assert record['status'] == 'verified'
         reports.append(record)
-        ctx = client.bootstrap(None, decision='continue')
+        ctx = hand_over(executor, reviewer, f'evidence-audit-{iteration}')
+        client = reviewer
         decisions = []
         if argument_required:
             latest = record['evidence']['arguments'][-1]
@@ -67,7 +120,8 @@ def run(directory: Path, scenario: str):
         reports.append(review)
         if observer and iteration == 1:
             assert review['stage_outcome'] == 'changes_requested'
-            ctx = client.bootstrap(None, decision='continue')
+            ctx = hand_over(reviewer, executor, f'evidence-rework-{iteration}')
+            client = executor
         else:
             assert review['stage_outcome'] == 'clear'
     final = client.accept()

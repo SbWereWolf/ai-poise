@@ -100,7 +100,10 @@ and [execution limits](docs/workflows/commit-messages.md#запуск-и-гра�
 
 Keep at most one Task and one worktree per session, with independent claims and all
 four combinations. Acquire the complete set atomically through its owner; never steal
-an uncertain live claim. The process snapshot determines a dependent worktree, which
+an uncertain live claim. Automatic acquisition is distinct from explicit user-authorized
+[after-crash revocation](docs/workflows/crash-ownership-recovery.md): restore into isolated paths,
+confirm stopped writers, use the existing recover_ownership template and preserve
+Task history, WIP and pending outcomes. Never fabricate SessionEnd or reuse a revoked caller. The process snapshot determines a dependent worktree, which
 is released with its Task; preserve an independent worktree and all WIP, cwd and launch
 roots. Claim replacement is not completion, cleanup or integration authority. Follow
 the canonical [ownership rule](docs/governance/development-rules.md#владение-task-и-worktree).

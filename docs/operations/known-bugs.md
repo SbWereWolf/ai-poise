@@ -157,17 +157,6 @@ ContentPolicy/пример: невалидные stage/trace prerequisites и ar
 реализации reuse (`ordinary-task-domain.xml`, `ordinary-task-baseline.xml`,
 `BASELINE-COMPARISON.json`). Удалять запись после адресного исправления и проверки причин.
 
-## TEST-REWORK-IMPORT — ошибка сбора batch-тестов rework
-
-**Статус:** отдельно подтверждён на `bbcd8ce`; продуктовый отказ из этого не выводится.
-
-`tests/batch/test_failed_check_rework.py` импортирует отсутствующую функцию
-`test_failed_check_can_rework_to_declared_stage_without_recreating_task` из
-`tests/runtime_services/test_failed_check_rework.py`. Адресный `--collect-only` завершается
-ImportError до исполнения тестов. Исходное обнаружение произошло при ошибочно запущенном
-общем сборе; общий test suite не выполнялся и не объявляется проверенным. Исправление
-этого тестового связывания не входит в аудит recovery; протокол `collection-diagnostic.xml`.
-
 ## Происхождение доказательств и границы
 
 Полный исходный обзор и probes: Gmail `1a0b6667369a5102`;

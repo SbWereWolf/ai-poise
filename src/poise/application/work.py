@@ -18,7 +18,7 @@ class WorkTools:
         events=self.interactions.prepare(req['messages'])
         # A user message is a cost even when subsequent task work is rejected.
         ownership_recovery = op == 'recover_ownership' or (
-            op == 'show' and all(q['kind'] == 'ownership_conflicts' for q in args['queries']))
+            op == 'show' and all(q['kind'] in ('ownership_conflicts', 'ownership_recovery') for q in args['queries']))
         # A session in a conflicting component must still be able to inspect/release it.
         before = None if ownership_recovery else h.current_task()
         # Count all received user messages during current work, independently
@@ -42,7 +42,7 @@ class WorkTools:
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
             elif op=='advance':out=h.advance(**args)
-            elif op=='recover_ownership':out=h.ownership.recover_legacy(args)
+            elif op=='recover_ownership':out=h.ownership.recover(args)
             elif op=='recover_artifacts':out=self.resources.recover_artifacts(args)
             elif op=='recover_missing_worktree':out=h.recover_missing_worktree(**args)
             elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
@@ -127,6 +127,7 @@ class WorkTools:
                 sprints=h.sprint_tools.overviews();standalone=h.task_queries.standalone_summary()
                 value={'sprints':sprints if sprint_statuses is None else [x for x in sprints if x['status'] in sprint_statuses],
                        'standalone_tasks':standalone if task_statuses is None else [x for x in standalone if x['status'] in task_statuses]}
+            elif kind=='ownership_recovery':value=h.ownership.recovery_snapshot(query['task_ids'])
             elif kind=='ownership_conflicts':value=h.ownership.conflicts()
             elif kind=='task':value=h.show()
             elif kind=='integration':value=h.integration_tools.query(query['task_id'],query['request_id'])

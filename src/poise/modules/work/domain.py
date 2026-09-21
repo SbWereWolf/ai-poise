@@ -58,6 +58,9 @@ def parse_request(value, config):
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
+    if op == 'recover_ownership' and isinstance(value['input'], dict) and 'mode' in value['input']:
+        from ..ownership.domain import CRASH_RECOVERY_FIELDS
+        shapes[op] = set(CRASH_RECOVERY_FIELDS)
     if op in ('bootstrap','advance') and isinstance(value['input'],dict) and 'force_duplicate_start' in value['input']:
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
@@ -85,8 +88,9 @@ def parse_request(value, config):
     if op=='artifacts' and not isinstance(value['input']['items'],list):
         raise DomainError('items must be a list')
     if op=='recover_ownership':
-        from ..ownership.domain import parse_legacy_repair
-        parse_legacy_repair(value['input'])
+        from ..ownership.domain import parse_legacy_repair, parse_crash_recovery
+        parser = parse_crash_recovery if 'mode' in value['input'] else parse_legacy_repair
+        parser(value['input'])
     if op=='recover_artifacts':
         from ..artifact_factory.domain import ArtifactRecoveryIntent
         ArtifactRecoveryIntent.parse(value['input'],config['max_items'])
@@ -102,13 +106,16 @@ def parse_request(value, config):
             if not isinstance(query,dict) or not isinstance(query.get('id'),str) or not query['id'] or query['id'] in ids:
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
-            shapes_q={'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
+            shapes_q={'ownership_recovery':{'id','kind','task_ids'},'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')
             if not isinstance(kind,str) or kind not in shapes_q:
                 raise DomainError('Unknown batch query kind')
             exact(query,shapes_q[kind],'query')
+            if kind == 'ownership_recovery':
+                from ..ownership.domain import recovery_task_ids
+                recovery_task_ids(query['task_ids'])
             if kind=='work_overview':
                 status_filter(query['sprint_statuses'],SPRINT_OVERVIEW_STATUSES,'sprint')
                 status_filter(query['standalone_task_statuses'],STANDALONE_TASK_STATUSES,'standalone task')

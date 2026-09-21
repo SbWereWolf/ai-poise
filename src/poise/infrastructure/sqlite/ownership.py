@@ -95,6 +95,7 @@ class SqliteOwnershipRepository:
 
     def preflight(self, actor, task_id):
         require_unambiguous(self.db, task_id)
+        self.require_not_revoked(actor, task_id)
         row = self.db.execute("SELECT claimed_by FROM tasks WHERE id=?", (task_id,)).fetchone()
         if row is None:
             raise PoiseError(f"Unknown ownership Task: {task_id}")
@@ -158,3 +159,53 @@ class SqliteOwnershipRepository:
             (datetime.now(timezone.utc).isoformat(), actor, None, 'ownership.legacy_reconciled',
              encode({'request': intent, 'before': before, 'result': result})))
         return result
+
+
+    def crash_snapshot(self, task_ids):
+        """Task-scoped claims plus state versions, never a raw data mutation plan."""
+        marks = ','.join('?' for _ in task_ids)
+        tasks = [dict(row) for row in self.db.execute(
+            f'SELECT id,status,version,claimed_by,stage_index,iteration,current_submission_id '
+            f'FROM tasks WHERE id IN ({marks}) ORDER BY id', task_ids)]
+        if [t['id'] for t in tasks] != task_ids:
+            raise PoiseError('Unknown Task in ownership recovery scope')
+        for task_id in task_ids:
+            require_unambiguous(self.db, task_id)
+        bindings = [dict(row) for row in self.db.execute(
+            f'SELECT id,task_id FROM sessions WHERE task_id IN ({marks}) ORDER BY id', task_ids)]
+        executions = [dict(row) for row in self.db.execute(
+            f'SELECT task_id,version,data FROM task_execution WHERE task_id IN ({marks}) ORDER BY task_id', task_ids)]
+        # Unknown/pending external outcomes stay intact and visible to the next owner.
+        for entry in executions:
+            entry['data'] = json.loads(entry['data'])
+        revoked = [{'actor': t['claimed_by'], 'task_id': t['id'], 'resource': 'task'}
+                   for t in tasks if t['claimed_by'] is not None]
+        revoked += [{'actor': b['id'], 'task_id': b['task_id'], 'resource': 'worktree'} for b in bindings]
+        snapshot = {'tasks': tasks, 'worktree_bindings': bindings,
+                    'executions': executions, 'revoked': revoked}
+        snapshot['expected_snapshot'] = sha256(encode(snapshot).encode()).hexdigest()
+        return snapshot
+
+    def crash_receipt(self, request_id):
+        row = self.db.execute(
+            "SELECT data FROM journal WHERE event='ownership.crash_recovered' "
+            "AND json_extract(data,'$.request.request_id')=? ORDER BY seq DESC LIMIT 1",
+            (request_id,)).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def record_crash_recovery(self, intent, actor, before, observed, result):
+        self.db.execute(
+            'INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+            (datetime.now(timezone.utc).isoformat(), actor, None, 'ownership.crash_recovered',
+             encode({'request': intent, 'actor': actor, 'before': before,
+                     'observed_liveness': {k: v.value for k, v in observed.items()},
+                     'revoked': before['revoked'], 'result': result})))
+
+    def require_not_revoked(self, actor, task_id):
+        row = self.db.execute(
+            "SELECT 1 FROM journal AS j, json_each(j.data,'$.revoked') AS r "
+            "WHERE j.event='ownership.crash_recovered' "
+            "AND json_extract(r.value,'$.actor')=? "
+            "AND json_extract(r.value,'$.task_id')=? LIMIT 1", (actor, task_id)).fetchone()
+        if row is not None:
+            raise PoiseError('This session was revoked for the recovered Task/worktree; use a new session')

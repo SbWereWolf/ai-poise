@@ -108,15 +108,6 @@ git -C "$OWNED_WORKTREE" diff --name-only --diff-filter=U -z
 из этого не следуют. Доказательства: `evidence/RV2-08-task.json`, `RV2-08-sprint.json`,
 `RV2-08-project.json` и `probes/test_accounting_scope.py`.
 
-## Неактуальная подготовка backup-теста
-
-**Статус:** тестовая фикстура, не продуктовый дефект.
-
-В [tests/backups/test_service.py](../../tests/backups/test_service.py)
-`test_create_rejects_non_database_without_success_or_leftover_copy` вызывает
-`mkdir(parents=True)` на уже существующем каталоге и получает `FileExistsError`
-до продуктового вызова. Исправлению подлежит подготовка, а не backup service.
-
 ## Неактуальная подготовка двух transfer-тестов
 
 **Статус:** тестовые фикстуры, не продуктовая регрессия.

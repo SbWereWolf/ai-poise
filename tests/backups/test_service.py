@@ -72,7 +72,7 @@ def test_create_rejects_non_database_without_success_or_leftover_copy(project):
     except ModuleNotFoundError as exc:
         pytest.fail(f"public poise error contract is absent: {exc}")
     database = live_database(project)
-    database.parent.mkdir(parents=True)
+    database.parent.mkdir(parents=True, exist_ok=True)
     database.write_bytes(b"not a sqlite database")
 
     with pytest.raises(PoiseError, match="integrity|database|SQLite"):

@@ -890,8 +890,10 @@ class Poise:
 
     def _execution_reservation(self, task_id, base, worktree_required=True):
         if not worktree_required:
+            repository=Path(self.cfg['git']['repository']).resolve(strict=True)
+            entry_tree=self._git(repository,'rev-parse','--verify',base+'^{tree}')
             return {'worktree':None,'branch':None,'base':base,'attempts':0,
-                    'publication':None,'pending':None,'entry_tree':base,'last_report':None}
+                    'publication':None,'pending':None,'entry_tree':entry_tree,'last_report':None}
         branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
         worktree=descendant(self.state,self.paths['worktrees'])/task_id
         pending={'kind':'worktree_setup','worktree':str(worktree),'branch':branch,'base':base}

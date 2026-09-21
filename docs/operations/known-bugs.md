@@ -207,20 +207,3 @@ phases. Четыре happy-path сценария расходятся с тек�
 правильности их контрактов. Причины требуют отдельной maintenance-задачи после разбора,
 а не ослабления assertion. Primary evidence: FLEX RUNTIME `proof-runtime-regression.xml`
 и `pre-proof-failures.xml`.
-
-## WORKTREE-FREE-PROOF — прежний отказ проверки без worktree
-
-**Статус:** открытый продуктовый дефект, воспроизведён на исходном `ceac486`.
-
-[Runtime](../../src/poise/runtime.py) передаёт сохранённый `entry_tree` задачи без
-worktree в exact-commit preparation; в проверенном сценарии это commit hash, тогда
-как сравнение ожидает tree hash. Неизменённая Task получает
-`Worktree-free or unchanged Task cannot commit repository changes`.
-[Сценарий](../../tests/ownership/test_atomic_ownership.py)
-`test_worktree_free_task_verifies_hands_off_and_resumes` падает одинаково до и после
-правки crash ownership. Не исправлять это ослаблением exact-commit проверки.
-
-В адресной проверке терминального освобождения
-[test_completion.py](../../tests/ownership/test_completion.py) явно задаёт корректный
-снимок `entry_tree` в изолированной фикстуре. Её успешный результат не доказывает
-исправление этого отдельного дефекта штатной подготовки task-only Task.

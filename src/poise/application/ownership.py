@@ -24,6 +24,40 @@ def release_dependent_worktree_in(uow, actor, task_id):
         uow.ownership.bind_worktree(actor, None)
 
 
+
+def reconcile_integrated_worktree_in(uow, actor, task_id, expected_pending, verify_cleanup):
+    """Release only an obsolete dependent binding, with proof and audit in one UoW.
+
+    Integration supplies its read-only Git/filesystem proof under its publication
+    lock. This owner neither changes Task results nor deletes any resource.
+    """
+    from ..modules.tasks.domain import TaskStatus
+
+    if not uow.ownership.worktree_required(task_id):
+        return
+    observed = uow.ownership.preflight(actor, task_id)
+    if observed.worktree_owner is None:
+        return
+    if observed.task_owner is not None:
+        raise PoiseError('Terminal ownership reconciliation cannot release a claimed Task')
+    task = uow.tasks.load(task_id)
+    if task.state.status != TaskStatus.COMPLETED:
+        raise PoiseError('Terminal ownership reconciliation requires an unclaimed completed Task')
+    execution, _ = uow.execution.load(task_id)
+    if execution['pending'] != expected_pending:
+        raise PoiseError('Cleanup proof changed during ownership reconciliation')
+    verify_cleanup(execution)
+    owner = observed.worktree_owner
+    release_dependent_worktree_in(uow, owner, task_id)
+    uow.ownership.record_integrated_worktree_reconciliation(actor, task_id, {
+        'released_owner': owner,
+        'request_id': expected_pending['intent']['request_id'],
+        'accepted_commit': expected_pending['accepted_commit'],
+        'published_commit': expected_pending['target_after'],
+        'cleanup': dict(expected_pending['cleanup']),
+    })
+
+
 def _release_task_in(uow, actor, task_id, reason=None):
     if uow.tasks.is_newborn(task_id):
         if reason is not None and (not isinstance(reason, str) or not reason.strip()):

@@ -220,7 +220,7 @@ worktree в exact-commit preparation; в проверенном сценарии
 `test_worktree_free_task_verifies_hands_off_and_resumes` падает одинаково до и после
 правки crash ownership. Не исправлять это ослаблением exact-commit проверки.
 
-Четыре параметризации [test_completion.py](../../tests/ownership/test_completion.py)
-также падают на обеих версиях: оставляют decomposition четырёх этапов при процессе
-из одного этапа. Это отдельная неактуальная подготовка, не доказательство дефекта
-завершения. Эти пять отказов не включаются в успешную приёмку crash recovery.
+В адресной проверке терминального освобождения
+[test_completion.py](../../tests/ownership/test_completion.py) явно задаёт корректный
+снимок `entry_tree` в изолированной фикстуре. Её успешный результат не доказывает
+исправление этого отдельного дефекта штатной подготовки task-only Task.

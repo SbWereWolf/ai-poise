@@ -126,6 +126,13 @@ class SqliteOwnershipRepository:
             (actor, task_id),
         )
 
+    def record_integrated_worktree_reconciliation(self, actor, task_id, proof):
+        self.db.execute(
+            'INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+            (datetime.now(timezone.utc).isoformat(), actor, task_id,
+             'ownership.integrated_worktree_reconciled', encode(proof)),
+        )
+
     def conflicts(self):
         pending = legacy_conflicts(self.db)
         return {'status': 'ownership_migration_pending' if pending else 'ownership_consistent',

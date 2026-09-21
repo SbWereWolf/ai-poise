@@ -976,6 +976,9 @@ class TaskCommands:
                     pending=None,
                 )
         uow.tasks.save(change, task.state.version)
+        if change.task.state.status == TaskStatus.COMPLETED:
+            from .ownership import release_dependent_worktree_in
+            release_dependent_worktree_in(uow, actor, task.state.task_id)
         uow.execution.patch(task.state.task_id, updates)
         return change.task.state
 
@@ -1195,6 +1198,8 @@ class TaskCommands:
             task=uow.tasks.load(task_id)
             change=task.cancel(actor,reason)
             uow.tasks.save(change,task.state.version)
+            from .ownership import release_dependent_worktree_in
+            release_dependent_worktree_in(uow, actor, task_id)
             execution,version=uow.execution.load(task_id)
             if execution['pending'] is not None:
                 raise DomainError('External operation outcome must be resolved first')

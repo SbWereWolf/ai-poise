@@ -584,6 +584,87 @@ class RuntimeResultIntegration:
             self.cleanup.finish(run.intent.task_id)
         return run
 
+    @staticmethod
+    def _require_absent_cleanup_path(path, root, label):
+        """Check lexical parents too: resolving a dangling link hides substitution."""
+        path, root = Path(path), Path(root)
+        if not path.is_relative_to(root) or path == root:
+            raise PoiseError(f'{label} cleanup path is outside its configured root')
+        current = path
+        while True:
+            try:
+                mode = current.lstat().st_mode
+            except FileNotFoundError:
+                mode = None
+            except OSError as exc:
+                raise PoiseError(f'{label} cleanup path could not be verified: {current}') from exc
+            if mode is not None:
+                if stat.S_ISLNK(mode):
+                    raise PoiseError(f'{label} cleanup path has a symlink: {current}')
+                if current == path:
+                    raise PoiseError(f'{label} resource was recreated after cleanup: {path}')
+                if not stat.S_ISDIR(mode):
+                    raise PoiseError(f'{label} cleanup parent is not a directory: {current}')
+            if current == root:
+                if mode is None:
+                    raise PoiseError(f'{label} cleanup root could not be verified: {root}')
+                return
+            current = current.parent
+
+    def _verify_terminal_cleanup(self, run, repository, execution):
+        publication = run.publication
+        if (run.status != 'integrated' or run.phase != 'integrated'
+                or run.cleanup != {'task_worktree': 'removed', 'task_branch': 'deleted',
+                                   'temporary_backups': 'removed'}):
+            raise PoiseError('Cleanup is not proven complete for ownership reconciliation')
+        if (not isinstance(publication, dict) or publication.get('status') != 'confirmed'
+                or not run.integration_head or run.integration_head != run.target_after
+                or publication.get('commit') != run.target_after
+                or publication.get('target_ref') != self._target_ref()
+                or publication.get('last_included_target') != run.last_included_target):
+            raise PoiseError('Publication proof does not match the completed integration')
+        report = execution['last_report']
+        if (not isinstance(report, dict)
+                or report.get('commit') != run.accepted_commit
+                or run.accepted_commit != run.intent.expected_source_commit):
+            raise PoiseError('Terminal ownership proof does not match the accepted result')
+        if (execution['worktree'] != run.task_worktree
+                or execution['branch'] != run.task_branch
+                or not run.task_branch
+                or self._short_branch(run.task_branch) == self._short_branch(self._target_ref())):
+            raise PoiseError('Cleanup worktree/branch identity changed')
+        expected_tree = self.h.state / self.h.paths['worktrees'] / run.intent.task_id
+        expected_backup = self._temporary_backup_directory(run.intent.task_id, run.intent.request_id)
+        if (Path(run.task_worktree) != expected_tree
+                or run.temporary_backup_directory != expected_backup):
+            raise PoiseError('Cleanup paths do not match the exact recorded Task scope')
+        current = self._git(repository, 'rev-parse', self._target_ref())
+        if (not self._contains(repository, run.target_after, current)
+                or not self._contains(repository, run.accepted_commit, current)):
+            raise PoiseError('Publication is not contained in the current target')
+        self._require_absent_cleanup_path(run.task_worktree, self.h.state, 'Worktree')
+        self._require_absent_cleanup_path(run.temporary_backup_directory, self.h.state, 'Backup')
+        # Do not infer ref absence from an arbitrary failed Git command.
+        branch_ref = 'refs/heads/' + self._short_branch(run.task_branch)
+        branch = self._run(repository, 'show-ref', '--verify', '--quiet', branch_ref)
+        if branch['actual_exit_code'] == 0:
+            raise PoiseError('Task branch was recreated after cleanup')
+        if branch['actual_exit_code'] != 1:
+            raise PoiseError('Task branch cleanup could not be verified')
+
+    def _reconcile_terminal_ownership(self, run, repository):
+        from ..application.ownership import reconcile_integrated_worktree_in
+
+        with exclusive_lock(
+            self._publication_lock(), self.h.cfg['limits']['lock_seconds'],
+            self.h.cfg['limits']['lock_poll_seconds'],
+        ):
+            with self.h.store.unit_of_work() as uow:
+                reconcile_integrated_worktree_in(
+                    uow, self.h.session, run.intent.task_id, run.to_storage(),
+                    lambda execution: self._verify_terminal_cleanup(run, repository, execution),
+                )
+
     def apply(self, intent):
         repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
         record, run = self._load(intent.task_id)
@@ -594,6 +675,7 @@ class RuntimeResultIntegration:
         elif not self._same_intent(run, intent) and not self._completed_replay(run, intent):
             raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated":
+            self._reconcile_terminal_ownership(run, repository)
             return run.result(replayed=True)
         if run.phase == "checks_failed":
             run = self._retry_checks(record, run, repository)
@@ -633,6 +715,8 @@ class RuntimeResultIntegration:
                     return run.result()
             if run.phase == "cleanup_pending":
                 run = self._cleanup(run, repository)
+            if run.status == "integrated":
+                self._reconcile_terminal_ownership(run, repository)
             return run.result()
 
     def query(self, task_id, request_id):

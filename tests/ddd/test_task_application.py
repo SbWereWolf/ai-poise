@@ -114,16 +114,25 @@ def test_failed_batch_is_atomic_and_foreign_keys_enabled(project):
 
 
 def test_old_store_is_rejected_without_migration(project):
-    path=project["root"] / "state" / "state.sqlite"
-    path.parent.mkdir()
+    state = project["root"] / project["cfg"]["paths"]["state"]
+    path = state / project["cfg"]["paths"]["database"]
+    registry = state / project["cfg"]["paths"]["requirements_database"]
+    # The fixture already created state/ for the separate canonical registry.
+    assert state.is_dir()
+    assert not path.exists()
+    assert path != registry
+    registry_before = registry.read_bytes()
     with sqlite3.connect(path) as db:
         db.execute("CREATE TABLE precious(value TEXT)")
         db.execute("INSERT INTO precious VALUES('do not alter')")
         db.execute("PRAGMA user_version=1")
-    before=path.read_bytes()
+    before = path.read_bytes()
+
     with pytest.raises(PoiseError, match="миграц"):
-        Poise(project["config_path"],"S1")
+        Poise(project["config_path"], "S1")
+
     assert path.read_bytes() == before
+    assert registry.read_bytes() == registry_before
 
 
 def test_repositories_reject_stale_version(project):

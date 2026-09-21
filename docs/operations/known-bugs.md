@@ -139,23 +139,46 @@ git -C "$OWNED_WORKTREE" diff --name-only --diff-filter=U -z
 
 ## TEST-DDD-BASELINE — отказы прежних проверок Task и ContentPolicy
 
-**Статус:** воспроизводятся на исходной точке до реализации reuse; не исправлены этим изменением.
+**Статус:** причины классифицированы в Task `0163`; исходные 15 отказов не исправлены.
 
-На исходном коммите `0bb8ce206e9a9a3f3236873bf49c6e45d3d9309e` и на реализации reuse
-одна и та же адресная выборка `tests/ddd/test_task_domain.py`, `tests/ddd/test_task_application.py`,
-`tests/ddd/test_content_gates.py` имеет одинаковые исходы всех 48 тестов: 33 прошли, 15 отказов.
-Ни один прежний успешный тест в этой выборке не стал неуспешным.
+Публичное наблюдение `b4f08a8d-3308-443d-843d-db89cf7e4d93` на
+`ceac4863683eaaccc92e6d0b8adefa809eeb36fd` подтвердило прежнюю адресную выборку
+`tests/ddd/test_task_domain.py`, `tests/ddd/test_task_application.py`,
+`tests/ddd/test_content_gates.py`: **48 тестов, 33 passed, 15 failed, без errors/skips**.
+Exit `1`, полный захват и неизменность исходников подтверждены native receipt.
+Все 48 исходов совпали с историческими `ordinary-task-baseline.xml` и
+`ordinary-task-domain.xml` до/после реализации reuse; это не зелёный suite.
 
-Два отказа относятся к Task application: повторное создание существующего каталога
-в подготовке old-store теста и CLI без установленного caller binding. Остальные 13 —
-ContentPolicy/пример: невалидные stage/trace prerequisites и artifact schema в фикстурах,
-ожидания content-gate статусов, конфликт владельца и CLI-пример без caller identity.
-Совпадение с baseline не доказывает корректность этих сценариев: они требуют отдельного
-разбора причин. Эта выборка не объявляется зелёной и не маскируется изменением ожиданий.
+[Разбор TEST-DDD-BASELINE](ddd-baseline-analysis.md#полный-перечень-15-отказов)
+содержит каждый failing node, достигнутую границу, причину, affected paths и
+сохранённые проверки. Шесть непосредственных групп: повторный mkdir (1),
+неустановленная публичная caller identity (3), устаревшие gate fixtures/ожидания
+явного StageContract (6), невозможный deadline нового trace pre (3), отсутствующий
+artifact source (1), второй Task claim при подготовке historical fixture (1).
+Падения не доказывают новую продуктовую регрессию; непроверенные ветви не объявляются
+корректными. Production и tests в диагнозе не менялись.
 
-Парные JUnit, полный список имён и сравнение исходов сохранены в evidence полного бэкапа
-реализации reuse (`ordinary-task-domain.xml`, `ordinary-task-baseline.xml`,
-`BASELINE-COMPARISON.json`). Удалять запись после адресного исправления и проверки причин.
+Для этих 15 сформулированы восемь самостоятельных предложений DDD-P01…DDD-P08:
+это пока proposals, не зарегистрированные Task и не выполненные исправления.
+Существующие `0159–0162` относятся к другим точным scopes; их переданные на review
+кандидаты не надо выполнять повторно. Отдельный Content demo не является Evidence demo.
+Реестр закрывается только адресными проверенными исправлениями, не документальным
+`verified` или переписыванием ожидаемых статусов.
+
+### Дополнительный отказ подтверждающей выборки
+
+При классификации на том же неизменном коммите выбранные 24 owning case дали
+23 passed и один отдельный failure:
+`tests/runtime_services/test_stage_contract_runtime.py::test_reviewer_revision_changes_gate_refs_atomically`.
+Его `_configure(inspection=True)` сокращает route до двух стадий, оставляя старую
+`decomposition.phases`; валидация создания Task выдаёт phases mismatch до самой
+reviewer revision. Диагноз и самостоятельное предложение DDD-P09 находятся в
+[адресных подтверждениях](ddd-baseline-analysis.md#адресные-подтверждения-и-дополнительный-отказ).
+Этот случай не входит в исходные 48 и не маскируется успешным общим итогом.
+
+Полные первоначальные receipts, ledger, парные исторические JUnit и дополнительный
+JUnit сохраняются в maintenance checkpoint; хэши и относительные пути перечислены
+в [доказательствах](ddd-baseline-analysis.md#доказательства-и-воспроизводимость).
 
 ## TEST-REWORK-IMPORT — ошибка сбора batch-тестов rework
 

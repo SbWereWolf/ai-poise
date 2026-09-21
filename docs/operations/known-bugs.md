@@ -127,16 +127,6 @@ git -C "$OWNED_WORKTREE" diff --name-only --diff-filter=U -z
 тела прошли после предоставления только отсутствующего предусловия в отдельной
 фикстуре. Исправление исходных фикстур пока не внесено.
 
-## Устаревший пример Evidence
-
-**Статус:** пример, без изменения продуктового контракта.
-
-[examples/evidence_demo.py](../../examples/evidence_demo.py) меняет requirements,
-оставляя прежний snapshot/agreement. Сценарий `logical` с рабочим caller binding
-отклоняется: `Task requirements snapshot does not match Task requirements`.
-При исправлении примера нужно согласовать его исходные данные с текущим контрактом,
-а не отключать проверку snapshot.
-
 ## TEST-DDD-BASELINE — отказы прежних проверок Task и ContentPolicy
 
 **Статус:** воспроизводятся на исходной точке до реализации reuse; не исправлены этим изменением.

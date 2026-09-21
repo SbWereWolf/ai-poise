@@ -31,3 +31,13 @@ Save symptom/command, terminal identity, last completed step, side-effect state,
 Determine which store owns the failed operation using the current [storage matrix](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии). Follow only the [limited ownership upgrade](../../../docs/architecture/storage-lifecycle.md#ограниченный-переход-task-db-12-в-13) for known v12 Task data, and preserve external databases using the [explicit path mapping](../../../docs/architecture/storage-lifecycle.md#явные-пути-и-переносимая-поставка). A Task-only backup is not a full repository backup.
 
 For lost execution environments use [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Read the saved state and inspect existing attachments before repeating work or requesting an upload. Restore into a new directory; never use a rejected branch or an email summary as source code.
+
+## Orphaned claims after a cloud crash
+
+An unknown old owner is not a permanent blocker. Use the existing
+[after-crash recovery](../../../docs/workflows/crash-ownership-recovery.md):
+inspect the selected Task IDs, retain the generated recovery_template, record the
+actual user decision and stopped-writer confirmation, then revoke claims atomically.
+Never infer death from silence, fabricate SessionEnd, or impersonate a saved caller.
+Resume with a genuine new session; retain pending outcomes for their existing owners.
+Use ordinary authorized restart only when the Task itself needs revision.

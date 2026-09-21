@@ -661,6 +661,8 @@ class TaskCommands:
                 raise VersionConflict('Newborn Task revision changed')
             if newborn.claimed_by not in (None, actor):
                 raise DomainError('Newborn Task is owned by another session')
+            # Editing an unclaimed draft also acquires it; honor prior revocation.
+            uow.ownership.preflight(actor, task_id)
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
                 release_task_in(uow, actor, before.task_id)

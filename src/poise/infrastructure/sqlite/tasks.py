@@ -88,7 +88,7 @@ class SqliteTaskRepository:
             (datetime.now(timezone.utc).isoformat(),actor,task_id,'duplicate.created',
              encode({'parent_id':parent_id})))
 
-    def release_legacy_claim(self, task_id, version, owner, actor, request_id, reason):
+    def release_recovery_claim(self, task_id, version, owner, actor, request_id, reason, recovery):
         """Exact operator-authorized ownership release; no workflow/content rewrite."""
         changed = self.db.execute(
             'UPDATE tasks SET claimed_by=NULL,version=version+1 '
@@ -96,7 +96,7 @@ class SqliteTaskRepository:
         if changed.rowcount != 1:
             raise VersionConflict('Ownership snapshot changed')
         self._event(task_id, version + 1, {
-            'event': 'ownership_released', 'actor': actor, 'recovery': 'legacy_ownership',
+            'event': 'ownership_released', 'actor': actor, 'recovery': recovery,
             'previous_owner': owner, 'request_id': request_id, 'reason': reason})
 
     def restore_snapshot(self, tables: dict, binding: dict) -> None:

@@ -5,7 +5,7 @@ import shutil
 import sqlite3
 import zipfile
 import pytest
-from conftest import add_test,git
+from conftest import add_test,git,seed_fixture_requirements
 from batch.helpers import bootstrap,result,verify,request,message
 from conftest import WorkPoise as Poise
 from poise.application.work import WorkTools
@@ -28,7 +28,9 @@ def test_one_packet_wip_export_and_import_preserves_unrelated_task(project,tmp_p
     payload['artifact_paths']=made['artifact_paths']
     saved=export(a,handoff=handoff_args(payload))
     assert saved['status']=='exported' and h.current_task() is None
-    dst=destination(project,tmp_path/'destination');b=WorkTools(Poise(dst['config_path'],'other'))
+    dst=destination(project,tmp_path/'destination')
+    seed_fixture_requirements(dst['root'],dst['cfg'])
+    b=WorkTools(Poise(dst['config_path'],'other'))
     other=deepcopy(project['task']);other['id']='OTHER'
     bc=b.invoke(request('bootstrap',{'task':other,'decision':None,'feedback':None,'rework_stage':None}))
     add_test(bc['worktree']);verify(b,result(bc))
@@ -79,7 +81,9 @@ def test_repeated_import_does_not_reset_progress_or_duplicate_rows(project,tmp_p
 
 def test_existing_task_is_not_replaced_even_with_same_identifier(project,tmp_path):
     h,a,c,payload=prepared(project);saved=export(a,handoff=handoff_args(payload))
-    dst=destination(project,tmp_path/'destination');b=WorkTools(Poise(dst['config_path'],'receiver'))
+    dst=destination(project,tmp_path/'destination')
+    seed_fixture_requirements(dst['root'],dst['cfg'])
+    b=WorkTools(Poise(dst['config_path'],'receiver'))
     bootstrap(b,dst);prior=b.runtime.current_task()
     with pytest.raises(PoiseError,match='exist|conflict|collision'):
         restore(b,saved['package_path'],saved['package_digest'])

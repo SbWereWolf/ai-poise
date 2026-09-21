@@ -58,7 +58,10 @@ Apply the canonical [ownership rule](../../../docs/governance/development-rules.
 at most one Task and one worktree per session, independently owned. The process snapshot
 defines a dependent worktree; release it with its Task but preserve independent ownership.
 Acquire the complete set through the public owner, recognizing self-ownership and replacing
-old same-kind claims atomically. Never steal an uncertain live claim. Claims do not change
+old same-kind claims atomically. Never steal an uncertain live claim. Automatic acquisition is distinct from explicit user-authorized
+[after-crash revocation](../../../docs/workflows/crash-ownership-recovery.md): restore into isolated paths,
+confirm stopped writers, use the existing recover_ownership template and preserve
+Task history, WIP and pending outcomes. Never fabricate SessionEnd or reuse a revoked caller. Claims do not change
 WIP, cwd or launch roots and do not authorize cleanup or integration. At a role boundary,
 the sender saves results, confirms public release, then directly messages the known counterpart;
 the recipient acquires through bootstrap before working, under existing Task authorization.
@@ -449,7 +452,7 @@ Use `show` with `kind: ownership_conflicts` and then the explicitly authorized
 `recover_ownership` decision for one exact connected component. Copy its actual
 snapshot and Task/session identities. Keep existing values or release to null;
 never infer Task ownership from a worktree binding, invent a claimant, or select
-between live/uncertain owners. Only authoritative DEAD permits foreign release;
+between live/uncertain owners. In this legacy reconciliation mode only authoritative DEAD permits foreign release;
 explicit self-release is supported. Unrelated Tasks remain usable while v12
 uniqueness installation is pending. Repair never mutates Git/WIP and exact replay
 never repeats the mutation. Read the [public recovery

@@ -17,7 +17,10 @@ Do not duplicate existing tools. Compose their calls or simplify their inputs an
 Keep one Task and one worktree independently claimable per session. Follow the canonical
 [ownership rule](../docs/governance/development-rules.md#владение-task-и-worktree).
 Reuse OwnershipCommands and its transactional repository for complete-set acquisition,
-same-kind replacement and release; never steal an uncertain live claim. Derive the
+same-kind replacement and release; never steal an uncertain live claim. Automatic acquisition is distinct from explicit user-authorized
+[after-crash revocation](../docs/workflows/crash-ownership-recovery.md): restore into isolated paths,
+confirm stopped writers, use the existing recover_ownership template and preserve
+Task history, WIP and pending outcomes. Never fabricate SessionEnd or reuse a revoked caller. Derive the
 dependent worktree from the explicit process snapshot, not a caller flag. Release it
 with its Task while preserving independent worktree ownership. Ownership must not
 change cwd, launch roots, Git or WIP, and must not absorb cleanup or result integration.

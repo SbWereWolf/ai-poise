@@ -333,7 +333,20 @@ Helper `_configure(inspection=True)` сокращает route до `test_review,
 и не заменяет Requirements Registry. Адресный тест достигает отказа старой схемы
 и сравнивает полные байты обеих баз до и после. Он и неизменённый контроль версии 2
 из `tests/ddd/test_content_gates.py` проходят: 2 passed. Production storage не менялся.
-DDD-P02–DDD-P09 пока остаются отдельными невыполненными предложениями.
+
+**DDD-P02, Task `0167`:** две CLI-фикстуры используют одну созданную публичным
+CLI постоянную identity для всех вызовов сценария. Наследуемые POISE/CODEX-сигналы
+изолированы; содержимое binding и сессия сохраняются между subprocess-вызовами.
+Чтение section не передаёт task_id и сравнивает полный текст, а не preview.
+Content-сценарий явно активирует entry requirement до создания Task и проверяет
+фактический отказ bootstrap: exit 1, content_requirements_failed, phase pre.
+Он не создаёт невозможную active Task с уже нарушенным entry prerequisite ради
+вызова verify. Task остаётся без claim, worktree, submissions, command evidence
+и results. Это коррекция подготовки под существующий контракт, не изменение
+тайминга gate в продукте. Обе фикстуры проходят в трёх окружениях; неизменённый
+отрицательный контроль POISE_SESSION без binding по-прежнему даёт exit 2.
+Адресная выборка: 7 passed. Production identity/content validators не менялись.
+DDD-P03–DDD-P09 пока остаются отдельными невыполненными предложениями.
 
 ## Самостоятельные предложения исправлений
 

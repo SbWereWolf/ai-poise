@@ -3,6 +3,7 @@ import sqlite3
 from copy import deepcopy
 from pathlib import Path
 import pytest
+from .cli_helpers import INHERITED_IDENTITIES, bootstrap_packet, cli_environment, run_work
 from conftest import add_test, fill, write_json
 from conftest import Poise
 from poise.common import PoiseError
@@ -285,12 +286,36 @@ def test_section_foreign_key_rejects_unknown_owner(project):
                        (row['submission'],'OTHER','report','foreign','populated'))
 
 
-def test_cli_reads_section_without_repeating_task_id(project):
-    import os, subprocess, sys
-    h,b=bootstrap(project); add_test(b['worktree']); fill(b,'addressed section'); h.verify()
-    result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'show','input':{'queries':[{'id':'report','kind':'section','name':'report','stage':None,'submission':None,'range':None}]},'messages':[]}),
-                          env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
-                               'POISE_CONFIG':str(project['config_path']), 'POISE_SESSION':'S1'},
-                          capture_output=True,text=True,timeout=15)
-    assert result.returncode == 0, result.stderr
-    assert 'addressed section' in result.stdout
+@pytest.mark.parametrize("inherited", INHERITED_IDENTITIES)
+def test_cli_reads_section_without_repeating_task_id(project, tmp_path, monkeypatch, inherited):
+    for key, value in inherited.items():
+        monkeypatch.setenv(key, value)
+    binding = tmp_path / "section-caller.json"
+    environment = cli_environment(project, binding)
+    started, context = run_work(environment, bootstrap_packet(deepcopy(project["task"])))
+    assert started.returncode == 0, started.stdout + started.stderr
+    assert context["status"] == "active"
+    caller_bytes = binding.read_bytes()
+    assert json.loads(caller_bytes)["schema"] == "poise-caller-binding-1"
+    add_test(context["worktree"])
+    fill(context, "addressed section")
+    verified, report = run_work(environment, {
+        "operation": "verify", "input": {"result": context["result_template"], "artifacts": []},
+        "messages": [],
+    })
+    assert verified.returncode == 0, verified.stdout + verified.stderr
+    assert report["status"] == "verified"
+    packet = {"operation": "show", "input": {"queries": [{
+        "id": "report", "kind": "section", "name": "report", "stage": None,
+        "submission": None, "range": None,
+    }]}, "messages": []}
+    # The same public caller must resolve its current Task, with no task_id hint.
+    result, response = run_work(environment, packet)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert response["results"][0]["value"]["text"] == "addressed section"
+    assert binding.read_bytes() == caller_bytes
+    assert response["results"][0]["value"]["task"] == "T1"
+    assert response["results"][0]["value"]["stage"] == "tests"
+    final, resumed = run_work(environment, bootstrap_packet())
+    assert final.returncode == 0, final.stdout + final.stderr
+    assert resumed["session"] == context["session"]

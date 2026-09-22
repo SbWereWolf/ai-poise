@@ -5,6 +5,7 @@ import json
 import sqlite3
 from pathlib import Path
 import pytest
+from .cli_helpers import INHERITED_IDENTITIES, bootstrap_packet, cli_environment, run_work
 from conftest import write_json, fill, add_test, verification_plan
 from conftest import Poise
 from poise.common import PoiseError
@@ -252,15 +253,39 @@ def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_execute
         assert db.execute("SELECT COUNT(*) FROM task_methods WHERE task_id='T1' AND method_id='ADDED'").fetchone()[0]==1
 
 
-def test_cli_content_failure_is_business_failure_not_exit_zero(project):
-    import os, subprocess, sys
-    h,b=setup(project,section_policy('tests'),empty()); fill(b)
-    result=subprocess.run([sys.executable,'-m','poise','work'],input=json.dumps({'operation':'verify','input':{'result':b['result_template'],'artifacts':[]},'messages':[]}),capture_output=True,text=True,
-        env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
-             'POISE_CONFIG':str(project['config_path']),'POISE_SESSION':'S1'},timeout=15)
-    assert result.returncode==1, result.stdout+result.stderr
-    assert 'content_requirements_failed' in result.stdout
-    assert h.show()['evidence_count']==0
+@pytest.mark.parametrize("inherited", INHERITED_IDENTITIES)
+def test_cli_content_failure_is_business_failure_not_exit_zero(project, tmp_path, monkeypatch, inherited):
+    for key, value in inherited.items():
+        monkeypatch.setenv(key, value)
+    binding = tmp_path / "content-caller.json"
+    environment = cli_environment(project, binding)
+    first, identity = run_work(environment, bootstrap_packet())
+    assert first.returncode == 0, first.stdout + first.stderr
+    assert identity["status"] == "read_only"
+    caller_bytes = binding.read_bytes()
+    task = deepcopy(project["task"])
+    task["content_contract"] = section_policy("tests")
+    task["stage_contracts"][0]["entry_requirements"] = ["rationale-required"]
+    # An unmet first-stage entry contract must fail before claim/context, not
+    # after constructing an impossible active Task solely to call verify.
+    result, failure = run_work(environment, bootstrap_packet(task))
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert failure["status"] == "broken"
+    assert failure["failure"]["kind"] == "content_requirements_failed"
+    assert failure["failure"]["content_requirements"]["phase"] == "pre"
+    assert binding.read_bytes() == caller_bytes
+    state = project["root"] / project["cfg"]["paths"]["state"]
+    database = state / project["cfg"]["paths"]["database"]
+    with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as db:
+        assert db.execute("SELECT status,claimed_by FROM tasks WHERE id='T1'").fetchone() == ("available", None)
+        for table in ("submissions", "evidence", "action_runs", "task_results"):
+            assert db.execute(f"SELECT COUNT(*) FROM {table} WHERE task_id='T1'").fetchone()[0] == 0
+    assert not (state / project["cfg"]["paths"]["worktrees"] / "T1").exists()
+    final, resumed = run_work(environment, bootstrap_packet())
+    assert final.returncode == 0, final.stdout + final.stderr
+    assert resumed["status"] == "read_only" and resumed["task"] is None
+    assert resumed["session"] == identity["session"]
+
 
 
 def test_method_registration_rolls_back_with_failed_content_batch(project):

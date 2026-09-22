@@ -1,0 +1,82 @@
+[
+  {
+    "id": "selected-operation",
+    "session": "selected-session",
+    "operation": "bootstrap",
+    "turn_id": null,
+    "result_status": "active",
+    "before_binding": {
+      "task": "task-B",
+      "sprint": "sprint-B",
+      "goal_type": "development",
+      "stage": "write",
+      "iteration": 1
+    },
+    "after_binding": {
+      "task": "task-A",
+      "sprint": "sprint-A",
+      "goal_type": "development",
+      "stage": "write",
+      "iteration": 1
+    },
+    "started": {
+      "audit_utc": "2026-09-11T10:00:00+00:00",
+      "monotonic_ns": 1000000000,
+      "comparison_domain": "fixture-boot"
+    },
+    "finished": {
+      "audit_utc": "2026-09-11T10:00:05+00:00",
+      "monotonic_ns": 6000000000,
+      "comparison_domain": "fixture-boot"
+    },
+    "telemetry": {
+      "usage": [],
+      "intervals": [],
+      "cause": "initial",
+      "finding_targets": []
+    }
+  },
+  {
+    "id": "foreign-operation",
+    "session": "foreign-session",
+    "operation": "cancel",
+    "turn_id": null,
+    "result_status": "cancelled",
+    "before_binding": {
+      "task": "task-B",
+      "sprint": "sprint-B",
+      "goal_type": "development",
+      "stage": "write",
+      "iteration": 1
+    },
+    "after_binding": {
+      "task": null,
+      "sprint": null,
+      "goal_type": null,
+      "stage": null,
+      "iteration": null
+    },
+    "started": {
+      "audit_utc": "2026-09-11T10:00:00+00:00",
+      "monotonic_ns": 1000000000,
+      "comparison_domain": "fixture-boot"
+    },
+    "finished": {
+      "audit_utc": "2026-09-11T10:00:30+00:00",
+      "monotonic_ns": 31000000000,
+      "comparison_domain": "fixture-boot"
+    },
+    "telemetry": {
+      "usage": [],
+      "intervals": [],
+      "cause": "delivered_rework",
+      "finding_targets": [
+        {
+          "finding_id": "foreign-finding",
+          "stage": "write",
+          "iteration": 1
+        }
+      ]
+    }
+  }
+]

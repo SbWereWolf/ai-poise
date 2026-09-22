@@ -76,6 +76,10 @@ class AccountingQueries:
         if self.policy['time_mode']=='tool_cycle':
             for row in data['telemetry']:
                 envelope=json.loads(row['data'])
+                b=envelope['after_binding'] if envelope['after_binding']['task'] is not None else envelope['before_binding']
+                if (b['task'] is None or not include(b)
+                        or (envelope['before_binding']['task'] is None and envelope['result_status']=='read_only')):
+                    continue
                 first=envelope['started'];last=envelope['finished']
                 comparable=(first['comparison_domain']==last['comparison_domain']
                             and last['monotonic_ns']>=first['monotonic_ns'])
@@ -84,10 +88,6 @@ class AccountingQueries:
                     continue
                 elapsed_ns=last['monotonic_ns']-first['monotonic_ns']
                 a=timestamp(first['audit_utc']);z=a+timedelta(microseconds=elapsed_ns/1000)
-                b=envelope['after_binding'] if envelope['after_binding']['task'] is not None else envelope['before_binding']
-                if b['task'] is None or (envelope['before_binding']['task'] is None
-                                         and envelope['result_status']=='read_only'):
-                    continue
                 raw=envelope['telemetry']
                 payload={'kind':'telemetry_operation','operation':envelope['operation'],
                          'cause':None if raw is None else raw['cause'],

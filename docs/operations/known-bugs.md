@@ -94,21 +94,6 @@ git -C "$OWNED_WORKTREE" diff --name-only --diff-filter=U -z
 не исправляет машинное поле `conflicts`, поэтому запись остаётся здесь.
 Доказательство: `evidence/RV2-07.json` и probe с реальным Git merge.
 
-## RV2-08 — чужая телеметрия в отчёте ограниченной области
-
-**Статус:** открыто, без новой Task в этом изменении.
-
-[accounting_queries.py](../../src/poise/infrastructure/accounting_queries.py)
-применяет `include(binding)` к основным событиям, но не к циклу необязательной
-телеметрии. Три проверки проекции показали двухсекундное наблюдение чужой Task
-в `active_seconds` и группе `foreign-task` отчётов, ограниченных Task, Sprint или
-проектом. Контроль с совпадающей областью проходит.
-
-Полный CLI-путь не проверялся; ошибки всех счётчиков токенов или финансовой оценки
-из этого не следуют. Доказательства: `evidence/RV2-08-task.json`, `RV2-08-sprint.json`,
-`RV2-08-project.json` и `probes/test_accounting_scope.py`.
-
-
 ## RESTART-ENTRY-BASELINE — сохранённые правки блокируют read-only вход после restart
 
 **Статус:** воспроизведён при реальном выполнении Task 0161 на runtime `a9fba66`.

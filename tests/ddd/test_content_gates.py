@@ -329,28 +329,68 @@ def test_invalid_trace_schedule_in_active_additions_is_rejected_before_submissio
 
 
 def test_repository_rehydrates_historical_invalid_schedule_without_rewriting_it(project):
-    h,_=setup(project,empty(),empty())
-    source=h._task();contract=deepcopy(source['contract']);contract['id']='LEGACY'
-    legacy={"sections":[],"routes":[
-        {"id":"delivery","requirements":contract['requirements'],"points":[
-            {"id":"method","kind":"method","fields":{},"write_stages":["tests"]}]}],
-        "requirements":[
-            {"id":"method-too-late","kind":"trace","route":"delivery","point":"method",
-             "stages":["implementation"],"phase":"pre","field_equals":{}}]}
-    contract['content_contract']=legacy
-    stages=tuple(s['id'] for s in source['process']['stages'])
-    policy=ContentPolicy.restore_layers(source['process']['content_contract'],legacy,stages,
-        tuple(contract['requirements']),tuple(m['id'] for m in contract['methods']),
-        tuple(sorted({name for stage in source['process']['stages'] for name in stage['sections']})))
+    h, _ = setup(project, empty(), empty())
+    source = h._task()
+    contract = deepcopy(source['contract'])
+    contract['id'] = 'LEGACY'
+    legacy = {'sections': [], 'routes': [{
+        'id': 'delivery', 'requirements': contract['requirements'],
+        'points': [{'id': 'method', 'kind': 'method', 'fields': {},
+                    'write_stages': ['tests']}],
+    }], 'requirements': [{
+        'id': 'method-too-late', 'kind': 'trace', 'route': 'delivery',
+        'point': 'method', 'stages': ['implementation'], 'phase': 'pre',
+        'field_equals': {},
+    }]}
+    contract['content_contract'] = legacy
+    arguments = (
+        source['process']['content_contract'], legacy,
+        tuple(stage['id'] for stage in source['process']['stages']),
+        tuple(contract['requirements']),
+        tuple(method['id'] for method in contract['methods']),
+        tuple(sorted({name for stage in source['process']['stages']
+                      for name in stage['sections']})),
+    )
+    # Only rehydration tolerates the historical schedule; new creation still rejects it.
+    with pytest.raises(PoiseError, match='method-too-late'):
+        ContentPolicy.from_layers(*arguments)
+    policy = ContentPolicy.restore_layers(*arguments)
+    with h.store.transaction() as db:
+        original_row = tuple(db.execute('SELECT * FROM tasks WHERE id=?', ('T1',)).fetchone())
     with h.store.unit_of_work() as uow:
-        original=uow.tasks.load('T1')
-        historical=replace(original,state=replace(original.state,task_id='LEGACY'),content_policy=policy)
-        uow.tasks.create(historical,{'contract':contract,'process':deepcopy(source['process']),
-            'sprint_id':None,'goal':contract['goal'],'config_hash':source['config_hash']})
+        original = uow.tasks.load('T1')
+        assert original.state.claimed_by is not None
+        historical = replace(
+            original,
+            state=replace(original.state, task_id='LEGACY', claimed_by=None),
+            content_policy=policy,
+        )
+        uow.tasks.create(historical, {
+            'contract': contract, 'process': deepcopy(source['process']),
+            'sprint_id': None, 'goal': contract['goal'],
+            'config_hash': source['config_hash'],
+        })
+    with h.store.transaction() as db:
+        before = tuple(tuple(row) for row in db.execute(
+            'SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version',
+            ('LEGACY',)))
+        legacy_row = tuple(db.execute('SELECT * FROM tasks WHERE id=?', ('LEGACY',)).fetchone())
     with h.store.unit_of_work() as uow:
-        restored=uow.tasks.load('LEGACY')
-    assert restored.content_policy.to_layers()['task']==legacy
-    assert restored.state.version==historical.state.version
+        restored = uow.tasks.load('LEGACY')
+    assert restored.content_policy.to_layers()['task'] == legacy
+    assert restored.state.version == historical.state.version
+    assert restored.state.claimed_by is None
+    with h.store.transaction() as db:
+        assert tuple(tuple(row) for row in db.execute(
+            'SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version',
+            ('LEGACY',))) == before
+        assert tuple(db.execute('SELECT * FROM tasks WHERE id=?', ('LEGACY',)).fetchone()) == legacy_row
+        assert tuple(db.execute('SELECT * FROM tasks WHERE id=?', ('T1',)).fetchone()) == original_row
+        assert [tuple(row) for row in db.execute(
+            'SELECT id,claimed_by FROM tasks WHERE claimed_by IS NOT NULL ORDER BY id'
+        )] == [('T1', original.state.claimed_by)]
+        assert [row[0] for row in db.execute('PRAGMA integrity_check')] == ['ok']
+        assert db.execute('PRAGMA foreign_key_check').fetchall() == []
 
 
 def test_domain_mark_verified_cannot_bypass_content_gates(project):

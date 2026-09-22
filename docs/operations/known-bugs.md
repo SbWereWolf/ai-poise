@@ -109,63 +109,6 @@ git -C "$OWNED_WORKTREE" diff --name-only --diff-filter=U -z
 `RV2-08-project.json` и `probes/test_accounting_scope.py`.
 
 
-## TEST-DDD-BASELINE — отказы прежних проверок Task и ContentPolicy
-
-**Статус:** причины классифицированы в Task `0163`; DDD-P01–DDD-P07 исправлены
-адресно. Остальные исходные отказы остаются открытыми.
-
-Публичное наблюдение `b4f08a8d-3308-443d-843d-db89cf7e4d93` на
-`ceac4863683eaaccc92e6d0b8adefa809eeb36fd` подтвердило прежнюю адресную выборку
-`tests/ddd/test_task_domain.py`, `tests/ddd/test_task_application.py`,
-`tests/ddd/test_content_gates.py`: **48 тестов, 33 passed, 15 failed, без errors/skips**.
-Exit `1`, полный захват и неизменность исходников подтверждены native receipt.
-Все 48 исходов совпали с историческими `ordinary-task-baseline.xml` и
-`ordinary-task-domain.xml` до/после реализации reuse; это не зелёный suite.
-
-[Разбор TEST-DDD-BASELINE](ddd-baseline-analysis.md#полный-перечень-15-отказов)
-содержит каждый failing node, достигнутую границу, причину, affected paths и
-сохранённые проверки. Шесть непосредственных групп: повторный mkdir (1),
-неустановленная публичная caller identity (3), устаревшие gate fixtures/ожидания
-явного StageContract (6), невозможный deadline нового trace pre (3), отсутствующий
-artifact source (1), второй Task claim при подготовке historical fixture (1).
-Падения не доказывают новую продуктовую регрессию; непроверенные ветви не объявляются
-корректными. Production и tests в диагнозе не менялись.
-
-Для исходных 15 сформулированы восемь самостоятельных предложений DDD-P01…DDD-P08.
-DDD-P01 исправлен в Task `0166`: legacy fixture достигает отказа старой схемы,
-полные байты Task DB и Requirements Registry сохраняются; адресный тест и контроль
-версии 2 проходят. DDD-P02 исправлен в Task `0167`: обе CLI-фикстуры создают
-настоящий постоянный caller binding через публичную границу и изолируют наследуемые
-POISE/CODEX-сигналы. Чтение section без task_id и точный entry-отказ с exit 1
-проверены для трёх окружений; отрицательный контроль POISE_SESSION сохраняет exit 2.
-В этой выборке 7 passed. Production validators не менялись.
-DDD-P03 исправлен в Task `0168`: Content demo использует публичную identity,
-явные stage refs и достижимые post-сроки первого результата. Полный сценарий
-сохраняет два content-отказа, обе trace-цепочки, feedback/rework и неизменный base.
-DDD-P04 исправлен в Task `0169`: четыре явно активированных static gate-сценария
-проверяют отсутствие pre-эффектов, точный post candidate/receipts, отказ accept,
-отмену без новых checks и запрет обхода доменного mark_verified. Production
-validators не менялись; последовательность verify уточнена в документации.
-DDD-P05 исправлен в Task `0171`: регистрация не активирует gates, а явная
-reviewer-ревизия проверяет actor/version/replay и реальный post-отказ без приёмки.
-DDD-P06 исправлен в Task `0172`: первый trace предъявляется как post-результат,
-позднейший pre читает ранее созданные данные; обе цепочки, история planned,
-rollback content/trace/submission и однократный ADDED с replay проверены.
-DDD-P07 исправлен в Task `0173`: fixture объявляет `stage_output` после реального
-создания файлов на tests и явный post-gate. Несуществующий путь отклоняется до
-submission, повтор одного пути не удовлетворяет minimum=2, два разных файла
-принимаются без agent-computed cardinality. DDD-P08 ещё не исправлен. Дополнительный DDD-P09
-исправлен в Task `0170`: phases согласованы с фактическим двухстадийным route;
-атомарность, replay/history и отрицательные проверки роли/версии сохранены. Исторические 48 исходов не переписываются.
-Существующие `0159–0162` относятся к другим точным scopes; их уже интегрированные
-исправления не надо выполнять повторно. Отдельный Content demo не является Evidence demo.
-Реестр закрывается только адресными проверенными исправлениями, не документальным
-`verified` или переписыванием ожидаемых статусов.
-
-Полные первоначальные receipts, ledger, парные исторические JUnit и дополнительный
-JUnit сохраняются в maintenance checkpoint; хэши и относительные пути перечислены
-в [доказательствах](ddd-baseline-analysis.md#доказательства-и-воспроизводимость).
-
 ## RESTART-ENTRY-BASELINE — сохранённые правки блокируют read-only вход после restart
 
 **Статус:** воспроизведён при реальном выполнении Task 0161 на runtime `a9fba66`.

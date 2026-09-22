@@ -213,3 +213,20 @@ phases. Четыре happy-path сценария расходятся с тек�
 правильности их контрактов. Причины требуют отдельной maintenance-задачи после разбора,
 а не ослабления assertion. Primary evidence: FLEX RUNTIME `proof-runtime-regression.xml`
 и `pre-proof-failures.xml`.
+
+## TEST-LEGACY-STAGE-START — старая fixture не достигает проверки StageContract
+
+**Статус:** воспроизведён отдельно от DDD-P09 на неизменном main `853d765`.
+
+`tests/runtime_services/test_stage_contract_runtime.py::test_legacy_missing_contract_blocks_start_until_initialize`
+ожидает `stage_contract_transition_required`, но ранее получает
+`Available Task has unexpected execution state`. Соседние owning проверки P09
+дали `14 passed / 1 failed`; отдельный повтор этого node на исходном main также
+завершился failure. Это ошибка подготовки либо устаревшего ожидания до целевой
+границы; продуктовая StageContract-проверка этим исходом не опровергается.
+Причина и исправление выделены за пределы P09. Негативный исход сохранён, не skip
+и не заменён успешными reviewer-revision тестами.
+
+Этот node использует обычный route, не `_configure(inspection=True)`. Поэтому
+исправление списка inspection phases не должно менять его подготовку либо
+ожидаемую диагностическую границу. Полные отдельные stdout/JUnit сохранены.

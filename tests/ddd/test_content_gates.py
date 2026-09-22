@@ -16,10 +16,12 @@ def empty():
     return {"sections":[],"routes":[],"requirements":[]}
 
 
-def setup(project, goal, extra):
+def setup(project, goal, extra, *, exit_refs=()):
     project['cfg']['schema']='ddd-accounting-12'
     project['process']['content_contract']=goal
     project['task']['content_contract']=extra
+    if exit_refs:
+        project['task']['stage_contracts'][0]['exit_requirements'] = list(exit_refs)
     write_json(project['config_path'],project['cfg'])
     write_json(project['root']/'config/processes/development.json',project['process'])
     write_json(project['task_path'],project['task'])
@@ -53,19 +55,50 @@ def trace_policy(project):
           {"id":"reason-later","kind":"trace","route":"reasoning","point":"proof","stages":["code_review"],"phase":"pre","field_equals":{}}]}
 
 
-def test_pre_gate_uses_new_candidate_and_blocks_commands_until_section_filled(project):
-    h,b=setup(project,section_policy('tests'),empty()); add_test(b['worktree']); fill(b)
-    before=h._git(Path(b['worktree']),'rev-parse','HEAD')
-    failed=h.verify()
-    assert failed['status']=='content_requirements_failed'
-    assert failed['content_gate']['phase']=='pre'
-    assert h.show()['evidence_count']==0 and h.show()['attempts']==0
-    assert h._git(Path(b['worktree']),'rev-parse','HEAD')==before
-    assert h.show()['submission_count']==1
-    update(b,sections={'report':'Tests written','rationale':'Regression demonstrates the defect'})
-    assert h.verify()['status']=='verified'
-    assert h.task_queries.section('T1','tests','rationale',None)['content']=='Regression demonstrates the defect'
-    assert not Path(b['runtime_root']).exists()
+def test_pre_gate_rechecks_existing_input_before_commands(project):
+    from batch.helpers import request
+    from runtime_services.test_stage_contract_runtime import (
+        _bootstrap, _counts,
+    )
+
+    tools, rejected, task = _bootstrap(project, entry_required=True)
+    assert rejected['status'] == 'broken'
+    assert rejected['failure']['kind'] == 'content_requirements_failed'
+    runtime = tools.runtime
+    prerequisite = (Path(runtime.state) / runtime.paths['standalone_tasks'] /
+                    'T1' / 'artifacts' / 'inputs' / 'ready.txt')
+    prerequisite.parent.mkdir(parents=True, exist_ok=True)
+    prerequisite.write_text('ready\n', encoding='utf-8')
+    runtime.register_artifact_paths([str(prerequisite)], runtime.task_queries.record('T1'))
+    context = tools.invoke(request('bootstrap', {
+        'task': {'id': task['id']}, 'decision': None,
+        'feedback': None, 'rework_stage': None,
+    }))
+    assert context['status'] == 'active'
+    worktree = Path(context['worktree'])
+    add_test(worktree)
+    payload = fill(context)
+    before = _counts(runtime, 'T1')
+    before_head = runtime._git(worktree, 'rev-parse', 'HEAD')
+    before_diff = runtime._git(worktree, 'status', '--porcelain=v1')
+    before_evidence = runtime.show()['evidence_count']
+    forbidden = Path(context['task_root']) / 'artifacts' / 'should-not-exist.txt'
+    prerequisite.unlink()
+    with pytest.raises(PoiseError, match='entry'):
+        tools.invoke(request('verify', {
+            'result': payload,
+            'artifacts': [{'scope': 'task', 'path': 'should-not-exist.txt',
+                           'source': {'kind': 'text', 'text': 'no side effect'}}],
+        }))
+    assert _counts(runtime, 'T1') == before
+    assert runtime.show()['evidence_count'] == before_evidence == 0
+    assert runtime.show()['attempts'] == 0
+    assert not forbidden.exists()
+    assert runtime._git(worktree, 'rev-parse', 'HEAD') == before_head
+    assert runtime._git(worktree, 'status', '--porcelain=v1') == before_diff
+    prerequisite.write_text('ready\n', encoding='utf-8')
+    result = tools.invoke(request('verify', {'result': payload, 'artifacts': []}))
+    assert result['status'] == 'verified'
 
 
 def test_declare_fill_and_gate_extra_section_in_one_verify_no_register_call(project):
@@ -115,16 +148,32 @@ def test_full_trace_two_routes_future_document_then_methods_then_review(project)
     assert h2.task_queries.trace_point('T1','functional','product',first_submission)['value']['state']=='planned'
 
 
-def test_post_gate_runs_after_checks_but_cannot_mark_verified_or_commit(project):
-    h,b=setup(project,section_policy('tests','post'),empty()); add_test(b['worktree']); fill(b)
-    before=h._git(Path(b['worktree']),'rev-parse','HEAD')
-    result=h.verify()
-    assert result['status']=='content_requirements_failed'
-    assert result['content_gate']['phase']=='post'
-    assert h.show()['evidence_count']==1
-    assert h._git(Path(b['worktree']),'rev-parse','HEAD')==before
-    update(b,sections={'report':'Ready','rationale':'Checked outcome'})
-    assert h.verify()['status']=='verified'
+def test_post_gate_preserves_candidate_checks_but_cannot_mark_verified(project):
+    h, b = setup(project, section_policy('tests', 'post'), empty(),
+                 exit_refs=('rationale-required',))
+    add_test(b['worktree'])
+    fill(b)
+    worktree = Path(b['worktree'])
+    before = h._git(worktree, 'rev-parse', 'HEAD')
+    result = h.verify()
+    assert result['status'] == 'content_requirements_failed'
+    assert result['content_gate']['phase'] == 'post'
+    assert h.show()['evidence_count'] == 1
+    candidate = h._git(worktree, 'rev-parse', 'HEAD')
+    assert candidate != before
+    assert h._git(worktree, 'rev-parse', 'HEAD^') == before
+    check = result['checks'][0]
+    assert check['passed'] and check['capture_complete'] and check['source_unchanged']
+    assert check['commit'] == candidate
+    assert check['tree'] == h._git(worktree, 'rev-parse', 'HEAD^{tree}')
+    record = h.task_queries.record('T1')
+    assert record['status'] != 'verified' and record['status'] != 'completed'
+    with pytest.raises(PoiseError):
+        h.accept()
+    assert h.task_queries.record('T1') == record
+    update(b, sections={'report': 'Ready', 'rationale': 'Checked outcome'})
+    assert h.verify()['status'] == 'verified'
+    assert h.task_queries.section('T1', 'tests', 'rationale', None)['content'] == 'Checked outcome'
 
 
 def test_artifact_cardinality_by_stage_uses_existing_path_only_interface(project):
@@ -139,10 +188,18 @@ def test_artifact_cardinality_by_stage_uses_existing_path_only_interface(project
 
 
 def test_missing_required_content_does_not_block_user_cancel(project):
-    h,b=setup(project,section_policy('tests'),empty()); fill(b)
-    assert h.verify()['status']=='content_requirements_failed'
-    assert h.cancel('User stopped work')['status']=='cancelled'
-    assert h.show()['evidence_count']==0
+    h, b = setup(project, section_policy('tests', 'post'), empty(),
+                 exit_refs=('rationale-required',))
+    add_test(b['worktree'])
+    fill(b)
+    result = h.verify()
+    assert result['status'] == 'content_requirements_failed'
+    assert result['content_gate']['phase'] == 'post'
+    evidence_before = h.show()['evidence_count']
+    assert evidence_before == 1
+    assert h.cancel('User stopped work')['status'] == 'cancelled'
+    assert h.task_queries.record('T1')['status'] == 'cancelled'
+    assert h.store.counts('T1')[1] == evidence_before
 
 
 def test_new_content_and_trace_are_atomic_with_submission(project):
@@ -204,12 +261,16 @@ def test_repository_rehydrates_historical_invalid_schedule_without_rewriting_it(
 
 
 def test_domain_mark_verified_cannot_bypass_content_gates(project):
-    h,b=setup(project,section_policy('tests'),empty()); fill(b)
-    assert h.verify()['status']=='content_requirements_failed'
+    h, b = setup(project, section_policy('tests', 'post'), empty(),
+                 exit_refs=('rationale-required',))
+    add_test(b['worktree'])
+    fill(b)
+    assert h.verify()['status'] == 'content_requirements_failed'
     with h.store.unit_of_work() as uow:
-        task=uow.tasks.load('T1')
-    with pytest.raises(PoiseError,match='содержим'):
-        task.mark_verified('S1',task.state.submission_digest,())
+        task = uow.tasks.load('T1')
+    assert task.stage_contracts.stage('tests').exit_requirements == ('rationale-required',)
+    with pytest.raises(PoiseError, match='содержим'):
+        task.mark_verified(h.session, task.state.submission_digest, ())
 
 
 def test_old_version_two_store_is_rejected_without_migration(project):

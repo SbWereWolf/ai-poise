@@ -360,7 +360,24 @@ accept, поскольку принятие освобождает текущу�
 неизменный чистый base и документ только в Task worktree. Сценарные сообщения
 осмотра остаются fixture-входом, не независимым инженерным ревью. Evidence demo
 и продуктовые валидаторы не изменены.
-DDD-P04–DDD-P09 пока остаются отдельными невыполненными предложениями.
+**DDD-P04, Task `0169`:** четыре статических gate-сценария теперь явно
+активируют требования StageContract. Входной артефакт зарегистрирован существующим
+владельцем до входа, затем удалён перед verify: Task/submission/artifacts/journal,
+command evidence, HEAD и рабочие изменения остаются прежними, новый артефакт
+не материализуется. Восстановление тех же байтов позволяет завершить проверку.
+Выходной отказ сохраняет локальный candidate commit и точные commit/tree receipts,
+но не `verified`/`completed`; accept отклоняется без изменения Task. После заполнения
+секция читается полностью. Отмена при неудовлетворённом post gate не запускает
+дополнительных checks; прямой `mark_verified` отвергает активное требование.
+Production validators не изменены. Четыре адресных теста проходят.
+
+Исторический node `test_pre_gate_uses_new_candidate_and_blocks_commands_until_section_filled`
+заменён на `test_pre_gate_rechecks_existing_input_before_commands`, а
+`test_post_gate_runs_after_checks_but_cannot_mark_verified_or_commit` — на
+`test_post_gate_preserves_candidate_checks_but_cannot_mark_verified`.
+Это точное соответствие новым проверкам существующего контракта; прежние исходы выше
+сохранены. Документальная последовательность verify уточнена без изменения runtime.
+DDD-P05–DDD-P09 пока остаются отдельными невыполненными предложениями.
 
 ## Самостоятельные предложения исправлений
 

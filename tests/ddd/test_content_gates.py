@@ -243,14 +243,41 @@ def test_post_gate_preserves_candidate_checks_but_cannot_mark_verified(project):
 
 
 def test_artifact_cardinality_by_stage_uses_existing_path_only_interface(project):
-    policy=empty(); policy['requirements']=[{'id':'two-fixtures','kind':'artifact','scope':'task','pattern':'fixtures/*.json','minimum':2,'maximum':2,'stages':['tests'],'phase':'pre'}]
-    h,b=setup(project,policy,empty()); add_test(b['worktree'])
-    a=Path(b['task_root'],'fixtures/a.json'); a.parent.mkdir(parents=True); a.write_text('{}')
-    fill(b,artifacts=[str(a),str(a)])
-    assert h.verify()['status']=='content_requirements_failed'
-    c=a.with_name('b.json'); c.write_text('{}')
-    fill(b,artifacts=[str(a),str(c)])
-    result=h.verify(); assert result['status']=='verified' and len(result['artifacts'])==2
+    policy = empty()
+    policy['requirements'] = [{
+        'id': 'two-fixtures', 'kind': 'artifact', 'scope': 'task',
+        'pattern': 'fixtures/*.json', 'minimum': 2, 'maximum': 2,
+        'stages': ['tests'], 'phase': 'post',
+        'source': {'kind': 'stage_output', 'producer_stage': 'tests'},
+    }]
+    h, b = setup(project, policy, empty(), exit_refs=('two-fixtures',))
+    add_test(b['worktree'])
+    a = Path(b['task_root']) / 'artifacts' / 'fixtures' / 'a.json'
+    a.parent.mkdir(parents=True)
+    a.write_text('{}', encoding='utf-8')
+    missing = a.with_name('missing.json')
+    fill(b, artifacts=[str(a), str(missing)])
+    before = h.show()['submission_count']
+    with pytest.raises(PoiseError, match='Артефакт не существует'):
+        h.verify()
+    assert h.show()['submission_count'] == before
+    assert not missing.exists()
+
+    # Duplicate path strings still denote one existing artifact, not two.
+    fill(b, artifacts=[str(a), str(a)])
+    duplicate = h.verify()
+    assert duplicate['status'] == 'content_requirements_failed'
+    assert duplicate['content_gate']['phase'] == 'post'
+    with pytest.raises(PoiseError):
+        h.accept()
+    c = a.with_name('b.json')
+    c.write_text('{}', encoding='utf-8')
+    fill(b, artifacts=[str(a), str(c)])
+    result = h.verify()
+    assert result['status'] == 'verified'
+    assert len(result['artifacts']) == 2
+    assert {item['path'] for item in result['artifacts']} == {str(a), str(c)}
+    assert a.read_text() == c.read_text() == '{}'
 
 
 def test_missing_required_content_does_not_block_user_cancel(project):

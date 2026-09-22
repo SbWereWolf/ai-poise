@@ -102,17 +102,34 @@ def test_pre_gate_rechecks_existing_input_before_commands(project):
 
 
 def test_declare_fill_and_gate_extra_section_in_one_verify_no_register_call(project):
-    h,b=setup(project,empty(),empty()); add_test(b['worktree']); fill(b)
-    update(b,content_additions=section_policy('tests'),sections={'report':'Ready','rationale':'Reason for test'})
-    result=h.verify(); assert result['status']=='verified'
-    first=h.show()['submission_count']; assert h.verify()['replayed']
-    assert h.show()['submission_count']==first
-    resumed=h.bootstrap(decision='rework',feedback='Clarify rationale')
-    assert any(r['id']=='rationale-required' for r in resumed['content_requirements']['due'])
-    fill(resumed); update(resumed,sections={'report':'Revised','rationale':'Improved reasoning'})
-    assert h.verify()['status']=='verified'
+    h, context = setup(project, empty(), empty())
+    frozen = deepcopy(h.stage_contract_context('T1')['current'])
+    additions = section_policy('tests')
+    add_test(context['worktree'])
+    fill(context)
+    update(context, content_additions=additions,
+           sections={'report': 'Ready', 'rationale': 'Reason for test'})
+    assert h.verify()['status'] == 'verified'
+    assert h.task_queries.section('T1', 'tests', 'rationale', None)['content'] == 'Reason for test'
     with h.store.transaction() as db:
-        assert db.execute('SELECT COUNT(*) FROM content_contracts WHERE task_id=?',('T1',)).fetchone()[0]==2
+        before = tuple(tuple(row) for row in db.execute(
+            'SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version',
+            ('T1',)))
+    submissions = h.show()['submission_count']
+    assert h.verify()['replayed'] is True
+    assert h.show()['submission_count'] == submissions
+    assert h.stage_contract_context('T1')['current'] == frozen
+    resumed = h.bootstrap(decision='rework', feedback='Clarify rationale')
+    assert resumed['content_requirements']['due'] == []
+    assert h.stage_contract_context('T1')['current'] == frozen
+    with h.store.unit_of_work() as uow:
+        layers = uow.tasks.load('T1').content_policy.to_layers()
+    assert layers['goal'] == empty()
+    assert layers['task'] == additions
+    with h.store.transaction() as db:
+        assert tuple(tuple(row) for row in db.execute(
+            'SELECT version,data FROM content_contracts WHERE task_id=? ORDER BY version',
+            ('T1',))) == before
 
 
 def test_task_requirement_cannot_replace_goal_minimum_and_invalid_batch_not_saved(project):
@@ -410,13 +427,64 @@ def test_invalid_method_addition_plan_is_rejected_before_any_owner_mutation(proj
 
 
 def test_accepted_result_cannot_hide_unsatisfied_newly_registered_goal_requirements(project):
-    h,b=setup(project,empty(),empty()); fill(b)
-    # The new minimum is explicitly saved even though its content is absent.
-    update(b,content_additions=section_policy('tests'))
-    r=h.verify(); assert r['status']=='content_requirements_failed'
-    with pytest.raises(PoiseError): h.accept()
-    fresh=h.bootstrap()
-    assert fresh['content_requirements']['due'][0]['id']=='rationale-required'
+    from batch.helpers import request
+    from conftest import WorkPoise
+    from runtime_services.test_stage_contract_runtime import (
+        _bootstrap, _full_contract_snapshot, _transition,
+    )
+
+    # These are distinct synthetic fixture actors, not independent engineering review.
+    tools, context, task = _bootstrap(project, session='P05-REVIEWER', inspection=True)
+    runtime = tools.runtime
+    additions = section_policy('test_review', 'post')
+    payload = fill(context)
+    payload['content_additions'] = additions
+    payload['stage_work']['coverage'] = 'Fixture inspects additive content before explicit activation.'
+    runtime.task_commands.submit('T1', runtime.session, payload)
+    frozen = _full_contract_snapshot(runtime)
+    assert frozen['contracts'] == task['stage_contracts']
+    assert runtime.task_commands.assess_content('T1', 'post', ()).to_dict()['requirements'] == []
+    revised = deepcopy(task['stage_contracts'][0])
+    revised['exit_requirements'] = ['rationale-required']
+    version = runtime.task_queries.record('T1')['version']
+    foreign = WorkPoise(project['config_path'], 'P05-EXECUTOR')
+    for actor, expected, role, identity, message in (
+        (foreign, version, 'reviewer', 'foreign', 'owned'),
+        (runtime, version, 'executor', 'wrong-role', 'authorization'),
+        (runtime, version + 1, 'reviewer', 'stale', 'version'),
+    ):
+        with pytest.raises(PoiseError, match=message):
+            _transition(actor, 'revise', request_id=identity, expected_version=expected,
+                        stage_id='test_review', contract=revised, role=role)
+        assert _full_contract_snapshot(runtime) == frozen
+    first = _transition(runtime, 'revise', request_id='activate-rationale',
+                        expected_version=version, stage_id='test_review',
+                        contract=revised, role='reviewer')
+    after = _full_contract_snapshot(runtime)
+    assert after['contracts'][0] == revised
+    replay = _transition(runtime, 'revise', request_id='activate-rationale',
+                         expected_version=version, stage_id='test_review',
+                         contract=revised, role='reviewer')
+    assert replay == {**first, 'replayed': True}
+    assert _full_contract_snapshot(runtime) == after
+    context = tools.invoke(request('bootstrap', {
+        'task': {'id': 'T1'}, 'decision': None, 'feedback': None, 'rework_stage': None,
+    }))
+    assert [item['id'] for item in context['content_requirements']['due']] == ['rationale-required']
+    payload = fill(context)
+    payload['stage_work']['coverage'] = 'Fixture checks the explicitly activated rationale.'
+    result = tools.invoke(request('verify', {'result': payload, 'artifacts': []}))
+    assert result['status'] == 'content_requirements_failed'
+    assert result['content_gate']['phase'] == 'post'
+    before_accept = _full_contract_snapshot(runtime)
+    with pytest.raises(PoiseError):
+        runtime.accept()
+    assert _full_contract_snapshot(runtime) == before_accept
+    payload['sections']['rationale'] = 'The explicitly activated requirement is fulfilled.'
+    assert tools.invoke(request('verify', {'result': payload, 'artifacts': []}))['status'] == 'verified'
+    with runtime.store.unit_of_work() as uow:
+        layers = uow.tasks.load('T1').content_policy.to_layers()
+    assert layers['task'] == additions
 
 
 def test_content_demo_cli_route_with_feedback(tmp_path):

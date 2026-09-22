@@ -506,7 +506,6 @@ def _legacy_guard(project, operation):
     payload["sections"]["report"] = "Must stay unsubmitted."
     payload["commit_message"] = "test: forbidden legacy operation"
     calls = {
-        "start": lambda: runtime.task_commands.start("T1", "executor", {}),
         "acquire": lambda: runtime.ownership.acquire_task("T1"),
         "context": lambda: runtime.task_commands.workflow_context("T1"),
         "submit": lambda: runtime.task_commands.submit("T1", "executor", payload),
@@ -522,7 +521,36 @@ def _legacy_guard(project, operation):
 
 
 def test_legacy_missing_contract_blocks_start_until_initialize(project):
-    _legacy_guard(project, "start")
+    _feature()
+    _, task = _configure(project)
+    runtime = Poise(project["config_path"], "executor")
+    # Start admission needs an available Task, not an already bootstrapped run.
+    runtime.task_commands.create(
+        task, runtime.session, runtime.processes["development"], [],
+        {"config_hash": runtime.config_hash}, None, runtime.cfg.get("task_ids"),
+        runtime._creation_base(), runtime.cfg["task_decomposition"],
+    )
+    _legacy(runtime)
+    before = _raw_snapshot(runtime)
+    assert before["task"][0] == "available"
+    assert before["task"][3] is None
+    with runtime.store.transaction() as db:
+        assert db.execute(
+            "SELECT COUNT(*) FROM task_execution WHERE task_id=?", ("T1",)
+        ).fetchone()[0] == 0
+    with pytest.raises(PoiseError, match="stage_contract_transition_required"):
+        runtime.task_commands.start("T1", "executor", {})
+    assert _raw_snapshot(runtime) == before
+    assert _counts(runtime, "T1")[0]["submissions"] == 0
+    _transition(
+        runtime, "initialize", request_id="unlock-start", expected_version=before["task"][4],
+        contracts=task["stage_contracts"],
+    )
+    result = WorkTools(runtime).invoke(request("bootstrap", {
+        "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert result["status"] == "active"
+    assert runtime.task_commands.workflow_context("T1")["stage_contract"] == task["stage_contracts"][0]
 
 
 def test_legacy_missing_contract_blocks_acquire_until_initialize(project):

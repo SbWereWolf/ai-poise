@@ -395,7 +395,20 @@ Production validation не менялась. Исторические `23 passed
 и accept; заполнение rationale даёт verified. Это синтетические участники теста,
 не независимое инженерное ревью. Production validators не менялись.
 
-DDD-P06–DDD-P08 пока остаются отдельными невыполненными предложениями.
+**DDD-P06, Task `0172`:** сроки первой записи product/method/verdict/reason
+перенесены на post; отдельные product-input/method-input pre-предикаты читают
+существующие точки на implementation/code_review. Явные StageContract refs включают
+реальные проверки каждого этапа. Полный маршрут сохраняет обе цепочки и прежний
+planned product по исходной submission; неполный финальный trace запрещает accept.
+Инъекция test-content-fault достигается после допустимых additions и откатывает
+content/submission/trace. В ADDED-сценарии route и post-gate объявлены до готовности
+Task, а сам метод и trace впервые регистрируются одним result: метод выполнен,
+одна строка registry, replay не плодит submissions и сохраняется code_review schedule.
+Совместное добавление content и trace сохраняется отдельным rollback-сценарием.
+Негативный тест нового недостижимого trace не изменён и остаётся отрицательным.
+Production validators не менялись. Исторические 15 отказов выше не переписаны.
+
+DDD-P07–DDD-P08 пока остаются отдельными невыполненными предложениями.
 
 ## Самостоятельные предложения исправлений
 

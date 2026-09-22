@@ -48,11 +48,13 @@ def trace_policy(project):
         {"id":"reasoning","requirements":[req],"points":[
             {"id":"proof","kind":"record","fields":{"facts":[],"assumptions":[],"inference":[],"conclusion":[]},"write_stages":["code_review"]}]}],
         "requirements":[
-          {"id":"product-now","kind":"trace","route":"functional","point":"product","stages":["tests","test_review","implementation","code_review"],"phase":"pre","field_equals":{}},
-          {"id":"method-now","kind":"trace","route":"functional","point":"method","stages":["tests","implementation","code_review"],"phase":"pre","field_equals":{}},
-          {"id":"published-later","kind":"trace","route":"functional","point":"product","stages":["implementation","code_review"],"phase":"pre","field_equals":{"state":"documented"}},
-          {"id":"verdict-later","kind":"trace","route":"functional","point":"verdict","stages":["code_review"],"phase":"pre","field_equals":{"result":"satisfied"}},
-          {"id":"reason-later","kind":"trace","route":"reasoning","point":"proof","stages":["code_review"],"phase":"pre","field_equals":{}}]}
+          {"id":"product-input","kind":"trace","route":"functional","point":"product","stages":["implementation","code_review"],"phase":"pre","field_equals":{}},
+          {"id":"method-input","kind":"trace","route":"functional","point":"method","stages":["implementation","code_review"],"phase":"pre","field_equals":{}},
+          {"id":"product-now","kind":"trace","route":"functional","point":"product","stages":["tests","test_review","implementation","code_review"],"phase":"post","field_equals":{}},
+          {"id":"method-now","kind":"trace","route":"functional","point":"method","stages":["tests","implementation","code_review"],"phase":"post","field_equals":{}},
+          {"id":"published-later","kind":"trace","route":"functional","point":"product","stages":["implementation","code_review"],"phase":"post","field_equals":{"state":"documented"}},
+          {"id":"verdict-later","kind":"trace","route":"functional","point":"verdict","stages":["code_review"],"phase":"post","field_equals":{"result":"satisfied"}},
+          {"id":"reason-later","kind":"trace","route":"reasoning","point":"proof","stages":["code_review"],"phase":"post","field_equals":{}}]}
 
 
 def test_pre_gate_rechecks_existing_input_before_commands(project):
@@ -142,27 +144,74 @@ def test_task_requirement_cannot_replace_goal_minimum_and_invalid_batch_not_save
 
 
 def test_full_trace_two_routes_future_document_then_methods_then_review(project):
-    h,b=setup(project,empty(),trace_policy(project)); add_test(b['worktree']); fill(b)
-    update(b,trace={'functional':{'product':{'state':'planned','reference':'docs/double.md#R1'},'method':'RED'}})
-    first=h.verify(); assert first['status']=='verified'
-    first_submission=h.task_queries.section('T1','tests','report',None)['submission']
-    b=h.bootstrap(decision='continue'); fill(b); assert h.verify()['status']=='verified'
-    b=h.bootstrap(decision='continue'); fill(b)
-    Path(b['worktree'],'src/double.py').write_text('def double(n):\n    return n * 2\n')
-    update(b,trace={'functional':{'product':{'state':'documented','reference':'docs/double.md#R1'},'method':'GREEN'}})
-    # Structural reference only; no invented file-existence proof.
-    assert h.verify()['status']=='verified'
-    b=h.bootstrap(decision='continue'); fill(b)
-    assert h.verify()['status']=='content_requirements_failed'
-    update(b,trace={'functional':{'verdict':{'result':'satisfied','basis':'GREEN receipt and inspected code'}},
-                    'reasoning':{'proof':{'facts':'Multiplication verified','assumptions':'Integer n','inference':'n*2 doubles n','conclusion':'R1 fulfilled'}}})
-    assert h.verify()['status']=='verified'
-    assert h.accept()['status']=='completed'
-    h2=Poise(project['config_path'],'S1')
-    current=h2.task_queries.content('T1')
-    assert current['trace']['functional']['method']=='GREEN'
-    assert current['trace']['reasoning']['proof']['conclusion']=='R1 fulfilled'
-    assert h2.task_queries.trace_point('T1','functional','product',first_submission)['value']['state']=='planned'
+    # First writes are postconditions; later entry gates consume earlier evidence.
+    contracts = project['task']['stage_contracts']
+    contracts[0]['exit_requirements'] = ['product-now', 'method-now']
+    contracts[1]['exit_requirements'] = ['product-now']
+    contracts[2]['entry_requirements'] = ['product-input', 'method-input']
+    contracts[2]['exit_requirements'] = ['product-now', 'method-now', 'published-later']
+    contracts[3]['entry_requirements'] = ['product-input', 'method-input']
+    contracts[3]['exit_requirements'] = [
+        'product-now', 'method-now', 'published-later', 'verdict-later', 'reason-later',
+    ]
+    h, b = setup(project, empty(), trace_policy(project))
+    add_test(b['worktree'])
+    fill(b)
+    update(b, trace={'functional': {
+        'product': {'state': 'planned', 'reference': 'docs/double.md#R1'},
+        'method': 'RED',
+    }})
+    first = h.verify()
+    assert first['status'] == 'verified'
+    first_submission = h.task_queries.section('T1', 'tests', 'report', None)['submission']
+    b = h.bootstrap(decision='continue')
+    fill(b)
+    assert h.verify()['status'] == 'verified'
+    b = h.bootstrap(decision='continue')
+    implementation = next(
+        item for item in h.stage_contract_context('T1')['current']
+        if item['stage_id'] == 'implementation'
+    )
+    assert implementation['entry_requirements'] == [
+        'product-input', 'method-input',
+    ]
+    fill(b)
+    Path(b['worktree'], 'src/double.py').write_text('def double(n):\n    return n * 2\n')
+    update(b, trace={'functional': {
+        'product': {'state': 'documented', 'reference': 'docs/double.md#R1'},
+        'method': 'GREEN',
+    }})
+    # The reference is structural: no claim that this document physically exists.
+    assert h.verify()['status'] == 'verified'
+    b = h.bootstrap(decision='continue')
+    fill(b)
+    failed = h.verify()
+    assert failed['status'] == 'content_requirements_failed'
+    assert failed['content_gate']['phase'] == 'post'
+    with pytest.raises(PoiseError):
+        h.accept()
+    update(b, trace={
+        'functional': {'verdict': {
+            'result': 'satisfied', 'basis': 'GREEN receipt and inspected code',
+        }},
+        'reasoning': {'proof': {
+            'facts': 'Multiplication verified', 'assumptions': 'Integer n',
+            'inference': 'n*2 doubles n', 'conclusion': 'R1 fulfilled',
+        }},
+    })
+    assert h.verify()['status'] == 'verified'
+    assert h.accept()['status'] == 'completed'
+    h2 = Poise(project['config_path'], 'S1')
+    current = h2.task_queries.content('T1')
+    assert current['trace']['functional'] == {
+        'product': {'state': 'documented', 'reference': 'docs/double.md#R1'},
+        'method': 'GREEN',
+        'verdict': {'result': 'satisfied', 'basis': 'GREEN receipt and inspected code'},
+    }
+    assert current['trace']['reasoning']['proof']['conclusion'] == 'R1 fulfilled'
+    assert h2.task_queries.trace_point('T1', 'functional', 'product', first_submission)['value'] == {
+        'state': 'planned', 'reference': 'docs/double.md#R1',
+    }
 
 
 def test_post_gate_preserves_candidate_checks_but_cannot_mark_verified(project):
@@ -220,7 +269,7 @@ def test_missing_required_content_does_not_block_user_cancel(project):
 
 
 def test_new_content_and_trace_are_atomic_with_submission(project):
-    h,b=setup(project,empty(),empty()); fill(b)
+    h,b=setup(project,empty(),empty()); add_test(b['worktree']); fill(b)
     update(b,content_additions=trace_policy(project),trace={'functional':{'method':'RED'}})
     with h.store.transaction() as db:
         db.execute("CREATE TRIGGER fail_step02 BEFORE INSERT ON task_events BEGIN SELECT RAISE(ABORT,'test-content-fault'); END")
@@ -309,22 +358,26 @@ def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_execute
     project['task']['method_inputs']=[]
     project['task']['checks']={s['id']:[] for s in project['process']['stages']}
     project['cfg']['automatic_checks']=[]
-    h,b=setup(project,empty(),empty()); fill(b)
     route={'id':'new-test','requirements':project['task']['requirements'],'points':[
         {'id':'method','kind':'method','fields':{},'write_stages':['tests']}]}
     additions={'sections':[],'routes':[route],'requirements':[
-        {'id':'method-required','kind':'trace','route':'new-test','point':'method','stages':['tests'],'phase':'pre','field_equals':{}}]}
+        {'id':'method-required','kind':'trace','route':'new-test','point':'method','stages':['tests'],'phase':'post','field_equals':{}}]}
+    # Declare the post gate before freezing the Task; register method and trace together.
+    h,b=setup(project,empty(),additions,exit_refs=('method-required',)); fill(b)
     method={'id':'ADDED','argv':[sys.executable,'-c',"print('executed-new-method')"],'cwd':'.','environment':{},
             'source_under_test':{'kind':'external','reason':'The registration probe reads no repository source.'},
             'verification_plan':verification_plan(
                 'Verify the newly registered external observation.',[],green_stages=['tests','code_review']),
             'expected_exit_code':0,'stdout_contains':['executed-new-method'],'stderr_contains':[]}
-    update(b,content_additions=additions,trace={'new-test':{'method':'ADDED'}},
+    update(b,trace={'new-test':{'method':'ADDED'}},
            method_additions=[{'method':method,'stages':['tests','code_review']}])
     result=h.verify()
     assert result['status']=='verified'
     assert [c['method'] for c in result['checks']]==['ADDED']
+    assert h.task_queries.content('T1')['trace']['new-test']['method']=='ADDED'
+    before=h.show()['submission_count']
     assert h.verify()['replayed']
+    assert h.show()['submission_count']==before
     current=h._task()
     assert current['contract']['checks']['code_review']==['ADDED']
     with h.store.transaction() as db:

@@ -1780,6 +1780,14 @@ class Poise:
         if not isinstance(reason,str) or not reason.strip(): raise PoiseError('Нужна инструкция пользователя об отмене')
         data = self._task()
         if data['pending'] is not None: raise PoiseError('Сначала установить исход незавершённой операции')
+        if data['status'] == 'newborn':
+            self.task_commands.cancel_newborn(data['id'], self.session, reason)
+            self.store.event(self.session, data['id'], 'task.cancelled',
+                             {'reason': reason, 'planning_only': True})
+            self._cleanup_runtime()
+            return {'status': 'cancelled', 'task': data['id'],
+                    'worktree_preserved': True,
+                    'cleanup': {'status': 'not_required', 'reason': 'never_started_draft'}}
         run=self.cleanup_tools.prepare_terminal(data['id'],f"cancel-{data['_version']}",reason)
         self.task_commands.cancel(data['id'], self.session, reason,self.cleanup_tools.pending(run))
         self.store.event(self.session,data['id'],'task.cancelled',{'reason':reason,'worktree_preserved':True})

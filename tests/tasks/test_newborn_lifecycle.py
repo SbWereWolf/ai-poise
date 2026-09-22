@@ -566,3 +566,97 @@ def test_newborn_type_route_and_legacy_materialization(project):
         "became_available",
         "started",
     ]
+
+
+@pytest.mark.parametrize('draft', [{}, {'goal': 'RETIRED — DO NOT EXECUTE'},
+                                     {'goal_type': 'development', 'goal': 'Retired typed draft'}])
+def test_cancel_never_started_draft_preserves_bytes_and_history(project, draft):
+    client = tools(project, 'draft-owner')
+    born = create(client, 'RETIRED')
+    if draft:
+        born = edit(client, 'RETIRED', born['revision'], draft, 'retired-draft')
+    with client.runtime.store.transaction() as db:
+        before = dict(db.execute("SELECT * FROM tasks WHERE id='RETIRED'").fetchone())
+        history = [tuple(r) for r in db.execute("SELECT * FROM task_events WHERE task_id='RETIRED'")]
+    result = client.invoke(request('cancel', {'reason': 'User retired this historical draft.'}))
+    assert result['status'] == 'cancelled'
+    assert result['task'] == 'RETIRED'
+    assert result['cleanup']['status'] == 'not_required'
+    assert client.runtime.ownership.snapshot('draft-owner').task_id is None
+    with client.runtime.store.transaction() as db:
+        after = dict(db.execute("SELECT * FROM tasks WHERE id='RETIRED'").fetchone())
+        assert after == before | {'status': 'cancelled', 'claimed_by': None,
+                                  'version': before['version'] + 1}
+        assert [tuple(r) for r in db.execute("SELECT * FROM task_events WHERE task_id='RETIRED'")][:-1] == history
+        assert db.execute("SELECT count(*) FROM task_execution WHERE task_id='RETIRED'").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM submissions WHERE task_id='RETIRED'").fetchone()[0] == 0
+    record = client.runtime.task_queries.record('RETIRED')
+    assert record['status'] == 'cancelled'
+    event = client.runtime.task_queries.history('RETIRED')[-1]
+    assert event['event'] == 'newborn_cancelled'
+    assert event['reason'] == 'User retired this historical draft.'
+    with client.runtime.task_commands.unit_of_work() as uow:
+        assert 'RETIRED' not in [item['id'] for item in uow.tasks.start_candidates()]
+    for action in ('edit', 'ready'):
+        kwargs = {'patch': {'goal': 'must not resurrect'}, 'remove': []} if action == 'edit' else {}
+        with pytest.raises(PoiseError):
+            task_action(client, action=action, task_id='RETIRED',
+                        request_id='after-cancel-' + action,
+                        expected_revision=after['version'], **kwargs)
+    historical = client.invoke(request('bootstrap', {'task': {'id': 'RETIRED'},
+        'decision': None, 'feedback': None, 'rework_stage': None}))
+    assert historical['status'] == 'cancelled'
+    assert client.runtime.ownership.snapshot('draft-owner').task_id is None
+
+
+def test_cancel_draft_rejects_foreign_actor_and_historical_execution(project):
+    client = tools(project, 'draft-owner')
+    create(client, 'RETIRED')
+    with pytest.raises(PoiseError, match='owned|owner'):
+        client.runtime.task_commands.cancel_newborn('RETIRED', 'another-actor', 'Retire.')
+    with client.runtime.store.transaction() as db:
+        snapshot = db.execute("SELECT data FROM task_execution WHERE task_id='T1'").fetchone()
+    # The boundary must reject even a malformed/imported execution row; it must
+    # never route this identity through the safe no-execution draft path.
+    with client.runtime.task_commands.unit_of_work() as uow:
+        uow.execution.create('RETIRED', json.loads(snapshot[0]) if snapshot else {
+            'worktree': None, 'branch': None, 'base': None, 'attempts': 0,
+            'publication': None, 'pending': None, 'entry_tree': None, 'last_report': None})
+    with pytest.raises(PoiseError, match='execution'):
+        client.invoke(request('cancel', {'reason': 'Retire.'}))
+    assert client.runtime.task_queries.record('RETIRED')['claimed_by'] == 'draft-owner'
+
+
+def test_cancel_draft_preserves_independent_binding_and_rolls_back_audit_failure(project, monkeypatch):
+    from poise.infrastructure.sqlite.tasks import SqliteTaskRepository
+    client = tools(project, 'draft-owner')
+    create(client, 'INDEPENDENT')
+    create(client, 'RETIRED')
+    with client.runtime.task_commands.unit_of_work() as uow:
+        uow.ownership.bind_worktree('draft-owner', 'INDEPENDENT')
+    record = client.runtime.task_queries.record('RETIRED')
+    original = SqliteTaskRepository._event
+    def fail(self, task_id, version, data):
+        if data['event'] == 'newborn_cancelled':
+            raise RuntimeError('cancel audit unavailable')
+        return original(self, task_id, version, data)
+    with monkeypatch.context() as m:
+        m.setattr(SqliteTaskRepository, '_event', fail)
+        with pytest.raises(RuntimeError, match='cancel audit unavailable'):
+            client.invoke(request('cancel', {'reason': 'Retire.'}))
+    assert client.runtime.task_queries.record('RETIRED') == record
+    assert client.runtime.ownership.snapshot('draft-owner').task_id == 'RETIRED'
+    assert client.runtime.ownership.snapshot('draft-owner').worktree_task_id == 'INDEPENDENT'
+    assert client.invoke(request('cancel', {'reason': 'Retire.'}))['status'] == 'cancelled'
+    assert client.runtime.ownership.snapshot('draft-owner').worktree_task_id == 'INDEPENDENT'
+
+
+def test_cancel_newborn_domain_rejects_restart_and_sprint():
+    from dataclasses import replace
+    from poise.modules.tasks.newborn import NewbornTask
+    born = NewbornTask.create('DRAFT', None, 'owner')
+    for value in (replace(born, sprint_id='S1'), replace(born, restart_history=({'from_status': 'active'},))):
+        with pytest.raises(PoiseError):
+            value.cancellation('owner', 'Retire.')
+    with pytest.raises(PoiseError):
+        born.cancellation('owner', '  ')

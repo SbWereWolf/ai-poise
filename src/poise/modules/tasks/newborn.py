@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 
 from ..foundation.errors import DomainError
 from .definition import creation_fields, path_identifier
-from .domain import Task, TaskStatus
+from .domain import Task, TaskState, TaskStatus
 
 
 REQUIREMENTS_CONTEXT_FIELDS = frozenset({"requirements_snapshot", "requirements_agreement"})
@@ -310,6 +310,20 @@ class NewbornTask:
         if self.sprint_id is None:
             return self
         return replace(self, sprint_id=None, version=self.version + 1)
+
+    def cancellation(self, actor: str, reason: str) -> TaskState:
+        """Cancel only an owned planning-only identity, without inventing a route."""
+        path_identifier(actor)
+        if self.claimed_by != actor:
+            raise DomainError("Newborn Task cancellation requires its owner")
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError("Newborn Task cancellation reason is required")
+        if self.sprint_id is not None:
+            raise DomainError("Sprint owns cancellation of its newborn members")
+        if self.restart_history:
+            raise DomainError("Restarted Task requires execution-aware cancellation")
+        return TaskState(self.task_id, 0, 1, TaskStatus.CANCELLED, None,
+                         self.version + 1, None)
 
     def acquire(self, actor: str):
         path_identifier(actor)

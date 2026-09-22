@@ -64,7 +64,8 @@ class InteractionStore:
                 event=json.loads(row[0])
                 if event['reason'] is None:unknown+=1
                 else:counts[event['reason']]+=1
-            newborn = task is not None and task['status'] == 'newborn'
+            newborn = task is not None and (task['status'] == 'newborn' or
+                (task['status'] == 'cancelled' and 'newborn' in task))
             return {'user_messages_count':len(rows),'observed_messages_count':len(rows),
                     'coverage':'partial' if rows else 'unavailable',
                     'source':self.config['message_source'], 'reason_counts':counts,'unclassified_messages':unknown,

@@ -577,6 +577,28 @@ class SqliteTaskRepository:
         newborn = self.load_newborn(task_id)
         self._save_newborn_ownership(newborn.release(actor), newborn.version, 'ownership_released')
 
+    def cancel_newborn(self, state: TaskState, expected_version: int,
+                       actor: str, reason: str) -> None:
+        if state.status != TaskStatus.CANCELLED or state.version != expected_version + 1:
+            raise VersionConflict("Invalid newborn cancellation transition")
+        if self.db.execute("SELECT 1 FROM submissions WHERE task_id=? LIMIT 1",
+                           (state.task_id,)).fetchone() is not None:
+            raise PoiseError("Newborn Task has historical execution submissions")
+        # Preserve metadata byte-for-byte: cancellation is not draft editing,
+        # readiness, contract materialization, or removal of historical data.
+        changed = self.db.execute(
+            "UPDATE tasks SET status=?,claimed_by=NULL,version=? "
+            "WHERE id=? AND status='newborn' AND version=? AND claimed_by=? "
+            "AND current_submission_id IS NULL",
+            (state.status.value, state.version, state.task_id, expected_version, actor),
+        )
+        if changed.rowcount != 1:
+            raise VersionConflict("Newborn cancellation snapshot changed")
+        self._event(state.task_id, state.version, {
+            "event": "newborn_cancelled", "stage": "newborn", "iteration": 1,
+            "actor": actor, "reason": reason,
+        })
+
     def promote_newborn(self, task: Task, metadata: dict, expected_version: int) -> None:
         if not self.is_newborn(task.state.task_id):
             raise PoiseError("Only a newborn Task can become available")

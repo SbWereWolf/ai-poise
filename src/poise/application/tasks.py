@@ -1193,6 +1193,19 @@ class TaskCommands:
             return task.evidence_book.failed_batch(
                 task.stage.stage_id,task.state.iteration,task.state.submission_digest,tree,execution_key)
 
+    def cancel_newborn(self, task_id: str, actor: str, reason: str) -> TaskState:
+        with self.unit_of_work() as uow:
+            newborn = uow.tasks.load_newborn(task_id)
+            state = newborn.cancellation(actor, reason)
+            if uow.execution.exists(task_id):
+                raise DomainError("Newborn Task has historical execution; cancellation is not planning-only")
+            from .ownership import release_dependent_worktree_in
+            # Resolve dependency from the pre-transition planning snapshot. An
+            # untyped cancelled draft has no execution process to consult.
+            release_dependent_worktree_in(uow, actor, task_id)
+            uow.tasks.cancel_newborn(state, newborn.version, actor, reason)
+            return state
+
     def cancel(self, task_id: str, actor: str, reason: str, cleanup: dict) -> TaskState:
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)

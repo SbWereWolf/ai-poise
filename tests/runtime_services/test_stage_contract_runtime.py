@@ -48,6 +48,11 @@ def _configure(project, *, contracts=True, entry_required=False, exit_required=F
         revise["rework_targets"] = [revise["id"]]
         process["stages"] = [inspect, revise]
         process["route"]["entry"] = inspect["id"]
+        selected_stages = {stage["id"] for stage in process["stages"]}
+        task["decomposition"]["phases"] = [
+            phase for phase in task["decomposition"]["phases"]
+            if phase["stage"] in selected_stages
+        ]
         task["methods"] = []
         task["method_inputs"] = []
         task["checks"] = {stage["id"]: [] for stage in process["stages"]}
@@ -558,3 +563,17 @@ def test_task_specific_scope_narrows_and_expands_template_enforcement(project):
     scope = tools.runtime.stage_contract_context("T1")["current"][0]["allowed_paths"]
     assert scope == ["tests/exact/**", "docs/task/**"]
     assert "tests/**" not in scope
+
+
+def test_inspection_fixture_rejects_mismatched_phases_before_creation(project):
+    process, task = _configure(project, inspection=True)
+    # Deliberately retain a phase outside the actual two-stage route.
+    task["decomposition"]["phases"] = deepcopy(project["task"]["decomposition"]["phases"])
+    tools = WorkTools(Poise(project["config_path"], "executor"))
+    before = _counts(tools.runtime, "T1")
+    with pytest.raises(PoiseError, match="phases"):
+        tools.invoke(request("bootstrap", {
+            "task": task, "decision": None, "feedback": None, "rework_stage": None,
+        }))
+    assert _counts(tools.runtime, "T1") == before
+    assert before[1] is None

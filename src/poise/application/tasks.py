@@ -802,7 +802,8 @@ class TaskCommands:
             return require_duplicate_start_in(uow, task_id, actor,
                 force_duplicate_start=force_duplicate_start)
 
-    def start(self, task_id, actor, execution, *, force_duplicate_start=False):
+    def start(self, task_id, actor, execution, *, force_duplicate_start=False,
+              restart_entry_tree: Callable[[dict], str] | None = None):
         with self.unit_of_work() as uow:
             task=uow.tasks.load(task_id)
             from .duplicate_tasks import require_duplicate_start_in
@@ -814,9 +815,27 @@ class TaskCommands:
                         execution['base'], duplicate['source']['source_commit']):
                     raise DomainError('Local repair source is absent from reserved base; import it before start')
             if has_execution:
-                current, _ = uow.execution.load(task_id)
+                current, execution_version = uow.execution.load(task_id)
                 require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'])
             change=task.start(actor)
+            if has_execution:
+                # A new available -> active admission, never an active bootstrap.
+                # Observe only retained HEAD; dirty WIP remains a verifiable delta.
+                before = uow.ownership.snapshot(actor)
+                target = uow.ownership.preflight(actor, task_id)
+                required = uow.ownership.worktree_required(task_id)
+                if before.task_id not in (None, task_id) or target.task_owner not in (None, actor):
+                    raise DomainError('Restart cannot replace other Task ownership')
+                if required and (target.worktree_owner not in (None, actor)
+                                 or before.worktree_task_id not in (None, task_id)):
+                    raise DomainError('Restart cannot replace independent or foreign worktree ownership')
+                if restart_entry_tree is None:
+                    raise DomainError('Restart start requires an observed retained workspace tree')
+                entry_tree = restart_entry_tree(deepcopy(current))
+                if (not isinstance(entry_tree, str) or len(entry_tree) != 40
+                        or any(c not in '0123456789abcdef' for c in entry_tree)):
+                    raise DomainError('Restart requires a valid Git entry tree')
+                uow.execution.save(task_id, {**current, 'entry_tree': entry_tree}, execution_version)
             uow.tasks.save(change,task.state.version)
             started=change.task
             # Reserve a duplicate's claim in the admission transaction. Otherwise

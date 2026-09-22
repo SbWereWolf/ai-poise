@@ -324,6 +324,20 @@ class Poise:
         if len(matches) != 1 or f'branch refs/heads/{expected}' not in matches[0]:
             raise PoiseError('Cancelled Task worktree registration is ambiguous')
 
+    def _restart_entry_tree(self, task_id: str, execution: dict) -> str:
+        """Read the exact retained HEAD, without absorbing or changing dirty WIP."""
+        self._validate_cancelled_worktree(task_id, execution)
+        path = execution['worktree'] or self.cfg['git']['repository']
+        root = Path(path)
+        try:
+            # Do not let a lexical parent symlink disguise a different workspace.
+            if any(parent.is_symlink() for parent in (root, *root.parents)):
+                raise PoiseError('Restart workspace has a symlink in its path')
+            root.resolve(strict=True)
+        except OSError as exc:
+            raise PoiseError(f'Restart workspace is inaccessible: {exc}') from exc
+        return self._git(root, 'rev-parse', '--verify', 'HEAD^{tree}')
+
     def recover_empty_rework(self, task_id: str, reason: str) -> dict:
         return self._recover_empty_transition(task_id, reason, "rework")
 

@@ -70,7 +70,8 @@ class SprintWork:
             force_duplicate_start=force_duplicate_start)
         base=h._creation_base()
         execution=h._execution_reservation(task_id,base,record['process']['worktree_required'])
-        h.task_commands.start(task_id,h.session,execution,force_duplicate_start=force_duplicate_start)
+        h.task_commands.start(task_id,h.session,execution,force_duplicate_start=force_duplicate_start,
+            restart_entry_tree=lambda retained: h._restart_entry_tree(task_id, retained))
         h._reconcile_task_worktree(h.task_queries.record(task_id))
         h.ownership.acquire_task(task_id,force_duplicate_start=force_duplicate_start)
         if sid is not None:self.commands.select(sid)

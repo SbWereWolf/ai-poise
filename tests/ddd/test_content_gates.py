@@ -367,3 +367,16 @@ def test_content_demo_cli_route_with_feedback(tmp_path):
     report=json.loads((tmp_path/'content-demo/content-demo-report.json').read_text())
     assert report['task_status']=='completed' and report['base_unchanged'] and report['doc_in_task_worktree']
     assert sum(c['status']=='content_requirements_failed' for c in report['calls'])==2
+    assert report['status'] == 'PASS' and report['base_clean']
+    assert report['doc_absent_from_base']
+    assert report['content_failures'] == [
+        {'stage': 'tests', 'phase': 'post', 'requirements': ['goal-notes']},
+        {'stage': 'code_review', 'phase': 'post', 'requirements': ['reason-later']},
+    ]
+    assert report['rework']['stage'] == 'code_review'
+    assert report['rework']['to_iteration'] == report['rework']['from_iteration'] + 1
+    assert report['rework']['requested_feedback'] == 'Clarify the proof, preserving previous result.'
+    assert report['trace']['functional']['product']['state'] == 'documented'
+    assert report['trace']['functional']['verdict']['result'] == 'satisfied'
+    assert report['trace']['reasoning']['proof']['inference'] == 'For every integer n, n+n equals n*2.'
+    assert report['caller_binding_unchanged']

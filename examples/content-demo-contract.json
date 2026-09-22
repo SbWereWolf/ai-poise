@@ -22,7 +22,7 @@
           "implementation",
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "states": [
           "populated"
         ]
@@ -133,7 +133,7 @@
           "implementation",
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "field_equals": {}
       },
       {
@@ -146,7 +146,7 @@
           "implementation",
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "field_equals": {}
       },
       {
@@ -158,7 +158,7 @@
           "implementation",
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "field_equals": {
           "state": "documented"
         }
@@ -171,7 +171,7 @@
         "stages": [
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "field_equals": {
           "result": "satisfied"
         }
@@ -184,7 +184,7 @@
         "stages": [
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "field_equals": {}
       },
       {
@@ -195,7 +195,7 @@
           "implementation",
           "code_review"
         ],
-        "phase": "pre",
+        "phase": "post",
         "states": [
           "populated"
         ]

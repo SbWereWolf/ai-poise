@@ -443,6 +443,7 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                     "stage_contract_history": [],
                 }
                 self.task = SimpleNamespace(
+                    duplicate_reuse=None,
                     state=SimpleNamespace(
                         task_id="TASK-RESTART",
                         status=CONTRACT["TaskStatus"].AVAILABLE,
@@ -467,6 +468,11 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                 if self.newborn is None:
                     raise AssertionError("restart_newborn must persist the reconstructed Task first")
                 return self.newborn
+
+            def read_duplicate_family(self, task_id):
+                self._exact_task(task_id)
+                # This historical fixture has no duplicate/reuse lineage.
+                return None
 
             def restart_context(self, task_id):
                 self._exact_task(task_id)

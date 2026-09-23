@@ -85,13 +85,13 @@ def install(home):
 
 
 def repository_method(mid,code,expected=0,needles=()):
-    return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
+    return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{'LANG':'C.UTF-8'},
             'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},
             'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
 
 
 def external_method(mid,code,expected=0,needles=()):
-    return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{},
+    return {'id':mid,'argv':[sys.executable,'-B','-c',code],'cwd':'.','environment':{'LANG':'C.UTF-8'},
             'source_under_test':{'kind':'external','reason':'The reference command reads only generated external state.'},
             'expected_exit_code':expected,'stdout_contains':list(needles),'stderr_contains':[]}
 
@@ -119,7 +119,7 @@ def _methods(goal,home):
     if goal=='test_development':
         baseline=f'import sys; sys.path.insert(0,{str(application)!r}); from src.double import double; assert double(2)==4; print("BASELINE=4")'
         return [external_method('BASELINE',baseline,needles=['BASELINE=4']),
-                {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
+                {'id':'TEST_GREEN','argv':[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'],'cwd':'.','environment':{'LANG':'C.UTF-8'},'source_under_test':{'kind':'repository','bindings':[{'kind':'cwd','path':'.'}]},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':['Ran 1 test','OK']},
                 repository_method('SENSITIVITY','import unittest; from unittest.mock import patch; from tests.test_double import Regression; s=unittest.TestSuite([Regression("test_double")]);\nwith patch("tests.test_double.double",lambda n:n+1):\n r=unittest.TestResult(); s.run(r)\nassert len(r.failures)==1 and not r.errors; print("DETECTED_BAD_IMPLEMENTATION")',needles=['DETECTED_BAD_IMPLEMENTATION'])]
     if goal=='verification':
         verify=f'import sys; sys.path.insert(0,{str(application)!r}); from src.double import double; print("VALUE="+str(double(2))); raise SystemExit(0 if double(2)==4 else 1)'
@@ -246,10 +246,27 @@ def prepare_task(
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
     if goal=='development':vals['checks']=checks
-    return commands.tasks(
+    task = commands.tasks(
         [{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
           'parameters':vals}], processes, [], decomposition_policy
     )['tasks'][0]
+    return task
+
+
+def _bind_requirements(task, home):
+    # The example's registry is seeded by demo.create. Bind every generated
+    # parent/child contract explicitly rather than bypassing the publication gate.
+    from poise.composition import requirements_tools
+    requirements, _ = requirements_tools(home / 'project.json')
+    plan = requirements.store.registry().plan_task([
+        {'text': text, 'applications': ['DEMO-APP']}
+        for text in task['requirements']
+    ])
+    assert plan['status']=='ready',plan
+    task['requirements_snapshot'] = plan['snapshot']
+    # Synthetic fixture agreement, not independent engineering review.
+    task['requirements_agreement'] = {'accepted': True, 'chains': plan['chains']}
+    return task
 
 
 def _seed(app,home,goal,scenario):
@@ -278,7 +295,25 @@ def _environment_plan(home,revision):
 
 
 def run(directory,goal,scenario,feedback_edge=None):
+    # The standalone example supplies its required locale before any public call.
+    # Restore the caller's environment even when a scenario fails.
+    previous = os.environ.get('LANG')
+    os.environ['LANG'] = previous or 'C.UTF-8'
+    try:
+        return _run(directory,goal,scenario,feedback_edge)
+    finally:
+        if previous is None:
+            os.environ.pop('LANG',None)
+        else:
+            os.environ['LANG'] = previous
+
+
+def _run(directory,goal,scenario,feedback_edge=None):
     directory=Path(directory).resolve();home=create(directory);app=directory/'application'
+    # This example asserts real publication, so provide its own local bare remote.
+    remote=directory/'remote.git'
+    git(directory,'init','--bare',str(remote))
+    git(app,'remote','add','backup',str(remote))
     repo,commands=install(home)
     cfg=json.loads((home/'project.json').read_text());cfg['processes']=deepcopy(repo.editor.raw['processes']);cfg['automatic_checks']=[]
     save(home/'project.json',cfg)
@@ -287,6 +322,7 @@ def run(directory,goal,scenario,feedback_edge=None):
     task=prepare_task(
         repo,commands,processes,cfg['task_decomposition'],goal,'MAIN',home
     )
+    _bind_requirements(task,home)
     children=[];sprint_body=None
     if goal in ('task_planning','sprint_planning'):
         sid=None if goal=='task_planning' else 'PUBLISHED-SPRINT'
@@ -304,12 +340,33 @@ def run(directory,goal,scenario,feedback_edge=None):
                 {'kind':'sections','values':{'plan':'Review CHILD-A first; CHILD-B then uses the accepted review context.'}},
                 {'kind':'upsert_tasks','tasks':children},
                 {'kind':'dependencies','items':[{'predecessor':'CHILD-A','successor':'CHILD-B','kind':'completion'}]}]}
-    h=Poise(home/'project.json','CATALOGUE-AGENT',SystemClock());tool=WorkTools(h);calls=[]
+    for child in children:
+        _bind_requirements(child,home)
+    executor=Poise(home/'project.json','CATALOGUE-EXECUTOR',SystemClock())
+    reviewer=Poise(home/'project.json','CATALOGUE-REVIEWER',SystemClock())
+    # Explicit fixture participants; public handoff preserves role separation.
+    entry=next(s for s in process['stages'] if s['id']==process['route']['entry'])
+    h=reviewer if entry['handler']=='inspect' else executor
+    tool=WorkTools(h);calls=[];handoffs=0
     def invoke(op,args):
         out=tool.invoke({'operation':op,'input':args,'messages':[]})
         calls.append({'operation':op,'status':out['status'],'stage':out.get('stage')})
         return out
     def boot(decision=None,target=None):
+        nonlocal h,tool,handoffs
+        next_id=target or h.runner.context(task['id'])['next_stage']
+        next_stage=next(s for s in process['stages'] if s['id']==next_id)
+        receiver=reviewer if next_stage['handler']=='inspect' else executor
+        if receiver is not h:
+            handoffs+=1
+            out=invoke('handoff',{'request_id':f'catalogue-handoff-{handoffs}',
+                'reason':'Transfer between synthetic catalogue participants.',
+                'result':None,'commit_message':'Preserve catalogue fixture',
+                'artifact_paths':[]})
+            assert out['status']=='handed_off'
+            h=receiver;tool=WorkTools(h)
+            invoke('bootstrap',{'task':{'id':task['id']},'decision':None,
+                'feedback':None,'rework_stage':None})
         return invoke('bootstrap',{'task':None,'decision':decision,'feedback':'User: return to the indicated stage and address this finding.' if target else None,'rework_stage':target})
     ctx=invoke('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})
     ref=json.loads((SOURCE/'config/catalogue/reference.json').read_text())
@@ -452,8 +509,27 @@ def run(directory,goal,scenario,feedback_edge=None):
         assert all(h.task_queries.record(c)['status']=='available' for c in pub_tasks)
         start_child=invoke('bootstrap',{'task':{'id':pub_tasks[0]},'decision':None,'feedback':None,'rework_stage':None})
         child_valid=start_child['stage']==processes['review']['route']['entry']
+    # A publish stage records the accepted local intent only. The separate
+    # public integration lifecycle actually advances the configured local target.
+    integration = None
+    if goal=='integration':
+        integration = invoke('integrate', {
+            'request_id':'catalogue-integrate-main','task_id':task['id'],
+            'expected_source_commit':final['commit'],
+            'expected_target_commit':base,
+            'authorization':'Fixture user authorizes local integration of this accepted result.',
+            'resolutions':[],
+        })
+        assert integration['status']=='integrated',integration
     remote=directory/'remote.git'
-    current_target=git(remote,'rev-parse','refs/heads/main')
+    current_target=git(app,'rev-parse','refs/heads/main')
+    remote_unchanged=git(remote,'rev-parse','refs/heads/main')==base
+    assert remote_unchanged,'Catalogue execution must not push to the fixture remote'
+    if integration is not None:
+        assert current_target==integration['target_after']
+        for source in sources:
+            git(app,'merge-base','--is-ancestor',source['commit'],current_target)
+
     artifacts=final['artifacts']
     output={'status':'PASS','goal_type':goal,'scenario':scenario,'feedback_edge':feedback_edge,
             'task_status':'completed','reports':reports,'accepted_stages':accepted,
@@ -462,7 +538,8 @@ def run(directory,goal,scenario,feedback_edge=None):
             'read_only_checks':read_only_checks,
             'ready_artifacts':sum(Path(a['path']).is_file() for a in artifacts),
             'published_tasks':pub_tasks,'child_bootstrap_valid':child_valid,
-            'target_published':current_target!=base,'target_unchanged':current_target==base,
+            'target_published':integration is not None and current_target!=base,
+            'target_unchanged':current_target==base,'remote_unchanged':remote_unchanged,
             'calls':calls,'notice':'User/reviewer arguments are explicit test fixtures; commands, Git and SQLite are real.'}
     if goal=='environment_diagnostics':assert json.loads((home/'service-state.json').read_text())=={'ready':False,'revision':0}
     if goal=='environment_remediation':assert json.loads((home/'service-state.json').read_text())['ready']

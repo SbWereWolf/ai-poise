@@ -16,7 +16,8 @@ ROOT=Path(__file__).resolve().parents[2]
 def test_shipped_editor_mutable_paths_are_project_local_and_configured():
     project=json.loads((ROOT/'config/projects/ai-poise/project.json').read_text())
     assert project['paths']['runtime']=='.runtime'
-    assert project['paths']['tasks']=='task'
+    assert project['paths']['standalone_tasks']=='standalone'
+    assert 'tasks' not in project['paths']
     assert project['paths']['sprints']=='sprint'
     assert project['paths']['database']=='database/tasks.sqlite'
     assert project['paths']['lock']=='database/tasks.lock'

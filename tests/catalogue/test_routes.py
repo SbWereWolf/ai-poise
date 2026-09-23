@@ -1,5 +1,7 @@
 """Reference walkthroughs use public tools, real Git/commands and SQLite."""
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
+from multiprocessing import get_context
 from pathlib import Path
 import json
 import sys
@@ -18,13 +20,15 @@ def _run_route(root,case):
 
 def test_full_routes_and_feedback_without_direct_database_setup(tmp_path):
     matrix=[(goal,scenario) for scenario in ('short','feedback') for goal in GOALS]
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        results=pool.map(lambda case:_run_route(tmp_path,case),matrix)
+    # Runtime telemetry may fork; never fork a multithreaded test worker.
+    with ProcessPoolExecutor(max_workers=8, mp_context=get_context('spawn')) as pool:
+        results=pool.map(_run_route,repeat(tmp_path),matrix)
         for (goal,scenario),result in results:
             case=f'{scenario}-{goal}'
             assert result['status']=='PASS',case
             assert result['task_status']=='completed',case
             assert result['goal_type']==goal,case
+            assert result['remote_unchanged'],case
             assert result['read_only_checks']>0,case
             assert result['reports'] and len(result['reports'])==len(result['accepted_stages']),case
             if scenario=='feedback':

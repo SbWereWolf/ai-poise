@@ -130,14 +130,16 @@ class PlanningPublications:
                 body_contract=intent.get('task') if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
                 goal=body_contract.get('goal_type') if isinstance(body_contract,dict) else None
                 if goal not in self.processes:raise DomainError('Unknown child goal type')
+                if prepared.source_intent!=intent:
+                    raise DomainError('Reviewed child intent changed after creation preflight')
+                # Requirements preparation retains the original envelope for
+                # provenance and returns a normalized structural creation intent.
                 validate_creation_intent(
-                    intent, self.processes[goal], self.automatic_checks,
+                    prepared.intent, self.processes[goal], self.automatic_checks,
                     self.decomposition_policy,
                 )
                 alias=creation_intent_alias(intent)
                 if alias in aliases:raise DomainError('Duplicate child creation identity')
-                if prepared.source_intent!=intent:
-                    raise DomainError('Reviewed child intent changed after creation preflight')
                 aliases.add(alias);candidates.append((prepared,goal))
             reservations=creation_batch_reservations(
                 contracts, () if sprint is None else (sprint.plan.data['id'],)

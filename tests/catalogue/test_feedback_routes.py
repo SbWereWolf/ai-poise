@@ -1,7 +1,10 @@
 """Run each explicitly documented feedback edge, not combinatorial fault mixtures."""
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
+from multiprocessing import get_context
 from pathlib import Path
 import json
+import pytest
 import sys
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'examples'))
@@ -13,9 +16,11 @@ def _run_edge(root,edge):
     return edge,run(root/edge['id'],edge['goal_type'],'feedback',edge['id'])
 
 
-def test_feedback_edges_return_to_work_and_finish_same_task(tmp_path):
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        cases=pool.map(lambda edge:_run_edge(tmp_path,edge),EDGES)
+@pytest.mark.parametrize('edge_batch', [EDGES[:17], EDGES[17:]], ids=['first', 'second'])
+def test_feedback_edges_return_to_work_and_finish_same_task(tmp_path, edge_batch):
+    # Runtime telemetry may fork; never fork a multithreaded test worker.
+    with ProcessPoolExecutor(max_workers=8, mp_context=get_context('spawn')) as pool:
+        cases=pool.map(_run_edge,repeat(tmp_path),edge_batch)
         for edge,result in cases:
             case=edge['id']
             assert result['task_status']=='completed',case

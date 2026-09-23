@@ -51,13 +51,25 @@ def setup(project):
     return h,ctx,child
 
 
+def hand_over(sender, receiver, task_id, request_id):
+    # Synthetic participants exercise real role gates, not independent AI review.
+    out=call(sender,'handoff',{'request_id':request_id,
+        'reason':'Transfer planning fixture between executor and reviewer.',
+        'result':None,'commit_message':'Preserve planning fixture', 'artifact_paths':[]})
+    assert out['status']=='handed_off'
+    return start(receiver,{'id':task_id})
+
+
 def to_publish(h,ctx,children):
     verify(h,ctx,{}, {'planned_tasks':json.dumps(children)})
-    ctx=start(h,decision='continue')
-    verify(h,ctx,{'coverage':'Reviewed each full child contract.','findings':[],'resolution_decisions':[]},
+    reviewer=Poise(h.config_path,'REVIEWER')
+    hand_over(h,reviewer,ctx['task'],'plan-to-review')
+    ctx=start(reviewer,decision='continue')
+    verify(reviewer,ctx,{'coverage':'Reviewed each full child contract.','findings':[],'resolution_decisions':[]},
            {'report':'Contract and exact checks reviewed.'})
-    call(h,'accept',{})
+    call(reviewer,'accept',{})
     assert h.task_queries.record(children[0]['id']) is None
+    hand_over(reviewer,h,ctx['task'],'review-to-publish')
     return start(h,decision='continue')
 
 
@@ -67,6 +79,10 @@ def test_publish_reviewed_task_batch_and_bootstrap_child(project):
     out=verify(h,ctx,payload,{})
     assert out['status']=='verified'
     assert h.task_queries.record('CHILD')['status']=='available'
+    assert h.task_commands.requirements_snapshot('CHILD')==child['requirements_snapshot']
+    with h.store.unit_of_work() as u:
+        historical=u.tasks.restart_context('CHILD')
+    assert historical['requirements_agreement']==child['requirements_agreement']
     assert call(h,'verify',{'result':None,'artifacts':[]})['replayed']
     call(h,'accept',{})
     boot=start(h,{'id':'CHILD'})
@@ -112,3 +128,39 @@ def test_unknown_child_goal_cannot_be_filled_from_parent(project):
     with pytest.raises(PoiseError,match='Unknown child'):
         verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'User: publish.'},{})
     assert h.task_queries.record('CHILD') is None
+
+
+@pytest.mark.parametrize('damage',['missing_snapshot','unaccepted','mismatched_chain'])
+def test_publication_keeps_requirements_gate(project,damage):
+    h,ctx,child=setup(project)
+    if damage=='missing_snapshot':
+        del child['requirements_snapshot']
+    elif damage=='unaccepted':
+        child['requirements_agreement']['accepted']=False
+    else:
+        child['requirements_agreement']['chains']=[]
+    ctx=to_publish(h,ctx,[child])
+    with pytest.raises(PoiseError):
+        verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'Fixture user: publish.'},{})
+    assert h.task_queries.record('CHILD') is None
+    with h.store.unit_of_work() as u:
+        assert u.actions.load('PLAN','publish',1) is None
+
+
+def test_prepared_creation_cannot_replace_reviewed_source(project,monkeypatch):
+    from dataclasses import replace
+    from poise.application.planning_publication import PlanningPublications
+    h,ctx,child=setup(project);ctx=to_publish(h,ctx,[child])
+    original=PlanningPublications.publication_preflight
+    def different_source(self,*args):
+        prepared=original(self,*args)
+        source=deepcopy(prepared['prepared'][0].source_intent)
+        source['goal']='An unreviewed replacement'
+        prepared['prepared'][0]=replace(prepared['prepared'][0],source_intent=source)
+        return prepared
+    monkeypatch.setattr(PlanningPublications,'publication_preflight',different_source)
+    with pytest.raises(PoiseError,match='Reviewed child intent changed'):
+        verify(h,ctx,{'kind':'tasks','section':'planned_tasks','authorization':'Fixture user: publish.'},{})
+    assert h.task_queries.record('CHILD') is None
+    with h.store.unit_of_work() as u:
+        assert u.actions.load('PLAN','publish',1) is None

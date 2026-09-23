@@ -1,0 +1,104 @@
+{
+  "schema": "poise/pmi/v1",
+  "id": "POISE-PMI-1.0",
+  "profiles": {
+    "ubuntu-24.04": {
+      "os_ids": [
+        "ubuntu"
+      ],
+      "versions": [
+        "24.04"
+      ],
+      "python": [
+        3,
+        13
+      ]
+    },
+    "debian-13": {
+      "os_ids": [
+        "debian"
+      ],
+      "versions": [
+        "13"
+      ],
+      "python": [
+        3,
+        13
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "PSI-01",
+      "case": "maintenance",
+      "title": "Чистая и повторная установка, dry-run",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-02",
+      "case": "damaged",
+      "title": "Защита повреждённой базы",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-03",
+      "case": "permissions",
+      "title": "Проверка прав обычного пользователя",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-04",
+      "case": "override",
+      "title": "Переопределение параметров",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-05",
+      "case": "taskless",
+      "title": "Агент без задачи",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-06",
+      "case": "standalone",
+      "title": "Самостоятельная задача",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-07",
+      "case": "sprint",
+      "title": "Две связанные задачи спринта",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-08",
+      "case": "integration",
+      "title": "Интеграция при продвижении основной ветки",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-09",
+      "case": "restart",
+      "title": "Повторный запуск с сохранением изменений",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-10",
+      "case": "rework",
+      "title": "Ошибка проверки и исправление",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-11",
+      "case": "crash",
+      "title": "Восстановление владения после прерывания",
+      "timeout_seconds": 180
+    },
+    {
+      "id": "PSI-12",
+      "case": "cancel",
+      "title": "Отмена с сохранением незавершённых файлов",
+      "timeout_seconds": 180
+    }
+  ]
+}

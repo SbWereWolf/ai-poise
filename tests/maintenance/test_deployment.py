@@ -149,3 +149,25 @@ def test_repository_probe_detects_missing_base_and_does_not_repair(installation)
     item=next(x for x in report['requirements'] if x['id']=='target-repository')
     assert item['initial_check']['response']['code']=='base'
     assert snapshot(root)==before
+
+
+def test_profile_uses_versioned_requirement_catalogue(installation):
+    import shutil
+    root,p=installation
+    supplied=root/'supplied-source'
+    shutil.copytree(REPO/'config',supplied/'config')
+    catalog=json.loads((p/'requirements.json').read_text())
+    catalog['requirements'].append({'id':'extra-declared-requirement','kind':'deps',
+        'check':{'argv':['true'],'timeout':5},'apply':{'argv':['true'],'timeout':5},
+        'recommendation':'Declared in configuration, not profile implementation.'})
+    assets=supplied/'config/maintenance';assets.mkdir(exist_ok=True)
+    (assets/'requirements.json').write_text(json.dumps(catalog))
+    (assets/'repairs.json').write_bytes((p/'repairs.json').read_bytes())
+    out=root/'second-profile'
+    r=invoke('-m','poise_environment.profile','--source',supplied,'--output',out,
+             '--state',root/'second-state','--repository',root/'target-repository',
+             '--project','second','--base-ref','main','--author-name','Acceptance',
+             '--author-email','acceptance@example.invalid','--module-path',ENV['PYTHONPATH'])
+    assert r.returncode==0,(r.stdout,r.stderr)
+    generated=json.loads((out/'requirements.json').read_text())
+    assert 'extra-declared-requirement' in {item['id'] for item in generated['requirements']}

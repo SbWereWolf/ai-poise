@@ -1,0 +1,255 @@
+{
+  "schema": "environment-maintenance/repairs/v1",
+  "repairs": {
+    "python-runtime": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.python_runtime",
+        "--minimum",
+        "${python_minimum}",
+        "--maximum",
+        "${python_maximum}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "target-repository": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "poise_environment.repairs.repository",
+        "--repository",
+        "${repository}",
+        "--base-ref",
+        "${base_ref}",
+        "--git",
+        "${git}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "state-root": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "runtime-directory": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}/runtime",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "task-directory": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}/standalone",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "sprint-directory": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}/sprints",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "worktree-directory": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}/worktrees",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "requirements-directory": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}/database",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "telemetry-directory": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "environment_maintenance.repairs.directory",
+        "--path",
+        "${state_root}/telemetry",
+        "--permissions",
+        "${directory_mode}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "poise-project-config": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "poise_environment.repairs.project_config",
+        "--settings",
+        "${profile_root}/setup.json",
+        "--template",
+        "${template_id}",
+        "--project",
+        "${project_id}",
+        "--repository",
+        "${repository}",
+        "--state",
+        "${state_root}",
+        "--base-ref",
+        "${base_ref}",
+        "--author-name",
+        "${author_name}",
+        "--author-email",
+        "${author_email}",
+        "--remote",
+        "${remote}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "poise-task-database": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "poise_environment.repairs.task_database",
+        "--config",
+        "${profile_root}/project/project.json",
+        "--state-root",
+        "${state_root}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "poise-requirements-database": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "poise_environment.repairs.requirements_database",
+        "--config",
+        "${profile_root}/project/project.json",
+        "--state-root",
+        "${state_root}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    },
+    "poise-telemetry-database": {
+      "argv": [
+        "${python}",
+        "-B",
+        "-m",
+        "poise_environment.repairs.telemetry_database",
+        "--config",
+        "${profile_root}/project/project.json",
+        "--state-root",
+        "${state_root}"
+      ],
+      "timeout": 25,
+      "env": {
+        "PYTHONPATH": "${module_path}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LANG": "C.UTF-8"
+      }
+    }
+  }
+}

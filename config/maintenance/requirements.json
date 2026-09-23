@@ -1,0 +1,262 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {
+    "python": {
+      "type": "string",
+      "default": "python3"
+    },
+    "module_path": {
+      "type": "string",
+      "default": ""
+    },
+    "profile_root": {
+      "type": "string",
+      "default": ""
+    },
+    "state_root": {
+      "type": "string",
+      "default": ""
+    },
+    "repository": {
+      "type": "string",
+      "default": ""
+    },
+    "project_id": {
+      "type": "string",
+      "default": ""
+    },
+    "base_ref": {
+      "type": "string",
+      "default": "main"
+    },
+    "author_name": {
+      "type": "string",
+      "default": ""
+    },
+    "author_email": {
+      "type": "string",
+      "default": ""
+    },
+    "git": {
+      "type": "string",
+      "default": "git"
+    },
+    "directory_mode": {
+      "type": "string",
+      "default": "0750"
+    },
+    "python_minimum": {
+      "type": "string",
+      "default": "3.13"
+    },
+    "python_maximum": {
+      "type": "string",
+      "default": "3.14"
+    },
+    "template_id": {
+      "type": "string",
+      "default": "linux-reference"
+    },
+    "remote": {
+      "type": "string",
+      "default": "disabled"
+    }
+  },
+  "inherit_env": [
+    "PATH",
+    "HOME",
+    "LANG"
+  ],
+  "requirements": [
+    {
+      "id": "python-runtime",
+      "kind": "deps",
+      "check": {
+        "repair": "python-runtime"
+      },
+      "apply": {
+        "repair": "python-runtime"
+      },
+      "recommendation": {
+        "repair": "python-runtime"
+      }
+    },
+    {
+      "id": "git-executable",
+      "kind": "deps",
+      "check": {
+        "argv": [
+          "${git}",
+          "--version"
+        ],
+        "timeout": 10
+      },
+      "apply": {
+        "argv": [
+          "apt-get",
+          "install",
+          "--yes",
+          "git"
+        ],
+        "timeout": 120
+      },
+      "recommendation": "Git недоступен. Укажите установленный Git через --set git=/path/git либо установите пакет git средствами Ubuntu. Команда deps не повышает привилегии."
+    },
+    {
+      "id": "target-repository",
+      "kind": "infra",
+      "check": {
+        "repair": "target-repository"
+      },
+      "apply": {
+        "repair": "target-repository"
+      },
+      "recommendation": {
+        "repair": "target-repository"
+      }
+    },
+    {
+      "id": "state-root",
+      "kind": "infra",
+      "check": {
+        "repair": "state-root"
+      },
+      "apply": {
+        "repair": "state-root"
+      },
+      "recommendation": {
+        "repair": "state-root"
+      }
+    },
+    {
+      "id": "runtime-directory",
+      "kind": "infra",
+      "check": {
+        "repair": "runtime-directory"
+      },
+      "apply": {
+        "repair": "runtime-directory"
+      },
+      "recommendation": {
+        "repair": "runtime-directory"
+      }
+    },
+    {
+      "id": "task-directory",
+      "kind": "infra",
+      "check": {
+        "repair": "task-directory"
+      },
+      "apply": {
+        "repair": "task-directory"
+      },
+      "recommendation": {
+        "repair": "task-directory"
+      }
+    },
+    {
+      "id": "sprint-directory",
+      "kind": "infra",
+      "check": {
+        "repair": "sprint-directory"
+      },
+      "apply": {
+        "repair": "sprint-directory"
+      },
+      "recommendation": {
+        "repair": "sprint-directory"
+      }
+    },
+    {
+      "id": "worktree-directory",
+      "kind": "infra",
+      "check": {
+        "repair": "worktree-directory"
+      },
+      "apply": {
+        "repair": "worktree-directory"
+      },
+      "recommendation": {
+        "repair": "worktree-directory"
+      }
+    },
+    {
+      "id": "requirements-directory",
+      "kind": "infra",
+      "check": {
+        "repair": "requirements-directory"
+      },
+      "apply": {
+        "repair": "requirements-directory"
+      },
+      "recommendation": {
+        "repair": "requirements-directory"
+      }
+    },
+    {
+      "id": "telemetry-directory",
+      "kind": "infra",
+      "check": {
+        "repair": "telemetry-directory"
+      },
+      "apply": {
+        "repair": "telemetry-directory"
+      },
+      "recommendation": {
+        "repair": "telemetry-directory"
+      }
+    },
+    {
+      "id": "poise-project-config",
+      "kind": "infra",
+      "check": {
+        "repair": "poise-project-config"
+      },
+      "apply": {
+        "repair": "poise-project-config"
+      },
+      "recommendation": {
+        "repair": "poise-project-config"
+      }
+    },
+    {
+      "id": "poise-task-database",
+      "kind": "infra",
+      "check": {
+        "repair": "poise-task-database"
+      },
+      "apply": {
+        "repair": "poise-task-database"
+      },
+      "recommendation": {
+        "repair": "poise-task-database"
+      }
+    },
+    {
+      "id": "poise-requirements-database",
+      "kind": "infra",
+      "check": {
+        "repair": "poise-requirements-database"
+      },
+      "apply": {
+        "repair": "poise-requirements-database"
+      },
+      "recommendation": {
+        "repair": "poise-requirements-database"
+      }
+    },
+    {
+      "id": "poise-telemetry-database",
+      "kind": "infra",
+      "check": {
+        "repair": "poise-telemetry-database"
+      },
+      "apply": {
+        "repair": "poise-telemetry-database"
+      },
+      "recommendation": {
+        "repair": "poise-telemetry-database"
+      }
+    }
+  ]
+}

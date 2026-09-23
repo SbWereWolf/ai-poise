@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
+import json
 import pytest
 from conftest import add_test,write_json
 from conftest import WorkPoise as Poise
@@ -57,17 +58,38 @@ def test_count_gate_created_artifacts_are_inputs_same_verify(project):
     assert v['status']=='verified' and len(v['artifacts'])==2
 
 
+def tools_with_exit_section(project, section, requirement):
+    # A produced section is a postcondition, frozen before stage execution.
+    # Dynamic content additions do not rewrite an entered StageContract.
+    project['task']['content_contract']={
+        'sections':[{'id':section,'template':'Fill','write_stages':['tests'],'normalization':'strip'}],
+        'routes':[],
+        'requirements':[{'id':requirement,'kind':'section','section':section,
+                         'stages':['tests'],'phase':'post','states':['populated']}],
+    }
+    project['task']['stage_contracts'][0]['exit_requirements']=[requirement]
+    return tools_for(project)
+
+
 def test_blocked_content_can_retry_same_created_artifact_without_duplicate(project):
-    tools=tools_for(project);b=bootstrap(tools,project);add_test(b['worktree'])
-    value=result(b)
-    value['content_additions']['sections']=[{'id':'reason','template':'Fill','write_stages':['tests'],'normalization':'strip'}]
-    value['content_additions']['requirements']=[{'id':'need','kind':'section','section':'reason','stages':['tests'],'phase':'pre','states':['populated']}]
-    value['sections']['reason']='Fill'
+    tools=tools_with_exit_section(project,'reason','need')
+    b=bootstrap(tools,project);add_test(b['worktree']);value=result(b)
     blocked=verify(tools,value,[text_artifact()])
-    assert blocked['status']=='content_requirements_failed' and tools.runtime.show()['attempts']==0
+    assert blocked['status']=='content_requirements_failed'
+    assert blocked['content_gate']['phase']=='post'
+    assert tools.runtime.show()['attempts']==1
+    artifact=Path(b['task_root'])/'artifacts/report.md'
+    original=artifact.read_bytes()
+    assert tools.runtime.task_queries.record('T1')['status']=='active'
+    with pytest.raises(PoiseError):
+        tools.invoke(request('accept',{}))
     value['sections']['reason']='The evidence is sufficient.'
     done=verify(tools,value,[text_artifact()])
     assert done['status']=='verified' and len(done['artifacts'])==1
+    assert [c['id'] for c in done['checks']]==[c['id'] for c in blocked['checks']]
+    assert tools.runtime.show()['attempts']==1
+    assert artifact.read_bytes()==original
+    assert Path(done['artifacts'][0]['path'])==artifact
 
 
 def test_show_batch_sections_with_range_and_metrics(project):
@@ -132,16 +154,21 @@ def test_new_runtime_same_message_no_recount(project):
 
 
 def test_resume_restores_complete_candidate_without_result_file(project):
-    tools=tools_for(project);b=bootstrap(tools,project);add_test(b['worktree'])
-    value=result(b)
-    value['content_additions']['sections']=[{'id':'extra','template':'Fill','write_stages':['tests'],'normalization':'strip'}]
-    value['content_additions']['requirements']=[{'id':'need-extra','kind':'section','section':'extra','stages':['tests'],'phase':'pre','states':['populated']}]
-    value['sections']['extra']='Fill'
+    tools=tools_with_exit_section(project,'extra','need-extra')
+    b=bootstrap(tools,project);add_test(b['worktree']);value=result(b)
+    value['content_additions']['sections']=[{'id':'note','template':'Note',
+        'write_stages':['tests'],'normalization':'strip'}]
+    value['sections']['note']='The complete candidate includes this dynamic addition.'
     blocked=verify(tools,value)
-    resumed=tools.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None}))
+    assert blocked['status']=='content_requirements_failed'
+    assert not list(Path(b['runtime_root']).glob('*result*'))
+    resumed_tools=WorkTools(Poise(project['config_path'],'SESSION-BATCH'))
+    resumed=resumed_tools.invoke(request('bootstrap',{'task':None,'decision':None,'feedback':None,'rework_stage':None}))
     assert resumed['result_template']['sections']==value['sections']
     payload=resumed['result_template'];payload['sections']['extra']='Done'
-    assert verify(tools,payload)['status']=='verified'
+    done=verify(resumed_tools,payload)
+    assert done['status']=='verified'
+    assert [c['id'] for c in done['checks']]==[c['id'] for c in blocked['checks']]
 
 
 def test_failed_code_then_fixed_code_same_direct_payload(project):
@@ -222,6 +249,15 @@ def test_bad_message_time_and_unknown_reason_rejected_without_work(project):
 def test_mixed_evidence_continuation_direct_batch_no_rerun(project):
     from evidence.test_paths import setup,arg
     configure(project);unused,counter=setup(project)
+    process=json.loads((project['root']/'config/processes/verification_demo.json').read_text())
+    # The observation process is measure/audit, not the development route.
+    project['task']['decomposition']['phases']=[
+        {'stage':stage['id'],'skills':['task-domain'],'areas':[]}
+        for stage in process['stages']]
+    project['task']['stage_contracts']=[
+        {'stage_id':stage['id'],'allowed_paths':list(stage['allowed_paths']),
+         'entry_requirements':[],'exit_requirements':[]}
+        for stage in process['stages']]
     tools=WorkTools(Poise(project['config_path'],'DIRECT-MIXED'))
     b=bootstrap(tools,project,[message()]);p=result(b)
     first=verify(tools,p,messages=[message()]);assert first['status']=='awaiting_continuation'

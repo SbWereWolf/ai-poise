@@ -73,12 +73,27 @@ def test_readonly_review_blocks_code_edits(project):
         h.verify()
 
 
-def test_no_second_task_without_finishing_first(project):
-    h = Poise(project['config_path'], 'S-A'); h.bootstrap(task_file=project['task_path'])
+def test_task_switch_releases_previous_claim_and_preserves_wip(project):
+    h = Poise(project['config_path'], 'S-A')
+    first = h.bootstrap(task_file=project['task_path'])
+    add_test(first['worktree'])
+    wip = Path(first['worktree'], 'tests/test_double.py')
+    content = wip.read_bytes()
+    original_head = git(Path(first['worktree']), 'rev-parse', 'HEAD')
     other = dict(project['task'], id='T2')
     p = write_json(project['root'] / 'other.json', other)
-    with pytest.raises(PoiseError, match='текущ'):
-        h.bootstrap(task_file=p)
+    second = h.bootstrap(task_file=p)
+    assert second['task'] == 'T2'
+    assert h.task_queries.record('T1')['claimed_by'] is None
+    assert h.task_queries.record('T2')['claimed_by'] == 'S-A'
+    assert wip.read_bytes() == content
+    assert git(Path(first['worktree']), 'rev-parse', 'HEAD') == original_head
+    assert not Path(second['worktree'], 'tests/test_double.py').exists()
+    resumed = h.bootstrap(task_file=project['task_path'])
+    assert resumed['task'] == 'T1' and resumed['worktree'] == first['worktree']
+    assert h.task_queries.record('T2')['claimed_by'] is None
+    assert h.task_queries.record('T1')['claimed_by'] == 'S-A'
+    assert wip.read_bytes() == content
 
 
 def test_parallel_tasks_worktrees_do_not_mix(project):
@@ -94,17 +109,32 @@ def test_parallel_tasks_worktrees_do_not_mix(project):
 
 def test_cancel_requires_reason_skips_tests(project):
     h = Poise(project['config_path'], 'A'); h.bootstrap(task_file=project['task_path'])
+    before = h.task_queries.record('T1')
     with pytest.raises(PoiseError): h.cancel('')
+    assert h.task_queries.record('T1') == before
+    assert h.show()['attempts'] == 0 and h.show()['evidence_count'] == 0
     assert h.cancel('Пользователь отменил задачу.')['status'] == 'cancelled'
-    assert h.show()['attempts'] == 0
+    # Cancellation releases the current binding; inspect the terminal Task,
+    # rather than reading Task-only fields from a taskless projection.
+    terminal_ref = write_json(project['root'] / 'terminal-task.json', {'id': 'T1'})
+    terminal = h.bootstrap(task_file=terminal_ref)
+    assert terminal['status'] == 'cancelled'
+    assert h.task_queries.record('T1')['claimed_by'] is None
+    assert h.task_queries.record('T1')['attempts'] == 0
+    assert terminal['evidence']['records'] == []
+    assert h.store.current(h.session) is None
 
 
 def test_unknown_method_rejected_at_creation(project):
-    project['task']['checks']['tests'] = ['K1']
+    # Keep RED's valid schedule so the unknown method is the first defect.
+    project['task']['checks']['tests'].append('K1')
     write_json(project['task_path'], project['task'])
     h = Poise(project['config_path'], 'S-A')
     with pytest.raises(PoiseError, match='K1'):
         h.bootstrap(task_file=project['task_path'])
+    assert h.task_queries.record('T1') is None
+    assert not (project['root'] / 'state/worktrees/T1').exists()
+    assert git(project['app'], 'branch', '--list', 'tasks/T1') == ''
 
 
 def test_invalid_trace_schedule_rejected_before_task_branch_or_worktree(project):
@@ -152,9 +182,17 @@ def test_limit_does_not_reset_between_calls(project):
     h = Poise(project['config_path'],'A'); b=h.bootstrap(task_file=project['task_path'])
     add_test(b['worktree']); fill(b)
     Path(b['worktree'],'tests/test_double.py').write_text('import not_existing\n')
-    assert h.verify()['status']=='checks_failed'
+    first=h.verify(); assert first['status']=='checks_failed'
     h = Poise(project['config_path'],'A')
+    repeated=h.verify()
+    assert repeated['status']=='checks_failed'
+    assert [c['id'] for c in repeated['checks']]==[c['id'] for c in first['checks']]
+    assert h.show()['attempts']==1
+    evidence_count=h.show()['evidence_count']
+    # Intact receipts cost no new attempt; changed input needs a fresh one.
+    Path(b['worktree'],'tests/test_double.py').write_text('import another_missing_module\n')
     with pytest.raises(PoiseError,match='лимит'): h.verify()
+    assert h.show()['attempts']==1 and h.show()['evidence_count']==evidence_count
 
 
 def test_expected_red_is_not_missing_interpreter(project):

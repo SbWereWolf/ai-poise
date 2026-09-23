@@ -10,6 +10,8 @@ from .infrastructure.session_establishment import direct_caller,establish_poise
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
+    for name in ('infra','deps','check'):
+        sub.add_parser(name,help='Route to the independent environment-maintenance application')
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
     project.add_argument('project_action',nargs='?',choices=('list',))
     project.add_argument('--settings',type=Path,required=True)
@@ -67,6 +69,9 @@ def parser():
 
 
 def main():
+    if len(sys.argv)>1 and sys.argv[1] in ('infra','deps','check'):
+        from .interfaces.maintenance import execute
+        return execute(sys.argv[1:])
     args=parser().parse_args()
     if args.command=='project':
         from .interfaces.projects import execute

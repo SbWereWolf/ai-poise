@@ -141,7 +141,7 @@ def test_source_metadata_declares_stable_v1():
     import tomllib
 
     metadata = tomllib.loads((ROOT / "pyproject.toml").read_text())
-    assert metadata["project"]["version"] == "1.0.0"
+    assert metadata["project"]["version"] == "1.0.1"
 
 
 def test_installed_wheel_reports_stable_v1(installed_poise):
@@ -153,7 +153,7 @@ def test_installed_wheel_reports_stable_v1(installed_poise):
             "import importlib.metadata as m; print(m.version('ai-poise'))",
         )
     )
-    assert result.stdout.strip() == "1.0.0"
+    assert result.stdout.strip() == "1.0.1"
 
 
 def test_fresh_wheel_exposes_only_poise(installed_poise):

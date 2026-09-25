@@ -33,7 +33,7 @@ def registry_case(project):
     configure_public_registry_case(project)
     # An inactive observe stage is valid until a new guard activates it without
     # a subject. This is the late rehydration failure from the reported incident.
-    project['process']['stages'][2].update(handler='observe', read_only=True,
+    project['process']['stages'][2].update(handler='observe', role="executor", read_only=True,
                                             allowed_paths=[])
     project['task']['stage_contracts'][2]['allowed_paths'] = []
     write_json(project['root'] / 'config/processes/development.json', project['process'])

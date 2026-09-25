@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 
-from conftest import WorkPoise as Poise, write_json
+from conftest import WorkPoise as Poise, write_json, bind_task_requirements
 from poise.application.work import WorkTools
 from batch.helpers import request
 
@@ -16,7 +16,7 @@ def _configure_single_stage(project):
         "sections": {"report": "Record the result."},
         "required_sections": ["report"],
         "artifact_requirements": [],
-        "handler": "produce",
+        "handler": "produce", "role": "executor",
         "transitions": {"complete": None},
         "rework_targets": ["write"],
     }
@@ -53,6 +53,9 @@ def _configure_single_stage(project):
             "exit_requirements": [],
         }],
     }
+    task["decomposition"] = {"kind": "ordinary", "phases": [
+        {"stage": "write", "skills": ["task-domain"], "areas": []}], "integration": None}
+    bind_task_requirements(task, project["requirements_registry"])
     return task
 
 
@@ -179,6 +182,10 @@ def test_documentation_and_skills_define_public_version_recovery_contract():
     development = (root / ".agents/skills/poise-development/SKILL.md").read_text(
         encoding="utf-8"
     )
+
+    batch = " ".join(batch.split())
+    workflow = " ".join(workflow.split())
+    development = " ".join(development.split())
 
     assert (
         "Существующая non-newborn Task возвращает точное текущее поле `version` через "

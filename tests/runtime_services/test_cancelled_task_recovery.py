@@ -88,11 +88,17 @@ def test_recovery_rejection_never_changes_task_or_work(project, fault, pattern):
     elif fault in ("foreign", "ambiguous"):
         with h.store.unit_of_work() as uow:
             if fault == "foreign":
-                uow.ownership.bind_worktree("executor", None)
+                uow.ownership.bind_worktree(h.session, None)
             else:
                 # Model a historical ambiguous binding, not a valid new write.
                 uow.tasks.db.execute("DROP INDEX sessions_single_worktree_owner")
+                # Cancellation releases ownership; arrange both owners explicitly.
+                uow.ownership.bind_worktree(h.session, task_id)
             uow.ownership.bind_worktree("foreign", task_id)
+            expected_owners = 2 if fault == "ambiguous" else 1
+            assert uow.tasks.db.execute(
+                "SELECT COUNT(*) FROM sessions WHERE task_id=?", (task_id,)
+            ).fetchone()[0] == expected_owners
     elif fault == "wrong_branch":
         git(root, "checkout", "-b", "foreign-branch")
     elif fault == "completed":

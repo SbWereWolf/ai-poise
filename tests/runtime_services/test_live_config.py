@@ -10,7 +10,7 @@ from poise.application.work import WorkTools
 from poise.modules.foundation.errors import VersionConflict
 from conftest import WorkPoise as Poise
 from batch.helpers import bootstrap as bootstrap_task, request, result, verify as verify_task
-from conftest import add_test, write_json
+from conftest import add_test, write_json, verification_plan
 from sprints.helpers import (
     bootstrap as bootstrap_sprint,
     draft,
@@ -161,6 +161,10 @@ def test_current_automatic_check_mapping_applies_to_existing_task(project):
     contract = deepcopy(project["task"])
     contract["methods"].append({
         "id": "CURRENT_CONFIG_CHECK",
+        "verification_plan": verification_plan(
+            "Observe the explicitly configured automatic check selection.",
+            ["src/**"], green_stages=["implementation"],
+        ),
         "argv": [sys.executable, "-B", "-c", "print('current-config-check')"],
         "cwd": ".",
         "environment": {},
@@ -182,6 +186,9 @@ def test_current_automatic_check_mapping_applies_to_existing_task(project):
             "version": 1,
         },
     })
+    # The method is registered for later work, not for the current tests stage.
+    # Only the changed live automatic mapping may select it at this stage.
+    contract["checks"]["implementation"].append("CURRENT_CONFIG_CHECK")
     original = WorkTools(Poise(project["config_path"], "live-check-session"))
     context = original.invoke(request("bootstrap", {
         "task": contract,

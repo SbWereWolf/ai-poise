@@ -133,7 +133,7 @@ class Case:
         planned=self.requirements('query',{'queries':[{'id':'plan','kind':'plan_task',
             'task_requirements':[{'text':text,'applications':['PSI-APPLICATION']}]}]})['results'][0]['value']
         assert planned['status']=='ready', planned
-        stage={'id':'work','handler':'produce','instruction':'Produce and verify the fixture result.',
+        stage={'id':'work','handler':'produce', "role": "executor",'instruction':'Produce and verify the fixture result.',
             'transitions':{'complete':None},'rework_targets':['work'],'read_only':False,
             'allowed_paths':['src/**'],'normalization':'strip','sections':{'report':'Describe the result.'},
             'required_sections':['report'],'artifact_requirements':[]}

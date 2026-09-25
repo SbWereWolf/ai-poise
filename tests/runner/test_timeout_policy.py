@@ -71,14 +71,19 @@ def test_runner_reports_progress_gap_timeout_separately_from_hard_limit(tmp_path
 
 def test_output_activity_resets_progress_gap(tmp_path):
     runner = RegisteredCheckRunner()
-    code = 'import time\nfor i in range(5):\n print(i, flush=True); time.sleep(0.04)'
+    # This stdlib-only child must not execute unrelated site startup hooks.
+    code = 'import time\nfor i in range(5):\n print(i, flush=True); time.sleep(0.30)'
     result = runner.run(
-        'progress', [sys.executable, '-c', code], tmp_path, dict(os.environ), 2,
+        'progress', [sys.executable, '-S', '-c', code], tmp_path, dict(os.environ), 2,
         tmp_path / 'stdout2', tmp_path / 'stderr2', progress_gap_seconds=1.0, poll_seconds=0.01,
     )
     assert result['actual_exit_code'] == 0
     assert result['timed_out'] is False
     assert result['timeout_reason'] is None
+    # Total work exceeds the inactivity window; without resets it must time out.
+    assert result['duration_seconds'] >= 1.0
+    assert result['capture_complete'] is True
+    assert Path(result['stdout']).read_text() == '0\n1\n2\n3\n4\n'
 
 
 def test_sqlite_timeout_history_uses_only_successful_matching_receipts():

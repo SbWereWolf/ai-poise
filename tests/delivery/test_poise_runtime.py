@@ -10,7 +10,6 @@ import sqlite3
 import subprocess
 import sys
 import tarfile
-import uuid
 
 import pytest
 
@@ -71,10 +70,10 @@ def _copy_build_source(destination: Path) -> Path:
 def _build_wheel(source: Path, destination: Path) -> Path:
     destination.mkdir(parents=True, exist_ok=True)
     before = set(destination.glob("*.whl"))
-    build_environment = destination.parent / "build-venv"
-    _run((sys.executable, "-m", "venv", build_environment), timeout=180)
-    _run((_venv_python(build_environment), "-m", "pip", "wheel", "--no-deps",
-          "--wheel-dir", destination, source), timeout=300)
+    # The test interpreter is the explicitly prepared build environment. Runtime
+    # installation below still uses a fresh venv without the source checkout.
+    _run((sys.executable, "-m", "pip", "wheel", "--no-deps",
+          "--no-build-isolation", "--wheel-dir", destination, source), timeout=300)
     created = set(destination.glob("*.whl")) - before
     assert len(created) == 1, f"expected one wheel, got {sorted(created)}"
     return created.pop()
@@ -136,6 +135,25 @@ def test_public_python_entities_are_poise():
         f"assert not hasattr(poise, {LEGACY_ERROR!r})",
     )
     _run(command, cwd=ROOT)
+
+
+def test_source_metadata_declares_stable_v1():
+    import tomllib
+
+    metadata = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    assert metadata["project"]["version"] == "1.0.0"
+
+
+def test_installed_wheel_reports_stable_v1(installed_poise):
+    python = _venv_python(installed_poise["venv"])
+    result = _run(
+        (
+            python,
+            "-c",
+            "import importlib.metadata as m; print(m.version('ai-poise'))",
+        )
+    )
+    assert result.stdout.strip() == "1.0.0"
 
 
 def test_fresh_wheel_exposes_only_poise(installed_poise):
@@ -245,11 +263,29 @@ def _task_and_sprint_ids(database: Path) -> tuple[tuple[str, ...], tuple[str, ..
         connection.close()
 
 
-def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(installed_poise, tmp_path):
-    source_config_root = ROOT / "config" / "projects" / "ai-poise"
-    source_config = source_config_root / "project.json"
-    config = json.loads(source_config.read_text())
-    configured_state = Path(config["paths"]["state"]).resolve(strict=True)
+def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(
+    installed_poise, tmp_path, project,
+):
+    from sprints.helpers import setup, task, changes
+    from batch.helpers import request
+
+    # Seed non-empty, test-owned state through the installed public CLI. No
+    # developer-specific home directory or operational database is an input.
+    setup(project)
+    script = _venv_script(installed_poise["venv"], NEW_IMPORT)
+    seed_environment = {
+        **os.environ, "POISE_CONFIG": str(project["config_path"]),
+        "POISE_CALLER_BINDING": str(tmp_path / "seed.caller.json"),
+    }
+    _run((script, "work"), cwd=project["app"], environment=seed_environment,
+         stdin=json.dumps(request("sprint", {
+             "action": "draft", "sprint_id": "S", "request_id": "seed-installation",
+             "expected_revision": None, "template": {"id": "basic", "version": "1"},
+             "changes": changes([task(project, "INSTALL-STATE")]),
+         })))
+    source_config_root = project["root"]
+    config = json.loads(project["config_path"].read_text())
+    configured_state = (source_config_root / config["paths"]["state"]).resolve(strict=True)
     database_relative = Path(config["paths"]["database"])
     assert not database_relative.is_absolute()
     configured_database = configured_state / database_relative
@@ -263,6 +299,7 @@ def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(insta
         observed.backup(snapshot)
     before_hash = _sha256(source_database)
     before_ids = _task_and_sprint_ids(source_database)
+    assert before_ids == (("INSTALL-STATE",), ("S",))
 
     copied_config_root = tmp_path / "config"
     shutil.copytree(source_config_root, copied_config_root)
@@ -271,12 +308,12 @@ def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(insta
     copied_database.parent.mkdir(parents=True)
     shutil.copy2(source_database, copied_database)
     config["paths"]["state"] = str(copied_state)
-    config["git"]["repository"] = str(ROOT)
+    config["git"]["repository"] = str(project["app"])
     copied_config = copied_config_root / "project.json"
     copied_config.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n")
 
     environment = {**os.environ, "POISE_CONFIG": str(copied_config),
-                   "POISE_SESSION": "taskless-copy-" + uuid.uuid4().hex}
+                   "POISE_CALLER_BINDING": str(tmp_path / "taskless.caller.json")}
     script = _venv_script(installed_poise["venv"], NEW_IMPORT)
     assert script.is_file()
     bootstrap = _run(
@@ -284,13 +321,18 @@ def test_taskless_cycle_uses_copied_existing_state_without_mutating_source(insta
         stdin=json.dumps({"operation": "bootstrap", "input": {
             "task": None, "decision": None, "feedback": None, "rework_stage": None}, "messages": []}),
     )
-    assert json.loads(bootstrap.stdout)["status"] == "read_only"
+    bootstrap_result = json.loads(bootstrap.stdout)
+    if "response_path" in bootstrap_result:
+        bootstrap_result = json.loads(Path(bootstrap_result["response_path"]).read_text())
+    assert bootstrap_result["status"] == "read_only"
     verified = _run(
         (script, "work"), cwd=ROOT, environment=environment,
         stdin=json.dumps({"operation": "verify", "input": {"result": None, "artifacts": []},
                           "messages": []}),
     )
     result = json.loads(verified.stdout)
+    if "response_path" in result:
+        result = json.loads(Path(result["response_path"]).read_text())
     assert result["status"] == "read_only_verified"
     assert result["checks"] == []
     assert _task_and_sprint_ids(copied_database) == before_ids

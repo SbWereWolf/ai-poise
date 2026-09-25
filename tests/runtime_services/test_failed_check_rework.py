@@ -26,7 +26,7 @@ def _stage(stage_id, allowed_paths):
         "sections": {"report": "Record the result."},
         "required_sections": ["report"],
         "artifact_requirements": [],
-        "handler": "produce",
+        "handler": "produce", "role": "executor",
         "transitions": {"complete": None},
         "rework_targets": rework_targets,
     }

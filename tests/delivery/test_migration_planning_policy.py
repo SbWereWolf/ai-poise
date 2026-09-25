@@ -21,11 +21,12 @@ def test_sprint_policy_requires_dependency_closed_local_graphs_and_conditional_d
     text = SPRINTS.read_text()
     assert "### Замкнутость зависимостей и локальные дубли" in text
     section = text.split("### Замкнутость зависимостей и локальные дубли", 1)[1].split("## ", 1)[0]
+    section=" ".join(section.split())
     assert "остаётся standalone" in section
-    assert "уникальным Task ID" in section
-    assert "до реализации проверяет" in section
-    assert "не выполняет эквивалентную реализацию повторно" in section
-    assert "между Sprint" in section
+    assert "локальная conditional-duplicate Task с уникальным ID" in section
+    assert "Дубль нужен для локального графа" in section
+    assert "не для параллельной повторной реализации" in section
+    assert "Между Sprint dependency edge не создаётся" in section
 
 
 def test_agent_projection_links_to_exact_worktree_and_sprint_policy_headings():

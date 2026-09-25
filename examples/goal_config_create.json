@@ -6,8 +6,8 @@
   "expected_revision": null,
   "template": {
     "id": "documentation-v1",
-    "version": "1",
-    "digest": "220110d64b32b5fb690024eda468c2db482dc3bcf32277d32b159951acf61223"
+    "version": "2",
+    "digest": "04c409f1c71f48301cf7e69af79025212ef060cf071b2b1649fa6c32635f97d4"
   },
   "changes": [
     {

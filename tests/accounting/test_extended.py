@@ -3,22 +3,23 @@ import json
 from pathlib import Path
 import sys
 import pytest
-from conftest import write_json
+from conftest import write_json, seed_fixture_requirements, bind_task_requirements
 from poise.common import PoiseError
 from poise.runtime import Poise
 from poise.application.work import WorkTools
 from poise.modules.accounting.clock import ClockObservation
 from tests.batch.helpers import request,message
 from .test_domain import sample
-from .test_paths import DeterministicClock,setup,send,metrics,finish
+from .test_paths import DeterministicClock,setup,send,settled_metrics,finish
 
 
 def test_usage_transaction_rolls_back_all_new_events(project):
     h,w,c=setup(project)
-    with h.store.transaction() as db:
+    h.telemetry.flush()
+    with h.accounting.port.repo.database.transaction() as db:
         db.execute("CREATE TRIGGER reject_second BEFORE INSERT ON accounting_usage WHEN NEW.sequence=2 BEGIN SELECT RAISE(ABORT,'injected accounting failure'); END")
     assert send(w,[sample('a'),sample('b',sequence=2)])['status']=='read_only'
-    report=metrics(w)
+    report=settled_metrics(w)
     assert report['totals']['model_tokens'] is None
     assert report['telemetry']['coverage']=='partial' and report['telemetry']['failed']==1
 
@@ -31,11 +32,13 @@ def test_exact_measurement_tokenizer_and_no_conversion_to_model_usage(project,tm
         'argv':[sys.executable,str(script)],'cwd':str(tmp_path),'environment':{},'timeout_seconds':5,'max_output_bytes':1024}}
     # New task/store is needed because the original measurement contract is immutable.
     project['cfg']['paths']['state']='tokenized-state';write_json(project['config_path'],project['cfg'])
+    registry=seed_fixture_requirements(project['root'],project['cfg'])
+    bind_task_requirements(project['task'],registry)
     h2=Poise(project['config_path'],'tok',DeterministicClock());t=deepcopy(project['task']);t['id']='TOKEN'
     t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w2=WorkTools(h2);c=w2.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     finish(w2,c,Path(c['worktree']))
-    r=metrics(w2);assert r['totals']['benefit']['changed_tokens']==len('    return n + 1\n    return n * 2\nDocument\n')
+    r=settled_metrics(w2);assert r['totals']['benefit']['changed_tokens']==len('    return n + 1\n    return n * 2\nDocument\n')
     assert r['totals']['model_tokens'] is None
 
 
@@ -44,8 +47,9 @@ def test_tokenizer_error_keeps_business_completion_and_known_byte_measure(projec
     # Inject a failure at the measurement port, without changing the captured policy.
     h.accounting.port.measurer.tokenize=lambda texts: (_ for _ in ()).throw(PoiseError('instrument unavailable'))
     finish(w,c,Path(c['worktree']))
-    assert h.current_task()['status']=='completed'
-    r=metrics(w)
+    assert h.current_task() is None
+    assert h.task_queries.record('T1')['status']=='completed'
+    r=settled_metrics(w)
     assert r['totals']['benefit']['changed_lines']==3
     assert r['totals']['benefit']['changed_tokens'] is None
     assert r['tasks'][0]['benefit']['tokenizer_error']=='instrument unavailable'
@@ -56,15 +60,17 @@ def test_reported_intervals_split_dates_and_do_not_include_user_wait(project):
     # Select the reported mode explicitly in a fresh instance/store.
     project['cfg']['accounting']['time_mode']='reported';project['cfg']['paths']['state']='reported-state'
     write_json(project['config_path'],project['cfg'])
+    registry=seed_fixture_requirements(project['root'],project['cfg'])
+    bind_task_requirements(project['task'],registry)
     t=deepcopy(project['task']);t['id']='TIME';t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w=WorkTools(Poise(project['config_path'],'S',DeterministicClock()))
     w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     span={'source':'test','stream':'clock','event_id':'i1','started_at':'2026-09-06T23:59:00Z','ended_at':'2026-09-07T00:01:00Z'}
     send(w,intervals=[span]);send(w,intervals=[span])
-    m=metrics(w,by=['day']);assert m['totals']['active_seconds']==120
+    m=settled_metrics(w,by=['day']);assert m['totals']['active_seconds']==120
     assert [g['active_seconds'] for g in m['groups']]==[60,60]
     assert send(w,intervals=[{**span,'event_id':'overlap'}])['status']=='read_only'
-    assert metrics(w)['telemetry']['failed']==1
+    assert settled_metrics(w)['telemetry']['failed']==1
 
 
 def test_measured_tool_cycle_splits_days_and_clips_requested_period(project):
@@ -83,7 +89,7 @@ def test_measured_tool_cycle_splits_days_and_clips_requested_period(project):
     w.invoke(request('cancel',{'reason':'calendar projection fixture'}))
     base={'kind':'accounting','scope':{'kind':'all','id':None}}
     result=w.invoke(request('show',{'queries':[
-        {'id':'days',**base,'group_by':['day'],'from':None,'to':None},
+        {'id':'days',**base,'group_by':['day'],'from':'2026-09-11T00:00:00+00:00','to':'2026-09-13T00:00:00+00:00'},
         {'id':'period',**base,'group_by':[],'from':'2026-09-11T23:59:30+00:00','to':'2026-09-12T00:00:30+00:00'},
     ]}))['results']
     days=result[0]['value'];period=result[1]['value']
@@ -94,12 +100,14 @@ def test_measured_tool_cycle_splits_days_and_clips_requested_period(project):
 def test_two_parallel_agents_sum_time_but_union_elapsed(project):
     h,w,c=setup(project);project['cfg']['accounting']['time_mode']='reported';project['cfg']['paths']['state']='parallel-state'
     write_json(project['config_path'],project['cfg'])
+    registry=seed_fixture_requirements(project['root'],project['cfg'])
+    bind_task_requirements(project['task'],registry)
     for actor in ('A','B'):
         t=deepcopy(project['task']);t['id']='TIME'+actor;t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
         tools=WorkTools(Poise(project['config_path'],actor,DeterministicClock()))
         tools.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
         send(tools,intervals=[{'source':'test','stream':actor,'event_id':'i','started_at':'2026-09-07T10:00:00Z','ended_at':'2026-09-07T11:00:00Z'}])
-    r=metrics(tools);assert r['totals']['active_seconds']==7200
+    r=settled_metrics(tools);assert r['totals']['active_seconds']==7200
     assert r['totals']['wall_active_seconds']==3600
 
 
@@ -110,11 +118,13 @@ def test_task_sections_measure_only_selected_final_content(project):
     p['benefit']={'git_categories':[],'sections':['report']}
     write_json(project['root']/'config/processes/development.json',p)
     project['cfg']['paths']['state']='sections-state';write_json(project['config_path'],project['cfg'])
+    registry=seed_fixture_requirements(project['root'],project['cfg'])
+    bind_task_requirements(project['task'],registry)
     t=deepcopy(project['task']);t['id']='SECTION';t['methods']=[];t['method_inputs']=[];t['checks']={'write':[]};t['evidence_plan']={'write':{'subject_methods':{},'arguments':[],'review_arguments':[]}}
     w=WorkTools(Poise(project['config_path'],'A',DeterministicClock()));c=w.invoke(request('bootstrap',{'task':t,'decision':None,'feedback':None,'rework_stage':None}))
     v=deepcopy(c['result_template']);v['sections']['report']='Итог\n';v['commit_message']='docs: result'
     w.invoke(request('verify',{'result':v,'artifacts':[]}));w.invoke(request('accept',{}))
-    b=metrics(w)['totals']['benefit'];assert b['changed_lines']==1 and b['changed_bytes']==9
+    b=settled_metrics(w)['totals']['benefit'];assert b['changed_lines']==1 and b['changed_bytes']==9
 
 
 def test_missing_policy_and_benefit_do_not_get_guessed(project):
@@ -140,16 +150,16 @@ def test_metrics_survive_transfer_and_retry_without_double_counting(project,tmp_
     dst=destination(project,tmp_path/'receiver');other=WorkTools(Poise(dst['config_path'],'B',DeterministicClock()))
     restore(other,saved['package_path'],saved['package_digest']);pick(other,'T1')
     send(other,[sample()])
-    assert metrics(other)['totals']['model_tokens']==120
+    assert settled_metrics(other)['totals']['model_tokens']==120
     restore(other,saved['package_path'],saved['package_digest'])
-    assert metrics(other)['totals']['model_tokens']==120
+    assert settled_metrics(other)['totals']['model_tokens']==120
 
 
 def test_user_messages_all_count_once_in_calendar_and_goal_views(project):
     h,w,c=setup(project)
     for m in [message('u1','initial'),message('u2','continue'),message('u3',None),message('u1','initial')]:
         w.invoke(request('show',{'queries':[{'id':'x','kind':'task'}]},[m]))
-    r=metrics(w,by=['goal_type']);assert r['totals']['user_messages_count']==3
+    r=settled_metrics(w,by=['goal_type']);assert r['totals']['user_messages_count']==3
     assert r['groups'][0]['observed_messages_count']==3
 
 
@@ -174,7 +184,9 @@ def test_new_user_turn_does_not_charge_wait_after_failed_verify(project):
     p=deepcopy(c['result_template']);p['sections']['report']='Attempt';p['commit_message']='feat: measured'
     p['method_additions']=[{'method':{'id':'FAIL','argv':[sys.executable,'-c','raise SystemExit(1)'],'cwd':'.','environment':{},'source_under_test':{'kind':'external','reason':'The diagnostic command reads no repository source.'},'verification_plan':{'responsibility':'Exercise failed verification without reading repository source.','change_surface':[],'red_stages':[],'green_stages':['write'],'red_failure':None},'expected_exit_code':0,'stdout_contains':[],'stderr_contains':[]},'stages':['write']}]
     assert w.invoke(request('verify',{'result':p,'artifacts':[]}))['status']=='checks_failed'
-    base=metrics(w)['totals']['active_seconds'] or 0
+    h.telemetry.flush()
+    base=settled_metrics(w)['totals']['active_seconds'] or 0
     w.invoke(request('cancel',{'reason':'User stops'},[message('turn-b','cancel')]))
-    total=metrics(w)['totals']['active_seconds']
+    h.telemetry.flush()
+    total=settled_metrics(w)['totals']['active_seconds']
     assert total-base==1

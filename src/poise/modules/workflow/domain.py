@@ -42,6 +42,7 @@ def text(value, where):
 class RouteNode:
     stage_id: str
     handler: HandlerKind
+    role: str
     transitions: tuple[tuple[str, str | None], ...]
     rework_targets: tuple[str, ...]
     read_only: bool
@@ -75,6 +76,7 @@ class RouteDefinition:
                 raise DomainError("Rework must not bypass the inspection before publish")
         for node in self.nodes:
             text(node.stage_id, "stage id")
+            text(node.role, "stage role")
             if set(dict(node.transitions)) != OUTCOMES[node.handler]:
                 raise DomainError(f"{node.stage_id}: неверный набор outcomes обработчика")
             if len(dict(node.transitions)) != len(node.transitions):
@@ -135,6 +137,7 @@ class RouteDefinition:
                 nodes.append(RouteNode(
                     stage["id"],
                     kind,
+                    stage["role"],
                     tuple(transitions.items()),
                     tuple(stage["rework_targets"]),
                     stage["read_only"],

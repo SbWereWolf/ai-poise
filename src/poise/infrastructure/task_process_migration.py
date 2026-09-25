@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import closing
+from copy import deepcopy
 import json
 from pathlib import Path
 import sqlite3
@@ -14,6 +15,7 @@ from ..modules.tasks.process_migration import (
     MigrationRequest,
     ProcessSnapshotMigration,
     STAGE_CONTRACT_RECOVERY_SCHEMAS,
+    ROLE_PROJECTION_SCHEMA,
 )
 from .locking import exclusive_lock
 
@@ -121,12 +123,24 @@ class SqliteTaskProcessMigration:
                             "UPDATE tasks SET metadata=? WHERE id=?",
                             (encoded(metadata), update.task_id),
                         )
-                        summary = {
-                            "task_id": update.task_id,
-                            "worktree_required": update.process["worktree_required"],
-                            "old_process_digest": update.old_process_digest,
-                            "new_process_digest": update.new_process_digest,
-                        }
+                        if request.schema == ROLE_PROJECTION_SCHEMA:
+                            summary = {
+                                "task_id": update.task_id,
+                                "sprint_id": request.sprint_id,
+                                "stage_roles": [
+                                    {"stage_id": stage_id, "role": role}
+                                    for stage_id, role in update.stage_roles
+                                ],
+                                "old_process_digest": update.old_process_digest,
+                                "new_process_digest": update.new_process_digest,
+                            }
+                        else:
+                            summary = {
+                                "task_id": update.task_id,
+                                "worktree_required": update.process["worktree_required"],
+                                "old_process_digest": update.old_process_digest,
+                                "new_process_digest": update.new_process_digest,
+                            }
                         if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
                             summary.update({
                                 "worktree_required_added": update.worktree_required_added,
@@ -221,16 +235,22 @@ class SqliteTaskProcessMigration:
             raise PoiseError("Stored Task process migration audit identity is incompatible")
         summaries = []
         for task_id, item in zip(request.task_ids, result["tasks"], strict=False):
-            item_fields = {
-                "task_id", "worktree_required", "old_process_digest", "new_process_digest"
-            }
-            if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
-                item_fields.update({
-                    "worktree_required_added",
-                    "stage_contracts_initialized",
-                    "old_contract_digest",
-                    "new_contract_digest",
-                })
+            if request.schema == ROLE_PROJECTION_SCHEMA:
+                item_fields = {
+                    "task_id", "sprint_id", "stage_roles",
+                    "old_process_digest", "new_process_digest",
+                }
+            else:
+                item_fields = {
+                    "task_id", "worktree_required", "old_process_digest", "new_process_digest"
+                }
+                if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
+                    item_fields.update({
+                        "worktree_required_added",
+                        "stage_contracts_initialized",
+                        "old_contract_digest",
+                        "new_contract_digest",
+                    })
             if not isinstance(item, dict) or set(item) != item_fields or item["task_id"] != task_id:
                 raise PoiseError("Stored Task process migration audit Task summary is incompatible")
             if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS and (
@@ -243,35 +263,61 @@ class SqliteTaskProcessMigration:
                 raise PoiseError("Stored Task process migration audit references a missing Task")
             metadata = json.loads(row[0])
             process = metadata.get("process") if isinstance(metadata, dict) else None
-            if not isinstance(process, dict) or type(process.get("worktree_required")) is not bool:
+            if not isinstance(process, dict):
                 raise PoiseError("Stored Task process migration audit process is incompatible")
-            worktree_required = process["worktree_required"]
-            old_process = dict(process)
-            if request.schema not in STAGE_CONTRACT_RECOVERY_SCHEMAS or item["worktree_required_added"]:
-                old_process.pop("worktree_required")
-            expected = {
-                "task_id": task_id,
-                "worktree_required": worktree_required,
-                "old_process_digest": digest(old_process),
-                "new_process_digest": digest(process),
-            }
-            if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
-                contract = metadata.get("contract")
-                if (
-                    not isinstance(contract, dict)
-                    or not isinstance(contract.get("stage_contracts"), list)
+            if request.schema == ROLE_PROJECTION_SCHEMA:
+                if metadata.get("sprint_id") != request.sprint_id:
+                    raise PoiseError("Stored Task process migration audit Sprint is incompatible")
+                stages = process.get("stages")
+                if not isinstance(stages, list) or any(
+                    not isinstance(stage, dict)
+                    or not isinstance(stage.get("id"), str)
+                    or not isinstance(stage.get("role"), str)
+                    or not stage["role"].strip()
+                    for stage in stages
                 ):
-                    raise PoiseError(
-                        "Stored Task process migration audit stage contracts are incompatible"
-                    )
-                old_contract = dict(contract)
-                old_contract.pop("stage_contracts")
-                expected.update({
-                    "worktree_required_added": item["worktree_required_added"],
-                    "stage_contracts_initialized": True,
-                    "old_contract_digest": digest(old_contract),
-                    "new_contract_digest": digest(contract),
-                })
+                    raise PoiseError("Stored Task process migration audit role projection is incompatible")
+                old_process = deepcopy(process)
+                stage_roles = []
+                for stage in old_process["stages"]:
+                    stage_roles.append({"stage_id": stage["id"], "role": stage.pop("role")})
+                expected = {
+                    "task_id": task_id,
+                    "sprint_id": request.sprint_id,
+                    "stage_roles": stage_roles,
+                    "old_process_digest": digest(old_process),
+                    "new_process_digest": digest(process),
+                }
+            else:
+                if type(process.get("worktree_required")) is not bool:
+                    raise PoiseError("Stored Task process migration audit process is incompatible")
+                worktree_required = process["worktree_required"]
+                old_process = dict(process)
+                if request.schema not in STAGE_CONTRACT_RECOVERY_SCHEMAS or item["worktree_required_added"]:
+                    old_process.pop("worktree_required")
+                expected = {
+                    "task_id": task_id,
+                    "worktree_required": worktree_required,
+                    "old_process_digest": digest(old_process),
+                    "new_process_digest": digest(process),
+                }
+                if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
+                    contract = metadata.get("contract")
+                    if (
+                        not isinstance(contract, dict)
+                        or not isinstance(contract.get("stage_contracts"), list)
+                    ):
+                        raise PoiseError(
+                            "Stored Task process migration audit stage contracts are incompatible"
+                        )
+                    old_contract = dict(contract)
+                    old_contract.pop("stage_contracts")
+                    expected.update({
+                        "worktree_required_added": item["worktree_required_added"],
+                        "stage_contracts_initialized": True,
+                        "old_contract_digest": digest(old_contract),
+                        "new_contract_digest": digest(contract),
+                    })
             if item != expected:
                 raise PoiseError("Stored Task process migration audit digest is incompatible")
             summaries.append(expected)

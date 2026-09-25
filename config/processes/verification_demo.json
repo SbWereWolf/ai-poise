@@ -24,6 +24,7 @@
       ],
       "artifact_requirements": [],
       "handler": "check",
+      "role": "executor",
       "transitions": {
         "satisfied": "audit",
         "not_satisfied": "audit",
@@ -47,6 +48,7 @@
       ],
       "artifact_requirements": [],
       "handler": "inspect",
+      "role": "reviewer",
       "transitions": {
         "clear": null,
         "changes_requested": "measure"

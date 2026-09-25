@@ -122,7 +122,7 @@ def test_reader_outside_uow_leaves_connection_without_transaction(db):
 
 
 def test_only_negative_termination_never_permits_start(db):
-    process={'route':{'entry':'check'},'stages':[{'id':'check','handler':'check',
+    process={'route':{'entry':'check'},'stages':[{'id':'check','handler':'check', "role": "executor",
         'transitions':{'satisfied':'check','not_satisfied':None,'inconclusive':'check'},
         'rework_targets':['check'],'read_only':True,'allowed_paths':[]}]}
     add(db,'P');add(db,'D','P')

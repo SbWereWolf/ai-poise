@@ -1,6 +1,6 @@
 # AI poise source development
 
-Updated: 2026-09-20.
+Updated: 2026-09-24.
 
 ## Declarative, reusable tools
 
@@ -54,7 +54,7 @@ Keep domain code independent of I/O. Application services coordinate domain obje
 
 `ResultIntegration` keeps the accepted commit immutable and advances only the existing task branch in its existing task worktree. Run update, conflict resolution, and checks there; do not create an integration branch or worktree. Serialize publication per target, reread it under that lock, repeat update and checks on drift, and publish only through `git merge --ff-only <task-branch>` in the main checkout. On a blocked fast-forward, record proof that the checkout state is unchanged. Poise-owned executables, hooks and configuration keep their existing path resolution. Development or verification operations that act on another checkout receive its concrete filesystem path/cwd explicitly; see [path resolution and working copies](../docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии). Persist replay phases and limit cleanup to the task worktree, task branch, and scoped temporary backups.
 
-Stage progression belongs to Tasks: keep the durable target and replay identity in the Task journal, derive role boundaries from route handlers, and perform every move through the existing Task transition. Application services may coordinate progression, entry-gate preflight and confirmed handoff resumption; transport only parses and presents it. Never add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
+Stage progression belongs to Tasks: keep the durable target and replay identity in the Task journal, read role boundaries from explicit role fields in the frozen Task route, and perform every move through the existing Task transition. Application services may coordinate progression, entry-gate preflight and confirmed handoff resumption; transport only parses and presents it. Never add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
 
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type defines its own process; it does not require a new execution engine.
 
@@ -226,3 +226,9 @@ For completed-family input already present in the Task branch, the same restart 
 records local repair provenance and permits normal local work despite family distance.
 Preserve lineage/WIP and require fresh own evidence; no extra repair Task or broad force.
 See [restart recovery](../docs/workflows/sprints.md#локальная-доработка-через-общий-restart).
+
+Process roles are required explicit configuration, not handler policy. For inspection compare
+the actual produced-result stage role with the inspecting stage role from the Task snapshot.
+Equal roles require no identity separation; unequal roles require distinct effective actors
+with saved provenance. Keep ownership, evidence and gate validation unchanged. Never infer
+missing legacy roles or rewrite stored Task snapshots as an implicit upgrade.

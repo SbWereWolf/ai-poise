@@ -10,10 +10,20 @@ from .test_runner_paths import result
 def test_test_remediation_reuses_handlers_with_red_contract(project):
     root=Path(__file__).resolve().parents[2]
     proc=json.loads((root/'config/processes/development.json').read_text())
+    for stage in proc['stages']:
+        stage['role'] = 'executor'  # Explicit single-actor remediation scenario.
     write_json(project['root']/'config/processes/development.json',proc)
     cfg=project['cfg'];cfg['schema']='ddd-accounting-12';cfg['automatic_checks']=[]
     write_json(project['config_path'],cfg)
     task=project['task']
+    task['stage_contracts'] = [
+        {'stage_id': s['id'], 'allowed_paths': list(s['allowed_paths']),
+         'entry_requirements': [], 'exit_requirements': []} for s in proc['stages']]
+    task['decomposition'] = {'kind': 'ordinary', 'integration': None,
+        'phases': [{'stage': s['id'], 'skills': ['workflow'], 'areas': []}
+                   for s in proc['stages']]}
+    task['methods'][0]['verification_plan']['red_stages'] = ['tests', 'test_fix']
+    task['methods'][1]['verification_plan']['green_stages'] = ['implementation', 'code_review', 'code_fix', 'code_recheck']
     task['checks']={s['id']: (['RED'] if s['id'] in ('tests','test_fix') else ['GREEN'] if s['id'] in ('implementation','code_review','code_fix','code_recheck') else []) for s in proc['stages']}
     task['evidence_plan']={s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in proc['stages']};write_json(project['task_path'],task)
     h=Poise(project['config_path'],'S1');ctx=h.bootstrap(task_file=project['task_path'])
@@ -34,4 +44,5 @@ def test_test_remediation_reuses_handlers_with_red_contract(project):
     ctx=h.bootstrap(decision='continue');assert ctx['stage']=='code_review'
     result(ctx,inspect());h.verify()
     assert h.accept()['status']=='completed'
-    assert h.show()['workflow']['feedback']['open_findings']==[]
+    assert h.task_commands.workflow_context('T1')['feedback']['open_findings']==[]
+    assert h.show()['status'] == 'read_only'

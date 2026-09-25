@@ -19,7 +19,7 @@ def run(directory):
     config=json.loads((source/'project.json').read_text())
     target=directory/'destination';target.mkdir()
     repository=target/'application'
-    remote=subprocess.check_output(['git','-C',config['git']['repository'],'remote','get-url',config['git']['remote']],text=True).strip()
+    remote=config['git']['repository']
     subprocess.run(['git','clone','--branch','main',remote,str(repository)],check=True,capture_output=True)
     subprocess.run(['git','-C',str(repository),'remote','rename','origin',config['git']['remote']],check=True,capture_output=True)
     target_home=target/'poise';target_home.mkdir()
@@ -29,7 +29,7 @@ def run(directory):
     save(target_home/'project.json',target_config)
     def client(home,session):
         return WorkClient({**os.environ,'PYTHONPATH':str(SOURCE/'src'),
-             'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':session},30)
+             'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/(session+'.caller.json'))},30)
     a=client(source,'source-agent');b=client(target_home,'receiving-agent')
     task=json.loads((source/'task.json').read_text())
     current=a.invoke('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})
@@ -61,15 +61,33 @@ def run(directory):
         artifacts=[] if sid!='code_review' else [{'scope':'task','path':'result.md',
             'source':{'kind':'text','text':'Transferred WIP continued through RED, GREEN and fixture reviews.'}}]
         report=b.invoke('verify',{'result':result,'artifacts':artifacts});assert report['status']=='verified';reports.append(report)
-    final=b.invoke('accept',{});assert final['status']=='completed'
     full=b.invoke('show',{'queries':[{'id':'raw','kind':'tool_result','receipt_id':reports[0]['checks'][0]['id'],
                                       'representation':'full','range':None}]})
+    final=b.invoke('accept',{});assert final['status']=='completed'
+    terminal=b.bootstrap({'id':task['id']})
+    assert terminal['result_template'] is None
+    receipt=next(row for row in terminal['evidence']['records'] if row['id']==reports[0]['checks'][0]['id'])
+    from poise.runtime import Poise
+    from poise.infrastructure.clock import SystemClock
+    import hashlib
+    reader=Poise(target_home/'project.json','terminal-artifact-observer',SystemClock())
+    assert reader.current_task() is None
+    manifest_path=Path(reader.task_queries.resolve_path(task['id'],receipt['presentation']['manifest']))
+    assert manifest_path.resolve().is_relative_to(Path(terminal['task_root']).resolve())
+    manifest=json.loads(manifest_path.read_text())
+    retained=manifest['representations']['full']
+    output=Path(reader.task_queries.resolve_path(task['id'],retained['path']))
+    assert output.resolve().is_relative_to(Path(terminal['task_root']).resolve())
+    raw=output.read_bytes()
+    assert hashlib.sha256(raw).hexdigest()==retained['digest']
+    assert len(raw)==full['results'][0]['value']['total_bytes']
     out={'status':'PASS','final_status':final['status'],'same_stage_and_iteration':True,
          'different_store_and_repository':True,'source_task_not_accepted_by_export':True,
          'reports':len(reports),'red_exit':reports[0]['checks'][0]['actual_exit_code'],
          'green_exit':reports[2]['checks'][0]['actual_exit_code'],
-         'full_output_bytes_after_cleanup':full['results'][0]['value']['total_bytes'],
-         'export':exported,'import':received,'source':'local fixtures and local bare remote, not external delivery'}
+         'full_output_bytes_after_acceptance':len(raw),
+         'terminal_read_did_not_claim_task':reader.current_task() is None,
+         'export':exported,'import':received,'source':'local fixtures and independent local clone, not external delivery'}
     save(directory/'transfer-demo-report.json',out)
     return out
 

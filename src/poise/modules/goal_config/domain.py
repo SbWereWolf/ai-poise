@@ -14,7 +14,7 @@ PROCESS_FIELDS = frozenset({
     "goal_type", "stages", "content_contract", "route", "benefit", "worktree_required"
 })
 STAGE_FIELDS = frozenset({"id", "instruction", "read_only", "allowed_paths", "normalization",
-    "sections", "required_sections", "artifact_requirements", "handler", "transitions", "rework_targets"})
+    "sections", "required_sections", "artifact_requirements", "handler", "role", "transitions", "rework_targets"})
 ROUTE_FIELDS = frozenset({"entry"})
 GROUPS = {"stage": "stages", "section": "sections", "trace_route": "routes", "requirement": "requirements"}
 
@@ -51,7 +51,7 @@ def names(value, where, *, nonempty):
 
 def validate_stage(stage):
     require_shape(stage, STAGE_FIELDS, "stage")
-    for key in ("id", "instruction", "handler"):
+    for key in ("id", "instruction", "handler", "role"):
         if not isinstance(stage[key], str) or not stage[key].strip():
             raise DomainError(f"{key}: требуется непустая строка")
     if type(stage["read_only"]) is not bool:

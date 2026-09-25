@@ -28,12 +28,17 @@ def test_existing_task_keeps_snapshot_and_new_task_gets_new_pack(project):
 def test_generated_changed_pack_runs_with_new_required_section(project):
     path,_=settings(project['root'],{'development':'config/processes/development.json'})
     goal_config_tools(path).apply_batch(request('update','development',digest(project['process']),[
-      {'op':'put_requirement','value':{'id':'new-required','kind':'section','stages':['tests'],'phase':'pre','section':'rollback','states':['populated']}},
+      {'op':'put_requirement','value':{'id':'new-required','kind':'section','stages':['tests'],'phase':'post','section':'rollback','states':['populated']}},
       {'op':'put_section','value':{'id':'rollback','template':'Describe rollback.','normalization':'strip','write_stages':['tests']}}
     ]))
+    project['task']['stage_contracts'][0]['exit_requirements'] = ['new-required']
+    write_json(project['task_path'],project['task'])
     h=Poise(project['config_path'],'session'); context=h.bootstrap(project['task_path'])
     add_test(context['worktree']); payload_path=fill(context)
     rejected=h.verify(); assert rejected['status']=='content_requirements_failed'
+    assert rejected['content_gate']['phase'] == 'post'
+    assert rejected['checks'][0]['actual_exit_code'] == 1
+    assert h.show()['status'] == 'active'
     data=payload_path; data['sections']['rollback']='Keep previous task commit; test-only files can be restored.'
 
     good=h.verify(); assert good['status']=='verified'

@@ -498,3 +498,14 @@ A verifier may explicitly revise a defective check through the existing authoriz
 contract operations; never weaken checks automatically. Unknown checks require effects
 inspection/stoppage before authorized restart archives their attempt without replay.
 See [the recovery contract](../../../docs/workflows/sprints.md#локальная-доработка-через-общий-restart).
+
+A newborn Task has no route entry before goal_type selection; selecting the type
+materializes its configured draft, without starting execution before ready.
+
+## Terminal inspection
+
+Select a completed or cancelled Task by its canonical ID to obtain the
+terminal inspection snapshot. The result is read_only_verified where applicable;
+it does not reclaim the task, restore its worktree or repeat acceptance.
+Use the returned persisted results for read-only history, not the released
+current-session binding.

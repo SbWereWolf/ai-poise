@@ -81,7 +81,7 @@ def process():
     return {'goal_type':'custom','worktree_required':True,'route':{'entry':'draft'},
             'content_contract':{'sections':[],'routes':[],'requirements':[]},
             'benefit':{'git_categories':[],'sections':['note']},'stages':[{
-            'id':'draft','handler':'produce','instruction':'Write a note and report.',
+            'id':'draft','handler':'produce', "role": "executor",'instruction':'Write a note and report.',
             'transitions':{'complete':None},'rework_targets':['draft'],
             'read_only':True,'allowed_paths':[],'normalization':'strip',
             'sections':{'note':'Write note here.'},'required_sections':['note'],'artifact_requirements':[]}]}

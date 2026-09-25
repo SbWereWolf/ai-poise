@@ -37,13 +37,20 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.monkeypatch = pytest.MonkeyPatch()
+        self.dispatchers = conftest.track_runtime_dispatchers(self.monkeypatch)
         self.monkeypatch.setattr(conftest, "git", self._quiet_git)
         self.project = project_fixture.__wrapped__(
             Path(self.temporary.name), self.monkeypatch
         )
 
     def tearDown(self):
-        self.monkeypatch.undo()
+        # Real optional workers may outlive foreground work, but not the directory
+        # this test owns. Drain them before undoing hooks or deleting their DB.
+        try:
+            for dispatcher in self.dispatchers:
+                dispatcher.close()
+        finally:
+            self.monkeypatch.undo()
         self.temporary.cleanup()
 
     @staticmethod
@@ -176,6 +183,9 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 "test_remediation" if stage == "draft" else stage
                 for stage in plan["green_stages"]
             ]
+        for phase in task["decomposition"]["phases"]:
+            if phase["stage"] == "draft":
+                phase["stage"] = "test_remediation"
         write_json(self.project["task_path"], task)
 
         runtime = Poise(self.project["config_path"], "S1")

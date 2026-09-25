@@ -170,6 +170,7 @@ class Poise:
                 max_pending=self.cfg['batch']['max_items'],
             ),
             self.session,
+            context_provider=self.accounting.port.finding_context,
         )
         from .infrastructure.sprint_work import SprintWork
         self.sprint_tools=SprintWork(self)

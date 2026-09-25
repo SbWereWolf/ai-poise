@@ -332,11 +332,14 @@ python examples/project_pilot.py \
   --repository /absolute/git/checkout/of/poise \
   --base-ref tasks/POISE-PILOT-01 \
   --destination state/pilots/self-check \
+  --requirements-root /absolute/external/pilot-requirements \
   --task-id SELF-PILOT
 ```
 
 Нужен реальный закоммиченный revision этой версии с `tests/projects`. Имя repository/ref
-оператор задаёт явно. Пример создаёт конфиг инструментом, задачу через Catalogue, затем
+оператор задаёт явно. `--requirements-root` задаёт отдельное хранилище требований вне
+проверяемого Git checkout; путь не выводится из каталога исходников. Пример создаёт конфиг
+инструментом, задачу через Catalogue, затем
 выполняет **один** read-only planning stage полного verification route. В этот же пакет
 регистрируется точная readiness-команда `python -m pytest tests/projects -q`, выполняемая
 над реальными исходниками в отдельном worktree. Отчёт и stdout сохранены. Повтор verify

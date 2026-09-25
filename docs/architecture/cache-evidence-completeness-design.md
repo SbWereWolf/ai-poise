@@ -13,7 +13,7 @@ Cache schema 2 реализует выбранный manifest и явный от
 
 [AiPoiseTestPackageCache](../../src/poise/infrastructure/test_package_cache.py) проверяет
 origin result.json по digest cache record, затем возвращает его passed/reused=false→true
-без проверки файлов stdout/stderr/JUnit. В [исходном опыте](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R04-cache-missing-junit.json)
+без проверки файлов stdout/stderr/JUnit. В исходном опыте — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R04-cache-missing-junit.json` (исторический артефакт; не включён в исходную поставку 044A)
 успешный origin остаётся реальным, но обычный hit содержит отсутствующий JUnit.
 Три понятия различаются: исторический тест passed; первичные доказательства доступны
 и целостны сейчас; Task приняла эти доказательства. Кэш отвечает только за первые два.

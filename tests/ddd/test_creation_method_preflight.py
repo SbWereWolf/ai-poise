@@ -29,7 +29,7 @@ def _stage(identifier, *, allowed_paths, target):
         "sections": {"report": "Report."},
         "required_sections": ["report"],
         "artifact_requirements": [],
-        "handler": "produce",
+        "handler": "produce", "role": "executor",
         "transitions": {"complete": target},
         "rework_targets": [identifier],
     }
@@ -176,7 +176,7 @@ def _inline_inputs(identifier):
 def _branch_process(project, *, left_scope, right_scope):
     gate = _stage("branch_gate", allowed_paths=(), target=None)
     gate.update(
-        handler="inspect",
+        handler="inspect", role="reviewer",
         transitions={"clear": "left_writer", "changes_requested": "right_writer"},
     )
     return _configure(project, [

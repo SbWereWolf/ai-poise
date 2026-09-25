@@ -191,6 +191,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Зафиксировать исходную архитектуру и критерии выбора. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -227,6 +228,7 @@
     {
       "id": "alternatives",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Сравнить допустимые решения. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -257,6 +259,7 @@
     {
       "id": "decision",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Выбрать решение и обосновать отказ от других. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -289,6 +292,7 @@
     {
       "id": "detailed_design",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Описать конкретные contracts и failure modes. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": false,
       "allowed_paths": [
@@ -325,6 +329,7 @@
     {
       "id": "design_verification",
       "handler": "check",
+      "role": "executor",
       "instruction": "Проверить design против требований. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -355,6 +360,7 @@
     {
       "id": "design_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Осмотреть consistency, неопределённости и лишнюю сложность. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -384,6 +390,7 @@
     {
       "id": "remediation",
       "handler": "revise",
+      "role": "executor",
       "instruction": "Исправить design findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": false,
       "allowed_paths": [
@@ -418,6 +425,7 @@
     {
       "id": "remediation_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Проверить design corrections read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

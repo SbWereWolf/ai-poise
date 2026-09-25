@@ -155,7 +155,7 @@ def project(tmp_path, monkeypatch):
             'artifact_requirements': [],
         })
     for i, stage in enumerate(stages):
-        stage.update(handler="produce", transitions={"complete":stages[i+1]["id"] if i+1<len(stages) else None}, rework_targets=[stage["id"]])
+        stage.update(handler="produce", role="executor", transitions={"complete":stages[i+1]["id"] if i+1<len(stages) else None}, rework_targets=[stage["id"]])
     process = {'route':{"entry":"tests"}, 'goal_type': 'development', 'worktree_required': True, 'stages': stages, 'benefit': {'git_categories':['code','documentation'],'sections':[]}, "content_contract": {"sections":[],"routes":[],"requirements":[]}}
     write_json(poise_root / 'config/processes/development.json', process)
     cfg = {
@@ -356,6 +356,22 @@ class DeterministicClock:
         value=ClockObservation(cls._audit.isoformat(),cls._monotonic_ns,'test-suite-boot')
         cls._audit+=timedelta(seconds=1);cls._monotonic_ns+=1_000_000_000
         return value
+
+
+def track_runtime_dispatchers(monkeypatch):
+    """Track real runtimes whose test-owned directory must outlive their workers."""
+    from functools import wraps
+
+    dispatchers = []
+    original = Runtime.__init__
+
+    @wraps(original)
+    def tracked(runtime, *args, **kwargs):
+        original(runtime, *args, **kwargs)
+        dispatchers.append(runtime.telemetry.dispatcher)
+
+    monkeypatch.setattr(Runtime, "__init__", tracked)
+    return dispatchers
 
 
 class WorkPoise(Runtime):

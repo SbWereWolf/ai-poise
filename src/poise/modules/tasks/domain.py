@@ -939,7 +939,7 @@ class Task:
         if self.state.status == TaskStatus.ACTIVE and self.progress.stage_work is not None:
             feedback = self._handling().feedback
         next_stage = None if self.progress.outcome is None else node.target(self.progress.outcome)
-        return {"handler":node.handler.value, "outcome":self.progress.outcome,
+        return {"handler":node.handler.value, "role":node.role, "outcome":self.progress.outcome,
                 "next_stage":next_stage, "terminal":self.progress.outcome is not None and next_stage is None,
                 "visits":dict(self.progress.visits), "transitions":self.progress.transitions,
                 "rework_targets":list(node.rework_targets), "feedback":feedback.context(),

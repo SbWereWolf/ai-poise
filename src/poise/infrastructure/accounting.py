@@ -1,5 +1,6 @@
 """Composition adapter; observes existing work, never drives its business lifecycle."""
 from copy import deepcopy
+import json
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 from ..modules.accounting.domain import MetricPolicy,BenefitDefinition,parse_telemetry,identity
 from ..modules.accounting.clock import ClockObservation
@@ -65,6 +66,31 @@ class _AccountingRepositories:
         merge('usage',optional['usage'],lambda row:(row['source'],row['stream'],row['sequence']))
         merge('cycles',optional['cycles'])
         merge('telemetry',optional['telemetry'])
+        # Project accepted immutable telemetry alongside authoritative workflow facts.
+        # Optional storage never needs shadow Task rows or a reverse Task DB write.
+        from ..modules.accounting.finding_context import validate_finding_context
+        known = {(row['task_id'], row['finding_id']): row for row in result['quality']}
+        for row in result['telemetry']:
+            envelope = json.loads(row['data'])
+            raw = envelope.get('telemetry')
+            if raw is None or not raw['finding_targets']:
+                continue
+            bound = envelope['after_binding'] if envelope['after_binding']['task'] is not None else envelope['before_binding']
+            try:
+                targets = validate_finding_context(raw['finding_targets'], bound['task'], envelope.get('finding_context'))
+            except PoiseError:
+                conflicts += 1
+                continue
+            for target in targets:
+                key = (bound['task'], target['finding_id'])
+                item = {'task_id': key[0], 'finding_id': key[1], 'data': encoded(target)}
+                old = known.get(key)
+                if old is not None:
+                    if old['data'] != item['data']:
+                        conflicts += 1
+                    continue
+                result['quality'].append(item)
+                known[key] = item
         return result,conflicts
 
 
@@ -107,6 +133,18 @@ class RuntimeAccounting:
             value['monotonic_ns'],
             value['comparison_domain'],
         )
+
+    def finding_context(self, task, raw):
+        if not isinstance(raw, dict) or not raw.get('finding_targets'):
+            return None
+        task_id = None if task is None else task['id']
+        try:
+            prepared = self.prepare(raw)
+            return self.repo.authoritative.finding_context(task_id, prepared['finding_targets'])
+        except Exception:
+            # Missing observations reject only optional telemetry in its worker.
+            return {'schema': 'accounting-finding-context-1', 'task': task_id,
+                    'observations': None}
 
     def process(self,envelope):
         return self.telemetry_repo.accept_telemetry(envelope)

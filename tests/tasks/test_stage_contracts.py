@@ -24,7 +24,7 @@ def _stage(stage_id, *, handler="produce", transitions=None, rework_targets=None
         transitions = {"complete": None}
     return {
         "id": stage_id,
-        "handler": handler,
+        "handler": handler, "role": "executor",
         "transitions": transitions,
         "rework_targets": [] if rework_targets is None else rework_targets,
         "read_only": read_only,

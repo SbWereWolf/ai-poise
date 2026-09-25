@@ -4,13 +4,13 @@
   "templates": {
     "linux-reference": {
       "path": "config/project-templates/linux-reference.json",
-      "version": "3",
-      "digest": "a3c7e7e2c7c35a03aa2a73196e53360c84dcd7104e032b7bbf195630c3dd36ab"
+      "version": "4",
+      "digest": "60a654e5ef82831a22af4d29179f9b8bc68878d6e0b1c3d8ccb3013ca50c264a"
     },
     "wsl-poise": {
       "path": "config/project-templates/wsl-poise.json",
-      "version": "5",
-      "digest": "c5e37172557c05b9e736f2261a024a978cadae08fa0dabfaf9428e23e3060da7"
+      "version": "6",
+      "digest": "e9fd54a8cec0df95f133107fe6f77110a91b4de42274a3278138b20721b2e287"
     }
   },
   "manifest": "project.json",

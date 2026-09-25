@@ -19,5 +19,5 @@ def test_four_documented_cli_routes(tmp_path,goal,feedback):
         capture_output=True,text=True,timeout=120)
     assert result.returncode==0,result.stdout+result.stderr
     report=json.loads((directory/'runner-report.json').read_text())
-    assert report['status']=='PASS' and report['main_unchanged'] and report['task_status']=='completed'
+    assert report['status']=='PASS' and report['main_unchanged'] and report['remote_unchanged'] and report['task_status']=='completed'
     assert report['outcomes'].count('changes_requested')==(2 if feedback else 0)

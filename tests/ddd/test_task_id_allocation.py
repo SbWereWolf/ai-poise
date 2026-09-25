@@ -14,7 +14,7 @@ import threading
 import pytest
 
 from batch.helpers import request
-from conftest import write_json
+from conftest import git, verification_plan, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from conftest import WorkPoise as Poise
@@ -64,7 +64,10 @@ def missing_repository_input_intent(project, request_id, *, sprint_id=None):
             "kind": "repository",
             "bindings": [{"kind": "cwd", "path": "."}],
         },
-        "timeout_seconds": 30,
+        "verification_plan": verification_plan(
+            "Validate the declared repository input before allocation.",
+            ["tests/**"], green_stages=["tests"],
+        ),
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": [],
@@ -288,9 +291,10 @@ def test_allocated_identity_is_used_everywhere(project):
         text=True,
         capture_output=True,
         env={
-            **os.environ,
+            **{key: value for key, value in os.environ.items() if key not in (
+                "CODEX_SESSION_ID", "CODEX_THREAD_ID", "POISE_CALLER_BINDING", "POISE_SESSION")},
             "POISE_CONFIG": str(project["config_path"]),
-            "POISE_SESSION": "identity-owner",
+            "POISE_CALLER_BINDING": str(project["root"] / "identity-caller.json"),
             "PYTHONPATH": str(root / "src"),
         },
         timeout=20,
@@ -307,14 +311,18 @@ def test_allocated_identity_is_used_everywhere(project):
     assert Path(result["task_root"]).name == "0001"
     assert record["branch"] == "tasks/0001"
     assert result["allocation"]["task_id"] == "0001"
-    assert Path(result["runtime_root"]).name == "identity-owner"
+    caller = json.loads((project["root"] / "identity-caller.json").read_text())
+    assert caller["schema"] == "poise-caller-binding-1" and caller["caller_id"]
+    actor = record["claimed_by"]
+    assert actor and actor != "identity-reader"
+    assert Path(result["runtime_root"]).name == actor
     assert response_path.is_file()
     assert response_path.is_relative_to(Path(result["task_root"]) / "runs")
     with runtime.store.transaction() as db:
         journal_task_ids = {
             row[0]
             for row in db.execute(
-                "SELECT task_id FROM journal WHERE session_id=?", ("identity-owner",)
+                "SELECT task_id FROM journal WHERE session_id=?", (actor,)
             ).fetchall()
             if row[0] is not None
         }
@@ -400,7 +408,7 @@ def _planning_process(project):
     stage = deepcopy(project["process"]["stages"][0])
     stage.update(
         id="draft",
-        handler="produce",
+        handler="produce", role="executor",
         sections={"planned_tasks": "Write the reviewed contracts."},
         required_sections=["planned_tasks"],
         read_only=True,
@@ -411,7 +419,7 @@ def _planning_process(project):
     review = deepcopy(stage)
     review.update(
         id="review",
-        handler="inspect",
+        handler="inspect", role="executor",  # Explicit single-actor planning fixture.
         sections={"report": "Review."},
         required_sections=["report"],
         transitions={"clear": "publish", "changes_requested": "draft"},
@@ -420,7 +428,7 @@ def _planning_process(project):
     publish = deepcopy(stage)
     publish.update(
         id="publish",
-        handler="publish",
+        handler="publish", role="executor",
         sections={},
         required_sections=[],
         transitions={"complete": None},
@@ -457,6 +465,13 @@ def _planning_context(project):
             for stage in process["stages"]
         },
     )
+    parent["stage_contracts"] = [
+        {"stage_id": stage["id"], "allowed_paths": list(stage["allowed_paths"]),
+         "entry_requirements": [], "exit_requirements": []}
+        for stage in process["stages"]]
+    parent["decomposition"] = {"kind": "ordinary", "integration": None,
+        "phases": [{"stage": stage["id"], "skills": ["workflow"], "areas": []}
+                   for stage in process["stages"]]}
     runtime = Poise(project["config_path"], "planner")
     tools = WorkTools(runtime)
     return tools, bootstrap(tools, parent)
@@ -715,7 +730,12 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
     project["cfg"] = cfg
     runtime = Poise(project["config_path"], "legacy-owner")
     seed = task_contract(project, "LEGACY")
-    existing = "src/double.py"
+    existing = "tests/test_baseline.py"
+    (project["app"] / "tests").mkdir()
+    (project["app"] / existing).write_text(
+        "from src.double import double\ndef test_original_behaviour():\n    assert double(2) == 3\n")
+    git(project["app"], "add", existing)
+    git(project["app"], "commit", "-m", "Fixture: existing baseline verification input")
     seed["methods"] = [{
         "id": "CHECK",
         "argv": [sys.executable, "-m", "pytest", "-q", existing],
@@ -725,7 +745,10 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
             "kind": "repository",
             "bindings": [{"kind": "cwd", "path": "."}],
         },
-        "timeout_seconds": 30,
+        "verification_plan": verification_plan(
+            "Observe the fixture baseline through its existing regression input.",
+            ["tests/**"], green_stages=["tests"],
+        ),
         "expected_exit_code": 0,
         "stdout_contains": [],
         "stderr_contains": [],
@@ -753,7 +776,7 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
         original = uow.tasks.load("LEGACY")
         historical = replace(
             original,
-            state=replace(original.state, task_id="HISTORICAL"),
+            state=replace(original.state, task_id="HISTORICAL", claimed_by=None),
         )
         uow.tasks.create(
             historical,
@@ -779,9 +802,9 @@ def test_existing_rows_and_explicit_id_creation_need_no_migration(project):
     assert "method_inputs" not in historical_record["contract"]
     assert restored.state.task_id == "HISTORICAL"
     assert restored.state.version == historical.state.version
-    assert before_version == 12
+    assert before_version == 13
     with reopened.store.transaction() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 12
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 13
     assert "creation_request" not in record
 
 
@@ -842,6 +865,7 @@ def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
         ("src/poise/runtime.py", "Poise", "bootstrap"),
         ("src/poise/application/catalogue.py", "CatalogueCommands", "tasks"),
         ("src/poise/application/sprints.py", "SprintCommands", "apply"),
+        ("src/poise/application/sprints.py", "SprintCommands", "_materialize_draft_changes"),
         (
             "src/poise/application/planning_publication.py",
             "PlanningPublications",
@@ -887,14 +911,19 @@ def test_allocation_is_owned_by_task_port_and_not_callers_or_git():
         and _dotted_name(node.items[0].context_expr.func) == "self.unit_of_work"
         and isinstance(node.items[0].optional_vars, ast.Name)
     ]
-    assert len(transaction_blocks) == 1
-    transaction = transaction_blocks[0]
-    uow_name = transaction.items[0].optional_vars.id
-    direct_calls = {_direct_call_name(statement) for statement in transaction.body}
-    assert {
-        f"{uow_name}.tasks.allocate",
-        f"{uow_name}.tasks.create",
-    } <= direct_calls
+    # A separate lookup may replay an existing receipt. Fresh allocation and both
+    # newborn writes must remain together in exactly one publishing transaction.
+    publishing = []
+    for block in transaction_blocks:
+        name = block.items[0].optional_vars.id
+        calls = {_dotted_name(node.func) for node in ast.walk(block)
+                 if isinstance(node, ast.Call)}
+        if f"{name}.tasks.create_newborn" in calls:
+            publishing.append((name, calls))
+    assert len(publishing) == 1
+    uow_name, direct_calls = publishing[0]
+    assert {f"{uow_name}.tasks.allocate", f"{uow_name}.tasks.create_newborn",
+            f"{uow_name}.tasks.promote_newborn"} <= direct_calls
 
     forbidden_adapter_calls = {
         "allocate",

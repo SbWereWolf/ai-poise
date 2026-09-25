@@ -240,27 +240,27 @@ def configure_public_registry_case(project: dict) -> None:
         stage["id"] = stage_id
         stage["rework_targets"] = list(stage_ids)
     stages[0].update(
-        handler="produce",
+        handler="produce", role="executor",
         transitions={"complete": "test_inspection"},
         read_only=False,
         allowed_paths=["tests/**"],
     )
     stages[0]["sections"]["test_registry"] = "Submit one guarded registry change."
     stages[1].update(
-        handler="inspect",
+        handler="inspect", role="reviewer",
         transitions={"clear": "implementation", "changes_requested": "test_remediation"},
         read_only=True,
         allowed_paths=[],
     )
     stages[2].update(
-        handler="revise",
+        handler="revise", role="executor",
         transitions={"complete": "test_inspection"},
         read_only=False,
         allowed_paths=["tests/**"],
     )
     stages[2]["sections"]["test_registry"] = "Submit one guarded registry change."
     stages[3].update(
-        handler="produce",
+        handler="produce", role="executor",
         transitions={"complete": None},
         read_only=False,
         allowed_paths=["src/**"],

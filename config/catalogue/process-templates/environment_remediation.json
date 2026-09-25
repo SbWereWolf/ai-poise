@@ -107,6 +107,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Определить разрешённый target и desired state. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -141,6 +142,7 @@
     {
       "id": "baseline",
       "handler": "observe",
+      "role": "executor",
       "instruction": "Снять исходное состояние до изменения. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -169,6 +171,7 @@
     {
       "id": "change_planning",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Определить actions, verification и безопасное прерывание. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -203,6 +206,7 @@
     {
       "id": "application",
       "handler": "apply_plan",
+      "role": "executor",
       "instruction": "Применить подготовленные механические действия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": false,
       "allowed_paths": [
@@ -234,6 +238,7 @@
     {
       "id": "verification",
       "handler": "check",
+      "role": "executor",
       "instruction": "Подтвердить desired state и отсутствие побочных нарушений. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -264,6 +269,7 @@
     {
       "id": "inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Read-only осмотреть достигнутое состояние. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -295,6 +301,7 @@
     {
       "id": "correction",
       "handler": "apply_plan",
+      "role": "executor",
       "instruction": "Исправить замечания по среде с новым exact action plan. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": false,
       "allowed_paths": [
@@ -328,6 +335,7 @@
     {
       "id": "correction_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Проверить corrections read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

@@ -28,7 +28,7 @@ def declarations():
             {"id":"A-verdict","kind":"trace","route":"A","point":"verdict","stages":["review"],"phase":"pre","field_equals":{}},
             {"id":"B-proof","kind":"trace","route":"B","point":"argument","stages":["review"],"phase":"pre","field_equals":{}},
             {"id":"risks","kind":"section","section":"risk_note","stages":["implement","review"],"phase":"pre","states":["populated"]},
-            {"id":"fixtures","kind":"artifact","scope":"task","pattern":"fixtures/*.json","minimum":2,"maximum":2,"stages":["tests"],"phase":"pre"}]
+            {"id":"fixtures","kind":"artifact","scope":"task","pattern":"fixtures/*.json","minimum":2,"maximum":2,"source":{"kind":"preexisting"},"stages":["tests"],"phase":"pre"}]
     }
 
 
@@ -172,8 +172,18 @@ def test_policy_wire_roundtrip_is_explicit_and_preserves_origins():
     wire=p.to_layers()
     other=policy(goal=wire["goal"],task=wire["task"])
     assert other==p
-    origins={r.rule_id:r.origin for r in p.evaluate("plan","pre",blank(),()).results}
-    assert origins=={"A-source":"goal","extra":"task"}
+    # Each predicate is emitted only at its configured deadline. Check origins
+    # across the whole route rather than expecting a future rule at plan entry.
+    origins = {
+        result.rule_id: result.origin
+        for stage in ("plan", "tests", "implement", "review")
+        for result in other.evaluate(stage, "pre", blank(), ()).results
+    }
+    assert origins == {
+        "A-source": "goal", "A-published": "goal", "A-test": "goal",
+        "A-verdict": "goal", "B-proof": "goal", "risks": "goal",
+        "fixtures": "goal", "extra": "task",
+    }
 
 
 def test_zero_rules_is_explicitly_valid():

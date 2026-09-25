@@ -22,7 +22,7 @@ def test_real_source_pilot_does_not_auto_accept_or_change_target(tmp_path):
     base=git(repo,'rev-parse','HEAD')
     command=[sys.executable,str(source/'examples/project_pilot.py'),'--poise-root',str(repo),
         '--repository',str(repo),'--base-ref','main','--destination','state/project-pilot',
-        '--task-id','SOURCE-PILOT']
+        '--task-id','SOURCE-PILOT','--requirements-root',str(tmp_path/'requirements-planned')]
     result=subprocess.run(command,cwd=source,env={**os.environ,'PYTHONPATH':str(source/'src')},
                           capture_output=True,text=True,timeout=90)
     assert result.returncode==0,result.stderr+result.stdout

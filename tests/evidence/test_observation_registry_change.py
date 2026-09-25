@@ -306,6 +306,11 @@ def test_observe_subject_replacement_preserves_classification_and_coverage(proje
     registry_stage["required_sections"].append("test_registry")
     process["route"]["entry"] = "registry"
     process["stages"].insert(0, registry_stage)
+    project["task"]["decomposition"]["phases"].insert(0, {
+        "stage": "registry", "skills": ["task-domain"], "areas": []})
+    project["task"]["stage_contracts"].insert(0, {
+        "stage_id": "registry", "allowed_paths": ["tests/**"],
+        "entry_requirements": [], "exit_requirements": []})
     write_json(process_path, process)
     project["task"]["checks"] = {
         "registry": [],
@@ -415,6 +420,7 @@ def test_rework_keeps_old_evidence_receipt_and_records_new_execution(project):
         "stdout_contains": old_registry["method"]["stdout_contains"],
         "stderr_contains": old_registry["method"]["stderr_contains"],
         "red_failure": old_registry["method"]["verification_plan"]["red_failure"],
+        "outputs": old_registry["method"].get("outputs", []),
     })
     assert old_receipt["tree"] == old_batch["tree"]
     identity_parts = [

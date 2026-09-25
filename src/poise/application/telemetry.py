@@ -72,20 +72,17 @@ class _ThreadCapture:
 class OptionalTelemetry:
     """Capture immutable inputs; every failure remains telemetry-only."""
 
-    def __init__(self, clock, dispatcher, session):
+    def __init__(self, clock, dispatcher, session, *, context_provider=None):
         self.clock = clock
         self.dispatcher = dispatcher
         self.session = session
+        self.context_provider = context_provider
         self.dropped = 0
 
     def begin(self, operation, before, telemetry, turn_id):
         try:
             return {
-                "operation": operation,
-                "session": self.session,
-                "turn_id": turn_id,
-                "before_binding": _binding(before),
-                "telemetry": deepcopy(telemetry),
+                **self._base(operation, before, telemetry, turn_id),
                 "started": _observation(self.clock.observe()),
             }
         except Exception:
@@ -93,13 +90,18 @@ class OptionalTelemetry:
             return None
 
     def _base(self, operation, before, telemetry, turn_id):
-        return {
+        result = {
             "operation": operation,
             "session": self.session,
             "turn_id": turn_id,
             "before_binding": _binding(before),
             "telemetry": deepcopy(telemetry),
         }
+        if self.context_provider is not None:
+            context = self.context_provider(before, telemetry)
+            if context is not None:
+                result["finding_context"] = deepcopy(context)
+        return result
 
     def _envelope(self, base, started, finished, final):
         data = {

@@ -10,8 +10,8 @@ from demo import create,save,git,SOURCE
 from work_client import WorkClient
 
 
-def stage(name,handler,edges,readonly,paths):
-    return {'id':name,'handler':handler,'transitions':edges,
+def stage(name,handler,edges,readonly,paths,role):
+    return {'id':name,'handler':handler,'role':role,'transitions':edges,
             'rework_targets':['apply'] if handler=='publish' else [name],
             'instruction':f'Выполнить {name}, проверить и доложить.',
             'read_only':readonly,'allowed_paths':paths,'normalization':'strip',
@@ -22,11 +22,11 @@ def stage(name,handler,edges,readonly,paths):
 def process(kind):
     integration=kind=='integration'
     end='publish' if integration else None
-    stages=[stage('apply','apply_plan',{'complete':'inspect'},False,['src/**','docs/**']),
-            stage('inspect','inspect',{'clear':end,'changes_requested':'correct'},True,[]),
-            stage('correct','revise' if integration else 'apply_plan',{'complete':'followup'},False,['src/**','docs/**']),
-            stage('followup','inspect',{'clear':end,'changes_requested':'correct'},True,[])]
-    if integration:stages.append(stage('publish','publish',{'complete':None},True,[]))
+    stages=[stage('apply','apply_plan',{'complete':'inspect'},False,['src/**','docs/**'],'executor'),
+            stage('inspect','inspect',{'clear':end,'changes_requested':'correct'},True,[],'reviewer'),
+            stage('correct','revise' if integration else 'apply_plan',{'complete':'followup'},False,['src/**','docs/**'],'executor'),
+            stage('followup','inspect',{'clear':end,'changes_requested':'correct'},True,[],'reviewer')]
+    if integration:stages.append(stage('publish','publish',{'complete':None},True,[],'executor'))
     return {'goal_type':kind,'worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'apply'},
             'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':stages}
 
@@ -56,7 +56,9 @@ def submission(ctx,work):
 def run(directory,scenario):
     home=create(directory);app=directory/'application';cfg=json.loads((home/'project.json').read_text())
     kind='integration' if scenario=='integration_conflict' else 'environment_remediation'
-    definition=process(kind);save(home/'config/processes/actions.json',definition)
+    definition=process(kind)
+    for stage in definition['stages']: stage['role']='executor'
+    save(home/'config/processes/actions.json',definition)
     cfg['processes']={kind:'config/processes/actions.json'};cfg['automatic_checks']=[];save(home/'project.json',cfg)
     base=git(app,'rev-parse','HEAD');sources=[]
     if kind=='integration':
@@ -75,7 +77,18 @@ def run(directory,scenario):
           'checks':{name:(['CHECK'] if kind=='integration' and name!='publish' else []) for name in names},
           'artifact_requirements':[],'content_contract':{'sections':[],'routes':[],'requirements':[]},
           'evidence_plan':{name:{'subject_methods':{},'arguments':[],'review_arguments':[]} for name in names}}
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'actions-demo'}
+    task['stage_contracts']=[{'stage_id':s['id'],'allowed_paths':list(s['allowed_paths']),
+        'entry_requirements':[],'exit_requirements':[]} for s in definition['stages']]
+    task['decomposition']={'kind':'ordinary','phases':[
+        {'stage':s['id'],'skills':['workflow'],'areas':[]} for s in definition['stages']], 'integration':None}
+    from poise.composition import requirements_tools
+    commands,_=requirements_tools(home/'project.json')
+    plan=commands.store.registry().plan_task([
+        {'text':text,'applications':['DEMO-APP']} for text in task['requirements']])
+    assert plan['status']=='ready'
+    task['requirements_snapshot']=plan['snapshot']
+    task['requirements_agreement']={'accepted':True,'chains':plan['chains']}
+    env={**{k:v for k,v in os.environ.items() if k not in ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_CALLER_BINDING','POISE_SESSION')},'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/'actions-caller.json')}
     client=WorkClient(env,30);ctx=client.bootstrap(task);reports=[]
     clean={'coverage':'Осмотрены изменения и доказательства. Решение задано fixture.','findings':[],'resolution_decisions':[]}
     if kind=='integration':
@@ -84,7 +97,7 @@ def run(directory,scenario):
         result=client.verify(value,[])
         assert result['status']=='awaiting_action_continuation'
         assert result['action']['conflicts']==['src/double.py']
-        assert git(app,'ls-remote','backup','refs/heads/main').split()[0]==base
+        assert git(app,'rev-parse','main')==base
         # Simulates the agent's native source editor, not a Poise-data edit.
         Path(ctx['worktree'],'src/double.py').write_text('def double(n):\n    return n * 2\n')
         value=result['context']['result_template']
@@ -93,12 +106,14 @@ def run(directory,scenario):
         integrated=result['commit'];assert client.verify(None,[])['replayed']
         ctx=client.bootstrap(None,decision='continue')
         review=client.verify(submission(ctx,clean),[]);assert review['status']=='verified';reports.append(review)
-        assert git(app,'ls-remote','backup','refs/heads/main').split()[0]==base
+        assert git(app,'rev-parse','main')==base
         ctx=client.bootstrap(None,decision='continue')
         published=client.verify(submission(ctx,{'target_ref':'refs/heads/main','expected_commit':base,
                                                'authorization':'Пользователь принял осмотр и поручил публикацию.'}),[])
         assert published['status']=='verified';reports.append(published)
-        assert git(app,'ls-remote','backup','refs/heads/main').split()[0]==integrated
+        assert git(app,'rev-parse','main')==base
+        assert git(Path(ctx['worktree']),'rev-parse','HEAD')==integrated
+        assert git(app,'remote','-v')==''
         assert git(app,'rev-parse','main')==base  # local checked-out main was never changed
     else:
         # A controlled file models external service configuration; no real OS setup.

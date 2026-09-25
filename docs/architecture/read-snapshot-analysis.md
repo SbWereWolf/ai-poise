@@ -28,9 +28,9 @@ application flock, `BEGIN IMMEDIATE`, тело, `COMMIT`. Это правиль�
 
 ## Воспроизводимое измерение
 
-[Скрипт](../../projects/ai-poise/standalone/REVIEW-ARCH-A02/artifacts/execution-20260918/measure.py)
+Скрипт — `../../projects/ai-poise/standalone/REVIEW-ARCH-A02/artifacts/execution-20260918/measure.py` (исторический артефакт; не включён в исходную поставку 044A)
 запускался из корня checkout командой `PYTHONPATH=src python -B PATH/measure.py`.
-[Полные результаты](../../projects/ai-poise/standalone/REVIEW-ARCH-A02/artifacts/execution-20260918/measurements.json)
+Полные результаты — `../../projects/ai-poise/standalone/REVIEW-ARCH-A02/artifacts/execution-20260918/measurements.json` (исторический артефакт; не включён в исходную поставку 044A)
 содержат Python/SQLite версии, все 120 наблюдений и максимумы.
 
 100 синтетических completed Tasks, один submission и report. Writer изменяет только

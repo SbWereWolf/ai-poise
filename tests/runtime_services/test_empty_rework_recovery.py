@@ -25,13 +25,20 @@ class EmptyReworkRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.monkeypatch = pytest.MonkeyPatch()
+        self.dispatchers = conftest.track_runtime_dispatchers(self.monkeypatch)
         self.monkeypatch.setattr(conftest, "git", self._quiet_git)
         self.project = project_fixture.__wrapped__(
             Path(self.temporary.name), self.monkeypatch
         )
 
     def tearDown(self):
-        self.monkeypatch.undo()
+        # Real optional workers may outlive foreground work, but not the directory
+        # this test owns. Drain them before undoing hooks or deleting their DB.
+        try:
+            for dispatcher in self.dispatchers:
+                dispatcher.close()
+        finally:
+            self.monkeypatch.undo()
         self.temporary.cleanup()
 
     @staticmethod

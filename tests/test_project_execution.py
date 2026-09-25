@@ -32,7 +32,7 @@ def snapshot_source(tmp_path):
     return repo
 
 
-def setup_destination(repo, destination):
+def setup_destination(repo, destination, requirements_root):
     setup = json.loads((repo / 'config/project-setup.json').read_text())
     selected = setup['templates']['linux-reference']
     template = json.loads((repo / selected['path']).read_text())
@@ -44,14 +44,16 @@ def setup_destination(repo, destination):
         'schema': 'project-setup-1', 'request_id': 'receiving-project',
         'destination': destination,
         'template': {'id': 'linux-reference', 'version': selected['version'], 'digest': selected['digest']},
-        'edits': [{'path': q['path'], 'value': values[q['id']]} for q in template['questions']],
+        'edits': [{'path': q['path'], 'value': values[q['id']]} for q in template['questions']] + [
+            {'path':['paths','requirements_database'],'value':str(requirements_root/'requirements.sqlite')},
+            {'path':['paths','requirements_lock'],'value':str(requirements_root/'requirements.lock')}],
         'probe_repository': True})
 
 
 def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(tmp_path):
     repo = snapshot_source(tmp_path)
     base = git(repo, 'rev-parse', 'HEAD')
-    first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE')
+    first = plan_real_source(repo, repo, 'main', 'state/planned', 'VERIFY-SOURCE', requirements_root=tmp_path/'requirements-planned')
     # User decision is an explicit fixture. The test does not simulate a human reviewer.
     result = continue_execution(config_path=Path(first['setup']['config_path']),
                                session='VERIFY-SOURCE', task_id='VERIFY-SOURCE',
@@ -67,7 +69,7 @@ def test_real_execution_is_not_accepted_and_can_be_resumed_without_source_store(
     shutil.copy2(result['transfer']['package_path'], incoming)
     receiving_repo = tmp_path / 'receiving-source'
     subprocess.run(['git', 'clone', str(repo), str(receiving_repo)], check=True, capture_output=True)
-    setup = setup_destination(receiving_repo, 'state/received')
+    setup = setup_destination(receiving_repo, 'state/received',tmp_path/'requirements-received')
     # Remove access to the original operational store before importing/reading evidence.
     (repo / 'state/planned').rename(repo / 'state/offline')
     h = Poise(setup['config_path'], 'next-agent')

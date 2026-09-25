@@ -16,7 +16,7 @@
 Прочитаны composition, конструктор Poise, verify и конкретные adapters. AST-инвентарь
 включает прямые обращения и обычные локальные алиасы `h=self.h`; это статические
 зависимости, не измерение частоты вызовов и не полный динамический граф.
-[Инвентарь с методами и строками](../../projects/ai-poise/standalone/REVIEW-ARCH-A01/artifacts/execution-20260918/dependency-inventory.json).
+Инвентарь с методами и строками — `../../projects/ai-poise/standalone/REVIEW-ARCH-A01/artifacts/execution-20260918/dependency-inventory.json` (исторический артефакт; не включён в исходную поставку 044A).
 
 | Потребитель полного runtime | Наблюдаемые зависимости | Предметный владелец и граница |
 |---|---|---|

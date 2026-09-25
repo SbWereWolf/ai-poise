@@ -195,6 +195,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Сформулировать вопросы и метод до сбора огромного массива. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -224,6 +225,7 @@
     {
       "id": "evidence_collection",
       "handler": "observe",
+      "role": "executor",
       "instruction": "Обработать данные инструментами, извлечь факты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -249,6 +251,7 @@
     {
       "id": "reasoning",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Сформировать проверяемые выводы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -280,6 +283,7 @@
     {
       "id": "challenge",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Проверить альтернативы и опровергающие данные. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -311,6 +315,7 @@
     {
       "id": "self_inspection",
       "handler": "inspect",
+      "role": "executor",
       "instruction": "Осмотреть достоверность собственного анализа. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

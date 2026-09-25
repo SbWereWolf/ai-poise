@@ -41,6 +41,7 @@ def create_available(project, tools, task_id):
         task_id=task_id,
         expected_revision=born["revision"],
         patch=patch,
+        remove=[],
     )
     ready = task_action(
         tools,
@@ -421,6 +422,7 @@ def test_membership_conversion_documentation_contract():
         (root / ".agents/skills/poise/SKILL.md").read_text(),
     ]
     for text in russian:
+        text=" ".join(text.split())
         assert "adopt_tasks" in text
         assert "extract_tasks" in text
         assert "входящих и исходящих зависимостей" in text
@@ -430,6 +432,7 @@ def test_membership_conversion_documentation_contract():
         assert "membership, граф, revision и request receipt" in text
         assert "повтор после отказа не считается replay" in text
     for text in english:
+        text=" ".join(text.split())
         assert "adopt_tasks" in text
         assert "extract_tasks" in text
         assert "incoming or outgoing dependency" in text

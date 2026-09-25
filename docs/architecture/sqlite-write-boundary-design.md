@@ -8,7 +8,7 @@
 [RequirementsStore._transaction](../../src/poise/infrastructure/requirements_registry.py)
 берёт application flock, открывает SQLite с timeout=0, затем deferred BEGIN. Независимый
 SQLite writer не обязан брать тот же lock-файл. Поэтому первое чтение может пройти,
-а DML — немедленно завершиться database is locked. [Исходный опыт](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R03-requirements-contention.json)
+а DML — немедленно завершиться database is locked. Исходный опыт — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R03-requirements-contention.json` (исторический артефакт; не включён в исходную поставку 044A)
 фиксирует такой отказ за ~0.00032 s при writer hold 0.15 s и lock_seconds=1.0.
 Повреждение БД в этом опыте не показано; нужен bounded wait, не восстановление утраченных
 данных. Task Database уже использует общую правильную границу.

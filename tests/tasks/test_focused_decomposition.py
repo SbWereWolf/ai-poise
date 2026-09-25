@@ -458,7 +458,7 @@ def run_documentation_contract():
         ),
     }
     for path in documents:
-        body = path.read_text(encoding="utf-8")
+        body = " ".join(path.read_text(encoding="utf-8").split())
         relative = path.relative_to(root).as_posix()
         for token in required_by_file[relative]:
             assert token in body, (path, token)

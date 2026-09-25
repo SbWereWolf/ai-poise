@@ -24,13 +24,13 @@
   "templates": {
     "development-v1": {
       "path": "config/templates/development-v1.json",
-      "version": "1",
-      "digest": "ec44d6c66feb8cace646f539c46aa0dc44c6cc1948c13bba6439cb284ef3dc93"
+      "version": "2",
+      "digest": "a2ace5fc1b9d35d4f33c66ddb7fd7b0a98b61377dc057cf55fd95a26f6005447"
     },
     "documentation-v1": {
       "path": "config/templates/documentation-v1.json",
-      "version": "1",
-      "digest": "e35e3219ded880aed9b0bb9b164e61a2db66c1d02476378495741a4b5d268c13"
+      "version": "2",
+      "digest": "04c409f1c71f48301cf7e69af79025212ef060cf071b2b1649fa6c32635f97d4"
     }
   }
 }

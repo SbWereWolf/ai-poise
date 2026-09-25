@@ -203,6 +203,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Определить симптом и необходимые факты среды. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -232,6 +233,7 @@
     {
       "id": "reproduction",
       "handler": "observe",
+      "role": "executor",
       "instruction": "Проверить исходный симптом. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -259,6 +261,7 @@
     {
       "id": "hypothesis_planning",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Составить проверяемые альтернативные причины. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -290,6 +293,7 @@
     {
       "id": "experiments",
       "handler": "observe",
+      "role": "executor",
       "instruction": "Выполнить диагностические experiments. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -317,6 +321,7 @@
     {
       "id": "root_cause_analysis",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Обосновать причину и отвергнутые альтернативы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -350,6 +355,7 @@
     {
       "id": "confirmation",
       "handler": "check",
+      "role": "executor",
       "instruction": "Проверить причинность контролируемым изменением. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -379,6 +385,7 @@
     {
       "id": "self_inspection",
       "handler": "inspect",
+      "role": "executor",
       "instruction": "Проверить диагноз и рекомендацию. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

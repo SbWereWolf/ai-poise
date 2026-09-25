@@ -16,7 +16,8 @@ def user(identifier,reason):
 
 def run(directory):
     home=create(directory)
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'batch-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/'batch-demo.caller.json')}
+    env={k:v for k,v in env.items() if not k.startswith('CODEX_') and k != 'POISE_SESSION'}
     client=WorkClient(env,30)
     task=json.loads((home/'task.json').read_text());task['sprint_id']='SPRINT-DEMO'
     draft=client.invoke('sprint',{'action':'draft','sprint_id':'SPRINT-DEMO','request_id':'demo-draft',
@@ -28,7 +29,7 @@ def run(directory):
     reports=[]
     for i,sid in enumerate(['tests','test_review','implementation','code_review']):
         event=user(f'turn-{i}', 'initial' if i==0 else 'continue')
-        b=client.invoke('bootstrap',{'task':task if i==0 else None,'decision':None if i==0 else 'continue',
+        b=client.invoke('bootstrap',{'task':{'id':task['id']} if i==0 else None,'decision':None if i==0 else 'continue',
                                      'feedback':None,'rework_stage':None},messages=[event])
         assert b['stage']==sid and 'result_path' not in b
         wt=Path(b['worktree'])
@@ -50,11 +51,16 @@ def run(directory):
         repeat=client.invoke('verify',{'result':payload,'artifacts':artifacts},messages=[event])
         assert repeat['replayed'] and repeat['interaction']['user_messages_count']==i+1
         reports.append(report)
+    # Current-task section reads occur before acceptance releases ownership.
+    before=client.invoke('show',{'queries':[
+        {'id':'section','kind':'section','name':'report','stage':None,'submission':None,'range':None},
+        {'id':'state','kind':'task'}]})
     final=client.invoke('accept',{},messages=[user('accept','authorization')])
     assert final['status']=='completed' and final['interaction']['user_messages_count']==5
-    batch=client.invoke('show',{'queries':[{'id':'section','kind':'section','name':'report','stage':None,'submission':None,'range':None},
-        {'id':'messages','kind':'messages'},{'id':'state','kind':'task'}]})
-    m=batch['results'][1]['value']
+    terminal=client.bootstrap({'id':task['id']})
+    assert terminal['status']=='completed' and terminal['result_template'] is None
+    assert terminal['content']['sections']
+    m=final['interaction']
     assert m['delivered_stages_count']==4 and m['delivered_iterations_count']==4
     out={'status':'PASS','task_status':'completed','messages':m,'reports':len(reports),
          'artifact_paths':[r['path'] for r in reports[-1]['artifacts']],

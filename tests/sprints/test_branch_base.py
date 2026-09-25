@@ -181,10 +181,10 @@ def test_base_observation_is_fixed_before_durable_sprint_start(project, monkeypa
     real_start = runtime.task_commands.start
     moved = {}
 
-    def move_base_then_start(task_id, actor, snapshot, *, force_duplicate_start=False):
+    def move_base_then_start(task_id, actor, snapshot, *, force_duplicate_start=False, restart_entry_tree=None):
         moved["base"] = advance_base(project, "boundary-later-base")
         return real_start(task_id, actor, snapshot,
-                          force_duplicate_start=force_duplicate_start)
+                          force_duplicate_start=force_duplicate_start, restart_entry_tree=restart_entry_tree)
 
     monkeypatch.setattr(runtime.task_commands, "start", move_base_then_start)
     context = bootstrap(tools, "A")

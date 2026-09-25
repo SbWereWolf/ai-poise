@@ -37,6 +37,8 @@ def _configure(project, *, scope=None, inspection=False):
         inspect = deepcopy(process["stages"][1])
         revise = deepcopy(process["stages"][2])
         inspect["handler"] = "inspect"
+        inspect["role"] = "reviewer"
+        revise["role"] = "executor"
         inspect["transitions"] = {"clear": None, "changes_requested": revise["id"]}
         inspect["rework_targets"] = [revise["id"]]
         revise["transitions"] = {"complete": inspect["id"]}
@@ -56,6 +58,10 @@ def _configure(project, *, scope=None, inspection=False):
             stage["id"]: {"subject_methods": {}, "arguments": [], "review_arguments": []}
             for stage in project["process"]["stages"]
         }
+    task["decomposition"]["phases"] = [
+        {"stage": stage["id"], "skills": ["task-domain"], "areas": []}
+        for stage in project["process"]["stages"]
+    ]
     task["stage_contracts"] = _contracts(project, scope=scope)
     return task
 

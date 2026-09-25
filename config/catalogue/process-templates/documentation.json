@@ -191,6 +191,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Определить аудиторию и источники истины. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -226,6 +227,7 @@
     {
       "id": "outline",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Спроектировать структуру по content requirements. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -255,6 +257,7 @@
     {
       "id": "drafting",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Написать documentation deliverable. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": false,
       "allowed_paths": [
@@ -288,6 +291,7 @@
     {
       "id": "validation",
       "handler": "check",
+      "role": "executor",
       "instruction": "Проверить примеры/ссылки и источники. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -317,6 +321,7 @@
     {
       "id": "inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Read-only вычитать по audience и completeness. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -347,6 +352,7 @@
     {
       "id": "remediation",
       "handler": "revise",
+      "role": "executor",
       "instruction": "Исправить документацию по findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": false,
       "allowed_paths": [
@@ -378,6 +384,7 @@
     {
       "id": "remediation_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Повторно вычитать corrections. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

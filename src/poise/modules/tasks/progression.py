@@ -7,10 +7,6 @@ from ..workflow.domain import HandlerKind
 from .domain import Task, TaskStatus
 
 
-def stage_role(handler: HandlerKind) -> str:
-    return "reviewer" if handler == HandlerKind.INSPECT else "executor"
-
-
 @dataclass(frozen=True)
 class ProgressionStep:
     kind: str
@@ -40,8 +36,8 @@ def progression_step(task: Task, target_stage: str, crossed_role_boundary: bool)
     following = task.route.node(current).target(task.progress.outcome)
     if following is None or not task.route.can_reach(following, target_stage):
         raise DomainError("Progression target is not reachable by ordinary transitions")
-    current_role = stage_role(task.route.node(current).handler)
-    following_role = stage_role(task.route.node(following).handler)
+    current_role = task.route.node(current).role
+    following_role = task.route.node(following).role
     if current_role != following_role and not crossed_role_boundary:
         return ProgressionStep(
             "role_handoff_required",

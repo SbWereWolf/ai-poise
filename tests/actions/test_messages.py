@@ -22,7 +22,7 @@ def test_later_taskless_read_does_not_charge_completed_or_cancelled_task(project
     bootstrap(tools,project,[message('start','initial')])
     tools.invoke(request('cancel',{'reason':'User stop'},[message('cancel','cancel')]))
     tools.invoke(request('show',{'queries':[{'id':'context','kind':'task'}]},[message('new-topic',None)]))
-    assert h.interactions.summary(h.current_task())['user_messages_count']==2
+    assert h.interactions.summary(h.task_queries.record('T1'))['user_messages_count']==2
     assert h.interactions.summary(None)['user_messages_count']==3
 
 

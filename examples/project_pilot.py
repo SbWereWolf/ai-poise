@@ -31,7 +31,7 @@ def _stage_contracts(process):
             for stage in process['stages']]
 
 
-def run(root,repository,base_ref,destination,task_id):
+def run(root,repository,base_ref,destination,task_id,*,requirements_root):
     root=Path(root).resolve();repository=Path(repository).resolve()
     settings=root/'config/project-setup.json'
     setup=json.loads(settings.read_text());selected=setup['templates']['linux-reference']
@@ -43,6 +43,10 @@ def run(root,repository,base_ref,destination,task_id):
              'template':{'id':'linux-reference','version':selected['version'],'digest':selected['digest']},
              'edits':[{'path':q['path'],'value':values[q['id']]} for q in template['questions']],
              'probe_repository':True}
+    requirements_root=Path(requirements_root).resolve()
+    request['edits'].extend([
+        {'path':['paths','requirements_database'],'value':str(requirements_root/'requirements.sqlite')},
+        {'path':['paths','requirements_lock'],'value':str(requirements_root/'requirements.lock')}])
     setup_result=project_tools(settings).apply(request)
     _,cfg,processes=load_config(Path(setup_result['config_path']))
     catalogue=FileCatalogue(root/'config/catalogue/settings.json')
@@ -76,6 +80,15 @@ def run(root,repository,base_ref,destination,task_id):
     task=commands.tasks([{'template':{'id':'verification-v1','version':selected_task['version'],'digest':selected_task['digest']},
                            'parameters':parameters}],processes,cfg['automatic_checks'],
                          cfg['task_decomposition'])['tasks'][0]
+    from poise.composition import requirements_tools
+    requirements,_=requirements_tools(Path(setup_result['config_path']))
+    requirements.apply({'request_id':task_id+'-requirements','expected_revision':0,'operations':[
+        {'kind':'put_requirement','requirement':{'id':'PILOT-SYS','level':'system','status':'current','text':'Verification retains evidence without implicit acceptance.'}},
+        {'kind':'put_requirement','requirement':{'id':'PILOT-APP','level':'application','status':'current','text':'Poise project setup loads its explicitly configured process catalogue.'}},
+        {'kind':'link','system':'PILOT-SYS','application':'PILOT-APP'}]})
+    plan=requirements.store.registry().plan_task([{'text':text,'applications':['PILOT-APP']} for text in task['requirements']])
+    task['requirements_snapshot']=plan['snapshot']
+    task['requirements_agreement']={'accepted':True,'chains':plan['chains']}
     h=Poise(setup_result['config_path'],task_id,SystemClock());work=WorkTools(h)
     def call(op,args):return work.invoke({'operation':op,'input':args,'messages':[]})
     context=call('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})
@@ -120,5 +133,6 @@ if __name__=='__main__':
     p.add_argument('--base-ref',required=True)
     p.add_argument('--destination',required=True,help='new directory relative to Poise root')
     p.add_argument('--task-id',required=True)
+    p.add_argument('--requirements-root',required=True,type=Path,help='explicit Requirements storage outside the served repository')
     a=p.parse_args()
-    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id),ensure_ascii=False,indent=2))
+    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id,requirements_root=a.requirements_root),ensure_ascii=False,indent=2))

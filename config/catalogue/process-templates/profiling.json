@@ -191,6 +191,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Спланировать исходное измерение и критерии воспроизводимости. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -224,6 +225,7 @@
     {
       "id": "baseline_measurement",
       "handler": "observe",
+      "role": "executor",
       "instruction": "Получить исходные measurements. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -251,6 +253,7 @@
     {
       "id": "experiment_planning",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Спланировать различающие эксперименты после baseline. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -282,6 +285,7 @@
     {
       "id": "measurement",
       "handler": "observe",
+      "role": "executor",
       "instruction": "Выполнить эксперименты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -309,6 +313,7 @@
     {
       "id": "analysis",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Отделить измерения от интерпретаций. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -348,6 +353,7 @@
     {
       "id": "confirmation",
       "handler": "check",
+      "role": "executor",
       "instruction": "Независимо/повторно подтвердить существенные выводы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -377,6 +383,7 @@
     {
       "id": "self_inspection",
       "handler": "inspect",
+      "role": "executor",
       "instruction": "Осмотреть качество измерений и выводов. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

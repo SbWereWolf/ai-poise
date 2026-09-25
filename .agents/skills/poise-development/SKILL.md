@@ -21,8 +21,8 @@ callers and agents must not substitute an arbitrary session value. Identity orig
 not authorization, and read-only establishment must not create a business subject.
 
 A collaboration subagent is not an independent reviewer merely because its visible
-name or role differs. Require a distinct native session established by the common
-SessionEstablisher; never manufacture a session ID or caller binding. In Codex,
+name or role differs. When the configured producer and inspecting roles differ, require a distinct
+effective session established by the common SessionEstablisher; never manufacture a session ID or caller binding. In Codex,
 use a separate task/session, public handoff and bootstrap of the same Task, then
 replay the exact progression request. Inspect `review_identity` provenance:
 distinct effective actors do not prove live-host delivery or review quality.
@@ -133,7 +133,7 @@ An idle reviewer starts on a received handoff. If several handoffs arrive, finis
 
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method. Preserve failed diagnostic workspaces and do not replace a failed run with a retry. Package code, tasks/configs, documentation and verification evidence as one self-contained delivery.
 
-Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). User Task start authorizes executor and reviewer to continue their respective stages, including checks and remediation, without a separate command for each review; honor explicit user limits and AI poise gates. At a role boundary, save results, confirm public handoff/release, stop modifying the Task and [directly notify the known counterpart](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим). The receiver claims/resumes before work. Self-inspection is not independent review, and publication/integration retains its separate authorization.
+Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). User Task start authorizes executor and reviewer to continue their respective stages, including checks and remediation, without a separate command for each review; honor explicit user limits and AI poise gates. At a role boundary, save results, confirm public handoff/release, stop modifying the Task and [directly notify the known counterpart](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим). The receiver claims/resumes before work. A configured single-role process permits self-inspection without a second participant. Self-inspection is not independent review, and publication/integration retains its separate authorization.
 
 After release and notification, continue actionable received assignments or the authorized stage/Task chain in the same turn. Track assignments until completed, cancelled or explicitly transferred, including pending work and blockers in checkpoints and compaction context. New messages add work unless they explicitly change an assignment; acknowledgment is not completion. Before a final answer, account for every pending assignment; end only when no authorized actionable work remains, preserving each remaining blocker and next action. Finish your own already-started operations. Checking your own pending work is required; do not poll the other agent's status, read its conversation for progress or schedule background monitoring.
 

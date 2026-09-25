@@ -25,7 +25,7 @@ def require_reviewer_identity_in(
     uow: TaskUnitOfWork, task: Task, actor: str, *,
     target_stage: str | None = None, acquiring: bool = False,
 ) -> dict | None:
-    """One guard for public acquisition, handoff and progression owners."""
+    """Require distinct effective actors only for different configured stage roles."""
     from ..modules.workflow.domain import HandlerKind
     current = task.stage.stage_id
     node = task.route.node(current)
@@ -45,6 +45,10 @@ def require_reviewer_identity_in(
     identity = uow.tasks.review_identity(task.state.task_id)
     if identity is None:
         return None  # An inspection route may begin with externally supplied input.
+    producer_role = task.route.node(identity["stage"]).role
+    inspection_role = task.route.node(target).role
+    if producer_role == inspection_role:
+        return None  # A single-role process does not require identity separation.
     executor = identity["executor_actor"]
     if executor is None:
         raise DomainError(
@@ -124,6 +128,23 @@ def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=())
     return allocation, contract
 
 
+def materialize_draft_task_identity_in(uow: TaskUnitOfWork, intent, policy, reserved_ids=()):
+    """Resolve draft identity through the Task owner in the caller's transaction.
+
+    A draft may be incomplete; this does not validate or publish its execution
+    contract. Sprint membership and graph updates remain owned by Sprint.
+    """
+    from ..modules.tasks.allocation import TaskIdPolicy, materialize_contract
+
+    if isinstance(intent, dict) and set(intent) == {"request_id", "task"}:
+        allocation = uow.tasks.allocate(intent, TaskIdPolicy.parse(policy), reserved_ids)
+        contract, creation_request = materialize_contract(intent, allocation.task_id)
+        return contract, creation_request, allocation.request_id
+    contract = deepcopy(intent)
+    alias = contract.get("id") if isinstance(contract, dict) else None
+    return contract, None, alias
+
+
 def creation_batch_reservations(intents, additional=()):
     from ..modules.tasks.allocation import creation_parts
     reserved = set(additional)
@@ -186,7 +207,7 @@ class TaskCommands:
         self.requirements_gate = requirements_gate
 
     def reviewer_preflight(self, task_id: str, actor: str, *, acquiring: bool = False) -> dict | None:
-        """Reject self-review before filesystem preparation; writes recheck in their UoW."""
+        """Check configured role separation before filesystem preparation and again on writes."""
         with self.unit_of_work() as uow:
             if uow.tasks.is_newborn(task_id):
                 return None

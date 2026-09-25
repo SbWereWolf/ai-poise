@@ -15,7 +15,7 @@ def main():
     home=create(a.directory)
     cfg=json.loads((home/'project.json').read_text())
     task=json.loads((home/'task.json').read_text())
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'accounting-demo'}
+    env={**{k:v for k,v in os.environ.items() if k not in ('CODEX_SESSION_ID','CODEX_THREAD_ID','POISE_CALLER_BINDING','POISE_SESSION')},'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/'accounting-caller.json')}
     client=WorkClient(env,30);seq=0
     usage_epoch=datetime(2026,9,12,tzinfo=timezone.utc)
     def msg(mid):return {'conversation_id':'demo','message_id':mid,'occurred_at':datetime.now(timezone.utc).isoformat(),'reason':None,'subject':None}

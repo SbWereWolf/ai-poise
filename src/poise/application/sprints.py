@@ -9,7 +9,7 @@ from ..modules.tasks.newborn import NewbornTask
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
 from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
-                    rewrite_task_plan, validate_creation_intent)
+                    rewrite_task_plan, validate_creation_intent, materialize_draft_task_identity_in)
 
 
 def fingerprint(value):
@@ -148,7 +148,6 @@ class SprintCommands:
 
     def _materialize_draft_changes(self,uow,sid,changes,processes,execution_hash):
         """Replace embedded definitions with editable real newborn Task members."""
-        from ..modules.tasks.allocation import TaskIdPolicy, materialize_contract
         prepared,adoptions=self._adoption_changes(uow,sid,changes)
         members=[];aliases={}
         for change in prepared:
@@ -164,15 +163,9 @@ class SprintCommands:
                         raise DomainError('Newborn Task belongs to another Sprint')
                     aliases[intent]=intent
                     normalized.append(intent);continue
-                creation_request=None
-                if isinstance(intent,dict) and set(intent)=={'request_id','task'}:
-                    policy=TaskIdPolicy.parse(self.task_id_policy)
-                    allocation=uow.tasks.allocate(intent,policy,(sid,*normalized))
-                    contract,creation_request=materialize_contract(intent,allocation.task_id)
-                    alias=allocation.request_id
-                else:
-                    contract=deepcopy(intent)
-                    alias=contract.get('id') if isinstance(contract,dict) else None
+                contract,creation_request,alias=materialize_draft_task_identity_in(
+                    uow,intent,self.task_id_policy,(sid,*normalized)
+                )
                 if not isinstance(contract,dict) or not isinstance(contract.get('id'),str):
                     raise DomainError('Sprint draft Task requires an explicit identity')
                 task_id=path_identifier(contract['id'])

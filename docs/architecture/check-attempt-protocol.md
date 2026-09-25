@@ -10,7 +10,7 @@
 
 До исправления [Runtime](../../src/poise/runtime.py) сохранял отдельные receipts после subprocess,
 затем снимает `pending=checks`, сохраняет execution и лишь затем вызывает
-`runner.record_observations`. [Исходное воспроизведение](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R01-check-reexecution.json)
+`runner.record_observations`. Исходное воспроизведение — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R01-check-reexecution.json` (исторический артефакт; не включён в исходную поставку 044A)
 показало повтор успешной команды после ошибки последнего сохранения. Исключение из
 `_execute_checks` тоже снимает pending, хотя часть команд уже могла выполниться.
 SQLite не может атомарно зафиксировать произвольный внешний эффект. Не обещаем

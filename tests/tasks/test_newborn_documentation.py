@@ -42,6 +42,7 @@ def test_newborn_documentation_contract():
         assert term in newborn_rule
 
     for english in (skill, source_rules):
+        english = " ".join(english.split())
         assert "real newborn Task" in english
         assert "shared ownership API" in english
         assert "no route entry before goal_type selection" in english

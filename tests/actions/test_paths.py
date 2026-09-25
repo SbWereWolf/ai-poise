@@ -28,7 +28,9 @@ def test_merge_conflict_continue_inspect_publish_happy_path(project):
     pub=result(ctx3,{'target_ref':'refs/heads/main','expected_commit':base,'authorization':'User: publish reviewed result'})
     final_report=verify(h,pub)
     assert final_report['status']=='verified'
-    assert git(project['remote'],'rev-parse','main')==final
+    assert git(project['remote'],'rev-parse','main')==base
+    assert git(project['app'],'rev-parse','main')==base
+    assert git(Path(ctx['worktree']),'rev-parse','HEAD')==final
     assert verify(h,None)['replayed']
     assert call(h,'accept',{})['status']=='completed'
 
@@ -231,20 +233,29 @@ def test_failed_command_can_restart_only_with_explicit_user_rework(project):
     assert verify(h,result(ctx,{'plan':good,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))['status']=='verified'
 
 
-def test_target_push_retry_is_probed_and_bounded_without_repeating_checks(project,monkeypatch):
+def test_local_publication_retry_preserves_candidate_without_repeating_checks(project, monkeypatch):
+    from poise.infrastructure.sqlite.actions import SqliteActionRepository
     h,ctx,plan,base=setup(project,conflict=False)
-    verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}));inspect(h,advance(h));ctx=advance(h)
-    p=result(ctx,{'target_ref':'refs/heads/main','expected_commit':base,'authorization':'User publish'})
-    original=h.plan_actions._git_effect
-    def reject(data,*args):
-        if args[0]=='push':return {'actual_exit_code':1,'timed_out':False,'rejection':'synthetic transient transport failure'}
-        return original(data,*args)
-    monkeypatch.setattr(h.plan_actions,'_git_effect',reject)
-    assert verify(h,p)['status']=='action_blocked'
-    monkeypatch.setattr(h.plan_actions,'_git_effect',original)
+    verified=verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))
+    inspect(h,advance(h));ctx=advance(h)
+    p=result(ctx,{'target_ref':'refs/heads/main','expected_commit':base,'authorization':'User: record local publication'})
+    original=SqliteActionRepository.create
+    def reject(self,*args):
+        original(self,*args)
+        raise OSError('Local publication receipt interrupted')
+    with h.store.transaction() as db:
+        evidence_before=list(db.execute('SELECT * FROM evidence ORDER BY rowid'))
+    monkeypatch.setattr(SqliteActionRepository,'create',reject)
+    with pytest.raises(OSError,match='Local publication receipt'):
+        verify(h,p)
+    monkeypatch.setattr(SqliteActionRepository,'create',original)
     out=verify(h,p)
-    assert out['status']=='verified' and git(project['remote'],'rev-parse','main')==out['commit']
-    assert out['attempt']==1  # no new check execution for retrying only publication
+    assert out['status']=='verified' and out['commit']==verified['commit']
+    assert git(project['remote'],'rev-parse','main')==base
+    assert git(project['app'],'rev-parse','main')==base
+    with h.store.transaction() as db:
+        assert list(db.execute('SELECT * FROM evidence ORDER BY rowid'))==evidence_before
+    assert verify(h,p)['replayed'] is True
 
 
 def test_missing_plan_is_rejected_as_domain_input_not_typeerror(project):

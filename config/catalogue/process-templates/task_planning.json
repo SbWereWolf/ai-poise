@@ -170,6 +170,7 @@
     {
       "id": "framing",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Определить конечную цель планируемой task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -205,6 +206,7 @@
     {
       "id": "classification",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Выбрать один target goal_type по основному результату. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -236,6 +238,7 @@
     {
       "id": "requirements",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Уточнить требования в draft target task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -267,6 +270,7 @@
     {
       "id": "acceptance_design",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Спроектировать DoD и deliverables будущей task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -300,6 +304,7 @@
     {
       "id": "work_planning",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Заполнить process-specific planning inputs. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -333,6 +338,7 @@
     {
       "id": "verification_planning",
       "handler": "produce",
+      "role": "executor",
       "instruction": "Зафиксировать способы доказательства будущей задачи. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -366,6 +372,7 @@
     {
       "id": "task_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Read-only проверить draft contract. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -396,6 +403,7 @@
     {
       "id": "remediation",
       "handler": "revise",
+      "role": "executor",
       "instruction": "Исправить draft по findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -427,6 +435,7 @@
     {
       "id": "remediation_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Осмотреть исправленный contract. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -457,6 +466,7 @@
     {
       "id": "publication",
       "handler": "publish",
+      "role": "executor",
       "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop. Publish only after explicit user authorization. Read the reviewed planned_task section; do not submit a replacement draft. Submit stage_work with kind=tasks, section=planned_task, and the explicit user authorization. The draft must already be retained and reviewed; do not resubmit a replacement draft in publication.",
       "read_only": true,
       "allowed_paths": [],

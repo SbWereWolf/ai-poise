@@ -13,6 +13,7 @@
     {
       "id": "tests",
       "handler": "produce",
+      "role": "executor",
       "transitions": {
         "complete": "test_review"
       },
@@ -36,6 +37,7 @@
     {
       "id": "test_review",
       "handler": "inspect",
+      "role": "reviewer",
       "transitions": {
         "clear": "implementation",
         "changes_requested": "test_fix"
@@ -59,6 +61,7 @@
     {
       "id": "test_fix",
       "handler": "revise",
+      "role": "executor",
       "transitions": {
         "complete": "test_recheck"
       },
@@ -82,6 +85,7 @@
     {
       "id": "test_recheck",
       "handler": "inspect",
+      "role": "reviewer",
       "transitions": {
         "clear": "implementation",
         "changes_requested": "test_fix"
@@ -105,6 +109,7 @@
     {
       "id": "implementation",
       "handler": "produce",
+      "role": "executor",
       "transitions": {
         "complete": "code_review"
       },
@@ -128,6 +133,7 @@
     {
       "id": "code_review",
       "handler": "inspect",
+      "role": "reviewer",
       "transitions": {
         "clear": null,
         "changes_requested": "code_fix"
@@ -151,6 +157,7 @@
     {
       "id": "code_fix",
       "handler": "revise",
+      "role": "executor",
       "transitions": {
         "complete": "code_recheck"
       },
@@ -174,6 +181,7 @@
     {
       "id": "code_recheck",
       "handler": "inspect",
+      "role": "reviewer",
       "transitions": {
         "clear": null,
         "changes_requested": "code_fix"

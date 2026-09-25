@@ -1,10 +1,73 @@
 {
-  "route": {"entry": "initial"},
+  "route": {
+    "entry": "initial"
+  },
   "stages": [
-    {"id": "initial", "handler": "produce", "transitions": {"complete": "build"}, "rework_targets": ["initial"], "read_only": false, "allowed_paths": []},
-    {"id": "build", "handler": "inspect", "transitions": {"clear": "short_a", "changes_requested": "long"}, "rework_targets": ["initial"], "read_only": true, "allowed_paths": []},
-    {"id": "short_a", "handler": "produce", "transitions": {"complete": null}, "rework_targets": ["initial"], "read_only": false, "allowed_paths": []},
-    {"id": "long", "handler": "produce", "transitions": {"complete": "short_b"}, "rework_targets": ["initial"], "read_only": false, "allowed_paths": []},
-    {"id": "short_b", "handler": "produce", "transitions": {"complete": null}, "rework_targets": ["initial"], "read_only": false, "allowed_paths": []}
+    {
+      "id": "initial",
+      "handler": "produce",
+      "transitions": {
+        "complete": "build"
+      },
+      "rework_targets": [
+        "initial"
+      ],
+      "read_only": false,
+      "allowed_paths": [],
+      "role": "executor"
+    },
+    {
+      "id": "build",
+      "handler": "inspect",
+      "transitions": {
+        "clear": "short_a",
+        "changes_requested": "long"
+      },
+      "rework_targets": [
+        "initial"
+      ],
+      "read_only": true,
+      "allowed_paths": [],
+      "role": "executor"
+    },
+    {
+      "id": "short_a",
+      "handler": "produce",
+      "transitions": {
+        "complete": null
+      },
+      "rework_targets": [
+        "initial"
+      ],
+      "read_only": false,
+      "allowed_paths": [],
+      "role": "executor"
+    },
+    {
+      "id": "long",
+      "handler": "produce",
+      "transitions": {
+        "complete": "short_b"
+      },
+      "rework_targets": [
+        "initial"
+      ],
+      "read_only": false,
+      "allowed_paths": [],
+      "role": "executor"
+    },
+    {
+      "id": "short_b",
+      "handler": "produce",
+      "transitions": {
+        "complete": null
+      },
+      "rework_targets": [
+        "initial"
+      ],
+      "read_only": false,
+      "allowed_paths": [],
+      "role": "executor"
+    }
   ]
 }

@@ -243,7 +243,7 @@ def _configure_production_accounting(project):
         "stages": [
             {
                 "id": "write",
-                "handler": "produce",
+                "handler": "produce", "role": "executor",
                 "transitions": {"complete": None},
                 "rework_targets": ["write"],
                 "instruction": "Выполнить один этап и доложить.",

@@ -11,6 +11,12 @@ def call(h,op,inp,messages=None):
 
 
 def start(h,task):
+    from poise.composition import requirements_tools
+    from conftest import bind_task_requirements
+    commands,_=requirements_tools(h.config_path)
+    task=deepcopy(task)
+    if set(task) != {'id'}:
+        bind_task_requirements(task,commands.store.registry())
     return call(h,'bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})
 
 
@@ -49,17 +55,17 @@ def setup(project, kind='git_merge', conflict=True):
             sources.append({'commit':git(app,'rev-parse','HEAD'),'checkpoint_message':f'WIP integration {branch}'})
         git(app,'checkout','main')
     stages=[]
-    for name,handler,transitions,ro in [
-      ('apply','apply_plan',{'complete':'review'},False),
-      ('review','inspect',{'clear':'publish','changes_requested':'fix'},True),
-      ('fix','revise',{'complete':'recheck'},False),
-      ('recheck','inspect',{'clear':'publish','changes_requested':'fix'},True),
-      ('publish','publish',{'complete':None},True)]:
+    for name,handler,role,transitions,ro in [
+      ('apply','apply_plan','executor',{'complete':'review'},False),
+      ('review','inspect','executor',{'clear':'publish','changes_requested':'fix'},True),
+      ('fix','revise','executor',{'complete':'recheck'},False),
+      ('recheck','inspect','executor',{'clear':'publish','changes_requested':'fix'},True),
+      ('publish','publish','executor',{'complete':None},True)]:
         if kind=='commands' and name=='publish':continue
         if kind=='commands' and name=='fix':handler='apply_plan'
         t=deepcopy(transitions)
         if kind=='commands':t={k:(None if v=='publish' else v) for k,v in t.items()}
-        stages.append({'id':name,'handler':handler,'transitions':t,'rework_targets':[name] if name!='publish' else ['apply'],
+        stages.append({'id':name,'handler':handler,'role':role,'transitions':t,'rework_targets':[name] if name!='publish' else ['apply'],
                        'read_only':ro,'allowed_paths':[] if ro else ['src/**','README.md'],
                        'instruction':f'Выполнить {name}', 'normalization':'strip',
                        'sections':{} if handler=='publish' else {'report':'Заполнить.'},

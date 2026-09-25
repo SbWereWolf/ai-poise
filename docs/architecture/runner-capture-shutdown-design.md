@@ -9,7 +9,7 @@
 POSIX process group, два pump-потока и файлы логов. При завершении родителя или timeout
 он убивает принадлежащую группу, затем без ограничения делает join потоков. Процесс,
 создавший другую сессию, может продолжить держать унаследованный pipe: EOF не наступает.
-[Исходный опыт](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R02-unbounded-drain.json)
+Исходный опыт — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R02-unbounded-drain.json` (исторический артефакт; не включён в исходную поставку 044A)
 содержит harmless child на 2 s, hard limit 0.5 s и возврат только после его завершения.
 
 Выбран **однопоточный неблокирующий capture через POSIX selector**, а не отдельные

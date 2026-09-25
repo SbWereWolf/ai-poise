@@ -49,7 +49,7 @@ def prepare_completed_task(
         "sections": {"report": "Record the result."},
         "required_sections": ["report"],
         "artifact_requirements": [],
-        "handler": "produce",
+        "handler": "produce", "role": "executor",
         "transitions": {"complete": "documentation" if terminal_stage else None},
         "rework_targets": ["implementation"],
     }
@@ -64,7 +64,7 @@ def prepare_completed_task(
             "sections": {"report": "Record the result."},
             "required_sections": ["report"],
             "artifact_requirements": [],
-            "handler": "produce",
+            "handler": "produce", "role": "executor",
             "transitions": {"complete": None},
             "rework_targets": ["documentation"],
         })

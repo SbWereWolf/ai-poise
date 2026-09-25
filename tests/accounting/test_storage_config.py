@@ -94,7 +94,7 @@ def test_storage_rejects_physical_authoritative_aliases(
     project, kind, optional_field, authoritative_field,
 ):
     state = configured_root(project["root"], project["cfg"]["paths"]["state"])
-    state.mkdir(parents=True)
+    state.mkdir(parents=True, exist_ok=True)
     authoritative = state / project["cfg"]["paths"][authoritative_field]
     authoritative.write_bytes(b"preserved authoritative file")
     alias = state / f"alias-{optional_field}-{authoritative_field}"
@@ -115,7 +115,7 @@ def test_optional_database_and_lock_reject_physical_aliases(
     project, kind, alias_field, target_field,
 ):
     state = configured_root(project["root"], project["cfg"]["paths"]["state"])
-    state.mkdir(parents=True)
+    state.mkdir(parents=True, exist_ok=True)
     target = state / project["cfg"]["accounting"]["storage"][target_field]
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(b"preserved optional file")

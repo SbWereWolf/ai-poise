@@ -25,44 +25,24 @@ def assert_actionable_local_integration(error: pytest.ExceptionInfo[PoiseError])
     assert "ff-only" in message
 
 
-def test_public_work_rejects_remote_git_before_any_git_command(project, monkeypatch):
-    h, ctx, plan, base = setup(project, conflict=False)
-    verify(
-        h,
-        result(
-            ctx,
-            {
-                "plan": plan,
-                "phase": "prepare",
-                "resolutions": [],
-                "finding_resolutions": [],
-            },
-        ),
-    )
-    inspect(h, advance(h))
-    publication = advance(h)
-    calls = []
-
-    def unexpected_git(*args, **kwargs):
-        calls.append((args, kwargs))
-        raise AssertionError("publication reached Git before rejecting push")
-
-    monkeypatch.setattr(h, "_git", unexpected_git)
-    with pytest.raises(PoiseError) as error:
-        verify(
-            h,
-            result(
-                publication,
-                {
-                    "target_ref": "refs/heads/main",
-                    "expected_commit": base,
-                    "authorization": "User: publish reviewed result",
-                },
-            ),
-        )
-
-    assert_actionable_local_integration(error)
-    assert calls == []
+def test_public_work_local_publication_never_invokes_remote_git(project, monkeypatch):
+    h,ctx,plan,base=setup(project,conflict=False)
+    candidate=verify(h,result(ctx,{'plan':plan,'phase':'prepare','resolutions':[],'finding_resolutions':[]}))
+    inspect(h,advance(h));publication=advance(h)
+    calls=[]; original=subprocess.run
+    def no_remote(argv,*args,**kwargs):
+        if isinstance(argv,(tuple,list)) and Path(str(argv[0])).name=='git':
+            calls.append(list(argv))
+            assert not any(a in ('push','fetch','ls-remote') for a in argv),argv
+        return original(argv,*args,**kwargs)
+    monkeypatch.setattr(subprocess,'run',no_remote)
+    report=verify(h,result(publication,{'target_ref':'refs/heads/main','expected_commit':base,
+        'authorization':'User: record reviewed local result'}))
+    assert report['status']=='verified'
+    assert report['commit']==candidate['commit']
+    assert report['action']['steps'][0]['result']['remote_publication'] is False
+    assert report['action']['steps'][0]['result']['target_updated'] is False
+    assert calls
 
 
 def test_push_required_runtime_is_rejected_before_repository_git(project, monkeypatch):

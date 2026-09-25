@@ -11,5 +11,5 @@ def test_generated_config_short_route_red_green_and_explicit_gate(tmp_path):
         env={**os.environ,'PYTHONPATH':str(root/'src')},text=True,capture_output=True,timeout=40)
     assert r.returncode==0,r.stdout+r.stderr
     report=json.loads((tmp_path/'demo/goal-config-report.json').read_text())
-    assert report['status']=='PASS' and report['new_gate_blocked_before_tests']
+    assert report['status']=='PASS' and report['new_exit_gate_blocks_incomplete_stage']
     assert report['replayed_without_duplicate'] and report['source_template_unchanged']

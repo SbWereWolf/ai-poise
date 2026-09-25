@@ -22,12 +22,12 @@ def verify(h,ctx,work,sections):
 
 
 def setup(project):
-    stage=deepcopy(project['process']['stages'][0]);stage.update(id='draft',handler='produce',
+    stage=deepcopy(project['process']['stages'][0]);stage.update(id='draft',handler='produce', role="executor",
         sections={'planned_tasks':'Write the reviewed contracts.'},required_sections=['planned_tasks'],
         read_only=True,allowed_paths=[],transitions={'complete':'review'},rework_targets=['draft'])
-    review=deepcopy(stage);review.update(id='review',handler='inspect',sections={'report':'Review.'},
+    review=deepcopy(stage);review.update(id='review',handler='inspect', role="reviewer",sections={'report':'Review.'},
         required_sections=['report'],transitions={'clear':'publish','changes_requested':'draft'},rework_targets=['draft','review'])
-    publish=deepcopy(stage);publish.update(id='publish',handler='publish',sections={},required_sections=[],
+    publish=deepcopy(stage);publish.update(id='publish',handler='publish', role="executor",sections={},required_sections=[],
         transitions={'complete':None},rework_targets=['draft'])
     p=deepcopy(project['process']);p.update(goal_type='planning',stages=[stage,review,publish],
         route={'entry':'draft'})

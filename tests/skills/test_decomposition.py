@@ -259,6 +259,9 @@ def test_readonly_batch_reports_every_task_and_independent_error(tmp_path):
 def test_public_task_creation_uses_full_diagnostics(project):
     from poise.modules.tasks.definition import validate_creation
     bad = deepcopy(project["task"])
+    # Registry observations are transport metadata, not definition fields.
+    bad.pop("requirements_snapshot")
+    bad.pop("requirements_agreement")
     process = project["process"]
     stages = [s["id"] for s in process["stages"]]
     bad["decomposition"] = {"kind": "ordinary", "phases": [

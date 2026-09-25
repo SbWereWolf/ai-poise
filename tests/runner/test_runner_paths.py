@@ -16,6 +16,8 @@ def setup_project(project, goal):
     cfg["processes"]={goal:f"config/processes/{goal}.json"}
     proc=process(goal)
     for s in proc["stages"]:
+        # This scenario tests feedback, not separation of independent actors.
+        s["role"] = "executor"
         if not s["read_only"]: s["allowed_paths"]=["src/**"] if goal=="development" else ["docs/**"]
     # Deliberately scramble physical order. Entry and edges remain explicit.
     proc["stages"]=[proc["stages"][2],proc["stages"][1],proc["stages"][0],proc["stages"][3]]
@@ -34,6 +36,14 @@ def setup_project(project, goal):
       "reference_profile":{"runner":"python","parser":"inline-no-path-arguments","version":1}}]
     contract["checks"]={s["id"]:["TARGETED"] for s in proc["stages"]}
     contract["evidence_plan"]={s["id"]:{"subject_methods":{},"arguments":[],"review_arguments":[]} for s in proc["stages"]}
+    contract["stage_contracts"] = [
+        {"stage_id": stage["id"], "allowed_paths": list(stage["allowed_paths"]),
+         "entry_requirements": [], "exit_requirements": []}
+        for stage in proc["stages"]
+    ]
+    contract["decomposition"] = {"kind": "ordinary", "integration": None,
+        "phases": [{"stage": stage["id"], "skills": ["workflow"], "areas": []}
+                   for stage in proc["stages"]]}
     write_json(project["task_path"],contract)
     return Poise(project["config_path"],"S1")
 
@@ -70,13 +80,15 @@ def test_short_and_full_feedback_real_git_sqlite(project,goal):
         ctx=h.bootstrap(decision="continue"); assert ctx["stage"]=="follow_up"
         result(ctx,inspect(decisions=[decision(f"R{number}",outcome)])); assert h.verify()["status"]=="verified"
     assert h.accept()["status"]=="completed"
-    assert h.show()["workflow"]["feedback"]["open_findings"]==[]
+    assert h.task_commands.workflow_context("T1")["feedback"]["open_findings"]==[]
+    assert h.show()["status"] == "read_only"
     with h.store.transaction() as db:
         assert db.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]==1
         assert db.execute("SELECT COUNT(*) FROM task_results").fetchone()[0]==6
         assert db.execute("PRAGMA foreign_key_check").fetchall()==[]
     sha=git(Path(ctx["worktree"]),"rev-parse","HEAD")
-    assert git(project["app"],"ls-remote","backup","refs/heads/tasks/T1").split()[0]==sha
+    assert sha == git(Path(ctx["worktree"]), "rev-parse", "tasks/T1")
+    assert git(project["app"],"ls-remote","backup","refs/heads/tasks/T1") == ""
     assert (project["app"]/"src/double.py").read_text()=="def double(n):\n    return n + 1\n"
 
 @pytest.mark.parametrize("goal",["development","documentation"])
@@ -126,7 +138,7 @@ def test_continue_rejects_changed_verified_subject(project):
     h=setup_project(project,"development");ctx=h.bootstrap(task_file=project["task_path"])
     edit(ctx,"development","initial\n");result(ctx,{});h.verify()
     edit(ctx,"development","modified after report\n")
-    with pytest.raises(PoiseError,match="измен|проверенн"):
+    with pytest.raises(PoiseError,match="Commit or code changed after verification"):
         h.bootstrap(decision="continue")
     assert h.show()["stage"]=="draft"
 
@@ -144,18 +156,26 @@ def test_explicit_return_preserves_feedback_and_earlier_reports(project):
 
 
 def test_content_obligation_is_enforced_inside_feedback_route(project):
-    h=setup_project(project,"documentation");ctx=h.bootstrap(task_file=project["task_path"])
+    h=setup_project(project,"documentation")
+    # A produced section is an exit obligation, explicitly selected by the Task.
+    project["task"]["content_contract"] = {
+        "sections": [{"id":"fix_basis","template":"Заполнить.","normalization":"strip","write_stages":["amend"]}],
+        "routes": [],
+        "requirements": [{"id":"fix-basis-required","kind":"section","section":"fix_basis","stages":["amend"],"phase":"post","states":["populated"]}],
+    }
+    next(s for s in project["task"]["stage_contracts"] if s["stage_id"] == "amend")["exit_requirements"] = ["fix-basis-required"]
+    write_json(project["task_path"],project["task"])
+    ctx=h.bootstrap(task_file=project["task_path"])
     edit(ctx,"documentation","draft\n");result(ctx,{})
-    payload=ctx["result_template"]
-    payload["content_additions"]={"sections":[{"id":"fix_basis","template":"Заполнить.","normalization":"strip","write_stages":["amend"]}],"routes":[],"requirements":[{"id":"fix-basis-required","kind":"section","section":"fix_basis","stages":["amend"],"phase":"pre","states":["populated"]}]}
     h.verify()
     ctx=h.bootstrap(decision="continue");result(ctx,inspect([finding()]));h.verify()
     ctx=h.bootstrap(decision="continue");result(ctx,{"resolutions":[resolution()]})
-    before=h.show()["evidence_count"]
     blocked=h.verify();assert blocked["status"]=="content_requirements_failed"
-    assert h.show()["evidence_count"]==before
+    assert blocked["content_gate"]["phase"] == "post"
+    assert len(blocked["checks"]) == 1
+    assert blocked["checks"][0]["actual_exit_code"] == 0
+    assert h.show()["status"] == "active"
     payload=ctx["result_template"];payload["sections"]["fix_basis"]="Связь исправления с требованием обоснована."
-
     assert h.verify()["status"]=="verified"
 
 

@@ -325,6 +325,20 @@ def test_c029_gate_blocks_before_submit_and_can_retry_same_stage(configured, pro
         assert after[field] == before[field]
     assert runtime.task_queries.history(project['task']['id']) == history
     write(target, 'VALUE = 1\n')
+    if not dedicated:
+        git(directory, 'add', '--all')
+        git(directory, 'commit', '-m', 'Fixture: externally repair inspected source')
+        from poise.application.work import WorkTools
+        tools=WorkTools(runtime)
+        def action(payload):
+            return tools.invoke({'operation':'task','input':payload,'messages':[]})
+        restarted=action({'action':'restart','task_id':before['id'],
+            'expected_version':runtime.current_task()['version'],'request_id':'external-revision-restart',
+            'reason':'Admit the repaired external repository revision',
+            'authorization':'User: restart inspection of the repaired source'})
+        action({'action':'ready','task_id':before['id'],'expected_revision':restarted['revision'],
+            'request_id':'external-revision-ready'})
+        ctx=runtime.bootstrap({'id':before['id']})
     repaired = runtime.verify(fill(ctx),packet_digest=runtime.packet_digest({'result':fill(ctx),'artifacts':[]}))
     assert repaired['status'] == 'verified', repaired
     assert runtime.current_task()['id'] == before['id']

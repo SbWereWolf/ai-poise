@@ -62,6 +62,7 @@
     {
       "id": "planning",
       "handler": "produce",
+      "role": "reviewer",
       "instruction": "Определить scope, критерии и единицы осмотра. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -89,6 +90,7 @@
     {
       "id": "inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Read-only изучить target и оформить доказанные findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],
@@ -119,6 +121,7 @@
     {
       "id": "self_inspection",
       "handler": "inspect",
+      "role": "reviewer",
       "instruction": "Проверить качество собственного review. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "read_only": true,
       "allowed_paths": [],

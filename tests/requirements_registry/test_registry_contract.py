@@ -386,7 +386,7 @@ class RequirementsRegistryStorageAndApiTests(unittest.TestCase):
                     "sections": {},
                     "required_sections": [],
                     "artifact_requirements": [],
-                    "handler": "produce",
+                    "handler": "produce", "role": "executor",
                     "transitions": {"complete": None},
                     "rework_targets": ["build"],
                 }

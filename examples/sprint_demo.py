@@ -10,8 +10,8 @@ from demo import create, save, SOURCE
 from work_client import WorkClient
 
 
-def stage(name,kind,next_steps,readonly,paths):
-    return {'id':name,'handler':kind,'transitions':next_steps,'rework_targets':[name],
+def stage(name,kind,next_steps,readonly,paths,role):
+    return {'id':name,'handler':kind,'role':role,'transitions':next_steps,'rework_targets':[name],
             'instruction':'Выполнить текущий этап и доложить.', 'read_only':readonly,'allowed_paths':paths,
             'normalization':'strip','sections':{'report':'Заполнить.'},'required_sections':['report'],'artifact_requirements':[]}
 
@@ -20,10 +20,10 @@ def process(kind):
     paths=['src/**'] if kind=='development' else ['docs/**']
     return {'goal_type':kind,'worktree_required':True,'benefit':{'git_categories':[], 'sections':[]},'route':{'entry':'write'},
        'content_contract':{'sections':[],'routes':[],'requirements':[]},'stages':[
-       stage('write','produce',{'complete':'inspect'},False,paths),
-       stage('inspect','inspect',{'clear':None,'changes_requested':'amend'},True,[]),
-       stage('amend','revise',{'complete':'confirm'},False,paths),
-       stage('confirm','inspect',{'clear':None,'changes_requested':'amend'},True,[])]}
+       stage('write','produce',{'complete':'inspect'},False,paths,'executor'),
+       stage('inspect','inspect',{'clear':None,'changes_requested':'amend'},True,[],'executor'),
+       stage('amend','revise',{'complete':'confirm'},False,paths,'executor'),
+       stage('confirm','inspect',{'clear':None,'changes_requested':'amend'},True,[],'executor')]}
 
 
 def task(tid,kind,command):
@@ -57,11 +57,18 @@ def run(directory):
         save(home/f'config/processes/{kind}.json',process(kind))
         cfg['processes'][kind]=f'config/processes/{kind}.json'
     save(home/'project.json',cfg)
-    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_SESSION':'sprint-demo'}
+    env={**os.environ,'PYTHONPATH':str(SOURCE/'src'),'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/'sprint-demo.caller.json')}
+    env={k:v for k,v in env.items() if not k.startswith('CODEX_') and k != 'POISE_SESSION'}
     client=WorkClient(env,30)
     a=task('A','development','from src.double import double; assert double(2)==4')
     b=task('B','documentation','print("documentation checked")')
     c=task('C','documentation','print("independent")')
+    from poise.composition import requirements_tools
+    registry=requirements_tools(home/'project.json')[0].store.registry()
+    for item in (a,b,c):
+        planned=registry.plan_task([{'text':text,'applications':['DEMO-APP']} for text in item['requirements']])
+        item['requirements_snapshot']=planned['snapshot']
+        item['requirements_agreement']={'accepted':True,'chains':planned['chains']}
     incomplete=deepcopy(b);del incomplete['methods'];del incomplete['method_inputs']
     r=client.invoke('sprint',{'action':'draft','sprint_id':'SPRINT','request_id':'draft-1','expected_revision':None,
        'template':{'id':'basic','version':'1'},'changes':[

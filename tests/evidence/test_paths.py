@@ -36,6 +36,10 @@ def setup(project, kind='observe', logical=True, phase='continue', negative=Fals
        evidence_plan={'measure':{'subject_methods':{'M':{'exit_codes':[0,1],'stdout_contains':['observed=3'],'stderr_contains':[]}},'arguments':[
            {'id':'A','kind':'logical','phase':phase,'observation_methods':['M'] if phase=='continue' else []}] if logical else [],'review_arguments':[]},
            'audit':{'subject_methods':{},'arguments':[],'review_arguments':['A'] if logical else []}})
+    task['decomposition']={**task['decomposition'],'phases':[
+        {'stage':name,'skills':['task-domain'],'areas':[]} for name in ('measure','audit')]}
+    task['stage_contracts']=[{'stage_id':name,'allowed_paths':[],
+        'entry_requirements':[],'exit_requirements':[]} for name in ('measure','audit')]
     write_json(project['task_path'],task)
     return Poise(project['config_path'],'S1'), counter
 
@@ -251,22 +255,24 @@ def test_observation_cannot_request_reasoning_on_mutated_target(project):
     task=project['task'];task['methods'][0]['argv']=[sys.executable,'-c',"from pathlib import Path; Path('src/generated.py').write_text('x=1'); print('observed=3')"]
     write_json(project['task_path'],task)
     h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);input_result(ctx)
-    with pytest.raises(PoiseError,match='дерево|состояни'):
+    with pytest.raises(PoiseError,match='дерево|состояни|Commit or code changed'):
         h.verify()
     assert h.show()['status']=='active'
 
 
-def test_push_resume_after_explicit_environment_change_rechecks(project, monkeypatch):
+def test_explicit_environment_rework_rechecks_without_remote_delivery(project, monkeypatch):
     from conftest import add_test
     h=Poise(project['config_path'],'S1');ctx=h.bootstrap(project['task_path']);add_test(ctx['worktree']);fill(ctx)
     offline=project['remote'].with_name('remote-offline.git')
     project['remote'].rename(offline)
     try:
-        with pytest.raises(PoiseError): h.verify()
+        assert h.verify()['status']=='verified'
     finally:
         offline.rename(project['remote'])
     assert h.show()['evidence_count']==1
     monkeypatch.setenv('LANG','C')
+    ctx=h.bootstrap(decision='rework',feedback='User: repeat checks after explicit environment correction',rework_stage='tests')
+    fill(ctx)
     report=h.verify()
     assert report['status']=='verified'
     assert h.show()['evidence_count']==2

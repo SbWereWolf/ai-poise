@@ -1,10 +1,11 @@
 # Явная миграция Task process snapshot
 
-Обновлено: **2026-09-13**. Реализованный срез: Task 0084.
+Обновлено: **2026-09-24**. Реализованные срезы: legacy recovery и явная проекция ролей этапов.
 
-`task-process-migrate` — публичная одноразовая операция для сохранённых Task process
-snapshots, созданных до обязательного поля `worktree_required`. Это не compatibility read,
-не fallback и не общий редактор metadata. Оператор запускает её только по прямому
+`task-process-migrate` — публичная одноразовая операция для явно авторизованных изменений
+сохранённых Task process snapshots. Поддерживаемые schema остаются узкими: legacy recovery
+обязательных полей и проекция явных stage roles из настроенного process. Это не compatibility
+read, не fallback и не общий редактор metadata. Оператор запускает её только по прямому
 разрешению пользователя для точного набора Task:
 
 1. `0077`;
@@ -84,6 +85,52 @@ drift и отклоняет весь пакет.
 После успеха сохраните backup и оба JSON receipt, сравните публичные read-only проекции
 до и после, затем выполните native bootstrap целевых Task. Успешный bootstrap доказывает,
 что runtime читает новый обязательный contract без fallback.
+
+## Проекция явных ролей в legacy newborn Task
+
+`task-process-role-migration-1` переносит **только** отсутствующие `stage.role` из
+явного project process configuration в заранее названный набор newborn Task одного Sprint.
+Она нужна для snapshots, созданных до обязательного поля `role`; роль не выводится из
+`handler`, имени stage или встроенной константы. Поэтому operation одинаково поддерживает
+одноролевые и многоролевые процессы — результат определяется только конфигурацией.
+
+Перед запуском остановите writers и создайте public backup обычным владельцем установки:
+
+```bash
+poise backup create --config PROJECT_JSON
+```
+
+Запрос имеет точную форму:
+
+```json
+{
+  "schema": "task-process-role-migration-1",
+  "request_id": "project-configured-roles-1",
+  "backup_name": "BACKUP_NAME",
+  "sprint_id": "SPRINT_ID",
+  "task_ids": ["TASK-001", "TASK-002"],
+  "role_source": "configured_process",
+  "authorization": "User explicitly authorized this Sprint role projection."
+}
+```
+
+Preflight требует непустой уникальный ordered `task_ids`, точный `sprint_id`,
+`role_source: configured_process`, существующий integrity-checked backup и live DB,
+совпадающую с backup до записи. Каждая Task должна быть `newborn`, unclaimed и not-ready;
+её immutable `goal_type` должен иметь настроенный process. Legacy snapshot обязан совпадать
+с ним во всём, кроме отсутствующих полей `stage.role`. Если хотя бы одна Task уже содержит
+роль, отличается по process contract, принадлежит другому Sprint либо изменилась после
+backup/preflight, весь пакет отклоняется.
+
+Под writer lock operation повторно сверяет DB с backup и одной транзакцией записывает
+configured process для всего exact batch. Task lifecycle columns, Task version, claim, draft,
+requirements и остальная metadata не меняются. Sprint, membership и dependency graph не
+изменяются. Audit содержит ordered role assignments и old/new process digests; успешный
+точный replay возвращает тот же `receipt` с `replayed: true` и не пишет DB повторно.
+
+После успеха сравните named backup и live DB: допустимы только новые `stage.role` в целевых
+Task process snapshots и одна audit-запись migration. Проверяйте lifecycle/version/ownership,
+Sprint/dependencies и SQLite integrity отдельно.
 
 ## Точечное восстановление Task 0082
 

@@ -9,7 +9,6 @@ from batch.helpers import request, result, verify
 from conftest import WorkPoise as Poise, add_test, git, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError
-from poise.modules.tasks.progression import stage_role
 from poise.modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from poise.modules.workflow.domain import HandlerKind
 
@@ -22,17 +21,17 @@ def configure_progression(project, *, gated=False):
         deepcopy(process["stages"][3]),
     ]
     stages[0].update(
-        handler="produce",
+        handler="produce", role="executor",
         transitions={"complete": stages[1]["id"]},
         rework_targets=[stages[0]["id"]],
     )
     stages[1].update(
-        handler="produce",
+        handler="produce", role="executor",
         transitions={"complete": stages[2]["id"]},
         rework_targets=[stages[1]["id"]],
     )
     stages[2].update(
-        handler="inspect",
+        handler="inspect", role="reviewer",
         transitions={"clear": None, "changes_requested": stages[1]["id"]},
         rework_targets=[stages[2]["id"]],
     )
@@ -85,12 +84,6 @@ def advance(tools, target="code_review"):
         "task_id": "T1",
         "target_stage": target,
     }))
-
-
-@pytest.mark.parametrize("handler", tuple(HandlerKind))
-def test_only_inspection_stages_belong_to_the_reviewer(handler):
-    expected = "reviewer" if handler == HandlerKind.INSPECT else "executor"
-    assert stage_role(handler) == expected
 
 
 def test_progression_pause_statuses_are_business_incomplete():
@@ -404,7 +397,7 @@ def test_publish_requires_separate_user_acceptance_after_role_handoff(project):
     publication = deepcopy(stages[-1])
     publication.update(
         id="publication",
-        handler="publish",
+        handler="publish", role="executor",
         transitions={"complete": None},
         rework_targets=[],
         read_only=True,
@@ -573,7 +566,7 @@ def test_completed_review_returns_to_original_executor_without_false_self_review
         ("code_review", None, "implementation"),
     ]:
         stage = next(item for item in process["stages"] if item["id"] == name)
-        stage.update(handler="inspect", transitions={"clear": following, "changes_requested": rework})
+        stage.update(handler="inspect", role="reviewer", transitions={"clear": following, "changes_requested": rework})
     write_json(project["root"] / "config/processes/development.json", process)
     executor = WorkTools(Poise(project["config_path"], "executor"))
     first = bootstrap(executor, project["task"])

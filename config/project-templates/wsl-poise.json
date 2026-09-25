@@ -1,6 +1,6 @@
 {
   "schema": "project-blueprint-1",
-  "version": "5",
+  "version": "6",
   "config": {
     "schema": "ddd-accounting-12",
     "project": "REPLACE_WITH_PROJECT_ID",
@@ -365,55 +365,55 @@
   "process_sources": {
     "analysis": {
       "path": "config/catalogue/processes/analysis.json",
-      "digest": "eb6904ea7efd6e8d1e045224396e16a81bfc206977eb3a8704c4a21b4dbdf307"
+      "digest": "75060254ee4be788dd18a38e24828992de6fd761b64f7e90d24ce0f51ab50209"
     },
     "design": {
       "path": "config/catalogue/processes/design.json",
-      "digest": "c6eac8e80654649dc60417e199ba6ca54417c8e5daf2cfffc5c11ccbc5e9c84f"
+      "digest": "3afe057e6232f86a938083eed704b57cfb4e83a4f71a548342c7de58a4cb63f8"
     },
     "development": {
       "path": "config/catalogue/processes/development.json",
-      "digest": "766f26417c62d8dccffd9879e4e1e583ddcf08bed14b6f84d6500152b2ac6b8b"
+      "digest": "835e48c5be7bec979ff6623a63ef8d42ba9f7798641ad5f749f8b92a157951dc"
     },
     "documentation": {
       "path": "config/catalogue/processes/documentation.json",
-      "digest": "e2b268b8fb9916e648113a2850baf3533d8aa0b804ebf8c449fc113f5f9bd1f5"
+      "digest": "3b4cfb67b94f975b30c6726fe09c83702a24e742b296cb924a14ba2405fa548e"
     },
     "environment_diagnostics": {
       "path": "config/catalogue/processes/environment_diagnostics.json",
-      "digest": "54735b89a68f69dcb958fe279f7aeae68b50ae9369265fe20b66db9346cda2f9"
+      "digest": "5309898e61ae6bec7404d51583151dc783bfcdd1dbeb0b984f36bd2bb901bef8"
     },
     "environment_remediation": {
       "path": "config/catalogue/processes/environment_remediation.json",
-      "digest": "14a318ffdac746dfb10b7d8158aa6e9df6094a1cb0c2167d5b881043938587a0"
+      "digest": "1092cdbbaaa009ede63afd8ef28b585864e374e07da30423addc53fda470ca2b"
     },
     "integration": {
       "path": "config/catalogue/processes/integration.json",
-      "digest": "0be44d0dfece814a9d5db7070616cc5d5abffe312df2a0514e7960deb5e6add6"
+      "digest": "82d11342ec02cca9e8796efb4f8bc140b559c26438e5e73048395a9e0495d4cd"
     },
     "profiling": {
       "path": "config/catalogue/processes/profiling.json",
-      "digest": "f1f50675707a51ec4ada2872d36e99e0e3f61e87d5e5d524fc25254fef4ba166"
+      "digest": "4821d67a540f031fe9c3e200760c9cc02a8aabfea266d915a39e724321578b3d"
     },
     "review": {
       "path": "config/catalogue/processes/review.json",
-      "digest": "760eb34e3f1dee65a521ae909f3fa78316000e66421b865b680df252bbe3ee69"
+      "digest": "b52793fdff51bc27a169e00371da06aef99cb7005bda61e0df385b74471b827c"
     },
     "sprint_planning": {
       "path": "config/catalogue/processes/sprint_planning.json",
-      "digest": "8276dc2a6cf2497daf98301b959323ecb450108a8c609bfb8c8a8a8b426cd834"
+      "digest": "631e21b8a597a25cbc4bfaf0ca7113330c3297d0711fb05df5d8b31cedc263ca"
     },
     "task_planning": {
       "path": "config/catalogue/processes/task_planning.json",
-      "digest": "099509e9c9d141a4465b490f7ae2ccf3c88c60a51bfe5fecaf95c1960799d8a0"
+      "digest": "82a864f294a8badeabffaeae6281e2869a3d286d3efa47eae4892e205796d112"
     },
     "test_development": {
       "path": "config/catalogue/processes/test_development.json",
-      "digest": "306d23672aecbe6e16f7223eef1a105e97760bd16a0122f6df0141765ccc41ad"
+      "digest": "4769fd5268e835a0ac254756191f2de397e7b4ba05818c9495f5623588fdc496"
     },
     "verification": {
       "path": "config/catalogue/processes/verification.json",
-      "digest": "955e6c1a048b6b00d558bfb1f2b3708f70dfbfb6a7291f1cb8c0c3dc9ac2744e"
+      "digest": "fd02fcc5dc28fb25a63e5b4c47442a97eef3a8e2c470323f19d46ca1722777ad"
     }
   }
 }

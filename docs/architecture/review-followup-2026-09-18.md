@@ -23,12 +23,12 @@
 
 | Task | Тип | Предмет и требуемый результат |
 |---|---|---|
-| `REVIEW-ARCH-A01` | Анализ | Границы runtime и узкие интерфейсы владельцев. [Полная постановка](../../projects/ai-poise/standalone/REVIEW-ARCH-A01/artifacts/TASK-SPEC.json). |
-| `REVIEW-ARCH-A02` | Анализ | Читающие запросы и конкуренция транзакций. [Полная постановка](../../projects/ai-poise/standalone/REVIEW-ARCH-A02/artifacts/TASK-SPEC.json). |
-| `REVIEW-ARCH-A03` | Проектирование | Устойчивый протокол внешнего исполнения. [Полная постановка](../../projects/ai-poise/standalone/REVIEW-ARCH-A03/artifacts/TASK-SPEC.json). |
-| `REVIEW-ARCH-A04` | Проектирование | Таймаут исполнения и завершение чтения вывода. [Полная постановка](../../projects/ai-poise/standalone/REVIEW-ARCH-A04/artifacts/TASK-SPEC.json). |
-| `REVIEW-ARCH-A05` | Проектирование | Единая политика ограниченного ожидания SQLite. [Полная постановка](../../projects/ai-poise/standalone/REVIEW-ARCH-A05/artifacts/TASK-SPEC.json). |
-| `REVIEW-ARCH-A06` | Проектирование | Полнота доказательств при повторном использовании кэша. [Полная постановка](../../projects/ai-poise/standalone/REVIEW-ARCH-A06/artifacts/TASK-SPEC.json). |
+| `REVIEW-ARCH-A01` | Анализ | Границы runtime и узкие интерфейсы владельцев. Полная постановка — `../../projects/ai-poise/standalone/REVIEW-ARCH-A01/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). |
+| `REVIEW-ARCH-A02` | Анализ | Читающие запросы и конкуренция транзакций. Полная постановка — `../../projects/ai-poise/standalone/REVIEW-ARCH-A02/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). |
+| `REVIEW-ARCH-A03` | Проектирование | Устойчивый протокол внешнего исполнения. Полная постановка — `../../projects/ai-poise/standalone/REVIEW-ARCH-A03/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). |
+| `REVIEW-ARCH-A04` | Проектирование | Таймаут исполнения и завершение чтения вывода. Полная постановка — `../../projects/ai-poise/standalone/REVIEW-ARCH-A04/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). |
+| `REVIEW-ARCH-A05` | Проектирование | Единая политика ограниченного ожидания SQLite. Полная постановка — `../../projects/ai-poise/standalone/REVIEW-ARCH-A05/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). |
+| `REVIEW-ARCH-A06` | Проектирование | Полнота доказательств при повторном использовании кэша. Полная постановка — `../../projects/ai-poise/standalone/REVIEW-ARCH-A06/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). |
 
 A01/A02 оформляют два архитектурных риска из обзора: широкие зависимости runtime и writer-сериализацию читающих проекций. Влияние второй на нагрузку ещё не измерено. A03–A06 подготавливают проектные решения для воспроизведённых R01–R04, не добавляя новые якобы подтверждённые дефекты.
 
@@ -38,11 +38,11 @@ A01/A02 оформляют два архитектурных риска из о�
 
 | Task | Приоритет | Предмет | Предпосылка плана |
 |---|---|---|---|
-| `REVIEW-BUG-R01` | P1 | R01: повтор завершённой команды после сбоя сохранения. [Постановка и DoD](../../projects/ai-poise/standalone/REVIEW-BUG-R01/artifacts/TASK-SPEC.json). | `REVIEW-ARCH-A03` |
-| `REVIEW-BUG-R02` | P1 | R02: неограниченное ожидание capture после timeout. [Постановка и DoD](../../projects/ai-poise/standalone/REVIEW-BUG-R02/artifacts/TASK-SPEC.json). | `REVIEW-ARCH-A04` |
-| `REVIEW-BUG-R03` | P2 | R03: мгновенный отказ RequirementsStore при краткой блокировке. [Постановка и DoD](../../projects/ai-poise/standalone/REVIEW-BUG-R03/artifacts/TASK-SPEC.json). | `REVIEW-ARCH-A05` |
-| `REVIEW-BUG-R04` | P2 | R04: cache hit с утраченными первичными доказательствами. [Постановка и DoD](../../projects/ai-poise/standalone/REVIEW-BUG-R04/artifacts/TASK-SPEC.json). | `REVIEW-ARCH-A06` |
-| `REVIEW-BUG-ID-BOOTSTRAP` | P2 | Возобновление по ID после изменения текущего реестра. [Постановка и DoD](../../projects/ai-poise/standalone/REVIEW-BUG-ID-BOOTSTRAP/artifacts/TASK-SPEC.json). | Анализ причины включён в Task |
+| `REVIEW-BUG-R01` | P1 | R01: повтор завершённой команды после сбоя сохранения. Постановка и DoD — `../../projects/ai-poise/standalone/REVIEW-BUG-R01/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). | `REVIEW-ARCH-A03` |
+| `REVIEW-BUG-R02` | P1 | R02: неограниченное ожидание capture после timeout. Постановка и DoD — `../../projects/ai-poise/standalone/REVIEW-BUG-R02/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). | `REVIEW-ARCH-A04` |
+| `REVIEW-BUG-R03` | P2 | R03: мгновенный отказ RequirementsStore при краткой блокировке. Постановка и DoD — `../../projects/ai-poise/standalone/REVIEW-BUG-R03/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). | `REVIEW-ARCH-A05` |
+| `REVIEW-BUG-R04` | P2 | R04: cache hit с утраченными первичными доказательствами. Постановка и DoD — `../../projects/ai-poise/standalone/REVIEW-BUG-R04/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). | `REVIEW-ARCH-A06` |
+| `REVIEW-BUG-ID-BOOTSTRAP` | P2 | Возобновление по ID после изменения текущего реестра. Постановка и DoD — `../../projects/ai-poise/standalone/REVIEW-BUG-ID-BOOTSTRAP/artifacts/TASK-SPEC.json` (исторический артефакт; не включён в исходную поставку 044A). | Анализ причины включён в Task |
 
 Приоритет R01/R02 — P1, R03/R04 — P2, как в обзоре. Новый ID-bootstrap классифицирован здесь как P2: поддерживаемое возобновление полным исходным контрактом остаётся рабочим обходом. Предпосылки — явные зависимости **плана**, не фиктивно созданные Sprint edges. Приоритет и обратный порядок старой очереди не отменяют выбранную пользователем последовательность этапов.
 
@@ -52,10 +52,10 @@ A01/A02 оформляют два архитектурных риска из о�
 
 Документация и тесты закрыты разрешённой пользователем узкой операторской записью с guard версии, сохранением исходных metadata и событий; это не изображает прохождение штатного review-маршрута. Новые задачи остаются открытыми.
 
-- [Машиночитаемый план и зависимости](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/PLAN.json).
-- [Протоколы регистрации](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/REGISTRATION-RECEIPTS.json).
-- [Результат тестового этапа](../../projects/ai-poise/standalone/REVIEW-TESTS-20260918/artifacts/result.json).
-- [Сохранённый исходный обзор](../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/AI-POISE-ARCHITECTURE-CODE-REVIEW-2026-09-18.md.txt).
+- Машиночитаемый план и зависимости — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/PLAN.json` (исторический артефакт; не включён в исходную поставку 044A).
+- Протоколы регистрации — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/REGISTRATION-RECEIPTS.json` (исторический артефакт; не включён в исходную поставку 044A).
+- Результат тестового этапа — `../../projects/ai-poise/standalone/REVIEW-TESTS-20260918/artifacts/result.json` (исторический артефакт; не включён в исходную поставку 044A).
+- Сохранённый исходный обзор — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/AI-POISE-ARCHITECTURE-CODE-REVIEW-2026-09-18.md.txt` (исторический артефакт; не включён в исходную поставку 044A).
 - [Матрица хранилищ](storage-lifecycle.md) и [проверка документации](../workflows/documentation-checks.md).
 
 Исторические `.md.txt` сохранены побайтно как источники, а не заново опубликованы с прежними относительными ссылками. Производственный код источников доступен в точном Git commit обзора. Полная поставка и журналы сохраняются в Gmail; восстановление проверяется полными полученными обратно байтами, не одним send-ответом.

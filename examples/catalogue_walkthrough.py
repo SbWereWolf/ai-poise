@@ -346,7 +346,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
     reviewer=Poise(home/'project.json','CATALOGUE-REVIEWER',SystemClock())
     # Explicit fixture participants; public handoff preserves role separation.
     entry=next(s for s in process['stages'] if s['id']==process['route']['entry'])
-    h=reviewer if entry['handler']=='inspect' else executor
+    h={'executor': executor, 'reviewer': reviewer}[entry['role']]
     tool=WorkTools(h);calls=[];handoffs=0
     def invoke(op,args):
         out=tool.invoke({'operation':op,'input':args,'messages':[]})
@@ -356,7 +356,7 @@ def _run(directory,goal,scenario,feedback_edge=None):
         nonlocal h,tool,handoffs
         next_id=target or h.runner.context(task['id'])['next_stage']
         next_stage=next(s for s in process['stages'] if s['id']==next_id)
-        receiver=reviewer if next_stage['handler']=='inspect' else executor
+        receiver={'executor': executor, 'reviewer': reviewer}[next_stage['role']]
         if receiver is not h:
             handoffs+=1
             out=invoke('handoff',{'request_id':f'catalogue-handoff-{handoffs}',

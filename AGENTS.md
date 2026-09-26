@@ -76,13 +76,47 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Before every completed-task boundary or risky transition, create and locally verify a portable checkpoint.
-Only cloud development requires sending the archive and readable text transport to Gmail and verifying attachment
-readback. Local development does not require Gmail delivery or readback to complete or integrate a Task; perform
-mail delivery locally only when explicitly requested. On resume, inspect already attached files before
+Before every completed-task boundary or risky transition, create and locally verify a portable checkpoint. Cloud
+agents additionally follow the mandatory cloud-only policy below. Local agents are not subject to its Gmail/Google
+Drive persistence cadence unless the user explicitly requests it. On resume, inspect already attached files before
 asking for another upload. Follow [checkpoint and
 recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
 passed check, a delivery receipt, and Task completion.
+
+## Cloud Working — cloud agents only
+
+This section applies **only to agents running in a cloud or otherwise ephemeral execution environment** whose local
+working storage can be destroyed when the response/session ends. Local agents working on durable user-managed storage
+are not required to follow this section unless the user explicitly opts into it.
+
+- Treat cloud-local storage as disposable. Any work product not attached to the final response or copied to durable
+  storage may be lost after the final response. After every meaningful result, create a recoverable backup. Whatever the
+  cloud agent is doing, preserve a handoff in Gmail and the corresponding durable results/checkpoint in Google Drive.
+- Assume the required recovery inputs exist in backups. If an input is absent from the available backups, report the
+  missing item instead of inventing or silently reconstructing authoritative state.
+- Restore the complete working environment, not merely the source archive. Maintain recovery manifests, checksums,
+  configuration and automation that reproduce all required copy/move/setup steps. Prefer an executable recovery/CD
+  script for deterministic restoration. Automate obvious manual recovery operations immediately; add non-obvious
+  automation as those cases are discovered in real use. Include the recovery manifest/configuration/script with the
+  final response.
+- Make local Git commits for completed logical changes. Do not push unless the user separately authorizes a push.
+
+### Cloud backup policy
+
+For cloud agents, a backup is mandatory after **every meaningful stage**. A meaningful stage includes, without
+limitation: red tests written; implementation code written; tests becoming green; a new or changed artifact; new
+verification evidence; a completed intermediate step; and every local Git commit. Each such event is sufficient on its
+own to require a backup.
+
+A cloud backup consists of both:
+
+1. a durable checkpoint/results copy in Google Drive, with integrity metadata sufficient to verify restoration; and
+2. a readable Gmail handoff describing the exact state, current Task/stage, commit, checksums/locations, completed
+   evidence, known blockers/findings and deterministic resume instructions.
+
+The cloud execution container may be destroyed after the final response. Anything important that cannot be persisted to
+Google Drive and Gmail must be copied to ChatGPT Library/Project or another durable user-accessible storage surface
+before the response ends. Never rely on the continued existence of a cloud-local path after the final response.
 
 ## Stage skills and missing expertise
 

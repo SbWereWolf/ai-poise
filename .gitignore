@@ -15,6 +15,9 @@ dist/
 /projects/.project-setup.lock
 /projects/ai-poise/
 /operator/
+/evidence/
+/planning/
+/recovery/
 
 # Generated IDE project state
 /.idea/

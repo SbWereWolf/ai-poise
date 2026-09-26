@@ -66,6 +66,7 @@ def test_cleanup_progress_is_monotonic_and_replayable():
     pending = run.cleanup_blocked("task_worktree", {"reason": "locked"})
     assert pending.status == "cleanup_pending"
     assert pending.target_after == "c" * 40
+    assert pending.complete is False
 
     complete = pending
     for component, outcome in (
@@ -80,6 +81,7 @@ def test_cleanup_progress_is_monotonic_and_replayable():
         "task_branch": "deleted",
         "temporary_backups": "removed",
     }
+    assert complete.complete is True
     assert complete.cleanup_completed("task_branch", "deleted") == complete
 
 

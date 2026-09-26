@@ -98,6 +98,18 @@ class IntegrationRun:
     history: tuple[dict, ...]
     drift_retries: int
 
+    @property
+    def complete(self) -> bool:
+        return (
+            self.status == "integrated"
+            and self.phase == "integrated"
+            and self.cleanup == {
+                "task_worktree": "removed",
+                "task_branch": "deleted",
+                "temporary_backups": "removed",
+            }
+        )
+
     @classmethod
     def new(cls, intent, task_branch, task_worktree, temporary_backup_directory):
         cleanup = {

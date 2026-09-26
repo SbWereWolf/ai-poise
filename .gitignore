@@ -14,6 +14,7 @@ dist/
 # Local mutable data for the configured ai-poise project
 /projects/.project-setup.lock
 /projects/ai-poise/
+/operator/
 
 # Generated IDE project state
 /.idea/

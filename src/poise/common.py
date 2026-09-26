@@ -65,6 +65,21 @@ def descendant(root: Path, relative: str) -> Path:
     return resolved
 
 
+def worktree_root(state: Path, config: dict) -> Path:
+    """Resolve an explicit workspace root without relaxing mutable-store confinement."""
+    path = Path(config['paths']['worktrees'])
+    if not path.is_absolute():
+        return descendant(state, str(path))
+    repository = Path(config['git']['repository']).resolve()
+    resolved = path.resolve()
+    if (resolved == repository or not resolved.is_relative_to(repository)
+            or resolved.is_relative_to(repository / '.git')
+            or '..' in path.parts
+            or any(parent.is_symlink() for parent in (path, *path.parents))):
+        raise PoiseError('Worktree root must be a symlink-free descendant of the repository')
+    return resolved
+
+
 def configured_root(config_root: Path, value: str) -> Path:
     """Resolve one explicitly configured mutable root.
 
@@ -169,7 +184,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     state = configured_root(root, cfg['paths']['state'])
     if state.is_relative_to(path.resolve()) or path.resolve().is_relative_to(state):
         raise PoiseError('Mutable state root overlaps the project manifest')
-    for key in ('database','lock','runtime','standalone_tasks','sprints','worktrees'):
+    for key in ('database','lock','runtime','standalone_tasks','sprints'):
         descendant(state, cfg['paths'][key])
     requirements_storage = [
         configured_storage_path(state, cfg['paths'][key])
@@ -194,7 +209,8 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
                 raise PoiseError('Requirements storage физически совпадает с Task storage')
     for key in ('git_index','runs','stdout','stderr','response'):
         descendant(state, cfg['paths'][key])
-    homes = [descendant(state, cfg['paths'][k]) for k in ('runtime','standalone_tasks','sprints','worktrees')]
+    homes = [descendant(state, cfg['paths'][k]) for k in ('runtime','standalone_tasks','sprints')]
+    homes.append(worktree_root(state, cfg))
     if any(a.is_relative_to(b) or b.is_relative_to(a) for i,a in enumerate(homes) for b in homes[i+1:]):
         raise PoiseError('Корни runtime/task/sprint/worktree не должны пересекаться')
     if not isinstance(cfg['processes'],dict) or not cfg['processes']:

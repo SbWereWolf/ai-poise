@@ -7,7 +7,7 @@ import shutil
 import stat
 import uuid
 import zipfile
-from ..common import PoiseError, descendant, digest, encoded, file_digest, read_json
+from ..common import PoiseError, descendant, digest, encoded, file_digest, read_json, worktree_root
 from ..modules.transfers.domain import TRANSFER_FORMAT
 from .sqlite.transfers import SqliteTransferRepository, snapshot_fingerprint
 from .sqlite.transfer_records import relocate_path, relocate_receipt
@@ -238,7 +238,7 @@ class RuntimeTransfers:
             locations[old] = str(sprint_root(h.state, h.paths, owner))
         for tid,old in manifest['owners']['worktree'].items():
             h._identifier(tid)
-            trees[tid]=None if old is None else str(descendant(h.state,h.paths['worktrees'])/tid)
+            trees[tid]=None if old is None else str(worktree_root(h.state,h.cfg)/tid)
             if old is not None:locations[old]=trees[tid]
         for row in tables['transfer_locations']:
             for old,previous in json.loads(row['data']).items():

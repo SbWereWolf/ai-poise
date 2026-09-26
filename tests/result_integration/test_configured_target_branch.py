@@ -28,6 +28,12 @@ def test_task_starts_and_integrates_only_on_configured_branch(project, target):
     before = {b: git(app, 'rev-parse', b) for b in ['main', 'master', 'poise-stride-v2']}
     project['cfg']['git']['base_ref'] = target
     project['cfg']['git']['branch_template'] = 'tasks/v2/{task_id}'
+    if target == 'poise-stride-v2':
+        project['cfg']['paths']['worktrees'] = str(app / '.task-worktrees')
+        (app / '.gitignore').write_text('/.task-worktrees/\n')
+        git(app, 'add', '.gitignore')
+        git(app, 'commit', '-m', 'Ignore task worktrees')
+        before[target] = git(app, 'rev-parse', target)
     write_json(project['config_path'], project['cfg'])
 
     tools, worktree, accepted = prepare_completed_task(

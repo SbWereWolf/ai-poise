@@ -23,6 +23,7 @@ from .artifacts import inspect_paths, check_counts
 from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, run_command, contains, method_passed, preview, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
 from .infrastructure.duplicate_admission import duplicate_admission
+from .common import worktree_root
 
 
 def resolve_source_under_test(
@@ -305,7 +306,7 @@ class Poise:
         if not isinstance(path, str) or not isinstance(branch, str) or not branch:
             raise PoiseError('Cancelled Task worktree/branch identity is incomplete')
         worktree = Path(path)
-        expected_root = descendant(self.state, self.paths['worktrees']) / task_id
+        expected_root = worktree_root(self.state, self.cfg) / task_id
         if worktree.resolve() != expected_root.resolve():
             raise PoiseError('Cancelled Task worktree is outside its exact registered root')
         if worktree.is_symlink() or not worktree.is_dir():
@@ -434,7 +435,7 @@ class Poise:
             raise PoiseError('Terminal Task worktree must not be recovered')
         if data['status'] not in ('verified', 'accepted'):
             raise PoiseError('Only an unchanged verified Task worktree can be recovered')
-        expected_worktree = descendant(self.state, self.paths['worktrees']) / task_id
+        expected_worktree = worktree_root(self.state, self.cfg) / task_id
         expected_branch = data['branch']
         if (
             data['worktree'] != str(expected_worktree)
@@ -910,7 +911,7 @@ class Poise:
             return {'worktree':None,'branch':None,'base':base,'attempts':0,
                     'publication':None,'pending':None,'entry_tree':entry_tree,'last_report':None}
         branch=self.cfg['git']['branch_template'].format(task_id=task_id,session_id=self.session)
-        worktree=descendant(self.state,self.paths['worktrees'])/task_id
+        worktree=worktree_root(self.state,self.cfg)/task_id
         pending={'kind':'worktree_setup','worktree':str(worktree),'branch':branch,'base':base}
         return {'worktree':str(worktree),'branch':branch,'base':base,'attempts':0,
                 'publication':None,'pending':pending,'entry_tree':None,'last_report':None}

@@ -5,11 +5,12 @@ from ..modules.foundation.errors import DomainError
 
 
 def validate_request(request, max_changes):
+    workspace = isinstance(request, dict) and request.get('schema') == 'project-worktree-root-1'
     exact_keys(request, {
         "schema", "request_id", "config_path", "expected_revision", "manifest_edits",
         "process_updates", "state_relocation", "probe_repository", "receipt_path",
-    }, "project config update")
-    if request["schema"] != "project-config-update-1":
+    } | ({'reason', 'authorization'} if workspace else set()), "project config update")
+    if request["schema"] not in ("project-config-update-1", "project-worktree-root-1"):
         raise DomainError("Unsupported project config update schema; no migration")
     for key in ("request_id", "config_path", "expected_revision", "receipt_path"):
         if not isinstance(request[key], str) or not request[key].strip():
@@ -21,6 +22,15 @@ def validate_request(request, max_changes):
         raise DomainError("state_relocation must be an object or null")
     if type(request["probe_repository"]) is not bool:
         raise DomainError("Explicit probe_repository required")
+    if workspace:
+        if any(not isinstance(request[key], str) or not request[key].strip()
+               for key in ('reason', 'authorization')):
+            raise DomainError('Workspace-root correction requires reason and authorization')
+        edits = request['manifest_edits']
+        if (len(edits) != 1 or not isinstance(edits[0], dict)
+                or edits[0].get('path') != ['paths', 'worktrees']
+                or request['process_updates'] or request['state_relocation'] is not None):
+            raise DomainError('Workspace-root correction changes only paths.worktrees')
 
 
 class ProjectConfigCommands:

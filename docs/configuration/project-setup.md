@@ -382,6 +382,58 @@ Task, multi-codebase, настройка живого IDE/Gmail и устано�
 
 Настройка от 2026-09-10 для `/home/sbwerewolf/workdata/ai-poise` создана публичной командой `poise project` из явно выбранного `linux-reference`. Реестр reference templates публикует текущие версии и digest шаблонов с обязательным `paths.standalone_tasks`. Проект получает 13 самостоятельных конфигураций процессов.
 
+### Рабочие конфигурации вне Git
+
+Файлы действующей установки зависят от checkout и площадки. Git их игнорирует;
+коммиты содержат только обезличенные примеры и исходные определения продукта.
+Существующие рабочие файлы при исключении из Git сохраняются на диске. На новой
+установке примеры копируют под рабочими именами, подставляют реальные пути и
+значения и затем используют публичные команды настройки. Не запускайте Poise с
+путями-заполнителями из примеров и не добавляйте рабочие копии в индекс Git.
+
+| Рабочий файл или набор | Версионируемый пример/источник | Значение параметров |
+|---|---|---|
+| `config/project-setup.json` | [project-setup.example.json](../../config/project-setup.example.json) | `root` задаёт корень установки; `templates` — пути, версии и digests; `manifest`, `receipt`, `registry`, `lock` — имена выходов и блокировки; `file_mode`/`directory_mode`, лимиты и `exit_codes` — режимы записи, границы операции и коды результата. |
+| `config/project-registry.json` | [project-registry.example.json](../../config/project-registry.example.json) | `schema` выбирает формат, `projects` сопоставляет ID с `config_path` действующего manifest; добавляют только действительно настроенные проекты. |
+| `config/goal-editor.json` | [goal-editor.example.json](../../config/goal-editor.example.json) | `root`, `database`, `lock`, `responses` задают локальное хранение; `processes` и `templates` — разрешённые цели и версии; modes, limits и `exit_codes` — границы редактора. См. [редактор конфигурации целей](goal-config.md). |
+| `config/projects/ai-poise/project.json` | [project.example.json](../../config/projects/ai-poise/project.example.json) | `git.repository` — точный checkout, `git.base_ref` — ветка основного checkout, `paths` — локальные данные, `processes` — рабочие snapshots; остальные группы задают проверки, лимиты и политики Task. См. [настройку проекта](#назначение). |
+| `config/projects/ai-poise/hooks-settings.json` | [hooks-settings.example.json](../../config/projects/ai-poise/hooks-settings.example.json) | `python`, `source_root`, `cwd_roots` — пути данной установки; `project_config`, `hooks_file`, `definitions`, `state`, `database`, `bindings`, modes и limits — расположение и ограничения хуков. См. [runtime hooks](runtime-hooks.md). |
+| `config/projects/ai-poise/config/processes/*.json` | [примеры 13 процессов](../../config/examples/ai-poise-processes/) и [reference catalogue](../../config/catalogue/processes/) | Каждый файл задаёт маршрут и этапы одного goal type; рабочие копии изменяются через владельца конфигурации целей. |
+| `config/projects/ai-poise/hook-definitions/*.json` | [пример определения](../../config/examples/ai-poise-hook-definition.example.json) и [шаблон](../../config/hook-templates/codex-main.json) | События, проверки, разрешённые операции и команда probe относятся к конкретной установке; рабочее определение создаёт `runtime-setup`. |
+| `.codex/hooks.json` | [шаблон обработчиков](../../config/hook-templates/codex-main.json) | Сгенерированные команды содержат абсолютные пути установки; файл создаётся `runtime-setup`. |
+| `config/projects/ai-poise/setup-receipt.json` | Генерируется `poise project` | Квитанция публикации, не редактируемый конфиг; в Git не хранится. |
+
+В manifest `schema` выбирает формат, `project` — идентификатор; `paths` задаёт
+хранилища, рабочие деревья и имена runtime-файлов, `git` — репозиторий,
+ветку-получатель, формат task-веток, автора и запрет/режим remote-публикации.
+`limits` ограничивает время Git/блокировок, попытки и объём вывода;
+`environment_names` перечисляет разрешённые переменные среды. `processes`
+сопоставляет goal types с рабочими файлами, `task_ids` задаёт пространство,
+ширину и порядок ID. `automatic_checks` сопоставляет изменённые пути и этапы с
+проверками, `batch` задаёт пределы пакетов, артефакты, шаблоны и источник
+сообщений; `sprint` задаёт лимиты, допустимые конечные состояния и шаблоны.
+`task_decomposition` определяет классы навыков и ответственность областей;
+`runtime_services` — профиль runner, вывода, handoff и transfer;
+`accounting` — источники, категории, календарь, tokenizer и пределы учёта.
+Значения в примере не являются настройками произвольной площадки.
+
+В каждом process-примере `goal_type` выбирает вид цели, `benefit` описывает
+назначение, `worktree_required` задаёт потребность в отдельном checkout,
+`route.entry` — первый этап. `stages` задаёт ID, роль, handler, инструкцию,
+разрешённые пути, секции, артефакты, переходы и допустимые цели возврата;
+`content_contract` задаёт требования к секциям и маршрутам содержимого.
+В определении хука `events` связывает события с обработчиками,
+`gate_operations` ограничивает операции, `probes` проверяет capabilities,
+`context_template` и `stop_template` задают вывод агенту; `agent_id`,
+`message_source`, `id` и `schema` задают идентичность и формат.
+
+Пути с `/ABSOLUTE/PATH/TO/` и `YOUR_PRIMARY_CHECKOUT_BRANCH` в примерах
+обязательно заменяются значениями действующей установки. В частности,
+`git.base_ref` должен совпадать с веткой, которая уже выбрана в основном checkout;
+он не требует переключения checkout на `master`. Исторически попавшие в Git
+рабочие конфиги не включаются в новые коммиты; эта операция не переписывает
+существующую историю Git.
+
 | Назначение | Путь относительно корня ai-poise |
 |---|---|
 | Рабочая конфигурация | `config/projects/ai-poise/project.json` |
@@ -409,7 +461,7 @@ Task, multi-codebase, настройка живого IDE/Gmail и устано�
 
 С 2026-09-11 источник сообщений этой установки — только `codex-hook-main`, `mode=runtime_event`. Пользователь явно выбрал переход без сохранения прежнего рабочего режима. События поступают от Codex; агент не составляет и не воспроизводит их вручную. Поле `messages` в агентском пакете всегда равно `[]`.
 
-Установка выполнена публичным `runtime-setup`. Конкретные настройки находятся в [hooks-settings.json](../../config/projects/ai-poise/hooks-settings.json), обработчики — в [.codex/hooks.json](../../.codex/hooks.json), неизменяемое определение — в [hook-definitions](../../config/projects/ai-poise/hook-definitions/). Выбраны настроенный совместимый Python и `src/` этого репозитория; конкретный minor является свойством живой конфигурации установки, а не требованием workflow. Проверка доступности включает только Python; подключение IDE/MCP этим набором не заявляется.
+Установка выполнена публичным `runtime-setup`. Рабочие `hooks-settings.json`, `.codex/hooks.json` и определение хуков находятся по путям из таблицы выше; в Git доступны только их примеры и шаблоны. Выбраны настроенный совместимый Python и `src/` этого репозитория; конкретный minor является свойством живой конфигурации установки, а не требованием workflow. Проверка доступности включает только Python; подключение IDE/MCP этим набором не заявляется.
 
 `SessionStart` связывает нативную сессию с проектом, `UserPromptSubmit` регистрирует пользовательский ход. Оба возвращают агенту путь к сессионному `work.sh`. `Stop` сообщает состояние; он не заменяет `verify` и не принимает результат. `SessionEnd` обрабатывается для настроенной причины `other`.
 

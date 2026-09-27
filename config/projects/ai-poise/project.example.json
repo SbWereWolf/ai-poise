@@ -149,14 +149,14 @@
     "HOME"
   ],
   "git": {
-    "author_email": "ulfnew@gmail.com",
-    "author_name": "SbWereWolf",
-    "base_ref": "master",
+    "author_email": "you@example.invalid",
+    "author_name": "Your Name",
+    "base_ref": "YOUR_PRIMARY_CHECKOUT_BRANCH",
     "branch_template": "tasks/{task_id}",
     "commit_pattern": ".+",
     "push_required": false,
     "remote": "origin",
-    "repository": "/home/sbwerewolf/workdata/ai-poise"
+    "repository": "/ABSOLUTE/PATH/TO/AI_POISE"
   },
   "limits": {
     "git_seconds": 15.0,
@@ -174,13 +174,13 @@
     "runs": "runs",
     "runtime": ".runtime",
     "sprints": "sprint",
-    "state": "/home/sbwerewolf/workdata/ai-poise/projects/ai-poise",
+    "state": "/ABSOLUTE/PATH/TO/AI_POISE/projects/ai-poise",
     "stderr": "stderr.txt",
     "stdout": "stdout.txt",
     "standalone_tasks": "standalone",
     "worktrees": "worktrees",
-    "requirements_database": "/home/sbwerewolf/workdata/poise-project-data/ai-poise/requirements.sqlite",
-    "requirements_lock": "/home/sbwerewolf/workdata/poise-project-data/ai-poise/requirements.lock"
+    "requirements_database": "/ABSOLUTE/PATH/TO/STATE/requirements.sqlite",
+    "requirements_lock": "/ABSOLUTE/PATH/TO/STATE/requirements.lock"
   },
   "processes": {
     "analysis": "config/processes/analysis.json",

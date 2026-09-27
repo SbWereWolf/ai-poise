@@ -3,9 +3,6 @@
   "projects": {
     "ai-poise": {
       "config_path": "config/projects/ai-poise/project.json"
-    },
-    "ERP": {
-      "config_path": "projects/erp/config/project.json"
     }
   }
 }

@@ -45,7 +45,7 @@
   "probes": [
     {
       "argv": [
-        "/home/sbwerewolf/workdata/ai-poise/.venv/bin/python",
+        "/ABSOLUTE/PATH/TO/AI_POISE/.venv/bin/python",
         "-B",
         "-c",
         "import sys; print(\"ready\" if sys.version_info[:2] == (3,13) else \"unsupported\")"

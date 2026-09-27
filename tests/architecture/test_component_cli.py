@@ -142,13 +142,17 @@ class AcceptedComponentCliTest(unittest.TestCase):
                 self.assertEqual(self.state.read_text(), "satisfied")
 
     def test_failed_mutation_still_rechecks(self) -> None:
-        self.state.write_text("missing", encoding="utf-8")
-        self.write_catalog(fail_action="install")
-        result = self.invoke("run")
-        self.assertEqual(result.returncode, 4)
-        self.assertEqual(json.loads(result.stdout)["status"], "failed")
-        self.assertEqual([call["action"] for call in self.calls()], ["check", "install", "check"])
-        self.assertEqual(self.state.read_text(), "missing")
+        for initial, mutation in (("missing", "install"), ("invalid", "repair")):
+            with self.subTest(initial=initial, mutation=mutation):
+                self.state.write_text(initial, encoding="utf-8")
+                self.log.unlink(missing_ok=True)
+                self.write_catalog(fail_action=mutation)
+                result = self.invoke("run")
+                self.assertEqual(result.returncode, 4)
+                self.assertEqual(json.loads(result.stdout)["status"], "failed")
+                self.assertEqual([call["action"] for call in self.calls()],
+                                 ["check", mutation, "check"])
+                self.assertEqual(self.state.read_text(), initial)
 
     def test_unavailable_preserves_cause_and_recommendations_without_mutation(self) -> None:
         self.state.write_text("unavailable", encoding="utf-8")

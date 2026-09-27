@@ -174,12 +174,26 @@ class BootstrapBoundaryTest(unittest.TestCase):
                     lock_path.unlink(missing_ok=True)
                 else:
                     lock_path.write_bytes(contents)
-                self.assert_bootstrap_error(self.invoke("check", "--catalog-dir", "/selected"), code, 2, "check")
+                result, calls = self.invoke_fault("record")
+                self.assert_bootstrap_error(result, code, 2, "check")
+                self.assertEqual(calls, [], "component probe or action ran despite invalid lock")
+        for field in LOCK:
+            for mutation in ("missing", "wrong_type"):
+                with self.subTest(field=field, mutation=mutation):
+                    candidate = dict(LOCK)
+                    if mutation == "missing":
+                        del candidate[field]
+                    else:
+                        candidate[field] = False
+                    lock_path.write_text(json.dumps(candidate), encoding="utf-8")
+                    result, calls = self.invoke_fault("record")
+                    self.assert_bootstrap_error(result, "component_lock_invalid", 2, "check")
+                    self.assertEqual(calls, [], "component probe or action ran despite invalid lock")
         lock_path.unlink()
         lock_path.mkdir()
-        self.assert_bootstrap_error(
-            self.invoke("check", "--catalog-dir", "/selected"), "component_lock_unreadable", 2, "check",
-        )
+        result, calls = self.invoke_fault("record")
+        self.assert_bootstrap_error(result, "component_lock_unreadable", 2, "check")
+        self.assertEqual(calls, [], "component probe or action ran despite unreadable lock")
 
     def test_missing_distribution_and_module_are_distinct_preflight_failures(self) -> None:
         for metadata in self.site_packages.glob("environment_maintenance-*.dist-info"):

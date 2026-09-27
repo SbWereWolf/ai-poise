@@ -248,3 +248,8 @@ PYTHONPATH=src bash tests/smoke.sh "$(command -v python)"
 живой IDE. В `HANDOFF.md` указывайте HEAD/branch, DB SHA, текущую Task, оставшуюся очередь
 в порядке регистрации, реальные ограничения, сохранённый WIP и полученный Gmail
 receipt. Не коммитьте HANDOFF, временные receipts или результаты этой упаковки.
+
+## Накопительные сессии PS-DEV-002
+
+Параметризованный профиль `workspace-recover`, сохранение Task artifacts и доставка
+через host connectors описаны в [облачной сессии](cloud_session/README.md).

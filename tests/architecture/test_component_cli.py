@@ -93,6 +93,8 @@ class AcceptedComponentCliTest(unittest.TestCase):
                extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[bytes]:
         env = os.environ.copy()
         env.pop("PYTHONPATH", None)
+        for name in ("P001_VALUE", "P001_PARENT", "P001_DENIED"):
+            env.pop(name, None)
         env.update(extra_env or {})
         return subprocess.run(
             [str(self.python), "-I", "-B", "-m", "environment_maintenance", operation,
@@ -155,8 +157,11 @@ class AcceptedComponentCliTest(unittest.TestCase):
         packet = json.loads(result.stdout)
         self.assertEqual(result.returncode, 3)
         self.assertEqual(packet["status"], "unavailable")
-        self.assertIn("repository is offline", result.stdout.decode())
-        self.assertIn("restore repository access", result.stdout.decode())
+        self.assertEqual(packet["requirements"][0]["id"], "required")
+        self.assertEqual(packet["requirements"][0]["state"], "unavailable")
+        self.assertEqual(packet["requirements"][0]["cause"], "repository is offline")
+        self.assertEqual(packet["requirements"][0]["recommendations"],
+                         ["restore repository access"])
         self.assertEqual([call["action"] for call in self.calls()], ["check"])
 
     def test_parameter_precedence_and_environment_allowlist(self) -> None:
@@ -164,20 +169,44 @@ class AcceptedComponentCliTest(unittest.TestCase):
         self.write_catalog(
             parameters={"value": {"type": "string", "default": "default", "env": "P001_VALUE"}},
             inherit_env=["P001_PARENT", "P001_VALUE"],
-            action_env={"TOKEN": "${value}", "P001_PARENT": "catalog-override"},
+            action_env={"TOKEN": "${value}"},
         )
         first = self.root / "first.json"
         second = self.root / "second.json"
         first.write_text('{"value":"first"}', encoding="utf-8")
         second.write_text('{"value":"second"}', encoding="utf-8")
-        result = self.invoke(
-            "check", "--values", str(first), "--values", str(second), "--set", "value=cli",
-            extra_env={"P001_VALUE": "environment", "P001_PARENT": "parent", "P001_DENIED": "denied"},
+        values = ("--values", str(first), "--values", str(second))
+        cases = (
+            ((), {}, "default"),
+            (("--values", str(first)), {}, "first"),
+            (values, {}, "second"),
+            (values, {"P001_VALUE": "environment"}, "environment"),
+            (values + ("--set", "value=cli"), {"P001_VALUE": "environment"}, "cli"),
         )
+        for options, chosen_env, expected in cases:
+            with self.subTest(expected=expected):
+                self.log.unlink(missing_ok=True)
+                result = self.invoke(
+                    "check", *options,
+                    extra_env={**chosen_env, "P001_PARENT": "parent", "P001_DENIED": "denied"},
+                )
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(json.loads(result.stdout)["status"], "ready")
+                self.assertEqual(self.calls(), [{
+                    "action": "check", "cwd": str(self.catalog_dir), "token": expected,
+                    "parent": "parent", "denied": None,
+                }])
+
+        self.log.unlink(missing_ok=True)
+        self.write_catalog(
+            parameters={"value": {"type": "string", "default": "default"}},
+            inherit_env=["P001_PARENT"],
+            action_env={"TOKEN": "${value}", "P001_PARENT": "catalog-override"},
+        )
+        result = self.invoke("check", extra_env={"P001_PARENT": "parent"})
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(json.loads(result.stdout)["status"], "ready")
         self.assertEqual(self.calls(), [{
-            "action": "check", "cwd": str(self.catalog_dir), "token": "cli",
+            "action": "check", "cwd": str(self.catalog_dir), "token": "default",
             "parent": "catalog-override", "denied": None,
         }])
 

@@ -1,6 +1,6 @@
 """Pure explicit route graph. No goal-type names, I/O or implicit next stage."""
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from ..foundation.errors import DomainError
 
@@ -152,6 +152,24 @@ class RouteDefinition:
             if node.stage_id == stage_id:
                 return node
         raise DomainError(f"Этап не объявлен: {stage_id}")
+
+    def with_stage_scopes(self, contracts: list[dict]) -> RouteDefinition:
+        """Project the resolved Task write scopes onto this route's graph."""
+        if not isinstance(contracts, list) or len(contracts) != len(self.nodes):
+            raise DomainError("stage contracts require exact route coverage in route order")
+        nodes = []
+        for node, contract in zip(self.nodes, contracts, strict=True):
+            if not isinstance(contract, dict) or contract.get("stage_id") != node.stage_id:
+                raise DomainError("stage contracts require exact route coverage in route order")
+            allowed = contract.get("allowed_paths")
+            if (not isinstance(allowed, list)
+                    or any(not isinstance(path, str) or not path for path in allowed)
+                    or len(allowed) != len(set(allowed))):
+                raise DomainError(f"{node.stage_id}.allowed_paths: requires unique nonempty strings")
+            if node.read_only and allowed:
+                raise DomainError(f"{node.stage_id}: read-only stage cannot have writable scope")
+            nodes.append(replace(node, allowed_paths=tuple(allowed)))
+        return RouteDefinition(self.entry, tuple(nodes))
 
     def index(self, stage_id: str) -> int:
         return tuple(n.stage_id for n in self.nodes).index(self.node(stage_id).stage_id)

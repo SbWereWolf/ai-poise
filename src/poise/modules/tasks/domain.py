@@ -366,6 +366,7 @@ class Task:
             raise DomainError("Stage contracts are already initialized")
         if not isinstance(contracts, TaskStageContracts):
             raise DomainError("Exact parsed stage contracts are required")
+        self.check_registry.validate_route(self.route.with_stage_scopes(contracts.to_list()))
         change = self._change("stage_contracts_initialized", None, None)
         return replace(change, task=replace(change.task, stage_contracts=contracts))
 
@@ -380,6 +381,7 @@ class Task:
             raise DomainError("Stage contract revision requires the current inspection stage")
         revised = contracts.replace(stage_id, replacement)
         revised = TaskStageContracts.parse(revised.to_list(), self.route, self.content_policy)
+        self.check_registry.validate_route(self.route.with_stage_scopes(revised.to_list()))
         change = self._change("stage_contract_revised", None, None)
         return replace(change, task=replace(
             change.task,
@@ -573,7 +575,9 @@ class Task:
             registry = result.registry
         else:
             registry = self.check_registry.extend(method_additions)
-        registry.validate_route(self.route)
+        registry.validate_route(
+            self.route.with_stage_scopes(self._require_stage_contracts().to_list())
+        )
         # Rehydrate the prospective evidence contract before any submission is
         # persisted. An otherwise valid registry can activate an empty observe
         # stage or remove an observation still required by this plan.

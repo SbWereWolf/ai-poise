@@ -125,7 +125,7 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
     )
     from .creation_preflight import CreationPreflight
     CreationPreflight.parse(contract,process)
-    registry.validate_route(route)
+    registry.validate_route(route.with_stage_scopes(contract['stage_contracts']))
     for entry in automatic_checks:
         for stage in stages:
             if stage not in entry['by_stage']:
@@ -157,8 +157,8 @@ def build_task(metadata, actor):
         registry_inspection_stages(metadata['process']),
         obligation_catalog(metadata['contract']),
     )
-    registry.validate_route(route)
     contracts = TaskStageContracts.parse(metadata['contract']['stage_contracts'], route, policy)
+    registry.validate_route(route.with_stage_scopes(contracts.to_list()))
     args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry),contracts)
     if actor is None:return Task.planned(*args)
     return Task.new(args[0],args[1],actor,*args[2:])

@@ -221,14 +221,8 @@ class CreationPreflight:
             )
         by_id = {value["method_id"]: value for value in declared}
         parsed = tuple(MethodInputs.parse(by_id[method["id"]], method) for method in methods)
-        route = RouteDefinition.from_process(process)
-        stages = {stage["id"]: stage for stage in process["stages"]}
-        # The planner's resolved Task scope, not the starter process's suggestion.
-        if 'planning' in contract:
-            scopes = {item['stage_id']: item['allowed_paths']
-                      for item in contract.get('stage_contracts', [])}
-            stages = {key: {**stage, 'allowed_paths': scopes.get(key, [])}
-                      for key, stage in stages.items()}
+        route = RouteDefinition.from_process(process).with_stage_scopes(contract["stage_contracts"])
+        stages = {node.stage_id: node for node in route.nodes}
         for inputs in parsed:
             execution_stages = tuple(
                 stage["id"] for stage in process["stages"]
@@ -242,7 +236,7 @@ class CreationPreflight:
                     )
                 if not any(
                     matches_allowed_path(output.path, pattern)
-                    for pattern in stages[output.producer_stage]["allowed_paths"]
+                    for pattern in stages[output.producer_stage].allowed_paths
                 ):
                     raise DomainError(
                         f"method {inputs.method_id}: path {output.path} is outside allowed_paths of producer "

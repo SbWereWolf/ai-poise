@@ -124,3 +124,45 @@ def test_deadline_uses_snapshot_time_not_late_readback():
     assert m.backup_due(receipt, stamp + timedelta(seconds=599))['due'] is False
     assert m.backup_due(receipt, stamp + timedelta(seconds=600))['due'] is True
     assert m.backup_due(None, stamp)['due'] is True
+
+
+@pytest.mark.parametrize('age,eligible,overdue,deadline', [
+    (0, False, False, 900), (599, False, False, 301),
+    (600, True, False, 300), (899, True, False, 1),
+    (900, True, True, 0), (901, True, True, 0),
+])
+def test_cloud_backup_window_is_ten_to_fifteen_minutes(age, eligible, overdue, deadline):
+    m = module(); stamp = datetime(2026, 9, 27, tzinfo=timezone.utc)
+    receipt = {'prepared_at_utc': stamp.isoformat(), 'readback_verified': True,
+               'message_id': 'test-message'}
+    observed = m.backup_due(receipt, stamp + timedelta(seconds=age))
+    assert observed['eligible'] is eligible
+    assert observed['due'] is eligible
+    assert observed['overdue'] is overdue
+    assert observed['deadline_remaining_seconds'] == deadline
+
+
+def test_failed_delivery_does_not_authorize_a_second_early_snapshot():
+    m = module(); stamp = datetime(2026, 9, 27, tzinfo=timezone.utc)
+    observed = m.backup_due({'prepared_at_utc': stamp.isoformat(),
+                            'readback_verified': False}, stamp + timedelta(seconds=60))
+    assert observed['due'] is False
+    assert observed['eligible'] is False
+    assert observed['delivery_pending'] is True
+    assert observed['remaining_seconds'] == 540
+
+
+def test_reversed_clock_does_not_create_an_early_duplicate():
+    m = module(); stamp = datetime(2026, 9, 27, tzinfo=timezone.utc)
+    observed = m.backup_due({'prepared_at_utc': stamp.isoformat()},
+                           stamp - timedelta(seconds=1))
+    assert observed['due'] is False
+    assert observed['eligible'] is False
+    assert observed['clock_error'] is True
+
+
+@pytest.mark.parametrize('maximum', [599, 901])
+def test_backup_window_rejects_policy_violating_limits(maximum):
+    m = module()
+    with pytest.raises(m.CheckpointError):
+        m.backup_due(None, max_age_seconds=maximum)

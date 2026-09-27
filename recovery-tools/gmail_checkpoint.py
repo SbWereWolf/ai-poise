@@ -191,21 +191,43 @@ def confirm(output: Path, readback: Path, message_id: str, destination: Path) ->
     return receipt
 
 
-def backup_due(receipt: dict | None, now: datetime | None = None, max_age_seconds: int = 600) -> dict:
-    """A polling check during active work, not a background scheduler."""
-    if not 0 < max_age_seconds <= 600:
-        raise CheckpointError('Active-work interval must be in 1..600 seconds')
+def backup_due(receipt: dict | None, now: datetime | None = None,
+               max_age_seconds: int = 900, *, min_interval_seconds: int = 600) -> dict:
+    """Inspect the cloud snapshot window; never schedule work or retry delivery.
+
+    Significant stages queue work for the next eligible snapshot. Count from its
+    creation, including when transport is still pending, not from late readback.
+    """
+    if (type(min_interval_seconds) is not int or type(max_age_seconds) is not int
+            or not 600 <= min_interval_seconds <= max_age_seconds <= 900):
+        raise CheckpointError('Cloud snapshot window must satisfy 600 <= min <= max <= 900')
     now = now or now_utc()
-    if not receipt or receipt.get('readback_verified') is not True or not receipt.get('message_id'):
-        return {'due': True, 'reason': 'No verified Gmail readback', 'remaining_seconds': 0}
+    pending = not (receipt and receipt.get('readback_verified') is True
+                   and receipt.get('message_id'))
+    if not receipt:
+        return {'due': True, 'eligible': True, 'overdue': False,
+                'reason': 'No previous snapshot; create the initial checkpoint',
+                'remaining_seconds': 0, 'deadline_remaining_seconds': max_age_seconds,
+                'delivery_pending': pending, 'clock_error': False}
     try:
         stamp = datetime.fromisoformat(receipt['prepared_at_utc'])
+        if stamp.tzinfo is None or now.tzinfo is None:
+            raise ValueError('Timezone-aware clocks are required')
         elapsed = (now - stamp).total_seconds()
-    except (ValueError, TypeError, KeyError):
-        return {'due': True, 'reason': 'Invalid verification clock', 'remaining_seconds': 0}
-    return {'due': elapsed < 0 or elapsed >= max_age_seconds,
-            'reason': 'Snapshot age (a significant stage always requires a new checkpoint)',
-            'elapsed_seconds': elapsed, 'remaining_seconds': max(0, max_age_seconds - elapsed)}
+        if elapsed < 0:
+            raise ValueError('Snapshot clock is in the future')
+    except (ValueError, TypeError, KeyError, OverflowError):
+        return {'due': False, 'eligible': False, 'overdue': False,
+                'reason': 'Reconcile the snapshot clock before creating another checkpoint',
+                'remaining_seconds': None, 'deadline_remaining_seconds': None,
+                'delivery_pending': pending, 'clock_error': True}
+    eligible = elapsed >= min_interval_seconds
+    return {'due': eligible, 'eligible': eligible, 'overdue': elapsed >= max_age_seconds,
+            'reason': 'Queued milestones share the next 10-to-15-minute snapshot',
+            'elapsed_seconds': elapsed,
+            'remaining_seconds': max(0, min_interval_seconds - elapsed),
+            'deadline_remaining_seconds': max(0, max_age_seconds - elapsed),
+            'delivery_pending': pending, 'clock_error': False}
 
 
 def main() -> int:
@@ -227,6 +249,8 @@ def main() -> int:
     for name in ('metadata', 'readback', 'destination'):
         p.add_argument('--' + name, required=True, type=Path)
     p = commands.add_parser('due'); p.add_argument('--receipt', type=Path)
+    p.add_argument('--min-interval-seconds', type=int, default=600)
+    p.add_argument('--max-interval-seconds', type=int, default=900)
     args = parser.parse_args()
     try:
         values = vars(args); command = values.pop('command')
@@ -239,7 +263,8 @@ def main() -> int:
             result = restore_from_gmail(meta, args.readback, args.destination)
         else:
             receipt = json.loads(args.receipt.read_text(encoding='utf-8')) if args.receipt and args.receipt.exists() else None
-            result = backup_due(receipt)
+            result = backup_due(receipt, max_age_seconds=args.max_interval_seconds,
+                                min_interval_seconds=args.min_interval_seconds)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (CheckpointError, OSError, ValueError, KeyError) as exc:

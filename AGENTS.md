@@ -57,7 +57,7 @@ project's configured repository checkout. See [worktree
 placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
 not register them manually.
 
-One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and propose a restart plus the exact requested changes to the reviewer or user instead of bypassing the harness. The reviewer/user decides the restart and Task-contract revision; a reviewer escalates proposed project/harness rule changes to the user, whose approval is required. Stop for a real blocker, a new required user decision, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
+One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and agree the exact restart and Task-contract correction with the independent reviewer instead of bypassing the harness. The agents decide and execute a restart through the public Task action without seeking another user decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the exact Task fields in `authorization.revision_fields`; the executor must not impersonate the reviewer. Project/harness rule changes still require separate user authority. Stop for a real blocker, a decision about global rules, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
@@ -140,6 +140,7 @@ Keep this English projection and its Russian source consistent in the same chang
   working copies](docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии).
 - Keep Requirements at exactly three semantic levels: System → Application → Task. Bottom-up Task discovery may create proposed System/Application requirements. Future/projected chains may use explicit typed empty placeholders at missing levels once the owner supports them; placeholders are gaps, not satisfaction and not a fourth level. Virtual grouping is orthogonal. Never invent ancestry when the mapping is unclear; ask for the missing decision.
 - Reuse evidence and artifacts through their owners. Repository evidence is valid only for the exact commit hash it proves (plus its compatible requirement/method provenance); a changed commit hash requires fresh evidence. Do not manually copy receipts to manufacture reuse.
+- Classify acceptance files before first registration. An ordinary registered artifact is immutable. When later review/rework must edit the same working path, declare it through the public `artifact_drafts` lifecycle before registration, submit every authorized edit explicitly, and release the Task before taskless review/finalize. Each review preserves a separately registered immutable byte snapshot; finalization restores ordinary immutability. Recover a prematurely frozen file only on a released nonterminal Task with explicit authority and exact ID/scope/path; preserve its baseline snapshot and do not create a `v7` workaround. See the [editable acceptance draft contract](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 - Read applicable nested agent rules before working on their surface. Use specific rules within root constraints,
   subject to higher-priority platform and user instructions. Load only skills and reference sections needed for the
   active phase.
@@ -176,6 +177,10 @@ Keep this English projection and its Russian source consistent in the same chang
 - File extensions must match content and purpose. Environment templates end in `.env` and contain `example`, such as
   `app.example.env`. Format parallel lists vertically for stable diffs. Invoke repository `.sh` entry points explicitly
   through Bash.
+- Never stage or commit working, deployment-specific configuration files, even if Git already tracks them. Keep only
+  sanitized examples/templates and documentation of every option under version control. Exclude the working paths from
+  Git while preserving their local files; a tracked working config is a defect to correct, not permission to commit its
+  next change. This restriction also applies to commits made as part of Task integration.
 - Product-affecting values come from explicit configuration contracts. Internal constants are allowed only when they
   cannot affect product behaviour or output. Do not add hidden defaults, fallbacks, legacy aliases, dual reads/writes or
   compatibility adapters unless explicitly required. Accepted replacements remove the superseded path within scope;
@@ -292,7 +297,9 @@ Keep this English projection and its Russian source consistent in the same chang
   worktree while updating from current `master`, merging, resolving conflicts, and rerunning every current
   produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The terminal
   content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards. Never create a
-  separate integration branch or worktree. Under the shared target lock, recheck `master` immediately before
+  separate integration branch or worktree. Every content-producing merge, rebase, cherry-pick, conflict resolution,
+  and integration commit must run in the Task-owned child worktree; the primary checkout is never a preparation or
+  working copy. Under the shared target lock, recheck `master` immediately before
   publication; repeat update, resolution, and checks on drift, then publish only with `git merge --ff-only
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
@@ -405,8 +412,9 @@ This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/
 Task artifacts belong in `sprint/<sprint-id>/task/<task-id>/`. The live Task DB is `database/tasks.sqlite`, its lock is
 `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for
 the old root-level database paths or the removed `task/` artifact root. This is the user's explicit local placement
-decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`,
-separate from mutable data.
+decision, superseding the external-state default for this project. Local configuration is under
+`config/projects/ai-poise/`, separate from mutable data and excluded from Git; tracked examples live in that directory
+and `config/examples/`.
 
 Discover and operate Task DB backups through the public `poise backup` CLI. Start with `poise backup help`; use `poise
 backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config

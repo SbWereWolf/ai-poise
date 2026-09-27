@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-24**. Контракт реализованного API и явно отмеченных согласованных расширений, а не
+Обновлено: **2026-09-27**. Контракт реализованного API и явно отмеченных согласованных расширений, а не
 дополнительный workflow DSL.
 
 ## Ответственность
@@ -20,6 +20,7 @@
 | verify | result, artifacts | Весь результат этапа + любое разрешённое количество генерируемых файлов |
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | recover_artifacts | request_id, task_id, expected_version, artifact_ids, source_roots, reason, authorization | Восстановить зарегистрированные файлы освобождённой Task после смены корней |
+| artifact_drafts | Поля action `declare`/`recover`/`review`/`finalize` | Вести редактируемый приёмочный файл по одному пути с неизменяемыми review-снимками |
 | recover_ownership | legacy: request_id, task_ids, expected_snapshot, task_claims, worktree_bindings, reason, authorization; after_crash: mode, request_id, task_ids, expected_snapshot, reason, writers_stopped, authorization | Согласовать legacy-компонент либо явно отозвать владение после подтверждённой аварии |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
 | sprint | Поля выбранного action | Создать или изменить Sprint и его зависимости/отмены |
@@ -197,7 +198,8 @@ snapshot уже возвращён адресным `bootstrap`.
 подключённом `task_planning` harness материализует starter из каталога; planner
 редактирует Task draft и локальный process до `ready`. `task/edit` поддерживает
 `process` и `process_changes`; исходный template больше не является whitelist.
-`planning` фиксирует происхождение и допустимые reviewer/user изменения при restart.
+`planning` фиксирует происхождение и поля пересмотра по умолчанию при restart;
+независимый проверяющий может согласовать иной точный набор Task-полей.
 Полный [исполнимый контракт, примеры и границы](task-planning.md) описывают фиксацию
 ready newborn в Sprint, повторный restart и пересогласование Requirements.
 
@@ -385,7 +387,7 @@ identity, Sprint membership и history, выбирает целевой process,
 `newborn`, пока контракт не пройдёт readiness. Standalone Task после `ready` становится
 `available`; готовый участник draft Sprint остаётся newborn до атомарной публикации Sprint.
 
-Если сохранённый контракт исполнения не позволяет достичь DoD, следующий stage не проходит собственный DoR либо исполнитель обоснованно показывает, что доступный обход не соответствует смыслу Task, результат не маскируется успешным завершением. Исполнитель сохраняет evidence и предлагает проверяющему/пользователю restart с конкретным изменением. Проверяющий или пользователь принимает решение; reviewer меняет только разрешённые restart revision policy части Task contract, а изменение project/harness rules эскалирует пользователю. Ответ содержит точную failure phase и явные recovery routes: reviewer исправляет разрешённую часть контракта (в текущей реализации — только дефектный stage contract через `repair_stage_contract`) либо владелец выполняет `operation: task` с `action: restart`, `expected_version`, непустыми `reason` и `authorization`. Restart разрешён
+Если сохранённый контракт исполнения не позволяет достичь DoD, следующий stage не проходит собственный DoR либо исполнитель обоснованно показывает, что доступный обход не соответствует смыслу Task, результат не маскируется успешным завершением. Исполнитель сохраняет evidence и согласует с независимым проверяющим конкретный restart и изменение. Они принимают и исполняют решение без отдельного согласия пользователя; если нужны поля вне frozen restart revision policy, проверяющий перечисляет точный набор в `authorization.revision_fields`. Изменение project/harness rules требует отдельного решения пользователя. Ответ содержит точную failure phase и явные recovery routes: reviewer исправляет разрешённую часть контракта (в текущей реализации — только дефектный stage contract через `repair_stage_contract`) либо уполномоченный владелец выполняет `operation: task` с `action: restart`, `expected_version`, непустыми `reason` и `authorization`, не выдавая исполнителя за проверяющего. Restart разрешён
 только для незавершённой неинтегрированной Task (`available`, `active`, `verified`, `accepted`),
 сохраняет её ID, Sprint membership, immutable history, branch, worktree и tracked,
 staged/untracked WIP. Текущее исполнение сбрасывается согласованно: attempts становится нулём,
@@ -423,7 +425,7 @@ contract; при конфликте версии заново прочитайт
     "task_id": "0079",
     "expected_version": 12,
     "reason": "The saved execution contract cannot reach the next stage.",
-    "authorization": "The user authorized recovery of this unfinished Task."
+    "authorization": "The independent reviewer agreed to restart this unfinished Task."
   },
   "messages": []
 }
@@ -1055,7 +1057,8 @@ worktree. Пользователю не требуется обслуживат�
 инструмента передаётся только путём в `result.artifact_paths`.
 
 Точное совпадение пути/содержимого повторно использует файл; другое содержимое по тому же пути отклоняется. Для новой
-версии результата использовать новый явный путь. Конфликтующие элементы пакета, escape и symlink запрещены. Все
+версии обычного неизменяемого результата используется новый явный путь. Единственное исключение — заранее объявленный
+[редактируемый приёмочный черновик](#редактируемые-приёмочные-черновики). Конфликтующие элементы пакета, escape и symlink запрещены. Все
 destinations preflight-ятся до первого нового файла. В I/O-сбое сохранённые файлы не удаляются вслепую: сообщение
 перечисляет известные пути, одинаковый повтор безопасен. Это не гарантия all-or-nothing публикации многотомного
 filesystem.
@@ -1063,6 +1066,103 @@ filesystem.
 Текст и шаблоны UTF-8 реализованы. Готовые бинарные файлы поддерживаются прежней path-only регистрацией; binary
 генератор/семантическая классификация не добавлены. Требование количества считает уникальные файлы по scope/pattern, не
 test-cases внутри файла.
+
+## Редактируемые приёмочные черновики
+
+Обновлено: **2026-09-27**. Обычный зарегистрированный артефакт остаётся неизменяемым. Если один приёмочный файл должен
+пройти review → rework → повторный review без появления `v7`, до первой регистрации его task-scoped путь явно
+объявляется операцией `artifact_drafts/declare`:
+
+```json
+{
+  "operation": "artifact_drafts",
+  "input": {
+    "action": "declare",
+    "request_id": "declare-analysis-v6-1",
+    "task_id": "0002",
+    "expected_version": 23,
+    "drafts": [{"scope": "task", "path": "ERP-AI-ANALYSIS-v6.md"}],
+    "reason": "Файл остаётся редактируемым до окончательной приёмки."
+  },
+  "messages": []
+}
+```
+
+`declare` выполняет только владелец активной Task. Путь задаётся относительно настроенного task artifact directory;
+runtime рассчитывает owner, UUID и полный путь. Зарегистрированный неизменяемый файл нельзя задним числом объявить
+черновиком: для ошибочно замороженного файла используется `recover`. Scope `runtime`/`sprint`, escape, symlink, повтор
+пути и конфликт identity отклоняются до записи lifecycle.
+
+Первый `verify` регистрирует файл как обычно. В разрешённом rework агент меняет **тот же фактический файл** редактором и
+явно включает его абсолютный путь из bootstrap/receipt в `result.artifact_paths`. `verify.input.artifacts` остаётся
+non-overwriting API создания, а не редактором. Verify принимает новый digest только для открытого draft с явно
+переданным путём; одной транзакцией обновляет текущий digest и добавляет `artifact_draft.revised`. Изменённый, но не
+переданный draft, закрытый draft и обычный артефакт отклоняются.
+
+Review выполняется taskless-сессией после публичного release Task:
+
+```json
+{
+  "operation": "artifact_drafts",
+  "input": {
+    "action": "review",
+    "request_id": "review-analysis-v6-1",
+    "task_id": "0002",
+    "expected_version": 27,
+    "artifact_ids": ["зарегистрированный ID v6"],
+    "reason": "Проверяющий зафиксировал рассмотренную редакцию.",
+    "authorization": "Проверяющий явно подтвердил review этой редакции."
+  },
+  "messages": []
+}
+```
+
+`review` проверяет текущие bytes/digest и создаёт независимую non-overwriting копию в каталоге
+`artifact-draft-history/<artifact-id>/`. Снимок получает собственную зарегистрированную artifact identity и участвует
+в handoff/publication и обычной digest-защите. Существующий снимок принимается только при совпавшем digest, отдельном
+inode и единственной hard-link записи; alias редактируемого файла не считается историей. Journal связывает каждый
+review с точными snapshot path/digest, actor, reason и authorization. Изменение рабочего v6 не меняет прежний снимок.
+
+После последнего review taskless-проверяющий закрывает draft отдельным `finalize` с теми же полями, заменяя `action` и
+`request_id`. Finalize повторно проверяет рабочий digest и каждый исторический снимок: Task root, вычисленную identity,
+owner/scope, зарегистрированный digest и фактические bytes. Текущая редакция должна иметь review-снимок. После успеха
+путь снова защищён как обычный immutable artifact. Новые lifecycle-решения запрещены для `completed`/`cancelled` Task.
+Точный replay уже сохранённого request возвращает исходный receipt; изменённый пакет под тем же ID отклоняется.
+
+### Восстановление преждевременно замороженного приёмочного файла
+
+Для зарегистрированного v6, ошибочно сделанного immutable до окончания rework, Task сначала публично освобождается.
+Taskless-сессия передаёт актуальную version, явное полномочие и точную тройку `id/scope/path`:
+
+```json
+{
+  "operation": "artifact_drafts",
+  "input": {
+    "action": "recover",
+    "request_id": "recover-erp-analysis-v6-1",
+    "task_id": "ERP-AI-ASSISTANT-ANALYSIS-001",
+    "expected_version": 31,
+    "artifacts": [{
+      "id": "зарегистрированный ID v6",
+      "scope": "task",
+      "path": "ERP-AI-ANALYSIS-v6.md"
+    }],
+    "reason": "v6 зарегистрирован до завершения согласованного rework.",
+    "authorization": "Пользователь явно разрешил исправить существующий v6 по тому же пути."
+  },
+  "messages": []
+}
+```
+
+`recover` сохраняет исходные bytes как revision `0000`, регистрирует снимок и открывает рабочий v6 как draft. ID и
+Task identity не меняются; `v7` не создаётся. Затем исполнитель захватывает Task, выбирает разрешённый rework, меняет
+v6 по тому же пути и проходит verify → release → review → finalize.
+
+Stale version, claimant/чужая сессия, пустое полномочие, terminal Task, неизвестный ID, несовпавшие scope/path/owner,
+изменённые исходные bytes, symlink/hard-link snapshot и конфликт request replay отклоняются до изменения Task,
+artifact registry, receipts, ownership, journal и принадлежащих операции файлов. Это восстановление mutability, а не
+перенос корней: для неизменного файла после смены owner root остаётся операция
+[`recover_artifacts`](#восстановление-зарегистрированных-артефактов).
 
 ## Восстановление зарегистрированных артефактов
 
@@ -1319,8 +1419,9 @@ Task, submission, evidence, реестра методов, его revision/reque
 контентных слоёв и итогового work packet. Учёт самой попытки вызова не отменяется.
 
 Устаревший корень не становится неявным fallback: освободите задачу и выполните
-явный `recover_artifacts` по контракту выше. Для изменённого содержимого сохраните
-новый артефакт по новому пути; не подменяйте ранее зарегистрированные байты. После
+явный `recover_artifacts` по контракту выше. Для изменённого содержимого обычного immutable-артефакта сохраните
+новый артефакт по новому пути; не подменяйте ранее зарегистрированные байты. Ранее объявленный или явно восстановленный
+[приёмочный черновик](#редактируемые-приёмочные-черновики) изменяется по тому же пути только через его lifecycle. После
 исправления входов повторите тот же пакет. Проверка артефактов после выполнения
 команд также остаётся обязательной: ранний preflight не обещает неизменность
 файловой системы и не объединяет Git/файлы и SQLite в одну транзакцию.

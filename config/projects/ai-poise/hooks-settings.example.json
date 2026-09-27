@@ -2,8 +2,8 @@
   "schema": "hook-settings-1",
   "root": "../../..",
   "project_config": "config/projects/ai-poise/project.json",
-  "python": "/home/sbwerewolf/workdata/ai-poise/.venv/bin/python",
-  "source_root": "/home/sbwerewolf/workdata/ai-poise/src",
+  "python": "/ABSOLUTE/PATH/TO/AI_POISE/.venv/bin/python",
+  "source_root": "/ABSOLUTE/PATH/TO/AI_POISE/src",
   "hooks_file": ".codex/hooks.json",
   "definitions": "config/projects/ai-poise/hook-definitions",
   "state": "projects/ai-poise",
@@ -15,7 +15,7 @@
   "observations": ".runtime/hook-probes",
   "response_file": "response.json",
   "cwd_roots": [
-    "/home/sbwerewolf/workdata/ai-poise"
+    "/ABSOLUTE/PATH/TO/AI_POISE"
   ],
   "file_mode": 384,
   "executable_mode": 448,

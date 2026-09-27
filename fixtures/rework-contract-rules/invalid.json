@@ -2,8 +2,8 @@
   {
     "id": "negated-rework-rule",
     "file": "development",
-    "from": "Rework does not lift immutability",
-    "to": "Rework may lift immutability"
+    "from": "Rework не снимает неизменность",
+    "to": "Rework снимает неизменность"
   },
   {
     "id": "contradictory-artifact-rule",

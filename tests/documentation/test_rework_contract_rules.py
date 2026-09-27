@@ -10,14 +10,30 @@ CANONICAL_LINK = (
     "[\u043d\u0435\u0438\u0437\u043c\u0435\u043d\u043d\u043e\u0441\u0442\u044c \u043f\u0443\u0442\u0435\u0439, rework \u0438 \u0433\u0440\u0430\u0444 \u044d\u0442\u0430\u043f\u043e\u0432]"
     "(../governance/development-rules.md#\u043d\u0435\u0438\u0437\u043c\u0435\u043d\u043d\u043e\u0441\u0442\u044c-\u043f\u0443\u0442\u0435\u0439-rework-\u0438-\u0433\u0440\u0430\u0444-\u044d\u0442\u0430\u043f\u043e\u0432)"
 )
-RUSSIAN_RULES = {
-    "TASK-PATH-01": "Task creation must not declare a path immutable when a later normal or rework stage must modify or create it; every planned write path belongs in that stage's `allowed_paths` before `ready`.",
-    "TASK-PATH-02": "A later stage or rework plan must not require a write to a path frozen by the resolved Task contract; authorized planning or `restart` must remove the contradiction before stage admission.",
-    "TASK-PATH-03": "Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.",
-    "TASK-PATH-04": "Registered immutable artifacts remain immutable; a correction uses a new artifact identity and a contract revision instead of overwriting registered bytes.",
-    "TASK-PATH-05": "An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.",
+RULES = {
+    "TASK-PATH-01": {
+        "ru": "При создании Task запрещено объявлять путь неизменным, если последующий обычный этап или rework должен изменить либо создать его; до `ready` каждый планируемый путь записи должен входить в `allowed_paths` соответствующего этапа.",
+        "en": "Task creation must not declare a path immutable when a later normal or rework stage must modify or create it; every planned write path belongs in that stage's `allowed_paths` before `ready`.",
+    },
+    "TASK-PATH-02": {
+        "ru": "Последующий этап или план rework не может требовать запись в путь, замороженный разрешённым контрактом Task; до допуска этапа авторизованное планирование или `restart` должно устранить противоречие.",
+        "en": "A later stage or rework plan must not require a write to a path frozen by the resolved Task contract; authorized planning or `restart` must remove the contradiction before stage admission.",
+    },
+    "TASK-PATH-03": {
+        "ru": "Rework не снимает неизменность: он использует точные `allowed_paths` целевого этапа, а изменение вне этого scope отклоняется до сохранения Task, артефакта или результата проверки.",
+        "en": "Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.",
+    },
+    "TASK-PATH-04": {
+        "ru": "Зарегистрированные неизменяемые артефакты остаются неизменяемыми; исправление использует новую идентичность артефакта и ревизию контракта вместо перезаписи зарегистрированных байтов.",
+        "en": "Registered immutable artifacts remain immutable; a correction uses a new artifact identity and a contract revision instead of overwriting registered bytes.",
+    },
+    "TASK-PATH-05": {
+        "ru": "Некорректный граф этапов отклоняется, если цель перехода или rework отсутствует, этап недостижим от entry либо из достижимого этапа нет пути к положительному завершению; цикл допустим только при наличии такого выхода.",
+        "en": "An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.",
+    },
 }
-ENGLISH_RULES = dict(RUSSIAN_RULES)
+RUSSIAN_RULES = {identifier: text["ru"] for identifier, text in RULES.items()}
+ENGLISH_RULES = {identifier: text["en"] for identifier, text in RULES.items()}
 
 
 def _section(text: str, heading: str) -> str | None:
@@ -57,6 +73,7 @@ def policy_rules_present(files: dict[str, str] | None = None) -> bool:
         and CANONICAL_LINK in files["planning"]
         and CANONICAL_LINK in files["batch"]
         and set(russian or ()) == set(english or ())
+        and all(russian[key] != english[key] for key in RULES)
     )
 
 

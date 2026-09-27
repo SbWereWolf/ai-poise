@@ -1,6 +1,6 @@
 {
   "schema": "project-blueprint-1",
-  "version": "6",
+  "version": "7",
   "config": {
     "schema": "ddd-accounting-12",
     "project": "REPLACE_WITH_PROJECT_ID",
@@ -33,7 +33,7 @@
       "base_ref": "main",
       "remote": "REPLACE_WITH_CONFIGURED_REMOTE_NAME",
       "branch_template": "tasks/{task_id}",
-      "commit_pattern": ".+",
+      "commit_pattern": "(?s).+",
       "author_name": "REPLACE_WITH_COMMIT_AUTHOR_NAME",
       "author_email": "REPLACE_WITH_COMMIT_AUTHOR_EMAIL",
       "push_required": true

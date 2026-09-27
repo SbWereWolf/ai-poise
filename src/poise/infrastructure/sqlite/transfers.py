@@ -18,6 +18,17 @@ def snapshot_fingerprint(tables):
     return digest({table:sorted(rows,key=encoded) for table,rows in tables.items() if table!='journal'})
 
 
+def completed_external_execution(pending):
+    if not isinstance(pending,dict):return False
+    if pending.get('kind')=='task_cleanup':
+        from ...modules.task_cleanup.domain import CleanupRun
+        return CleanupRun.restore(pending).complete
+    if pending.get('kind')=='result_integration':
+        from ...modules.result_integration.domain import IntegrationRun
+        return IntegrationRun.restore(pending).complete
+    return False
+
+
 class SqliteTransferRepository:
     def __init__(self,database):self.database=database
 
@@ -55,12 +66,8 @@ class SqliteTransferRepository:
                 e=db.execute('SELECT data FROM task_execution WHERE task_id=?',(row['id'],)).fetchone()
                 if e is not None:
                     pending=json.loads(e[0])['pending']
-                    if pending is not None:
-                        transferable=False
-                        if isinstance(pending,dict) and pending.get('kind')=='task_cleanup':
-                            from ...modules.task_cleanup.domain import CleanupRun
-                            transferable=CleanupRun.restore(pending).complete
-                        if not transferable:raise PoiseError('Resolve pending execution before transfer')
+                    if pending is not None and not completed_external_execution(pending):
+                        raise PoiseError('Resolve pending execution before transfer')
             data={table:[] for table in ALL_TABLES}
             data['tasks']=roots
             for table in ALL_TABLES:

@@ -700,9 +700,13 @@ class TaskCommands:
             if (newborn.process is not None and changed.process is not None
                     and newborn.process['worktree_required'] != changed.process['worktree_required']
                     and uow.execution.exists(task_id)):
-                raise DomainError(
-                    'Restart preserves the allocated workspace; changing worktree_required '
-                    'requires resolving that resource through its owner, not a draft edit')
+                execution, _ = uow.execution.load(task_id)
+                if (not changed.process['worktree_required']
+                        or any(execution[key] is not None for key in
+                               ('worktree', 'branch', 'pending', 'publication', 'last_report'))):
+                    raise DomainError(
+                        'Restart preserves the allocated workspace; changing worktree_required '
+                        'requires resolving that resource through its owner, not a draft edit')
             uow.tasks.save_newborn(changed, newborn.version, config_hash, 'newborn_edited')
             result = changed.describe()
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
@@ -850,13 +854,21 @@ class TaskCommands:
                 if required and (target.worktree_owner not in (None, actor)
                                  or before.worktree_task_id not in (None, task_id)):
                     raise DomainError('Restart cannot replace independent or foreign worktree ownership')
-                if restart_entry_tree is None:
-                    raise DomainError('Restart start requires an observed retained workspace tree')
-                entry_tree = restart_entry_tree(deepcopy(current))
-                if (not isinstance(entry_tree, str) or len(entry_tree) != 40
-                        or any(c not in '0123456789abcdef' for c in entry_tree)):
-                    raise DomainError('Restart requires a valid Git entry tree')
-                uow.execution.save(task_id, {**current, 'entry_tree': entry_tree}, execution_version)
+                if required and current['worktree'] is None:
+                    if any(current[key] is not None for key in
+                           ('branch', 'pending', 'publication', 'last_report')):
+                        raise DomainError('Resolve retained execution before workspace allocation')
+                    if execution['worktree'] is None or execution['pending']['kind'] != 'worktree_setup':
+                        raise DomainError('Restart requires an explicit worktree reservation')
+                    uow.execution.save(task_id, execution, execution_version)
+                else:
+                    if restart_entry_tree is None:
+                        raise DomainError('Restart start requires an observed retained workspace tree')
+                    entry_tree = restart_entry_tree(deepcopy(current))
+                    if (not isinstance(entry_tree, str) or len(entry_tree) != 40
+                            or any(c not in '0123456789abcdef' for c in entry_tree)):
+                        raise DomainError('Restart requires a valid Git entry tree')
+                    uow.execution.save(task_id, {**current, 'entry_tree': entry_tree}, execution_version)
             uow.tasks.save(change,task.state.version)
             started=change.task
             # Reserve a duplicate's claim in the admission transaction. Otherwise

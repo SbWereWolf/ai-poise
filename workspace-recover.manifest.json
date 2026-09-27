@@ -1,0 +1,12 @@
+{
+  "schema": "workspace-recover/flow/v3",
+  "steps": [
+    {"id":"mkdir-restored","op":"mkdir","path":"restored"},
+    {"id":"copy-repository","op":"copy","from":"repository","to":"restored/repository","existingTarget":"overwrite"},
+    {"id":"copy-operator","op":"copy","from":"operator","to":"restored/operator","existingTarget":"overwrite"},
+    {"id":"copy-planning","op":"copy","from":"planning","to":"restored/planning","existingTarget":"overwrite"},
+    {"id":"copy-evidence","op":"copy","from":"evidence","to":"restored/evidence","existingTarget":"overwrite"},
+    {"id":"relocate","op":"command","argv":["python3","recovery/relocate.py","restored"],"onError":"stop"},
+    {"id":"verify","op":"verification","argv":["python3","recovery/verify.py","restored","--relocated"],"onError":"stop"}
+  ]
+}

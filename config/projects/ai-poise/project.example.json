@@ -153,7 +153,7 @@
     "author_name": "Your Name",
     "base_ref": "YOUR_PRIMARY_CHECKOUT_BRANCH",
     "branch_template": "tasks/{task_id}",
-    "commit_pattern": ".+",
+    "commit_pattern": "(?s).+",
     "push_required": false,
     "remote": "origin",
     "repository": "/ABSOLUTE/PATH/TO/AI_POISE"

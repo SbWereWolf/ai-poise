@@ -11,6 +11,10 @@ with Path(os.environ["BOOTSTRAP_TEST_CALLS"]).open("a", encoding="utf-8") as str
     stream.write(json.dumps(sys.argv[1:]) + "\n")
 
 if "signal" in sys.argv:
+    sys.stdout.buffer.write(b"PARTIAL_STDOUT\n")
+    sys.stdout.buffer.flush()
+    sys.stderr.buffer.write(b"PARTIAL_STDERR\n")
+    sys.stderr.buffer.flush()
     os.kill(os.getpid(), signal.SIGTERM)
 if "exit-seven" in sys.argv:
     sys.stdout.buffer.write(b"external stdout\n")

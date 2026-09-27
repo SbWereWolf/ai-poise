@@ -26,6 +26,7 @@ ERROR_FIELDS = {
     "recommendations", "exit_code",
 }
 COMPONENT_FIXTURE = Path(__file__).with_name("fixtures") / "component_main.py"
+FAULT_DRIVER = Path(__file__).with_name("fixtures") / "fault_driver.py"
 
 
 class BootstrapBoundaryTest(unittest.TestCase):
@@ -63,13 +64,25 @@ class BootstrapBoundaryTest(unittest.TestCase):
             (package / "__init__.py").write_text("", encoding="utf-8")
             shutil.copy2(COMPONENT_FIXTURE, package / "__main__.py")
 
-    def invoke(self, *arguments: str) -> subprocess.CompletedProcess[bytes]:
+    def invoke(self, *arguments: str,
+               extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[bytes]:
         env = os.environ.copy()
         env["BOOTSTRAP_TEST_CALLS"] = str(self.calls)
+        env.update(extra_env or {})
         return subprocess.run(
             [str(self.python), "-I", "-B", str(self.layout / "bootstrap"), *arguments],
             capture_output=True, cwd=self.layout, env=env,
         )
+
+    def invoke_fault(self, mode: str) -> tuple[subprocess.CompletedProcess[bytes], list[list[str]]]:
+        log = self.root / "fault-calls.jsonl"
+        env = {**os.environ, "BOOTSTRAP_FAULT_CALLS": str(log)}
+        result = subprocess.run(
+            [str(self.python), "-I", "-B", str(FAULT_DRIVER), str(self.layout / "bootstrap"), mode],
+            capture_output=True, cwd=self.layout, env=env,
+        )
+        calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+        return result, calls
 
     def assert_bootstrap_error(
         self, result: subprocess.CompletedProcess[bytes], code: str, exit_code: int,
@@ -96,7 +109,18 @@ class BootstrapBoundaryTest(unittest.TestCase):
     def test_component_lock_records_exact_accepted_distribution(self) -> None:
         self.assertEqual(json.loads((self.layout / "apps/bootstrap/component.json").read_text()), LOCK)
 
+    def test_bootstrap_surface_excludes_engine_copy_and_legacy_route(self) -> None:
+        source = (self.layout / "bootstrap").read_text(encoding="utf-8")
+        for path in (self.layout / "apps/bootstrap").rglob("*.py"):
+            source += path.read_text(encoding="utf-8")
+        for obsolete in ("requirements.json", "repairs.json", "--repairs", "\"apply\""):
+            self.assertNotIn(obsolete, source)
+        self.assertFalse((self.layout / "apps/bootstrap/catalogue.py").exists())
+        self.assertFalse((self.layout / "apps/bootstrap/engine.py").exists())
+        self.assertFalse((self.layout / "apps/bootstrap/process.py").exists())
+
     def test_public_verbs_forward_to_one_external_command_with_ordered_arguments(self) -> None:
+        expected_calls: list[list[str]] = []
         for public, external in (("infra", "run"), ("deps", "run"), ("check", "check")):
             with self.subTest(public=public):
                 result = self.invoke(
@@ -110,11 +134,11 @@ class BootstrapBoundaryTest(unittest.TestCase):
                     b'{"schema":"environment-maintenance/result/v2","status":"ready"}\n',
                 )
                 calls = [json.loads(line) for line in self.calls.read_text().splitlines()]
-                self.assertEqual(
-                    calls[-1],
-                    [external, "--catalog-dir", "/selected/catalog", "--values", "first.json",
-                     "--set", "x=1", "--values", "second.json", "--dry-run"],
-                )
+                expected_calls.append([
+                    external, "--catalog-dir", "/selected/catalog", "--values", "first.json",
+                    "--set", "x=1", "--values", "second.json", "--dry-run",
+                ])
+                self.assertEqual(calls, expected_calls)
 
     def test_external_stdout_stderr_and_exit_are_unmodified(self) -> None:
         result = self.invoke("infra", "--catalog-dir", "exit-seven")
@@ -133,15 +157,28 @@ class BootstrapBoundaryTest(unittest.TestCase):
 
     def test_missing_and_invalid_locks_fail_before_component_action(self) -> None:
         lock_path = self.layout / "apps/bootstrap/component.json"
-        for contents, code in ((None, "component_lock_missing"), ("{}", "component_lock_invalid"),
-                               ('{"schema":"a","schema":"b"}', "component_lock_invalid"),
-                               ("not JSON", "component_lock_invalid")):
+        invalid_locks = (
+            (None, "component_lock_missing"),
+            (b"{}", "component_lock_invalid"),
+            (b'{"schema":"a","schema":"b"}', "component_lock_invalid"),
+            (b"not JSON", "component_lock_invalid"),
+            (b"\xff", "component_lock_invalid"),
+            (json.dumps({**LOCK, "schema": "unknown"}).encode(), "component_lock_invalid"),
+            (json.dumps({**LOCK, "version": 200}).encode(), "component_lock_invalid"),
+            (json.dumps({**LOCK, "unexpected": True}).encode(), "component_lock_invalid"),
+        )
+        for contents, code in invalid_locks:
             with self.subTest(contents=contents):
                 if contents is None:
                     lock_path.unlink(missing_ok=True)
                 else:
-                    lock_path.write_text(contents, encoding="utf-8")
+                    lock_path.write_bytes(contents)
                 self.assert_bootstrap_error(self.invoke("check", "--catalog-dir", "/selected"), code, 2, "check")
+        lock_path.unlink()
+        lock_path.mkdir()
+        self.assert_bootstrap_error(
+            self.invoke("check", "--catalog-dir", "/selected"), "component_lock_unreadable", 2, "check",
+        )
 
     def test_missing_distribution_and_module_are_distinct_preflight_failures(self) -> None:
         for metadata in self.site_packages.glob("environment_maintenance-*.dist-info"):
@@ -162,6 +199,32 @@ class BootstrapBoundaryTest(unittest.TestCase):
             self.invoke("infra", "--catalog-dir", "/selected"), "component_version_mismatch", 3, "infra",
         )
 
+    def test_parent_visible_but_isolated_child_invisible_is_missing(self) -> None:
+        shutil.rmtree(self.site_packages / "environment_maintenance-0.2.0.dist-info")
+        shutil.rmtree(self.site_packages / "environment_maintenance")
+        parent_site = self.root / "parent-site"
+        parent_site.mkdir()
+        metadata = parent_site / "environment_maintenance-0.2.0.dist-info"
+        metadata.mkdir()
+        (metadata / "METADATA").write_text(
+            "Metadata-Version: 2.1\nName: environment-maintenance\nVersion: 0.2.0\n",
+            encoding="utf-8",
+        )
+        package = parent_site / "environment_maintenance"
+        package.mkdir()
+        (package / "__init__.py").write_text("", encoding="utf-8")
+        (package / "__main__.py").write_text("pass\n", encoding="utf-8")
+        environment = {"PYTHONPATH": str(parent_site)}
+        visible = subprocess.run(
+            [str(self.python), "-B", "-c", "import importlib.metadata as m; print(m.version('environment-maintenance'))"],
+            capture_output=True, env={**os.environ, **environment},
+        )
+        self.assertEqual(visible.stdout, b"0.2.0\n")
+        self.assert_bootstrap_error(
+            self.invoke("check", "--catalog-dir", "/selected", extra_env=environment),
+            "component_missing", 3, "check",
+        )
+
     def test_component_signal_discards_partial_output(self) -> None:
         result = self.invoke("deps", "--catalog-dir", "signal")
         self.assertEqual(result.returncode, 4)
@@ -171,6 +234,22 @@ class BootstrapBoundaryTest(unittest.TestCase):
         self.assertEqual(packet["command"], "deps")
         self.assertEqual(packet["exit_code"], 4)
         self.assertIn("15", packet["cause"])
+        self.assertNotIn(b"PARTIAL_STDOUT", result.stdout)
+        self.assertNotIn(b"PARTIAL_STDERR", result.stderr)
+
+    def test_probe_transport_failures_never_start_component_action(self) -> None:
+        for mode in ("probe_spawn", "probe_signal", "probe_unexpected"):
+            with self.subTest(mode=mode):
+                result, calls = self.invoke_fault(mode)
+                self.assert_bootstrap_error(result, "component_spawn_failed", 4, "check")
+                self.assertEqual(len(calls), 1)
+                self.assertNotIn(b"probe-partial", result.stdout)
+                self.assertNotIn(b"probe-error", result.stderr)
+
+    def test_action_spawn_failure_has_bootstrap_error(self) -> None:
+        result, calls = self.invoke_fault("action_spawn")
+        self.assert_bootstrap_error(result, "component_spawn_failed", 4, "check")
+        self.assertEqual(len(calls), 2)
 
 
 class BootstrapPresenceTest(unittest.TestCase):

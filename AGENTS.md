@@ -57,10 +57,22 @@ project's configured repository checkout. See [worktree
 placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
 not register them manually.
 
-One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and propose a restart plus the exact requested changes to the reviewer or user instead of bypassing the harness. The reviewer/user decides the restart and Task-contract revision; a reviewer escalates proposed project/harness rule changes to the user, whose approval is required. Stop for a real blocker, a new required user decision, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
+One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and propose a restart plus the exact requested changes to the reviewer or user rather than silently bypassing its contract. The user-authorized broken-harness exception below remains available. The reviewer/user decides the restart and Task-contract revision; a reviewer escalates proposed project/harness rule changes to the user, whose approval is required. Stop for a real blocker, a new required user decision, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
+
+When a reproduced harness defect blocks user-authorized work, record a defect task and use
+native source, test and Git tools within that authorization instead of repeatedly retrying
+an impossible gate. Preserve managed state and distinguish out-of-band work/commits from
+Poise-verified stages or acceptance. This does not authorize fabricated evidence, direct Task
+DB edits, loss of WIP or disabling platform safeguards. Return to the managed route after the
+relevant fix is validated and deployed.
+
+Manifest edits must not be rejected merely because an unfinished Task exists. Apply the
+[effect-specific configuration guards](docs/configuration/project-setup.md#изменения-без-общего-запрета-на-незавершённые-task):
+compare actual resource bindings, preserve storage/Workspace safety, and allow ordinary
+policy corrections without forcing Tasks to finish or be cancelled.
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their
 working files or database directly. Native coding tools remain appropriate for source code, tests and target
@@ -76,8 +88,8 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Before every completed-task boundary or risky transition, create and locally verify a portable checkpoint. Cloud
-agents additionally follow the mandatory cloud-only policy below. Local agents are not subject to its Gmail/Google
+Preserve a verified portable checkpoint before a completed-task boundary or risky transition. Cloud
+agents schedule checkpoint creation within the mandatory cloud-only window below. Local agents are not subject to its Gmail/Google
 Drive persistence cadence unless the user explicitly requests it. On resume, inspect already attached files before
 asking for another upload. Follow [checkpoint and
 recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
@@ -85,38 +97,47 @@ passed check, a delivery receipt, and Task completion.
 
 ## Cloud Working — cloud agents only
 
-This section applies **only to agents running in a cloud or otherwise ephemeral execution environment** whose local
-working storage can be destroyed when the response/session ends. Local agents working on durable user-managed storage
-are not required to follow this section unless the user explicitly opts into it.
+These rules apply **only to cloud agents using ephemeral execution storage**. They do not impose a backup
+cadence on local agents using durable user-managed storage. User update: 2026-09-27.
 
-- Treat cloud-local storage as disposable. Any work product not attached to the final response or copied to durable
-  storage may be lost after the final response. After every meaningful result, create a recoverable backup. Whatever the
-  cloud agent is doing, preserve a handoff in Gmail and the corresponding durable results/checkpoint in Google Drive.
-- Assume the required recovery inputs exist in backups. If an input is absent from the available backups, report the
-  missing item instead of inventing or silently reconstructing authoritative state.
-- Restore the complete working environment, not merely the source archive. Maintain recovery manifests, checksums,
-  configuration and automation that reproduce all required copy/move/setup steps. Prefer an executable recovery/CD
-  script for deterministic restoration. Automate obvious manual recovery operations immediately; add non-obvious
-  automation as those cases are discovered in real use. Include the recovery manifest/configuration/script with the
-  final response.
-- Make local Git commits for completed logical changes. Do not push unless the user separately authorizes a push.
+- Treat the execution container as disposable. Preserve every meaningful result, local commit, changed artifact
+  and new verification result in the pending delivery journal. Do not rely on local files surviving a final response.
+- Deliver a readable handoff to Gmail and the corresponding recoverable results to Google Drive. Use the latest
+  **10–15 minute snapshot window** below rather than creating an archive for every individual operation.
+- Required inputs should be in existing backups. Inspect them first; report a specifically missing input instead
+  of inventing authoritative state or repeatedly asking for existing material.
+- Use the provided `workspace-recover` for restoration and delivery orchestration. Parameterize manifests and
+  scripts for assembly, verification, copying/moving, environment setup, packaging, deployment, mail composition,
+  sending and readback. Reuse existing tools; automate unambiguous mechanical operations instead of repeating
+  them manually. The host executes authenticated connector requests produced by the flow; the local process
+  does not acquire connector credentials. Include the manifests, configuration and restoration scripts in delivery.
+- Make local Git commits for logical results. **Do not run git push.** A commit is a pending backup milestone,
+  not evidence of independent review, Task acceptance or durable remote storage.
+- During Task work run only narrow Task-specific checks and maintained application smoke checks. Broad/full
+  test suites are release work, not ordinary development or backup prerequisites.
 
 ### Cloud backup policy
 
-For cloud agents, a backup is mandatory after **every meaningful stage**. A meaningful stage includes, without
-limitation: red tests written; implementation code written; tests becoming green; a new or changed artifact; new
-verification evidence; a completed intermediate step; and every local Git commit. Each such event is sufficient on its
-own to require a backup.
+Every meaningful stage (including RED, implementation, GREEN and **every commit**) must be represented in the
+next recoverable checkpoint. Queue multiple milestones; do not discard their separate evidence or make a new
+archive immediately for each one. During active cloud work create snapshots **no less than 600 seconds apart
+and no more than 900 seconds apart** (10–15 minutes). Measure from snapshot creation, not upload/readback time.
+The first snapshot starts the clock. Stop initiating new mutations and deliver pending work within the next
+eligible window before ending the response. Do not omit pending work to meet the minimum interval.
 
-A cloud backup consists of both:
+Check the remaining window before a long operation; split work where needed. Resume an interrupted delivery of
+its existing immutable snapshot rather than taking an early replacement. A commit or failed transport does not
+reset the clock. Preserve the actual failure and remote IDs; do not blindly send another email after an unknown
+outcome. This is in-session bookkeeping, not an unattended/background promise.
 
-1. a durable checkpoint/results copy in Google Drive, with integrity metadata sufficient to verify restoration; and
-2. a readable Gmail handoff describing the exact state, current Task/stage, commit, checksums/locations, completed
-   evidence, known blockers/findings and deterministic resume instructions.
+Each delivery contains a checkpoint/results copy with SHA-256 and restore inputs in Google Drive, plus a Gmail
+handoff recording commits, Task/stage, evidence, limitations and deterministic resumption. Verify returned IDs
+and read back the actual stored data; a local path or upload intent is not durable delivery.
 
-The cloud execution container may be destroyed after the final response. Anything important that cannot be persisted to
-Google Drive and Gmail must be copied to ChatGPT Library/Project or another durable user-accessible storage surface
-before the response ends. Never rely on the continued existence of a cloud-local path after the final response.
+When Google Drive or Gmail cannot persist a required component, retain the successful channel and use ChatGPT
+Library/Project as fallback for the missing component. If both fail, persist all important files there. Record
+which channel actually worked; never claim a failed send/upload succeeded. Attach final artifacts and recovery
+inputs to the final response as an additional accessible copy.
 
 ## Stage skills and missing expertise
 

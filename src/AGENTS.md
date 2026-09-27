@@ -60,6 +60,13 @@ Reuse the standard stage handlers and the common route runner across workflows. 
 
 ## Explicit configuration
 
+Reject unsafe configuration effects, not the mere existence of unfinished Tasks. The existing
+project configuration owner compares actual before/after storage and Git bindings. Ordinary
+manifest policy/limit edits and no-op bindings remain available while Tasks are unfinished;
+real storage relocation and occupied Workspace rebinding retain their own guards. Keep known
+revisions, validation, locking, replay and Task snapshots intact. See the
+[configuration effect contract](../docs/configuration/project-setup.md#изменения-без-общего-запрета-на-незавершённые-task).
+
 Do not embed literals that determine the workflow, task format, acceptance conditions or observable result in application logic. Supply those choices through explicit configuration. Internal implementation constants may describe mechanisms, but must not silently select business behaviour.
 
 AI poise must be configurable without editing its source code. Missing required configuration is an error: do not supply hidden defaults, fallback values or guessed settings.

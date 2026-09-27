@@ -27,6 +27,10 @@ from tests.batch.helpers import (
 )
 
 
+class ArtifactDraftOperationMissing(RuntimeError):
+    pass
+
+
 def task_record(runtime) -> dict:
     return runtime.task_queries.record("T1")
 
@@ -59,7 +63,10 @@ def protected_state(runtime, task_root: Path) -> dict:
         "sessions": "SELECT id,task_id FROM sessions ORDER BY id",
         "handoffs": "SELECT seq,actor,request_id,task_id,state,data FROM handoffs ORDER BY seq",
         "work_packets": "SELECT task_id,stage,iteration,digest FROM work_packets ORDER BY task_id,stage,iteration",
-        "draft_journal": "SELECT seq,session_id,task_id,event,data FROM journal WHERE event LIKE 'artifact_draft.%' ORDER BY seq",
+        "task_results": "SELECT task_id,submission_id,data FROM task_results ORDER BY task_id,submission_id",
+        "task_events": "SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq",
+        "evidence": "SELECT id,task_id,stage,iteration,data FROM evidence ORDER BY id",
+        "journal": "SELECT seq,session_id,task_id,event,data FROM journal ORDER BY seq",
     }
     with runtime.store.transaction() as db:
         database = {
@@ -109,12 +116,22 @@ def recover(tools, runtime, artifact_id: str, **changes) -> dict:
         "request_id": "recover-erp-analysis-v6",
         "task_id": "T1",
         "expected_version": task_record(runtime)["_version"],
-        "artifact_ids": [artifact_id],
+        "artifacts": [{
+            "id": artifact_id,
+            "scope": "task",
+            "path": "ERP-AI-ANALYSIS-v6.md",
+        }],
         "reason": "The acceptance file was registered as immutable before review rework ended.",
         "authorization": "The user explicitly authorized same-path correction of ERP-AI-ANALYSIS v6.",
     }
     payload.update(changes)
     return tools.invoke(request("artifact_drafts", payload))
+
+
+def skip_only_missing_operation(exc: PoiseError) -> None:
+    if str(exc) == "Unknown work operation":
+        pytest.skip("The dedicated RED probe owns the missing-operation failure.")
+    raise exc
 
 
 def rework(tools) -> dict:
@@ -148,12 +165,33 @@ def acquire_and_rework(project, session: str) -> tuple[WorkPoise, WorkTools, dic
     return runtime, tools, rework(tools)
 
 
+def test_artifact_drafts_public_operation_exists(project):
+    configure(project)
+    runtime = WorkPoise(project["config_path"], "operation-probe")
+    tools = WorkTools(runtime)
+    context = bootstrap(tools, project)
+    add_test(context["worktree"])
+    try:
+        declare(tools, runtime, "probe.md", "probe-artifact-drafts-operation")
+    except PoiseError as exc:
+        if str(exc) == "Unknown work operation":
+            raise ArtifactDraftOperationMissing(
+                "ARTIFACT_DRAFT_LIFECYCLE_MISSING"
+            ) from exc
+        raise
+
+
 def test_declared_draft_is_reviewed_twice_at_one_path_then_finalized(project):
     configure(project)
     runtime = WorkPoise(project["config_path"], "draft-owner")
     tools = WorkTools(runtime)
     context = bootstrap(tools, project)
     add_test(context["worktree"])
+
+    try:
+        opened = declare(tools, runtime, "ERP-AI-ANALYSIS-v6.md")
+    except PoiseError as exc:
+        skip_only_missing_operation(exc)
 
     task_root = Path(context["task_root"])
     for invalid_scope, invalid_path in (("runtime", "bad-scope.md"), ("task", "../bad-path.md")):
@@ -168,7 +206,6 @@ def test_declared_draft_is_reviewed_twice_at_one_path_then_finalized(project):
             )
         assert protected_state(runtime, task_root) == before_invalid
 
-    opened = declare(tools, runtime, "ERP-AI-ANALYSIS-v6.md")
     assert opened["status"] == "artifact_drafts_declared"
     assert opened["drafts"] == [{
         "artifact_id": opened["drafts"][0]["artifact_id"],
@@ -229,6 +266,8 @@ def test_declared_draft_is_reviewed_twice_at_one_path_then_finalized(project):
     )
     second_snapshot = Path(second_review["snapshots"][0]["snapshot_path"])
     assert second_snapshot.read_bytes() == b"corrected reviewed text\n"
+    second_literal_digest = hashlib.sha256(b"corrected reviewed text\n").hexdigest()
+    assert second_review["snapshots"][0]["digest"] == second_literal_digest
     assert first_snapshot.read_bytes() == b"initial reviewed text\n"
     assert first_snapshot != second_snapshot
 
@@ -240,6 +279,12 @@ def test_declared_draft_is_reviewed_twice_at_one_path_then_finalized(project):
     assert closed["authorization"].startswith("Independent reviewer explicitly authorized")
     assert first_snapshot.read_bytes() == b"initial reviewed text\n"
     assert second_snapshot.read_bytes() == b"corrected reviewed text\n"
+    persisted_reviews = [data for event, data in draft_events(final_runtime)
+                         if event == "artifact_draft.reviewed"]
+    assert [(item["digest"], item["snapshot_path"]) for item in persisted_reviews] == [
+        (hashlib.sha256(b"initial reviewed text\n").hexdigest(), str(first_snapshot)),
+        (second_literal_digest, str(second_snapshot)),
+    ]
     assert not artifact_path.with_name("ERP-AI-ANALYSIS-v7.md").exists()
 
     _, immutable_tools, immutable_context = acquire_and_rework(project, "post-acceptance-editor")
@@ -267,8 +312,15 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
 
     task_root = Path(context["task_root"])
     before_claimed = protected_state(owner_runtime, task_root)
-    with pytest.raises(PoiseError, match="released|claim"):
-        recover(owner, owner_runtime, artifact["id"])
+    foreign_runtime = WorkPoise(project["config_path"], "foreign-recovery")
+    try:
+        recover(WorkTools(foreign_runtime), foreign_runtime, artifact["id"])
+    except PoiseError as exc:
+        if str(exc) == "Unknown work operation":
+            pytest.skip("The dedicated RED probe owns the missing-operation failure.")
+        assert "released" in str(exc) or "claim" in str(exc)
+    else:
+        pytest.fail("Foreign recovery unexpectedly changed a claimed Task.")
     assert protected_state(owner_runtime, task_root) == before_claimed
     with pytest.raises(PoiseError, match="immutable|registered|recover"):
         declare(owner, owner_runtime, "ERP-AI-ANALYSIS-v6.md", "declare-frozen-v6")
@@ -292,7 +344,11 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
         "request_id": "unauthorized-erp-v6",
         "task_id": "T1",
         "expected_version": task_record(recovery_runtime)["_version"],
-        "artifact_ids": [artifact["id"]],
+        "artifacts": [{
+            "id": artifact["id"],
+            "scope": "task",
+            "path": "ERP-AI-ANALYSIS-v6.md",
+        }],
         "reason": "Attempt recovery without authority.",
         "authorization": "",
     }
@@ -300,6 +356,22 @@ def test_premature_erp_v6_registration_requires_released_authorized_recovery(pro
     with pytest.raises(PoiseError, match="authorization"):
         recovery_tools.invoke(request("artifact_drafts", unauthorized))
     assert protected_state(recovery_runtime, task_root) == before
+
+    for request_id, target in (
+        ("invalid-recovery-scope", {"id": artifact["id"], "scope": "sprint", "path": "ERP-AI-ANALYSIS-v6.md"}),
+        ("invalid-recovery-path", {"id": artifact["id"], "scope": "task", "path": "different.md"}),
+        ("unknown-recovery-id", {"id": "not-registered", "scope": "task", "path": "ERP-AI-ANALYSIS-v6.md"}),
+    ):
+        before_invalid = protected_state(recovery_runtime, task_root)
+        with pytest.raises(PoiseError, match="registered|scope|path|identity|target"):
+            recover(
+                recovery_tools,
+                recovery_runtime,
+                artifact["id"],
+                request_id=request_id,
+                artifacts=[target],
+            )
+        assert protected_state(recovery_runtime, task_root) == before_invalid
 
     artifact_path = Path(verified["artifacts"][0]["path"])
     artifact_path.write_text("conflicting unreviewed bytes\n", encoding="utf-8")
@@ -402,18 +474,18 @@ def _run_as_registered_check() -> int:
     if exit_code == 0:
         print("ARTIFACT_DRAFT_LIFECYCLE_VERIFIED")
         return 0
-    expected = {
-        "test_lifecycle.py::test_declared_draft_is_reviewed_twice_at_one_path_then_finalized",
-        "test_lifecycle.py::test_premature_erp_v6_registration_requires_released_authorized_recovery",
-    }
+    expected = {"test_lifecycle.py::test_artifact_drafts_public_operation_exists"}
     observed = {nodeid.rsplit("/", 1)[-1] for nodeid, when, _ in recorder.failures
                 if when == "call"}
     exact_missing_operation = (
         exit_code == 1
         and observed == expected
         and len(recorder.failures) == len(expected)
-        and all("Unknown work operation" in detail
-                for _, when, detail in recorder.failures if when == "call")
+        and all(
+            "ArtifactDraftOperationMissing: ARTIFACT_DRAFT_LIFECYCLE_MISSING" in detail
+            and "Regex pattern did not match" not in detail
+            for _, when, detail in recorder.failures if when == "call"
+        )
     )
     if exact_missing_operation:
         print("ARTIFACT_DRAFT_LIFECYCLE_MISSING", file=sys.stderr)

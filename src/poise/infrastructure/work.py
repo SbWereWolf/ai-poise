@@ -48,6 +48,7 @@ class WorkResources:
     def _snapshot_file(source: Path, target: Path, expected_digest: str) -> bool:
         FileArtifactFactory._without_links(source, 'Artifact draft source')
         FileArtifactFactory._without_links(target.parent.parent, 'Artifact draft history')
+        FileArtifactFactory._without_links(target.parent, 'Artifact draft history')
         if FileArtifactFactory._read_registered(source, 'Artifact draft source') != expected_digest:
             raise PoiseError('Artifact draft source digest changed before snapshot')
         if target.exists():
@@ -95,6 +96,8 @@ class WorkResources:
                 if intent.action == 'declare':
                     declared=[]
                     for item in intent.drafts:
+                        FileArtifactFactory._without_links(
+                            artifact_root/item['path'],'Artifact draft declaration')
                         registry_path=(artifact_root/item['path']).relative_to(root).as_posix()
                         identifier=artifact_identity('task',intent.task_id,registry_path)
                         if identifier in records:
@@ -121,9 +124,11 @@ class WorkResources:
                         record=records.get(target['id'])
                         if record is None:
                             raise PoiseError('Artifact draft recovery target is not registered')
-                        expected_path=(artifact_root/target['path']).resolve()
+                        expected_path=artifact_root/target['path']
+                        FileArtifactFactory._without_links(
+                            expected_path,'Artifact draft recovery target')
                         if (record['scope'] != target['scope'] or record['owner'] != intent.task_id
-                                or Path(record['path']).resolve() != expected_path):
+                                or record['path'] != str(expected_path)):
                             raise PoiseError('Artifact draft recovery target scope/path/identity mismatch')
                         if target['id'] in drafts:
                             raise PoiseError('Artifact draft recovery target already has lifecycle state')
@@ -134,6 +139,12 @@ class WorkResources:
                             f"0000-{record['digest']}.snapshot")
                         if self._snapshot_file(Path(record['path']),snapshot,record['digest']):
                             created.append(snapshot)
+                        snapshot_relative=snapshot.relative_to(root).as_posix()
+                        registry.link_task(intent.task_id,[{
+                            'id':artifact_identity('task',intent.task_id,snapshot_relative),
+                            'owner':intent.task_id,'scope':'task','path':str(snapshot),
+                            'relative_path':snapshot_relative,'digest':record['digest'],
+                        }])
                         snapshots.append({'artifact_id':target['id'],'digest':record['digest'],
                                           'snapshot_path':str(snapshot)})
                     result={'status':'artifact_drafts_recovered','task':intent.task_id,
@@ -166,6 +177,12 @@ class WorkResources:
                         snapshot=root/ARTIFACT_DRAFT_HISTORY_DIRECTORY/record['id']/(
                             f"{revision:04d}-{record['digest']}.snapshot")
                         if self._snapshot_file(source,snapshot,record['digest']):created.append(snapshot)
+                        snapshot_relative=snapshot.relative_to(root).as_posix()
+                        registry.link_task(intent.task_id,[{
+                            'id':artifact_identity('task',intent.task_id,snapshot_relative),
+                            'owner':intent.task_id,'scope':'task','path':str(snapshot),
+                            'relative_path':snapshot_relative,'digest':record['digest'],
+                        }])
                         snapshots.append({'artifact_id':record['id'],'digest':record['digest'],
                                           'snapshot_path':str(snapshot)})
                     result={'status':'artifact_drafts_reviewed','task':intent.task_id,

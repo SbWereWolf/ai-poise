@@ -36,7 +36,7 @@ def validate_planning(value):
 
 
 def revision_authority(contract, process, actor, authorization):
-    """Save the grant selected from the frozen contract, never from a proposed edit."""
+    """Save the exact restart grant against the frozen contract."""
     planning = contract.get('planning')
     if planning is None:
         if not isinstance(authorization, str) or not authorization.strip():
@@ -44,14 +44,25 @@ def revision_authority(contract, process, actor, authorization):
         return None
     validate_planning(planning)
     if (not isinstance(authorization, dict)
-            or set(authorization) != {'role', 'decision'}
+            or set(authorization) not in ({'role', 'decision'},
+                                          {'role', 'decision', 'revision_fields'})
             or authorization['role'] not in ('reviewer', 'user')
             or not isinstance(authorization['decision'], str)
             or not authorization['decision'].strip()):
         raise DomainError('Task restart authorization requires reviewer/user role and decision')
+    if 'revision_fields' in authorization:
+        fields = authorization['revision_fields']
+        if (authorization['role'] != 'reviewer'
+                or not isinstance(fields, list) or not fields
+                or any(not isinstance(field, str) or field not in REVISION_FIELDS
+                       for field in fields)
+                or len(fields) != len(set(fields))):
+            raise DomainError('Task restart revision_fields require unique Task contract fields agreed by reviewer')
+    else:
+        fields = planning['restart_revision_policy'][authorization['role']]
     return {
         'actor': actor, 'authorization': deepcopy(authorization),
-        'allowed_changes': deepcopy(planning['restart_revision_policy'][authorization['role']]),
+        'allowed_changes': deepcopy(fields),
         'before_contract': deepcopy(contract), 'before_process': deepcopy(process),
         'before_digest': fingerprint({'contract': contract, 'process': process}),
     }
@@ -78,7 +89,9 @@ def require_revision(draft, process, history):
     changed = revision_changes(draft, process, authority)
     denied = set(changed) - set(authority['allowed_changes'])
     if denied:
-        raise DomainError(f'Task restart revision policy forbids changes: {sorted(denied)}')
+        source = ('reviewer authorization' if 'revision_fields' in authority['authorization']
+                  else 'revision policy')
+        raise DomainError(f'Task restart {source} forbids changes: {sorted(denied)}')
     return {
         'changed_fields': changed,
         'contract_digest': fingerprint({'contract': draft, 'process': process}),

@@ -56,6 +56,16 @@ def _unique_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return values
 
 
+def _valid_lock_value(value: object) -> bool:
+    if not isinstance(value, str) or not value.strip() or "\x00" in value:
+        return False
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
+
+
 def _load_lock() -> dict[str, str]:
     path = Path(__file__).with_name("component.json")
     try:
@@ -66,13 +76,11 @@ def _load_lock() -> dict[str, str]:
         raise LockFailure("component_lock_unreadable", "component lock cannot be read") from exc
     try:
         lock = json.loads(source.decode("utf-8"), object_pairs_hook=_unique_pairs)
-    except (UnicodeDecodeError, ValueError, TypeError) as exc:
+    except (UnicodeDecodeError, ValueError, TypeError, RecursionError) as exc:
         raise LockFailure("component_lock_invalid", "component lock is invalid JSON or UTF-8") from exc
     if not isinstance(lock, dict) or set(lock) != _LOCK_FIELDS:
         raise LockFailure("component_lock_invalid", "component lock fields do not match the schema")
-    if lock["schema"] != _LOCK_SCHEMA or any(
-        not isinstance(value, str) or not value.strip() for value in lock.values()
-    ):
+    if lock["schema"] != _LOCK_SCHEMA or not all(_valid_lock_value(value) for value in lock.values()):
         raise LockFailure("component_lock_invalid", "component lock values do not match the schema")
     return lock
 
@@ -102,6 +110,8 @@ def _parse(arguments: list[str]) -> tuple[str, list[str]]:
     if not arguments or arguments[0] not in _COMMANDS:
         parser.error("first argument must be infra, deps, or check")
     parsed = parser.parse_args(arguments)
+    if parsed.catalog_dir == "":
+        parser.error("--catalog-dir must name a directory")
     return parsed.command, arguments[1:]
 
 

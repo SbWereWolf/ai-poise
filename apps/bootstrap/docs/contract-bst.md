@@ -214,8 +214,11 @@ reset/delete/пересозданием БД. Восстановление от�
 перезаписывает повреждённую или изменённую существующую конфигурацию.
 
 Все subprocess actions ограничены declared timeout; target и весь run также
-bounded. Target timeout даёт `target_timeout` и effects=`unknown`; последующие
-цели обрабатываются, пока общий deadline позволяет. Истечение run deadline
+bounded. Target timeout даёт `target_timeout`; последующие цели обрабатываются,
+пока общий deadline позволяет. Effects вычисляется по двум точным состояниям:
+`KNOWN_NO_APPLY` (check/dry-run либо доказанно до apply) → `none`;
+`POSSIBLE_APPLY` (apply мог начаться, но завершённость неизвестна) → `unknown`.
+Таймаут read-only диагностики сам по себе не делает возможным запрещённый apply. Истечение run deadline
 формирует по оставшимся frozen IDs `not_started`, effects=`none`, без запуска;
 результат run=`failed`. Прерванный apply не повторяется автоматически.
 
@@ -287,7 +290,8 @@ failure другого. Суммарный статус не является Ta
 Нет частичного effect при global rejection. Bootstrap preflights configuration,
 selectors, discovery cardinality и bounded output planning до первого apply.
 Runtime overflow вывода после effects — `failed`/4 с сохранением bounded error
-`output_limit_exceeded` и effects unknown для неполного результата, не rejected/2.
+`output_limit_exceeded`; effects=`none` для KNOWN_NO_APPLY, `unknown` для
+POSSIBLE_APPLY. Это не rejected/2 после возможного эффекта.
 Реализация обязана зарезервировать место для result/error каждого frozen target и
 не обрезать JSON молча. При физическом невозможном transport (disk/stdout closed)
 caller видит non-success process termination, не fabricated complete JSON.
@@ -310,9 +314,9 @@ Machine discriminator — `error.code`; текст message human-oriented.
 | `invalid_target_parameters` | target | resolver/type/unknown parameter; none, остальные идут |
 | `target_input_unavailable` | target | asset missing/read/size limit; none, остальные идут |
 | `maintenance_unavailable` | target | core отсутствует; none, action_required/3 |
-| `target_timeout` | target | interrupted core/action; unknown, failed/4 |
+| `target_timeout` | target | none при KNOWN_NO_APPLY, иначе unknown; failed/4 |
 | `run_deadline_exceeded` | remaining targets | not_started/4, none |
-| `output_limit_exceeded` | target | runtime bounded output; unknown, failed/4 |
+| `output_limit_exceeded` | target | none при KNOWN_NO_APPLY, иначе unknown; failed/4 |
 | `maintenance_failed` | target | core failed; applied/none по фактическим actions |
 
 Для read-only input/contract ошибок retryable=false. Timeout/availability MAY
@@ -434,7 +438,7 @@ verification. Existing operational target config must not be replaced by templat
 ### F10 — snapshot, limits and interruption are explicit
 
 ```json
-{"fixture":"F10","cases":[{"condition":"max_targets_exceeded","expected_code":"limit_exceeded","status":"rejected","exit_code":2,"apply_calls":0},{"condition":"target_timeout","expected_code":"target_timeout","target_status":"failed","target_effects":"unknown","later_targets":"continue_within_deadline"},{"condition":"run_deadline_before_beta","remaining":["beta","extra"],"target_status":"not_started","expected_code":"run_deadline_exceeded","target_effects":"none","exit_code":4}]}
+{"fixture":"F10","cases":[{"condition":"max_targets_exceeded","expected_code":"limit_exceeded","status":"rejected","exit_code":2,"apply_calls":0},{"condition":"target_timeout","expected_code":"target_timeout","target_status":"failed","target_effects":"unknown","later_targets":"continue_within_deadline","apply_may_have_started":true},{"condition":"run_deadline_before_beta","remaining":["beta","extra"],"target_status":"not_started","expected_code":"run_deadline_exceeded","target_effects":"none","exit_code":4},{"condition":"check_timeout_no_apply","command":"check","expected_code":"target_timeout","target_status":"failed","target_effects":"none","apply_calls":0,"exit_code":4},{"condition":"dry_run_output_limit_no_apply","command":"infra","dry_run":true,"expected_code":"output_limit_exceeded","target_status":"failed","target_effects":"none","apply_calls":0,"exit_code":4}]}
 ```
 
 A config written after selection does not enter the current resolved list or

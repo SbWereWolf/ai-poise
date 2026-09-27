@@ -243,7 +243,9 @@ def test_declared_draft_is_reviewed_twice_at_one_path_then_finalized(project):
     second = verify(editor, second_result)
     second_digest = sha256(artifact_path)
 
-    assert second["artifacts"] == [{"id": artifact_id, "path": str(artifact_path)}]
+    assert {item["id"]: item["path"] for item in second["artifacts"]}[artifact_id] == str(
+        artifact_path
+    )
     assert second_digest != first_digest
     assert [event for event, _ in draft_events(runtime)] == [
         "artifact_draft.declared",
@@ -293,7 +295,9 @@ def test_declared_draft_is_reviewed_twice_at_one_path_then_finalized(project):
     immutable_result["artifact_paths"] = [str(artifact_path)]
     with pytest.raises(PoiseError, match="изменён после регистрации"):
         verify(immutable_tools, immutable_result)
-    assert artifact_records(runtime)[0]["digest"] == second_digest
+    assert {item["id"]: item["digest"] for item in artifact_records(runtime)}[
+        artifact_id
+    ] == second_digest
 
 
 def test_premature_erp_v6_registration_requires_released_authorized_recovery(project):

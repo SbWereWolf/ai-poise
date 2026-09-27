@@ -748,7 +748,8 @@ def test_restart_and_broken_task_contract_is_documented_for_humans_and_agents():
         assert "restart" in text
         assert "broken" in text
     assert "`replace_task` больше не является публичным action" in sprints
-    assert "restart the same Task to newborn" in skill
+    assert "authorization.revision_fields" in skill
+    assert "without another user decision" in skill
 
 
 def test_restart_work_packet_contract_is_documented_for_humans_and_agents():

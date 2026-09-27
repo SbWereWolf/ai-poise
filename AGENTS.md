@@ -57,7 +57,7 @@ project's configured repository checkout. See [worktree
 placement](docs/governance/development-rules.md#размещение-task-worktree). Git supplies changed files; the agent does
 not register them manually.
 
-One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and propose a restart plus the exact requested changes to the reviewer or user instead of bypassing the harness. The reviewer/user decides the restart and Task-contract revision; a reviewer escalates proposed project/harness rule changes to the user, whose approval is required. Stop for a real blocker, a new required user decision, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
+One session works on one task. Stage ownership follows the canonical [executor/reviewer policy](docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). A user-started Task authorizes its executor and reviewer to continue their respective stages, including checks and remediation, without a new command at each stage or review; honor explicit stage-only or other user limits. Verify each stage and use the [direct role handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим) at role boundaries. If an executor concludes that the frozen requirements/rules make success impossible or the available workaround is not adequate to the Task, preserve evidence and agree the exact restart and Task-contract correction with the independent reviewer instead of bypassing the harness. The agents decide and execute a restart through the public Task action without seeking another user decision. For fields outside the frozen restart-revision policy, the reviewer explicitly grants the exact Task fields in `authorization.revision_fields`; the executor must not impersonate the reviewer. Project/harness rule changes still require separate user authority. Stop for a real blocker, a decision about global rules, or separately controlled acceptance/publication/integration. Before changing tasks, finish, use the public handoff to release ownership, or safely discard the current work. A read-only query about another task does not switch ownership.
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
@@ -76,8 +76,10 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Before every completed-task boundary or risky transition, create and round-trip a portable checkpoint; send the archive
-and readable text transport to Gmail and verify attachment readback. On resume, inspect already attached files before
+Before every completed-task boundary or risky transition, create and locally verify a portable checkpoint.
+Only cloud development requires sending the archive and readable text transport to Gmail and verifying attachment
+readback. Local development does not require Gmail delivery or readback to complete or integrate a Task; perform
+mail delivery locally only when explicitly requested. On resume, inspect already attached files before
 asking for another upload. Follow [checkpoint and
 recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
 passed check, a delivery receipt, and Task completion.
@@ -175,6 +177,10 @@ Keep this English projection and its Russian source consistent in the same chang
 - File extensions must match content and purpose. Environment templates end in `.env` and contain `example`, such as
   `app.example.env`. Format parallel lists vertically for stable diffs. Invoke repository `.sh` entry points explicitly
   through Bash.
+- Never stage or commit working, deployment-specific configuration files, even if Git already tracks them. Keep only
+  sanitized examples/templates and documentation of every option under version control. Exclude the working paths from
+  Git while preserving their local files; a tracked working config is a defect to correct, not permission to commit its
+  next change. This restriction also applies to commits made as part of Task integration.
 - Product-affecting values come from explicit configuration contracts. Internal constants are allowed only when they
   cannot affect product behaviour or output. Do not add hidden defaults, fallbacks, legacy aliases, dual reads/writes or
   compatibility adapters unless explicitly required. Accepted replacements remove the superseded path within scope;

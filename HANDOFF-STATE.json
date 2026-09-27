@@ -1,0 +1,13 @@
+{
+  "schema":"poise/local-agent-handoff/v1",
+  "product_version":"1.0.1",
+  "git_head":"72dc2851d5f12c0005c32ec3da867777ba60dc4d",
+  "cleanup_commit":"e3500ef8c920e49a16fd6be2ea11b8b206891c6a",
+  "branch":"maintenance/v1.0.1-sprint-role-snapshot",
+  "git_clean":true,
+  "push_performed":false,
+  "operator_main_tasks":96,
+  "operator_sprints":1,
+  "obsolete_role_projection_migration_removed":true,
+  "next_work":"recreate tasks on the single-role process graph; do not migrate old frozen workflow snapshots"
+}

@@ -184,6 +184,22 @@ def test_partial_sprint_export_is_rejected_instead_of_silently_copying_siblings(
         export(a,ids=['A'])
 
 
+def test_completed_result_integration_is_transferable(project):
+    from result_integration.helpers import integration_input,prepare_completed_task
+
+    enabled(project)
+
+    def source_change(worktree):
+        (worktree/'src'/'portable.py').write_text('PORTABLE = True\n')
+
+    tools,_,accepted=prepare_completed_task(project,source_change)
+    integrated=tools.invoke(request('integrate',integration_input(project,accepted)))
+
+    assert integrated['status']=='integrated'
+    saved=export(tools,ids=['T1'],request_id='export-integrated-task')
+    assert saved['status']=='exported'
+
+
 def test_registered_method_order_is_preserved_across_store_transfer(project,tmp_path):
     h,a,c,payload=prepared(project);saved=export(a,handoff=handoff_args(payload))
     before=h.task_queries.record('T1')['contract']['methods']

@@ -142,6 +142,53 @@ def test_restart_reviewer_may_change_only_saved_fields(project):
     assert history[-1]['resolved_revision']['changed_fields'] == ['goal']
 
 
+def test_reviewer_can_explicitly_agree_broader_task_revision(project):
+    c = client(project)
+    create(c, 'FLEX')
+    out = edit(c, 'FLEX', 0, full_draft(project), 'complete')
+    promoted = ready(c, 'FLEX', out['revision'])
+    agreed = {
+        'role': 'reviewer',
+        'decision': 'The independent reviewer agrees to revise acceptance.',
+        'revision_fields': ['definition_of_done'],
+    }
+    out = restart(c, 'FLEX', promoted['revision'], authorization=agreed)
+    before = c.runtime.task_queries.record('FLEX')
+    with pytest.raises(PoiseError, match='reviewer authorization'):
+        edit(c, 'FLEX', out['revision'], {'goal': 'Unapproved new goal'}, 'denied-goal')
+    assert c.runtime.task_queries.record('FLEX') == before
+    changed = edit(c, 'FLEX', out['revision'], {
+        'definition_of_done': ['The corrected behavior is verified.'],
+    }, 'agreed-dod')
+    assert ready(c, 'FLEX', changed['revision'], 'agreed-ready')['status'] == 'available'
+    with c.runtime.store.unit_of_work() as uow:
+        history = uow.tasks.restart_context('FLEX')['restart_history']
+    assert history[-1]['planning_revision']['authorization'] == agreed
+    assert history[-1]['planning_revision']['allowed_changes'] == ['definition_of_done']
+    assert history[-1]['resolved_revision']['changed_fields'] == ['definition_of_done']
+
+
+@pytest.mark.parametrize('role, fields', [
+    ('reviewer', []),
+    ('reviewer', ['unknown_field']),
+    ('reviewer', ['goal', 'goal']),
+    ('reviewer', ['id']),
+    ('reviewer', 'definition_of_done'),
+    ('user', ['definition_of_done']),
+])
+def test_reviewer_revision_fields_reject_invalid_grants(project, role, fields):
+    c = client(project)
+    create(c, 'FLEX')
+    out = edit(c, 'FLEX', 0, full_draft(project), 'complete')
+    promoted = ready(c, 'FLEX', out['revision'])
+    before = c.runtime.task_queries.record('FLEX')
+    with pytest.raises(PoiseError, match='revision_fields'):
+        restart(c, 'FLEX', promoted['revision'], authorization={
+            'role': role, 'decision': 'Review agrees', 'revision_fields': fields,
+        })
+    assert c.runtime.task_queries.record('FLEX') == before
+
+
 def test_restart_can_reagree_changed_requirements_through_live_registry(project):
     c = client(project)
     create(c, 'FLEX')
@@ -247,7 +294,7 @@ def test_invalid_explicit_planning_input_is_an_atomic_domain_error(project, patc
     assert c.runtime.task_queries.record('FLEX') == before
 
 
-def test_repeated_restart_can_escalate_to_the_frozen_user_grant(project):
+def test_repeated_restart_can_record_a_broader_reviewer_agreement(project):
     c = client(project)
     create(c, 'FLEX')
     out = edit(c, 'FLEX', 0, full_draft(project), 'complete')
@@ -256,13 +303,18 @@ def test_repeated_restart_can_escalate_to_the_frozen_user_grant(project):
                   authorization={'role': 'reviewer', 'decision': 'Revise local goal only.'})
     with pytest.raises(PoiseError, match='revision policy'):
         edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Revised acceptance']}, 'denied-dod')
-    out = restart(c, 'FLEX', out['revision'], request_id='user-restart',
-                  authorization={'role': 'user', 'decision': 'User approves revised acceptance.'})
-    out = edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Revised acceptance']}, 'user-dod')
-    assert ready(c, 'FLEX', out['revision'], 'user-ready')['status'] == 'available'
+    out = restart(c, 'FLEX', out['revision'], request_id='reviewer-agreed-restart',
+                  authorization={
+                      'role': 'reviewer',
+                      'decision': 'Reviewer agrees to revise acceptance.',
+                      'revision_fields': ['definition_of_done'],
+                  })
+    out = edit(c, 'FLEX', out['revision'], {'definition_of_done': ['Revised acceptance']}, 'agreed-dod')
+    assert ready(c, 'FLEX', out['revision'], 'agreed-ready')['status'] == 'available'
     with c.runtime.store.unit_of_work() as uow:
         history = uow.tasks.restart_context('FLEX')['restart_history']
-    assert history[-1]['planning_revision']['authorization']['role'] == 'user'
+    assert history[-1]['planning_revision']['authorization']['role'] == 'reviewer'
+    assert history[-1]['planning_revision']['allowed_changes'] == ['definition_of_done']
     assert history[-1]['planning_revision']['before_contract']['definition_of_done'] == project['task']['definition_of_done']
 
 
@@ -298,7 +350,10 @@ def test_executor_cannot_declare_itself_the_independent_restart_reviewer(project
     rec = c.runtime.task_queries.record('FLEX')
     with pytest.raises(PoiseError, match='distinct reviewer'):
         restart(c, 'FLEX', rec['version'], authorization={
-            'role': 'reviewer', 'decision': 'I accept my own changed constraints.'})
+            'role': 'reviewer',
+            'decision': 'I accept my own changed constraints.',
+            'revision_fields': ['definition_of_done'],
+        })
     assert c.runtime.task_queries.record('FLEX') == rec
 
 

@@ -7,9 +7,10 @@ import shutil
 import stat
 import uuid
 import zipfile
-from ..common import PoiseError, descendant, digest, encoded, file_digest, read_json
+from ..common import PoiseError, descendant, digest, encoded, file_digest, read_json, worktree_root
 from ..modules.transfers.domain import TRANSFER_FORMAT
-from .sqlite.transfers import SqliteTransferRepository, snapshot_fingerprint
+from .sqlite.transfers import (SqliteTransferRepository,completed_external_execution,
+                               snapshot_fingerprint)
 from .sqlite.transfer_records import relocate_path, relocate_receipt
 from .sqlite.database import SCHEMA_VERSION
 from .goal_config import atomic_write
@@ -124,6 +125,8 @@ class RuntimeTransfers:
             if exe is None or exe['worktree'] is None:
                 owners['worktree'][tid]=None;workspaces[tid]=None;continue
             tree=Path(exe['worktree']);owners['worktree'][tid]=str(tree)
+            if not tree.exists() and completed_external_execution(exe['pending']):
+                workspaces[tid]=None;continue
             if h._git(tree,'symbolic-ref','--short','HEAD')!=exe['branch']:
                 raise PoiseError('Saved task branch changed')
             head=h._git(tree,'rev-parse','HEAD');fingerprint=h._tree(tree)
@@ -238,7 +241,7 @@ class RuntimeTransfers:
             locations[old] = str(sprint_root(h.state, h.paths, owner))
         for tid,old in manifest['owners']['worktree'].items():
             h._identifier(tid)
-            trees[tid]=None if old is None else str(descendant(h.state,h.paths['worktrees'])/tid)
+            trees[tid]=None if old is None else str(worktree_root(h.state,h.cfg)/tid)
             if old is not None:locations[old]=trees[tid]
         for row in tables['transfer_locations']:
             for old,previous in json.loads(row['data']).items():

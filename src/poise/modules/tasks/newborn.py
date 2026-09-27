@@ -133,7 +133,13 @@ class NewbornTask:
         # An unfinished draft has not frozen a contract; an explicit user/reviewer
         # decision is recorded without inventing a historical execution contract.
         if isinstance(authorization, dict):
-            if (set(authorization) != {"role", "decision"}
+            revising_frozen = self.ready and self.draft.get('planning') is not None
+            revising_frozen = revising_frozen or (
+                self.restart_history and 'planning_revision' in self.restart_history[-1]
+            )
+            permitted_keys = ({"role", "decision", "revision_fields"}
+                              if revising_frozen else {"role", "decision"})
+            if (set(authorization) not in ({"role", "decision"}, permitted_keys)
                     or authorization['role'] not in ('user', 'reviewer')
                     or not isinstance(authorization['decision'], str)
                     or not authorization['decision'].strip()):

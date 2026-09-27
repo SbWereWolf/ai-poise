@@ -132,14 +132,31 @@ class FileProjectConfigUpdate:
         except sqlite3.Error as exc:
             raise PoiseError(f"Cannot inspect active project work: {exc}") from exc
 
-    def _manifest(self, config, edits):
+    def _require_unallocated_worktrees(self, root, config):
+        state = configured_root(root, config['paths']['state'])
+        database = descendant(state, config['paths']['database'])
+        if not database.is_file():
+            return
+        with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as connection:
+            rows = connection.execute(
+                'SELECT t.status, e.data FROM tasks t '
+                'LEFT JOIN task_execution e ON e.task_id=t.id')
+            for status, raw in rows:
+                execution = None if raw is None else json.loads(raw)
+                if (status not in ('newborn', 'available', 'completed', 'cancelled')
+                        or execution is not None and any(execution[key] is not None
+                            for key in ('worktree', 'branch', 'pending', 'publication'))):
+                    raise PoiseError('Resolve active execution or allocated worktree before root correction')
+
+    def _manifest(self, config, edits, *, workspace=False):
         candidate = deepcopy(config)
         changed = set()
         for item in edits:
             if not isinstance(item, dict) or set(item) != {"path", "value"}:
                 raise PoiseError("manifest edit requires path and value")
             path = path_key(item["path"])
-            if path[0] in {"paths", "processes", "project", "schema"}:
+            if path[0] in {"paths", "processes", "project", "schema"} and not (
+                    workspace and path == ('paths', 'worktrees')):
                 raise PoiseError(f"Manifest field {path[0]} has a dedicated owner")
             # Named optional C004 capability, not permission to create arbitrary fields.
             if path not in (("development_routing",), ("source_reader",), ("telemetry_delivery",), ("task_planning",)):
@@ -233,6 +250,7 @@ class FileProjectConfigUpdate:
 
     def apply(self, request):
         settings = self.settings
+        workspace = request['schema'] == 'project-worktree-root-1'
         config_path = self._config_path(request["config_path"])
         root, live_config, live_processes = self._source(
             config_path, request["process_updates"]
@@ -261,7 +279,7 @@ class FileProjectConfigUpdate:
                     config_path, request["process_updates"]
                 )
                 current_revision = digest({"config": live_config, "processes": live_processes})
-                if request["expected_revision"] not in self._known_revisions(root):
+                if not workspace and request["expected_revision"] not in self._known_revisions(root):
                     raise VersionConflict("External project revision is not known")
                 if not replayed and current_revision != request["expected_revision"]:
                     raise VersionConflict("Live project differs from the expected known revision")
@@ -278,11 +296,13 @@ class FileProjectConfigUpdate:
                 locks.enter_context(exclusive_lock(
                     state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
                 ))
-                candidate_config = self._manifest(live_config, request["manifest_edits"])
+                candidate_config = self._manifest(live_config, request["manifest_edits"], workspace=workspace)
                 candidate_processes = self._processes(live_processes, request["process_updates"])
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
-                if (request["manifest_edits"] or request["state_relocation"] is not None) and self._active_work(root, live_config):
+                if workspace:
+                    self._require_unallocated_worktrees(root, live_config)
+                elif (request["manifest_edits"] or request["state_relocation"] is not None) and self._active_work(root, live_config):
                     raise PoiseError("Manifest or state relocation requires quiescent project; active work exists")
                 component_digests = lambda config, processes: {
                     "config": digest(config),

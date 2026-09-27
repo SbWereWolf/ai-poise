@@ -1,0 +1,45 @@
+{
+  "schema": "stride-sequencing-config/v1",
+  "paths": {
+    "state": "../state",
+    "database": "sequencing.sqlite",
+    "lock": "sequencing.lock"
+  },
+  "batch": {
+    "max_input_bytes": 8192,
+    "max_items": 64
+  },
+  "read": {
+    "max_queries": 64
+  },
+  "lock": {
+    "seconds": 1.0,
+    "poll_seconds": 0.01
+  },
+  "repository": {
+    "id": "ai-poise",
+    "path": "../repo",
+    "base_ref": "refs/heads/poise-stride-v2"
+  },
+  "worktree": {
+    "root": "../worktrees",
+    "branch_prefix": "tasks/",
+    "fs_timeout_seconds": 5.0,
+    "git_timeout_seconds": 5.0
+  },
+  "transfer": {
+    "root": "../transfer",
+    "max_package_bytes": 1048576,
+    "max_files": 64,
+    "max_file_bytes": 262144,
+    "file_mode": 384
+  },
+  "identifiers": {
+    "task": {
+      "pattern": "^[0-9]{4}$"
+    },
+    "sprint": {
+      "pattern": "^[A-Z0-9-]+$"
+    }
+  }
+}

@@ -177,6 +177,10 @@ Keep this English projection and its Russian source consistent in the same chang
 - File extensions must match content and purpose. Environment templates end in `.env` and contain `example`, such as
   `app.example.env`. Format parallel lists vertically for stable diffs. Invoke repository `.sh` entry points explicitly
   through Bash.
+- Never stage or commit working, deployment-specific configuration files, even if Git already tracks them. Keep only
+  sanitized examples/templates and documentation of every option under version control. Exclude the working paths from
+  Git while preserving their local files; a tracked working config is a defect to correct, not permission to commit its
+  next change. This restriction also applies to commits made as part of Task integration.
 - Product-affecting values come from explicit configuration contracts. Internal constants are allowed only when they
   cannot affect product behaviour or output. Do not add hidden defaults, fallbacks, legacy aliases, dual reads/writes or
   compatibility adapters unless explicitly required. Accepted replacements remove the superseded path within scope;

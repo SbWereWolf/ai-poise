@@ -8,7 +8,8 @@ import subprocess
 import sys
 
 
-product, mode = sys.argv[1:]
+product, mode = sys.argv[1:3]
+arguments = sys.argv[3:] or ["check", "--catalog-dir", "/selected"]
 calls = Path(os.environ["BOOTSTRAP_FAULT_CALLS"])
 count = 0
 
@@ -30,6 +31,6 @@ def fake_run(argv, *args, **kwargs):
 
 
 subprocess.run = fake_run
-sys.argv = [product, "check", "--catalog-dir", "/selected"]
+sys.argv = [product, *arguments]
 sys.path.insert(0, str(Path(product).parent))
 runpy.run_path(product, run_name="__main__")

@@ -74,12 +74,13 @@ class BootstrapBoundaryTest(unittest.TestCase):
             capture_output=True, cwd=self.layout, env=env,
         )
 
-    def invoke_fault(self, mode: str) -> tuple[subprocess.CompletedProcess[bytes], list[list[str]]]:
+    def invoke_fault(self, mode: str, *arguments: str) -> tuple[subprocess.CompletedProcess[bytes], list[list[str]]]:
         log = self.root / "fault-calls.jsonl"
         log.unlink(missing_ok=True)
         env = {**os.environ, "BOOTSTRAP_FAULT_CALLS": str(log)}
         result = subprocess.run(
-            [str(self.python), "-I", "-B", str(FAULT_DRIVER), str(self.layout / "bootstrap"), mode],
+            [str(self.python), "-I", "-B", str(FAULT_DRIVER), str(self.layout / "bootstrap"), mode,
+             *arguments],
             capture_output=True, cwd=self.layout, env=env,
         )
         calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
@@ -156,6 +157,13 @@ class BootstrapBoundaryTest(unittest.TestCase):
                 self.assertNotEqual(result.stderr, b"")
         self.assertFalse(self.calls.exists())
 
+    def test_empty_catalog_dir_rejected_before_child(self) -> None:
+        result, calls = self.invoke_fault("record", "check", "--catalog-dir", "")
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, b"")
+        self.assertIn(b"--catalog-dir must name a directory", result.stderr)
+        self.assertEqual(calls, [], "component process started for an empty catalog value")
+
     def test_missing_and_invalid_locks_fail_before_component_action(self) -> None:
         lock_path = self.layout / "apps/bootstrap/component.json"
         invalid_locks = (
@@ -194,6 +202,20 @@ class BootstrapBoundaryTest(unittest.TestCase):
         result, calls = self.invoke_fault("record")
         self.assert_bootstrap_error(result, "component_lock_unreadable", 2, "check")
         self.assertEqual(calls, [], "component probe or action ran despite unreadable lock")
+
+    def test_unsafe_locks_have_structured_errors(self) -> None:
+        lock_path = self.layout / "apps/bootstrap/component.json"
+        invalid_locks = (
+            ("nul", json.dumps({**LOCK, "distribution": "x\x00y"}).encode("utf-8")),
+            ("surrogate", json.dumps({**LOCK, "distribution": "\ud800"}).encode("utf-8")),
+            ("deep_json", b"[" * 100000 + b"]" * 100000),
+        )
+        for case, contents in invalid_locks:
+            with self.subTest(case=case):
+                lock_path.write_bytes(contents)
+                result, calls = self.invoke_fault("record")
+                self.assert_bootstrap_error(result, "component_lock_invalid", 2, "check")
+                self.assertEqual(calls, [], "component process started for an invalid lock")
 
     def test_missing_distribution_and_module_are_distinct_preflight_failures(self) -> None:
         for metadata in self.site_packages.glob("environment_maintenance-*.dist-info"):

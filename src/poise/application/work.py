@@ -44,6 +44,7 @@ class WorkTools:
             elif op=='advance':out=h.advance(**args)
             elif op=='recover_ownership':out=h.ownership.recover(args)
             elif op=='recover_artifacts':out=self.resources.recover_artifacts(args)
+            elif op=='artifact_drafts':out=self.resources.artifact_drafts(args)
             elif op=='recover_missing_worktree':out=h.recover_missing_worktree(**args)
             elif op=='initialize_stage_contracts':out=h.initialize_stage_contracts(**args)
             elif op=='revise_stage_contract':out=h.revise_stage_contract(**args)

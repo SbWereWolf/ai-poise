@@ -386,7 +386,7 @@ identity, Sprint membership и history, выбирает целевой process,
 `newborn`, пока контракт не пройдёт readiness. Standalone Task после `ready` становится
 `available`; готовый участник draft Sprint остаётся newborn до атомарной публикации Sprint.
 
-Если сохранённый контракт исполнения не позволяет достичь DoD, следующий stage не проходит собственный DoR либо исполнитель обоснованно показывает, что доступный обход не соответствует смыслу Task, результат не маскируется успешным завершением. Исполнитель сохраняет evidence и предлагает проверяющему/пользователю restart с конкретным изменением. Проверяющий или пользователь принимает решение; reviewer меняет только разрешённые restart revision policy части Task contract, а изменение project/harness rules эскалирует пользователю. Ответ содержит точную failure phase и явные recovery routes: reviewer исправляет разрешённую часть контракта (в текущей реализации — только дефектный stage contract через `repair_stage_contract`) либо владелец выполняет `operation: task` с `action: restart`, `expected_version`, непустыми `reason` и `authorization`. Restart разрешён
+Если сохранённый контракт исполнения не позволяет достичь DoD, следующий stage не проходит собственный DoR либо исполнитель обоснованно показывает, что доступный обход не соответствует смыслу Task, результат не маскируется успешным завершением. Исполнитель сохраняет evidence и согласует с независимым проверяющим конкретный restart и изменение. В пределах frozen restart revision policy они принимают и исполняют решение без отдельного согласия пользователя; более широкий пересмотр Task contract или изменение project/harness rules требует отдельного решения пользователя. Ответ содержит точную failure phase и явные recovery routes: reviewer исправляет разрешённую часть контракта (в текущей реализации — только дефектный stage contract через `repair_stage_contract`) либо уполномоченный владелец выполняет `operation: task` с `action: restart`, `expected_version`, непустыми `reason` и `authorization`, не выдавая исполнителя за проверяющего. Restart разрешён
 только для незавершённой неинтегрированной Task (`available`, `active`, `verified`, `accepted`),
 сохраняет её ID, Sprint membership, immutable history, branch, worktree и tracked,
 staged/untracked WIP. Текущее исполнение сбрасывается согласованно: attempts становится нулём,
@@ -424,7 +424,7 @@ contract; при конфликте версии заново прочитайт
     "task_id": "0079",
     "expected_version": 12,
     "reason": "The saved execution contract cannot reach the next stage.",
-    "authorization": "The user authorized recovery of this unfinished Task."
+    "authorization": "The independent reviewer agreed to restart this unfinished Task."
   },
   "messages": []
 }

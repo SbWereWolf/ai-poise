@@ -132,6 +132,49 @@ class FileProjectConfigUpdate:
         except sqlite3.Error as exc:
             raise PoiseError(f"Cannot inspect active project work: {exc}") from exc
 
+    @staticmethod
+    def _storage_bindings(config):
+        """Select existing storage identities, not unrelated policy or limits."""
+        groups = {
+            ("batch",): ("artifact_lock", "artifact_directories"),
+            ("runtime_services", "output"): (
+                "directory", "manifest", "job", "worker_stdout", "worker_stderr",
+            ),
+            ("runtime_services", "handoff"): (
+                "directory", "receipt", "bundle", "preserved_directory",
+            ),
+            ("runtime_services", "transfer"): (
+                "directory", "archive", "manifest", "database", "files_directory",
+                "bundles_directory",
+            ),
+            ("accounting",): ("storage",),
+        }
+        bindings = {
+            ".".join((*path, key)): field_at(config, (*path, key))
+            for path, keys in groups.items() for key in keys
+        }
+        output = config["runtime_services"]["output"]
+        bindings["runtime_services.output.profile_files"] = {
+            profile["id"]: profile["files"]
+            for profile in [*output["known"], output["unknown"]]
+        }
+        return bindings
+
+    def _require_safe_effects(self, root, before, after, *, workspace, relocation):
+        previous = self._storage_bindings(before)
+        current = self._storage_bindings(after)
+        storage_changes = sorted(key for key in previous if previous[key] != current[key])
+        if (relocation or storage_changes) and self._active_work(root, before):
+            effect = "paths.state" if relocation else ", ".join(storage_changes)
+            raise PoiseError(
+                f"Storage rebinding requires quiescent project; active work exists: {effect}"
+            )
+        git_bindings = ("repository", "base_ref", "remote", "branch_template")
+        rebound = any(before["git"][key] != after["git"][key] for key in git_bindings)
+        workspace_changed = before["paths"]["worktrees"] != after["paths"]["worktrees"]
+        if rebound or workspace and workspace_changed:
+            self._require_unallocated_worktrees(root, before)
+
     def _require_unallocated_worktrees(self, root, config):
         state = configured_root(root, config['paths']['state'])
         database = descendant(state, config['paths']['database'])
@@ -146,7 +189,7 @@ class FileProjectConfigUpdate:
                 if (status not in ('newborn', 'available', 'completed', 'cancelled')
                         or execution is not None and any(execution[key] is not None
                             for key in ('worktree', 'branch', 'pending', 'publication'))):
-                    raise PoiseError('Resolve active execution or allocated worktree before root correction')
+                    raise PoiseError('Resolve active execution or allocated worktree before resource rebinding')
 
     def _manifest(self, config, edits, *, workspace=False):
         candidate = deepcopy(config)
@@ -300,10 +343,6 @@ class FileProjectConfigUpdate:
                 candidate_processes = self._processes(live_processes, request["process_updates"])
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
-                if workspace:
-                    self._require_unallocated_worktrees(root, live_config)
-                elif (request["manifest_edits"] or request["state_relocation"] is not None) and self._active_work(root, live_config):
-                    raise PoiseError("Manifest or state relocation requires quiescent project; active work exists")
                 component_digests = lambda config, processes: {
                     "config": digest(config),
                     "processes": {goal: digest(value) for goal, value in processes.items()},
@@ -320,6 +359,10 @@ class FileProjectConfigUpdate:
                         if value not in {pending["before"]["processes"].get(goal), pending["after"]["processes"].get(goal)}:
                             raise VersionConflict("Unmanaged process change during recovery")
                 self._validate_candidate(root, candidate_config, candidate_processes)
+                self._require_safe_effects(
+                    root, live_config, candidate_config, workspace=workspace,
+                    relocation=request["state_relocation"] is not None,
+                )
                 readiness = FileProjectSetup(settings)._probe(candidate_config, request["probe_repository"])
                 if not replayed:
                     atomic_write(pending_path, encoded({"schema": "project-config-pending-1",

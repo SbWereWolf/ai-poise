@@ -25,6 +25,7 @@ from tests.batch.helpers import (
     text_artifact,
     verify,
 )
+from tests.sprints.helpers import setup as sprint_setup, task as sprint_task
 
 
 class ArtifactDraftOperationMissing(RuntimeError):
@@ -457,6 +458,106 @@ def test_ordinary_registered_artifact_stays_immutable_and_rejection_is_atomic(pr
         verify(tools, changed)
 
     assert protected_state(runtime, Path(context["task_root"])) == before
+
+
+@pytest.mark.parametrize("terminal_status", ["completed", "cancelled"])
+def test_terminal_task_rejects_new_draft_recovery_without_mutation(project, terminal_status):
+    sprint_setup(project)
+    contract = sprint_task(project, "T1")
+    contract["sprint_id"] = None
+    runtime = WorkPoise(project["config_path"], f"terminal-{terminal_status}-owner")
+    tools = WorkTools(runtime)
+    context = tools.invoke(request("bootstrap", {
+        "task": contract,
+        "decision": None,
+        "feedback": None,
+        "rework_stage": None,
+    }))
+    verified = verify(
+        tools,
+        result(context, "Register immutable evidence before terminal state."),
+        [text_artifact("task", "ERP-AI-ANALYSIS-v6.md", "terminal evidence\n")],
+    )
+    artifact = next(item for item in artifact_records(runtime)
+                    if item["path"] == verified["artifacts"][0]["path"])
+    if terminal_status == "completed":
+        assert tools.invoke(request("accept", {}))["status"] == "completed"
+    else:
+        assert tools.invoke(request("cancel", {
+            "reason": "Create a cancelled terminal recovery fixture."
+        }))["status"] == "cancelled"
+    task_root = Path(context["task_root"])
+    reader_runtime = WorkPoise(project["config_path"], f"terminal-{terminal_status}-reader")
+    before = protected_state(reader_runtime, task_root)
+    with pytest.raises(PoiseError, match="terminal|completed|cancelled"):
+        recover(
+            WorkTools(reader_runtime),
+            reader_runtime,
+            artifact["id"],
+            request_id=f"recover-{terminal_status}-task",
+        )
+    assert protected_state(reader_runtime, task_root) == before
+
+
+def test_review_rejects_preexisting_hardlinked_snapshot(project):
+    configure(project)
+    runtime = WorkPoise(project["config_path"], "hardlink-owner")
+    tools = WorkTools(runtime)
+    context = bootstrap(tools, project)
+    add_test(context["worktree"])
+    opened = declare(tools, runtime, "ERP-AI-ANALYSIS-v6.md", "declare-hardlink")
+    verified = verify(
+        tools,
+        result(context, "Prepare a draft for hard-link rejection."),
+        [text_artifact("task", "ERP-AI-ANALYSIS-v6.md", "reviewed bytes\n")],
+    )
+    artifact_id = opened["drafts"][0]["artifact_id"]
+    source = Path(next(item["path"] for item in verified["artifacts"]
+                       if item["id"] == artifact_id))
+    release(tools, "release-hardlink-review")
+    digest = hashlib.sha256(b"reviewed bytes\n").hexdigest()
+    snapshot = Path(context["task_root"]) / "artifact-draft-history" / artifact_id / (
+        f"0001-{digest}.snapshot"
+    )
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    snapshot.hardlink_to(source)
+    reviewer_runtime = WorkPoise(project["config_path"], "hardlink-reviewer")
+    before = protected_state(reviewer_runtime, Path(context["task_root"]))
+    with pytest.raises(PoiseError, match="hard.?link|independent|alias"):
+        decide(
+            WorkTools(reviewer_runtime), reviewer_runtime, "review", artifact_id,
+            "reject-hardlinked-review",
+        )
+    assert protected_state(reviewer_runtime, Path(context["task_root"])) == before
+
+
+def test_finalize_rejects_tampered_registered_snapshot(project):
+    configure(project)
+    runtime = WorkPoise(project["config_path"], "tamper-owner")
+    tools = WorkTools(runtime)
+    context = bootstrap(tools, project)
+    add_test(context["worktree"])
+    opened = declare(tools, runtime, "ERP-AI-ANALYSIS-v6.md", "declare-tamper")
+    verify(
+        tools,
+        result(context, "Prepare a draft for snapshot tamper rejection."),
+        [text_artifact("task", "ERP-AI-ANALYSIS-v6.md", "accepted review bytes\n")],
+    )
+    artifact_id = opened["drafts"][0]["artifact_id"]
+    release(tools, "release-tamper-review")
+    reviewer_runtime = WorkPoise(project["config_path"], "tamper-reviewer")
+    reviewer = WorkTools(reviewer_runtime)
+    reviewed = decide(
+        reviewer, reviewer_runtime, "review", artifact_id, "review-before-tamper"
+    )
+    Path(reviewed["snapshots"][0]["snapshot_path"]).write_bytes(b"tampered\n")
+    before = protected_state(reviewer_runtime, Path(context["task_root"]))
+    with pytest.raises(PoiseError, match="snapshot|digest|history|conflict"):
+        decide(
+            reviewer, reviewer_runtime, "finalize", artifact_id,
+            "reject-tampered-history",
+        )
+    assert protected_state(reviewer_runtime, Path(context["task_root"])) == before
 
 
 def _run_as_registered_check() -> int:

@@ -52,6 +52,10 @@ class WorkResources:
         if FileArtifactFactory._read_registered(source, 'Artifact draft source') != expected_digest:
             raise PoiseError('Artifact draft source digest changed before snapshot')
         if target.exists():
+            source_stat=source.stat();target_stat=target.stat()
+            if ((source_stat.st_dev,source_stat.st_ino)==(target_stat.st_dev,target_stat.st_ino)
+                    or target_stat.st_nlink != 1):
+                raise PoiseError('Artifact draft snapshot must be an independent non-hardlinked copy')
             if FileArtifactFactory._read_registered(target, 'Artifact draft snapshot') != expected_digest:
                 raise PoiseError('Artifact draft snapshot conflict')
             return False
@@ -118,6 +122,8 @@ class WorkResources:
                     raise PoiseError('Artifact draft decision requires a released Task claim')
                 if db.execute('SELECT id FROM tasks WHERE claimed_by=? LIMIT 1',(h.session,)).fetchone():
                     raise PoiseError('Artifact draft decision requires a taskless caller')
+                if task['status'] in ('completed','cancelled'):
+                    raise PoiseError(f"Artifact draft lifecycle cannot mutate terminal {task['status']} Task")
                 if intent.action == 'recover':
                     snapshots=[]
                     for target in intent.artifacts:
@@ -195,6 +201,23 @@ class WorkResources:
                             **snapshot,'result':result})
                     return result
                 for draft,record,_ in selected:
+                    records_by_path={item['path']:item for item in records.values()}
+                    for historical in draft['snapshots']:
+                        snapshot_path=Path(historical['snapshot_path'])
+                        try:snapshot_relative=snapshot_path.relative_to(root).as_posix()
+                        except ValueError as exc:
+                            raise PoiseError('Artifact draft snapshot is outside Task history') from exc
+                        snapshot_record=records_by_path.get(str(snapshot_path))
+                        expected_id=artifact_identity('task',intent.task_id,snapshot_relative)
+                        if (snapshot_record is None or snapshot_record['id'] != expected_id
+                                or snapshot_record['scope'] != 'task'
+                                or snapshot_record['owner'] != intent.task_id
+                                or snapshot_record['digest'] != historical['digest']):
+                            raise PoiseError('Artifact draft snapshot registry/history conflict')
+                        if FileArtifactFactory._read_registered(
+                            snapshot_path,'Artifact draft historical snapshot'
+                        ) != historical['digest']:
+                            raise PoiseError('Artifact draft historical snapshot digest conflict')
                     if not draft['snapshots'] or draft['snapshots'][-1]['digest'] != record['digest']:
                         raise PoiseError('Artifact draft finalization requires a review of current bytes')
                 result={'status':'artifact_drafts_finalized','task':intent.task_id,

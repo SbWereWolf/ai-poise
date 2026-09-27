@@ -76,6 +76,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
 
     def invoke_fault(self, mode: str) -> tuple[subprocess.CompletedProcess[bytes], list[list[str]]]:
         log = self.root / "fault-calls.jsonl"
+        log.unlink(missing_ok=True)
         env = {**os.environ, "BOOTSTRAP_FAULT_CALLS": str(log)}
         result = subprocess.run(
             [str(self.python), "-I", "-B", str(FAULT_DRIVER), str(self.layout / "bootstrap"), mode],
@@ -194,7 +195,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
 
     def test_wrong_distribution_version_is_rejected(self) -> None:
         shutil.rmtree(self.site_packages / "environment_maintenance-0.2.0.dist-info")
-        self.install_component(version="0.1.1")
+        self.install_component(version="0.1.1", module=False)
         self.assert_bootstrap_error(
             self.invoke("infra", "--catalog-dir", "/selected"), "component_version_mismatch", 3, "infra",
         )

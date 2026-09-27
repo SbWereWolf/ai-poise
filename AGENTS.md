@@ -406,8 +406,9 @@ This installation stores mutable data under `/home/sbwerewolf/workdata/ai-poise/
 Task artifacts belong in `sprint/<sprint-id>/task/<task-id>/`. The live Task DB is `database/tasks.sqlite`, its lock is
 `database/tasks.lock`, and backups belong only in `database/backups/`. Do not create compatibility files or symlinks for
 the old root-level database paths or the removed `task/` artifact root. This is the user's explicit local placement
-decision, superseding the external-state default for this project. Configuration is under `config/projects/ai-poise/`,
-separate from mutable data.
+decision, superseding the external-state default for this project. Local configuration is under
+`config/projects/ai-poise/`, separate from mutable data and excluded from Git; tracked examples live in that directory
+and `config/examples/`.
 
 Discover and operate Task DB backups through the public `poise backup` CLI. Start with `poise backup help`; use `poise
 backup list --config PROJECT_JSON`, `poise backup create --config PROJECT_JSON`, and `poise backup restore --config

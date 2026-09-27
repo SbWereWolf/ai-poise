@@ -22,5 +22,14 @@ dist/
 # Generated IDE project state
 /.idea/
 
+# Installation-specific working configuration; version only examples/templates.
+/.codex/hooks.json
+/config/project-setup.json
+/config/project-registry.json
+/config/goal-editor.json
+/config/projects/ai-poise/*
+!/config/projects/ai-poise/project.example.json
+!/config/projects/ai-poise/hooks-settings.example.json
+
 # AI-poise codebase-owned test package cache
 .poise-test-cache/

@@ -209,8 +209,8 @@ operator backups; не применяет force-delete, push или скрыты
 без позиционного действия. Один явный `configured-project-registry-1` используется batch и
 interactive публикацией, точным replay после сбоя регистрации и списком. Выдача сортирует
 пригодные проекты и явные missing/invalid ошибки; отдельного CLI, discovery-сервиса или
-directory scan нет. Реальный `config/project-setup.json` указывает на поставляемый registry с
-проектом `ai-poise`. Актуальный GREEN подтверждается verification evidence Task, а не
+directory scan нет. Рабочий `config/project-setup.json` указывает на локальный registry с
+проектом `ai-poise`; оба файла исключены из Git, их форму показывают examples. Актуальный GREEN подтверждается verification evidence Task, а не
 зафиксированным в документе числом.
 
 

@@ -469,10 +469,11 @@ def test_reviewer_revision_rejects_future_output_outside_candidate_scope_atomica
     process, task = _configure(project, inspection=True)
     producer = process["stages"][1]["id"]
     output = "tests/review-output"
-    task["stage_contracts"][1]["allowed_paths"] = [output]
+    covered_surface = "tests/other/covered.py"
+    task["stage_contracts"][1]["allowed_paths"] = [output, "tests/other/**"]
     method = deepcopy(project["task"]["methods"][1])
     method["argv"] = [method["argv"][0], "-m", "unittest", "discover", "-s", output]
-    method["verification_plan"]["change_surface"] = [output]
+    method["verification_plan"]["change_surface"] = [covered_surface]
     method["verification_plan"]["green_stages"] = [producer]
     task["methods"] = [method]
     task["method_inputs"] = [{
@@ -493,6 +494,13 @@ def test_reviewer_revision_rejects_future_output_outside_candidate_scope_atomica
     candidate["allowed_paths"] = ["tests/other/**"]
     version = runtime.task_queries.record("T1")["version"]
     before = _transition_effects(runtime)
+    candidate_contracts = deepcopy(task["stage_contracts"])
+    candidate_contracts[1] = candidate
+    with runtime.store.unit_of_work() as unit:
+        domain_task = unit.tasks.load("T1")
+        domain_task.check_registry.validate_route(
+            domain_task.route.with_stage_scopes(candidate_contracts)
+        )
 
     with pytest.raises(PoiseError, match="path tests/review-output is outside allowed_paths"):
         _transition(runtime, "revise", request_id="invalid-future-revise",
@@ -500,6 +508,12 @@ def test_reviewer_revision_rejects_future_output_outside_candidate_scope_atomica
                     role="reviewer")
 
     assert _transition_effects(runtime) == before
+    valid = deepcopy(task["stage_contracts"][1])
+    valid["allowed_paths"].append("tests/new/**")
+    revised = _transition(runtime, "revise", request_id="valid-future-revise",
+                          expected_version=version, stage_id=producer, contract=valid,
+                          role="reviewer")
+    assert revised["new"]["allowed_paths"] == valid["allowed_paths"]
 
 
 def test_reviewer_revision_replays_and_records_old_new_history(project):

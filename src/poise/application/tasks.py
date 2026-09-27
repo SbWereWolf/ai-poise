@@ -594,6 +594,12 @@ class TaskCommands:
             if task.state.version != expected_version:
                 raise DomainError("stage contract version conflict")
             parsed = TaskStageContracts.parse(contracts, task.route, task.content_policy)
+            from ..modules.tasks.creation_preflight import CreationPreflight
+            context = uow.tasks.restart_context(task_id)
+            CreationPreflight.parse(
+                {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
+                context["process"],
+            )
             change = task.initialize_stage_contracts(parsed)
             return uow.tasks.save_stage_contract_change(change, expected_version, audit)
 
@@ -635,9 +641,6 @@ class TaskCommands:
                 raise DomainError("Stage contract Task is owned by another session; handoff is required")
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Stage contract worktree is owned by another session; handoff is required")
-            before = uow.ownership.snapshot(actor)
-            if before.task_id not in (None, task_id):
-                release_task_in(uow, actor, before.task_id)
             if not isinstance(contract, dict) or set(contract) != {
                 "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
             } or contract["stage_id"] != stage_id:
@@ -646,9 +649,16 @@ class TaskCommands:
                 deepcopy(contract) if item.stage_id == stage_id else item.to_dict()
                 for item in task.stage_contracts.items
             ]
-            replacement = TaskStageContracts.parse(
-                candidate, task.route, task.content_policy
-            ).stage(stage_id)
+            parsed = TaskStageContracts.parse(candidate, task.route, task.content_policy)
+            from ..modules.tasks.creation_preflight import CreationPreflight
+            CreationPreflight.parse(
+                {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
+                context["process"],
+            )
+            before = uow.ownership.snapshot(actor)
+            if before.task_id not in (None, task_id):
+                release_task_in(uow, actor, before.task_id)
+            replacement = parsed.stage(stage_id)
             change = task.revise_stage_contract(actor, stage_id, replacement)
             result = uow.tasks.save_stage_contract_change(change, expected_version, audit)
             if uow.ownership.worktree_required(task_id):

@@ -293,7 +293,9 @@ Keep this English projection and its Russian source consistent in the same chang
   worktree while updating from current `master`, merging, resolving conflicts, and rerunning every current
   produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The terminal
   content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards. Never create a
-  separate integration branch or worktree. Under the shared target lock, recheck `master` immediately before
+  separate integration branch or worktree. Every content-producing merge, rebase, cherry-pick, conflict resolution,
+  and integration commit must run in the Task-owned child worktree; the primary checkout is never a preparation or
+  working copy. Under the shared target lock, recheck `master` immediately before
   publication; repeat update, resolution, and checks on drift, then publish only with `git merge --ff-only
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Resolve the delivery root without changing the caller working directory.
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit
+exec "$root/apps/poise/bin/poise" "$@"

@@ -330,6 +330,18 @@ Keep this English projection and its Russian source consistent in the same chang
   runtime/task-contract, executor, reviewer, protective-rejection and unresolved causes from evidence. Batch independent
   managed reads through existing `show.queries`; do not add another reader or claim unmeasured savings.
 
+## Task path, rework, and stage graph invariants
+
+The canonical rule is [path immutability, rework, and stage graphs](docs/governance/development-rules.md#неизменность-путей-rework-и-граф-этапов). Apply it when planning a Task, revising its frozen contract, entering rework, and reviewing a result.
+
+- **TASK-PATH-01.** Task creation must not declare a path immutable when a later normal or rework stage must modify or create it; every planned write path belongs in that stage's `allowed_paths` before `ready`.
+- **TASK-PATH-02.** A later stage or rework plan must not require a write to a path frozen by the resolved Task contract; authorized planning or `restart` must remove the contradiction before stage admission.
+- **TASK-PATH-03.** Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.
+- **TASK-PATH-04.** Registered immutable artifacts remain immutable; a correction uses a new artifact identity and a contract revision instead of overwriting registered bytes.
+- **TASK-PATH-05.** An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.
+
+An acceptance working draft is not automatically immutable evidence. Do not register it as an immutable artifact while later review or rework still requires in-place edits. If the current Task contract forces that contradiction, report it as broken and seek an authorized contract revision or a separate artifact-lifecycle change; do not silently overwrite registered bytes or proliferate versioned files as a routine workaround.
+
 ## Mandatory bootstrap and verification
 
 Follow [Start and

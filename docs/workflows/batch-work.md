@@ -681,6 +681,12 @@ lifecycle и execution state.
 доменный переход Task и очистка execution state согласованы в одном UoW: отказ предшествует любому изменению lifecycle
 или execution.
 
+Если до начала rework известно, что потребуется изменить или создать файл вне
+`allowed_paths` целевого этапа, сначала нужен разрешённый пересмотр контракта Task:
+сам переход не снимает неизменность и не добавляет путь автоматически. Нельзя
+требовать от исполнителя запись в ранее замороженный путь; см.
+[неизменность путей, rework и граф этапов](../governance/development-rules.md#неизменность-путей-rework-и-граф-этапов).
+
 Успех сохраняет Task ID, worktree, branch, task/process contracts, прежние submissions, историю и failed receipts.
 Создаётся новый visit целевого этапа с его iteration, записываются feedback и событие `user_failed_check_rework`, а
 заброшенное retry-состояние очищается: `attempts=0`, `publication=null`, `pending=null`, `entry_tree` становится текущим

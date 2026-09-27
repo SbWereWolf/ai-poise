@@ -93,7 +93,14 @@ class BootstrapBoundaryTest(unittest.TestCase):
         self.assertEqual(result.returncode, exit_code)
         self.assertEqual(result.stderr, b"")
         self.assertEqual(result.stdout.count(b"\n"), 1)
-        packet = json.loads(result.stdout)
+        self.assertTrue(result.stdout.startswith(b"{"))
+        self.assertTrue(result.stdout.endswith(b"}\n"))
+        try:
+            payload = result.stdout[:-1].decode("utf-8")
+        except UnicodeDecodeError:
+            self.fail("Bootstrap error is not UTF-8")
+        packet = json.loads(payload)
+        self.assertEqual(payload, json.dumps(packet, ensure_ascii=False, separators=(",", ":")))
         self.assertEqual(set(packet), ERROR_FIELDS)
         self.assertEqual(packet["schema"], "ai-poise/bootstrap-error/v1")
         self.assertEqual(packet["source"], "bootstrap")
@@ -216,6 +223,16 @@ class BootstrapBoundaryTest(unittest.TestCase):
                 result, calls = self.invoke_fault("record")
                 self.assert_bootstrap_error(result, "component_lock_invalid", 2, "check")
                 self.assertEqual(calls, [], "component process started for an invalid lock")
+
+    def test_unsafe_values_in_every_lock_field_fail_before_child(self) -> None:
+        lock_path = self.layout / "apps/bootstrap/component.json"
+        for field in LOCK:
+            for case, value in (("nul", "x\x00y"), ("surrogate", "\ud800")):
+                with self.subTest(field=field, case=case):
+                    lock_path.write_text(json.dumps({**LOCK, field: value}), encoding="utf-8")
+                    result, calls = self.invoke_fault("record")
+                    self.assert_bootstrap_error(result, "component_lock_invalid", 2, "check")
+                    self.assertEqual(calls, [], "component process started for an invalid lock")
 
     def test_missing_distribution_and_module_are_distinct_preflight_failures(self) -> None:
         for metadata in self.site_packages.glob("environment_maintenance-*.dist-info"):

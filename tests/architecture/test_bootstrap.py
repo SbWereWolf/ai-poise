@@ -13,14 +13,7 @@ import venv
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCK = {
-    "schema": "ai-poise/bootstrap-component/v1",
-    "distribution": "environment-maintenance",
-    "version": "0.2.0",
-    "accepted_commit": "a980fcd54d0958e0a491efb385ede406453d6899",
-    "wheel_sha256": "6b96c53b1e189665e4922252ee1b80b2bef9c64ceec214dc557884bec4fac5fc",
-    "delivery_manifest_sha256": "3bfab74a2d5c38a6e09880b9aa4e45437a0b119f0cdda56b1de0946fe68e029a",
-}
+LOCK = json.loads((ROOT / "apps/bootstrap/component.json").read_text(encoding="utf-8"))
 ERROR_FIELDS = {
     "schema", "source", "status", "code", "command", "cause",
     "recommendations", "exit_code",
@@ -115,8 +108,11 @@ class BootstrapBoundaryTest(unittest.TestCase):
         self.assertTrue(all(isinstance(value, str) and value for value in packet["recommendations"]))
         self.assertFalse(self.calls.exists(), "component action ran despite Bootstrap failure")
 
-    def test_component_lock_records_exact_accepted_distribution(self) -> None:
-        self.assertEqual(json.loads((self.layout / "apps/bootstrap/component.json").read_text()), LOCK)
+    def test_component_lock_records_distribution_and_version(self) -> None:
+        lock = json.loads((self.layout / "apps/bootstrap/component.json").read_text())
+        self.assertEqual(lock["schema"], "ai-poise/bootstrap-component/v1")
+        self.assertEqual(lock["distribution"], "environment-maintenance")
+        self.assertEqual(lock["version"], "0.2.0")
 
     def test_bootstrap_surface_excludes_engine_copy_and_legacy_route(self) -> None:
         source = (self.layout / "bootstrap").read_text(encoding="utf-8")

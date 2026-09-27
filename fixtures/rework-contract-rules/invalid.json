@@ -1,0 +1,20 @@
+[
+  {
+    "id": "negated-rework-rule",
+    "file": "development",
+    "from": "Rework does not lift immutability",
+    "to": "Rework may lift immutability"
+  },
+  {
+    "id": "contradictory-artifact-rule",
+    "file": "agents",
+    "from": "Registered immutable artifacts remain immutable",
+    "to": "Registered immutable artifacts may be overwritten during rework"
+  },
+  {
+    "id": "disconnected-planning-link",
+    "file": "planning",
+    "from": "../governance/development-rules.md",
+    "to": "../governance/requirements.md"
+  }
+]

@@ -73,3 +73,17 @@ def test_route_terminal_not_last_list_position():
 def test_every_inspection_rework_outcome_has_a_real_target():
     cfg=process();cfg["stages"][1]["transitions"]["changes_requested"]=None
     with pytest.raises(DomainError): route(cfg)
+
+
+def test_valid_cycle_with_positive_terminal_path_is_accepted():
+    cfg = process()
+    cfg["stages"][2]["transitions"]["complete"] = "follow_up"
+    cfg["stages"][3]["transitions"] = {
+        "clear": None,
+        "changes_requested": "amend",
+    }
+
+    parsed = route(cfg)
+
+    assert parsed.node("amend").target("complete") == "follow_up"
+    assert parsed.node("follow_up").target("clear") is None

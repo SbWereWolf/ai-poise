@@ -185,6 +185,18 @@ def _full_contract_snapshot(runtime, task_id="T1"):
     }
 
 
+def _transition_effects(runtime, task_id="T1"):
+    with runtime.store.transaction() as db:
+        tables = [row[0] for row in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        )]
+        rows = {
+            table: tuple(tuple(row) for row in db.execute(f'SELECT * FROM "{table}" ORDER BY rowid'))
+            for table in tables
+        }
+    return rows, runtime.ownership.snapshot("executor")
+
+
 def _legacy(runtime, task_id="T1"):
     with runtime.store.transaction() as db:
         row = db.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -437,6 +449,59 @@ def test_stage_contract_initialization_rejects_unauthorized_role_atomically(proj
     assert _full_contract_snapshot(runtime) == before
 
 
+def test_initialization_rejects_future_output_outside_candidate_scope_atomically(project):
+    tools, _, task = _bootstrap(project)
+    runtime = tools.runtime
+    _legacy(runtime)
+    candidate = deepcopy(task["stage_contracts"])
+    candidate[0]["allowed_paths"] = ["tests/exact/**"]
+    version = runtime.task_queries.record("T1")["version"]
+    before = _transition_effects(runtime)
+
+    with pytest.raises(PoiseError, match="path tests is outside allowed_paths of producer tests"):
+        _transition(runtime, "initialize", request_id="invalid-future-init",
+                    expected_version=version, contracts=candidate)
+
+    assert _transition_effects(runtime) == before
+
+
+def test_reviewer_revision_rejects_future_output_outside_candidate_scope_atomically(project):
+    process, task = _configure(project, inspection=True)
+    producer = process["stages"][1]["id"]
+    output = "tests/review-output"
+    task["stage_contracts"][1]["allowed_paths"] = [output]
+    method = deepcopy(project["task"]["methods"][1])
+    method["argv"] = [method["argv"][0], "-m", "unittest", "discover", "-s", output]
+    method["verification_plan"]["change_surface"] = [output]
+    method["verification_plan"]["green_stages"] = [producer]
+    task["methods"] = [method]
+    task["method_inputs"] = [{
+        "method_id": method["id"],
+        "repository_inputs": [],
+        "future_outputs": [{"path": output, "producer_stage": producer}],
+        "reference_profile": {
+            "runner": "unittest", "parser": "discover-start-directory", "version": 1,
+        },
+    }]
+    task["checks"][producer] = [method["id"]]
+    tools = WorkTools(Poise(project["config_path"], "executor"))
+    tools.invoke(request("bootstrap", {
+        "task": task, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    runtime = tools.runtime
+    candidate = deepcopy(task["stage_contracts"][1])
+    candidate["allowed_paths"] = ["tests/other/**"]
+    version = runtime.task_queries.record("T1")["version"]
+    before = _transition_effects(runtime)
+
+    with pytest.raises(PoiseError, match="path tests/review-output is outside allowed_paths"):
+        _transition(runtime, "revise", request_id="invalid-future-revise",
+                    expected_version=version, stage_id=producer, contract=candidate,
+                    role="reviewer")
+
+    assert _transition_effects(runtime) == before
+
+
 def test_reviewer_revision_replays_and_records_old_new_history(project):
     tools, _, task = _bootstrap(project, inspection=True)
     runtime = tools.runtime
@@ -587,9 +652,9 @@ def test_reopen_preserves_initialized_stage_contract(project):
 
 
 def test_task_specific_scope_narrows_and_expands_template_enforcement(project):
-    tools, context, _ = _bootstrap(project, first_scope=["tests/exact/**", "docs/task/**"])
+    tools, context, _ = _bootstrap(project, first_scope=["tests", "tests/exact/**", "docs/task/**"])
     scope = tools.runtime.stage_contract_context("T1")["current"][0]["allowed_paths"]
-    assert scope == ["tests/exact/**", "docs/task/**"]
+    assert scope == ["tests", "tests/exact/**", "docs/task/**"]
     assert "tests/**" not in scope
 
 

@@ -38,7 +38,7 @@ terminal/result fact передаётся явно через публичный
 {
   "schema": "stride-sequencing/v1",
   "operation": "query",
-  "input": {}
+  "input": {"queries": [{"id": "q1", "kind": "resumable", "sprint_id": null}]}
 }
 ```
 
@@ -62,6 +62,64 @@ domain или owner-local storage rejection — exit `2`. Диагностика
   "results": []
 }
 ```
+
+### 2.1 Типы, canonical payload и порядок обработки
+
+Все перечисленные поля request обязательны, кроме явно отмеченных optional; explicit
+`null` не равен отсутствию поля. Неизвестные поля отклоняются на каждом уровне request.
+Идентификатор — непустая строка, удовлетворяющая configured identifier policy; это не
+filesystem path. Revision — integer >= 0, не boolean; revision существующего statement
+или snapshot >= 1. Commit — 40 lowercase hexadecimal characters. Списки ID не содержат
+дубликатов. Время не используется для неявного истечения claim.
+
+Canonical payload для replay — UTF-8 JSON: object keys лексикографически отсортированы
+по Unicode code point; нет insignificant whitespace; Unicode не нормализуется и не
+заменяется ASCII escapes; порядок array сохраняется. Типы — object/array/string/integer/
+boolean/null; floating-point числа контракт не принимает. Digest — SHA-256 этих bytes.
+Digest request включает `schema`, `operation` и все поля logical input, включая
+`expected_revision`, но не
+transport newline. Повторяющиеся object keys, неверные типы и лишние поля дают
+`invalid_packet`; синтаксически неверный JSON или UTF-8 — `invalid_json`.
+
+Порядок отказов для `apply`:
+
+1. Проверить byte bound, JSON, schema, operation и полный shape/bounds packet.
+2. Под локальной write reservation проверить outer request replay: exact возвращает
+   прежний receipt; changed payload даёт `request_reuse_conflict`.
+3. Для нового request сравнить `expected_revision`; stale даёт `revision_conflict`
+   **до** любых проверок eligibility/claim. Это определяет F3/F8.
+4. Выполнить operations в порядке request, проверяя их preconditions на текущем
+   transaction-local состоянии; первый отказ откатывает **весь** batch.
+
+Каждый новый успешный owner-only batch увеличивает store revision ровно на один,
+включая batch только с `changed: false`: сохранение нового replay receipt является
+owner write. Exact outer replay не увеличивает revision. Result items следуют порядку
+operations; read results — порядку queries. Множества Task/edge/blocker в read outputs
+упорядочены лексикографически по ID (edges: predecessor, successor, kind).
+
+Receipt exact replay — исторический результат, а не свежая гарантия владения.
+Повтор старого успешного claim после release не активирует его снова. Перед операцией,
+требующей текущего claim, caller использует current query; сама mutation заново
+проверяет current authority. Diagnostics не заменяет эту проверку.
+
+### 2.2 Полные result variants для `apply`
+
+Каждый result item имеет обязательные `id`, `kind`, `changed`; `id` — ID operation.
+К ним добавляются **ровно** поля следующего variant:
+
+| kind | Дополнительные поля результата |
+| --- | --- |
+| `register_task` | `task_id`, `requirements_snapshot_revision` |
+| `register_sprint`, `revise_sprint` | `sprint_id`, `sprint_revision` |
+| `claim_task`, `resume_claim` | `task_id`, `claim_id`, `claimant`, `claim_replayed` |
+| `release_claim` | `task_id`, `claim_id`, `handoff_id` |
+| `record_terminal`, `cancel_task` | `task_id`, `terminal_id`, `state` |
+
+`changed` и `claim_replayed` — boolean. `handoff_id` непуст: release всегда сохраняет
+owner handoff, включая Task без Workspace. Terminal `state` — `completed|cancelled`.
+Новая Sprint имеет `sprint_revision=1`; accepted revise увеличивает её на один.
+Эта таблица и envelope §5 определяют полный wire result; последующие literal
+responses включают обязательные поля своих variants.
 
 ## 3. Конфигурационные зависимости
 
@@ -121,6 +179,7 @@ Sprint owner record:
 ```json
 {
   "sprint_id": "PS-DEV-002",
+  "sprint_revision": 1,
   "members": ["0042", "0043"],
   "dependencies": [
     {
@@ -140,7 +199,9 @@ Sprint owner record:
 
 Endpoints одного edge принадлежат одному Sprint; cycles запрещены. Standalone Task не
 участвует в межзадачном dependency edge. Изолированная Task не обязана искусственно входить
-в Sprint.
+в Sprint. При нескольких predecessors eligibility требует выполнения **всех** edges:
+один cancelled или non-terminal predecessor достаточен для `eligible=false`, независимо
+от успешности остальных. Eligible non-terminal Task без predecessors не имеет blockers.
 
 ### 4.3 Claim
 
@@ -156,8 +217,25 @@ Claim — owner-local exclusive lease identity без time-based silent expiry:
 ```
 
 Claim создаётся только для currently eligible non-terminal Task. Eligibility re-check и
-claim creation происходят в одной owner-local transaction/revision boundary. Два concurrent
-claim на одну Task не могут оба succeed.
+claim creation происходят в одной owner-local transaction/revision boundary.
+`claimant` — **каноническая непрозрачная identity Session**, переданная публичным
+владельцем Session, а не имя агента, процесса, роль или новый alias для каждой Task.
+Примеры `agent-a`/`agent-b` обозначают две разные Session. Sequencing не создаёт Session
+и не читает её приватную БД; доступ к локальному CLI/config/store ограничивается
+настроенной доверенной вызывающей стороной. Сравнение строк claimant не объявляется
+аутентификацией произвольного удалённого клиента.
+
+SEQ-05 требует два независимых ограничения одновременно:
+
+- не более одного active claim на `task_id`;
+- не более одного active Task claim на `claimant` во всём Sequencing store, включая
+  разные Sprint и standalone Tasks.
+
+Оба ограничения проверяются и сохраняются в **той же** owner-local transaction.
+Два concurrent claim на одну Task или от одной Session на разные Task не могут
+оба succeed. Уже занятая Task даёт `claim_conflict`; свободная eligible Task при
+другой active Task у claimant — `session_claim_conflict`. `resume_claim` не обходит
+эти ограничения. Release не переносит чужую Task и не означает смену Session identity.
 
 Release удаляет active exclusivity, но не уничтожает saved handoff/workspace evidence.
 Resume создаёт новый active claim только через explicit request и exact saved state.
@@ -223,7 +301,7 @@ Request:
   "input": {
     "request_id": "seq-2026-09-27-001",
     "expected_revision": 31,
-    "operations": []
+    "operations": [{"id": "op-1", "kind": "register_task", "task_id": "0042", "requirements_snapshot_revision": 2}]
   }
 }
 ```
@@ -242,7 +320,7 @@ filesystem effects используют durable intent и не маскирую�
   "revision": 32,
   "replayed": false,
   "results": [
-    {"id": "op-1", "kind": "register_task", "changed": true}
+    {"id": "op-1", "kind": "register_task", "changed": true, "task_id": "0042", "requirements_snapshot_revision": 2}
   ]
 }
 ```
@@ -313,12 +391,20 @@ validation до записи; rejection не оставляет partial membersh
 }
 ```
 
-Sequencing внутри той же transaction:
+Sequencing внутри той же transaction сначала проверяет known `claim_request_id`:
+exact inner replay возвращает historical result по правилу ниже; changed intent
+отклоняется. Только для нового inner intent выполняет:
 
 1. читает current dependency/terminal state;
 2. подтверждает Task eligibility;
-3. убеждается в отсутствии active claim;
-4. создаёт claim identity и меняет owner state на `claimed`.
+3. убеждается в отсутствии active claim у выбранной Task; иначе `claim_conflict`;
+4. убеждается в отсутствии другой active Task у этого claimant; иначе
+   `session_claim_conflict`;
+5. создаёт claim identity и меняет owner state на `claimed`.
+
+При одновременной применимости domain отказов действует этот порядок. Stale outer
+revision отклоняется ещё раньше по §2.1. Отказ не расходует claim identity и не
+меняет уже принадлежащую claimant Task.
 
 Result:
 
@@ -326,14 +412,19 @@ Result:
 {
   "id": "claim-1",
   "kind": "claim_task",
+  "changed": true,
   "task_id": "0042",
   "claim_id": "claim-0042-agent-a-1",
-  "claimant": "agent-a"
+  "claimant": "agent-a",
+  "claim_replayed": false
 }
 ```
 
-`claim_request_id` immutable. Exact replay возвращает тот же claim. Второй claimant получает
-`claim_conflict`; blocked Task — `not_eligible` с explicit blockers.
+`claim_request_id` immutable по `{task_id, claimant}`. Exact повтор этого намерения
+возвращает тот же historical claim с `claim_replayed: true`, без новой активации;
+changed intent — `request_reuse_conflict`. Первый claim имеет `claim_replayed: false`.
+Blocked Task — `not_eligible` с explicit blockers. Для нового владения после release
+используется `resume_claim`, а не повтор прежнего creation intent.
 
 ### 5.5 `release_claim`
 
@@ -348,9 +439,23 @@ Result:
 }
 ```
 
-Claimant/claim ID должны совпасть. Release не удаляет Task/Workspace history и не объявляет
-completion. Если Workspace ready и WIP должен сохраниться, release оставляет resumable owner
-record; destructive cleanup является отдельной явной Workspace operation.
+Claimant/claim ID должны совпасть с текущим active claim; иначе
+`claim_owner_mismatch`. `reason` — непустой текст основания, не terminal outcome.
+Pending Workspace intent даёт `workspace_conflict` до reconciliation: нельзя передать
+claim посреди незавершённой физической mutation и объявить Workspace готовой.
+Release атомарно меняет Task на `available`, claim на `released` и создаёт immutable
+owner handoff; result возвращает его `handoff_id`. Handoff содержит `handoff_id`,
+`task_id`, `previous_claim_id`, `requirements_snapshot_revision`, `workspace_id`.
+Последнее поле explicit null для Task без Workspace. Сохранённая Workspace binding
+остаётся собственностью той же Task, не предыдущей Session.
+
+Это owner-state запись, **не** Git snapshot, commit или backup: release не изменяет
+файлы и не утверждает, что текущий WIP уже помещён в durable storage. Экспорт Git/WIP
+выполняется отдельным явным transfer. При ready Workspace файлы остаются на месте;
+destructive cleanup — отдельная Workspace operation. Exact outer replay возвращает
+тот же handoff, а новый request с уже released claim отклоняется
+`claim_owner_mismatch`. Handoff после успешного resume помечен consumed; он остаётся
+в history и не может повторно передать владение.
 
 ### 5.6 `resume_claim`
 
@@ -364,9 +469,19 @@ record; destructive cleanup является отдельной явной Works
 }
 ```
 
-Resume допустим только для unclaimed non-terminal Task с валидным saved handoff/Workspace.
-Sequencing проверяет сохранённые branch/head/workspace identities и создаёт новый claim без
-перевычисления Workspace baseline.
+Resume допустим только для unclaimed currently eligible non-terminal Task с exact
+не consumed `handoff_id` этой Task и неизменной Requirements provenance. Claimant не
+должен владеть другой Task; действуют те же `claim_conflict`, `not_eligible` и
+`session_claim_conflict`, что при claim. Unknown handoff — `not_found`, consumed или
+чужой handoff — `claim_owner_mismatch`.
+
+Sequencing атомарно создаёт новый claim, consumes handoff и сохраняет Task/Workspace
+binding. `claim_replayed: false`; exact outer replay возвращает historical result.
+Workspace baseline не перевычисляется. Проверяется сохранённая owner metadata
+`workspace_id/task_id/branch/base_commit`, а **не** равенство текущего Git HEAD baseline:
+законные Task commits и WIP могут быть новее. Физическую действительность ready
+Workspace caller проверяет через `workspace inspect/acquire`; эти external проверки
+не подменяются claim receipt. Task без Workspace может возобновиться с null binding.
 
 ### 5.7 `record_terminal`
 
@@ -391,9 +506,28 @@ Exact terminal replay idempotent; changed payload with same `terminal_id` пол
 
 ### 5.8 `cancel_task`
 
-Explicit owner terminal cancellation для Sequencing record. Active external/pending Workspace
-operation блокирует cancellation до reconciliation. Cancelled predecessor не удовлетворяет
-completion/result edge; successor остаётся blocked, пока graph policy явно не изменена.
+```json
+{
+  "id": "cancel-1",
+  "kind": "cancel_task",
+  "task_id": "0042",
+  "terminal_id": "cancel-0042-1",
+  "source_ref": {"owner": "orchestrator", "id": "cancellation-0042"}
+}
+```
+
+Точные поля перечислены в example. `source_ref` имеет ровно непустые `owner` и `id`;
+это provenance доверенного локального caller, а не инструкция вызвать другое
+приложение. Operation эквивалентна `record_terminal` с `kind=cancelled` и
+`result_commit=null`; действует тот же immutable terminal ledger. Active claim
+даёт `claim_conflict`; pending Workspace intent — `workspace_conflict` до явного
+reconciliation. Нет скрытого release, deletion или acceptance. Result имеет
+`task_id`, `terminal_id`, `state: "cancelled"` и общие поля §2.2.
+
+Cancelled predecessor не удовлетворяет completion/result edge; successor остаётся
+blocked, пока graph policy явно не изменена. У уже terminal Task допускается только
+exact immutable fact; conflicting fact получает `terminal_conflict`. В `record_terminal`
+те же запреты на active claim/pending Workspace и тот же validation order.
 
 ## 6. Workspace operation: `workspace`
 
@@ -428,9 +562,11 @@ observed exact base commit, performs bounded external Git/filesystem step, then 
   "workspace": {
     "workspace_id": "ws-0042-1",
     "task_id": "0042",
+    "repository_id": "ai-poise",
     "base_commit": "0123456789abcdef0123456789abcdef01234567",
     "branch": "tasks/0042",
-    "path": "/resolved/configured/worktrees/0042"
+    "path": "/resolved/configured/worktrees/0042",
+    "status": "ready"
   },
   "replayed": false
 }
@@ -441,16 +577,101 @@ branch/path/head before completing. It never resets a dirty/foreign workspace to
 
 ### 6.2 Release
 
-`action=release` requires exact workspace/claim or terminal-cleanup authority. It marks
-`release_pending`, performs configured bounded removal only after safety checks, then marks
-`released`. Dirty WIP without an accepted preservation/disposition contract rejects
-`workspace_dirty`; foreign branch/path rejects `workspace_conflict`.
+```json
+{
+  "schema": "stride-sequencing/v1",
+  "operation": "workspace",
+  "input": {
+    "action": "release",
+    "request_id": "release-ws-0042-1",
+    "task_id": "0042",
+    "workspace_id": "ws-0042-1",
+    "authority": {"kind": "claim", "claim_id": "claim-0042-agent-a-1", "claimant": "agent-a"}
+  }
+}
+```
+
+`authority` — tagged union: exact поля `kind=claim, claim_id, claimant` для текущего
+claim либо `kind=terminal, terminal_id` для exact сохранённого terminal fact и
+разрешённого configuration terminal cleanup. Других полей/режимов нет. Несовпадение
+active authority — `claim_owner_mismatch`; terminal fact — `terminal_conflict`.
+
+Release маркирует `release_pending`, выполняет configured bounded removal после
+проверок и сохраняет `released`. Этот v1 release **не принимает** произвольный флаг
+«discard WIP». Dirty/untracked WIP всегда даёт `workspace_dirty`; сначала требуется
+явное сохранение/перенос и clean working tree. Чужой path/branch — `workspace_conflict`.
+Удаление worktree не удаляет Task, Git branch или retained commit history и не
+освобождает claim. Логический workspace ID никогда не назначается другой Task.
+
+Успех имеет ровно `schema`, `status: "workspace_released"`, `revision`, `workspace`,
+`replayed`. `workspace` — полная модель §4.4 со `status: "released"`; `replayed` boolean.
+Ready/acquire success аналогичен, но `status: "workspace_ready"` и Workspace `status=ready`.
+Пример §6.1 содержит полный wire output, включая `task_id`, `repository_id` и `status`.
 
 ### 6.3 Inspect/reconcile
 
-`action=inspect` is read-only external verification of one known reservation. `action=reconcile`
-is explicitly authorized recovery for a known `reserved/release_pending/failed` intent;
-it cannot claim another Task or import an arbitrary filesystem path.
+```json
+{
+  "schema": "stride-sequencing/v1",
+  "operation": "workspace",
+  "input": {"action": "inspect", "task_id": "0042", "workspace_id": "ws-0042-1"}
+}
+```
+
+Inspect — read-only проверка одной известной reservation и её физического состояния.
+Не имеет `request_id`, не пишет observation в store и не создаёт claim. Success имеет
+ровно `schema`, `status: "workspace_inspected"`, `revision`, `workspace`, `observation`.
+Workspace — §4.4. Observation имеет ровно `exists` (boolean), `branch` (string|null),
+`head_commit` (commit|null), `dirty` (boolean|null), `matches_binding` (boolean).
+При отсутствии пути branch/head/dirty равны null. Наблюдение Git не объявляется
+атомарным snapshot с SQLite: revision относится к прочитанной owner binding;
+перед последующей mutation owner повторяет необходимые external safety checks.
+
+```json
+{
+  "schema": "stride-sequencing/v1",
+  "operation": "workspace",
+  "input": {
+    "action": "reconcile",
+    "request_id": "reconcile-ws-0042-1",
+    "intent_request_id": "workspace-0042-1",
+    "task_id": "0042",
+    "workspace_id": "ws-0042-1",
+    "authority": {"kind": "claim", "claim_id": "claim-0042-agent-a-1", "claimant": "agent-a"}
+  }
+}
+```
+
+Reconcile — явно вызванное восстановление exact owner intent в
+`reserved/release_pending/failed`. `authority` — union §6.2; `intent_request_id` —
+исходный acquire/release request, не новый basename или path. Новый `request_id`
+отличается от ID исходного intent: changed payload не выдаётся за его exact replay.
+Operation проверяет фактический path/branch/repository и завершает **прежний** intent,
+не создаёт новый baseline, claim или произвольный filesystem import. Unknown intent
+даёт `not_found`; mismatch Task/Workspace/intent — `workspace_conflict`.
+
+Success — `workspace_ready` или `workspace_released` по исходному intent, с полями §6.2.
+Каждая новая durable owner phase увеличивает revision ровно на один; read-only inspect
+и replay уже завершённого request её не увеличивают. Reconcile завершённого intent
+возвращает его binding без внешней мутации; новый reconcile receipt — отдельная owner
+запись. Crash/retry не выдаёт незавершённый external intent за success: ошибки содержат
+`error.details.intent_request_id`, `workspace_id` и `workspace_status`.
+
+Acquire для Task с ready Workspace возвращает **тот же** workspace после проверки
+binding; claim release/resume не разрешает создавать замену. Explicit физическое
+release сохраняет tombstone binding; восстановление требует сохранённого Git/WIP
+материала, а не переиспользования ID для другой Task.
+
+Для non-terminal Task с новым законным claim и `released` binding acquire выполняет
+`released → reserved → ready` **с теми же** workspace_id, Task, branch и base_commit.
+Источник восстановления — retained собственная Git branch, содержащая base_commit;
+её точный наблюдаемый HEAD записывается как target commit нового restore intent до
+filesystem mutation. Конфигурационный base_ref не перечитывается. Отсутствующий или
+чужой retained branch/material даёт `workspace_conflict`, а не создание пустой замены.
+Exact replay использует записанный target commit, а не сдвинувшийся позже HEAD.
+Dirty/untracked WIP не мог быть удалён через v1 release и не реконструируется из
+предположений. Ни acquire, ни reconcile не сбрасывает изменившийся законный Task HEAD
+к base_commit.
 
 ## 7. Consistent read batch: `query`
 
@@ -480,8 +701,8 @@ state и не читает foreign stores.
   "status": "read_only",
   "revision": 33,
   "results": [
-    {"id": "q1", "value": {}},
-    {"id": "q2", "value": {}}
+    {"id": "q1", "value": {"task_id": "0043", "eligible": false, "blockers": [{"predecessor": "0042", "kind": "result", "reason": "predecessor_not_completed"}], "result_provenance": []}},
+    {"id": "q2", "value": {"sprint_id": "PS-DEV-002", "sprint_revision": 1, "members": ["0042", "0043"], "dependencies": [{"predecessor": "0042", "successor": "0043", "kind": "result"}]}}
   ]
 }
 ```
@@ -533,6 +754,48 @@ Eligibility query не создаёт claim и не резервирует Works
 Неизвестная identity получает packet-level `not_found`; v1 не возвращает mixed partial
 success, чтобы caller не объединял observations разных revisions/errors.
 
+### 7.4 Точные shapes query и `value`
+
+Query item всегда имеет непустой уникальный `id` и `kind`. Остальные обязательные поля:
+
+| kind | Поля после id/kind | `value` |
+| --- | --- | --- |
+| `task` | `task_id` | Полная Task record §4.1; claim/workspace/terminal — модель или null |
+| `sprint` | `sprint_id` | Полная Sprint record §4.2, включая `sprint_revision` |
+| `dependencies` | `task_id` | `{task_id, predecessors, successors}`; arrays edges §4.2 |
+| `eligibility` | `task_id` | `{task_id, eligible, blockers, result_provenance}` из §7.2 |
+| `claim` | `task_id` | `{task_id, active_claim, latest_handoff}`; последние два — модель или null |
+| `workspace` | `task_id` | `{task_id, workspace}`; reservation §4.4 или null |
+| `resumable` | `sprint_id` | Array `{task_id, handoff_id, workspace_id}` для unclaimed non-terminal Tasks с не consumed handoff |
+| `work_overview` | `sprint_id` | `{sprint_id, tasks, counts}` по правилам ниже |
+
+В двух последних запросах `sprint_id=null` явно означает все Sprint и standalone Tasks;
+строка выбирает ровно одну существующую Sprint. Для остальных queries null ID недопустим.
+Count не больше `batch.max_items`; `queries` непуст; bounded result limits заданы config.
+При превышении read bound — `limit_exceeded`, не молчаливая обрезка.
+
+`active_claim` — Claim §4.3 или null. `latest_handoff` — immutable поля §5.5 плюс
+`consumed` (boolean); это projection изменяемого consumption state, а не переписанный
+исторический release receipt. `workspace_id` в resumable может быть null.
+
+`work_overview.tasks` — упорядоченный array `{task, eligibility, latest_handoff}` из
+моделей выше. `counts` содержит ровно integer-поля `registered`, `eligible`, `blocked`,
+`claimed`, `resumable`, `completed`, `cancelled`. Они вычислены из этих records на одной
+revision; это **не** непересекающиеся группы. `eligible` означает пригодность по graph
+и non-terminal state; active claim показан отдельно и проверяется при acquisition.
+`blocked` считает non-terminal Tasks с graph blockers. Owner exclusivity проверяется
+после eligibility по §5.4, поэтому занятая eligible Task даёт `claim_conflict`, а не
+недетерминированный выбор между ним и `not_eligible`.
+
+Каждый blocker имеет ровно `predecessor`, `kind`, `reason`; reasons:
+`predecessor_not_completed`, `predecessor_cancelled`, `result_provenance_missing`.
+Для terminal самой Task `eligible=false` даже при пустых blockers; caller видит её
+state в `task`. Result provenance содержит `{predecessor, result_commit}` только для
+удовлетворённых result edges. Клиент не интерпретирует `blockers=[]` без `eligible`.
+
+Успех §7 содержит типизированные `value` для Task, заблокированной единственным
+незавершённым result predecessor, и соответствующей Sprint revision 1.
+
 ## 8. Transfer operation
 
 Transfer сохраняет Sequencing-owned state; это portability, не synchronization.
@@ -557,6 +820,20 @@ Transfer сохраняет Sequencing-owned state; это portability, не syn
 экспортируется только если explicit handoff в том же request успешно release-ит ownership.
 Пакет содержит Sequencing owner slice, preserved Workspace Git bundle/metadata при наличии,
 manifest и checksums. Requirements/Execution stores/files в пакет не включаются.
+
+`handoff` — explicit null, если все выбранные Tasks unclaimed, иначе array с exact
+`{task_id, claim_id, claimant, reason}` для **всех** выбранных active claims. Чужие или
+лишние Task IDs, недостаточная authority или pending Workspace intent отклоняют
+preflight до release/export. После preflight локальный release + export intent
+атомарно сохраняются в Sequencing DB. Затем создаётся snapshot/package; это external
+phase, не distributed transaction. Если эта phase отказала, нет опубликованного
+пакета, но release и handoff могут уже быть сохранены: `transfer_incomplete` содержит
+`error.details.request_id` и `handoff_ids`. Exact replay продолжает тот же intent,
+не захватывает Task обратно и не имитирует успех. WIP не удаляется.
+
+Экспортируемое состояние quiescent: после release writer больше не меняет выбранный
+worktree; нарушение этого precondition даёт `transfer_incomplete`, не непроверяемый
+смешанный snapshot. Export unclaimed Task не создаёт нового claim.
 
 Response:
 
@@ -594,6 +871,40 @@ metadata and absence of conflicting Task/Sprint/branch identities before publica
 Existing owner identity конфликтует; merge/replace не выполняется автоматически. Import
 preserves saved release/handoff, но не создаёт active claim и не объявляет foreign acceptance.
 
+### 8.3 Версия и публикация transfer payload
+
+Контракт пакета v1 — ZIP с единственным `manifest.json` и перечисленными regular
+payload files. Manifest имеет ровно `schema`, `owner_store_version`, `task_ids`,
+`sprint_ids`, `files`; `schema="stride-sequencing-transfer/v1"`. `owner_store_version`
+— положительный integer из standalone Sequencing implementation; неизвестная версия
+отклоняется, legacy monolith version не подставляется. `files` — непустой array:
+`{path, size_bytes, sha256, kind}`, где kind — `owner_slice`, `git_bundle`, `wip_patch`
+или `workspace_metadata`. Owner slice ровно один; Git/WIP части привязаны к exact Task
+через Workspace metadata и включают staged/unstaged/untracked материал при наличии.
+
+Manifest не хеширует сам себя. SHA-256 всего ZIP из внешнего `package_digest` покрывает
+и manifest, и payload; формат digest — `sha256:` + 64 lowercase hexadecimal characters.
+`path` — уникальный относительный POSIX path без empty/dot/dotdot components, backslash,
+absolute prefix, NUL и symlinks. ZIP duplicate names, unlisted payload, special files,
+conflicting Git refs, size/count/digest mismatch дают `package_invalid`. Output root
+и intake root берутся из config; `package_path` import обязан быть внутри разрешённого
+intake root. Распаковка не может произвольно писать пути из caller input.
+
+Import не использует байты раньше проверки outer digest и всех payload limits/digests.
+Publication в own store и Git/filesystem подготовка разделены durable intent: до
+полного validation ни одна Task не становится доступной. Повтор после crash проверяет
+свою staged подготовку, не считает её чужим успешным import. Existing опубликованная
+Task/Sprint/branch identity другого intent даёт `transfer_conflict`; автоматического
+merge/replace нет. Ошибка оставляет только диагностируемый unpublished intent, не
+частично доступную Task. Requirements/Execution data не принимаются в owner slice.
+
+Import success содержит ровно `schema`, `status: "imported"`, `revision`,
+`package_digest`, `task_ids`, `sprint_ids`, `replayed`. IDs отсортированы; `revision`
+относится к публикации в destination store. Export success §8.1 не имеет `revision`,
+поскольку является receipt отдельного transport intent; owner slice хранит исходную
+revision. Replaying import/export возвращает прежний receipt, а не новый claim или
+свежее подтверждение существования package_path.
+
 ## 9. Stable rejection envelope
 
 Любой rejection имеет точную форму:
@@ -614,7 +925,13 @@ preserves saved release/handoff, но не создаёт active claim и не �
 }
 ```
 
-`message` human-oriented; machine branch uses `error.code`.
+`message` human-oriented; machine branch uses `error.code`. `details` всегда object;
+неизвестные будущие diagnostic keys не меняют control flow. Обязательные details для
+`revision_conflict` — `expected_revision`, `actual_revision`; для `claim_conflict` —
+`task_id`, `claim_id`, `claimant` текущего owner; для `session_claim_conflict` — exact
+три поля из F3b. Dynamic messages не используются как schema discriminator.
+Unknown Task проверяется перед Task-state domain predicates. Во всех failures
+`retryable` — boolean; отсутствие error code/details не является допустимым отказом.
 
 Коды v1:
 
@@ -633,7 +950,8 @@ preserves saved release/handoff, но не создаёт active claim и не �
 | `dependency_conflict` | endpoint/sprint/revision нарушает graph contract | нет |
 | `dependency_cycle` | graph cyclic | нет |
 | `not_eligible` | Task blocked/terminal/not startable | нет |
-| `claim_conflict` | Task уже claimed другим claimant | нет |
+| `claim_conflict` | Task уже имеет active claim | нет |
+| `session_claim_conflict` | claimant уже владеет другой Task | нет |
 | `claim_owner_mismatch` | release/resume authority не совпадает | нет |
 | `workspace_conflict` | branch/path/repository identity конфликтует | owner intent может остаться recoverable |
 | `workspace_dirty` | release уничтожил бы unpreserved WIP | нет destructive effect |
@@ -665,7 +983,13 @@ Request:
 {"schema":"stride-sequencing/v1","operation":"apply","input":{"request_id":"f1","expected_revision":10,"operations":[{"id":"r","kind":"register_task","task_id":"0042","requirements_snapshot_revision":2}]}}
 ```
 
-Expected: `status=applied`, revision `11`, Task `0042` state `available`. Observable writes —
+Exact expected success:
+
+```json
+{"schema":"stride-sequencing/v1","status":"applied","revision":11,"replayed":false,"results":[{"id":"r","kind":"register_task","changed":true,"task_id":"0042","requirements_snapshot_revision":2}]}
+```
+
+Task `0042` state `available`. Observable writes —
 только Sequencing store. Requirements/Execution не вызываются. Exact replay возвращает
 revision `11`, same Task identity, `replayed=true`.
 
@@ -679,12 +1003,49 @@ revision возвращает `eligible=true`, no blockers и result provenance
 `{predecessor:"0042", result_commit:"aaa..."}`. Sequencing не merge-ит этот commit в
 Workspace successor автоматически.
 
+### F2b — несколько predecessors требуют всех completion
+
+Revision `30`: Task `0044` имеет completion edges от `0042` и `0043`. Первый completed,
+второй cancelled. `eligibility(0044)` возвращает `eligible=false`, единственный blocker
+`{predecessor:"0043", kind:"completion", reason:"predecessor_cancelled"}`.
+Если вместо cancelled второй non-terminal, reason — `predecessor_not_completed`.
+Только completed **обоих** predecessors убирает blockers. Result-edge дополнительно
+требует exact result commit. Ни один из этих query не создаёт claim/Workspace.
+
 ### F3 — concurrent claim имеет ровно одного победителя
 
 Task `0043` eligible, no active claim. Два request с разными `claim_request_id`/claimant
-конкурируют на одной исходной revision. Ровно один commit owner transaction succeeds и
-возвращает claim. Второй после serialization получает `revision_conflict` либо
-`claim_conflict`; никогда не два active claims.
+конкурируют на одной исходной revision `20`. Ровно один owner transaction succeeds,
+возвращает claim и повышает revision до `21`. Второй request всё ещё несёт
+`expected_revision=20`, поэтому после serialization получает **ровно** `revision_conflict`;
+никогда не два active claims.
+
+Отдельный later request на текущей revision `21` с новым `claim_request_id`, когда active
+claim уже существует, получает **ровно** `claim_conflict`. Таким образом stale revision и
+active-owner conflict имеют разные детерминированные failure paths.
+
+### F3b — одна Session не может владеть двумя Task
+
+Revision `21`: Session `agent-a` уже владеет Task `0043`; Task `0044` eligible,
+свободна и может принадлежать другой Sprint или быть standalone.
+
+Request:
+
+```json
+{"schema":"stride-sequencing/v1","operation":"apply","input":{"request_id":"f3b","expected_revision":21,"operations":[{"id":"claim-second","kind":"claim_task","task_id":"0044","claimant":"agent-a","claim_request_id":"work-0044-agent-a"}]}}
+```
+
+Exact expected response:
+
+```json
+{"schema":"stride-sequencing/v1","status":"rejected","error":{"code":"session_claim_conflict","message":"Session already owns another Task","retryable":false,"details":{"claimant":"agent-a","active_task_id":"0043","requested_task_id":"0044"}}}
+```
+
+Revision остаётся `21`. Claim `0043` не меняется, claim `0044` не создаётся. Тот же
+запрет действует для `resume_claim(0044)` с валидным handoff. Два concurrent request
+одной свободной Session на разные Task с `expected_revision=20`: ровно один success,
+второй `revision_conflict`; новый current-revision request проигравшего —
+`session_claim_conflict`. Это вторая половина SEQ-05, не только гонка за одну Task.
 
 ### F4 — Workspace baseline наблюдается один раз и replay stable
 
@@ -699,7 +1060,13 @@ Configured `base_ref=poise-stride-v2` указывает на commit `bbb...`. S
 Ready Workspace Task `0043`, claim agent-a. `release_claim(reason=handoff)` removes active
 claim and сохраняет validated handoff/workspace refs. `resumable` показывает Task, но
 `terminal` остаётся null и successors не разблокируются. `resume_claim` agent-b получает new
-claim после exact handoff validation и не пересоздаёт Workspace baseline.
+claim после exact handoff validation и не пересоздаёт Workspace baseline. Result release
+возвращает конкретный `handoff_id`, который передаётся resume; successful resume consumes
+его. Replaying старый successful claim/release возвращает historical receipt, но не
+восстанавливает прежнее владение. Session, уже владеющая другой Task, получает
+`session_claim_conflict` и не consumes handoff. Existing ready workspace ID, path, branch
+и baseline сохраняются; следующий acquire возвращает тот же binding. Попытка использовать
+тот же workspace ID для другой Task отклоняется `workspace_conflict`.
 
 ### F6 — cancelled predecessor не удовлетворяет dependency
 
@@ -734,7 +1101,8 @@ Concurrency:
 
 - owner-only apply batches сериализуются одним Sequencing store transaction/lock;
 - optimistic expected revision предотвращает lost update;
-- eligibility + claim validation/creation атомарны owner-local;
+- eligibility + обе cardinality constraints (Task→Session и Session→Task)
+  проверяются и сохраняются атомарно owner-local;
 - one read batch observes one revision;
 - outer request replay проверяется до нового claim/allocation;
 - Workspace/transfer external filesystem phases используют durable intent/reconcile, не
@@ -797,9 +1165,9 @@ future config/invocation in the same Task; no undocumented executable/config cha
 | Task requirement | Contract evidence |
 | --- | --- |
 | R01 / SEQ-01 | §1, §4.1–4.2, §5.1–5.3, F1/F2: explicit registration, Sprint membership/dependencies and canonical foreign identity |
-| R02 / SEQ-03 | §4.2–4.3, §5.4–5.6, §7.2–7.3, F2/F3/F5/F6: eligibility, claim/release/resume and exact blockers |
-| R03 / SEQ-05 | §4.4, §6, F4/F5: configured Workspace reservation/allocation/release/recovery with stable baseline |
-| R04 / SEQ-07 | §8, F7: explicit transfer export/import, package digest/conflicts, no manufactured claim/foreign state |
+| R02 / SEQ-03 | §4.2–4.3, §5.4–5.6, §7.2–7.3, F2/F2b/F3/F5/F6: eligibility всех predecessors, claim/release/resume and exact blockers |
+| R03 / SEQ-05 | §4.3, §5.4–5.6, §7.3, F3/F3b/F5: one owner per Task AND one Task per Session; deterministic conflicts; release/resume |
+| R04 / SEQ-07 | §4.4, §6, F4/F5: configured Workspace reservation/allocation/release/recovery with stable baseline and lifecycle |
 | R05 / GEN-03 | §1, §5, §8, §11–12: independent owner/store; no private Requirements/Execution reads or hidden writes |
 | R06 / GEN-04 | §2–3, §6, §11, F9: configured invocation/store/repository/worktree policy; no installation-path assumption |
 
@@ -814,7 +1182,8 @@ document without importing production serializers:
 
 1. registration consumes canonical foreign Task identity and performs no hidden fan-out;
 2. dependency eligibility preserves completion/result semantics and exact result provenance;
-3. concurrent claim cannot produce two owners and release/resume cannot imply completion;
+3. concurrent claim cannot produce two owners per Task OR two Tasks per Session;
+   release/resume cannot imply completion or reactivate historical receipts;
 4. Workspace baseline/path/branch lifecycle is configured, replayable and crash-recoverable;
 5. terminal/cancel facts are explicit and do not read Execution private state;
 6. transfer preserves Sequencing-owned work without synchronization or foreign state capture;

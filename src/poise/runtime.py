@@ -1194,6 +1194,14 @@ class Poise:
         if 'sprint' in roots: owners['sprint'] = data['sprint_id']
         records = inspect_paths(submitted, roots, owners)
         previous = self.store.artifact_records(data['id'])
+        drafts = self.store.artifact_drafts(data['id'])
+        previous_ids = {item['id'] for item in previous}
+        submitted_paths = {item['path'] for item in records}
+        for item in records:
+            draft=drafts.get(item['id'])
+            if (draft is not None and draft['state']=='open'
+                    and item['id'] not in previous_ids):
+                item['_draft_previous_digest']=None
         merged = {(r['scope'],r['path']):r for r in records}
         for prior in previous:
             old = dict(prior)
@@ -1203,7 +1211,14 @@ class Poise:
             if any(current[key] != old[key] for key in ('id', 'owner', 'scope')):
                 raise PoiseError('Registered artifact identity/owner mismatch; inspect ownership before recovery')
             if current['digest'] != old['digest']:
-                raise PoiseError(f"Артефакт изменён после регистрации: {old['path']}; используйте новый путь")
+                draft=drafts.get(old['id'])
+                if draft is None or draft['state']!='open':
+                    raise PoiseError(f"Артефакт изменён после регистрации: {old['path']}; используйте новый путь")
+                if current['path'] not in submitted_paths:
+                    raise PoiseError('Editable artifact draft changed without explicit artifact submission')
+                if draft['digest'] != old['digest']:
+                    raise PoiseError('Editable artifact draft registry digest is inconsistent')
+                current['_draft_previous_digest']=old['digest']
             merged[(old['scope'],old['path'])] = current
         return list(merged.values())
 
@@ -1774,6 +1789,10 @@ class Poise:
         self._require_verification_identity(data, sha, tree)
         # Только task/sprint links переживают cleanup. Runtime пути остаются временными.
         permanent = [r for r in publication['artifacts'] if r['scope']!='runtime']
+        for record in permanent:
+            if '_draft_previous_digest' in record:
+                record.update(_draft_actor=self.session,_draft_stage=stage['id'],
+                              _draft_iteration=data['iteration'])
         workflow = self.runner.context(data['id'])
         if workflow['terminal']:
             check_counts(current_artifacts,data['contract']['artifact_requirements'])

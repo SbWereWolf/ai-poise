@@ -46,6 +46,7 @@ def parse_request(value, config):
             'recover_ownership':{'request_id','task_ids','expected_snapshot','task_claims','worktree_bindings','reason','authorization'},
             'recover_artifacts':{'request_id','task_id','expected_version','artifact_ids','source_roots','reason','authorization'},
             'handoff':{'request_id','reason','result','commit_message','artifact_paths'},
+            'artifact_drafts':None,
             'cancel':{'reason'},'artifacts':{'items'},'integrate':None,
             'cleanup':{'request_id','task_id','commit_disposition','authorization'},
             'initialize_stage_contracts':{
@@ -65,7 +66,7 @@ def parse_request(value, config):
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
         shapes[op] = shapes[op] | {'force_duplicate_start'}
-    if op not in ('task','sprint','transfer','integrate'):exact(value['input'],shapes[op],f'{op} input')
+    if op not in ('task','sprint','transfer','integrate','artifact_drafts'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')
@@ -94,6 +95,9 @@ def parse_request(value, config):
     if op=='recover_artifacts':
         from ..artifact_factory.domain import ArtifactRecoveryIntent
         ArtifactRecoveryIntent.parse(value['input'],config['max_items'])
+    if op=='artifact_drafts':
+        from ..artifact_factory.domain import ArtifactDraftIntent
+        ArtifactDraftIntent.parse(value['input'],config['max_items'])
     if op=='cleanup':
         from ..task_cleanup.domain import CleanupIntent
         CleanupIntent.parse(value['input'])

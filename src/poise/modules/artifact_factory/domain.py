@@ -110,3 +110,75 @@ class ArtifactRecoveryIntent:
             relative(root[1:])
         return cls(raw['request_id'],raw['task_id'],raw['expected_version'],tuple(ids),
                    dict(roots),raw['reason'],raw['authorization'])
+
+
+@dataclass(frozen=True)
+class ArtifactDraftIntent:
+    action: str
+    request_id: str
+    task_id: str
+    expected_version: int
+    drafts: tuple[dict, ...]
+    artifacts: tuple[dict, ...]
+    artifact_ids: tuple[str, ...]
+    reason: str
+    authorization: str | None
+
+    @classmethod
+    def parse(cls, raw, max_items):
+        if not isinstance(raw, dict) or raw.get('action') not in {
+            'declare', 'recover', 'review', 'finalize'
+        }:
+            raise DomainError('Artifact draft action must be declare/recover/review/finalize')
+        action = raw['action']
+        common = {'action','request_id','task_id','expected_version','reason'}
+        fields = {
+            'declare': common | {'drafts'},
+            'recover': common | {'artifacts','authorization'},
+            'review': common | {'artifact_ids','authorization'},
+            'finalize': common | {'artifact_ids','authorization'},
+        }[action]
+        exact(raw, fields, 'artifact draft request')
+        for key in ('request_id','task_id','reason'):
+            if not isinstance(raw[key],str) or not raw[key].strip() or '\0' in raw[key]:
+                raise DomainError(f'Artifact draft {key} is required')
+        if type(raw['expected_version']) is not int or raw['expected_version'] < 0:
+            raise DomainError('Artifact draft expected_version must be nonnegative')
+        authorization = raw.get('authorization')
+        if action != 'declare' and (
+            not isinstance(authorization,str) or not authorization.strip() or '\0' in authorization
+        ):
+            raise DomainError('Artifact draft authorization is required')
+        drafts = raw.get('drafts', [])
+        artifacts = raw.get('artifacts', [])
+        artifact_ids = raw.get('artifact_ids', [])
+        selected = drafts if action == 'declare' else artifacts if action == 'recover' else artifact_ids
+        if not isinstance(selected,list) or not 0 < len(selected) <= max_items:
+            raise DomainError('Artifact draft selection must be a nonempty bounded list')
+        if action == 'declare':
+            seen = set()
+            for item in drafts:
+                exact(item, {'scope','path'}, 'artifact draft declaration')
+                if item['scope'] != 'task':
+                    raise DomainError('Artifact draft scope must be task')
+                relative(item['path'])
+                key = (item['scope'],item['path'])
+                if key in seen: raise DomainError('Artifact draft declarations must be unique')
+                seen.add(key)
+        elif action == 'recover':
+            seen = set()
+            for item in artifacts:
+                exact(item, {'id','scope','path'}, 'artifact draft recovery target')
+                if (not isinstance(item['id'],str) or not item['id']
+                        or item['scope'] != 'task'):
+                    raise DomainError('Artifact draft recovery target scope/identity is invalid')
+                relative(item['path'])
+                key = (item['id'],item['scope'],item['path'])
+                if key in seen: raise DomainError('Artifact draft recovery targets must be unique')
+                seen.add(key)
+        else:
+            if (any(not isinstance(item,str) or not item for item in artifact_ids)
+                    or len(artifact_ids) != len(set(artifact_ids))):
+                raise DomainError('Artifact draft IDs must be unique nonempty strings')
+        return cls(action,raw['request_id'],raw['task_id'],raw['expected_version'],
+                   tuple(drafts),tuple(artifacts),tuple(artifact_ids),raw['reason'],authorization)

@@ -19,8 +19,70 @@ class SqliteArtifactRepository:
             self._register(item)
             self.db.execute('INSERT OR IGNORE INTO task_artifacts(task_id,artifact_id) VALUES(?,?)',
                             (task_id,item['id']))
+            if '_draft_previous_digest' in item:
+                self._record_revision(task_id,item)
             if item['scope'] == 'sprint':
                 self._link_sprint(item)
+
+    def _record_revision(self, task_id, item):
+        previous = item['_draft_previous_digest']
+        if previous is not None:
+            changed = self.db.execute(
+                'UPDATE artifacts SET digest=? WHERE id=? AND digest=?',
+                (item['digest'],item['id'],previous))
+            if changed.rowcount != 1:
+                raise PoiseError('Artifact draft digest changed before revision was recorded')
+        payload = {
+            'artifact_id':item['id'],'scope':item['scope'],'path':item['relative_path'],
+            'previous_digest':previous,'digest':item['digest'],
+            'stage':item['_draft_stage'],'iteration':item['_draft_iteration'],
+        }
+        self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+            (datetime.now(timezone.utc).isoformat(),item['_draft_actor'],task_id,
+             'artifact_draft.revised',encoded(payload)))
+
+    def drafts(self, task_id):
+        rows = self.db.execute(
+            "SELECT event,data FROM journal WHERE task_id=? AND event LIKE 'artifact_draft.%' ORDER BY seq",
+            (task_id,)).fetchall()
+        current = {}
+        for row in rows:
+            event = row['event']; data = json.loads(row['data'])
+            if event == 'artifact_draft.declared':
+                for item in data['drafts']:
+                    current[item['artifact_id']] = {**item,'digest':None,'state':'open','snapshots':[]}
+            elif event == 'artifact_draft.recovered':
+                item = {key:data[key] for key in ('artifact_id','scope','path')}
+                current[item['artifact_id']] = {
+                    **item,'digest':data['baseline_digest'],'state':'open',
+                    'snapshots':[{'digest':data['baseline_digest'],
+                                  'snapshot_path':data['snapshot_path']}],
+                }
+            elif event == 'artifact_draft.revised' and data['artifact_id'] in current:
+                current[data['artifact_id']]['digest'] = data['digest']
+            elif event == 'artifact_draft.reviewed' and data['artifact_id'] in current:
+                current[data['artifact_id']]['snapshots'].append({
+                    'digest':data['digest'],'snapshot_path':data['snapshot_path']})
+            elif event == 'artifact_draft.finalized':
+                for identifier in data['artifact_ids']:
+                    if identifier in current: current[identifier]['state'] = 'finalized'
+        return current
+
+    def draft_request(self, task_id, request_id, request_digest):
+        row = self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event IN "
+            "('artifact_draft.declared','artifact_draft.recovered','artifact_draft.reviewed','artifact_draft.finalized') "
+            "AND json_extract(data,'$.request_id')=? ORDER BY seq LIMIT 1",
+            (task_id,request_id)).fetchone()
+        if row is None:return None
+        data=json.loads(row['data'])
+        if data['request_digest'] != request_digest:
+            raise PoiseError('Artifact draft request conflict')
+        return data['result']
+
+    def append_draft_event(self, task_id, actor, event, data):
+        self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+            (datetime.now(timezone.utc).isoformat(),actor,task_id,event,encoded(data)))
 
     def link_reused(self, task_id, artifacts):
         """Reuse may share identical Sprint files, never conflicting registry data."""

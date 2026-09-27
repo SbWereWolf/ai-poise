@@ -6,6 +6,7 @@ from ..common import PoiseError, descendant
 
 
 SPRINT_TASK_DIRECTORY = "task"
+ARTIFACT_DRAFT_HISTORY_DIRECTORY = "artifact-draft-history"
 
 
 def sprint_root(state: Path, paths: dict, sprint_id: str) -> Path:

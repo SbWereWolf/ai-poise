@@ -10,7 +10,7 @@ Keep requirements, plans, decisions, findings/resolutions, verification definiti
 
 Create/register related artifacts in one batch through the [artifact API](../../docs/workflows/batch-work.md#создание-файлов). Use only the returned task/sprint/runtime roots and the configured scope directory. Stable task results belong to the current Task owner; session runtime is temporary. Do not guess paths, use symlinks to escape scope, or hand-edit a generated result file.
 
-The API returns artifact identity and digest. Link the exact revision in the stage result. Existing files with different content are not silently overwritten; create a deliberate new version through the owner. Binary evidence is registered by its path where supported, not fabricated in a receipt.
+The API returns artifact identity and digest. Link the exact revision in the stage result. Existing immutable files with different content are not silently overwritten. If an acceptance file must keep one working path across review/rework, declare it before first registration with [`artifact_drafts`](../../docs/workflows/batch-work.md#редактируемые-приёмочные-черновики). Submit its absolute path explicitly after each authorized same-path edit; release the Task before taskless `review` or `finalize`. Every review creates a separately registered immutable byte snapshot. Recover a premature immutable registration only through authorized taskless `recover` on a released nonterminal Task with exact ID/scope/path; do not create a `v7` workaround. Binary evidence is registered by its path where supported, not fabricated in a receipt.
 
 ## Completion boundary
 

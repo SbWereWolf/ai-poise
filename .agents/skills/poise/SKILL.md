@@ -446,6 +446,16 @@ Current configuration determines destinations. Missing historical bundle bytes
 must come from a real backup; a receipt is not a substitute. Read the
 [public root-recovery contract](../../../docs/workflows/batch-work.md#восстановление-зарегистрированных-артефактов).
 
+### Editable acceptance drafts
+
+Classify an acceptance file before its first registration. Keep ordinary registered artifacts immutable. If review and
+rework must edit the same working path, declare that task-scoped path through `artifact_drafts` before registration,
+submit every authorized same-path revision explicitly, and release the Task before taskless review or finalization.
+Each review preserves an independently registered immutable byte snapshot. If a released nonterminal Task already froze
+the path by mistake, use only explicitly authorized `artifact_drafts/recover` with the exact ID, scope, path and current
+version; do not create a renamed version as a workaround. Follow the
+[public draft lifecycle](../../../docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
+
 ### Ambiguous legacy ownership
 
 Use `show` with `kind: ownership_conflicts` and then the explicitly authorized

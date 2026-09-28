@@ -166,3 +166,41 @@ def test_check_route_with_mixed_positive_and_negative_terminals_is_accepted(
 
     assert parsed.node("check").target("satisfied") is None
     assert parsed.node("check").target(negative_terminal) is None
+
+
+def test_stage_reachable_only_through_rework_target_is_accepted():
+    cfg = process()
+    cfg["route"] = {"entry": "draft"}
+    cfg["stages"] = [
+        stage(
+            "draft", "produce", {"complete": None},
+            False, ["src/**"], ["repair"],
+        ),
+        stage(
+            "repair", "produce", {"complete": None},
+            False, ["src/**"], [],
+        ),
+    ]
+
+    parsed = route(cfg)
+
+    assert parsed.node("draft").rework_targets == ("repair",)
+    assert parsed.node("repair").target("complete") is None
+
+
+def test_stage_without_normal_or_rework_inbound_is_rejected():
+    cfg = process()
+    cfg["route"] = {"entry": "draft"}
+    cfg["stages"] = [
+        stage(
+            "draft", "produce", {"complete": None},
+            False, ["src/**"], [],
+        ),
+        stage(
+            "orphan", "produce", {"complete": None},
+            False, ["src/**"], [],
+        ),
+    ]
+
+    with pytest.raises(DomainError, match="Недостижимые этапы: \\['orphan'\\]"):
+        route(cfg)

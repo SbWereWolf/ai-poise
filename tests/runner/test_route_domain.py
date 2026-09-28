@@ -1,7 +1,7 @@
 import copy
 import pytest
 from poise.modules.foundation.errors import DomainError
-from .helpers import process, task, verify, inspect, finding, resolution, decision, submit
+from .helpers import process, stage, task, verify, inspect, finding, resolution, decision, submit
 
 def route(cfg):
     from poise.modules.workflow.domain import RouteDefinition
@@ -87,3 +87,30 @@ def test_valid_cycle_with_positive_terminal_path_is_accepted():
 
     assert parsed.node("amend").target("complete") == "follow_up"
     assert parsed.node("follow_up").target("clear") is None
+
+
+def test_check_route_with_only_negative_terminal_is_rejected():
+    cfg = process()
+    cfg["route"] = {"entry": "check"}
+    cfg["stages"] = [stage(
+        "check", "check",
+        {"satisfied": "check", "not_satisfied": None, "inconclusive": "check"},
+        False, ["src/**"], ["check"],
+    )]
+
+    with pytest.raises(DomainError, match="путь положительного завершения"):
+        route(cfg)
+
+
+def test_check_route_with_positive_terminal_and_rework_cycle_is_accepted():
+    cfg = process()
+    cfg["route"] = {"entry": "check"}
+    cfg["stages"] = [stage(
+        "check", "check",
+        {"satisfied": None, "not_satisfied": "check", "inconclusive": "check"},
+        False, ["src/**"], ["check"],
+    )]
+
+    parsed = route(cfg)
+
+    assert parsed.node("check").target("satisfied") is None

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import fnmatch
 import json
 from pathlib import PurePosixPath
 
@@ -287,6 +288,8 @@ class CreationPreflight:
             ):
                 continue
             details = json.loads(requirement.details)
+            if details["maximum"] == 0:
+                continue
             source = details.get("source")
             kind = "preexisting" if source is None else source.get("kind")
             if kind == "stage_output":
@@ -368,4 +371,87 @@ def _artifact_paths_overlap(left, right):
         left == right
         or matches_allowed_path(left, right)
         or matches_allowed_path(right, left)
+        or _glob_languages_overlap(left, right)
     )
+
+
+def _glob_languages_overlap(left, right):
+    left_tokens = _glob_tokens(left)
+    right_tokens = _glob_tokens(right)
+    candidates = tuple(
+        set(map(chr, range(32, 127))) | set(left) | set(right) | {"\u2603"}
+    )
+    pending = [(0, 0)]
+    reached = set()
+    while pending:
+        left_index, right_index = pending.pop()
+        state = (left_index, right_index)
+        if state in reached:
+            continue
+        reached.add(state)
+        if left_index == len(left_tokens) and right_index == len(right_tokens):
+            return True
+        left_token = left_tokens[left_index] if left_index < len(left_tokens) else None
+        right_token = right_tokens[right_index] if right_index < len(right_tokens) else None
+        if left_token == "*":
+            pending.append((left_index + 1, right_index))
+        if right_token == "*":
+            pending.append((left_index, right_index + 1))
+        if (
+            left_token is not None
+            and right_token is not None
+            and _glob_tokens_share_character(left_token, right_token, candidates)
+        ):
+            consumed = (
+                left_index if left_token == "*" else left_index + 1,
+                right_index if right_token == "*" else right_index + 1,
+            )
+            if consumed != state:
+                pending.append(consumed)
+    return False
+
+
+def _glob_tokens(pattern):
+    tokens = []
+    index = 0
+    while index < len(pattern):
+        current = pattern[index]
+        if current == "*":
+            while index < len(pattern) and pattern[index] == "*":
+                index += 1
+            tokens.append("*")
+            continue
+        if current == "?":
+            tokens.append("?")
+            index += 1
+            continue
+        if current == "[":
+            end = index + 1
+            if end < len(pattern) and pattern[end] == "!":
+                end += 1
+            if end < len(pattern) and pattern[end] == "]":
+                end += 1
+            end = pattern.find("]", end)
+            if end >= 0:
+                tokens.append(pattern[index:end + 1])
+                index = end + 1
+                continue
+        tokens.append(current)
+        index += 1
+    return tuple(tokens)
+
+
+def _glob_tokens_share_character(left, right, candidates):
+    return any(
+        _glob_token_matches(left, candidate)
+        and _glob_token_matches(right, candidate)
+        for candidate in candidates
+    )
+
+
+def _glob_token_matches(token, candidate):
+    if token in ("*", "?"):
+        return True
+    if token.startswith("["):
+        return fnmatch.fnmatchcase(candidate, token)
+    return token == candidate

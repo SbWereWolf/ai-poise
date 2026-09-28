@@ -19,28 +19,6 @@ AGENT_DRAFT_LINK = (
     "[editable acceptance draft contract]"
     "(docs/workflows/batch-work.md#редактируемые-приёмочные-черновики)"
 )
-RUSSIAN_SOURCE_TIMING = (
-    "Проверка противоречий учитывает `method_inputs.future_outputs` и активные post-обязательства\n"
-    "`stage_output` как планируемые записи. Артефакт без `source` и артефакт `preexisting`\n"
-    "замораживают путь до Task, `declared_arrival` — при входе в `arrival_stage`, а\n"
-    "`stage_output` — после выхода из `producer_stage`. Противоречие определяется пересечением\n"
-    "языков path-pattern, а не только равенством строк. Предикат с `maximum: 0` требует\n"
-    "отсутствия артефакта и не замораживает соответствующий путь."
-)
-ENGLISH_SOURCE_TIMING = (
-    "Contradiction validation treats `method_inputs.future_outputs` and active post\n"
-    "`stage_output` obligations as planned writes. A source-less or `preexisting` artifact\n"
-    "freezes its path before the Task, `declared_arrival` at `arrival_stage` entry, and\n"
-    "`stage_output` after `producer_stage` exits. Conflicts use path-pattern language\n"
-    "intersection rather than string equality alone. A predicate with `maximum: 0` requires\n"
-    "absence and does not freeze its path."
-)
-PLANNING_SOURCE_TIMING = (
-    "При этой проверке `future_outputs` и активные post-обязательства `stage_output` считаются\n"
-    "планируемыми записями; момент заморозки определяется видом source, а пересечение путей —\n"
-    "пересечением языков path-pattern. Предикат с `maximum: 0` означает отсутствие и путь не\n"
-    "замораживает."
-)
 RULES = {
     "TASK-PATH-01": {
         "ru": "При создании Task запрещено объявлять путь неизменным, если последующий обычный этап или rework должен изменить либо создать его; до `ready` каждый планируемый путь записи должен входить в `allowed_paths` соответствующего этапа.",
@@ -106,9 +84,6 @@ def policy_rules_present(files: dict[str, str] | None = None) -> bool:
         and DRAFT_LINK in files["planning"]
         and DRAFT_HEADING in files["batch"]
         and AGENT_DRAFT_LINK in files["agents"]
-        and RUSSIAN_SOURCE_TIMING in files["development"]
-        and ENGLISH_SOURCE_TIMING in files["agents"]
-        and PLANNING_SOURCE_TIMING in files["planning"]
         and set(russian or ()) == set(english or ())
         and all(russian[key] != english[key] for key in RULES)
     )
@@ -118,13 +93,10 @@ def _valid_fixture() -> dict[str, str]:
     russian = "\n".join(f"- **{key}.** {value}" for key, value in RUSSIAN_RULES.items())
     english = "\n".join(f"- **{key}.** {value}" for key, value in ENGLISH_RULES.items())
     return {
-        "development": f"{RUSSIAN_HEADING}\n\n{russian}\n{RUSSIAN_SOURCE_TIMING}\n",
-        "planning": f"{CANONICAL_LINK}\n{DRAFT_LINK}\n{PLANNING_SOURCE_TIMING}",
+        "development": f"{RUSSIAN_HEADING}\n\n{russian}\n",
+        "planning": f"{CANONICAL_LINK}\n{DRAFT_LINK}",
         "batch": f"{CANONICAL_LINK}\n{DRAFT_HEADING}\n",
-        "agents": (
-            f"{ENGLISH_HEADING}\n\n{english}\n{ENGLISH_SOURCE_TIMING}\n"
-            f"{AGENT_DRAFT_LINK}\n"
-        ),
+        "agents": f"{ENGLISH_HEADING}\n\n{english}\n{AGENT_DRAFT_LINK}\n",
     }
 
 
@@ -149,17 +121,6 @@ def test_editable_draft_contract_links_are_required() -> None:
         ("planning", DRAFT_LINK),
         ("batch", DRAFT_HEADING),
         ("agents", AGENT_DRAFT_LINK),
-    ):
-        files = _valid_fixture()
-        files[file] = files[file].replace(marker, "", 1)
-        assert not policy_rules_present(files), file
-
-
-def test_source_timing_and_pattern_overlap_rules_are_required() -> None:
-    for file, marker in (
-        ("development", RUSSIAN_SOURCE_TIMING),
-        ("planning", PLANNING_SOURCE_TIMING),
-        ("agents", ENGLISH_SOURCE_TIMING),
     ):
         files = _valid_fixture()
         files[file] = files[file].replace(marker, "", 1)

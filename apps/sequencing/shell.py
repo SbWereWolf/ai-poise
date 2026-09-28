@@ -21,7 +21,7 @@ class SequencingError(Exception):
     pass
 
 
-def _strict_json(raw: str):
+def _strict_json(raw: str, *, allow_float: bool = False):
     def pairs(items):
         result = {}
         for key, value in items:
@@ -29,8 +29,22 @@ def _strict_json(raw: str):
                 raise SequencingError(f"duplicate JSON key: {key}")
             result[key] = value
         return result
+
+    def bad_float(text):
+        if allow_float:
+            return float(text)
+        raise SequencingError("floating-point numbers are not supported")
+
+    def bad_constant(_):
+        raise SequencingError("non-finite numbers are not supported")
+
     try:
-        return json.loads(raw, object_pairs_hook=pairs, parse_float=lambda _: (_ for _ in ()).throw(SequencingError("floating-point numbers are not supported")))
+        return json.loads(
+            raw,
+            object_pairs_hook=pairs,
+            parse_float=bad_float,
+            parse_constant=bad_constant,
+        )
     except SequencingError:
         raise
     except json.JSONDecodeError as exc:
@@ -89,7 +103,7 @@ def _resolve_from(base: Path, value: str):
 def load_config(config_path):
     path = Path(config_path).resolve()
     try:
-        data = _strict_json(path.read_text(encoding="utf-8"))
+        data = _strict_json(path.read_text(encoding="utf-8"), allow_float=True)
     except OSError as exc:
         raise SequencingError(f"Sequencing config cannot be read: {exc}") from exc
     _exact(data, {"schema", "paths", "batch", "read", "lock", "repository", "worktree", "transfer", "identifiers"}, "Sequencing config")

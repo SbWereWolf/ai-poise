@@ -248,6 +248,50 @@ def immutable_write_conflict(
     return task, process
 
 
+def existing_artifact_write_conflict(task, process, *, source, writer):
+    """Require an already immutable artifact, then plan a later write to it."""
+    path = "build/file.md"
+    entry = process["route"]["entry"]
+    task["artifact_requirements"] = [{
+        "scope": "task", "pattern": path, "minimum": 1, "maximum": 1,
+    }]
+    task["content_contract"]["requirements"].append({
+        "id": "immutable-input", "kind": "artifact", "stages": [entry],
+        "phase": "pre", "scope": "task", "pattern": path,
+        "minimum": 1, "maximum": 1, "source": source,
+    })
+    contracts = {item["stage_id"]: item for item in task["stage_contracts"]}
+    process_stages = {item["id"]: item for item in process["stages"]}
+    contracts[entry]["entry_requirements"].append("immutable-input")
+    contracts[writer]["allowed_paths"] = list(dict.fromkeys(
+        contracts[writer]["allowed_paths"] + ["build/**"]
+    ))
+    process_stages[writer]["allowed_paths"] = list(contracts[writer]["allowed_paths"])
+    late_write = method("LATE_WRITE", plan={
+        "responsibility": "Verify the planned later write.",
+        "change_surface": [path], "red_stages": [], "green_stages": [writer],
+        "red_failure": None,
+    })
+    late_write["argv"] = [sys.executable, "-B", "-m", "pytest", path]
+    late_write["stdout_contains"] = []
+    task["methods"].append(late_write)
+    task["method_inputs"].append({
+        "method_id": "LATE_WRITE", "repository_inputs": [],
+        "future_outputs": [{"path": path, "producer_stage": writer}],
+        "reference_profile": {"runner": "pytest", "parser": "positional-paths", "version": 1},
+    })
+    task["checks"][writer].append("LATE_WRITE")
+    return task, process
+
+
+def remove_late_write_method(task, writer):
+    task["methods"] = [item for item in task["methods"] if item["id"] != "LATE_WRITE"]
+    task["method_inputs"] = [
+        item for item in task["method_inputs"] if item["method_id"] != "LATE_WRITE"
+    ]
+    task["checks"][writer].remove("LATE_WRITE")
+
+
 @pytest.mark.parametrize("goal_type", ["development", "documentation"])
 def test_baseline_guard_domain_contract(goal_type):
     task, process = definition(goal_type)
@@ -362,6 +406,127 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
     assert database_after["task_execution"] == ()
     assert all(row["task_id"] is None for row in database_after["sessions"])
     assert database_after["journal"] == ()
+
+
+def test_creation_rejects_later_stage_output_without_method_future_output(project):
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    immutable_write_conflict(
+        task,
+        process,
+        producer="tests",
+        consumer="test_review",
+        writer="implementation",
+    )
+    remove_late_write_method(task, "implementation")
+    cfg = project["cfg"]
+    cfg["automatic_checks"] = []
+    cfg["task_ids"] = {
+        "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
+        "progression": {"first": 1, "step": 1},
+    }
+    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["config_path"], cfg)
+    task.pop("id")
+    tools = WorkTools(WorkPoise(project["config_path"], "stage-output-creation-owner"))
+    database_before = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("stage-output-creation-owner",),
+    )
+    git_before = direct_git_snapshot(project)
+
+    with pytest.raises(DomainError, match="immutable|неизмен"):
+        tools.invoke({"operation": "bootstrap", "input": {
+            "task": {"request_id": "stage-output-write-creation", "task": task},
+            "decision": None, "feedback": None, "rework_stage": None,
+        }, "messages": []})
+
+    database_after = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("stage-output-creation-owner",),
+    )
+    assert database_after == database_before
+    assert direct_git_snapshot(project) == git_before
+    assert database_after["tasks"] == ()
+    assert database_after["task_execution"] == ()
+
+
+def test_creation_rejects_preexisting_artifact_rewrite(project):
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    existing_artifact_write_conflict(
+        task,
+        process,
+        source={"kind": "preexisting"},
+        writer="implementation",
+    )
+    cfg = project["cfg"]
+    cfg["automatic_checks"] = []
+    cfg["task_ids"] = {
+        "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
+        "progression": {"first": 1, "step": 1},
+    }
+    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["config_path"], cfg)
+    task.pop("id")
+    tools = WorkTools(WorkPoise(project["config_path"], "preexisting-creation-owner"))
+    database_before = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("preexisting-creation-owner",),
+    )
+    git_before = direct_git_snapshot(project)
+
+    with pytest.raises(DomainError, match="immutable|неизмен"):
+        tools.invoke({"operation": "bootstrap", "input": {
+            "task": {"request_id": "preexisting-write-creation", "task": task},
+            "decision": None, "feedback": None, "rework_stage": None,
+        }, "messages": []})
+
+    database_after = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("preexisting-creation-owner",),
+    )
+    assert database_after == database_before
+    assert direct_git_snapshot(project) == git_before
+    assert database_after["tasks"] == ()
+    assert database_after["task_execution"] == ()
+
+
+def test_creation_allows_distinct_later_stage_output(project):
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    immutable_write_conflict(
+        task,
+        process,
+        producer="tests",
+        consumer="test_review",
+        writer="implementation",
+    )
+    remove_late_write_method(task, "implementation")
+    late_output = next(
+        item for item in task["content_contract"]["requirements"]
+        if item["id"] == "late-output"
+    )
+    late_output["pattern"] = "build/other.md"
+    task.pop("requirements_snapshot")
+    task.pop("requirements_agreement")
+
+    validated = validate_creation(task, process, [], project["cfg"]["task_decomposition"])
+
+    assert next(
+        item for item in validated["contract"]["content_contract"]["requirements"]
+        if item["id"] == "late-output"
+    )["pattern"] == "build/other.md"
 
 
 def test_creation_allows_future_output_at_its_first_declared_producer(project):
@@ -482,6 +647,66 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
     assert row["version"] == edited["revision"]
     assert database_after["task_execution"] == ()
     assert all(row["task_id"] is None for row in database_after["sessions"])
+
+
+def test_ready_rejects_declared_arrival_artifact_rewrite(project):
+    from batch.helpers import configure
+    from tasks.test_newborn_lifecycle import create, edit, task_action
+
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    existing_artifact_write_conflict(
+        task,
+        process,
+        source={"kind": "declared_arrival", "arrival_stage": "tests"},
+        writer="implementation",
+    )
+    project["cfg"]["automatic_checks"] = []
+    write_json(project["root"] / project["cfg"]["processes"]["development"], process)
+    write_json(project["config_path"], project["cfg"])
+    configure(project)
+    tools = WorkTools(WorkPoise(project["config_path"], "arrival-ready-owner"))
+    born = create(tools, "ARRIVAL-READY")
+    task["id"] = "ARRIVAL-READY"
+    task.pop("goal_type")
+    edited = edit(
+        tools,
+        "ARRIVAL-READY",
+        born["revision"],
+        task | {"goal_type": "development"},
+        "arrival-ready-contract",
+    )
+    database_before = direct_task_sql_snapshot(
+        project,
+        task_ids=("ARRIVAL-READY",),
+        session_ids=("arrival-ready-owner",),
+    )
+    git_before = direct_git_snapshot(project)
+
+    with pytest.raises(DomainError, match="immutable|неизмен"):
+        task_action(
+            tools,
+            action="ready",
+            request_id="arrival-write-ready",
+            task_id="ARRIVAL-READY",
+            expected_revision=edited["revision"],
+        )
+
+    database_after = direct_task_sql_snapshot(
+        project,
+        task_ids=("ARRIVAL-READY",),
+        session_ids=("arrival-ready-owner",),
+    )
+    assert database_after == database_before
+    assert direct_git_snapshot(project) == git_before
+    row = database_after["tasks"][0]
+    assert row["id"] == "ARRIVAL-READY"
+    assert row["status"] == "newborn"
+    assert row["claimed_by"] == "arrival-ready-owner"
+    assert row["version"] == edited["revision"]
+    assert database_after["task_execution"] == ()
 
 
 def test_trace_can_be_planned_but_is_required_before_code():

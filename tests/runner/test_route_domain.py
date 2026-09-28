@@ -143,3 +143,26 @@ def test_check_route_with_positive_terminal_and_rework_cycle_is_accepted():
     parsed = route(cfg)
 
     assert parsed.node("check").target("satisfied") is None
+
+
+@pytest.mark.parametrize("negative_terminal", ["not_satisfied", "inconclusive"])
+def test_check_route_with_mixed_positive_and_negative_terminals_is_accepted(
+    negative_terminal,
+):
+    transitions = {
+        "satisfied": None,
+        "not_satisfied": "check",
+        "inconclusive": "check",
+    }
+    transitions[negative_terminal] = None
+    cfg = process()
+    cfg["route"] = {"entry": "check"}
+    cfg["stages"] = [stage(
+        "check", "check", transitions,
+        False, ["src/**"], ["check"],
+    )]
+
+    parsed = route(cfg)
+
+    assert parsed.node("check").target("satisfied") is None
+    assert parsed.node("check").target(negative_terminal) is None

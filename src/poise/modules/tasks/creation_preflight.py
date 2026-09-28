@@ -378,9 +378,7 @@ def _artifact_paths_overlap(left, right):
 def _glob_languages_overlap(left, right):
     left_tokens = _glob_tokens(left)
     right_tokens = _glob_tokens(right)
-    candidates = tuple(
-        set(map(chr, range(32, 127))) | set(left) | set(right) | {"\u2603"}
-    )
+    candidates = _glob_candidate_characters(left, right)
     pending = [(0, 0)]
     reached = set()
     while pending:
@@ -409,6 +407,19 @@ def _glob_languages_overlap(left, right):
             if consumed != state:
                 pending.append(consumed)
     return False
+
+
+def _glob_candidate_characters(left, right):
+    """One representative for every Unicode interval where either glob can change."""
+    codepoints = {1, 0x10FFFF}
+    for character in left + right:
+        point = ord(character)
+        codepoints.update(
+            candidate
+            for candidate in (point - 1, point, point + 1)
+            if 0 < candidate <= 0x10FFFF and candidate != ord("\\")
+        )
+    return tuple(chr(point) for point in sorted(codepoints))
 
 
 def _glob_tokens(pattern):

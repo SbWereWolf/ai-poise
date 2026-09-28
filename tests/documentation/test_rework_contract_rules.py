@@ -10,6 +10,15 @@ CANONICAL_LINK = (
     "[\u043d\u0435\u0438\u0437\u043c\u0435\u043d\u043d\u043e\u0441\u0442\u044c \u043f\u0443\u0442\u0435\u0439, rework \u0438 \u0433\u0440\u0430\u0444 \u044d\u0442\u0430\u043f\u043e\u0432]"
     "(../governance/development-rules.md#\u043d\u0435\u0438\u0437\u043c\u0435\u043d\u043d\u043e\u0441\u0442\u044c-\u043f\u0443\u0442\u0435\u0439-rework-\u0438-\u0433\u0440\u0430\u0444-\u044d\u0442\u0430\u043f\u043e\u0432)"
 )
+DRAFT_HEADING = "## Редактируемые приёмочные черновики"
+DRAFT_LINK = (
+    "[редактируемый приёмочный черновик]"
+    "(../workflows/batch-work.md#редактируемые-приёмочные-черновики)"
+)
+AGENT_DRAFT_LINK = (
+    "[editable acceptance draft contract]"
+    "(docs/workflows/batch-work.md#редактируемые-приёмочные-черновики)"
+)
 RULES = {
     "TASK-PATH-01": {
         "ru": "При создании Task запрещено объявлять путь неизменным, если последующий обычный этап или rework должен изменить либо создать его; до `ready` каждый планируемый путь записи должен входить в `allowed_paths` соответствующего этапа.",
@@ -24,8 +33,8 @@ RULES = {
         "en": "Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.",
     },
     "TASK-PATH-04": {
-        "ru": "Зарегистрированные неизменяемые артефакты остаются неизменяемыми; исправление использует новую идентичность артефакта и ревизию контракта вместо перезаписи зарегистрированных байтов.",
-        "en": "Registered immutable artifacts remain immutable; a correction uses a new artifact identity and a contract revision instead of overwriting registered bytes.",
+        "ru": "Обычные зарегистрированные неизменяемые артефакты не перезаписываются; `artifact_drafts` сохраняет один рабочий путь и identity только для заранее объявленного черновика или явно разрешённого восстановления преждевременно замороженного нетерминального файла, а каждый review создаёт отдельный неизменяемый снимок.",
+        "en": "Ordinary registered immutable artifacts are not overwritten; `artifact_drafts` preserves one working path and identity only for a predeclared draft or explicitly authorized recovery of a prematurely frozen nonterminal file, while every review creates a separate immutable snapshot.",
     },
     "TASK-PATH-05": {
         "ru": "Некорректный граф этапов отклоняется, если цель перехода или rework отсутствует, этап недостижим от entry либо из достижимого этапа нет пути к положительному завершению; цикл допустим только при наличии такого выхода.",
@@ -72,6 +81,9 @@ def policy_rules_present(files: dict[str, str] | None = None) -> bool:
         and english == ENGLISH_RULES
         and CANONICAL_LINK in files["planning"]
         and CANONICAL_LINK in files["batch"]
+        and DRAFT_LINK in files["planning"]
+        and DRAFT_HEADING in files["batch"]
+        and AGENT_DRAFT_LINK in files["agents"]
         and set(russian or ()) == set(english or ())
         and all(russian[key] != english[key] for key in RULES)
     )
@@ -82,9 +94,9 @@ def _valid_fixture() -> dict[str, str]:
     english = "\n".join(f"- **{key}.** {value}" for key, value in ENGLISH_RULES.items())
     return {
         "development": f"{RUSSIAN_HEADING}\n\n{russian}\n",
-        "planning": CANONICAL_LINK,
-        "batch": CANONICAL_LINK,
-        "agents": f"{ENGLISH_HEADING}\n\n{english}\n",
+        "planning": f"{CANONICAL_LINK}\n{DRAFT_LINK}",
+        "batch": f"{CANONICAL_LINK}\n{DRAFT_HEADING}\n",
+        "agents": f"{ENGLISH_HEADING}\n\n{english}\n{AGENT_DRAFT_LINK}\n",
     }
 
 
@@ -102,3 +114,14 @@ def test_disconnected_negated_and_contradictory_rule_fixtures_are_rejected() -> 
             fixture["from"], fixture["to"], 1
         )
         assert not policy_rules_present(files), fixture["id"]
+
+
+def test_editable_draft_contract_links_are_required() -> None:
+    for file, marker in (
+        ("planning", DRAFT_LINK),
+        ("batch", DRAFT_HEADING),
+        ("agents", AGENT_DRAFT_LINK),
+    ):
+        files = _valid_fixture()
+        files[file] = files[file].replace(marker, "", 1)
+        assert not policy_rules_present(files), file

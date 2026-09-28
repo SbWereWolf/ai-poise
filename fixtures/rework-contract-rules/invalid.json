@@ -8,8 +8,8 @@
   {
     "id": "contradictory-artifact-rule",
     "file": "agents",
-    "from": "Registered immutable artifacts remain immutable",
-    "to": "Registered immutable artifacts may be overwritten during rework"
+    "from": "Ordinary registered immutable artifacts are not overwritten",
+    "to": "Ordinary registered immutable artifacts may be overwritten during rework"
   },
   {
     "id": "disconnected-planning-link",

@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import sqlite3
 import sys
+import time
 
 CONFIG_SCHEMA = "stride-sequencing-config/v1"
 WIRE_SCHEMA = "stride-sequencing/v1"
@@ -226,7 +227,15 @@ class Store:
         state.mkdir(parents=True, exist_ok=True)
         self.config["lock_path"].parent.mkdir(parents=True, exist_ok=True)
         with self.config["lock_path"].open("a+b") as lock_file:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            deadline = time.monotonic() + self.config["lock_seconds"]
+            while True:
+                try:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError as exc:
+                    if time.monotonic() >= deadline:
+                        raise SequencingError("Sequencing lock timeout") from exc
+                    time.sleep(self.config["poll_seconds"])
             try:
                 yield
             finally:

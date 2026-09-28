@@ -26,6 +26,16 @@ OUTCOMES = {
     HandlerKind.CHECK: frozenset({"satisfied", "not_satisfied", "inconclusive"}),
 }
 
+POSITIVE_OUTCOME = {
+    HandlerKind.APPLY_PLAN: "complete",
+    HandlerKind.PUBLISH: "complete",
+    HandlerKind.PRODUCE: "complete",
+    HandlerKind.INSPECT: "clear",
+    HandlerKind.REVISE: "complete",
+    HandlerKind.OBSERVE: "complete",
+    HandlerKind.CHECK: "satisfied",
+}
+
 
 def exact(value, keys, where):
     if not isinstance(value, dict) or set(value) != set(keys):
@@ -112,12 +122,19 @@ class RouteDefinition:
             pending.extend(t for _, t in self.node(current).transitions if t is not None)
         if reached != names:
             raise DomainError(f"Недостижимые этапы: {sorted(names - reached)}")
-        terminal = {n.stage_id for n in self.nodes if any(t is None for _, t in n.transitions)}
+        terminal = {
+            node.stage_id
+            for node in self.nodes
+            if node.target(POSITIVE_OUTCOME[node.handler]) is None
+        }
         can_finish = set(terminal)
         for _ in self.nodes:
             can_finish.update(n.stage_id for n in self.nodes if any(t in can_finish for _, t in n.transitions))
         if can_finish != names:
-            raise DomainError("Из каждого этапа должен существовать путь завершения")
+            raise DomainError(
+                "Из каждого достижимого этапа должен существовать "
+                "путь положительного завершения"
+            )
 
     @classmethod
     def from_process(cls, process: dict) -> RouteDefinition:

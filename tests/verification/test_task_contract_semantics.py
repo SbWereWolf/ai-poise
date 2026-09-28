@@ -455,7 +455,15 @@ def test_creation_rejects_later_stage_output_without_method_future_output(projec
     assert database_after["task_execution"] == ()
 
 
-def test_creation_rejects_overlapping_later_stage_output_patterns(project):
+@pytest.mark.parametrize(("first_pattern", "later_pattern"), [
+    ("build/*.md", "build/file.*"),
+    ("build/[! -~☃].md", "build/?.md"),
+])
+def test_creation_rejects_overlapping_later_stage_output_patterns(
+    project,
+    first_pattern,
+    later_pattern,
+):
     task = deepcopy(project["task"])
     process = deepcopy(project["process"])
     for stage in process["stages"]:
@@ -468,12 +476,12 @@ def test_creation_rejects_overlapping_later_stage_output_patterns(project):
         writer="implementation",
     )
     remove_late_write_method(task, "implementation")
-    task["artifact_requirements"][0]["pattern"] = "build/*.md"
+    task["artifact_requirements"][0]["pattern"] = first_pattern
     for requirement in task["content_contract"]["requirements"]:
         if requirement["id"] in {"immutable-output", "immutable-input"}:
-            requirement["pattern"] = "build/*.md"
+            requirement["pattern"] = first_pattern
         elif requirement["id"] == "late-output":
-            requirement["pattern"] = "build/file.*"
+            requirement["pattern"] = later_pattern
     cfg = project["cfg"]
     cfg["automatic_checks"] = []
     cfg["task_ids"] = {

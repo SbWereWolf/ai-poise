@@ -337,10 +337,10 @@ The canonical rule is [path immutability, rework, and stage graphs](docs/governa
 - **TASK-PATH-01.** Task creation must not declare a path immutable when a later normal or rework stage must modify or create it; every planned write path belongs in that stage's `allowed_paths` before `ready`.
 - **TASK-PATH-02.** A later stage or rework plan must not require a write to a path frozen by the resolved Task contract; authorized planning or `restart` must remove the contradiction before stage admission.
 - **TASK-PATH-03.** Rework does not lift immutability: it uses the target stage's exact `allowed_paths`, and an out-of-scope change is rejected before Task, artifact, or check-result persistence.
-- **TASK-PATH-04.** Registered immutable artifacts remain immutable; a correction uses a new artifact identity and a contract revision instead of overwriting registered bytes.
+- **TASK-PATH-04.** Ordinary registered immutable artifacts are not overwritten; `artifact_drafts` preserves one working path and identity only for a predeclared draft or explicitly authorized recovery of a prematurely frozen nonterminal file, while every review creates a separate immutable snapshot.
 - **TASK-PATH-05.** An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.
 
-An acceptance working draft is not automatically immutable evidence. Do not register it as an immutable artifact while later review or rework still requires in-place edits. If the current Task contract forces that contradiction, report it as broken and seek an authorized contract revision or a separate artifact-lifecycle change; do not silently overwrite registered bytes or proliferate versioned files as a routine workaround.
+An acceptance working draft is not automatically immutable evidence. Declare it through `artifact_drafts` before first registration when later review or rework requires same-path edits. Recover a prematurely frozen file only under the exact public authorization and nonterminal-release guards. Do not silently overwrite ordinary registered bytes or proliferate versioned filenames as a workaround. Follow the [editable acceptance draft contract](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 
 ## Mandatory bootstrap and verification
 

@@ -191,7 +191,7 @@ def test_public_revise_requires_inspection_owner_authorization_and_version(proje
     task = _configure(project)
     current = tools.runtime.task_queries.record("T1")
     contract = deepcopy(task["stage_contracts"][0])
-    contract["allowed_paths"] = ["tests/exact/**"]
+    contract["allowed_paths"] = ["tests", "tests/exact/**"]
     before = _snapshot(tools.runtime)
     with pytest.raises(PoiseError, match="inspection"):
         tools.invoke(_revise("T1", current["version"], context["stage"], contract))

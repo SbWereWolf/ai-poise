@@ -119,7 +119,9 @@ class RouteDefinition:
             if current in reached:
                 continue
             reached.add(current)
-            pending.extend(t for _, t in self.node(current).transitions if t is not None)
+            node = self.node(current)
+            pending.extend(t for _, t in node.transitions if t is not None)
+            pending.extend(node.rework_targets)
         if reached != names:
             raise DomainError(f"Недостижимые этапы: {sorted(names - reached)}")
         terminal = {

@@ -90,16 +90,45 @@ def test_valid_cycle_with_positive_terminal_path_is_accepted():
 
 
 def test_check_route_with_only_negative_terminal_is_rejected():
-    cfg = process()
-    cfg["route"] = {"entry": "check"}
-    cfg["stages"] = [stage(
-        "check", "check",
-        {"satisfied": "check", "not_satisfied": None, "inconclusive": "check"},
-        False, ["src/**"], ["check"],
-    )]
+    cases = {
+        "not_satisfied_terminal": [stage(
+            "check", "check",
+            {"satisfied": "check", "not_satisfied": None, "inconclusive": "check"},
+            False, ["src/**"], ["check"],
+        )],
+        "inconclusive_terminal": [stage(
+            "check", "check",
+            {"satisfied": "check", "not_satisfied": "check", "inconclusive": None},
+            False, ["src/**"], ["check"],
+        )],
+        "reachable_trap_after_positive_exit": [
+            stage(
+                "check", "check",
+                {"satisfied": None, "not_satisfied": "trap", "inconclusive": "check"},
+                False, ["src/**"], ["check"],
+            ),
+            stage(
+                "trap", "check",
+                {"satisfied": "trap", "not_satisfied": None, "inconclusive": "trap"},
+                False, ["src/**"], ["trap"],
+            ),
+        ],
+    }
+    accepted = []
 
-    with pytest.raises(DomainError, match="путь положительного завершения"):
-        route(cfg)
+    for case, stages in cases.items():
+        cfg = process()
+        cfg["route"] = {"entry": "check"}
+        cfg["stages"] = stages
+        try:
+            route(cfg)
+        except DomainError as exc:
+            assert "путь положительного завершения" in str(exc)
+        else:
+            accepted.append(case)
+
+    if accepted:
+        pytest.fail(f"DID NOT RAISE for invalid CHECK routes: {accepted}")
 
 
 def test_check_route_with_positive_terminal_and_rework_cycle_is_accepted():

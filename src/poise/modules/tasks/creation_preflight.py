@@ -274,37 +274,60 @@ class CreationPreflight:
             for contract in stage_contracts.items
             for requirement_id in contract.entry_requirements + contract.exit_requirements
         }
-        immutable_outputs = []
+        immutable_artifacts = []
+        planned_writes = [
+            (output.path, output.producer_stage, f"method {method.method_id}")
+            for method in self.methods
+            for output in method.future_outputs
+        ]
         for requirement in policy.requirements:
             if (
                 requirement.id not in active_ids
                 or requirement.kind != "artifact"
-                or requirement.phase != "post"
             ):
                 continue
             details = json.loads(requirement.details)
             source = details.get("source")
-            if source is None or source.get("kind") != "stage_output":
+            kind = "preexisting" if source is None else source.get("kind")
+            if kind == "stage_output":
+                if requirement.phase != "post":
+                    continue
+                freeze_stage = source["producer_stage"]
+                freeze_timing = "after_stage"
+                planned_writes.append((
+                    details["pattern"],
+                    freeze_stage,
+                    f"artifact requirement {requirement.id}",
+                ))
+            elif kind == "declared_arrival":
+                freeze_stage = source["arrival_stage"]
+                freeze_timing = "at_stage_entry"
+            elif kind == "preexisting":
+                freeze_stage = None
+                freeze_timing = "before_task"
+            else:
                 continue
-            immutable_outputs.append((
+            immutable_artifacts.append((
                 details["pattern"],
-                source["producer_stage"],
+                freeze_stage,
+                freeze_timing,
                 requirement.id,
             ))
-        for method in self.methods:
-            for output in method.future_outputs:
-                for pattern, producer, requirement_id in immutable_outputs:
-                    if (
-                        output.producer_stage == producer
-                        or not matches_allowed_path(output.path, pattern)
-                        or not _reachable_after(route, producer, output.producer_stage)
-                    ):
-                        continue
+        for write_path, writer, write_owner in planned_writes:
+            for pattern, freeze_stage, freeze_timing, requirement_id in immutable_artifacts:
+                if not _artifact_paths_overlap(write_path, pattern):
+                    continue
+                if freeze_timing == "before_task":
+                    later = True
+                elif freeze_timing == "at_stage_entry":
+                    later = writer == freeze_stage or _reachable_after(route, freeze_stage, writer)
+                else:
+                    later = writer != freeze_stage and _reachable_after(route, freeze_stage, writer)
+                if later:
                     raise DomainError(
-                        f"method {method.method_id}: future output {output.path} at "
-                        f"{output.producer_stage} rewrites immutable artifact "
-                        f"{requirement_id} produced at {producer}; remove the later write "
-                        "or use the explicit editable artifact-draft lifecycle"
+                        f"{write_owner}: output {write_path} at {writer} rewrites immutable "
+                        f"artifact {requirement_id}; remove the later write or use the "
+                        "explicit editable artifact-draft lifecycle"
                     )
 
 
@@ -338,3 +361,11 @@ def _reachable_after(route, start, target):
         pending.extend(value for _, value in node.transitions if value is not None)
         pending.extend(node.rework_targets)
     return False
+
+
+def _artifact_paths_overlap(left, right):
+    return (
+        left == right
+        or matches_allowed_path(left, right)
+        or matches_allowed_path(right, left)
+    )

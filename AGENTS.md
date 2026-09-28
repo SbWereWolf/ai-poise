@@ -340,6 +340,13 @@ The canonical rule is [path immutability, rework, and stage graphs](docs/governa
 - **TASK-PATH-04.** Ordinary registered immutable artifacts are not overwritten; `artifact_drafts` preserves one working path and identity only for a predeclared draft or explicitly authorized recovery of a prematurely frozen nonterminal file, while every review creates a separate immutable snapshot.
 - **TASK-PATH-05.** An invalid stage graph is rejected when a transition or rework target is missing, a stage is unreachable from the entry, or a reachable stage has no path to positive termination; a cycle is valid only when it retains such an exit.
 
+Contradiction validation treats `method_inputs.future_outputs` and active post
+`stage_output` obligations as planned writes. A source-less or `preexisting` artifact
+freezes its path before the Task, `declared_arrival` at `arrival_stage` entry, and
+`stage_output` after `producer_stage` exits. Conflicts use path-pattern language
+intersection rather than string equality alone. A predicate with `maximum: 0` requires
+absence and does not freeze its path.
+
 An acceptance working draft is not automatically immutable evidence. Declare it through `artifact_drafts` before first registration when later review or rework requires same-path edits. Recover a prematurely frozen file only under the exact public authorization and nonterminal-release guards. Do not silently overwrite ordinary registered bytes or proliferate versioned filenames as a workaround. Follow the [editable acceptance draft contract](docs/workflows/batch-work.md#редактируемые-приёмочные-черновики).
 
 ## Mandatory bootstrap and verification

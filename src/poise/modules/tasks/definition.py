@@ -124,7 +124,7 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
         obligation_catalog(contract),
     )
     from .creation_preflight import CreationPreflight
-    CreationPreflight.parse(contract,process)
+    preflight = CreationPreflight.parse(contract,process)
     registry.validate_route(route.with_stage_scopes(contract['stage_contracts']))
     for entry in automatic_checks:
         for stage in stages:
@@ -141,7 +141,12 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
             or not 0<=r['minimum']<=r['maximum']):
             raise DomainError('Некорректное требование артефактов')
     metadata={'contract':deepcopy(contract),'process':deepcopy(process)}
-    build_task(metadata,None)  # All Content/Evidence/Workflow constructors, no I/O.
+    planned = build_task(metadata,None)  # All Content/Evidence/Workflow constructors, no I/O.
+    preflight.validate_immutable_artifact_writes(
+        planned.route,
+        planned.content_policy,
+        planned.stage_contracts,
+    )
     return metadata
 
 

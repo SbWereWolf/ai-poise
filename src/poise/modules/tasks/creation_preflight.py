@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import PurePosixPath
 
 from ..foundation.errors import DomainError
@@ -266,6 +267,46 @@ class CreationPreflight:
                         "исправьте repository_inputs или используйте новый request_id"
                     )
 
+    def validate_immutable_artifact_writes(self, route, policy, stage_contracts):
+        """Reject planned writes that occur after an ordinary stage artifact is frozen."""
+        active_ids = {
+            requirement_id
+            for contract in stage_contracts.items
+            for requirement_id in contract.entry_requirements + contract.exit_requirements
+        }
+        immutable_outputs = []
+        for requirement in policy.requirements:
+            if (
+                requirement.id not in active_ids
+                or requirement.kind != "artifact"
+                or requirement.phase != "post"
+            ):
+                continue
+            details = json.loads(requirement.details)
+            source = details.get("source")
+            if source is None or source.get("kind") != "stage_output":
+                continue
+            immutable_outputs.append((
+                details["pattern"],
+                source["producer_stage"],
+                requirement.id,
+            ))
+        for method in self.methods:
+            for output in method.future_outputs:
+                for pattern, producer, requirement_id in immutable_outputs:
+                    if (
+                        output.producer_stage == producer
+                        or not matches_allowed_path(output.path, pattern)
+                        or not _reachable_after(route, producer, output.producer_stage)
+                    ):
+                        continue
+                    raise DomainError(
+                        f"method {method.method_id}: future output {output.path} at "
+                        f"{output.producer_stage} rewrites immutable artifact "
+                        f"{requirement_id} produced at {producer}; remove the later write "
+                        "or use the explicit editable artifact-draft lifecycle"
+                    )
+
 
 def _dominates(route, producer, execution):
     if producer == execution or producer == route.entry:
@@ -279,3 +320,21 @@ def _dominates(route, producer, execution):
         reached.add(current)
         pending.extend(target for _, target in route.node(current).transitions if target is not None)
     return execution not in reached
+
+
+def _reachable_after(route, start, target):
+    reached = {start}
+    node = route.node(start)
+    pending = [value for _, value in node.transitions if value is not None]
+    pending.extend(node.rework_targets)
+    while pending:
+        current = pending.pop()
+        if current == target:
+            return True
+        if current in reached:
+            continue
+        reached.add(current)
+        node = route.node(current)
+        pending.extend(value for _, value in node.transitions if value is not None)
+        pending.extend(node.rework_targets)
+    return False

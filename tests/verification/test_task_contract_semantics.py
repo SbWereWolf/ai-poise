@@ -17,30 +17,108 @@ from tests.verification.test_plan_contract import method
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def direct_sql_snapshot(project):
-    """Read every persisted Task-store row without using production projections."""
+def direct_task_sql_snapshot(project, *, task_ids, session_ids):
+    """Read exact Task state and ownership columns without production projections."""
     database = (
         project["root"]
         / project["cfg"]["paths"]["state"]
         / project["cfg"]["paths"]["database"]
     )
+    task_ids = tuple(task_ids)
+    session_ids = tuple(session_ids)
+    task_marks = ", ".join("?" for _ in task_ids)
+    session_marks = ", ".join("?" for _ in session_ids)
+    queries = {
+        "tasks": (
+            f"SELECT id, status, stage_index, iteration, claimed_by, version, "
+            f"current_submission_id, metadata FROM tasks WHERE id IN ({task_marks}) ORDER BY id",
+            task_ids,
+        ),
+        "task_workflows": (
+            f"SELECT task_id, data FROM task_workflows WHERE task_id IN ({task_marks}) ORDER BY task_id",
+            task_ids,
+        ),
+        "task_execution": (
+            f"SELECT task_id, data, version FROM task_execution "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id",
+            task_ids,
+        ),
+        "sessions": (
+            f"SELECT id, task_id FROM sessions WHERE id IN ({session_marks}) "
+            f"OR task_id IN ({task_marks}) ORDER BY id",
+            session_ids + task_ids,
+        ),
+        "journal": (
+            f"SELECT seq, at, session_id, task_id, event, data FROM journal "
+            f"WHERE task_id IN ({task_marks}) OR session_id IN ({session_marks}) ORDER BY seq",
+            task_ids + session_ids,
+        ),
+        "task_events": (
+            f"SELECT seq, task_id, version, at, data FROM task_events "
+            f"WHERE task_id IN ({task_marks}) ORDER BY seq",
+            task_ids,
+        ),
+        "submissions": (
+            f"SELECT seq, task_id, stage, iteration, digest, data FROM submissions "
+            f"WHERE task_id IN ({task_marks}) ORDER BY seq",
+            task_ids,
+        ),
+        "task_methods": (
+            f"SELECT task_id, method_id, version, data FROM task_methods "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id, method_id",
+            task_ids,
+        ),
+        "content_contracts": (
+            f"SELECT task_id, version, data FROM content_contracts "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id, version",
+            task_ids,
+        ),
+        "task_artifacts": (
+            f"SELECT task_id, artifact_id FROM task_artifacts "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id, artifact_id",
+            task_ids,
+        ),
+        "artifacts": (
+            f"SELECT id, owner, scope, path, digest FROM artifacts "
+            f"WHERE owner IN ({task_marks}) ORDER BY id",
+            task_ids,
+        ),
+        "handoffs": (
+            f"SELECT seq, actor, request_id, task_id, state, data FROM handoffs "
+            f"WHERE task_id IN ({task_marks}) OR actor IN ({session_marks}) ORDER BY seq",
+            task_ids + session_ids,
+        ),
+        "action_runs": (
+            f"SELECT task_id, stage, iteration, version, data FROM action_runs "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id, stage, iteration",
+            task_ids,
+        ),
+        "action_events": (
+            f"SELECT seq, task_id, stage, iteration, version, at, data FROM action_events "
+            f"WHERE task_id IN ({task_marks}) ORDER BY seq",
+            task_ids,
+        ),
+        "task_proofs": (
+            f"SELECT task_id, data FROM task_proofs WHERE task_id IN ({task_marks}) ORDER BY task_id",
+            task_ids,
+        ),
+        "task_proof_layers": (
+            f"SELECT task_id, version, data FROM task_proof_layers "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id, version",
+            task_ids,
+        ),
+        "work_packets": (
+            f"SELECT task_id, stage, iteration, digest FROM work_packets "
+            f"WHERE task_id IN ({task_marks}) ORDER BY task_id, stage, iteration",
+            task_ids,
+        ),
+    }
     with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
         connection.execute("PRAGMA query_only = ON")
-        tables = [
-            row[0]
-            for row in connection.execute(
-                "SELECT name FROM sqlite_master "
-                "WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-            )
-        ]
+        connection.row_factory = sqlite3.Row
         return {
-            table: tuple(sorted(
-                connection.execute(
-                    f'SELECT * FROM "{table.replace(chr(34), chr(34) * 2)}"'
-                ).fetchall(),
-                key=repr,
-            ))
-            for table in tables
+            name: tuple(dict(row) for row in connection.execute(sql, parameters))
+            for name, (sql, parameters) in queries.items()
         }
 
 
@@ -107,7 +185,15 @@ def definition(goal_type="development"):
     return task, process
 
 
-def immutable_write_conflict(task, process, *, producer, consumer, writer):
+def immutable_write_conflict(
+    task,
+    process,
+    *,
+    producer,
+    consumer,
+    writer,
+    writer_is_artifact=True,
+):
     """Declare one ordinary artifact, then plan a later write to the same path."""
     path = "build/file.md"
     source = {"kind": "stage_output", "producer_stage": producer}
@@ -115,7 +201,7 @@ def immutable_write_conflict(task, process, *, producer, consumer, writer):
     task["artifact_requirements"] = [{
         "scope": "task", "pattern": path, "minimum": 1, "maximum": 1,
     }]
-    task["content_contract"]["requirements"].extend([
+    requirements = [
         {
             "id": "immutable-output", "kind": "artifact", "stages": [producer],
             "phase": "post", "scope": "task", "pattern": path,
@@ -126,12 +212,14 @@ def immutable_write_conflict(task, process, *, producer, consumer, writer):
             "phase": "pre", "scope": "task", "pattern": path,
             "minimum": 1, "maximum": 1, "source": source,
         },
-        {
+    ]
+    if writer_is_artifact:
+        requirements.append({
             "id": "late-output", "kind": "artifact", "stages": [writer],
             "phase": "post", "scope": "task", "pattern": path,
             "minimum": 1, "maximum": 1, "source": writer_source,
-        },
-    ])
+        })
+    task["content_contract"]["requirements"].extend(requirements)
     contracts = {item["stage_id"]: item for item in task["stage_contracts"]}
     process_stages = {item["id"]: item for item in process["stages"]}
     for stage in dict.fromkeys((producer, writer)):
@@ -141,7 +229,8 @@ def immutable_write_conflict(task, process, *, producer, consumer, writer):
         process_stages[stage]["allowed_paths"] = list(contracts[stage]["allowed_paths"])
     contracts[producer]["exit_requirements"].append("immutable-output")
     contracts[consumer]["entry_requirements"].append("immutable-input")
-    contracts[writer]["exit_requirements"].append("late-output")
+    if writer_is_artifact:
+        contracts[writer]["exit_requirements"].append("late-output")
     late_write = method("LATE_WRITE", plan={
         "responsibility": "Verify the planned later write.",
         "change_surface": [path], "red_stages": [], "green_stages": [writer],
@@ -249,7 +338,11 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "immutable-creation-owner"))
-    database_before = direct_sql_snapshot(project)
+    database_before = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("immutable-creation-owner",),
+    )
     git_before = direct_git_snapshot(project)
 
     with pytest.raises(DomainError, match="immutable|неизмен"):
@@ -258,10 +351,17 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
             "decision": None, "feedback": None, "rework_stage": None,
         }, "messages": []})
 
-    database_after = direct_sql_snapshot(project)
+    database_after = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("immutable-creation-owner",),
+    )
     assert database_after == database_before
     assert direct_git_snapshot(project) == git_before
-    assert all(row[0] != "0001" for row in database_after["tasks"])
+    assert database_after["tasks"] == ()
+    assert database_after["task_execution"] == ()
+    assert all(row["task_id"] is None for row in database_after["sessions"])
+    assert database_after["journal"] == ()
 
 
 def test_creation_allows_future_output_at_its_first_declared_producer(project):
@@ -300,6 +400,7 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
         producer="implementation",
         consumer="code_review",
         writer="tests",
+        writer_is_artifact=False,
     )
     project["cfg"]["automatic_checks"] = []
     process_path = project["root"] / project["cfg"]["processes"]["development"]
@@ -336,6 +437,7 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
         producer="implementation",
         consumer="code_review",
         writer="tests",
+        writer_is_artifact=False,
     )
     write_json(process_path, rework_process)
     configure(project)
@@ -350,7 +452,11 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
         rework_task | {"goal_type": "development"},
         "immutable-ready-contract",
     )
-    database_before = direct_sql_snapshot(project)
+    database_before = direct_task_sql_snapshot(
+        project,
+        task_ids=("IMMUTABLE-READY",),
+        session_ids=("immutable-ready-owner",),
+    )
     git_before = direct_git_snapshot(project)
 
     with pytest.raises(DomainError, match="immutable|неизмен"):
@@ -362,13 +468,20 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
             expected_revision=edited["revision"],
         )
 
-    database_after = direct_sql_snapshot(project)
+    database_after = direct_task_sql_snapshot(
+        project,
+        task_ids=("IMMUTABLE-READY",),
+        session_ids=("immutable-ready-owner",),
+    )
     assert database_after == database_before
     assert direct_git_snapshot(project) == git_before
-    row = next(row for row in database_after["tasks"] if row[0] == "IMMUTABLE-READY")
-    assert row[1] == "newborn"
-    assert row[4] == "immutable-ready-owner"
-    assert row[5] == edited["revision"]
+    row = database_after["tasks"][0]
+    assert row["id"] == "IMMUTABLE-READY"
+    assert row["status"] == "newborn"
+    assert row["claimed_by"] == "immutable-ready-owner"
+    assert row["version"] == edited["revision"]
+    assert database_after["task_execution"] == ()
+    assert all(row["task_id"] is None for row in database_after["sessions"])
 
 
 def test_trace_can_be_planned_but_is_required_before_code():

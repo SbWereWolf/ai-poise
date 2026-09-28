@@ -2,6 +2,8 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+import sqlite3
+import subprocess
 import sys
 
 import pytest
@@ -13,6 +15,52 @@ from tests.verification.test_schema_diagnostics import creation_fixture, decompo
 from tests.verification.test_plan_contract import method
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def direct_sql_snapshot(project):
+    """Read every persisted Task-store row without using production projections."""
+    database = (
+        project["root"]
+        / project["cfg"]["paths"]["state"]
+        / project["cfg"]["paths"]["database"]
+    )
+    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        connection.execute("PRAGMA query_only = ON")
+        tables = [
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master "
+                "WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            )
+        ]
+        return {
+            table: tuple(sorted(
+                connection.execute(
+                    f'SELECT * FROM "{table.replace(chr(34), chr(34) * 2)}"'
+                ).fetchall(),
+                key=repr,
+            ))
+            for table in tables
+        }
+
+
+def direct_git_snapshot(project):
+    """Observe refs, registered worktrees, and checkout state through Git itself."""
+    repository = project["app"]
+    return {
+        "refs": subprocess.check_output(
+            ["git", "-C", str(repository), "for-each-ref", "--format=%(refname) %(objectname)", "refs/heads"],
+            text=True,
+        ),
+        "worktrees": subprocess.check_output(
+            ["git", "-C", str(repository), "worktree", "list", "--porcelain"],
+            text=True,
+        ),
+        "status": subprocess.check_output(
+            ["git", "-C", str(repository), "status", "--porcelain=v2", "--branch"],
+            text=True,
+        ),
+    }
 
 
 def definition(goal_type="development"):
@@ -201,6 +249,8 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
     write_json(project["config_path"], cfg)
     task.pop("id")
     tools = WorkTools(WorkPoise(project["config_path"], "immutable-creation-owner"))
+    database_before = direct_sql_snapshot(project)
+    git_before = direct_git_snapshot(project)
 
     with pytest.raises(DomainError, match="immutable|неизмен"):
         tools.invoke({"operation": "bootstrap", "input": {
@@ -208,7 +258,10 @@ def test_creation_rejects_earlier_immutable_artifact_rewritten_by_later_stage(pr
             "decision": None, "feedback": None, "rework_stage": None,
         }, "messages": []})
 
-    assert tools.runtime.task_queries.record("0001") is None
+    database_after = direct_sql_snapshot(project)
+    assert database_after == database_before
+    assert direct_git_snapshot(project) == git_before
+    assert all(row[0] != "0001" for row in database_after["tasks"])
 
 
 def test_creation_allows_future_output_at_its_first_declared_producer(project):
@@ -237,47 +290,85 @@ def test_ready_rejects_earlier_immutable_artifact_rewritten_by_later_stage(proje
     from batch.helpers import configure
     from tasks.test_newborn_lifecycle import create, edit, task_action
 
-    task = deepcopy(project["task"])
-    process = deepcopy(project["process"])
-    process_stages = {item["id"]: item for item in process["stages"]}
-    for stage in process["stages"]:
+    ordinary_task = deepcopy(project["task"])
+    ordinary_process = deepcopy(project["process"])
+    for stage in ordinary_process["stages"]:
         stage["rework_targets"] = ["implementation"]
-    process_stages["implementation"]["rework_targets"] = ["tests"]
     immutable_write_conflict(
-        task,
-        process,
+        ordinary_task,
+        ordinary_process,
         producer="implementation",
         consumer="code_review",
         writer="tests",
     )
     project["cfg"]["automatic_checks"] = []
-    write_json(project["root"] / project["cfg"]["processes"]["development"], process)
+    process_path = project["root"] / project["cfg"]["processes"]["development"]
+    write_json(process_path, ordinary_process)
     write_json(project["config_path"], project["cfg"])
     configure(project)
-    tools = WorkTools(WorkPoise(project["config_path"], "immutable-ready-owner"))
-    born = create(tools, "IMMUTABLE-READY")
-    task["id"] = "IMMUTABLE-READY"
-    task.pop("goal_type")
+    ordinary_tools = WorkTools(WorkPoise(project["config_path"], "ordinary-ready-owner"))
+    ordinary_born = create(ordinary_tools, "ORDINARY-EARLY-WRITE")
+    ordinary_task["id"] = "ORDINARY-EARLY-WRITE"
+    ordinary_task.pop("goal_type")
+    ordinary_edited = edit(
+        ordinary_tools,
+        "ORDINARY-EARLY-WRITE",
+        ordinary_born["revision"],
+        ordinary_task | {"goal_type": "development"},
+        "ordinary-early-write-contract",
+    )
+    ordinary_ready = task_action(
+        ordinary_tools,
+        action="ready",
+        request_id="ordinary-early-write-ready",
+        task_id="ORDINARY-EARLY-WRITE",
+        expected_revision=ordinary_edited["revision"],
+    )
+    assert ordinary_ready["status"] == "available"
+
+    rework_task = deepcopy(project["task"])
+    rework_process = deepcopy(ordinary_process)
+    rework_stages = {item["id"]: item for item in rework_process["stages"]}
+    rework_stages["implementation"]["rework_targets"] = ["tests"]
+    immutable_write_conflict(
+        rework_task,
+        rework_process,
+        producer="implementation",
+        consumer="code_review",
+        writer="tests",
+    )
+    write_json(process_path, rework_process)
+    configure(project)
+    rework_tools = WorkTools(WorkPoise(project["config_path"], "immutable-ready-owner"))
+    born = create(rework_tools, "IMMUTABLE-READY")
+    rework_task["id"] = "IMMUTABLE-READY"
+    rework_task.pop("goal_type")
     edited = edit(
-        tools,
+        rework_tools,
         "IMMUTABLE-READY",
         born["revision"],
-        task | {"goal_type": "development"},
+        rework_task | {"goal_type": "development"},
         "immutable-ready-contract",
     )
+    database_before = direct_sql_snapshot(project)
+    git_before = direct_git_snapshot(project)
 
     with pytest.raises(DomainError, match="immutable|неизмен"):
         task_action(
-            tools,
+            rework_tools,
             action="ready",
             request_id="immutable-write-ready",
             task_id="IMMUTABLE-READY",
             expected_revision=edited["revision"],
         )
 
-    record = tools.runtime.task_queries.record("IMMUTABLE-READY")
-    assert record["status"] == "newborn"
-    assert record["draft"] == edited["draft"]
+    database_after = direct_sql_snapshot(project)
+    assert database_after == database_before
+    assert direct_git_snapshot(project) == git_before
+    row = next(row for row in database_after["tasks"] if row[0] == "IMMUTABLE-READY")
+    assert row[1] == "newborn"
+    assert row[4] == "immutable-ready-owner"
+    assert row[5] == edited["revision"]
 
 
 def test_trace_can_be_planned_but_is_required_before_code():

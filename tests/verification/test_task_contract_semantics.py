@@ -455,6 +455,59 @@ def test_creation_rejects_later_stage_output_without_method_future_output(projec
     assert database_after["task_execution"] == ()
 
 
+def test_creation_rejects_overlapping_later_stage_output_patterns(project):
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    immutable_write_conflict(
+        task,
+        process,
+        producer="tests",
+        consumer="test_review",
+        writer="implementation",
+    )
+    remove_late_write_method(task, "implementation")
+    task["artifact_requirements"][0]["pattern"] = "build/*.md"
+    for requirement in task["content_contract"]["requirements"]:
+        if requirement["id"] in {"immutable-output", "immutable-input"}:
+            requirement["pattern"] = "build/*.md"
+        elif requirement["id"] == "late-output":
+            requirement["pattern"] = "build/file.*"
+    cfg = project["cfg"]
+    cfg["automatic_checks"] = []
+    cfg["task_ids"] = {
+        "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
+        "progression": {"first": 1, "step": 1},
+    }
+    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["config_path"], cfg)
+    task.pop("id")
+    tools = WorkTools(WorkPoise(project["config_path"], "glob-creation-owner"))
+    database_before = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("glob-creation-owner",),
+    )
+    git_before = direct_git_snapshot(project)
+
+    with pytest.raises(DomainError, match="immutable|неизмен"):
+        tools.invoke({"operation": "bootstrap", "input": {
+            "task": {"request_id": "overlapping-glob-creation", "task": task},
+            "decision": None, "feedback": None, "rework_stage": None,
+        }, "messages": []})
+
+    database_after = direct_task_sql_snapshot(
+        project,
+        task_ids=("0001",),
+        session_ids=("glob-creation-owner",),
+    )
+    assert database_after == database_before
+    assert direct_git_snapshot(project) == git_before
+    assert database_after["tasks"] == ()
+    assert database_after["task_execution"] == ()
+
+
 def test_creation_rejects_preexisting_artifact_rewrite(project):
     task = deepcopy(project["task"])
     process = deepcopy(project["process"])
@@ -527,6 +580,72 @@ def test_creation_allows_distinct_later_stage_output(project):
         item for item in validated["contract"]["content_contract"]["requirements"]
         if item["id"] == "late-output"
     )["pattern"] == "build/other.md"
+
+
+def test_creation_allows_nonoverlapping_later_stage_output_patterns(project):
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    immutable_write_conflict(
+        task,
+        process,
+        producer="tests",
+        consumer="test_review",
+        writer="implementation",
+    )
+    remove_late_write_method(task, "implementation")
+    task["artifact_requirements"][0]["pattern"] = "build/a*.md"
+    for requirement in task["content_contract"]["requirements"]:
+        if requirement["id"] in {"immutable-output", "immutable-input"}:
+            requirement["pattern"] = "build/a*.md"
+        elif requirement["id"] == "late-output":
+            requirement["pattern"] = "build/b*.md"
+    task.pop("requirements_snapshot")
+    task.pop("requirements_agreement")
+
+    validated = validate_creation(task, process, [], project["cfg"]["task_decomposition"])
+
+    patterns = {
+        item["pattern"] for item in validated["contract"]["content_contract"]["requirements"]
+        if item["id"] in {"immutable-output", "late-output"}
+    }
+    assert patterns == {"build/a*.md", "build/b*.md"}
+
+
+def test_creation_allows_zero_count_preexisting_predicate_before_first_output(project):
+    task = deepcopy(project["task"])
+    process = deepcopy(project["process"])
+    for stage in process["stages"]:
+        stage["rework_targets"] = ["tests"]
+    existing_artifact_write_conflict(
+        task,
+        process,
+        source={"kind": "preexisting"},
+        writer="implementation",
+    )
+    task["artifact_requirements"] = []
+    requirement = task["content_contract"]["requirements"][0]
+    requirement["minimum"] = 0
+    requirement["maximum"] = 0
+    cfg = project["cfg"]
+    cfg["automatic_checks"] = []
+    cfg["task_ids"] = {
+        "namespace": {"minimum": 1, "maximum": 9999}, "width": 4,
+        "progression": {"first": 1, "step": 1},
+    }
+    write_json(project["root"] / cfg["processes"]["development"], process)
+    write_json(project["config_path"], cfg)
+    task.pop("id")
+    tools = WorkTools(WorkPoise(project["config_path"], "zero-count-creation-owner"))
+
+    context = tools.invoke({"operation": "bootstrap", "input": {
+        "task": {"request_id": "zero-count-creation", "task": task},
+        "decision": None, "feedback": None, "rework_stage": None,
+    }, "messages": []})
+
+    assert context["status"] == "active"
+    assert context["task"] == "0001"
 
 
 def test_creation_allows_future_output_at_its_first_declared_producer(project):

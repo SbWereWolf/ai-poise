@@ -1,0 +1,93 @@
+{
+  "keys": [
+    "schema",
+    "status",
+    "passed",
+    "read_only",
+    "policy_sha256",
+    "scope",
+    "coverage",
+    "files",
+    "private_paths",
+    "accesses",
+    "unresolved_accesses",
+    "diagnostics",
+    "stable_inputs"
+  ],
+  "scope": {
+    "imports": "production-local-closure/v1",
+    "storage": "literal-and-declared-config-paths/v1",
+    "runtime_effects_proven": false,
+    "root_aliases_checked": false
+  },
+  "owners": [
+    "bootstrap",
+    "execution",
+    "orchestrator",
+    "poise",
+    "requirements",
+    "sequencing",
+    "stride-uat"
+  ],
+  "entries": [
+    "apps/bootstrap/bin/bootstrap",
+    "apps/execution/bin/execution",
+    "apps/orchestrator/bin/orchestrator",
+    "apps/poise/bin/poise",
+    "apps/requirements/bin/requirements",
+    "apps/sequencing/bin/sequencing",
+    "apps/stride-uat/bin/stride-uat"
+  ],
+  "config_paths": [
+    "apps/bootstrap/config/bootstrap.json",
+    "apps/execution/config/execution.json",
+    "apps/orchestrator/config/orchestrator.json",
+    "apps/poise/config/poise.json",
+    "apps/requirements/config/requirements.json",
+    "apps/sequencing/config/sequencing.json",
+    "apps/stride-uat/config/uat.json"
+  ],
+  "coverage_keys": [
+    "complete",
+    "owners",
+    "entrypoints",
+    "source_count",
+    "config_count"
+  ],
+  "file_keys": [
+    "path",
+    "kind",
+    "sha256"
+  ],
+  "private_keys": [
+    "owner",
+    "pointer",
+    "kind",
+    "path"
+  ],
+  "access_keys": [
+    "file",
+    "line",
+    "owner",
+    "sink",
+    "target",
+    "target_owner",
+    "access"
+  ],
+  "unresolved_keys": [
+    "file",
+    "line",
+    "owner",
+    "sink",
+    "reason"
+  ],
+  "diagnostic_keys": [
+    "file",
+    "line",
+    "rule",
+    "kind",
+    "owner",
+    "target",
+    "message"
+  ]
+}

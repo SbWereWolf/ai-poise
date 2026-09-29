@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import importlib.util
+import sys
+
+HERE = Path(__file__).resolve()
+MODULE = HERE.parents[1] / "shell.py"
+spec = importlib.util.spec_from_file_location("bootstrap_shell", MODULE)
+mod = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+spec.loader.exec_module(mod)
+raise SystemExit(mod.main())

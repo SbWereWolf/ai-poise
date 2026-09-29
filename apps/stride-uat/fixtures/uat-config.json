@@ -1,0 +1,25 @@
+{
+  "schema": "stride-uat-config/v1",
+  "state_root": "state",
+  "workspace_root": "workspace",
+  "input_roots": ["inputs"],
+  "limits": {
+    "packet_bytes": 1048576,
+    "program_bytes": 1048576,
+    "steps": 256,
+    "id_bytes": 128,
+    "argv_items": 128,
+    "argument_bytes": 65536,
+    "result_bytes": 8388608,
+    "stdout_bytes": 4194304,
+    "stderr_bytes": 4194304,
+    "step_timeout_seconds": 300,
+    "lock_timeout_seconds": 10,
+    "total_timeout_seconds": 3600
+  },
+  "profiles": {},
+  "commands": {},
+  "applications": {},
+  "inputs": {},
+  "isolations": {}
+}

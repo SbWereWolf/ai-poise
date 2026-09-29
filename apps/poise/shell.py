@@ -204,7 +204,10 @@ def main(argv=None):
                 "retryable": False, "details": problem.details,
             },
         }
-        print(json.dumps(response, ensure_ascii=False, allow_nan=False, separators=(",", ":")))
+        wire = json.dumps(
+            response, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        ).encode("utf-8") + b"\n"
+        sys.stdout.buffer.write(wire)
         return 2
 
 

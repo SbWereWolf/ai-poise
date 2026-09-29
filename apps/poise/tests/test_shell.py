@@ -49,15 +49,18 @@ def status_packet():
     return {"schema": "stride-poise/v1", "operation": "session.status", "input": {}}
 
 
-def run_provider(config: Path, packet=None, *, raw=None, cwd=None):
+def run_provider(config: Path, packet=None, *, raw=None, cwd=None,
+                 binary=False, env_overrides=None):
     if raw is None:
         raw = compact(packet) + "\n"
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    if env_overrides is not None:
+        env.update(env_overrides)
     return subprocess.run(
         [str(PROVIDER), "--config", str(config)],
-        input=raw,
-        text=True,
+        input=raw.encode("utf-8") if binary else raw,
+        text=not binary,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=str(cwd or ROOT),
@@ -169,6 +172,26 @@ def test_unknown_operation_is_fail_closed():
         packet = {"schema": "stride-poise/v1", "operation": "session.ensure", "input": {}}
         proc = run_provider(config, packet, cwd=base)
         assert_rejected(proc, "invalid_packet", details={"path": "/operation"})
+        packet = {"schema": "unknown-é", "operation": "session.status", "input": {}}
+        expected = json.loads(
+            (APP / "fixtures" / "unsupported-schema.response.json").read_text(encoding="utf-8")
+        )
+        for encoding in ("latin-1", "ascii"):
+            proc = run_provider(
+                config, packet, cwd=base, binary=True,
+                env_overrides={"PYTHONIOENCODING": encoding},
+            )
+            assert proc.returncode == 2, (encoding, proc.returncode, proc.stdout, proc.stderr)
+            assert proc.stderr == b"", (encoding, proc.stderr)
+            assert proc.stdout.endswith(b"\n"), (encoding, proc.stdout)
+            assert proc.stdout.count(b"\n") == 1, (encoding, proc.stdout)
+            try:
+                decoded = proc.stdout.decode("utf-8", errors="strict")
+            except UnicodeDecodeError as exc:
+                raise AssertionError(
+                    f"{encoding}: stdout is not UTF-8: {proc.stdout!r}"
+                ) from exc
+            assert json.loads(decoded) == expected, (encoding, proc.stdout)
 
 
 BEHAVIOR = [

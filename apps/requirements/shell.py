@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 from poise.application.requirements_registry import RequirementsCommands
-from poise.infrastructure.goal_config import strict_json
+from poise.modules.foundation.strict_json import strict_json
 from poise.infrastructure.requirements_registry import RequirementsStore
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.tasks.allocation import TaskIdPolicy

@@ -49,6 +49,26 @@ class Bound(Exception):
     """A configured analysis bound was exhausted."""
 
 
+
+def read_regular_bounded(path, limit):
+    """Observe at most limit + one sentinel byte, never stream a special file."""
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or not before.st_mode & 0o444:
+        raise OSError('regular readable input required')
+    flags = os.O_RDONLY
+    for name in ('O_NOFOLLOW', 'O_NONBLOCK', 'O_CLOEXEC'):
+        flags |= getattr(os, name, 0)
+    fd = os.open(path, flags)
+    try:
+        current = os.fstat(fd)
+        if not stat.S_ISREG(current.st_mode) or not current.st_mode & 0o444:
+            raise OSError('regular readable input required')
+        with os.fdopen(fd, 'rb', closefd=False) as stream:
+            return stream.read(limit + 1)
+    finally:
+        os.close(fd)
+
+
 def strict_json(raw):
     def pairs(items):
         result = {}
@@ -299,13 +319,7 @@ class Analyzer:
             self.diagnostic(name, 0, 'unsafe_path', 'inconclusive', owner)
             return None
         try:
-            st = path.stat()
-            if not stat.S_ISREG(st.st_mode) or not st.st_mode & 0o444:
-                raise OSError()
-            if st.st_size > self.limits['max_file_bytes']:
-                raise Bound('max_file_bytes')
-            with path.open('rb') as stream:
-                raw = stream.read(self.limits['max_file_bytes'] + 1)
+            raw = read_regular_bounded(path, self.limits['max_file_bytes'])
             if len(raw) > self.limits['max_file_bytes']:
                 raise Bound('max_file_bytes')
             if len(self.raw) >= self.limits['max_files']:
@@ -324,8 +338,7 @@ class Analyzer:
         try:
             if not self.policy_path.is_file() or not self.safe(self.policy_path):
                 raise Invalid('policy missing or unsafe')
-            with self.policy_path.open('rb') as f:
-                raw = f.read(LIMIT_MAX['max_file_bytes'] + 1)
+            raw = read_regular_bounded(self.policy_path, LIMIT_MAX['max_file_bytes'])
             if len(raw) > LIMIT_MAX['max_file_bytes']:
                 raise Invalid('policy exceeds bootstrap bound')
             self.policy_raw = raw
@@ -454,13 +467,14 @@ class Analyzer:
     def finish(self):
         for path, raw in self.raw.items():
             try:
-                if not self.safe(path) or path.read_bytes() != raw:
+                if not self.safe(path) or read_regular_bounded(path, len(raw)) != raw:
                     raise OSError()
             except OSError:
                 self.out['stable_inputs'] = False
                 self.diagnostic(self.rel(path), 0, 'changed_input', 'inconclusive')
         try:
-            if hasattr(self, 'policy_raw') and (not self.safe(self.policy_path) or self.policy_path.read_bytes() != self.policy_raw):
+            if hasattr(self, 'policy_raw') and (not self.safe(self.policy_path) or
+                    read_regular_bounded(self.policy_path, len(self.policy_raw)) != self.policy_raw):
                 raise OSError()
         except OSError:
             self.out['stable_inputs'] = False
@@ -710,7 +724,7 @@ class Source:
                     m = args[0] if args else kw.get('mode', 'r')
                     mode = 'write' if not isinstance(m, str) or any(c in m for c in 'wax+') else 'read'
                 self.access(node, 'Path.' + attr, obj, mode)
-            elif attr in {'rename', 'replace'} and (isinstance(obj, P) or known_paths(obj)):
+            elif attr in {'rename', 'replace'}:
                 self.access(node, 'Path.' + attr, obj, 'write')
                 self.access(node, 'Path.' + attr, args[0] if args else kw.get('target', UNKNOWN), 'write')
 
@@ -733,13 +747,26 @@ class Source:
                 for decorator in node.decorator_list:
                     self.expression(decorator, env)
                 local = dict(env)
-                if hasattr(node, 'args'):
+                for parameter in getattr(node, 'type_params', []):
+                    self.expression(parameter, env)
+                if isinstance(node, ast.ClassDef):
+                    for base in node.bases:
+                        self.expression(base, env)
+                    for keyword in node.keywords:
+                        self.expression(keyword.value, env)
+                else:
                     for default in node.args.defaults + node.args.kw_defaults:
                         self.expression(default, env)
-                    for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs:
+                    arguments = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+                    arguments += [a for a in (node.args.vararg, node.args.kwarg) if a is not None]
+                    for arg in arguments:
+                        self.expression(arg.annotation, env)
                         local[arg.arg] = UNKNOWN
+                    self.expression(node.returns, env)
                 self.statements(node.body, local)
             elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                if isinstance(node, ast.AnnAssign):
+                    self.expression(node.annotation, env)
                 self.expression(node.value, env)
                 value = self.value(node.value, env)
                 for target in node.targets if isinstance(node, ast.Assign) else [node.target]:

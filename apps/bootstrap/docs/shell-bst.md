@@ -2,6 +2,8 @@
 
 `PS-DEV-002-T022` выделяет самостоятельную process/config boundary Bootstrap. Полный multi-target контракт остаётся в [contract-bst.md](contract-bst.md); этот файл описывает только уже реализованный shell foundation.
 
+> Это историческая страница среза T022. Реализованный выбор локальных профилей и ограничения T026 описаны в [профилях Bootstrap](bst-profiles.md).
+
 ## Команда
 
 Публичный executable задачи:

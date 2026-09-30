@@ -403,9 +403,9 @@ def byte_budget():
         failed(run(config, "check", "--target", "alpha"), "alpha", "target_input_unavailable")
         configure(config, limits={"max_target_bytes": budget + 100})
         data = fixture("alpha.json")
-        data["parameter_values_files"] = ["values.json"]
+        data["parameter_values_files"] = ["alpha-assets/values.json"]
         write_json(record, data)
-        write_json(projects / "values.json", {"padding": "v" * 500})
+        write_json(projects / "alpha-assets/values.json", {"padding": "v" * 500})
         failed(run(config, "check", "--target", "alpha"), "alpha", "target_input_unavailable")
         add_profile(projects, "beta")
         proc = run(config, "check")

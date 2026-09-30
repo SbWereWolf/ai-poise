@@ -1,9 +1,15 @@
 # Application delivery layout
 
-Status: delivery scaffold for `PS-DEV-002-T017`. The seven public contracts are
-already defined. This step delivers the directory and launcher boundary, not the
-standalone implementations scheduled in T018–T024. An empty `bin/` slot means
-**not implemented**, not an installed provider or a successful command.
+This page owns the seven-application layout and the root-launcher contract.
+Standalone CLI/config foundations live under the app-owned paths listed in
+[Mechanical application-boundary checks](../docs/workflows/application-boundaries.md).
+That page owns the exact installed entry/config/state map and the finite static
+checker; it does not certify root-alias integration. In particular, the inherited
+`stride` route still names `apps/orchestrator/bin/stride`, whereas the standalone
+provider is `apps/orchestrator/bin/orchestrator`. The separate T072/T085 route
+validation remains outstanding. An empty `bin/` slot means **not implemented**,
+not an installed provider or a successful command. The T017 observations below
+are historical launcher/scaffold verification, not current provider evidence.
 
 ## Seven application owners
 

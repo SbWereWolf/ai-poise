@@ -1,17 +1,17 @@
-# Mechanical application-boundary checks
+# Механические проверки границ приложений
 
-This is the maintained command, policy and result reference for the read-only
-seven-application source checker. The [delivery layout](../../apps/README.md)
-owns the public launcher map; each application's contract owns its runtime
-behavior. A static PASS is neither an application sandbox nor proof that a
-configured external provider behaves correctly.
+Это актуальное описание команды, политики и результата проверки исходников
+семи приложений в режиме только чтения. [Структура поставки](../../apps/README.md)
+определяет публичные точки запуска; контракт каждого приложения определяет его
+поведение во время выполнения. Статический PASS не является изоляцией приложения
+и не доказывает корректность настроенного внешнего исполнителя.
 
-## Run the checker
+## Запуск проверки
 
-Use the project-selected Python 3.13 environment. The checker uses only the
-standard library and does not import or execute the inspected applications.
-Both arguments are required. The example uses explicit absolute paths so the
-caller's working directory does not silently select a different policy.
+Используйте выбранное для проекта окружение Python 3.13. Проверка использует
+только стандартную библиотеку, не импортирует и не исполняет анализируемые
+приложения. Оба аргумента обязательны. В примере явно заданы абсолютные пути,
+чтобы рабочий каталог вызывающего процесса не выбирал другую политику неявно.
 
 ```sh
 CHECKOUT=/absolute/path/to/ai-poise
@@ -21,171 +21,184 @@ PYTHON=/absolute/path/to/selected/python
   --policy "$CHECKOUT/config/testing/application-boundaries.json"
 ```
 
-The owner is [tools/check_application_boundaries.py](../../tools/check_application_boundaries.py).
-Relative `--checkout` and `--policy` values are independently resolved against
-**the caller's current directory**, not against each other. The selected policy
-must be a readable regular file within the selected checkout. The checker reads
-policy, production source and the seven declared configuration files, then emits
-one UTF-8 JSON result line on stdout. It does not create a report file, initialize
-a store, run a migration, start a provider or rewrite applications. Standard
-`--help` is argparse help text rather than the JSON inspection result.
+Владелец проверки — [tools/check_application_boundaries.py](../../tools/check_application_boundaries.py).
+Относительные значения `--checkout` и `--policy` независимо разрешаются
+относительно **текущего каталога вызывающего процесса**, а не друг друга.
+Выбранная политика должна быть доступным для чтения обычным файлом внутри
+выбранной рабочей копии. Проверка читает политику, производственные исходники и
+семь объявленных конфигов, затем выводит одну строку результата JSON в UTF-8
+через stdout. Она не создаёт файл отчёта, не инициализирует хранилище, не запускает
+миграцию или исполнителя и не переписывает приложения. Стандартный `--help`
+выводит справку argparse, а не JSON-результат анализа.
 
-## Seven explicit owners
+## Семь явно определённых владельцев
 
-The [policy](../../config/testing/application-boundaries.json) is schema
-`poise-application-boundaries-policy/v1`. Its exact top-level fields are
-`schema`, `owners`, `requirements_legacy`, `deferred_export` and `limits`.
-`owners` must contain exactly the following seven identities. Each row requires
-`root`, `entry`, `config`, `loader_kind` and `path_fields`; v1 validates the exact
-shipped layout and path-field definitions, not an arbitrary configurable list
-of applications. Unknown fields, duplicate JSON keys, duplicate module names,
-non-finite JSON numbers and invalid limit types are rejected.
+[Политика](../../config/testing/application-boundaries.json) имеет схему
+`poise-application-boundaries-policy/v1`. Точный состав полей верхнего уровня:
+`schema`, `owners`, `requirements_legacy`, `deferred_export` и `limits`.
+`owners` должен содержать ровно семь перечисленных ниже идентификаторов. Каждая
+запись требует `root`, `entry`, `config`, `loader_kind` и `path_fields`; версия v1
+проверяет точную поставленную структуру и определения полей путей, а не
+произвольный настраиваемый список приложений. Неизвестные поля, повторяющиеся
+ключи JSON, повторяющиеся имена модулей, неконечные числа JSON и неверные типы
+лимитов отклоняются.
 
-| Owner | Inspected entrypoint | Configuration | Declared state paths |
+| Владелец | Проверяемая точка входа | Конфигурация | Объявленные пути состояния |
 | --- | --- | --- | --- |
 | Requirements | `apps/requirements/bin/requirements` | `apps/requirements/config/requirements.json` | `paths.state`, `paths.database`, `paths.lock` |
 | Sequencing | `apps/sequencing/bin/sequencing` | `apps/sequencing/config/sequencing.json` | `paths.state`, `paths.database`, `paths.lock` |
 | Execution | `apps/execution/bin/execution` | `apps/execution/config/execution.json` | `paths.state`, `paths.database`, `paths.lock` |
 | Orchestrator | `apps/orchestrator/bin/orchestrator` | `apps/orchestrator/config/orchestrator.json` | `paths.state`, `paths.database`, `paths.lock` |
 | Bootstrap | `apps/bootstrap/bin/bootstrap` | `apps/bootstrap/config/bootstrap.json` | `projects_root` |
-| Stride UAT | `apps/stride-uat/bin/stride-uat` | `apps/stride-uat/config/uat.json` | `state_root`, `workspace_root`; `input_roots` are inputs |
+| Stride UAT | `apps/stride-uat/bin/stride-uat` | `apps/stride-uat/config/uat.json` | `state_root`, `workspace_root`; `input_roots` — входные данные |
 | Poise | `apps/poise/bin/poise` | `apps/poise/config/poise.json` | `state_root`, `session_store`, `lock_path`, `results_root` |
 
-Each configuration file itself is a `private_file` owned by its application.
-State directories and files are recorded as `private_directory` and
-`private_file`. The checker reports equality or containment overlaps between
-different owners. `input_roots` are recorded as `input_root`, not as exclusive
-private storage; this does not independently enforce the runtime read-only
-input contract of Stride UAT.
+Сам файл конфигурации является `private_file` соответствующего приложения.
+Каталоги и файлы состояния регистрируются как `private_directory` и
+`private_file`. Проверка сообщает о совпадении или вложенности путей разных
+владельцев. `input_roots` регистрируются как `input_root`, а не как исключительно
+приватное хранилище; это само по себе не обеспечивает контракт чтения входных
+данных Stride UAT во время выполнения.
 
-A `path_fields` row has `pointer`, `base`, `kind`, `relative_only`. Configuration
-roots are based on the configuration directory. For the first four owners,
-database and lock are distinct relative children of `paths.state`, with no
-absolute or parent-traversal child values. Poise's store and lock are distinct
-children of state, and its state/results roots cannot overlap. `/input_roots/*`
-expands the nonempty list into individually reported inputs. In this delivery
-inspection, modeled paths must stay within the selected checkout and inspected
-symlink paths are rejected; the tool is not a general validator for deployment
-profiles whose runtime state is outside that checkout. It reads the relevant
-path fields as JSON data, not by executing application configuration loaders,
-and does not replace each application's complete config-schema validation.
+Запись `path_fields` содержит `pointer`, `base`, `kind`, `relative_only`.
+Корни из конфигурации разрешаются относительно каталога конфига. Для первых
+четырёх владельцев база данных и файл блокировки — разные относительные
+дочерние пути `paths.state`, без абсолютных значений и переходов к родителю.
+Хранилище и файл блокировки Poise — разные дочерние пути состояния, а корни
+состояния и результатов не должны пересекаться. `/input_roots/*` разворачивает
+непустой список в отдельные записи входных путей. В этой проверке поставки
+моделируемые пути должны оставаться внутри выбранной рабочей копии, а
+проверяемые пути с символическими ссылками отклоняются. Это не универсальный
+валидатор профилей развёртывания с рабочим состоянием вне данной копии. Он читает
+нужные поля путей как данные JSON, не исполняет загрузчики конфигурации приложений
+и не заменяет полную проверку схемы конфига каждого приложения.
 
-## Import and loader boundary
+## Границы импортов и загрузчиков
 
-The source set includes all seven extensionless Python entrypoints, each own
-`shell.py`, production `.py` files under each app, and the admitted local
-import closure. Directories named `tests`, `fixtures`, `docs` and `__pycache__`
-are excluded from app discovery. Missing entry/source/config files, unreadable
-or nonregular input, invalid Python syntax, unsupported local imports, or
-incomplete analysis cannot become an empty successful scan. The scanner
-normalizes aliases and relative imports, visits imports inside functions and
-package initializers, and examines definition operands such as annotations,
-class bases, decorators and defaults. Unsupported match control flow is
-explicitly inconclusive.
+В набор исходников входят семь Python-точек входа без расширения, собственный
+`shell.py` каждого приложения, производственные `.py`-файлы внутри приложений
+и допустимое замыкание локальных импортов. При обходе приложений исключены
+каталоги `tests`, `fixtures`, `docs` и `__pycache__`. Отсутствующая точка входа,
+исходник или конфиг, недоступный либо не являющийся обычным файлом вход,
+неверный синтаксис Python, неподдерживаемый локальный импорт и неполный анализ
+не могут превратиться в успешный пустой результат. Анализ нормализует псевдонимы
+и относительные импорты, посещает импорты внутри функций и инициализаторов
+пакетов, рассматривает операнды определений: аннотации, базовые классы,
+декораторы и значения по умолчанию. Неподдерживаемая конструкция управления
+`match` явно даёт результат inconclusive.
 
-Three concrete entry-loader shapes are admitted by AST comparison (ignoring
-location metadata and a top-level docstring), not by executing the loader:
+Три конкретные формы загрузчика точки входа допускаются сравнением AST,
+без учёта координат в исходнике и верхнеуровневой строки документации,
+а не исполнением загрузчика:
 
-- `checkout-src-qualified`: Requirements, Sequencing and Execution add the
-  selected checkout plus `src` to `sys.path` and import their qualified own
-  `apps.<owner>.shell` module.
-- `own-shell`: Orchestrator, Stride UAT and Poise add their own app directory and
-  import its `shell` module.
-- `own-spec`: Bootstrap's exact `importlib.util` recipe loads its own `shell.py`.
+- `checkout-src-qualified`: Requirements, Sequencing и Execution добавляют
+  выбранную рабочую копию и `src` в `sys.path`, затем импортируют собственный
+  квалифицированный модуль `apps.<owner>.shell`.
+- `own-shell`: Orchestrator, Stride UAT и Poise добавляют каталог своего
+  приложения и импортируют его модуль `shell`.
+- `own-spec`: точная последовательность `importlib.util` в Bootstrap загружает
+  его собственный `shell.py`.
 
-Other recognized dynamic import/eval/exec or `sys.path` mutation forms are
-reported as inconclusive; the admitted recipes do not authorize arbitrary
-loaders. Standard-library imports are recognized by the selected interpreter.
-Unresolved non-standard-library imports are not assumed safe. A neighboring
-`apps.*` domain or an unapproved local `poise.*` module is a violation.
+Другие распознанные формы динамического импорта, eval/exec и изменения
+`sys.path` отмечаются как inconclusive; разрешённые последовательности не
+разрешают произвольные загрузчики. Импорты стандартной библиотеки определяются
+выбранным интерпретатором. Неразрешённый импорт вне стандартной библиотеки не
+считается безопасным. Соседний домен `apps.*` или неразрешённый локальный модуль
+`poise.*` являются нарушением.
 
-Requirements has a deliberately narrow compatibility closure. Its own modules
-are `poise.application.requirements_registry`,
+У Requirements намеренно узкое замыкание совместимости. Его собственные
+модули — `poise.application.requirements_registry`,
 `poise.infrastructure.requirements_registry`,
-`poise.modules.requirements_registry.domain` and
-`poise.modules.tasks.allocation`. Its shared primitives are
-`poise.modules.foundation.errors`, `poise.modules.foundation.strict_json`,
-`poise.infrastructure.locking` and `poise.infrastructure.sqlite.transaction`,
-plus the inspected package initializers needed to reach them. The five admitted
-entry symbols are `RequirementsCommands`, `RequirementsStore`, `TaskIdPolicy`,
-`PoiseError` and `strict_json` at the exact module paths in the policy. This is
-not permission to import a Task/process domain or the monolithic runtime.
+`poise.modules.requirements_registry.domain` и `poise.modules.tasks.allocation`.
+Общие примитивы — `poise.modules.foundation.errors`,
+`poise.modules.foundation.strict_json`, `poise.infrastructure.locking` и
+`poise.infrastructure.sqlite.transaction`, а также проверенные инициализаторы
+пакетов, необходимые для доступа к этим модулям. Пять допустимых символов
+точки входа — `RequirementsCommands`, `RequirementsStore`, `TaskIdPolicy`,
+`PoiseError` и `strict_json` по точным путям модулей из политики. Это не
+разрешение импортировать домен Task/process или монолитный runtime.
 
-## Allowed public interactions and storage sinks
+## Разрешённые публичные взаимодействия и операции с хранилищем
 
-| Interaction | Static treatment |
+| Взаимодействие | Статическая проверка |
 | --- | --- |
-| Import own production module or admitted Requirements primitive | Inspect its local closure under its declared owner |
-| Exchange JSON through a configured public CLI | A transported command or peer `--config` string is not itself a private-store access |
-| Consume an exported artifact or declared UAT input | Not automatically assigned another application's private ownership; runtime validation remains with its owner |
-| Read/write a known neighboring private config, store or directory | Report `foreign_storage` at the recognized I/O sink |
-| Import another application's domain or explicitly request `poise.Poise` from an isolated app | Report `foreign_import` |
-| Unknown dynamic target or formal-parameter path | Retain `unresolved_accesses`; do not claim an arbitrary runtime no-I/O proof |
+| Импорт собственного производственного модуля или допустимого примитива Requirements | Проверяется его локальное замыкание в области объявленного владельца |
+| Обмен JSON через настроенный публичный CLI | Передаваемая команда или строка чужого `--config` сама по себе не является доступом к приватному хранилищу |
+| Чтение экспортированного артефакта или объявленного входа UAT | Приватный владелец другого приложения не назначается автоматически; проверка во время выполнения остаётся за владельцем |
+| Чтение или запись известного чужого приватного конфига, хранилища либо каталога | Сообщается `foreign_storage` в распознанной операции ввода-вывода |
+| Импорт домена другого приложения или явный запрос `poise.Poise` из изолированного приложения | Сообщается `foreign_import` |
+| Неизвестная динамическая цель или путь из формального параметра | Сохраняется `unresolved_accesses`; доказательство отсутствия произвольного ввода-вывода во время выполнения не заявляется |
 
-Recognized path expressions include absolute strings, `Path` and admitted
-pathlib aliases, `__file__`, `parent`/literal `parents[n]`, slash composition,
-`joinpath`, supported `os.path.join` and simple assignment aliases. Recognized
-config reads can propagate the declared JSON values. Relative source literals
-whose runtime cwd is unknown are unresolved: they are not silently interpreted
-relative to the source file. Unsupported transformations retain known path
-provenance where the finite model can do so; a retained foreign target makes the
-result inconclusive rather than known-safe.
+Распознаваемые выражения путей включают абсолютные строки, `Path` и допустимые
+псевдонимы pathlib, `__file__`, `parent`/литеральный `parents[n]`, соединение
+через косую черту, `joinpath`, поддерживаемый `os.path.join` и простые псевдонимы
+присваивания. Распознанное чтение конфига может распространять объявленные
+значения JSON. Относительные литералы исходника с неизвестным рабочим каталогом
+времени выполнения остаются неразрешёнными: они не трактуются неявно относительно
+файла исходника. Неподдерживаемые преобразования сохраняют известное происхождение
+пути там, где это позволяет конечная модель; сохранённая чужая цель делает
+результат inconclusive, а не заведомо безопасным.
 
-Recognized sinks include `sqlite3.connect`, `open`/`io.open`/`builtins.open`/
-`os.open`, `Path.open`, `read_text`/`read_bytes`, `write_text`/`write_bytes`,
-`touch`, `mkdir`, `unlink`, `os.remove`/`unlink`/`mkdir`/`makedirs` and both
-operands of `rename`/`replace`. For `source.rename(target)` or
-`source.replace(target)`, a known foreign destination is checked even when the
-receiver is unresolved; ordinary known `str.replace` is not a filesystem sink.
-The exact `RequirementsStore(database, lock, ...)`, `write_transaction(path,
-lock, ...)` and `exclusive_lock(path, ...)` call forms are also summarized.
-Access rows distinguish read/write where the recognized syntax supplies that
-information; SQLite connect and non-string open modes are conservatively
-classified as write. No SQL execution or application-object evaluation occurs.
+Распознаваемые операции включают `sqlite3.connect`,
+`open`/`io.open`/`builtins.open`/`os.open`, `Path.open`,
+`read_text`/`read_bytes`, `write_text`/`write_bytes`, `touch`, `mkdir`, `unlink`,
+`os.remove`/`unlink`/`mkdir`/`makedirs` и оба операнда `rename`/`replace`.
+Для `source.rename(target)` и `source.replace(target)` известный чужой путь
+назначения проверяется даже при неразрешённом объекте-источнике; обычный
+распознанный `str.replace` не считается файловой операцией. Также учитываются
+точные формы вызовов `RequirementsStore(database, lock, ...)`,
+`write_transaction(path, lock, ...)` и `exclusive_lock(path, ...)`.
+Записи доступа различают чтение и запись, если распознанный синтаксис даёт эту
+информацию; подключение SQLite и нестроковые режимы открытия консервативно
+классифицируются как запись. SQL не исполняется, объекты приложений не вычисляются.
 
-This is finite syntax/value propagation, not whole-program interprocedural
-analysis. Wholly unknown accesses may coexist with a static PASS. Review the
-`unresolved_accesses` array and the stated scope; `passed=true` does not assert
-that every possible runtime target is owner-local. Likewise, allowing a CLI
-argument descriptor proves neither that the command exists nor that its public
-protocol is implemented correctly.
+Это конечное распространение синтаксиса и значений, а не межпроцедурный анализ
+всей программы. Полностью неизвестные обращения могут сосуществовать со
+статическим PASS. Рассматривайте массив `unresolved_accesses` вместе с заявленной
+областью анализа: `passed=true` не означает, что любая возможная цель времени
+выполнения принадлежит только своему владельцу. Аналогично, разрешённое описание
+аргументов CLI не доказывает существование команды или корректность реализации
+её публичного протокола.
 
-## Result, bounds and failures
+## Результат, ограничения и ошибки
 
-The result schema is `poise-application-boundaries-report/v1`. Its exact fields
-are `schema`, `status`, `passed`, `read_only`, `policy_sha256`, `scope`,
-`coverage`, `files`, `private_paths`, `accesses`, `unresolved_accesses`,
-`diagnostics`, `stable_inputs`. The explicit scope includes
+Схема результата — `poise-application-boundaries-report/v1`. Точный состав полей:
+`schema`, `status`, `passed`, `read_only`, `policy_sha256`, `scope`, `coverage`,
+`files`, `private_paths`, `accesses`, `unresolved_accesses`, `diagnostics`,
+`stable_inputs`. Явная область анализа включает
 `imports=production-local-closure/v1`,
 `storage=literal-and-declared-config-paths/v1`,
-`runtime_effects_proven=false` and `root_aliases_checked=false`.
+`runtime_effects_proven=false` и `root_aliases_checked=false`.
 
-`coverage` reports owners, entrypoints, source/config counts and whether the
-supported scan completed. `files` records source/config SHA-256 values;
-`policy_sha256` identifies the policy bytes when readable. Diagnostic rows
-contain `file`, `line`, `rule`, `kind`, `owner`, `target`, `message`. Known access
-rows additionally identify sink, target owner and access kind. Local paths are
-normalized relative to the checkout; arrays are deduplicated/sorted and JSON
-keys are sorted, without timestamps. This supports byte-comparison for the same
-observed inputs and interpreter, not equivalence of arbitrary environments.
+`coverage` сообщает владельцев, точки входа, количество исходников и конфигов,
+а также полноту поддерживаемого анализа. `files` содержит SHA-256 исходников
+и конфигов; `policy_sha256` идентифицирует доступные для чтения байты политики.
+Диагностическая запись содержит `file`, `line`, `rule`, `kind`, `owner`, `target`,
+`message`. Записи известного доступа дополнительно указывают операцию, владельца
+цели и вид доступа. Локальные пути нормализованы относительно рабочей копии;
+массивы отсортированы и очищены от повторов, ключи JSON отсортированы, временных
+меток нет. Это позволяет побайтово сравнивать результаты для одинаковых
+наблюдавшихся входов и интерпретатора, но не доказывает эквивалентность
+произвольных окружений.
 
-| Exit | Meaning |
+| Код выхода | Значение |
 | --- | --- |
-| `exit 0` | `status=passed`, `passed=true`, complete supported scan, stable observed bytes and no diagnostics |
-| `exit 1` | `status=violation` or `inconclusive`: a boundary violation, incomplete/unsupported analysis, changed inputs or exhausted analysis/report bounds |
-| `exit 2` | `status=invalid`: invalid arguments, policy or inspected config data |
+| `exit 0` | `status=passed`, `passed=true`, поддерживаемый анализ завершён, наблюдавшиеся байты стабильны, диагностики нет |
+| `exit 1` | `status=violation` или `inconclusive`: нарушение границы, неполный или неподдерживаемый анализ, изменение входов либо исчерпание лимитов анализа или отчёта |
+| `exit 2` | `status=invalid`: неверные аргументы, политика или данные проверяемого конфига |
 
-Ordinary diagnostic results use JSON stdout with empty stderr. Byte emission
-is explicitly UTF-8, independent of ambient `PYTHONIOENCODING`. Operating-system
-output failure is not converted into a successful result. A policy that could
-not be read has `policy_sha256=null`; readable invalid policy can still have its
-observed hash. An invalid result takes precedence over other recorded kinds;
-a violation takes precedence over an inconclusive diagnostic.
+Обычные диагностические результаты используют JSON в stdout и пустой stderr.
+Байты явно выводятся в UTF-8 независимо от окружающего `PYTHONIOENCODING`.
+Ошибка вывода операционной системы не преобразуется в успешный результат.
+Для непрочитанной политики `policy_sha256=null`; доступная для чтения, но
+невалидная политика может сохранять хеш наблюдавшихся байтов. Невалидный
+результат имеет приоритет над другими зарегистрированными видами; нарушение
+имеет приоритет над диагностикой inconclusive.
 
-All policy limits are required integers, not booleans. Shipped values and v1
-accepted maxima are:
+Все лимиты политики обязательны и имеют целочисленный, а не булев тип.
+Поставленные значения и допустимые максимумы v1:
 
-| Limit | Shipped value | Maximum |
+| Лимит | Поставленное значение | Максимум |
 | --- | ---: | ---: |
 | `max_files` | 256 | 4096 |
 | `max_file_bytes` | 1048576 | 8388608 |
@@ -194,37 +207,41 @@ accepted maxima are:
 | `max_diagnostics` | 256 | 4096 |
 | `max_report_bytes` | 1048576 | 4194304 |
 
-The minimum is 1 except `max_report_bytes`, whose minimum is 1024. Policy
-bootstrap reading uses the fixed 8388608-byte file ceiling before policy limits
-are trusted. Source/config reads are bounded; final content comparisons read
-at most the originally observed length plus one sentinel byte, through the same
-regular-file reader. Observed differences produce `changed_input` or
-`changed_policy`, with `stable_inputs=false`. Directory snapshots and atomic
-filesystem transactions are not provided: stability compares captured files,
-not all possible concurrent directory changes. Resource bounds are analysis
-limits, not a separate process memory/time sandbox.
+Минимум равен 1, кроме `max_report_bytes` с минимумом 1024. Первичное чтение
+политики использует фиксированный предел файла 8388608 байт, прежде чем её
+лимиты становятся доверенными. Чтение исходников и конфигов ограничено;
+заключительное сравнение содержимого читает не больше первоначально
+наблюдавшейся длины плюс один контрольный байт через тот же механизм чтения
+обычных файлов. Наблюдавшиеся различия дают `changed_input` или `changed_policy`
+и `stable_inputs=false`. Снимков каталогов и атомарных файловых транзакций нет:
+стабильность сравнивает захваченные файлы, а не все возможные параллельные
+изменения каталогов. Ресурсные пределы ограничивают анализ, но не являются
+отдельной изоляцией процесса по памяти и времени.
 
-If the encoded result exceeds `max_report_bytes`, it is replaced by a bounded
-inconclusive diagnostic: detailed file/path/access arrays and owner/entrypoint
-coverage lists are cleared, and complete coverage is false. This is not an
-empty PASS and must not be used as detailed evidence of the omitted scan.
+Если закодированный результат превышает `max_report_bytes`, он заменяется
+ограниченной диагностикой inconclusive: подробные массивы файлов, путей и
+обращений, а также списки охваченных владельцев и точек входа очищаются;
+полнота охвата становится ложной. Это не пустой PASS, и такой результат нельзя
+использовать как подробное доказательство опущенного анализа.
 
-## Compatibility, verification and remaining scope
+## Совместимость, проверки и оставшаяся область работ
 
-Bare `import poise` no longer eagerly imports `poise.runtime`. Its exact
-`__getattr__` implementation loads and caches `Poise` only on explicit request;
-`PoiseError`, `__all__`, explicit imports, star imports and public class identity
-are retained. Unknown attributes raise `AttributeError`. That deferred export
-is narrowly recognized by the checker; it is not a blanket exception for
-runtime imports inside app production code. Fresh-process import checks are
-the executable evidence for actual Requirements/bare-package isolation.
+Обычный `import poise` больше не импортирует `poise.runtime` немедленно.
+Точная реализация `__getattr__` загружает и кеширует `Poise` только по явному
+запросу; `PoiseError`, `__all__`, явные импорты, импорты со звёздочкой и
+тождественность публичных классов сохранены. Неизвестный атрибут вызывает
+`AttributeError`. Этот отложенный экспорт распознаётся проверкой узко и не
+является общим разрешением импортировать runtime из производственного кода
+приложений. Исполняемое доказательство фактической изоляции Requirements и
+обычного импорта пакета дают проверки в новых процессах.
 
-`strict_json` is owned by `poise.modules.foundation.strict_json`; the old
-`poise.infrastructure.goal_config.strict_json` path re-exports the same callable.
-Its prior accepted JSON and error behavior is preserved. Requirements imports
-the foundation helper rather than importing the goal-config domain for it.
+Владелец `strict_json` — `poise.modules.foundation.strict_json`; прежний путь
+`poise.infrastructure.goal_config.strict_json` повторно экспортирует тот же
+вызываемый объект. Ранее принятое поведение JSON и ошибок сохранено.
+Requirements импортирует общий примитив, а не домен конфигурации целей ради
+получения этого примитива.
 
-Task-specific checks use the existing runner and the selected test interpreter:
+Целевые проверки используют существующий раннер и выбранный интерпретатор тестов:
 
 ```sh
 TEST_DEPENDENCIES=/absolute/path/to/configured/pytest-dependencies
@@ -239,21 +256,22 @@ cd "$CHECKOUT"
 bash tests/smoke.sh "$PYTHON"
 ```
 
-The task registry owns each stage's selected commands, environment and exact
-output expectations: behavior has 15 groups, imports 5, documentation 4, the
-selected existing API check 1, and maintained smoke 6. Execute only those due at
-the current stage. Configure pytest from the selected project's pinned test
-dependencies; do not substitute an unfiltered suite. The documentation runner
-uses the existing `tools/check_documentation.py` for the two affected pages.
-The separate `tests/architecture/test_application_boundaries_remediation.py`
-contains focused unknown-receiver, finite-read and definition-operand
-regressions; historical supplementary runs are not additional registered
-observations. Changed-file checks and an actual CLI fixture do not prove a
-production deployment or a concurrent filesystem race.
+Реестр задачи определяет команды, окружение и точные ожидаемые результаты
+каждого этапа: поведение — 15 групп, импорты — 5, документация — 4, выбранная
+существующая проверка API — 1, поддерживаемый smoke — 6. Выполняйте только проверки,
+назначенные текущему этапу. Настройте pytest из закреплённых тестовых зависимостей
+выбранного проекта; не подменяйте набор запуском без фильтра. Раннер документации
+использует существующий `tools/check_documentation.py` для двух затронутых страниц.
+Отдельный файл `tests/architecture/test_application_boundaries_remediation.py`
+содержит узкие регрессии для неизвестного объекта-источника, ограниченного чтения
+и операндов определений; прежние дополнительные запуски не являются новыми
+наблюдениями реестра. Проверка изменённых файлов и реальная CLI-фикстура не
+доказывают производственное развёртывание или гонку параллельных файловых операций.
 
-The four root aliases are deliberately not scanned here. In particular, root
-`stride` still targets `apps/orchestrator/bin/stride`, while the installed own
-provider is `apps/orchestrator/bin/orchestrator`. That inherited route gap
-remains separate planned T072/T085 integration validation; a seven-provider
-static PASS must not be advertised as a passing root `stride` invocation. No
-alias, runtime schema or release scope is changed by this checker.
+Четыре корневых псевдонима намеренно не анализируются здесь. В частности,
+корневой `stride` по-прежнему направлен на `apps/orchestrator/bin/stride`,
+тогда как установленный собственный исполнитель —
+`apps/orchestrator/bin/orchestrator`. Этот унаследованный разрыв маршрута
+остаётся отдельной запланированной интеграционной проверкой T072/T085;
+статический PASS семи исполнителей нельзя выдавать за успешный запуск корневого
+`stride`. Проверка не меняет псевдонимы, схемы времени выполнения и область релиза.

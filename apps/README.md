@@ -1,15 +1,17 @@
 # Application delivery layout
 
-This page owns the seven-application layout and the root-launcher contract.
-Standalone CLI/config foundations live under the app-owned paths listed in
-[Mechanical application-boundary checks](../docs/workflows/application-boundaries.md).
-That page owns the exact installed entry/config/state map and the finite static
-checker; it does not certify root-alias integration. In particular, the inherited
-`stride` route still names `apps/orchestrator/bin/stride`, whereas the standalone
-provider is `apps/orchestrator/bin/orchestrator`. The separate T072/T085 route
-validation remains outstanding. An empty `bin/` slot means **not implemented**,
-not an installed provider or a successful command. The T017 observations below
-are historical launcher/scaffold verification, not current provider evidence.
+Эта страница определяет структуру семи приложений и контракт корневых точек
+запуска. Самостоятельные CLI и конфиги находятся в принадлежащих приложениям
+путях из [механических проверок границ](../docs/workflows/application-boundaries.md).
+Там описаны точная карта установленных точек входа, конфигов и состояния,
+а также конечная статическая проверка; эта страница не подтверждает интеграцию
+корневых псевдонимов. В частности, унаследованный маршрут `stride` по-прежнему
+указывает `apps/orchestrator/bin/stride`, тогда как самостоятельный исполнитель —
+`apps/orchestrator/bin/orchestrator`. Отдельная проверка маршрута T072/T085
+остаётся невыполненной. Пустой слот `bin/` означает **не реализовано**, а не
+установленного исполнителя или успешную команду. Ниже сохранены исторические
+наблюдения T017 о точках запуска и каркасе, а не текущие доказательства работы
+исполнителей.
 
 ## Seven application owners
 

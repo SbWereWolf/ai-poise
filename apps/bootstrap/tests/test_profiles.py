@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent black-box T026 profile selection, bounded input and no-effect tests."""
+"""Permanent profile guards, migrated at T027 to actual empty-catalogue execution."""
 from __future__ import annotations
 
 import argparse
@@ -117,18 +117,19 @@ def selected(proc, names, *, requested="all", source="configuration", command="c
     assert [row["target"] for row in body["targets"]] == names, "wrong target result order"
     for row in body["targets"]:
         assert set(row) == {"target", "config_digest", "status", "exit_code", "effects", "core", "error"}, "target envelope drift"
-        assert row["effects"] == "none" and row["core"] is None, "T026 invoked maintenance or caused effects"
-        assert row["status"] != "ready", "input qualification misrepresented as ready"
+        assert row["effects"] == "none", "profile fixture caused a business effect"
     return body
 
 
-def unavailable(proc, names, **kwargs):
+def qualified(proc, names, **kwargs):
     body = selected(proc, names, **kwargs)
-    assert proc.returncode == 3 and body["status"] == "action_required", "valid nonempty target must require maintenance"
+    assert proc.returncode == 0 and body["status"] == "not_required", "empty catalogue did not use actual maintenance core"
     for row in body["targets"]:
-        assert row["status"] == "action_required" and row["exit_code"] == 3, "target readiness invented"
-        assert row["error"]["code"] == "maintenance_unavailable", "missing maintenance boundary diagnostic"
-        assert row["error"]["retryable"] is False
+        assert row["status"] == "not_required" and row["exit_code"] == 0
+        assert row["error"] is None
+        core = row["core"]
+        assert core["schema"] == "environment-maintenance/result/v1" and core["status"] == "not_required"
+        assert core["exit_code"] == 0 and core["requirements"] == []
     return body
 
 
@@ -162,7 +163,7 @@ def profiles_selected():
         before = file_inventory(projects)
         proc = run(config, "check", "--target", "alpha")
         body = response(proc)
-        assert body == fixture("selected-result.json") and proc.returncode == 3 and file_inventory(projects) == before, \
+        assert body == fixture("selected-result.json") and proc.returncode == 0 and file_inventory(projects) == before, \
             "selected profile was not reported without effects"
 
 
@@ -173,15 +174,15 @@ def precedence():
         configure(config, target_env=TARGET_ENV, default_target="beta")
         for command in ("infra", "deps", "check"):
             for value in ("beta", "", "../unsafe"):
-                unavailable(run(config, command, "--target", "alpha", env={TARGET_ENV: value}),
+                qualified(run(config, command, "--target", "alpha", env={TARGET_ENV: value}),
                             ["alpha"], requested="alpha", source="argument", command=command)
-            unavailable(run(config, command, env={TARGET_ENV: "alpha"}), ["alpha"], requested="alpha", source="environment", command=command)
-            unavailable(run(config, command), ["beta"], requested="beta", command=command)
+            qualified(run(config, command, env={TARGET_ENV: "alpha"}), ["alpha"], requested="alpha", source="environment", command=command)
+            qualified(run(config, command), ["beta"], requested="beta", command=command)
             rejected(run(config, command, env={TARGET_ENV: ""}), "invalid_selector")
         configure(config, target_env=None)
-        unavailable(run(config, "check", "--dry-run", env={TARGET_ENV: "alpha"}), ["beta"], requested="beta", dry_run=True)
+        qualified(run(config, "check", "--dry-run", env={TARGET_ENV: "alpha"}), ["beta"], requested="beta", dry_run=True)
         configure(config, target_env=TARGET_ENV, default_target="all")
-        unavailable(run(config, "check", env={TARGET_ENV: "all"}), ["alpha", "beta"], source="environment")
+        qualified(run(config, "check", env={TARGET_ENV: "all"}), ["alpha", "beta"], source="environment")
 
 
 def discovery():
@@ -192,18 +193,18 @@ def discovery():
         nested = projects / "directory.json"
         nested.mkdir()
         (nested / "broken.json").write_bytes(b"{")
-        unavailable(run(config, "check"), ["alpha", "zeta"])
+        qualified(run(config, "check"), ["alpha", "zeta"])
         add_profile(projects, "new-target")
-        unavailable(run(config, "check"), ["alpha", "new-target", "zeta"])
+        qualified(run(config, "check"), ["alpha", "new-target", "zeta"])
         (projects / "zeta.json").unlink()
-        unavailable(run(config, "check"), ["alpha", "new-target"])
+        qualified(run(config, "check"), ["alpha", "new-target"])
 
 
 def explicit_isolation():
     with workspace() as (_, config, projects):
         add_profile(projects)
         (projects / "broken.json").write_bytes(b"{not-json")
-        unavailable(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
+        qualified(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
 
 
 def selector_errors():
@@ -303,11 +304,11 @@ def asset_shape():
         record = fixture("alpha.json")
         record["repairs"] = "repairs.json"
         write_json(path, record)
-        for invalid in ([], {"schema": "other", "repairs": []}, {"schema": "environment-maintenance/repairs/v1", "repairs": {}}):
+        for invalid in ([], {"schema": "other", "repairs": {}}, {"schema": "environment-maintenance/repairs/v1", "repairs": []}):
             write_json(projects / "repairs.json", invalid)
             failed(run(config, "check", "--target", "alpha"), "alpha", "invalid_target_catalogue")
-        write_json(projects / "repairs.json", {"schema": "environment-maintenance/repairs/v1", "repairs": []})
-        unavailable(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
+        write_json(projects / "repairs.json", {"schema": "environment-maintenance/repairs/v1", "repairs": {}})
+        qualified(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
         record["parameter_values_files"] = ["values.json"]
         write_json(path, record)
         write_json(projects / "values.json", [])
@@ -374,12 +375,12 @@ def mixed():
         proc = run(config, "check")
         body = selected(proc, ["alpha", "broken"])
         assert proc.returncode == 4 and body["status"] == "failed"
-        assert body["targets"][0]["status"] == "action_required"
+        assert body["targets"][0]["status"] == "not_required"
         assert body["targets"][1]["error"]["code"] == "invalid_target_config"
         # A broken first target also must not suppress the later valid one.
         (projects / "broken.json").rename(projects / "aaa.json")
         body = selected(run(config, "check"), ["aaa", "alpha"])
-        assert body["targets"][0]["status"] == "failed" and body["targets"][1]["status"] == "action_required"
+        assert body["targets"][0]["status"] == "failed" and body["targets"][1]["status"] == "not_required"
 
 
 def count_budget():
@@ -388,7 +389,7 @@ def count_budget():
         add_profile(projects, "beta")
         configure(config, limits={"max_targets": 1})
         rejected(run(config, "check"), "limit_exceeded")
-        unavailable(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
+        qualified(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
 
 
 def byte_budget():
@@ -398,7 +399,7 @@ def byte_budget():
         # Count independent fixture input bytes, not a production-derived result.
         budget = record.stat().st_size + cat.stat().st_size
         configure(config, limits={"max_target_bytes": budget})
-        unavailable(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
+        qualified(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
         configure(config, limits={"max_target_bytes": budget - 1})
         failed(run(config, "check", "--target", "alpha"), "alpha", "target_input_unavailable")
         configure(config, limits={"max_target_bytes": budget + 100})
@@ -410,7 +411,7 @@ def byte_budget():
         add_profile(projects, "beta")
         proc = run(config, "check")
         body = selected(proc, ["alpha", "beta"])
-        assert proc.returncode == 4 and body["targets"][1]["status"] == "action_required"
+        assert proc.returncode == 4 and body["targets"][1]["status"] == "not_required"
 
 
 def output_budget():
@@ -421,9 +422,15 @@ def output_budget():
         configure(config, limits={"max_output_bytes": size})
         proc = run(config, "check", "--target", "alpha")
         assert response(proc) == expected and len(proc.stdout) == size, "normal compact output boundary differs"
-        for bound in (size - 1, 1):
-            configure(config, limits={"max_output_bytes": bound})
-            rejected(run(config, "check", "--target", "alpha"), "limit_exceeded")
+        configure(config, limits={"max_output_bytes": size - 1})
+        proc = run(config, "check", "--target", "alpha")
+        body = selected(proc, ["alpha"], requested="alpha", source="argument")
+        row = body["targets"][0]
+        assert body["status"] == row["status"] == "failed" and proc.returncode == 4
+        assert row["error"]["code"] == "output_limit_exceeded" and row["core"] is None
+        assert len(proc.stdout) <= size - 1 and row["effects"] == "none"
+        configure(config, limits={"max_output_bytes": 1})
+        rejected(run(config, "check", "--target", "alpha"), "limit_exceeded")
         assert not (config.parent / "MUST_NOT_EXIST").exists()
 
 
@@ -431,15 +438,18 @@ def snapshot_digest():
     with workspace() as (_, config, projects):
         record = add_profile(projects)
         cat = projects / "alpha-assets/requirements.json"
-        body = unavailable(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
+        body = qualified(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
         assert body["targets"][0]["config_digest"] == "dbbea48f607930988c72b7fc18e3272fa3d8fb2d725d54454385789032d61445"
         for path in (record, cat):
             data = json.loads(path.read_text(encoding="utf-8"))
             path.write_text(json.dumps(dict(reversed(list(data.items()))), separators=(",", ":")), encoding="utf-8")
-        body = unavailable(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
+        body = qualified(run(config, "check", "--target", "alpha"), ["alpha"], requested="alpha", source="argument")
         assert body["targets"][0]["config_digest"] == "dbbea48f607930988c72b7fc18e3272fa3d8fb2d725d54454385789032d61445"
         data = fixture("alpha.json")
         data["parameter_values_files"] = ["first.json", "second.json"]
+        catalogue = fixture("catalogue.json")
+        catalogue["parameters"] = {"x": {"type": "integer", "secret": False}}
+        write_json(cat, catalogue)
         write_json(record, data)
         write_json(projects / "first.json", {"x": 1})
         write_json(projects / "second.json", {"x": 2})
@@ -455,17 +465,24 @@ def secrets():
         add_profile(projects, catalogue=fixture("secret-catalogue.json"), changes={"values": {"token": SECRET}})
         for args in (("check",), ("deps", "--set", "token=" + SECRET), ("infra", "--dry-run")):
             proc = run(config, *args)
-            body = unavailable(proc, ["alpha"], command=args[0], dry_run="--dry-run" in args)
+            body = qualified(proc, ["alpha"], command=args[0], dry_run="--dry-run" in args)
             assert body["targets"][0]["config_digest"] is None
             assert SECRET.encode() not in proc.stdout + proc.stderr
         cat = fixture("catalogue.json")
-        for declaration in (None, "unknown", {"type": "string"}, {"type": "string", "secret": "false"}):
+        for declaration in (None, "unknown", {"type": "string", "secret": "false"}):
             cat["parameters"] = {"token": declaration}
             write_json(projects / "alpha-assets/requirements.json", cat)
-            proc = run(config, "check")
-            body = unavailable(proc, ["alpha"])
-            assert body["targets"][0]["config_digest"] is None, "unclassified parameter leaked digest"
+            proc = run(config, "check", "--target", "alpha")
+            failed(proc, "alpha", "invalid_target_parameters")
             assert SECRET.encode() not in proc.stdout + proc.stderr
+        # The core declares omitted secret=False. Keep conservative digest suppression,
+        # without silently changing the parameter owner's public-value policy.
+        cat["parameters"] = {"token": {"type": "string"}}
+        write_json(projects / "alpha-assets/requirements.json", cat)
+        proc = run(config, "check")
+        body = qualified(proc, ["alpha"])
+        assert body["targets"][0]["config_digest"] is None
+        assert body["targets"][0]["core"]["parameters"]["token"] == SECRET
         # Secret values in schema/parser failures are not copied into diagnostics.
         record = fixture("alpha.json")
         record[SECRET] = True
@@ -487,15 +504,18 @@ def no_effects():
         before = file_inventory(base)
         for command in ("check", "infra", "deps"):
             for options in ((), ("--dry-run",), ("--set", "x=" + SECRET)):
-                unavailable(run(config, command, *options), ["alpha"], command=command, dry_run="--dry-run" in options)
-                assert file_inventory(base) == before, "selection changed input/foreign state or executed a command"
+                proc = run(config, command, *options)
+                body = selected(proc, ["alpha"], command=command, dry_run="--dry-run" in options)
+                assert proc.returncode == 4 and body["status"] == "failed"
+                assert body["targets"][0]["error"]["code"] == "invalid_target_catalogue"
+                assert file_inventory(base) == before, "invalid catalogue changed input/foreign state or executed a command"
         other = base / "other" / "bootstrap.json"
         write_json(other, fixture("bootstrap-config.json"))
         other_projects = other.parent / "projects"
         other_projects.mkdir()
         add_profile(other_projects, "beta")
-        unavailable(run(other, "check"), ["beta"])
-        unavailable(run(config, "check"), ["alpha"])
+        qualified(run(other, "check"), ["beta"])
+        failed(run(config, "check", "--target", "alpha"), "alpha", "invalid_target_catalogue")
 
 
 def utf8():
@@ -507,7 +527,7 @@ def utf8():
         first = None
         for encoding in ("ascii", "latin-1", "utf-8"):
             proc = run(config, "check", "--target", "цель", env={"PYTHONIOENCODING": encoding, "LC_ALL": "C.UTF-8", "PYTHONUTF8": "1"})
-            unavailable(proc, ["цель"], requested="цель", source="argument")
+            qualified(proc, ["цель"], requested="цель", source="argument")
             assert "цель".encode("utf-8") in proc.stdout
             first = proc.stdout if first is None else first
             assert proc.stdout == first, "stdout bytes depend on ambient encoding"
@@ -525,7 +545,7 @@ def examples():
         # Test-owned explicit copy; the application must not create or overwrite it.
         shutil.copytree(example_root, projects, dirs_exist_ok=True)
         before = file_inventory(projects)
-        unavailable(run(config, "check"), ["alpha"])
+        qualified(run(config, "check"), ["alpha"])
         assert file_inventory(projects) == before
         (projects / "alpha.json").write_bytes(b"{")
         failed(run(config, "check", "--target", "alpha"), "alpha", "invalid_target_config")

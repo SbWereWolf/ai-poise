@@ -1,0 +1,5 @@
+{
+  "value": {"type": "string", "default": "default", "env": "T027_VALUE", "secret": false},
+  "number": {"type": "integer", "default": 1, "secret": false},
+  "flag": {"type": "boolean", "default": false, "secret": false}
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "environment-maintenance/result/v1",
+  "command": "check",
+  "dry_run": false,
+  "status": "ready",
+  "exit_code": 0,
+  "parameters": {},
+  "parameter_sources": {},
+  "requirements": [
+    {
+      "id": "r",
+      "kind": "infra",
+      "initial_check": {
+        "status": "passed",
+        "exit_code": 0,
+        "timed_out": false,
+        "capture_complete": true,
+        "stdout": "CHECK\n",
+        "stderr": "",
+        "error": null,
+        "duration_seconds": 0
+      },
+      "status": "satisfied"
+    }
+  ]
+}

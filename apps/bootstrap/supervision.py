@@ -20,10 +20,18 @@ import time
 
 class OwnedTree:
     def __init__(self):
-        if not (sys.platform == "linux" and hasattr(os, "pidfd_open")
-                and hasattr(signal, "pidfd_send_signal")):
+        if sys.platform != "linux":
             raise OSError("Linux pidfd supervision is unavailable")
         self.libc = ctypes.CDLL(None, use_errno=True)
+        # Portable Python builds may omit wrappers even on a capable Linux host.
+        # Use the same public libc ABI, not PID-number signalling or guessed
+        # architecture-specific syscall numbers.
+        if not (hasattr(self.libc, "pidfd_open") and hasattr(self.libc, "pidfd_send_signal")):
+            raise OSError("Linux pidfd ABI is unavailable")
+        self.libc.pidfd_open.argtypes = [ctypes.c_int, ctypes.c_uint]
+        self.libc.pidfd_open.restype = ctypes.c_int
+        self.libc.pidfd_send_signal.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint]
+        self.libc.pidfd_send_signal.restype = ctypes.c_int
         self.prior = ctypes.c_int()
         if self.libc.prctl(37, ctypes.byref(self.prior), 0, 0, 0) != 0:  # GET_CHILD_SUBREAPER
             raise OSError("subreaper state unavailable")
@@ -66,7 +74,10 @@ class OwnedTree:
             if pid in self.handles:
                 continue
             try:
-                handle = os.pidfd_open(pid)
+                handle = self.libc.pidfd_open(pid, 0)
+                if handle < 0:
+                    code = ctypes.get_errno()
+                    raise OSError(code, os.strerror(code))
             except ProcessLookupError:
                 continue
             # Pin identity across table->pidfd acquisition; never signal a reused PID.
@@ -80,7 +91,9 @@ class OwnedTree:
 
     def send(self, pid, sig):
         try:
-            signal.pidfd_send_signal(self.handles[pid][1], sig)
+            if self.libc.pidfd_send_signal(self.handles[pid][1], sig, None, 0) < 0:
+                code = ctypes.get_errno()
+                raise OSError(code, os.strerror(code))
         except ProcessLookupError:
             pass
 

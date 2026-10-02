@@ -695,6 +695,23 @@ class SqliteTaskRepository:
         self.db.execute("INSERT INTO task_proofs VALUES(?,?)", (s.task_id,encode(task.evidence_snapshot())))
         self._event(s.task_id,s.version,{"event":"created","stage":task.stage.stage_id,"iteration":s.iteration})
 
+    def load_check_registry(self, task_id, metadata, workflow):
+        from ...modules.tasks.definition import (
+            obligation_catalog, registry_inspection_stages, stored_executable_obligations,
+        )
+        items = [without_retired_method_timeout(json.loads(row[0])) for row in self.db.execute(
+            "SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid", (task_id,),
+        )]
+        return CheckRegistry.from_items(
+            items, tuple(stage['id'] for stage in metadata['process']['stages']),
+        ).with_executable_obligations(
+            stored_executable_obligations(
+                metadata['contract'], metadata['process'], workflow.get('registry'),
+            ),
+            registry_inspection_stages(metadata['process']),
+            obligation_catalog(metadata['contract']),
+        ).restore_state(workflow.get('registry'))
+
     def load(self, task_id: str) -> Task:
         from .ownership import require_unambiguous
         require_unambiguous(self.db, task_id)
@@ -707,30 +724,12 @@ class SqliteTaskRepository:
         record = self.db.execute("SELECT data FROM content_contracts WHERE task_id=? ORDER BY version DESC LIMIT 1", (task_id,)).fetchone()
         if record is None:
             raise PoiseError("Нет зарегистрированного контракта содержимого")
-        items = [without_retired_method_timeout(json.loads(r[0])) for r in self.db.execute(
-            "SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid", (task_id,)
-        )]
         saved = self.db.execute("SELECT data FROM task_workflows WHERE task_id=?", (task_id,)).fetchone()
         if saved is None:
             raise PoiseError("Нет сохранённого состояния маршрута")
         workflow = json.loads(saved[0])
-        from ...modules.tasks.definition import (
-            obligation_catalog,
-            registry_inspection_stages,
-            stored_executable_obligations,
-        )
-        registry = CheckRegistry.from_items(
-            items, tuple(s['id'] for s in metadata['process']['stages'])
-        ).with_executable_obligations(
-            stored_executable_obligations(
-                metadata['contract'],
-                metadata['process'],
-                workflow.get('registry'),
-            ),
-            registry_inspection_stages(metadata['process']),
-            obligation_catalog(metadata['contract']),
-        )
-        metadata['contract']['methods']=[item['method'] for item in items]
+        registry = self.load_check_registry(task_id, metadata, workflow)
+        metadata['contract']['methods'] = [json.loads(entry.definition) for entry in registry.entries]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
         contracts = (
             None
@@ -745,7 +744,6 @@ class SqliteTaskRepository:
         trace = self.db.execute("SELECT route_id,point_id,data FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY route_id,point_id ORDER BY submission_id DESC) AS n FROM trace_point_layers WHERE task_id=?) WHERE n=1 ORDER BY route_id,point_id", (task_id,)).fetchall()
         snapshot = ContentSnapshot(tuple(SectionValue(s["section_id"],s["content"],ContentState(s["content_state"])) for s in sections),
                                    tuple(TraceValue(t["route_id"],t["point_id"],t["data"]) for t in trace))
-        registry = registry.restore_state(workflow.get('registry'))
         proof_row = self.db.execute("SELECT data FROM task_proofs WHERE task_id=?",(task_id,)).fetchone()
         if proof_row is None: raise PoiseError("Нет обязательного evidence state")
         proof = json.loads(proof_row[0])

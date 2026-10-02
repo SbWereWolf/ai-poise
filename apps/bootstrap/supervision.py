@@ -132,6 +132,7 @@ def run_worker(payload, timeout, output_limit):
     """Return bounded raw bytes and transport failure, never a synthetic core report."""
     proc = None
     owner = None
+    settled = False
     out, err = bytearray(), bytearray()
     failure = None
     try:
@@ -176,14 +177,22 @@ def run_worker(payload, timeout, output_limit):
                         failure = "target_timeout"
                 if failure is None and (proc.returncode != 0 or err):
                     failure = "worker_failed"
-            owner.finish(proc)
-            proc.stdout.close()
-            proc.stderr.close()
+            if failure is not None:
+                owner.finish(proc)
+            # A complete normal worker return leaves the core's authorized child
+            # lifetime unchanged. Cancellation belongs only to abnormal exits.
+            settled = True
         return bytes(out) if failure is None else b"", failure
     except (OSError, ValueError):
         return b"", "worker_failed" if proc is not None else "maintenance_unavailable"
     finally:
-        if proc is not None and proc.poll() is None and owner is not None:
-            owner.finish(proc)
-        if owner is not None:
-            owner.close()
+        try:
+            if proc is not None and owner is not None and not settled:
+                # The root can already have exited while owned children remain.
+                owner.finish(proc)
+        finally:
+            if proc is not None:
+                proc.stdout.close()
+                proc.stderr.close()
+            if owner is not None:
+                owner.close()

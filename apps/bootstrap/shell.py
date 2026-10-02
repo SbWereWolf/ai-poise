@@ -472,10 +472,18 @@ def target_result(row, data, transport_error, *, command, dry_run):
         expected = 4 if status == "failed" else 3 if status == "action_required" else 0
         if type(core.get("exit_code")) is not int or core["exit_code"] != expected:
             raise ValueError("core exit mismatch")
-        applied = any("apply" in item for item in core["requirements"])
-        if applied and readonly:
+        applications = [item["apply"] for item in core["requirements"] if "apply" in item]
+        if applications and readonly:
             raise ValueError("readonly effect contradiction")
-        return dict(row, status=status, exit_code=expected, effects="applied" if applied else "none",
+        # A completed nonzero apply is still an executed mutation attempt. In
+        # contrast, interruption or an incomplete record cannot prove its effects.
+        interrupted = any(
+            not isinstance(item, dict) or item.get("timed_out") is not False
+            or type(item.get("exit_code")) is not int or item["exit_code"] < 0
+            for item in applications
+        )
+        effects = "unknown" if interrupted else "applied" if applications else "none"
+        return dict(row, status=status, exit_code=expected, effects=effects,
                     core=core, error=error_value("maintenance_failed", FAILURE_MESSAGES["maintenance_failed"])
                     if status == "failed" else None)
     except (ShellError, ValueError, TypeError):

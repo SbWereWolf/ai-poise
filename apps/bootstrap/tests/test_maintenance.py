@@ -267,6 +267,8 @@ def truth_table():
             assert core["requirements"][0]["apply"]["exit_code"] == vector["apply_exit"]
             assert core["requirements"][0]["final_check"]["exit_code"] == (0 if vector["materialize"] else 1)
 
+    interrupted_applies()
+
 
 def recommendation():
     with case() as c:
@@ -579,6 +581,8 @@ def descendants():
         time.sleep(2.1)
         assert not item["state"].exists(), "owned new-session descendant survived target timeout"
 
+    normal_child_lifetime()
+
 
 def output_preflight():
     for limit in (1, 100):
@@ -707,6 +711,45 @@ def owner_boundary():
     assert len(calls) == 1, "missing single public core owner, or duplicated execute loop"
     assert (APP / "requirements.txt").read_text().strip() == "environment-maintenance==0.1.1"
     assert not (APP / "environment_maintenance").exists(), "copied standalone core instead of dependency"
+
+
+def interrupted_applies():
+    # Additional cases under the permanent truth-table group, not a replacement
+    # for any of the four completed-apply success/failure combinations.
+    for mechanism in ("timeout", "signal"):
+        with case() as c:
+            item = c.profile(ready=False, settings={"sleep": {"apply": 2}})
+            action = item["catalogue"]["requirements"][0]["apply"]
+            if mechanism == "timeout":
+                action["timeout"] = 0.15
+            else:
+                action["argv"] = [sys.executable, "-c", "import os,signal;os.kill(os.getpid(),signal.SIGTERM)"]
+            c.save(item)
+            body, _ = c.run("infra")
+            core = owner_report(single(body, "failed", "unknown", "maintenance_failed"))
+            applied = core["requirements"][0]["apply"]
+            assert applied["exit_code"] < 0 and applied["timed_out"] is (mechanism == "timeout")
+            assert core["requirements"][0]["final_check"] is not None
+
+
+def normal_child_lifetime():
+    # A trusted successful apply may create finite external work. Normal return
+    # must preserve the existing core's behavior, not introduce hidden cleanup.
+    with case() as c:
+        item = c.profile(ready=False)
+        child_script = item["assets"] / "lifetime.py"
+        shutil.copyfile(FIXTURES / "lifetime.py", child_script)
+        item["catalogue"]["requirements"][0]["apply"]["argv"] = [
+            sys.executable, str(child_script), str(item["state"]), str(item["audit"]), "apply"]
+        c.save(item)
+        body, _ = c.run("infra")
+        owner_report(single(body, "repaired", "applied"))
+        assert c.modes() == ["check", "apply", "check"]
+        assert isinstance(c.audit()[1]["child"], int)
+        until = time.monotonic() + 2
+        while time.monotonic() < until and item["state"].read_text() != "late effect":
+            time.sleep(0.02)
+        assert item["state"].read_text() == "late effect", "normal completion cancelled authorized child work"
 
 
 def documentation(group):

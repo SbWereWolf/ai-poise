@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""App-owned Bootstrap selection and read-only profile qualification."""
+"""Bootstrap profile snapshots and bounded delegation to environment-maintenance."""
 from __future__ import annotations
 
 import errno
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -11,6 +12,7 @@ from pathlib import Path
 import re
 import stat
 import sys
+import time
 
 SCHEMA = "stride-bootstrap/v1"
 CONFIG_SCHEMA = "stride-bootstrap-config/v1"
@@ -276,12 +278,12 @@ def parse_cli(argv):
     return config, command, target, dry_run, sets
 
 
-def selector(config, explicit):
+def selector(config, explicit, environment):
     if explicit is not None:
         return explicit, "argument"
     env_name = config["target_env"]
-    if env_name is not None and env_name in os.environ:
-        value = os.environ[env_name]
+    if env_name is not None and env_name in environment:
+        value = environment[env_name]
         if not valid_target(value):
             raise ShellError("invalid_selector", "Bootstrap target environment selector is invalid")
         return value, "environment"
@@ -347,6 +349,7 @@ class TargetInputs:
 
 
 def qualify(root_fd, name, budget):
+    snapshot = None
     row = {"target": name, "config_digest": None, "status": "action_required", "exit_code": 3,
            "effects": "none", "core": None,
            "error": error_value("maintenance_unavailable", "Maintenance execution is not available in this Bootstrap slice")}
@@ -370,7 +373,7 @@ def qualify(root_fd, name, budget):
         if project["repairs"] is not None:
             repairs = inputs.read(project["repairs"], "invalid_target_catalogue")
             if (not isinstance(repairs, dict) or repairs.get("schema") != "environment-maintenance/repairs/v1"
-                    or not isinstance(repairs.get("repairs"), list)):
+                    or not isinstance(repairs.get("repairs"), dict)):
                 raise ShellError("invalid_target_catalogue", "Repairs header or container is invalid")
         values_files = []
         for reference in project["parameter_values_files"]:
@@ -378,40 +381,160 @@ def qualify(root_fd, name, budget):
             if not isinstance(value, dict):
                 raise ShellError("invalid_target_parameters", "Parameter values file must be an object")
             values_files.append(value)
-        # Unknown secrecy is treated as secret. Execution semantics belong to T027.
+        snapshot = {"project": project, "catalog": catalog, "repairs": repairs, "values_files": values_files}
+        # The input digest is conservative; the core owns output redaction.
         safe_digest = all(isinstance(p, dict) and p.get("secret") is False
                           for p in catalog["parameters"].values())
         if safe_digest:
-            snapshot = {"project": project, "catalog": catalog, "repairs": repairs, "values_files": values_files}
             encoded = json.dumps(snapshot, sort_keys=True, ensure_ascii=False,
                                  separators=(",", ":"), allow_nan=False).encode("utf-8")
             row["config_digest"] = hashlib.sha256(encoded).hexdigest()
     except ShellError as exc:
         row.update(status="failed", exit_code=4, config_digest=None,
                    error=error_value(exc.code, exc.message, exc.retryable))
+    return row, snapshot
+
+
+
+FAILURE_MESSAGES = {
+    "maintenance_unavailable": "Maintenance capability unavailable",
+    "invalid_target_catalogue": "Invalid maintenance catalogue",
+    "invalid_target_parameters": "Invalid maintenance parameters",
+    "target_input_unavailable": "Maintenance input unavailable",
+    "worker_failed": "Maintenance result unavailable",
+    "maintenance_failed": "Maintenance requirements failed",
+    "target_timeout": "Target deadline exceeded",
+    "run_deadline_exceeded": "Run deadline exceeded",
+    "output_limit_exceeded": "Complete target report exceeds limit",
+}
+
+
+def failure(row, code, *, readonly, started=False):
+    row = dict(row)
+    row.update(core=None, status="failed", exit_code=4,
+               effects="unknown" if started and not readonly else "none",
+               error=error_value(code, FAILURE_MESSAGES[code]))
+    if code == "maintenance_unavailable":
+        row.update(status="action_required", exit_code=3, effects="none")
+    elif code == "run_deadline_exceeded":
+        row.update(status="not_started", effects="none")
+    elif code in {"invalid_target_catalogue", "invalid_target_parameters", "target_input_unavailable"}:
+        row.update(config_digest=None, effects="none")
     return row
+
+
+def envelope(command, dry_run, selection, rows):
+    statuses = {row["status"] for row in rows}
+    status = next((item for item in ("failed", "not_started", "action_required", "repaired", "ready")
+                   if item in statuses), "not_required")
+    if status == "not_started":
+        status = "failed"
+    return {"schema": SCHEMA, "command": command, "dry_run": dry_run,
+            "selection": selection, "status": status,
+            "exit_code": 4 if status == "failed" else 3 if status == "action_required" else 0,
+            "targets": rows}
+
+
+def wire_size(body):
+    return len((compact(body) + "\n").encode("utf-8"))
+
+
+def supervisor():
+    # Same app-local file-loading mechanism as the standalone CLI. No peer app
+    # imports and no ambient PYTHONPATH-dependent lookup of this helper.
+    path = Path(__file__).with_name("supervision.py")
+    spec = importlib.util.spec_from_file_location("bootstrap_supervision", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def target_result(row, data, transport_error, *, command, dry_run):
+    readonly = command == "check" or dry_run
+    if transport_error:
+        return failure(row, transport_error, readonly=readonly, started=True)
+    try:
+        payload = strict_json(data, "worker_failed")
+        if not isinstance(payload, dict) or set(payload) != {"core", "error"}:
+            raise ValueError("worker envelope")
+        code, core = payload["error"], payload["core"]
+        if code is not None:
+            if core is not None or code not in FAILURE_MESSAGES:
+                raise ValueError("worker error")
+            return failure(row, code, readonly=readonly, started=code == "worker_failed")
+        if (not isinstance(core, dict) or core.get("schema") != "environment-maintenance/result/v1"
+                or core.get("command") != command or core.get("dry_run") is not dry_run
+                or core.get("status") not in {"ready", "not_required", "repaired", "action_required", "failed"}
+                or not isinstance(core.get("requirements"), list)
+                or not all(isinstance(item, dict) for item in core["requirements"])):
+            raise ValueError("core report")
+        status = core["status"]
+        expected = 4 if status == "failed" else 3 if status == "action_required" else 0
+        if type(core.get("exit_code")) is not int or core["exit_code"] != expected:
+            raise ValueError("core exit mismatch")
+        applied = any("apply" in item for item in core["requirements"])
+        if applied and readonly:
+            raise ValueError("readonly effect contradiction")
+        return dict(row, status=status, exit_code=expected, effects="applied" if applied else "none",
+                    core=core, error=error_value("maintenance_failed", FAILURE_MESSAGES["maintenance_failed"])
+                    if status == "failed" else None)
+    except (ShellError, ValueError, TypeError):
+        return failure(row, "worker_failed", readonly=readonly, started=True)
 
 
 def run(argv):
     root_fd = None
     try:
-        config_path, command, explicit, dry_run, _sets = parse_cli(argv)
+        config_path, command, explicit, dry_run, overrides = parse_cli(argv)
+        environment = dict(os.environ)
         config = load_config(Path(os.path.abspath(config_path)))
-        requested, source = selector(config, explicit)
+        requested, source = selector(config, explicit, environment)
         root_fd = open_root(config["projects_root"])
         names = discover(root_fd, requested, config["limits"]["max_targets"])
-        rows = [qualify(root_fd, name, config["limits"]["max_target_bytes"]) for name in names]
-        exit_code = max((row["exit_code"] for row in rows), default=0)
-        result = {"schema": SCHEMA, "command": command, "dry_run": dry_run,
-                  "selection": {"requested": requested, "source": source, "resolved": names},
-                  "status": {0: "not_required", 3: "action_required", 4: "failed"}[exit_code],
-                  "exit_code": exit_code, "targets": rows}
-        if len((compact(result) + "\n").encode("utf-8")) > config["limits"]["max_output_bytes"]:
+        frozen = [qualify(root_fd, name, config["limits"]["max_target_bytes"]) for name in names]
+        os.close(root_fd)
+        root_fd = None
+        selection = {"requested": requested, "source": source, "resolved": names}
+        readonly = command == "check" or dry_run
+        limit = config["limits"]["max_output_bytes"]
+        # Reserve the largest safe terminal fallback for EVERY selected target
+        # before any worker starts. No output truncation or post-effect rejection.
+        reservations = []
+        for row, snapshot in frozen:
+            candidates = [row] if snapshot is None else [
+                failure(row, code, readonly=readonly, started=True) for code in FAILURE_MESSAGES]
+            reservations.append(max(candidates, key=lambda item: len(compact(item).encode("utf-8"))))
+        reserve = envelope(command, dry_run, selection, reservations)
+        reserve["status"] = "action_required"  # longest possible aggregate label
+        if wire_size(reserve) > limit:
             raise ShellError("limit_exceeded", "Complete report exceeds the configured output limit")
-        return emit(result)
+        rows = []
+        driver = supervisor() if names else None
+        run_start = time.monotonic()
+        for index, (row, snapshot) in enumerate(frozen):
+            remaining = config["limits"]["run_timeout_seconds"] - (time.monotonic() - run_start)
+            if remaining <= 0:
+                result = failure(row, "run_deadline_exceeded", readonly=readonly)
+            elif snapshot is None:
+                result = row
+            else:
+                payload = {"snapshot": snapshot, "command": command, "dry_run": dry_run,
+                           "environment": environment, "overrides": overrides,
+                           "catalogue_path": str(config["projects_root"] / snapshot["project"]["catalog"]),
+                           "repairs_path": str(config["projects_root"] / snapshot["project"]["repairs"])
+                           if snapshot["project"]["repairs"] else None}
+                raw, transport_error = driver.run_worker(
+                    payload, min(remaining, config["limits"]["target_timeout_seconds"]), limit)
+                result = target_result(row, raw, transport_error, command=command, dry_run=dry_run)
+            proposed = envelope(command, dry_run, selection, rows + [result] + reservations[index + 1:])
+            if index + 1 < len(frozen):
+                proposed["status"] = "action_required"
+            if wire_size(proposed) > limit:
+                result = failure(row, "output_limit_exceeded", readonly=readonly, started=snapshot is not None)
+            rows.append(result)
+        return emit(envelope(command, dry_run, selection, rows))
     except ShellError as exc:
-        # A complete constant diagnostic is emitted even if the configured normal
-        # report limit is too small to contain any protocol envelope.
+        # Constant diagnostic remains complete even below the normal envelope size.
         return emit(reject(exc.code, exc.message, exc.retryable))
     finally:
         if root_fd is not None:

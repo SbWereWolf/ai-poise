@@ -56,7 +56,36 @@ def main():
                 return 0
 
             repairs_file = None
-            if snapshot["repairs"] is not None:
+            if (snapshot["repairs"] is not None
+                    and snapshot["repairs"].get("schema") == "stride-bootstrap-owner-commands/v1"):
+                from owner_commands import project_owner_commands
+
+                origin = Path(payload["repairs_path"]).parent
+
+                def bind_directory(action, index):
+                    # Only cwd crosses the snapshot relocation boundary. Keep argv,
+                    # env and recommendations raw for the existing core expansion.
+                    bound = copy.deepcopy(action)
+                    cwd = Path(expand(action["cwd"], params)) if "cwd" in action else origin
+                    if not cwd.is_absolute():
+                        cwd = origin / cwd
+                    alias = private / ("owner-cwd-" + str(index))
+                    if "${" in str(alias):
+                        raise ContractError("private path cannot preserve one-pass expansion")
+                    alias.symlink_to(cwd, target_is_directory=True)
+                    bound["cwd"] = str(alias)
+                    return bound
+
+                try:
+                    projected = project_owner_commands(catalogue.data, snapshot["repairs"], params, bind_directory)
+                    catalogue_file.write_text(json.dumps(projected, ensure_ascii=False,
+                                                        allow_nan=False), encoding="utf-8")
+                    projected_catalogue = load_catalogue(catalogue_file)
+                    catalogue = Catalogue(Path(payload["catalogue_path"]), projected_catalogue.data)
+                except (ContractError, TypeError, KeyError, ValueError):
+                    reply(error="invalid_target_catalogue")
+                    return 0
+            elif snapshot["repairs"] is not None:
                 # RepairRouter owns action/route validation and expansion. Only cwd
                 # needs an adapter: its source directory is not our private directory.
                 repairs = copy.deepcopy(snapshot["repairs"])

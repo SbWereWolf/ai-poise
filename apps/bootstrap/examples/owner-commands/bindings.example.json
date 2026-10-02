@@ -1,0 +1,28 @@
+{
+  "schema": "stride-bootstrap-owner-commands/v1",
+  "repairs": {
+    "db.prepare": {
+      "check": {
+        "argv": [
+          "/absolute/path/to/public-owner-cli",
+          "database",
+          "check",
+          "--path",
+          "${database_path}"
+        ],
+        "timeout": 10
+      },
+      "apply": {
+        "argv": [
+          "/absolute/path/to/public-owner-cli",
+          "database",
+          "prepare",
+          "--path",
+          "${database_path}"
+        ],
+        "timeout": 30
+      },
+      "recommendation": "Проверьте диагностику публичной команды владельца; не удаляйте повреждённую БД."
+    }
+  }
+}

@@ -372,7 +372,7 @@ def qualify(root_fd, name, budget):
         repairs = None
         if project["repairs"] is not None:
             repairs = inputs.read(project["repairs"], "invalid_target_catalogue")
-            if (not isinstance(repairs, dict) or repairs.get("schema") != "environment-maintenance/repairs/v1"
+            if (not isinstance(repairs, dict) or repairs.get("schema") not in {"environment-maintenance/repairs/v1", "stride-bootstrap-owner-commands/v1"}
                     or not isinstance(repairs.get("repairs"), dict)):
                 raise ShellError("invalid_target_catalogue", "Repairs header or container is invalid")
         values_files = []

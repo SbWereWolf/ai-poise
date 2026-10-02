@@ -1,0 +1,27 @@
+{
+  "schema": "stride-uat-config/v1",
+  "state_root": "state",
+  "workspace_root": "workspace",
+  "input_roots": ["inputs"],
+  "limits": {
+    "packet_bytes":1048576,"program_bytes":1048576,"steps":32,"id_bytes":128,
+    "argv_items":32,"argument_bytes":8192,"result_bytes":1048576,
+    "stdout_bytes":8192,"stderr_bytes":8192,"step_timeout_seconds":3,
+    "lock_timeout_seconds":1,"total_timeout_seconds":10
+  },
+  "profiles": {"ci": {
+    "os_ids":["@OS_ID@"],"os_versions":["@OS_VERSION@"],
+    "python_versions":[["@MAJOR@","@MINOR@"]],"allow_root":true,
+    "isolation_id":"trusted",
+    "environment":{"LANG":"C.UTF-8","CASE_FLAG":"declared","SECRET_VALUE":"test-only-token"}
+  }},
+  "commands": {"adapter": {
+    "application_id":"widget-external",
+    "argv":["@PYTHON@","-I","@OWNER@","probe"],"source_inputs":["owner-source"]
+  }},
+  "applications": {"widget-external": {
+    "public_argv":["@PYTHON@","-I","@OWNER@","subject"],"delivery_inputs":["owner-source"]
+  }},
+  "inputs": {"owner-source":{"kind":"file","path":"@OWNER@"}},
+  "isolations": {"trusted":{"kind":"trusted-local","forbidden_roots":["@PRODUCTION@"]}}
+}

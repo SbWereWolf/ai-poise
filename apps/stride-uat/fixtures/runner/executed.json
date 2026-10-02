@@ -1,0 +1,6 @@
+{
+  "schema":"stride-uat/v1","status":"executed","run_id":"run-1",
+  "execution_status":"COMPLETED","qualification":"not_evaluated",
+  "completed_steps":2,"total_steps":2,
+  "protocol_path":"@PROTOCOL@","stop_reason":null
+}

@@ -1,0 +1,6 @@
+{
+  "protocol":["schema","run_id","program_id","program_version","profile_id","program_sha256","qualification","execution_status","environment","steps","remaining_step_ids","stop_reason"],
+  "step":["step_id","application_id","command_id","state","argv","cwd","environment_keys","environment_sha256","exit_code","signal","timed_out","duration_seconds","effects","reason","stdout","stderr"],
+  "context":["schema","run_id","step_id","application_id","public_argv","workspace","result_path","graph"],
+  "error":["code","message","retryable","details"]
+}

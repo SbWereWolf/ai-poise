@@ -1,0 +1,13 @@
+{
+  "schema": "stride-bootstrap-config/v1",
+  "projects_root": "projects",
+  "default_target": "all",
+  "target_env": "T028_TARGET",
+  "limits": {
+    "max_targets": 8,
+    "max_target_bytes": 262144,
+    "max_output_bytes": 524288,
+    "target_timeout_seconds": 8,
+    "run_timeout_seconds": 40
+  }
+}

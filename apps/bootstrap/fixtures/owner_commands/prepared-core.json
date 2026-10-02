@@ -1,0 +1,46 @@
+{
+  "schema": "environment-maintenance/result/v1",
+  "command": "infra",
+  "dry_run": false,
+  "status": "repaired",
+  "exit_code": 0,
+  "parameters": {},
+  "parameter_sources": {},
+  "requirements": [
+    {
+      "id": "db.prepare",
+      "kind": "infra",
+      "initial_check": {
+        "status": "failed",
+        "exit_code": 3,
+        "timed_out": false,
+        "capture_complete": true,
+        "stdout": "owner missing\n",
+        "stderr": "",
+        "error": null,
+        "duration_seconds": 0
+      },
+      "status": "repaired",
+      "apply": {
+        "status": "passed",
+        "exit_code": 0,
+        "timed_out": false,
+        "capture_complete": true,
+        "stdout": "owner prepared\n",
+        "stderr": "",
+        "error": null,
+        "duration_seconds": 0
+      },
+      "final_check": {
+        "status": "passed",
+        "exit_code": 0,
+        "timed_out": false,
+        "capture_complete": true,
+        "stdout": "owner ready\n",
+        "stderr": "",
+        "error": null,
+        "duration_seconds": 0
+      }
+    }
+  ]
+}

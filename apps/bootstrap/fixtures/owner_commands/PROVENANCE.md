@@ -1,0 +1,3 @@
+# Independent T028 test data
+
+The catalogue, bindings, owner CLI and prepared-core.json are hand-authored from the accepted T028 plan and existing public environment-maintenance result contract. No expected value is generated from Bootstrap implementation or a test run. Only exact @SLOT@ tokens insert test-local paths. Parameter expressions use a separate ${name} syntax and are not evaluated by fixture setup. The owner fixture alone owns its disposable SQLite schema and business-state writes. Canonical prepared-core.json normalizes only measured nonnegative duration_seconds. Missing/corrupt input and protocol/runtime errors are never the expected RED. No existing test or production file is modified by this fixture collection.

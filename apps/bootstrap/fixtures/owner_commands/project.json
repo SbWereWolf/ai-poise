@@ -1,0 +1,8 @@
+{
+  "schema": "stride-bootstrap-project/v1",
+  "id": "alpha",
+  "catalog": "alpha-assets/catalogue.json",
+  "repairs": "alpha-assets/bindings/commands.json",
+  "values": {},
+  "parameter_values_files": []
+}

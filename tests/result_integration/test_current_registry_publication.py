@@ -359,3 +359,81 @@ def test_valid_publication_retry_preserves_proof_wip_and_idempotency(project, mo
     assert replay["replayed"] is True
     assert replay["checks"] == done["checks"]
     assert replay["accepted_commit"] == accepted
+
+
+def configured_method(value):
+    method = current_method()
+    method["argv"] = [sys.executable, "-c", "import os; print('configuration='+os.environ['POISE_CHECK_VALUE'])"]
+    method["environment"] = {"POISE_CHECK_VALUE": value}
+    method["stdout_contains"] = ["configuration="]
+    return method
+
+
+def test_same_command_configuration_replacement_projects_current_definition(project):
+    tools, worktree, accepted = prepare_completed_task(
+        project, source_change, methods=[configured_method("PRIOR_CONFIG")],
+        checks=["CURRENT_RESULT"],
+        registered_methods=[configured_method("CURRENT_CONFIG")],
+    )
+    record = tools.runtime.task_queries.record("T1")
+    method = record["contract"]["methods"][0]
+    assert method["id"] == "CURRENT_RESULT"
+    assert method["argv"] == [sys.executable, "-c", "import os; print('configuration='+os.environ['POISE_CHECK_VALUE'])"]
+    assert method["environment"] == {"POISE_CHECK_VALUE": "CURRENT_CONFIG"}
+    assert method["stdout_contains"] == ["configuration="]
+    assert git(worktree, "rev-parse", "HEAD") == accepted
+
+
+def test_same_candidate_successful_prior_configuration_proof_is_rechecked(
+    project, monkeypatch,
+):
+    tools, worktree, accepted = prepare_completed_task(
+        project, source_change, methods=[configured_method("CURRENT_CONFIG")],
+        checks=["CURRENT_RESULT"],
+    )
+    foreign = project["app"] / "foreign-wip.txt"
+    foreign.write_text("preserve during definition revalidation\n")
+    packet = request("integrate", integration_input(project, accepted))
+    original_checks = RuntimeResultIntegration._run_checks
+
+    def save_prior_definition_proof(self, run, repository):
+        prior_record = deepcopy(self.h.task_queries.record("T1"))
+        prior_record["contract"]["methods"] = [configured_method("PRIOR_CONFIG")]
+        # Run the independently authored prior configuration on the SAME candidate.
+        checked = original_checks(self, prior_record, replace(run, phase="candidate_ready"))
+        # A historical persisted run has only its successful prior-definition proof.
+        historical = replace(checked, checks=(checked.checks[-1],))
+        blocked = historical.publication_blocked("test_publication_blocked", {})
+        self._save(run.intent.task_id, blocked, checked.version)
+        return blocked
+
+    with monkeypatch.context() as patch:
+        patch.setattr(RuntimeResultIntegration, "_publish", save_prior_definition_proof)
+        first = tools.invoke(packet)
+    assert first["phase"] == "publication_failed"
+    assert len(first["checks"]) == 1
+    prior = first["checks"][0]
+    assert prior["method"] == "CURRENT_RESULT"
+    assert prior["passed"] is True
+    assert Path(prior["stdout"]).read_text() == "configuration=PRIOR_CONFIG\n"
+    assert prior["argv"] == [sys.executable, "-c", "import os; print('configuration='+os.environ['POISE_CHECK_VALUE'])"]
+    assert prior["integration_head"] == git(worktree, "rev-parse", "HEAD")
+    assert prior["verified_tree"] == git(worktree, "rev-parse", "HEAD^{tree}")
+
+    done = tools.invoke(packet)
+    assert done["status"] == "integrated"
+    assert len(done["checks"]) == 2
+    assert done["checks"][0] == prior
+    current = done["checks"][1]
+    assert current["method"] == "CURRENT_RESULT"
+    assert current["passed"] is True
+    assert current["argv"] == [sys.executable, "-c", "import os; print('configuration='+os.environ['POISE_CHECK_VALUE'])"]
+    assert Path(current["stdout"]).read_text() == "configuration=CURRENT_CONFIG\n"
+    assert current["integration_head"] == prior["integration_head"]
+    assert current["verified_tree"] == prior["verified_tree"]
+    assert done["accepted_commit"] == accepted
+    assert done["history"][:len(first["history"])] == first["history"]
+    assert foreign.read_text() == "preserve during definition revalidation\n"
+    replay = tools.invoke(packet)
+    assert replay["replayed"] is True
+    assert replay["checks"] == done["checks"]

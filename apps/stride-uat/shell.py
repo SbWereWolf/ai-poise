@@ -18,8 +18,10 @@ def pairs(pairs):
 
 def loads(raw):
  return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda x: (_ for _ in ()).throw(ValueError('nonfinite')))
+def emit(value):
+ sys.stdout.buffer.write((json.dumps(value,ensure_ascii=False,separators=(',',':'),allow_nan=False)+'\n').encode('utf-8'))
 def reject(code,message,details):
- print(json.dumps({'schema':SCHEMA,'status':'rejected','error':{'code':code,'message':message,'retryable':code=='store_busy','details':details}},separators=(',',':'))); return 2
+ emit({'schema':SCHEMA,'status':'rejected','error':{'code':code,'message':message,'retryable':code=='store_busy','details':details}}); return 2
 def exact(obj,fields,path):
  if not isinstance(obj,dict): raise Problem('invalid_packet','Expected object',{'path':path})
  miss=sorted(fields-set(obj)); unknown=sorted(set(obj)-fields)
@@ -59,7 +61,12 @@ def main(argv=None):
   exact(packet,{'schema','operation','input'},'/');
   if packet['schema']!=SCHEMA: raise Problem('unsupported_schema','Unsupported schema',{'schema':packet.get('schema') if isinstance(packet.get('schema'),str) else None})
   op=packet['operation']; inp=packet['input']
-  if op!='inspect': raise Problem('invalid_packet','Unsupported operation in T023 shell foundation',{'path':'/operation'})
+  if op in ('run','resume'): raise Problem('capability_unavailable','Qualification and resume require T030',{'path':'/operation'})
+  if op in ('validate','execute'):
+   from runner import run
+   result,code=run(cfg,state,workspace,input_roots,Path(a.config).absolute().parent,op,inp)
+   emit(result); return code
+  if op!='inspect': raise Problem('invalid_packet','Unsupported operation',{'path':'/operation'})
   exact(inp,{'run_id'},'/input'); valid_id(inp['run_id'],cfg['limits']['id_bytes'],'/input/run_id')
   protocol=state/inp['run_id']/'protocol.json'
   if not protocol.is_file(): raise Problem('not_found','UAT run does not exist',{'run_id':inp['run_id']})

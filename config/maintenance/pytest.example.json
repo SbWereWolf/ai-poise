@@ -1,0 +1,44 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {
+    "python": {
+      "type": "string",
+      "default": "/srv/poise/.venv/bin/python"
+    },
+    "pytest_version": {
+      "type": "string",
+      "default": "9.0.2"
+    }
+  },
+  "inherit_env": [
+    "PATH",
+    "HOME",
+    "LANG"
+  ],
+  "requirements": [
+    {
+      "id": "development-pytest",
+      "kind": "deps",
+      "check": {
+        "argv": [
+          "${python}",
+          "-c",
+          "import importlib.metadata, sys; sys.exit(0 if importlib.metadata.version('pytest') == sys.argv[1] else 1)",
+          "${pytest_version}"
+        ],
+        "timeout": 10
+      },
+      "apply": {
+        "argv": [
+          "${python}",
+          "-m",
+          "pip",
+          "install",
+          "pytest==${pytest_version}"
+        ],
+        "timeout": 120
+      },
+      "recommendation": "Проверьте доступность pip и источника пакетов для выбранного python; повторите deps с теми же параметрами. Новое окружение не создаётся."
+    }
+  ]
+}

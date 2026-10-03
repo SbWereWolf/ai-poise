@@ -1,21 +1,21 @@
 {
-  "benefit": {
-    "git_categories": [
-      "code",
-      "documentation"
-    ],
-    "sections": []
+  "goal_type": "development",
+  "worktree_required": true,
+  "route": {
+    "entry": "baseline"
   },
   "content_contract": {
+    "sections": [],
+    "routes": [],
     "requirements": [
       {
         "id": "verification_planning-input-solution_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "solution_plan",
         "stages": [
           "verification_planning"
         ],
+        "phase": "pre",
+        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -23,11 +23,11 @@
       {
         "id": "test_implementation-input-verification_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
         "stages": [
           "test_implementation"
         ],
+        "phase": "pre",
+        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -35,11 +35,11 @@
       {
         "id": "test_inspection-input-verification_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
         "stages": [
           "test_inspection"
         ],
+        "phase": "pre",
+        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -47,11 +47,11 @@
       {
         "id": "test_inspection-input-test_registry",
         "kind": "section",
-        "phase": "pre",
-        "section": "test_registry",
         "stages": [
           "test_inspection"
         ],
+        "phase": "pre",
+        "section": "test_registry",
         "states": [
           "populated"
         ]
@@ -59,11 +59,11 @@
       {
         "id": "test_remediation-input-verification_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
         "stages": [
           "test_remediation"
         ],
+        "phase": "pre",
+        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -71,11 +71,11 @@
       {
         "id": "test_remediation_inspection-input-test_registry",
         "kind": "section",
-        "phase": "pre",
-        "section": "test_registry",
         "stages": [
           "test_remediation_inspection"
         ],
+        "phase": "pre",
+        "section": "test_registry",
         "states": [
           "populated"
         ]
@@ -83,11 +83,11 @@
       {
         "id": "implementation-input-solution_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "solution_plan",
         "stages": [
           "implementation"
         ],
+        "phase": "pre",
+        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -95,11 +95,11 @@
       {
         "id": "implementation-input-verification_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
         "stages": [
           "implementation"
         ],
+        "phase": "pre",
+        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -107,11 +107,11 @@
       {
         "id": "implementation-input-test_registry",
         "kind": "section",
-        "phase": "pre",
-        "section": "test_registry",
         "stages": [
           "implementation"
         ],
+        "phase": "pre",
+        "section": "test_registry",
         "states": [
           "populated"
         ]
@@ -119,11 +119,11 @@
       {
         "id": "implementation_inspection-input-solution_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "solution_plan",
         "stages": [
           "implementation_inspection"
         ],
+        "phase": "pre",
+        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -131,11 +131,11 @@
       {
         "id": "implementation_remediation-input-solution_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "solution_plan",
         "stages": [
           "implementation_remediation"
         ],
+        "phase": "pre",
+        "section": "solution_plan",
         "states": [
           "populated"
         ]
@@ -143,11 +143,11 @@
       {
         "id": "implementation_remediation-input-verification_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "verification_plan",
         "stages": [
           "implementation_remediation"
         ],
+        "phase": "pre",
+        "section": "verification_plan",
         "states": [
           "populated"
         ]
@@ -155,11 +155,11 @@
       {
         "id": "implementation_remediation-input-test_registry",
         "kind": "section",
-        "phase": "pre",
-        "section": "test_registry",
         "stages": [
           "implementation_remediation"
         ],
+        "phase": "pre",
+        "section": "test_registry",
         "states": [
           "populated"
         ]
@@ -167,36 +167,157 @@
       {
         "id": "documentation-input-documentation_plan",
         "kind": "section",
-        "phase": "pre",
-        "section": "documentation_plan",
         "stages": [
+          "documentation_planning",
           "documentation"
         ],
+        "phase": "pre",
+        "section": "documentation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation-input-implementation_plan",
+        "kind": "section",
+        "stages": [
+          "implementation"
+        ],
+        "phase": "pre",
+        "section": "implementation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-solution_plan",
+        "kind": "section",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "solution_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-decisions",
+        "kind": "section",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "decisions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-assumptions",
+        "kind": "section",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "assumptions",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "solution_planning_inspection-input-documentation_plan",
+        "kind": "section",
+        "stages": [
+          "solution_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "documentation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "verification_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "verification_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_design_inspection-input-implementation_plan",
+        "kind": "section",
+        "stages": [
+          "implementation_design_inspection"
+        ],
+        "phase": "pre",
+        "section": "implementation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "implementation_remediation_planning_inspection-input-implementation_remediation_plan",
+        "kind": "section",
+        "stages": [
+          "implementation_remediation_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "implementation_remediation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "documentation_planning_inspection-input-documentation_plan",
+        "kind": "section",
+        "stages": [
+          "documentation_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "documentation_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "documentation_inspection-input-result",
+        "kind": "section",
+        "stages": [
+          "documentation_inspection"
+        ],
+        "phase": "pre",
+        "section": "result",
         "states": [
           "populated"
         ]
       }
-    ],
-    "routes": [],
-    "sections": []
-  },
-  "goal_type": "development",
-  "route": {
-    "entry": "baseline"
+    ]
   },
   "stages": [
     {
-      "allowed_paths": [],
-      "artifact_requirements": [],
+      "id": "baseline",
       "handler": "observe",
       "role": "executor",
-      "id": "baseline",
-      "instruction": "Установить исходное поведение или обоснованную неприменимость. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Установить исходное поведение или обоснованную неприменимость. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
       "required_sections": [
         "report"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "baseline_inspection"
+      },
       "rework_targets": [
         "baseline",
         "solution_planning",
@@ -210,23 +331,46 @@
         "implementation_remediation",
         "implementation_remediation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "complete": "solution_planning"
-      }
+      ]
     },
     {
+      "id": "baseline_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
       "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
       "artifact_requirements": [],
+      "transitions": {
+        "clear": "solution_planning",
+        "changes_requested": "baseline"
+      },
+      "rework_targets": [
+        "baseline"
+      ]
+    },
+    {
+      "id": "solution_planning",
       "handler": "produce",
       "role": "executor",
-      "id": "solution_planning",
-      "instruction": "Спланировать изменение компонентов, интерфейсов и документации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and solution_plan, decisions, assumptions, documentation_plan. Output: solution_plan, decisions, assumptions, documentation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Спланировать изменение компонентов, интерфейсов и документации. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "solution_plan": "Intermediate outcomes, current code facts, feasible steps, assumptions and finite scope. Do not predesign classes or demand future test names.",
+        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
+        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
+        "documentation_plan": "required/not_required с причиной; при required deliverables/paths, content requirements и exact validation methods/DoD refs."
+      },
       "required_sections": [
         "report",
         "solution_plan",
@@ -234,6 +378,10 @@
         "assumptions",
         "documentation_plan"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "solution_planning_inspection"
+      },
       "rework_targets": [
         "solution_planning",
         "baseline",
@@ -247,32 +395,51 @@
         "implementation_remediation",
         "implementation_remediation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "assumptions": "список id, statement, justification, impact_if_false, evidence/ref status; explicit none.",
-        "decisions": "Содержательные решения с authority/scope/source; пользовательские acceptance/publish хранит AI poise после semantic interpretation, а не выполняет автоматически из текста файла.",
-        "documentation_plan": "required/not_required с причиной; при required deliverables/paths, content requirements и exact validation methods/DoD refs.",
-        "report": "Record the substantive result for this stage.",
-        "solution_plan": "затрагиваемые компоненты; proposed change/contracts; риски; порядок реализации; решения и assumptions refs."
-      },
-      "transitions": {
-        "complete": "verification_planning"
-      }
+      ]
     },
     {
+      "id": "solution_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
       "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
       "artifact_requirements": [],
+      "transitions": {
+        "clear": "verification_planning",
+        "changes_requested": "solution_planning"
+      },
+      "rework_targets": [
+        "solution_planning"
+      ]
+    },
+    {
+      "id": "verification_planning",
       "handler": "produce",
       "role": "executor",
-      "id": "verification_planning",
-      "instruction": "Спроектировать доказательства до реализации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and verification_plan. Output: verification_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Спроектировать доказательства до реализации. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "verification_plan": "Requirement coverage, independent oracles, scenario outlines and required existing environment. Real methods may be registered when sources are known; future test names are not a start gate."
+      },
       "required_sections": [
         "report",
-        "verification_plan",
-        "test_registry"
+        "verification_plan"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "verification_planning_inspection"
+      },
       "rework_targets": [
         "verification_planning",
         "baseline",
@@ -286,66 +453,88 @@
         "implementation_remediation",
         "implementation_remediation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage.",
-        "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution.",
-        "verification_plan": "Obligations: requirement/DoD refs, exact PlannedInvocation HR-054 либо logical/inspection method, before/after predicates и phase applicability, reuse/retry/limits. BoundExecution digests/live identities добавляет AI poise при запуске; future test path известен, future hash не нужен."
-      },
-      "transitions": {
-        "complete": "test_implementation"
-      }
+      ]
     },
     {
+      "id": "verification_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "test_implementation",
+        "changes_requested": "verification_planning"
+      },
+      "rework_targets": [
+        "verification_planning"
+      ]
+    },
+    {
+      "id": "test_implementation",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and test_registry. Output: test_registry and evidence for this exact stage. Forbidden: product code and canonical documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Написать тесты/fixtures до production change. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "read_only": false,
       "allowed_paths": [
         "tests/**",
         "fixtures/**"
       ],
-      "artifact_requirements": [],
-      "handler": "produce",
-      "role": "executor",
-      "id": "test_implementation",
-      "instruction": "Написать тесты/fixtures до production change. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report",
-        "test_registry"
-      ],
-      "rework_targets": [
-        "test_implementation",
-        "baseline",
-        "solution_planning",
-        "verification_planning",
-        "test_inspection",
-        "test_remediation",
-        "test_remediation_inspection",
-        "implementation",
-        "implementation_inspection",
-        "implementation_remediation",
-        "implementation_remediation_inspection",
-        "documentation"
-      ],
       "sections": {
         "report": "Record the substantive result for this stage.",
         "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
       },
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "artifact_requirements": [],
       "transitions": {
         "complete": "test_inspection"
-      }
+      },
+      "rework_targets": [
+        "test_implementation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ]
     },
     {
-      "allowed_paths": [],
-      "artifact_requirements": [],
+      "id": "test_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "id": "test_inspection",
-      "instruction": "Read-only осмотр oracle, покрытия, чувствительности и fixtures. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Read-only осмотр oracle, покрытия, чувствительности и fixtures. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
       "required_sections": [
         "report"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "implementation_design",
+        "changes_requested": "test_remediation"
+      },
       "rework_targets": [
         "test_inspection",
         "test_remediation",
@@ -359,65 +548,65 @@
         "implementation_remediation",
         "implementation_remediation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "changes_requested": "test_remediation",
-        "clear": "implementation"
-      }
+      ]
     },
     {
+      "id": "test_remediation",
+      "handler": "revise",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and test_registry. Output: test_registry and evidence for this exact stage. Forbidden: product code and canonical documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Исправить зарегистрированные дефекты тестов. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "read_only": false,
       "allowed_paths": [
         "tests/**",
         "fixtures/**"
       ],
-      "artifact_requirements": [],
-      "handler": "revise",
-      "role": "executor",
-      "id": "test_remediation",
-      "instruction": "Исправить зарегистрированные дефекты тестов. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report",
-        "test_registry"
-      ],
-      "rework_targets": [
-        "test_remediation",
-        "baseline",
-        "solution_planning",
-        "verification_planning",
-        "test_implementation",
-        "test_inspection",
-        "test_remediation_inspection",
-        "implementation",
-        "implementation_inspection",
-        "implementation_remediation",
-        "implementation_remediation_inspection",
-        "documentation"
-      ],
       "sections": {
         "report": "Record the substantive result for this stage.",
         "test_registry": "Test IDs, exact codebase/cwd/mode/argv/environment/input selectors, expected collection/assertion and before/after outcomes, stage applicability, requirement refs. Future test declared at planning has exact command but no observed hash; AI poise binds created file at execution."
       },
+      "required_sections": [
+        "report",
+        "test_registry"
+      ],
+      "artifact_requirements": [],
       "transitions": {
         "complete": "test_remediation_inspection"
-      }
+      },
+      "rework_targets": [
+        "test_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ]
     },
     {
-      "allowed_paths": [],
-      "artifact_requirements": [],
+      "id": "test_remediation_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "id": "test_remediation_inspection",
-      "instruction": "Проверить исправление тестов без правки target. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Проверить исправление тестов без правки target. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
       "required_sections": [
         "report"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "implementation_design",
+        "changes_requested": "test_remediation"
+      },
       "rework_targets": [
         "test_remediation_inspection",
         "test_remediation",
@@ -431,62 +620,109 @@
         "implementation_remediation",
         "implementation_remediation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "changes_requested": "test_remediation",
-        "clear": "implementation"
-      }
+      ]
     },
     {
+      "id": "implementation_design",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and implementation_plan. Output: implementation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Design responsibilities, namespaces, contracts, classes and methods from the accepted tests and current code. State additions, changes, removals and reasons. Do not implement code or alter tests.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result and its evidence.",
+        "implementation_plan": "Design responsibilities, namespaces, contracts, classes and methods from the accepted tests and current code. State additions, changes, removals and reasons. Do not implement code or alter tests."
+      },
+      "required_sections": [
+        "report",
+        "implementation_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "implementation_design_inspection"
+      },
+      "rework_targets": [
+        "implementation_design"
+      ]
+    },
+    {
+      "id": "implementation_design_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "implementation",
+        "changes_requested": "implementation_design"
+      },
+      "rework_targets": [
+        "implementation_design"
+      ]
+    },
+    {
+      "id": "implementation",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: accepted test changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Реализовать production change по принятым тестам. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "read_only": false,
       "allowed_paths": [
         "src/**"
       ],
-      "artifact_requirements": [],
-      "handler": "produce",
-      "role": "executor",
-      "id": "implementation",
-      "instruction": "Реализовать production change по принятым тестам. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report"
-      ],
-      "rework_targets": [
-        "implementation",
-        "baseline",
-        "solution_planning",
-        "verification_planning",
-        "test_implementation",
-        "test_inspection",
-        "test_remediation",
-        "test_remediation_inspection",
-        "implementation_inspection",
-        "implementation_remediation",
-        "implementation_remediation_inspection",
-        "documentation"
-      ],
       "sections": {
         "report": "Record the substantive result for this stage."
       },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
       "transitions": {
         "complete": "implementation_inspection"
-      }
+      },
+      "rework_targets": [
+        "implementation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation_inspection",
+        "implementation_remediation",
+        "implementation_remediation_inspection",
+        "documentation"
+      ]
     },
     {
-      "allowed_paths": [],
-      "artifact_requirements": [],
+      "id": "implementation_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "id": "implementation_inspection",
-      "instruction": "Read-only осмотр корректности, сложности и соответствия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Read-only осмотр корректности, сложности и соответствия. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
       "required_sections": [
         "report"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "documentation_planning",
+        "changes_requested": "implementation_remediation_planning"
+      },
       "rework_targets": [
         "implementation_inspection",
         "implementation_remediation",
@@ -500,62 +736,109 @@
         "implementation",
         "implementation_remediation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "changes_requested": "implementation_remediation",
-        "clear": "documentation"
-      }
+      ]
     },
     {
+      "id": "implementation_remediation_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and implementation_remediation_plan. Output: implementation_remediation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Plan corrections against the original findings, unchanged goal and affected contracts. Distinguish current-stage corrections from a defect requiring an authorized Task restart.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result and its evidence.",
+        "implementation_remediation_plan": "Plan corrections against the original findings, unchanged goal and affected contracts. Distinguish current-stage corrections from a defect requiring an authorized Task restart."
+      },
+      "required_sections": [
+        "report",
+        "implementation_remediation_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "implementation_remediation_planning_inspection"
+      },
+      "rework_targets": [
+        "implementation_remediation_planning"
+      ]
+    },
+    {
+      "id": "implementation_remediation_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "implementation_remediation",
+        "changes_requested": "implementation_remediation_planning"
+      },
+      "rework_targets": [
+        "implementation_remediation_planning"
+      ]
+    },
+    {
+      "id": "implementation_remediation",
+      "handler": "revise",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: accepted test changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Исправить находки реализации. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
+      "read_only": false,
       "allowed_paths": [
         "src/**"
       ],
-      "artifact_requirements": [],
-      "handler": "revise",
-      "role": "executor",
-      "id": "implementation_remediation",
-      "instruction": "Исправить находки реализации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
       "normalization": "strip",
-      "read_only": false,
-      "required_sections": [
-        "report"
-      ],
-      "rework_targets": [
-        "implementation_remediation",
-        "baseline",
-        "solution_planning",
-        "verification_planning",
-        "test_implementation",
-        "test_inspection",
-        "test_remediation",
-        "test_remediation_inspection",
-        "implementation",
-        "implementation_inspection",
-        "implementation_remediation_inspection",
-        "documentation"
-      ],
       "sections": {
         "report": "Record the substantive result for this stage."
       },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
       "transitions": {
         "complete": "implementation_remediation_inspection"
-      }
+      },
+      "rework_targets": [
+        "implementation_remediation",
+        "baseline",
+        "solution_planning",
+        "verification_planning",
+        "test_implementation",
+        "test_inspection",
+        "test_remediation",
+        "test_remediation_inspection",
+        "implementation",
+        "implementation_inspection",
+        "implementation_remediation_inspection",
+        "documentation"
+      ]
     },
     {
-      "allowed_paths": [],
-      "artifact_requirements": [],
+      "id": "implementation_remediation_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "id": "implementation_remediation_inspection",
-      "instruction": "Осмотреть каждое исправление read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
-      "normalization": "strip",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Осмотреть каждое исправление read-only. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage."
+      },
       "required_sections": [
         "report"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "documentation_planning",
+        "changes_requested": "implementation_remediation_planning"
+      },
       "rework_targets": [
         "implementation_remediation_inspection",
         "implementation_remediation",
@@ -569,34 +852,77 @@
         "implementation",
         "implementation_inspection",
         "documentation"
-      ],
-      "sections": {
-        "report": "Record the substantive result for this stage."
-      },
-      "transitions": {
-        "changes_requested": "implementation_remediation",
-        "clear": "documentation"
-      }
+      ]
     },
     {
-      "allowed_paths": [
-        "docs/**",
-        ".agents/**",
-        "AGENTS.md",
-        "config/**",
-        "examples/**"
-      ],
-      "artifact_requirements": [],
+      "id": "documentation_planning",
       "handler": "produce",
       "role": "executor",
-      "id": "documentation",
-      "instruction": "Выполнить прямо предусмотренную документацию. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and documentation_plan. Output: documentation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Design the canonical documentation updates from implemented, verified behaviour. Identify readers, user and code flows, affected links and validation. Do not change product code or tests.",
+      "read_only": true,
+      "allowed_paths": [],
       "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result and its evidence.",
+        "documentation_plan": "Design the canonical documentation updates from implemented, verified behaviour. Identify readers, user and code flows, affected links and validation. Do not change product code or tests."
+      },
+      "required_sections": [
+        "report",
+        "documentation_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "documentation_planning_inspection"
+      },
+      "rework_targets": [
+        "documentation_planning"
+      ]
+    },
+    {
+      "id": "documentation_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "documentation",
+        "changes_requested": "documentation_planning"
+      },
+      "rework_targets": [
+        "documentation_planning"
+      ]
+    },
+    {
+      "id": "documentation",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and result. Output: result and evidence for this exact stage. Forbidden: product code and test changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Выполнить прямо предусмотренную документацию. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": false,
+      "allowed_paths": [
+        "docs/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result for this stage.",
+        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+      },
       "required_sections": [
         "report",
         "result"
       ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "documentation_inspection"
+      },
       "rework_targets": [
         "documentation",
         "baseline",
@@ -610,15 +936,37 @@
         "implementation_inspection",
         "implementation_remediation",
         "implementation_remediation_inspection"
-      ],
+      ]
+    },
+    {
+      "id": "documentation_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
       "sections": {
-        "report": "Record the substantive result for this stage.",
-        "result": "final substantive summary, выполненные DoD/verdicts, deliverables, limitations, Git/delivery vector, incidents; schema дополняется конкретным профилем."
+        "report": "Record inspected obligations, evidence, findings and verdict."
       },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
       "transitions": {
-        "complete": null
-      }
+        "clear": null,
+        "changes_requested": "documentation"
+      },
+      "rework_targets": [
+        "documentation"
+      ]
     }
   ],
-  "worktree_required": true
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
+  }
 }

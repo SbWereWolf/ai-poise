@@ -52,6 +52,13 @@ hook SQLite registry manually. Reuse the same request after an interrupted write
 Read [installation identity
 reconciliation](../../../docs/configuration/runtime-hooks.md#согласование-installation-identity-после-переименования).
 
+Before an unfamiliar operation, follow [packet preparation and refusal
+handling](../../../docs/workflows/batch-work.md#подготовка-пакета-и-разбор-отказа): use the actual
+configured creation path, exact packet shape and current lifecycle; do not guess API fields. For an
+agent-use incident, follow [instruction
+clarity](../../../docs/governance/development-rules.md#ошибки-применения-и-точность-инструкций);
+detailed corrections belong in canonical docs, with a short skill link.
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
@@ -215,17 +222,27 @@ contract](../../../docs/workflows/batch-work.md#изоляция-временн�
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks
 and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method.
 
+Before project setup, changing `git.base_ref`, or integration, read the canonical
+[target branch selection](../../../docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
 For final result integration, keep the accepted commit immutable. The public finisher advances the existing task branch
-in its existing task worktree; all updates from current `master`, merges, conflict resolution, and checks happen there,
+in its existing task worktree; all updates from the current configured target branch, merges, conflict resolution, and checks happen there,
 with no separate integration branch or worktree. If it returns a conflict, pause automation for agent resolution in that
-task worktree, then resume checks. The finisher rechecks `master` under the shared target lock and repeats update,
+task worktree, then resume checks. The finisher rechecks the configured target under the shared target lock and repeats update,
 resolution, and checks on drift. It publishes only through `git merge --ff-only <task-branch>` in the main checkout and
 never updates the target ref directly or by force.
 
+Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
+The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate
+retroactively. A reviewed taskless correction with explicit user authority may use the separate manual local delivery
+route, preserving exact commit/check identity, checkpoint, target and foreign WIP. Follow the canonical
+[route decision](../../../docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка) and
+[pre-ready procedure](../../../docs/workflows/pilot-task-preflight.md#выбор-маршрута-до-первой-записи). Never manufacture
+Task stages, acceptance or receipts for earlier taskless work.
+
 Never execute `git push`. This prohibition is absolute for every agent, AI poise publication handler, Git adapter, and
 configured verification, action, tokenizer, or capability-probe runner; user publication authority does not waive it.
-Reject `push_required=true` before any Git command, keep `push_required=false` remote-free, and direct accepted results
-to the public local `integrate` operation and its exact `git merge --ff-only` publication.
+Reject `push_required=true` before any Git command, keep `push_required=false` remote-free, and direct completed Task
+results to the public local `integrate` operation and its exact `git merge --ff-only` publication.
 
 Never use the main checkout or foreign WIP for preparation or conflict resolution, and never `stash`, `reset`,
 `restore`, `checkout`, `clean`, stage, commit, or delete their state. A dirty or unfinished main checkout may block
@@ -405,7 +422,8 @@ read-only sources of facts for this configuration boundary.
 
 ## Procedure for migrated skill selection
 
-For current Task discipline load [exec-task](../exec-task/SKILL.md); for preparing focused Tasks or Sprint graphs load
+For current Task discipline load [exec-task](../exec-task/SKILL.md); for formulating one Task load
+[task-design](../task-design/SKILL.md); for Sprint graphs load
 [sprint-design](../sprint-design/SKILL.md). Keep the exact packets, launcher, lifecycle and evidence semantics in this
 skill and its canonical documentation. Load other catalogue skills only when relevant to the current stage and real
 project stack, not as a blanket catalogue read.

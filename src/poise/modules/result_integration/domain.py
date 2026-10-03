@@ -252,9 +252,8 @@ class IntegrationRun:
         checks = self.checks + batch
         if all(item.get("passed") is True for item in batch):
             return self._step(
-                "running", "publishing", "checks_passed",
-                details={"check_ids": [item.get("id") for item in batch]},
-                checks=checks, failure=None,
+                "running", "publishing", "checks_passed", checks=checks, failure=None,
+                details={"check_ids": [item["id"] for item in batch]},
             )
         failure = {"reason": "checks_failed", "checks": list(batch)}
         return self._step(
@@ -301,6 +300,13 @@ class IntegrationRun:
             raise DomainError("Only a pending publication can return to candidate checks")
         return self._step(
             "running", "candidate_ready", "publication_checks_restarted", failure=None,
+        )
+
+    def require_current_checks(self):
+        if self.phase != "publishing":
+            raise DomainError("Current verification requires a publication candidate")
+        return self._step(
+            "running", "candidate_ready", "current_checks_required", failure=None,
         )
 
     def publication_confirmed(self, target_ref, receipt, *, no_op, recovered):

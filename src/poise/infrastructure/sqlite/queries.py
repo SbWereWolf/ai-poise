@@ -81,31 +81,37 @@ class TaskQueries:
             return self.record_in(db, task_id)
 
     @staticmethod
+    def _project_check_registry(db, task_id, metadata, workflow):
+        from .tasks import SqliteTaskRepository
+        registry = SqliteTaskRepository(db).load_check_registry(task_id, metadata, workflow)
+        metadata['contract']['methods'] = [entry.to_dict()['method'] for entry in registry.entries]
+        metadata['contract']['checks'] = {
+            stage: [entry.method_id for entry in registry.entries if stage in entry.stages]
+            for stage in registry.stages
+        }
+        return registry
+
+    @staticmethod
     def record_in(db, task_id: str) -> dict | None:
         row=db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, e.data AS execution, e.version AS execution_version,w.data AS workflow FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id LEFT JOIN task_workflows w ON w.task_id=t.id WHERE t.id=?",(task_id,)).fetchone()
         if row is None: return None
         from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
         status = TaskStatus.parse(row['status'])
         from .tasks import SqliteTaskRepository
-        repository = SqliteTaskRepository(db)
         from ...modules.tasks.duplicates import family_projection
-        duplicate = family_projection(repository.read_duplicate_family(task_id),task_id)
+        duplicate = family_projection(SqliteTaskRepository(db).read_duplicate_family(task_id),task_id)
         family_fields = {} if duplicate is None else {'duplicate':duplicate}
         workflow = {} if row['workflow'] is None else json.loads(row['workflow'])
         if 'duplicate_reuse' in workflow:
             family_fields['duplicate_reuse'] = workflow['duplicate_reuse']
-        metadata = json.loads(row['metadata']) | family_fields
-        if status is not TaskStatus.NEWBORN:
-            registry = repository._current_registry(task_id, metadata, workflow)
-            if is_terminal_task_status(status) and registry.executable_obligations:
-                registry.validate_inspection_exit()
-            metadata['contract']['methods'] = [entry.to_dict()['method'] for entry in registry.entries]
-            metadata['contract']['checks'] = {
-                stage['id']: [entry.method_id for entry in registry.entries
-                              if stage['id'] in entry.stages]
-                for stage in metadata['process']['stages']
-            }
         if is_terminal_task_status(status):
+            metadata = json.loads(row['metadata']) | family_fields
+            if status == TaskStatus.COMPLETED:
+                if not isinstance(workflow.get('registry'), dict):
+                    raise PoiseError("Нет текущего состояния реестра проверок завершённой задачи")
+                registry = TaskQueries._project_check_registry(db, task_id, metadata, workflow)
+                if registry.executable_obligations:
+                    registry.validate_inspection_exit()
             execution = {} if row['execution'] is None else json.loads(row['execution'])
             return {**metadata, **execution, 'id': row['id'], 'status': status.value,
                     'version': row['version'], '_version': row['version'],
@@ -114,6 +120,7 @@ class TaskQueries:
                     'sprint_id': metadata.get('sprint_id'), 'worktree': execution.get('worktree'),
                     'result_commit': (execution.get('last_report') or {}).get('commit')}
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
+        metadata = json.loads(row['metadata']) | family_fields
         from .tasks import progression_view
         progression = progression_view(db, task_id)
         history = [json.loads(item[0]) for item in db.execute(
@@ -148,6 +155,7 @@ class TaskQueries:
                 'history':history,
                 'progression':progression,
             }
+        TaskQueries._project_check_registry(db, task_id, metadata, workflow)
         execution = ({"worktree":None,"branch":None,"base":None,"attempts":0,"publication":None,
                       "pending":None,"entry_tree":None,"last_report":None} if row["execution"] is None else json.loads(row["execution"]))
         rowmap=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()

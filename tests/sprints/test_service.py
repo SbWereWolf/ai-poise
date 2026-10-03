@@ -81,6 +81,39 @@ def test_publish_transaction_rolls_back_members_and_tasks(sprint):
     assert set(publish(w,r['revision'])['eligible'])=={'A','B'}
 
 
+def test_publish_accepts_matching_existing_dependency_projection(sprint):
+    p,h,w=sprint
+    edge={'predecessor':'A','successor':'B','kind':'result'}
+    planned=draft(w,[task(p,'A'),task(p,'B')],[edge])
+    with h.store.transaction() as db:
+        db.executemany('INSERT INTO sprint_members VALUES(?,?)', [('S', member) for member in ('A','B')])
+        db.execute("INSERT INTO sprint_dependencies VALUES('S','A','B','result')")
+
+    published=publish(w,planned['revision'])
+
+    assert published['status']=='planned'
+    with h.store.transaction() as db:
+        assert list(map(tuple,db.execute('SELECT predecessor,successor,kind FROM sprint_dependencies WHERE sprint_id=?',('S',)).fetchall()))==[
+            ('A','B','result'),
+        ]
+
+
+def test_publish_rejects_conflicting_existing_dependency_projection(sprint):
+    p,h,w=sprint
+    planned=draft(w,[task(p,'A'),task(p,'B'),task(p,'C')],[{'predecessor':'A','successor':'B','kind':'result'}])
+    with h.store.transaction() as db:
+        db.executemany('INSERT INTO sprint_members VALUES(?,?)', [('S', member) for member in ('A','B','C')])
+        db.execute("INSERT INTO sprint_dependencies VALUES('S','A','C','result')")
+
+    with pytest.raises(PoiseError, match='dependency projection conflicts'):
+        publish(w,planned['revision'])
+
+    with h.store.transaction() as db:
+        assert list(map(tuple,db.execute('SELECT predecessor,successor,kind FROM sprint_dependencies WHERE sprint_id=?',('S',)).fetchall()))==[
+            ('A','C','result'),
+        ]
+
+
 def test_invalid_trace_schedule_prevents_all_sprint_member_publication(project):
     setup(project)
     work=project['process']['stages'][0]

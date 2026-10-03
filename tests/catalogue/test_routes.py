@@ -5,6 +5,7 @@ from multiprocessing import get_context
 from pathlib import Path
 import json
 import sys
+import pytest
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/"examples"))
 
 GOALS=('development','test_development','verification','review','design','analysis',
@@ -47,6 +48,22 @@ def test_full_routes_and_feedback_without_direct_database_setup(tmp_path):
 def test_every_declared_feedback_edge_has_a_walkthrough(tmp_path):
     from catalogue_walkthrough import coverage
     report=coverage()
-    assert report['nodes']==98
+    reference = json.loads(
+        (Path(__file__).resolve().parents[2] / 'config/catalogue/reference.json').read_text()
+    )
+    assert report['nodes'] == sum(len(goal['stages']) for goal in reference['goal_types'])
     assert report['feedback_edges']==34
     assert report['unmapped']==[]
+
+
+@pytest.mark.parametrize("goal", [
+    "design", "development", "documentation", "environment_remediation",
+    "integration", "sprint_planning", "task_planning", "test_development",
+])
+def test_paired_reference_route_through_public_handoffs(tmp_path, goal):
+    from catalogue_walkthrough import run
+    result = run(tmp_path / goal, goal, "short")
+    assert result["status"] == "PASS"
+    assert result["task_status"] == "completed"
+    assert len(result["reports"]) == len(result["accepted_stages"])
+    assert result["remote_unchanged"]

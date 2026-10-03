@@ -31,7 +31,7 @@ def current_method(method_id="CURRENT", marker="current-registry", *, fail_on_dr
 
 
 def registration(method, *, stages=("implementation",)):
-    return {"method": method, "stages": list(stages), "evidence_kind": "executable_test", "covers": []}
+    return {"method": method, "stages": list(stages), "evidence_kind": "executable_test", "covers": ["requirements[0]"]}
 
 
 def registry_change(*operations):
@@ -46,7 +46,8 @@ def put(kind, method, *, stages=("implementation",)):
 
 def completed(project, *, initial=(), operations=()):
     return prepare_completed_task(
-        project, source_change, methods=initial, terminal_stage=True,
+        project, source_change, methods=initial, checks=[method["id"] for method in initial],
+        terminal_stage=True,
         registry_change=registry_change(*operations),
     )
 

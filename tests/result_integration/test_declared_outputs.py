@@ -1,5 +1,7 @@
 """Integration must preserve the ordinary declared-output producer contract."""
 from hashlib import sha256
+from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 import sys
 
@@ -153,3 +155,100 @@ def test_retry_rechecks_corrupt_declared_snapshot_before_publication(project, mo
         assert len({check["outputs"][0]["path"] for check in done["checks"]}) == 2
         assert not worktree.exists()
     assert Path(original["stdout"]).read_text() == "producer-ran\n"
+
+
+@pytest.mark.parametrize("damage", [
+    "absent-collection", "null-collection", "object-collection", "empty-collection",
+    "null-entry", "string-entry", "wrong-id", "wrong-declared-path", "wrong-required",
+    "extra-entry", "required-missing", "required-invalid", "wrong-size", "wrong-digest",
+])
+def test_retry_rejects_corrupt_output_receipt_without_publication(project, monkeypatch, damage):
+    marker = project["root"] / "withhold-output.marker"
+    tools, worktree, accepted, packet = integrate(project, output_method("required", failure_marker=marker))
+    target = git(project["app"], "rev-parse", "HEAD")
+    task_branch = tools.runtime.task_queries.record("T1")["branch"]
+    foreign = project["app"] / "foreign-output-retry.note"
+    foreign.write_bytes(b"preserve unrelated retry WIP\n")
+    executions = []
+    snapshots = []
+    run_checks = RuntimeResultIntegration._run_checks
+
+    def observed_checks(self, record, run):
+        executions.append(run.integration_head)
+        return run_checks(self, record, run)
+
+    def corrupt_proof_before_publication(self, run, repository):
+        assert run.phase == "publishing" and run.checks[0]["passed"] is True
+        original = deepcopy(run.checks[0])
+        snapshots.append(original)
+        check = deepcopy(original)
+        if damage == "absent-collection":
+            del check["outputs"]
+        elif damage == "null-collection":
+            check["outputs"] = None
+        elif damage == "object-collection":
+            check["outputs"] = {}
+        elif damage == "empty-collection":
+            check["outputs"] = []
+        elif damage == "null-entry":
+            check["outputs"] = [None]
+        elif damage == "string-entry":
+            check["outputs"] = ["invalid output entry"]
+        elif damage == "wrong-id":
+            check["outputs"][0]["id"] = "foreign-result"
+        elif damage == "wrong-declared-path":
+            check["outputs"][0]["declared_path"] = "foreign.txt"
+        elif damage == "wrong-required":
+            check["outputs"][0]["required"] = False
+        elif damage == "extra-entry":
+            check["outputs"].append(deepcopy(check["outputs"][0]))
+        elif damage in ("required-missing", "required-invalid"):
+            check["outputs"][0].update(
+                status="missing" if damage == "required-missing" else "invalid",
+                path=None, digest=None, size=None,
+            )
+        elif damage == "wrong-size":
+            check["outputs"][0]["size"] = 99
+        elif damage == "wrong-digest":
+            check["outputs"][0]["digest"] = "0" * 64
+        else:
+            raise AssertionError(damage)
+        interrupted = replace(run, version=run.version + 1, checks=(check,))
+        self._save(run.intent.task_id, interrupted, run.version)
+        return interrupted
+
+    monkeypatch.setattr(RuntimeResultIntegration, "_run_checks", observed_checks)
+    with monkeypatch.context() as patch:
+        patch.setattr(RuntimeResultIntegration, "_publish", corrupt_proof_before_publication)
+        first = invoke_with_producer_proof(tools, packet)
+    assert first["phase"] == "publishing" and first["publication"] is None
+    original = snapshots[0]
+    captured = Path(original["outputs"][0]["path"])
+    assert captured.read_bytes() == b"candidate output\n"
+    marker.write_bytes(b"withhold the new required file\n")
+    done = tools.invoke(packet)
+    assert done["status"] == "blocked" and done["phase"] == "checks_failed"
+    assert done["publication"] is None
+    assert done["request_id"] == packet["input"]["request_id"]
+    assert done["accepted_commit"] == done["source_commit"] == accepted
+    assert done["history"][:len(first["history"])] == first["history"]
+    assert done["checks"][0] == first["checks"][0]
+    candidate = first["integration_head"]
+    assert executions == [candidate, candidate]
+    fresh = done["checks"][-1]
+    assert fresh["id"] != original["id"] and fresh["integration_head"] == candidate
+    assert fresh["actual_exit_code"] == 0 and fresh["passed"] is False
+    assert fresh["outputs"][0]["status"] == "missing"
+    assert Path(fresh["stdout"]).read_text() == "producer-ran\n"
+    assert Path(fresh["stderr"]).read_bytes() == b""
+    assert captured.read_bytes() == b"candidate output\n"
+    assert Path(original["stdout"]).read_text() == "producer-ran\n"
+    assert git(project["app"], "rev-parse", "HEAD") == target
+    assert git(worktree, "rev-parse", "HEAD") == candidate
+    assert git(project["app"], "show-ref", "--verify", "--hash", f"refs/heads/{task_branch}") == candidate
+    assert foreign.read_bytes() == b"preserve unrelated retry WIP\n"
+    pending = tools.runtime.task_queries.record("T1")["pending"]
+    assert pending["publication"] is None
+    assert pending["cleanup"] == {
+        "task_worktree": "pending", "task_branch": "pending", "temporary_backups": "pending",
+    }

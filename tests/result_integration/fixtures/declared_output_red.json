@@ -1,5 +1,5 @@
 {
-  "collected": 13,
+  "collected": 27,
   "failed": [
     {
       "missing_output_directory": true,
@@ -64,6 +64,76 @@
     {
       "missing_output_directory": true,
       "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rechecks_corrupt_declared_snapshot_before_publication[True-deleted]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[absent-collection]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[empty-collection]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[extra-entry]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[null-collection]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[null-entry]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[object-collection]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[required-invalid]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[required-missing]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[string-entry]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[wrong-declared-path]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[wrong-digest]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[wrong-id]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[wrong-required]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rejects_corrupt_output_receipt_without_publication[wrong-size]",
       "phase": "call"
     }
   ],

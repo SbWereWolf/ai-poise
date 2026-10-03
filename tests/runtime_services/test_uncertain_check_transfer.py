@@ -1,6 +1,8 @@
 """A missing terminal receipt needs an owned, independently approved recovery path."""
 
 from copy import deepcopy
+import multiprocessing
+from pathlib import Path
 import sys
 import threading
 import time
@@ -8,13 +10,14 @@ import time
 import pytest
 
 from batch.helpers import request, verify
-from conftest import WorkPoise
+from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runtime_services.test_durable_check_attempts import candidate, fail_once
 from runtime_services.test_task_restart import restart
 from runtime_services.test_failed_check_rework import _scenario
 from batch.helpers import result
+from poise.infrastructure.sqlite.handoff import SqliteHandoffRepository
 
 
 def _pending(project, monkeypatch):
@@ -104,47 +107,106 @@ def test_wrong_attempt_identity_refuses_recovery_transfer_without_effect(
     assert calls == [pending['runs'][0]['run_id']]
 
 
-def test_live_owned_run_refuses_transfer_even_from_fresh_runtime_instance(
-    project,
-):
+def _verify_in_other_process(config_path, session, context, ready, stop, outcome):
+    producer = WorkTools(WorkPoise(config_path, session))
+
+    def observe_and_cancel():
+        deadline = time.monotonic() + 5
+        while not producer.runtime.check_runner.active_ids() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        active = producer.runtime.check_runner.active_ids()
+        ready.put(active)
+        stop.wait(10)
+        for run_id in active:
+            producer.runtime.check_runner.cancel(run_id)
+
+    observer = threading.Thread(target=observe_and_cancel)
+    observer.start()
+    try:
+        outcome.put(verify(producer, result(context, 'Active check.')))
+    except Exception as exc:
+        outcome.put(repr(exc))
+    finally:
+        stop.set()
+        observer.join(timeout=5)
+
+
+def test_live_owned_run_refuses_transfer_from_separate_os_process(project):
     policy = project['cfg']['runtime_services']['check_runner']
     policy.update(initial_seconds=15, progress_gap_seconds=15, poll_seconds=0.02)
     producer, context = _scenario(
         project,
         command=[sys.executable, '-S', '-c', 'import time; time.sleep(10)'],
     )
-    outcome = {}
-
-    def live_run():
-        try:
-            outcome['result'] = verify(producer, result(context, 'Active check.'))
-        except Exception as exc:
-            outcome['error'] = exc
-
-    thread = threading.Thread(target=live_run)
-    thread.start()
-    run_id = None
+    session = producer.runtime.session
+    process_context = multiprocessing.get_context('spawn')
+    ready = process_context.Queue()
+    stop = process_context.Event()
+    outcome = process_context.Queue()
+    child = process_context.Process(
+        target=_verify_in_other_process,
+        args=(project['config_path'], session, context, ready, stop, outcome),
+    )
+    child.start()
     try:
-        deadline = time.monotonic() + 5
-        while not producer.runtime.check_runner.active_ids() and time.monotonic() < deadline:
-            time.sleep(0.01)
-        active = producer.runtime.check_runner.active_ids()
+        active = ready.get(timeout=10)
         assert len(active) == 1
-        run_id = active[0]
-        assert run_id in producer.runtime.check_runner.active_ids()
-        fresh = WorkTools(WorkPoise(project['config_path'], producer.runtime.session))
+        assert child.is_alive()
+        fresh = WorkTools(WorkPoise(project['config_path'], session))
         assert fresh.runtime.check_runner.active_ids() == ()
         before = deepcopy(fresh.runtime.current_task())
         pending = before['pending']
-        assert pending['runs'][0]['run_id'] == run_id
+        assert pending['runs'][0]['run_id'] == active[0]
         assert pending['runs'][0]['started'] is True
         with pytest.raises(PoiseError, match='running|active|quiescence'):
             _handoff(fresh, pending, request_id='refuse-live-transfer')
         assert fresh.runtime.current_task() == before
         assert fresh.runtime.ownership.snapshot(fresh.runtime.session).task_id == 'T1'
     finally:
-        if run_id is not None:
-            producer.runtime.check_runner.cancel(run_id)
-        thread.join(timeout=5)
-    assert not thread.is_alive()
-    assert outcome
+        stop.set()
+        child.join(timeout=10)
+        if child.is_alive():
+            child.terminate()
+            child.join(timeout=5)
+    assert child.exitcode == 0
+    assert not outcome.empty()
+
+
+def test_uncertain_transfer_release_failure_rolls_back_and_replays_exact_intent(
+    project, monkeypatch,
+):
+    producer, _, pending, calls = _pending(project, monkeypatch)
+    before = deepcopy(producer.runtime.current_task())
+    worktree = Path(before['worktree'])
+    source = worktree / 'src' / 'recovery-wip.txt'
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text('preserve source bytes across failed transfer\n')
+    original_bytes = source.read_bytes()
+    original_head = git(worktree, 'rev-parse', 'HEAD')
+    original_status = git(worktree, 'status', '--short')
+    original_replace = SqliteHandoffRepository.replace
+
+    def fail_release(self, record):
+        original_replace(self, record)
+        if record['state'] == 'released':
+            raise OSError('injected release rollback')
+
+    monkeypatch.setattr(SqliteHandoffRepository, 'replace', fail_release)
+    with pytest.raises(OSError, match='injected release rollback'):
+        _handoff(producer, pending, request_id='release-rollback')
+    assert producer.runtime.current_task() == before
+    assert producer.runtime.ownership.snapshot(producer.runtime.session).task_id == 'T1'
+    assert source.read_bytes() == original_bytes
+    assert git(worktree, 'rev-parse', 'HEAD') == original_head
+    assert git(worktree, 'status', '--short') == original_status
+    assert producer.runtime.evidence_commands.list_for('T1') == []
+    prepared = producer.runtime.handoff_tools.commands.lookup(
+        producer.runtime.session, 'release-rollback',
+    )
+    assert prepared['state'] == 'preparing'
+    monkeypatch.setattr(SqliteHandoffRepository, 'replace', original_replace)
+    transfer = _handoff(producer, pending, request_id='release-rollback')
+    assert transfer['status'] == 'handed_off'
+    assert producer.runtime.current_task() is None
+    assert source.read_bytes() == original_bytes
+    assert calls == [pending['runs'][0]['run_id']]

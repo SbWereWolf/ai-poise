@@ -82,7 +82,7 @@ def test_registered_child_environment_excludes_conflicting_native_parent_identit
     assert _digest(receipt['stdout']) == receipt['stdout_digest']
 
 
-def test_positive_prefix_and_authentic_timeout_are_both_kept_as_one_failed_batch(
+def test_green_expected_red_and_authentic_timeout_are_kept_as_one_failed_batch(
     project,
 ):
     policy = project['cfg']['runtime_services']['check_runner']
@@ -90,21 +90,42 @@ def test_positive_prefix_and_authentic_timeout_are_both_kept_as_one_failed_batch
     tools, context = _scenario(
         project,
         command=[sys.executable, '-S', '-c', 'print("green-prefix")'],
-        extra_command=[sys.executable, '-S', '-c', 'import time; time.sleep(2)'],
+        extra_command=[sys.executable, '-S', '-c',
+                       'print("expected-red"); raise SystemExit(1)'],
+        expected_red=True,
+        third_command=[sys.executable, '-S', '-c', 'import time; time.sleep(2)'],
     )
-    outcome = verify(tools, result(context, 'Keep the complete mixed batch.'))
+    packet = result(context, 'Keep the complete mixed batch.')
+    calls = []
+    real_run = tools.runtime.check_runner.run
+
+    def counted(*args, **kwargs):
+        calls.append(args[0])
+        return real_run(*args, **kwargs)
+
+    tools.runtime.check_runner.run = counted
+    outcome = verify(tools, packet)
     assert outcome['status'] == 'checks_failed'
-    first, second = outcome['checks']
+    first, second, third = outcome['checks']
     assert (first['method'], first['passed'], first['timed_out']) == (
         'CHECK', True, False,
     )
     assert Path(first['stdout']).read_text() == 'green-prefix\n'
     assert (second['method'], second['passed'], second['timed_out']) == (
-        'CHECK2', False, True,
+        'CHECK2', True, False,
     )
-    assert second['timeout_reason'] == 'progress_gap'
+    assert second['expected_exit_code'] == second['actual_exit_code'] == 1
+    assert Path(second['stdout']).read_text() == 'expected-red\n'
+    assert (third['method'], third['passed'], third['timed_out']) == (
+        'CHECK3', False, True,
+    )
+    assert third['timeout_reason'] == 'progress_gap'
     for receipt in outcome['checks']:
         assert _digest(receipt['stdout']) == receipt['stdout_digest']
         assert _digest(receipt['stderr']) == receipt['stderr_digest']
     assert tools.runtime.evidence_commands.list_for('T1') == outcome['checks']
     assert tools.runtime.current_task()['pending'] is None
+    replay = verify(tools, packet)
+    assert replay['status'] == 'checks_failed'
+    assert replay['checks'] == outcome['checks']
+    assert calls == [first['id'], second['id'], third['id']]

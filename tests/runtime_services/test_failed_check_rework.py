@@ -34,7 +34,8 @@ def _stage(stage_id, allowed_paths):
 
 def _scenario(project, *, passing_continuation=False, historical_observation=False,
               closed_revise_target=False, uninterpretable_subject=False, command=None,
-              environment=None, extra_command=None):
+              environment=None, extra_command=None, expected_red=False,
+              third_command=None):
     configure(project)
     project["cfg"]["accounting"]["time_mode"] = "reported"
     stages = [
@@ -139,11 +140,32 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         second = deepcopy(method)
         second['id'] = 'CHECK2'
         second['argv'] = extra_command
+        if expected_red:
+            second['expected_exit_code'] = 1
+            second['stdout_contains'] = ['expected-red']
+            second['verification_plan'] = verification_plan(
+                'Observe the exact expected RED check in a mixed batch.',
+                ['src/**'], red_stages=['implementation'],
+                red_failure={
+                    'exit_code': 1,
+                    'stdout_equals': 'expected-red\n',
+                    'stderr_equals': '',
+                },
+            )
         task['methods'].append(second)
         task['method_inputs'].append({
             **deepcopy(task['method_inputs'][0]), 'method_id': 'CHECK2',
         })
         task['checks']['implementation'].append('CHECK2')
+    if third_command is not None:
+        third = deepcopy(method)
+        third['id'] = 'CHECK3'
+        third['argv'] = third_command
+        task['methods'].append(third)
+        task['method_inputs'].append({
+            **deepcopy(task['method_inputs'][0]), 'method_id': 'CHECK3',
+        })
+        task['checks']['implementation'].append('CHECK3')
     task["evidence_plan"] = {
         "implementation": {
             "subject_methods": {

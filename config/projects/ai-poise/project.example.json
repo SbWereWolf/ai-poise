@@ -197,6 +197,38 @@
     "test_development": "config/processes/test_development.json",
     "verification": "config/processes/verification.json"
   },
+  "task_planning": {
+    "catalogue": "/ABSOLUTE/PATH/TO/AI_POISE/config/catalogue/settings.json",
+    "restart_revision_policy": {
+      "reviewer": [
+        "goal",
+        "requirements",
+        "requirements_snapshot",
+        "requirements_agreement",
+        "stage_contracts",
+        "process"
+      ],
+      "user": [
+        "goal",
+        "goal_type",
+        "requirements",
+        "requirements_snapshot",
+        "requirements_agreement",
+        "definition_of_done",
+        "methods",
+        "method_inputs",
+        "checks",
+        "artifact_requirements",
+        "content_contract",
+        "evidence_plan",
+        "executable_obligations",
+        "stage_contracts",
+        "decomposition",
+        "process",
+        "planning"
+      ]
+    }
+  },
   "project": "ai-poise",
   "runtime_services": {
     "check_runner": {

@@ -275,15 +275,30 @@ class RuntimeResultIntegration:
         methods = self._select_checks(record)
         if not methods:
             return True
-        receipt_ids = [item.get("id") if isinstance(item, dict) else None
-                       for item in run.checks]
-        if None in receipt_ids or len(receipt_ids) != len(set(receipt_ids)):
+        latest_batch = next(
+            (entry.get("details") for entry in reversed(run.history)
+             if entry.get("event") == "checks_passed"), None,
+        )
+        if not isinstance(latest_batch, dict):
+            return False
+        batch_ids = latest_batch.get("check_ids")
+        if (not isinstance(batch_ids, list) or len(batch_ids) != len(methods)
+                or any(not isinstance(check_id, str) for check_id in batch_ids)
+                or len(batch_ids) != len(set(batch_ids))):
             return False
         worktree, head = self._checked_workspace(run)
         tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
         if len(run.checks) < len(methods):
             return False
         batch = run.checks[-len(methods):]
+        if [item.get("id") if isinstance(item, dict) else None for item in batch] != batch_ids:
+            return False
+        earlier_ids = {
+            item.get("id") for item in run.checks[:-len(methods)]
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        if earlier_ids.intersection(batch_ids):
+            return False
         contract_digest = digest(methods)
         owner_root = task_root(
             self.h.state, self.h.paths, run.intent.task_id, record["sprint_id"],

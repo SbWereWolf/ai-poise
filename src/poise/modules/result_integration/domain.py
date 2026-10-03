@@ -252,7 +252,9 @@ class IntegrationRun:
         checks = self.checks + batch
         if all(item.get("passed") is True for item in batch):
             return self._step(
-                "running", "publishing", "checks_passed", checks=checks, failure=None
+                "running", "publishing", "checks_passed",
+                details={"check_ids": [item.get("id") for item in batch]},
+                checks=checks, failure=None,
             )
         failure = {"reason": "checks_failed", "checks": list(batch)}
         return self._step(

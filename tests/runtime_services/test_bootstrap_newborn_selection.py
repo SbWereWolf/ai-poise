@@ -51,15 +51,22 @@ def assert_newborn_projection(value, saved):
 
 
 def test_restarted_current_newborn_matches_explicit_selection(project):
-    tools, task_id, restarted = restart_to_newborn(project)
+    tools, task_id, _ = restart_to_newborn(project)
     explicit = bootstrap(tools, {"id": task_id})
     before = deepcopy(tools.runtime.task_queries.record(task_id))
+    history = before["restart_history"]
+    assert len(history) == 1
+    assert history[0]["from_status"] == "active"
+    assert history[0]["reason"] == "Exercise the public current-newborn selector."
+    assert history[0]["authorization"] == (
+        "Fixture user authorizes restart of this unfinished Task."
+    )
 
     current = bootstrap(tools)
 
     assert_newborn_projection(explicit, before)
     assert_newborn_projection(current, before)
-    assert current["restart_history"] == restarted["restart_history"]
+    assert current["restart_history"] == history
     assert tools.runtime.task_queries.record(task_id) == before
 
 

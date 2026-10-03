@@ -24,16 +24,30 @@ def block(text: str, name: str) -> str:
     return found[0]
 
 
-def local_link_target(link: str) -> tuple[Path, str]:
+def local_link_target(link: str, manual: Path = MANUAL) -> tuple[Path, str]:
     path_part, _, fragment = unquote(link).partition("#")
-    target = MANUAL if not path_part else (MANUAL.parent / path_part).resolve()
+    target = manual if not path_part else (manual.parent / path_part).resolve()
     return target, fragment
 
 
 def markdown_anchors(text: str) -> set[str]:
-    anchors = set(re.findall(r'<a\s+id="([^"]+)"', text))
+    prose = []
+    fence = None
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        marker = stripped[:3]
+        if fence is None and marker in ("```", "~~~"):
+            fence = marker
+            continue
+        if fence is not None and stripped.startswith(fence):
+            fence = None
+            continue
+        if fence is None:
+            prose.append(line)
+    prose_text = "\n".join(prose)
+    anchors = set(re.findall(r'<a\s+id="([^"]+)"', prose_text))
     counts: dict[str, int] = {}
-    for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", text, re.MULTILINE):
+    for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", prose_text, re.MULTILINE):
         plain = re.sub(r"<[^>]*>", "", heading)
         plain = re.sub(r"[`*_]", "", plain)
         slug = re.sub(r"[^\w\- ]", "", plain.lower()).replace(" ", "-")
@@ -43,11 +57,22 @@ def markdown_anchors(text: str) -> set[str]:
     return anchors
 
 
-def assert_local_link(link: str) -> None:
-    target, fragment = local_link_target(link)
+def assert_local_link(link: str, manual: Path = MANUAL) -> None:
+    target, fragment = local_link_target(link, manual)
     assert target.is_file(), link
     if fragment:
         assert fragment in markdown_anchors(target.read_text(encoding="utf-8")), link
+
+
+def test_fenced_shell_comment_is_not_a_markdown_anchor(tmp_path: Path) -> None:
+    manual = tmp_path / "sample.md"
+    manual.write_text(
+        "# Real heading\n```bash\n# Comment only\ntrue\n```\n",
+        encoding="utf-8",
+    )
+    assert_local_link("#real-heading", manual)
+    with pytest.raises(AssertionError):
+        assert_local_link("#comment-only", manual)
 
 
 def run(command: str, env: dict[str, str]) -> tuple[subprocess.CompletedProcess[str], dict]:

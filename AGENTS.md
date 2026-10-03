@@ -23,6 +23,10 @@ expires. Platform safety constraints and storage integrity are not project rules
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
 Before any work, including a request without a formal task, establish the goal, the requirements for the result, the definition of done and how completion will be demonstrated. Keep this preparation proportional to the request. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. `ready` freezes the resolved Task contract and its restart-revision authority; runtime enforces that resolved contract, not the original template.
+Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
+target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
+and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
+shape is not a blocker; structural validation does not prove that every required write or check was inventoried.
 
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
@@ -287,9 +291,11 @@ Keep this English projection and its Russian source consistent in the same chang
 - Destructive migrations require explicit authorization naming the objects and action. Never execute `git push`: the
   prohibition is absolute for every agent, AI poise tool, publication handler, and configurable command runner, and user
   publication authority does not waive it. Reject `push_required=true` before any Git command; `push_required=false`
-  never contacts a remote. Integrate accepted results only through the public local `integrate` lifecycle using `git
-  merge --ff-only`. Commits required by the documented workflow of an explicitly assigned task are authorized without
-  another confirmation, including the necessary baseline and result commits. Include only the task-owned or explicitly
+  never contacts a remote. Integrate completed Task results only through the public local `integrate` lifecycle using `git
+  merge --ff-only`. Explicitly authorized work begun without a Task follows the separate, independently reviewed
+  [manual local route](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка), without
+  retroactive Task stages or receipts. Commits required by the documented workflow of an explicitly assigned task are
+  authorized without another confirmation, including the necessary baseline and result commits. Include only the task-owned or explicitly
   approved files; unrelated commits still require explicit authorization. Follow AI poise's public lifecycle tools when
   available.
 - Finish accepted work only through the public result-integration lifecycle running from the current AI poise

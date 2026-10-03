@@ -26,7 +26,8 @@ def test_work_cli_exposes_one_result_integration_operation(project):
         text=True,
         cwd=project["app"],
         env={
-            **os.environ,
+            **{key: value for key, value in os.environ.items()
+               if key not in ("CODEX_SESSION_ID", "CODEX_THREAD_ID")},
             "POISE_CONFIG": str(project["config_path"]),
             "POISE_CALLER_BINDING": str(project["root"] / "cli-integrator.json"),
             "PYTHONPATH": str(source_root),

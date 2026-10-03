@@ -1,0 +1,21 @@
+{
+  "input": {
+    "request_id": "message-contract-1",
+    "task_id": "T1",
+    "expected_source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_target_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "authorization": "Permission to integrate the reviewed result.",
+    "commit_message": "  Preserve integration purpose\n\n# Keep this line\nUnicode: причина \t \n\n",
+    "resolutions": []
+  },
+  "expected_identity": {
+    "request_id": "message-contract-1",
+    "task_id": "T1",
+    "expected_source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_target_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "authorization": "Permission to integrate the reviewed result.",
+    "commit_message": "  Preserve integration purpose\n\n# Keep this line\nUnicode: причина \t \n\n",
+    "config_backup_paths": []
+  },
+  "expected_git_message": "  Preserve integration purpose\n\n# Keep this line\nUnicode: причина \t \n\n"
+}

@@ -3,6 +3,8 @@
 import json
 import os
 from pathlib import Path
+import select
+import socket
 import sys
 import threading
 import time
@@ -55,16 +57,80 @@ def test_owner_cancellation_proves_cleanup_before_return(tmp_path):
     assert outcome.get('termination') == EXPECTED
 
 
-def test_leader_exit_does_not_certify_a_surviving_group(tmp_path):
+def _observe_descendant_cleanup(tmp_path):
     marker = tmp_path / 'descendant-effect'
     source = Path(__file__).parent / 'fixtures' / 'termination_descendant.py'
-    outcome = RegisteredCheckRunner().run('descendant',
-        [sys.executable, '-S', str(source)], tmp_path, dict(os.environ), 1,
-        tmp_path / 'out', tmp_path / 'err')
-    # A bounded test-owned effect disproves group cleanup after leader exit.
-    time.sleep(0.5)
-    assert not marker.exists()
-    assert outcome.get('termination') == EXPECTED
+    address = tmp_path / 'control.sock'
+    runner = RegisteredCheckRunner()
+    outcome, errors = {}, []
+
+    def execute():
+        try:
+            outcome.update(runner.run('descendant',
+                [sys.executable, '-S', str(source), str(address)],
+                tmp_path, dict(os.environ), 10,
+                tmp_path / 'out', tmp_path / 'err'))
+        except BaseException as error:
+            errors.append(error)
+
+    connection = None
+    pidfd = None
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as listener:
+        listener.bind(str(address))
+        listener.listen(1)
+        listener.settimeout(5)
+        thread = threading.Thread(target=execute)
+        thread.start()
+        try:
+            connection, _ = listener.accept()
+            connection.settimeout(5)
+            identity = b''
+            while not identity.endswith(b'\n'):
+                chunk = connection.recv(128)
+                assert chunk, 'descendant vanished before readiness'
+                identity += chunk
+            descendant, group, leader = map(int, identity.split())
+            assert descendant != leader
+            assert group == leader == os.getpgid(descendant) == os.getsid(descendant)
+            pidfd = os.pidfd_open(descendant)
+            assert select.select([pidfd], [], [], 0)[0] == []
+            connection.sendall(b'R')  # Only now may the ready leader exit.
+            thread.join(timeout=5)
+            assert not thread.is_alive()
+            assert errors == []
+            # Kernel exit notification for this exact PID, not a sleep followed
+            # by marker absence or the runner's own returned proof dictionary.
+            stopped = select.select([pidfd], [], [], 3)[0]
+            if not stopped:
+                connection.sendall(b'E')
+                assert connection.recv(1) == b'E'
+                assert marker.read_text() == 'still running'
+            assert stopped == [pidfd], 'owned descendant survived runner return'
+            assert not marker.exists()
+            assert Path(tmp_path / 'out').read_text() == 'leader-finished\n'
+            assert outcome['actual_exit_code'] == 0
+            assert outcome['timed_out'] is False
+            assert runner.active_ids() == ()
+        finally:
+            runner.cancel('descendant')
+            if connection is not None:
+                connection.close()
+            thread.join(timeout=5)
+            if pidfd is not None:
+                assert select.select([pidfd], [], [], 5)[0] == [pidfd]
+                os.close(pidfd)
+            assert not thread.is_alive()
+    return outcome
+
+
+def test_leader_exit_does_not_certify_a_surviving_group(tmp_path):
+    assert _observe_descendant_cleanup(tmp_path).get('termination') == EXPECTED
+
+
+def test_descendant_oracle_detects_omitted_owner_cleanup(tmp_path, monkeypatch):
+    monkeypatch.setattr(RegisteredCheckRunner, '_kill_group', staticmethod(lambda child: None))
+    with pytest.raises(AssertionError, match='owned descendant survived runner return'):
+        _observe_descendant_cleanup(tmp_path)
 
 
 def test_incomplete_capture_never_becomes_complete_termination_proof(tmp_path):

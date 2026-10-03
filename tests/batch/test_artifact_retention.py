@@ -67,3 +67,86 @@ def test_conflicting_binary_destination_never_overwrites_first_bytes(project, tm
         }))
     assert (Path(context['task_root']) / 'artifacts/inputs/accepted.whl').read_bytes() == BYTES
     assert tools.runtime.store.artifact_records('T1') == before
+
+
+@pytest.mark.parametrize('destination', ['../escape.whl', '/outside.whl', 'inputs/../../escape.whl'])
+def test_binary_destination_escape_refuses_whole_batch(project, tmp_path, destination):
+    tools, context = start(project)
+    source = source_file(tmp_path)
+    before = tools.runtime.task_queries.record('T1')
+    records = tools.runtime.store.artifact_records('T1')
+    with pytest.raises(PoiseError, match='relative|escape|outside|invalid|недопуст') as failure:
+        tools.invoke(request('artifacts', {
+            'items': [file_item(source), file_item(source, destination)],
+        }))
+    assert 'Unknown artifact source kind' not in str(failure.value)
+    assert not (Path(context['task_root']) / 'artifacts/inputs/accepted.whl').exists()
+    assert tools.runtime.store.artifact_records('T1') == records
+    assert tools.runtime.task_queries.record('T1') == before
+    assert source.read_bytes() == BYTES
+
+
+@pytest.mark.parametrize('link', ['destination-parent', 'owner-root'])
+def test_binary_destination_symlink_cannot_write_foreign_owner(tmp_path, link):
+    from batch.test_artifact_factory import factory
+
+    publisher, roots = factory(tmp_path)
+    source = source_file(tmp_path)
+    outside = tmp_path / 'foreign-owner'
+    outside.mkdir()
+    foreign = outside / 'accepted.whl'
+    foreign.write_bytes(b'foreign operator bytes')
+    if link == 'owner-root':
+        roots['task'].rmdir()
+        roots['task'].symlink_to(outside, target_is_directory=True)
+    else:
+        (roots['task'] / 'artifacts').mkdir()
+        (roots['task'] / 'artifacts/inputs').symlink_to(outside, target_is_directory=True)
+    with pytest.raises(PoiseError, match='symlink|owner|escape') as failure:
+        publisher.prepare([file_item(source)])
+    assert 'Unknown artifact source kind' not in str(failure.value)
+    assert foreign.read_bytes() == b'foreign operator bytes'
+    assert sorted(path.name for path in outside.iterdir()) == ['accepted.whl']
+
+
+def test_late_mixed_binary_batch_conflict_publishes_no_earlier_member(project, tmp_path):
+    tools, context = start(project)
+    source = source_file(tmp_path)
+    invoke_required(tools, 'artifacts', {'items': [
+        {'scope': 'task', 'path': 'occupied.txt', 'source': {'kind': 'text', 'text': 'original'}},
+    ]})
+    before = tools.runtime.task_queries.record('T1')
+    records = tools.runtime.store.artifact_records('T1')
+    with pytest.raises(PoiseError, match='different content|conflict'):
+        tools.invoke(request('artifacts', {'items': [
+            file_item(source),
+            {'scope': 'task', 'path': 'occupied.txt', 'source': {'kind': 'text', 'text': 'replacement'}},
+        ]}))
+    owner = Path(context['task_root'])
+    assert not (owner / 'artifacts/inputs/accepted.whl').exists()
+    assert (owner / 'artifacts/occupied.txt').read_bytes() == b'original'
+    assert tools.runtime.store.artifact_records('T1') == records
+    assert tools.runtime.task_queries.record('T1') == before
+
+
+@pytest.mark.parametrize('fault', ['bytes', 'missing'])
+def test_binary_source_changed_after_preparation_is_refused_before_publication(project, tmp_path, fault):
+    tools, context = start(project)
+    source = source_file(tmp_path)
+    publisher = tools.resources.factory()
+    try:
+        prepared = publisher.prepare([file_item(source)])
+    except PoiseError as exc:
+        raise AssertionError(f'Required binary preparation contract refused: {exc}') from exc
+    before = tools.runtime.task_queries.record('T1')
+    records = tools.runtime.store.artifact_records('T1')
+    if fault == 'bytes':
+        source.write_bytes(b'changed after preparation')
+    else:
+        source.unlink()
+    with pytest.raises(PoiseError, match='source|digest|changed|missing|exist') as failure:
+        publisher.materialize(prepared)
+    assert str(source) in str(failure.value)
+    assert not (Path(context['task_root']) / 'artifacts/inputs/accepted.whl').exists()
+    assert tools.runtime.store.artifact_records('T1') == records
+    assert tools.runtime.task_queries.record('T1') == before

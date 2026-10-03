@@ -42,6 +42,10 @@ def consumer(marker):
         'expected_exit_code': 0,
         'stdout_contains': ['retained-bytes=00ff61636365707465642d776865656c800a'],
         'stderr_contains': [],
+        'outputs': [
+            {'id': 'proof', 'path': 'proof/verification.txt', 'required': True},
+            {'id': 'optional', 'path': 'optional/trace.txt', 'required': False},
+        ],
         'artifact_inputs': {
             'manifest_directory': 'artifacts/manifests',
             'files': [{
@@ -124,3 +128,50 @@ def manifest(done, context):
     assert hashlib.sha256(path.read_bytes()).hexdigest() == paths[0]['digest']
     assert any(item['path'] == str(path) for item in done['artifacts'])
     return path, json.loads(path.read_text())
+
+
+def assert_bundle(done, context, commit):
+    """Independent literals and hashlib, never the production validator."""
+    path, value = manifest(done, context)
+    owner = Path(context['task_root']).resolve()
+    assert value['schema'] == 'acceptance-manifest-1'
+    assert value['task_id'] == 'T1' and value['method_id'] == 'READ_WHEEL'
+    assert value['commit'] == commit
+    assert value['inputs'] == [{
+        'id': 'wheel', 'path': str(owner / 'artifacts/inputs/accepted.whl'),
+        'digest': digest(BYTES), 'producer': PRODUCER, 'input_ref': 'accepted-wheel',
+    }]
+    evidence = {entry['kind']: entry for entry in value['evidence']}
+    assert len(value['evidence']) == 3
+    assert set(evidence) == {'stdout', 'stderr', 'output'}
+    assert evidence['output']['id'] == 'proof'
+    expected = {
+        'stdout': b'retained-bytes=00ff61636365707465642d776865656c800a\n',
+        'stderr': b'', 'output': b'wheel verified with accepted bytes\n',
+    }
+    snapshot = {path: path.read_bytes()}
+    for entry in value['inputs'] + value['evidence']:
+        file = Path(entry['path'])
+        assert file.is_absolute() and file.resolve().is_relative_to(owner)
+        cursor = file
+        while cursor != owner:
+            assert not cursor.is_symlink()
+            cursor = cursor.parent
+        data = file.read_bytes()
+        assert data == (BYTES if entry in value['inputs'] else expected[entry['kind']])
+        assert digest(data) == entry['digest']
+        snapshot[file] = data
+    return snapshot
+
+
+def assert_preserved(snapshot, context):
+    owner = Path(context['task_root']).resolve()
+    for path, trusted in snapshot.items():
+        assert path.resolve().is_relative_to(owner)
+        cursor = path
+        while cursor != owner:
+            assert not cursor.is_symlink()
+            cursor = cursor.parent
+        actual = path.read_bytes()
+        assert actual == trusted
+        assert hashlib.sha256(actual).hexdigest() == hashlib.sha256(trusted).hexdigest()

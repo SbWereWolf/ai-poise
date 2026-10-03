@@ -7,7 +7,7 @@ import pytest
 from batch.helpers import request, result
 from poise.common import PoiseError
 from verification.retention_helpers import (
-    BYTES, FIXTURES, PRODUCER, consumer, digest, file_item, invoke_required, manifest,
+    BYTES, FIXTURES, PRODUCER, assert_bundle, consumer, digest, file_item, invoke_required, manifest,
     source_file, start, verify_input,
 )
 
@@ -26,7 +26,10 @@ def test_manifest_inventory_matches_exact_input_producer_and_real_proof(project,
     }]
     assert retained.read_bytes() == b'\x00\xffaccepted-wheel\x80\n'
     evidence = {item['kind']: item for item in value['evidence']}
-    assert set(evidence) == {'stdout', 'stderr'}
+    assert set(evidence) == {'stdout', 'stderr', 'output'}
+    assert evidence['output']['id'] == 'proof'
+    assert Path(evidence['output']['path']).read_bytes() == b'wheel verified with accepted bytes\n'
+    assert_bundle(done, context, done['commit'])
     assert Path(evidence['stdout']['path']).read_text() == (
         'retained-bytes=00ff61636365707465642d776865656c800a\n'
     )
@@ -61,7 +64,10 @@ def test_missing_or_modified_retained_input_rejects_before_consumer(project, tmp
 def test_corrupt_manifest_or_required_proof_blocks_acceptance(project, tmp_path, fault):
     tools, context, done, _, marker = verify_input(project, tmp_path)
     path, value = manifest(done, context)
-    target = path if fault in ('manifest', 'missing-manifest') else Path(value['evidence'][0]['path'])
+    target = path if fault in ('manifest', 'missing-manifest') else Path(
+        next(entry['path'] for entry in value['evidence']
+             if entry['kind'] == ('output' if fault == 'missing-proof' else 'stdout'))
+    )
     if fault.startswith('missing-'):
         target.unlink()
     else:
@@ -119,3 +125,83 @@ def test_required_sprint_source_is_copied_into_task_closure(project, tmp_path):
     wheel.unlink()
     assert policy.read_bytes() == b'accepted sprint policy\n'
     assert marker.read_text() == 'run\n'
+
+
+@pytest.mark.parametrize('fault', ['omitted-input', 'omitted-proof', 'wrong-candidate'])
+def test_digest_consistent_semantically_invalid_manifest_is_refused(
+    project, tmp_path, monkeypatch, fault,
+):
+    """Inject malformed producer data before real immutable publication/registration."""
+    from dataclasses import replace
+    import json
+    from poise.infrastructure.artifact_factory import FileArtifactFactory
+
+    marker = tmp_path / 'execution-marker.txt'
+    source = source_file(tmp_path)
+    tools, context = start(project, marker)
+    original = FileArtifactFactory.materialize
+    injected = []
+
+    def publish(factory, prepared):
+        changed = []
+        for item in prepared:
+            try:
+                value = json.loads(item.content)
+            except (ValueError, UnicodeError):
+                value = None
+            if isinstance(value, dict) and value.get('schema') == 'acceptance-manifest-1':
+                if fault == 'omitted-input':
+                    value['inputs'] = []
+                elif fault == 'omitted-proof':
+                    value['evidence'] = [e for e in value['evidence'] if e['kind'] != 'output']
+                else:
+                    value['commit'] = '0' * 40
+                item = replace(item, content=json.dumps(value).encode())
+                injected.append(item.path)
+            changed.append(item)
+        return original(factory, tuple(changed))
+
+    monkeypatch.setattr(FileArtifactFactory, 'materialize', publish)
+    try:
+        verified = invoke_required(tools, 'verify', {
+            'result': result(context), 'artifacts': [file_item(source)],
+        })
+    except AssertionError as exc:
+        # Failure must be semantic integrity, never unsupported field/import/environment.
+        assert injected, str(exc)
+        assert any(word in str(exc).lower() for word in ('wheel', 'proof', 'candidate', 'commit'))
+        assert tools.runtime.task_queries.record('T1')['status'] != 'verified'
+    else:
+        assert injected and verified['status'] == 'verified'
+        records = tools.runtime.store.artifact_records('T1')
+        for path in injected:
+            registered = next(row for row in records if row['path'] == str(path))
+            assert registered['digest'] == digest(path.read_bytes())
+            broken = json.loads(path.read_bytes())
+            assert (not broken['inputs'] if fault == 'omitted-input' else
+                    not any(e['kind'] == 'output' for e in broken['evidence']) if fault == 'omitted-proof'
+                    else broken['commit'] == '0' * 40)
+        before = tools.runtime.task_queries.record('T1')
+        with pytest.raises(PoiseError, match='wheel|proof|candidate|commit'):
+            tools.invoke(request('accept', {}))
+        assert tools.runtime.task_queries.record('T1') == before
+    assert marker.read_text() == 'run\n'
+
+
+def test_optional_input_set_can_be_empty_with_real_required_output(project, tmp_path):
+    marker = tmp_path / 'no-input-marker.txt'
+    method = consumer(marker)
+    method['artifact_inputs']['files'] = []
+    method['argv'][-1] = (FIXTURES / 'retention_no_input_consumer.py').read_text()
+    method['stdout_contains'] = ['no-external-inputs']
+    tools, context = start(project, marker, method)
+    verified = invoke_required(tools, 'verify', {'result': result(context), 'artifacts': []})
+    _, value = manifest(verified, context)
+    assert value['inputs'] == []
+    outputs = [entry for entry in value['evidence'] if entry['kind'] == 'output']
+    assert len(outputs) == 1 and outputs[0]['id'] == 'proof'
+    proof = Path(outputs[0]['path'])
+    assert proof.resolve().is_relative_to(Path(context['task_root']).resolve())
+    assert proof.read_bytes() == b'wheel verified with accepted bytes\n'
+    assert outputs[0]['digest'] == digest(proof.read_bytes())
+    assert invoke_required(tools, 'accept', {})['status'] == 'completed'

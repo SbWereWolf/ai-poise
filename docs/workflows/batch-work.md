@@ -1,6 +1,6 @@
 # Пакетный инструмент работы — DDD-04B
 
-Обновлено: **2026-09-27**. Контракт реализованного API и явно отмеченных согласованных расширений, а
+Обновлено: **2026-10-04**. Контракт реализованного API и явно отмеченных согласованных расширений, а
 не
 дополнительный workflow DSL.
 
@@ -26,6 +26,7 @@
 | artifacts | items | Создать и зарегистрировать несколько файлов без завершения этапа |
 | recover_artifacts | request_id, task_id, expected_version, artifact_ids, source_roots, reason, authorization | Восстановить зарегистрированные файлы освобождённой Task после смены корней |
 | artifact_drafts | Поля action `declare`/`recover`/`review`/`finalize` | Вести редактируемый приёмочный файл по одному пути с неизменяемыми review-снимками |
+| release | task_id, request_id, expected_version, reason | Освободить собственную исполняемую незавершённую Task; сохранить pending, evidence и WIP |
 | recover_ownership | legacy: request_id, task_ids, expected_snapshot, task_claims, worktree_bindings, reason, authorization; after_crash: mode, request_id, task_ids, expected_snapshot, reason, writers_stopped, authorization | Согласовать legacy-компонент либо явно отозвать владение после подтверждённой аварии |
 | show | queries | Прочитать коллекцию объектов текущей задачи |
 | sprint | Поля выбранного action | Создать или изменить Sprint и его зависимости/отмены |
@@ -42,6 +43,72 @@
 записывает явную причину пользователя. Выбранные участники Sprint и Sprint целиком отменяются через
 пакетный Sprint API,
 а не серией standalone-вызовов.
+
+### Обычное освобождение владения
+
+Публичный `release` снимает claim только с указанной Task, которой владеет текущий
+подлинный caller. Допустимы исполняемые незавершённые состояния `active`, `verified`
+и `accepted`. Для `newborn` используется
+[сохранение черновика через handoff](local-handoff.md#сохранение-незавершённого-newborn).
+Терминальная Task и отсутствие собственного claim отклоняются.
+
+Пакет передаётся существующему native `work.sh` через Bash с `messages=[]`.
+CLI `poise work` принимает ту же JSON-форму; идентичность устанавливает существующий
+SessionEstablisher. `actor` и чужой caller binding в пакет не добавляются.
+Число `42` ниже — пример: `expected_version` берётся без преобразования из текущего
+публичного `version` в `bootstrap` или `show`, а не из `revision` newborn.
+
+```json
+{
+  "operation": "release",
+  "input": {
+    "task_id": "EXPLICIT-TASK-ID",
+    "request_id": "ordinary-release-1",
+    "expected_version": 42,
+    "reason": "Передать владение для восстановления сохранённого неизвестного исхода"
+  },
+  "messages": []
+}
+```
+
+У `input` ровно четыре поля. `task_id`, `request_id`, `reason` — непустые строки
+без NUL и без полностью пробельного значения. `expected_version` — целое число
+не меньше нуля; строка, `null`, float и boolean отклоняются, даже если числовое
+значение совпадает с текущей версией. Отсутствующие, лишние и `null`-поля также
+отклоняются до освобождения владения.
+
+Операцию исполняет существующий ownership owner в одной Unit of Work. Он проверяет
+собственный claim, актуальную версию и владельца зависимого worktree по process
+snapshot, вызывает обычное освобождение Task и записывает receipt в существующий
+journal. Чужой владелец требуемого зависимого worktree вызывает отказ; перехват
+не выполняется. Собственная привязка к worktree этой Task снимается, независимая
+привязка к другой Task сохраняется.
+
+| Поле результата | Значение |
+|---|---|
+| `status` | `ownership_released` |
+| `task`, `request_id` | Указанная Task и ID запроса |
+| `before`, `after` | Снимки с `actor`, `task_id`, `worktree_task_id` до и после освобождения |
+| `replayed` | `false` при первой записи, `true` при точном повторе |
+
+Receipt сохраняет подлинного actor, точный intent и исходный результат. Повтор того
+же пакета тем же caller возвращает исторические `before`/`after`, в том числе после
+захвата Task другой сессией; новый владелец не меняется. Тот же `request_id` с другим
+caller, Task, причиной или версией получает conflict. Для нового намерения нужен
+новый ID; точный retry сохраняет прежний пакет. При stale version прочитайте
+актуальный публичный контекст и отправьте новый запрос только при сохраняющемся
+собственном claim. Отсутствие или чужое владение не исправляется подменой caller.
+Отказ проверки или записи откатывает освобождение и receipt вместе.
+
+`release` не сохраняет stage result, не создаёт commit, bundle или handoff receipt,
+не исполняет проверки и не принимает результат. Он сохраняет stage/iteration/status,
+pending/unknown check attempt, execution, evidence, HEAD, index и WIP; меняются
+claim, версия/история обычного ownership-перехода и journal receipt. Поэтому
+`ownership_released` не доказывает успешный handoff, завершение проверки, restart,
+Task acceptance или интеграцию. Следующий actor захватывает Task своим `bootstrap`
+и соблюдает [протокол неизвестного исхода](#явный-rework-после-checks_failed).
+Для передачи сохранённого результата остаётся
+[обычный handoff](local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим).
 
 ### Подготовка пакета и разбор отказа
 

@@ -8,6 +8,8 @@ import pytest
 
 from batch.helpers import request
 from conftest import git
+from conftest import WorkPoise as Poise
+from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from result_integration.helpers import prepare_completed_task
 
@@ -31,7 +33,9 @@ def _prepare_renamed_working_config(project):
 
     def publish_example(root):
         git(root, "mv", "src/site.settings.json", "src/site.settings.example.json")
-        (root / "src" / ".gitignore").write_text("site.settings.json\n", encoding="utf-8")
+        (root / "src" / ".gitignore").write_text(
+            "site.settings.json\nnew.settings.json\nlocal.cache\n", encoding="utf-8"
+        )
 
     tools, worktree, commit = prepare_completed_task(
         project, publish_example, accept=False
@@ -81,12 +85,52 @@ def test_required_ignored_data_stays_in_worktree_until_manual_recovery(project):
 
     protected = project["root"] / "operator-protected-site.settings.json"
     local.rename(protected)
-    completed = tools.invoke(packet)
+    newly_arrived = worktree / "src" / "new.settings.json"
+    newly_arrived.write_bytes(b'{"site":"second-private-value"}\n')
+    newly_arrived.chmod(0o600)
+    assert git(worktree, "status", "--porcelain", "--untracked-files=all") == ""
+
+    cold = WorkTools(Poise(project["config_path"], "cold-ignored-cleanup-retry"))
+    blocked_again = cold.invoke(packet)
+    assert blocked_again["status"] == "cleanup_blocked"
+    assert blocked_again["blocker"]["reason"] == "ignored_worktree_data_requires_decision"
+    assert newly_arrived.read_bytes() == b'{"site":"second-private-value"}\n'
+    assert stat.S_IMODE(newly_arrived.stat().st_mode) == 0o600
+    assert protected.read_bytes() == b'{"site":"private-local-value"}\n'
+    assert (project["app"] / "src" / "site.settings.json").read_bytes() == b'{"site":"product-old"}\n'
+    assert worktree.is_dir() and branch_exists(project)
+
+    protected_second = project["root"] / "operator-protected-new.settings.json"
+    newly_arrived.rename(protected_second)
+    completed = WorkTools(Poise(project["config_path"], "safe-ignored-cleanup-retry")).invoke(packet)
     assert completed["status"] == "cleanup_complete"
     assert protected.read_bytes() == b'{"site":"private-local-value"}\n'
     assert stat.S_IMODE(protected.stat().st_mode) == 0o600
+    assert protected_second.read_bytes() == b'{"site":"second-private-value"}\n'
+    assert stat.S_IMODE(protected_second.stat().st_mode) == 0o600
     assert not worktree.exists() and not branch_exists(project)
     assert any(item.get("event") == "worktree_cleanup_blocked" for item in completed["history"])
+
+
+def test_disposable_classification_does_not_cover_unknown_ignored_data(project):
+    tools, worktree, commit, local = _prepare_renamed_working_config(project)
+    cache = worktree / "src" / "local.cache"
+    cache.write_bytes(b"disposable cache\n")
+    cache.chmod(0o640)
+    tools.invoke(request("cancel", {"reason": "Cancel fixture task."}))
+
+    blocked = tools.invoke(request(
+        "cleanup", _classified(commit, disposable=["src/local.cache"])
+    ))
+
+    assert blocked["status"] == "cleanup_blocked"
+    assert blocked["blocker"]["reason"] == "ignored_worktree_data_requires_decision"
+    assert local.read_bytes() == b'{"site":"private-local-value"}\n'
+    assert stat.S_IMODE(local.stat().st_mode) == 0o600
+    assert cache.read_bytes() == b"disposable cache\n"
+    assert stat.S_IMODE(cache.stat().st_mode) == 0o640
+    assert (project["app"] / "src" / "site.settings.json").read_bytes() == b'{"site":"product-old"}\n'
+    assert worktree.is_dir() and branch_exists(project)
 
 
 def test_exact_disposable_ignored_cache_can_be_removed(project):

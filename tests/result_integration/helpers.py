@@ -26,6 +26,7 @@ def prepare_completed_task(
     checks=(),
     artifact_files=None,
     terminal_stage=False,
+    registry_change=None,
 ):
     methods = [deepcopy(method) for method in methods]
     for method in methods:
@@ -68,8 +69,22 @@ def prepare_completed_task(
             "transitions": {"complete": None},
             "rework_targets": ["documentation"],
         })
+    if registry_change is not None:
+        stages.insert(0, {
+            "id": "verification_planning",
+            "instruction": "Register the test-owned current checks through their owner.",
+            "read_only": True,
+            "allowed_paths": [],
+            "normalization": "strip",
+            "sections": {"report": "Record the plan.", "test_registry": "Record the registry change."},
+            "required_sections": ["report", "test_registry"],
+            "artifact_requirements": [],
+            "handler": "produce", "role": "executor",
+            "transitions": {"complete": "implementation"},
+            "rework_targets": ["verification_planning"],
+        })
     process = {
-        "route": {"entry": "implementation"},
+        "route": {"entry": stages[0]["id"]},
         "goal_type": "development",
         "worktree_required": True,
         "stages": stages,
@@ -97,6 +112,7 @@ def prepare_completed_task(
         } for method in methods],
         "artifact_requirements": [],
         "checks": {
+            **({"verification_planning": []} if registry_change is not None else {}),
             "implementation": list(checks),
             **({"documentation": []} if terminal_stage else {}),
         },
@@ -131,6 +147,21 @@ def prepare_completed_task(
         "rework_stage": None,
     }))
     source_worktree = Path(context["worktree"])
+    if registry_change is not None:
+        planned = deepcopy(context["result_template"])
+        planned["sections"].update(
+            report="Register the current integration methods before producing the result.",
+            test_registry="Apply the exact test-owned guarded registry change.",
+        )
+        planned["commit_message"] = "test: register current integration checks"
+        planned["method_additions"] = deepcopy(registry_change)
+        registered = tools.invoke(request("verify", {"result": planned, "artifacts": []}))
+        assert registered["status"] == "verified"
+        assert tools.invoke(request("accept", {}))["status"] == "accepted"
+        context = tools.invoke(request("bootstrap", {
+            "task": None, "decision": "continue", "feedback": None, "rework_stage": None,
+        }))
+        assert context["stage"] == "implementation"
     change(source_worktree)
     result = deepcopy(context["result_template"])
     result["sections"]["report"] = "Accepted source result."

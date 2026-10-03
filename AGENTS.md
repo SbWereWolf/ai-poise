@@ -515,3 +515,12 @@ A verifier may explicitly revise a defective check through the existing authoriz
 contract operations; never weaken checks automatically. Unknown checks require effects
 inspection/stoppage before authorized restart archives their attempt without replay.
 See [the recovery contract](docs/workflows/sprints.md#локальная-доработка-через-общий-restart).
+
+## Incident correction and installation selection
+
+Before changing an existing Task after an incident, read
+[incident enrichment](docs/workflows/task-planning.md#дополнение-существующей-задачи-историей-инцидента).
+Before recording Tasks or relocating installation state, read
+[operator selection and state relocation](docs/configuration/wsl-local-delivery.md#выбор-операторской-установки-и-перенос-состояния).
+Use the selected operator installation; do not cancel a Task to repair its contract
+or delete a hook registry to compensate for an unsupported relocation.

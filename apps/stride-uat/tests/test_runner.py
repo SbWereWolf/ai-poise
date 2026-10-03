@@ -316,6 +316,65 @@ def conflict():
         existing=c.workspace/'run-1';existing.mkdir(parents=True);(existing/'keep').write_bytes(b'old')
         p,b=c.call();assert p.returncode==2 and b['error']['code']=='run_conflict'
         assert (existing/'keep').read_bytes()==b'old' and not (existing/'first').exists()
+    durability()
+
+
+
+def durability():
+    # New regression belongs to existing exclusive-run/intent contract group.
+    for fault in (None, 'root-parent', 'step-parent', 'second-step'):
+        with Case() as c:
+            c.config['state_root']='new-state-parent/state'
+            c.config['workspace_root']='new-work-parent/workspace'
+            c.state=c.root/c.config['state_root'];c.workspace=c.root/c.config['workspace_root']
+            c.save()
+            instrument=c.root/'instrument';instrument.mkdir()
+            shutil.copyfile(FIX/'durability-observer.py', instrument/'sitecustomize.py')
+            trace=c.root/'durability.jsonl'
+            outer={'PYTHONPATH':str(instrument), 'PYTHONNOUSERSITE':'1',
+                   'POISE_DURABILITY_TRACE':str(trace),
+                   'POISE_DURABILITY_JOURNAL':str(c.state/'run-1/execution.json')}
+            if fault is not None:
+                outer['POISE_DURABILITY_FAIL_PARENT']=str(c.root if fault=='root-parent' else c.workspace/'run-1')
+            if fault=='second-step':outer['POISE_DURABILITY_FAIL_OCCURRENCE']='2'
+            p,b=c.call(outer=outer)
+            events=[json.loads(line) for line in trace.read_text(encoding='utf-8').splitlines()]
+            OBSERVATIONS.append({'durability_case':fault,'events':events})
+            spawns=[i for i,e in enumerate(events) if e['event']=='spawn_attempted']
+            if fault is not None:
+                assert len(spawns)==(1 if fault=='second-step' else 0), 'directory sync failure reached a new subprocess.Popen'
+                assert any(e['event']=='fsync_failed' for e in events), 'fault was not reached'
+                assert p.stderr==b'', p.stderr
+                unstarted='second' if fault=='second-step' else 'first'
+                assert not (c.workspace/'run-1'/unstarted/'owner-observation.json').exists()
+                if fault=='root-parent':
+                    assert p.returncode==2 and b['status']=='rejected' and b['error']['code']=='store_unavailable', (p.returncode,b)
+                else:
+                    expected=fixture('durability-failed.json');expected['protocol_path']=str(c.state/'run-1/execution.json')
+                    if fault=='second-step':expected['completed_steps']=1
+                    assert p.returncode==1 and b==expected,(p.returncode,b)
+                    j=c.protocol(b)
+                    assert j['execution_status']=='FAILED'
+                    assert j['remaining_step_ids']==(['second'] if fault=='second-step' else ['first','second'])
+                    assert [s['step_id'] for s in j['steps']]==(['first'] if fault=='second-step' else [])
+                    if fault=='second-step':assert j['steps'][0]['state']=='EXITED' and j['steps'][0]['effects']=='possible'
+                continue
+            expected=fixture('executed.json');expected['protocol_path']=str(c.state/'run-1/execution.json')
+            assert p.returncode==0 and p.stderr==b'' and b==expected, (p.returncode,b,p.stderr)
+            assert len(spawns)==2, 'both real owner command launches must be observed'
+            missing=[];nonprivate=[]
+            for spawn_index in spawns:
+                for index,e in enumerate(events[:spawn_index]):
+                    if e['event']!='mkdir_completed':continue
+                    parent=str(Path(e['path']).parent)
+                    if not any(x['event']=='fsync_completed' and x['path']==parent for x in events[index+1:spawn_index]):
+                        missing.append(parent)
+                    if Path(e['path']).stat().st_mode & 0o777 != 0o700:nonprivate.append(e['path'])
+                journal=events[spawn_index]['journal']
+                assert journal['execution_status']=='RUNNING' and journal['steps'][-1]['state']=='RUNNING'
+                assert journal['qualification']=='not_evaluated'
+            assert not missing, 'durable-directory-intent missing parent fsync: '+repr(sorted(set(missing)))
+            assert not nonprivate, 'new directories are not private: '+repr(sorted(set(nonprivate)))
 
 
 def profile():

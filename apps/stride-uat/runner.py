@@ -297,6 +297,30 @@ def observe(profile: dict) -> dict:
             'environment_sha256': digest(encoded(env)[:-1])}
 
 
+def sync_directory(path: Path) -> None:
+    """Persist names in this directory, not only the referenced file inode."""
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def durable_directory(path: Path, *, parents: bool = False, exist_ok: bool = False) -> None:
+    """Publish each new private directory before an owner can have effects."""
+    if parents and not path.parent.is_dir():
+        durable_directory(path.parent, parents=True, exist_ok=True)
+    try:
+        path.mkdir(mode=0o700)
+    except FileExistsError:
+        if not (exist_ok and path.is_dir()):
+            raise
+    else:
+        # Sync failure is fatal to this preparation; never treat mkdir alone as
+        # a durable run reservation or start a child behind an unsynced name.
+        sync_directory(path.parent)
+
+
 def atomic_json(path: Path, value: dict, bound: int) -> None:
     raw = encoded(value)
     if len(raw) > bound:
@@ -309,11 +333,7 @@ def atomic_json(path: Path, value: dict, bound: int) -> None:
             out.flush()
             os.fsync(out.fileno())
         os.replace(temporary, path)
-        fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
+        sync_directory(path.parent)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -461,15 +481,15 @@ def execute(prepared: Prepared, run_id: str) -> tuple[dict, int]:
         if len(encoded(context)) > limits['result_bytes']:
             fail('limit_exceeded', '/config/limits/result_bytes', 'Context exceeds result budget')
     try:
-        prepared.state.mkdir(parents=True, exist_ok=True, mode=0o700)
-        state.mkdir(mode=0o700)
+        durable_directory(prepared.state, parents=True, exist_ok=True)
+        durable_directory(state)
     except FileExistsError as exc:
         raise Problem('run_conflict', 'Run exists', {'run_id': run_id}) from exc
     except OSError as exc:
         raise Problem('store_unavailable', 'Cannot reserve run', {'run_id': run_id}) from exc
     try:
-        prepared.workspace.mkdir(parents=True, exist_ok=True, mode=0o700)
-        workspace.mkdir(mode=0o700)
+        durable_directory(prepared.workspace, parents=True, exist_ok=True)
+        durable_directory(workspace)
     except OSError as exc:
         state.rmdir()  # Only our empty exclusive reservation, never a prior run.
         code = 'run_conflict' if isinstance(exc, FileExistsError) else 'store_unavailable'
@@ -482,8 +502,14 @@ def execute(prepared: Prepared, run_id: str) -> tuple[dict, int]:
             journal.update(execution_status='FAILED', stop_reason='inputs_changed')
             break
         cwd = Path(record['cwd'])
-        cwd.mkdir(mode=0o700)
-        atomic_json(cwd / 'context.json', context, limits['result_bytes'])
+        try:
+            durable_directory(cwd)
+            atomic_json(cwd / 'context.json', context, limits['result_bytes'])
+        except OSError:
+            # No command was attempted for this step. Keep the ordered executed
+            # prefix and the unstarted suffix instead of reporting completion.
+            journal.update(execution_status='FAILED', stop_reason='io_failed')
+            break
         journal['steps'].append(record)
         journal['remaining_step_ids'] = journal['remaining_step_ids'][1:]
         atomic_json(path, journal, limits['result_bytes'])

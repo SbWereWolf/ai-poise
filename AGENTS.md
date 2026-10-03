@@ -61,6 +61,11 @@ One session works on one task. Stage ownership follows the canonical [executor/r
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
+Before project setup, correcting `git.base_ref`, or integrating a result, read
+[target branch selection](docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
+Inspect the configured primary checkout and its symbolic branch read-only. Treat a detached checkout,
+uncertain binding, or mismatch with `git.base_ref` as a stop condition until the authorized configuration
+owner resolves it. Do not switch the primary checkout to satisfy a manifest value.
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their
 working files or database directly. Native coding tools remain appropriate for source code, tests and target
@@ -294,12 +299,12 @@ Keep this English projection and its Russian source consistent in the same chang
   available.
 - Finish accepted work only through the public result-integration lifecycle running from the current AI poise
   installation source. Keep the accepted commit immutable; advance the existing task branch in its existing task
-  worktree while updating from current `master`, merging, resolving conflicts, and rerunning every current
+  worktree while updating from the current configured target branch, merging, resolving conflicts, and rerunning every
   produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The terminal
   content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards. Never create a
   separate integration branch or worktree. Every content-producing merge, rebase, cherry-pick, conflict resolution,
   and integration commit must run in the Task-owned child worktree; the primary checkout is never a preparation or
-  working copy. Under the shared target lock, recheck `master` immediately before
+  working copy. Under the shared target lock, recheck the configured target immediately before
   publication; repeat update, resolution, and checks on drift, then publish only with `git merge --ff-only
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
@@ -308,7 +313,8 @@ Keep this English projection and its Russian source consistent in the same chang
   local branch, temporary files, and temporary backups. Preserve the main checkout, foreign resources, durable task
   history and artifacts, operator backups, and recovery data for unfinished operations.
 - The commit disposition requires a separate explicit decision. Cleanup itself authorizes neither publication to
-  `master` nor destruction of unique commits and does not prescribe merge or discard. Clean accepted successful work
+  the configured target branch nor destruction of unique commits and does not prescribe merge or discard. Clean
+  accepted successful work
   only after its separately authorized integration completes. On cancellation, record a separate commit-disposition
   decision before removing a resource would destroy unique commits.
 - These rules establish a manual agent obligation. This documentation task neither implements cleanup automation nor

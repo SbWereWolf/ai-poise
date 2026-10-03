@@ -224,10 +224,18 @@ task worktree, then resume checks. The finisher rechecks the configured target u
 resolution, and checks on drift. It publishes only through `git merge --ff-only <task-branch>` in the main checkout and
 never updates the target ref directly or by force.
 
+Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
+The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate
+retroactively. A reviewed taskless correction with explicit user authority may use the separate manual local delivery
+route, preserving exact commit/check identity, checkpoint, target and foreign WIP. Follow the canonical
+[route decision](../../../docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка) and
+[pre-ready procedure](../../../docs/workflows/pilot-task-preflight.md#выбор-маршрута-до-первой-записи). Never manufacture
+Task stages, acceptance or receipts for earlier taskless work.
+
 Never execute `git push`. This prohibition is absolute for every agent, AI poise publication handler, Git adapter, and
 configured verification, action, tokenizer, or capability-probe runner; user publication authority does not waive it.
-Reject `push_required=true` before any Git command, keep `push_required=false` remote-free, and direct accepted results
-to the public local `integrate` operation and its exact `git merge --ff-only` publication.
+Reject `push_required=true` before any Git command, keep `push_required=false` remote-free, and direct completed Task
+results to the public local `integrate` operation and its exact `git merge --ff-only` publication.
 
 Never use the main checkout or foreign WIP for preparation or conflict resolution, and never `stash`, `reset`,
 `restore`, `checkout`, `clean`, stage, commit, or delete their state. A dirty or unfinished main checkout may block

@@ -106,6 +106,17 @@ as a compatibility path. Preserve exact replay and reject unknown, absent, dupli
 
 When a saved execution contract makes DoD unattainable, the next stage fails its own DoR, or the executor concludes from evidence that the available workaround is not adequate to the Task, do not bypass Poise or manufacture success. Preserve the evidence and agree the exact restart/Task-contract change with the independent reviewer. The agents decide and execute a restart without another user decision. An authorized owner uses the public Task action; the executor must not impersonate the reviewer. For fields outside the frozen restart-revision policy, the reviewer records the exact approved Task fields in `authorization.revision_fields`. Project/harness rule changes require separate user authority and are not mutated by Task restart. Preserve Task identity, immutable history, Sprint membership, worktree/branch and all WIP; reject terminal work, a foreign live owner, stale version, or a pending external outcome before mutation. Resolve pending uncertainty through its explicit recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction action. Historical relations exist only as opaque revision/audit records, not a current replacement projection.
 
+Follow [post-restart handoff](../../../docs/workflows/local-handoff.md#передача-после-перезапуска):
+restart preserves historical results, proof and provenance; restart alone does not make
+proof inapplicable. Apply the existing source/condition/provenance rules. A historical
+submission is not new work. Current templates and null-result handoff use only the Task's
+authoritative current submission, never a latest historical stage/iteration match.
+Without a new current result, preserve actual Task state; with one, transfer that result.
+Ready preserves the feedback book, including open findings and previous review decisions;
+do not reapply rejected historical corrections or manufacture finding closure.
+Use public handoff to release a restarted Task, including newborn work; restart itself
+retains ownership. Preserve ordinary refusal, material-integrity and exact-replay gates.
+
 Task restart atomically invalidates every mutable current `work-packet identity` for that
 Task in the same Unit of Work as the newborn lifecycle reset. This does not rewrite or delete
 immutable `submissions`, `task_results`, `evidence`, or Task `history`; failure of invalidation

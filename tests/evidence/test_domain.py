@@ -165,20 +165,24 @@ def test_completed_uninterpretable_subject_batch_is_available_only_for_explicit_
 
 
 @pytest.mark.parametrize(
-    'changes',
+    ('changes', 'available'),
     [
-        {'timed_out':True,'actual_exit_code':1},
-        {'actual_exit_code':None},
-        {'actual_exit_code':-9},
+        ({'timed_out':True,'actual_exit_code':-9,'capture_complete':True}, True),
+        ({'actual_exit_code':None}, False),
+        ({'actual_exit_code':-9,'capture_complete':True}, True),
+        ({'timed_out':True,'actual_exit_code':-9,'capture_complete':False}, False),
     ],
 )
-def test_uninterpretable_subject_batch_with_uncertain_execution_is_not_available_for_rework(changes):
+def test_rework_distinguishes_terminal_negative_from_incomplete_capture(changes, available):
     value=receipt(False)
     value.update(guard=False,interpretable=False,actual_exit_code=1)
     value.update(changes)
     book=failed_rework_batch(value)
 
-    assert book.failed_batch('implementation',1,'SUBMISSION','TREE','KEY') is None
+    selected=book.failed_batch('implementation',1,'SUBMISSION','TREE','KEY')
+    assert (selected is not None) is available
+    if available:
+        assert selected['receipts'] == [value]
 
 
 def test_interpretable_negative_subject_is_not_misclassified_as_failed_check_rework():

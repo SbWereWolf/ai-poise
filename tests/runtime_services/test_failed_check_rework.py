@@ -33,7 +33,8 @@ def _stage(stage_id, allowed_paths):
 
 
 def _scenario(project, *, passing_continuation=False, historical_observation=False,
-              closed_revise_target=False, uninterpretable_subject=False):
+              closed_revise_target=False, uninterpretable_subject=False, command=None,
+              environment=None, extra_command=None):
     configure(project)
     project["cfg"]["accounting"]["time_mode"] = "reported"
     stages = [
@@ -80,9 +81,13 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
 
     method = {
         "id": "CHECK",
-        "argv": [sys.executable, "-c", "raise SystemExit(0)" if passing_continuation else "raise SystemExit(1)"],
+        "argv": command if command is not None else [
+            sys.executable,
+            "-c",
+            "raise SystemExit(0)" if passing_continuation else "raise SystemExit(1)",
+        ],
         "cwd": ".",
-        "environment": {},
+        "environment": environment if environment is not None else {},
         "source_under_test": {
             "kind": "repository",
             "bindings": [{"kind": "cwd", "path": "."}],
@@ -130,6 +135,15 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
             "closed_finding_inspection": [],
         } if closed_revise_target else {}),
     }
+    if extra_command is not None:
+        second = deepcopy(method)
+        second['id'] = 'CHECK2'
+        second['argv'] = extra_command
+        task['methods'].append(second)
+        task['method_inputs'].append({
+            **deepcopy(task['method_inputs'][0]), 'method_id': 'CHECK2',
+        })
+        task['checks']['implementation'].append('CHECK2')
     task["evidence_plan"] = {
         "implementation": {
             "subject_methods": {

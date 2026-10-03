@@ -295,6 +295,13 @@ class IntegrationRun:
             "running", "publishing", "publication_retry_started", failure=None,
         )
 
+    def recheck_publication(self):
+        if self.phase not in ("publishing", "publication_failed"):
+            raise DomainError("Only a pending publication can return to candidate checks")
+        return self._step(
+            "running", "candidate_ready", "publication_checks_restarted", failure=None,
+        )
+
     def require_current_checks(self):
         if self.phase != "publishing":
             raise DomainError("Current verification requires a publication candidate")

@@ -1,0 +1,15 @@
+{
+  "errors": [],
+  "failed": [
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[False-missing-False]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[False-missing-True]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[False-wrong_tree-False]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[False-wrong_tree-True]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[True-missing-False]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[True-missing-True]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[True-wrong_tree-False]",
+    "tests/result_integration/test_publishing_recovery.py::test_persisted_publishing_rechecks_invalid_proof_before_confirmation[True-wrong_tree-True]"
+  ],
+  "passed": 0,
+  "tests": 8
+}

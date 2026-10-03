@@ -46,7 +46,20 @@ def test_completed_query_projects_late_registered_methods_without_mutating_creat
         terminal_stage=terminal_stage,
     )
     database = project["root"] / project["cfg"]["paths"]["state"] / project["cfg"]["paths"]["database"]
+    persisted_queries = {
+        "creation": "SELECT id,metadata FROM tasks ORDER BY id",
+        "workflow": "SELECT task_id,data FROM task_workflows ORDER BY task_id",
+        "execution": "SELECT task_id,version,data FROM task_execution ORDER BY task_id",
+        "history": "SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq",
+        "submissions": "SELECT seq,task_id,stage,iteration,digest,data FROM submissions ORDER BY seq",
+        "workflow_layers": "SELECT task_id,submission_id,data FROM workflow_layers ORDER BY task_id,submission_id",
+        "method_history": "SELECT task_id,method_id,version,data FROM task_methods ORDER BY task_id,method_id",
+    }
     with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        persisted_before = {
+            name: connection.execute(sql).fetchall()
+            for name, sql in persisted_queries.items()
+        }
         row = connection.execute(
             "SELECT metadata FROM tasks WHERE id=?", ("T1",),
         ).fetchone()
@@ -54,6 +67,12 @@ def test_completed_query_projects_late_registered_methods_without_mutating_creat
     assert creation["contract"]["methods"] == []
     assert creation["contract"]["checks"]["implementation"] == []
     record = tools.runtime.task_queries.record("T1")
+    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        persisted_after = {
+            name: connection.execute(sql).fetchall()
+            for name, sql in persisted_queries.items()
+        }
+    assert persisted_after == persisted_before
     assert record["status"] == "completed"
     assert [method["id"] for method in record["contract"]["methods"]] == ["CURRENT_RESULT"]
     assert record["contract"]["checks"]["implementation"] == ["CURRENT_RESULT"]
@@ -97,6 +116,38 @@ def invalid_receipts(receipts, kind):
         first.pop("verified_tree")
     elif kind == "wrong_command":
         first["argv"] = [sys.executable, "-c", "print('other-result')"]
+    elif kind == "missing_passed":
+        first.pop("passed")
+    elif kind == "invalid_passed":
+        first["passed"] = "true"
+    elif kind == "wrong_exit":
+        first["actual_exit_code"] = 1
+    elif kind == "timed_out":
+        first["timed_out"] = True
+    elif kind == "cancelled":
+        first["cancelled"] = True
+    elif kind == "missing_cancelled":
+        first.pop("cancelled", None)
+    elif kind == "missing_capture":
+        first.pop("capture_complete", None)
+    elif kind == "incomplete_capture":
+        first["capture_complete"] = False
+    elif kind == "missing_stdout_path":
+        first.pop("stdout")
+    elif kind == "missing_stdout_file":
+        Path(first["stdout"]).unlink()
+    elif kind == "corrupt_stdout":
+        Path(first["stdout"]).write_text("tampered stdout\n")
+    elif kind == "corrupt_stderr":
+        Path(first["stderr"]).write_text("tampered stderr\n")
+    elif kind == "missing_definition_digest":
+        first.pop("definition_digest", None)
+    elif kind == "wrong_definition_digest":
+        first["definition_digest"] = "a" * 64
+    elif kind == "missing_contract_digest":
+        first.pop("contract_digest", None)
+    elif kind == "wrong_contract_digest":
+        first["contract_digest"] = "b" * 64
     elif kind == "legacy_definition":
         # Preserve the old wire fields, omitting any subsequently added provenance.
         old_fields = {
@@ -114,6 +165,11 @@ def invalid_receipts(receipts, kind):
     "missing", "duplicate", "wrong_commit", "wrong_tree", "foreign_method",
     "failed", "corrupt", "wrong_command", "legacy_definition",
     "partial", "interrupted_publication",
+    "missing_passed", "invalid_passed", "wrong_exit", "timed_out", "cancelled",
+    "missing_cancelled", "missing_capture", "incomplete_capture", "missing_stdout_path",
+    "missing_stdout_file", "corrupt_stdout", "corrupt_stderr",
+    "missing_definition_digest", "wrong_definition_digest",
+    "missing_contract_digest", "wrong_contract_digest",
 ])
 def test_retry_rechecks_invalid_candidate_proof(
     project, monkeypatch, kind,

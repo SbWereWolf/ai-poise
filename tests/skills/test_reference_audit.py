@@ -69,7 +69,7 @@ def test_checked_reference_cannot_escape_via_symlink(tmp_path):
 
 def test_shipped_catalog_references_are_structurally_reachable():
     result=audit_skills(Path(__file__).resolve().parents[2])
-    assert result['skills']==35
+    assert result['skills']==36
     assert result['errors']==[], result['errors']
     assert result['unreachable']==[], result['unreachable']
 

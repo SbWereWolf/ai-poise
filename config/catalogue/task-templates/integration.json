@@ -13,7 +13,8 @@
     "contract": "object",
     "evidence": "object",
     "stage_contracts": "list",
-    "decomposition": "object"
+    "decomposition": "object",
+    "checks": "object"
   },
   "task": {
     "id": {
@@ -39,20 +40,7 @@
       "$input": "method_inputs"
     },
     "checks": {
-      "framing": [],
-      "integration_planning": [],
-      "integration": [
-        "COMBINED"
-      ],
-      "verification": [
-        "COMBINED"
-      ],
-      "inspection": [],
-      "remediation": [
-        "COMBINED"
-      ],
-      "remediation_inspection": [],
-      "publication": []
+      "$input": "checks"
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

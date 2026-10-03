@@ -24,6 +24,14 @@ AI poise is a harness that helps agents work declaratively without needing to un
 
 Before any work, including a request without a formal task, establish the goal, the requirements for the result, the definition of done and how completion will be demonstrated. Keep this preparation proportional to the request. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. `ready` freezes the resolved Task contract and its restart-revision authority; runtime enforces that resolved contract, not the original template.
 
+Separate Sprint graph planning, bounded Task formulation and detailed execution
+design. Do not implement a prototype merely to approve a Task formulation or demand
+future test names at creation. Preserve the accepted goal's meaning. Paired starters
+give each substantive executor result independent review; the reviewer checks
+stage separation and sufficient allowed_paths. Follow the canonical
+[paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
+and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
+
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
 present self-review as independent review.

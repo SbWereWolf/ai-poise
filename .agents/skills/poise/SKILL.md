@@ -412,7 +412,8 @@ read-only sources of facts for this configuration boundary.
 
 ## Procedure for migrated skill selection
 
-For current Task discipline load [exec-task](../exec-task/SKILL.md); for preparing focused Tasks or Sprint graphs load
+For current Task discipline load [exec-task](../exec-task/SKILL.md); for formulating one Task load
+[task-design](../task-design/SKILL.md); for Sprint graphs load
 [sprint-design](../sprint-design/SKILL.md). Keep the exact packets, launcher, lifecycle and evidence semantics in this
 skill and its canonical documentation. Load other catalogue skills only when relevant to the current stage and real
 project stack, not as a blanket catalogue read.

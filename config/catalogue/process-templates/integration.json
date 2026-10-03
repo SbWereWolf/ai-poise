@@ -132,6 +132,54 @@
         "states": [
           "populated"
         ]
+      },
+      {
+        "id": "framing_inspection-input-constraints",
+        "kind": "section",
+        "stages": [
+          "framing_inspection"
+        ],
+        "phase": "pre",
+        "section": "constraints",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning_inspection-input-integration_plan",
+        "kind": "section",
+        "stages": [
+          "integration_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "integration_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "integration_planning_inspection-input-verification_plan",
+        "kind": "section",
+        "stages": [
+          "integration_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "verification_plan",
+        "states": [
+          "populated"
+        ]
+      },
+      {
+        "id": "remediation_planning_inspection-input-remediation_plan",
+        "kind": "section",
+        "stages": [
+          "remediation_planning_inspection"
+        ],
+        "phase": "pre",
+        "section": "remediation_plan",
+        "states": [
+          "populated"
+        ]
       }
     ]
   },
@@ -140,7 +188,7 @@
       "id": "framing",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Зафиксировать source/target и нужные требования источников. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and constraints. Output: constraints and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Зафиксировать source/target и нужные требования источников. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
@@ -154,7 +202,7 @@
       ],
       "artifact_requirements": [],
       "transitions": {
-        "complete": "integration_planning"
+        "complete": "framing_inspection"
       },
       "rework_targets": [
         "framing",
@@ -167,10 +215,33 @@
       ]
     },
     {
+      "id": "framing_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "integration_planning",
+        "changes_requested": "framing"
+      },
+      "rework_targets": [
+        "framing"
+      ]
+    },
+    {
       "id": "integration_planning",
       "handler": "produce",
       "role": "executor",
-      "instruction": "Задать стратегию и exact checks. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and integration_plan, verification_plan. Output: integration_plan, verification_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Задать стратегию и exact checks. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
@@ -186,7 +257,7 @@
       ],
       "artifact_requirements": [],
       "transitions": {
-        "complete": "integration"
+        "complete": "integration_planning_inspection"
       },
       "rework_targets": [
         "integration_planning",
@@ -199,10 +270,33 @@
       ]
     },
     {
+      "id": "integration_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "integration",
+        "changes_requested": "integration_planning"
+      },
+      "rework_targets": [
+        "integration_planning"
+      ]
+    },
+    {
       "id": "integration",
       "handler": "apply_plan",
       "role": "executor",
-      "instruction": "Выполнить объединение и решить semantic conflicts. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and current Task contract and previous stage evidence. Output: current Task contract and previous stage evidence and evidence for this exact stage. Forbidden: changes outside the current stage scope or accepted design. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Выполнить объединение и решить semantic conflicts. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": false,
       "allowed_paths": [
         "src/**",
@@ -219,7 +313,7 @@
       ],
       "artifact_requirements": [],
       "transitions": {
-        "complete": "verification"
+        "complete": "integration_inspection"
       },
       "rework_targets": [
         "integration",
@@ -232,10 +326,33 @@
       ]
     },
     {
+      "id": "integration_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "verification",
+        "changes_requested": "integration"
+      },
+      "rework_targets": [
+        "integration"
+      ]
+    },
+    {
       "id": "verification",
       "handler": "check",
       "role": "executor",
-      "instruction": "Подтвердить совместный результат. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: accepted stage evidence and exact registered commands/authorization. Execute only the declared mechanical operation; no role switch for its internal substeps. Output: terminal receipts or a truthful failure. Forbidden: treating elapsed time, a stale check or a publication receipt as Task completion. Подтвердить совместный результат. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
@@ -265,7 +382,7 @@
       "id": "inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Read-only проверить сохранность source intentions. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Read-only проверить сохранность source intentions. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
@@ -278,7 +395,7 @@
       "artifact_requirements": [],
       "transitions": {
         "clear": "publication",
-        "changes_requested": "remediation"
+        "changes_requested": "remediation_planning"
       },
       "rework_targets": [
         "inspection",
@@ -291,10 +408,57 @@
       ]
     },
     {
+      "id": "remediation_planning",
+      "handler": "produce",
+      "role": "executor",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and remediation_plan. Output: remediation_plan and evidence for this exact stage. Forbidden: product code, tests and target documentation changes. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Plan corrections against the original findings, unchanged goal and affected contracts. Distinguish current-stage corrections from a defect requiring an authorized Task restart.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record the substantive result and its evidence.",
+        "remediation_plan": "Plan corrections against the original findings, unchanged goal and affected contracts. Distinguish current-stage corrections from a defect requiring an authorized Task restart."
+      },
+      "required_sections": [
+        "report",
+        "remediation_plan"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "complete": "remediation_planning_inspection"
+      },
+      "rework_targets": [
+        "remediation_planning"
+      ]
+    },
+    {
+      "id": "remediation_planning_inspection",
+      "handler": "inspect",
+      "role": "reviewer",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Independently inspect the immediately preceding executor result.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record inspected obligations, evidence, findings and verdict."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "transitions": {
+        "clear": "remediation",
+        "changes_requested": "remediation_planning"
+      },
+      "rework_targets": [
+        "remediation_planning"
+      ]
+    },
+    {
       "id": "remediation",
       "handler": "revise",
       "role": "executor",
-      "instruction": "Исправить дефекты объединения без новой функциональности. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: current goal, DoR/DoD, accepted previous results and conflict_resolutions. Output: conflict_resolutions and evidence for this exact stage. Forbidden: changes outside the current stage scope or accepted design. Inspect code during planning, do not implement a prototype merely to approve the task formulation. Correct earlier-stage defects only through an agreed Task restart. Исправить дефекты объединения без новой функциональности. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": false,
       "allowed_paths": [
         "src/**",
@@ -329,7 +493,7 @@
       "id": "remediation_inspection",
       "handler": "inspect",
       "role": "reviewer",
-      "instruction": "Осмотреть corrections. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Inputs: unchanged goal, current DoR/DoD, preceding executor result, full diff and saved evidence. Inspect the specific result independently, including requirement coverage, stage separation and whether allowed_paths are sufficient for the next step. Output: report, reproducible findings, resolution decisions and clear/changes_requested. Forbidden: modifying product files or silently changing accepted tests/contracts. Agree an exact Task restart for earlier-stage defects; inspect automatic rewind history, never fabricate evidence. Осмотреть corrections. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",
@@ -342,7 +506,7 @@
       "artifact_requirements": [],
       "transitions": {
         "clear": "publication",
-        "changes_requested": "remediation"
+        "changes_requested": "remediation_planning"
       },
       "rework_targets": [
         "remediation_inspection",
@@ -358,7 +522,7 @@
       "id": "publication",
       "handler": "publish",
       "role": "executor",
-      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop. Publish only after explicit user authorization. Publish the reviewed commit, not unreviewed edits.",
+      "instruction": "Inputs: accepted stage evidence and exact registered commands/authorization. Execute only the declared mechanical operation; no role switch for its internal substeps. Output: terminal receipts or a truthful failure. Forbidden: treating elapsed time, a stale check or a publication receipt as Task completion. Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Submit one complete stage verification packet; continue authorized progression until an actual role boundary or entry gate. Publish only after explicit user authorization. Publish the reviewed commit, not unreviewed edits.",
       "read_only": true,
       "allowed_paths": [],
       "normalization": "strip",

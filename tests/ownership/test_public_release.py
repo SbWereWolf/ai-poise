@@ -12,6 +12,7 @@ from conftest import WorkPoise, add_test
 from poise.application.work import WorkTools
 from poise.infrastructure.sqlite.ownership import SqliteOwnershipRepository
 from poise.modules.foundation.errors import PoiseError
+from poise.modules.work.domain import parse_request
 
 
 def start(project, actor="release-owner", task_id="T1"):
@@ -53,8 +54,7 @@ def release_journal(client):
         )]
 
 
-def test_public_release_preserves_unknown_attempt_and_untracked_wip(project, monkeypatch):
-    owner, context = start(project)
+def preserve_unknown_attempt(owner, context, monkeypatch):
     add_test(context["worktree"])
     original = owner.runtime.evidence_commands.record_receipt
 
@@ -68,6 +68,13 @@ def test_public_release_preserves_unknown_attempt_and_untracked_wip(project, mon
     unresolved = execution_state(owner)[0]["pending"]
     assert unresolved["kind"] == "check_attempt"
     saved_evidence = owner.runtime.evidence_commands.list_for("T1")
+
+    return saved_evidence
+
+
+def test_public_release_preserves_unknown_attempt_and_untracked_wip(project, monkeypatch):
+    owner, context = start(project)
+    saved_evidence = preserve_unknown_attempt(owner, context, monkeypatch)
 
     def forbid_rerun(*args, **kwargs):
         raise AssertionError("ordinary release reran an unknown check")
@@ -190,17 +197,74 @@ def test_public_release_rolls_back_when_dependent_binding_cannot_be_cleared(proj
     assert release_journal(owner) == []
 
 
-@pytest.mark.parametrize("patch", [
-    {"reason": ""},
-    {"request_id": ""},
-    {"expected_version": "2"},
-    {"actor": "someone-else"},
+def test_public_release_rejects_foreign_dependent_worktree_without_mutation(project, monkeypatch):
+    owner, context = start(project)
+    evidence = preserve_unknown_attempt(owner, context, monkeypatch)
+    # Isolated fixture: retain the Task claim while moving its required worktree claim.
+    with owner.runtime.store.unit_of_work() as uow:
+        uow.ownership.bind_worktree("release-owner", None)
+        uow.ownership.bind_worktree("foreign-tree-owner", "T1")
+    task = owner.runtime.task_queries.record("T1")
+    bindings = [owner.runtime.ownership.snapshot(actor)
+                for actor in ("release-owner", "foreign-tree-owner")]
+    assert task["claimed_by"] == "release-owner"
+    assert bindings[0].worktree_task_id is None
+    assert bindings[1].worktree_task_id == "T1"
+    execution = execution_state(owner)
+    assert execution[0]["pending"]["kind"] == "check_attempt"
+    worktree = Path(context["worktree"])
+    wip = worktree / "foreign-owned.note"
+    wip.write_bytes(b"preserve foreign worktree WIP\n")
+    head = subprocess.check_output(["git", "-C", str(worktree), "rev-parse", "HEAD"])
+    status = subprocess.check_output(["git", "-C", str(worktree), "status", "--porcelain=v1"])
+    journal = release_journal(owner)
+    with pytest.raises(PoiseError):
+        owner.invoke(release_packet(task["version"]))
+    assert owner.runtime.task_queries.record("T1") == task
+    assert [owner.runtime.ownership.snapshot(actor)
+            for actor in ("release-owner", "foreign-tree-owner")] == bindings
+    assert execution_state(owner) == execution
+    assert owner.runtime.evidence_commands.list_for("T1") == evidence
+    assert release_journal(owner) == journal
+    assert wip.read_bytes() == b"preserve foreign worktree WIP\n"
+    assert subprocess.check_output(["git", "-C", str(worktree), "rev-parse", "HEAD"]) == head
+    assert subprocess.check_output(["git", "-C", str(worktree), "status", "--porcelain=v1"]) == status
+
+
+@pytest.mark.parametrize("mutation,field,value", [
+    pytest.param("omit", field, None, id=f"omit-{field}")
+    for field in ("task_id", "request_id", "expected_version", "reason")
+] + [
+    pytest.param("set", field, None, id=f"null-{field}")
+    for field in ("task_id", "request_id", "expected_version", "reason")
+] + [
+    pytest.param("set", "task_id", "", id="empty-task-id"),
+    pytest.param("set", "task_id", [], id="invalid-task-id"),
+    pytest.param("set", "reason", "", id="empty-reason"),
+    pytest.param("set", "request_id", "", id="empty-request-id"),
+    pytest.param("set", "expected_version", "2", id="string-version"),
+    pytest.param("float", "expected_version", None, id="equal-float-version"),
+    pytest.param("set", "expected_version", True, id="boolean-version"),
+    pytest.param("set", "actor", "someone-else", id="extra-actor"),
 ])
-def test_release_packet_requires_exact_schema_without_caller_identity(project, patch):
+def test_release_packet_requires_exact_schema_without_caller_identity(project, mutation, field, value):
     owner, context = start(project)
     packet = release_packet(context["version"])
-    packet["input"].update(patch)
+    if mutation == "omit":
+        del packet["input"][field]
+    else:
+        packet["input"][field] = float(context["version"]) if mutation == "float" else value
+    task = owner.runtime.task_queries.record("T1")
+    binding = owner.runtime.ownership.snapshot("release-owner")
+    execution = execution_state(owner)
+    journal = release_journal(owner)
+    # Require schema-level refusal even when numeric values compare equal.
+    with pytest.raises(PoiseError):
+        parse_request(packet, owner.runtime.cfg["batch"])
+    # Only a domain refusal is valid; incidental Python exceptions must fail.
     with pytest.raises(PoiseError):
         owner.invoke(packet)
-    assert owner.runtime.task_queries.record("T1")["claimed_by"] == "release-owner"
-    assert release_journal(owner) == []
+    assert owner.runtime.task_queries.record("T1") == task
+    assert owner.runtime.ownership.snapshot("release-owner") == binding
+    assert execution_state(owner) == execution
+    assert release_journal(owner) == journal

@@ -9,13 +9,15 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-from urllib.parse import unquote
 
 import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MANUAL = ROOT / "docs/configuration/local-assets.md"
+ERRORS = json.loads(
+    (Path(__file__).parent / "fixtures/error-contracts.json").read_text(encoding="utf-8")
+)
 
 
 def block(text: str, name: str) -> str:
@@ -24,71 +26,14 @@ def block(text: str, name: str) -> str:
     return found[0]
 
 
-def local_link_target(link: str, manual: Path = MANUAL) -> tuple[Path, str]:
-    path_part, _, fragment = unquote(link).partition("#")
-    target = manual if not path_part else (manual.parent / path_part).resolve()
-    return target, fragment
-
-
-def markdown_anchors(text: str) -> set[str]:
-    prose = []
-    fence: tuple[str, int] | None = None
-    for line in text.splitlines():
-        if fence is not None:
-            character, minimum = fence
-            if re.fullmatch(rf" {{0,3}}{re.escape(character)}{{{minimum},}}[ \t]*", line):
-                fence = None
-            continue
-        opening = re.fullmatch(r" {0,3}(`{3,}|~{3,})(.*)", line)
-        if opening is not None:
-            marker, info = opening.groups()
-            if marker[0] != "`" or "`" not in info:
-                fence = (marker[0], len(marker))
-                continue
-        prose.append(line)
-    prose_text = "\n".join(prose)
-    anchors = set(re.findall(r'<a\s+id="([^"]+)"', prose_text))
-    counts: dict[str, int] = {}
-    for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", prose_text, re.MULTILINE):
-        plain = re.sub(r"<[^>]*>", "", heading)
-        plain = re.sub(r"[`*_]", "", plain)
-        slug = re.sub(r"[^\w\- ]", "", plain.lower()).replace(" ", "-")
-        suffix = counts.get(slug, 0)
-        counts[slug] = suffix + 1
-        anchors.add(slug if suffix == 0 else f"{slug}-{suffix}")
-    return anchors
-
-
-def assert_local_link(link: str, manual: Path = MANUAL) -> None:
-    target, fragment = local_link_target(link, manual)
-    assert target.is_file(), link
-    if fragment:
-        assert fragment in markdown_anchors(target.read_text(encoding="utf-8")), link
-
-
-@pytest.mark.parametrize("code_block", [
-    "```bash\n# Comment only\n```\n",
-    "````bash\n```\n# Comment only\n````\n",
-    "~~~~bash\n~~~\n# Comment only\n~~~~\n",
-    "```bash\n# Comment only\n````\n",
-    "```bash\n# Comment only\n```oops\n# Still code\n```\n",
-    "```bash\n# Comment only\n``` \t\n",
-])
-def test_fenced_shell_comment_is_not_a_markdown_anchor(
-    tmp_path: Path, code_block: str,
-) -> None:
-    manual = tmp_path / "sample.md"
-    manual.write_text(
-        "# Real heading\n" + code_block + "# After close\n",
-        encoding="utf-8",
+def check_documentation(checkout: Path, changed: str) -> tuple[subprocess.CompletedProcess[str], dict]:
+    completed = subprocess.run(
+        [sys.executable, str(ROOT / "tools/check_documentation.py"),
+         "--checkout", str(checkout), "--changed", changed],
+        cwd=ROOT, text=True, capture_output=True, check=False,
     )
-    assert_local_link("#real-heading", manual)
-    assert_local_link("#after-close", manual)
-    with pytest.raises(AssertionError):
-        assert_local_link("#comment-only", manual)
-    if "# Still code" in code_block:
-        with pytest.raises(AssertionError):
-            assert_local_link("#still-code", manual)
+    assert completed.stdout, completed.stderr
+    return completed, json.loads(completed.stdout)
 
 
 def run(command: str, env: dict[str, str]) -> tuple[subprocess.CompletedProcess[str], dict]:
@@ -145,7 +90,7 @@ def fixture(tmp_path: Path, erp: Path) -> tuple[Path, Path, Path, Path]:
 def test_documented_restore_reader_and_missing_snapshot_examples_execute(tmp_path: Path) -> None:
     erp_source = os.environ.get("ERP_SOURCE_ROOT")
     if erp_source is None:
-        pytest.skip("ERP_SOURCE_ROOT selects the owning reader and tracked policies")
+        pytest.fail("ERP_SOURCE_ROOT must explicitly select the owning reader and tracked policies")
     erp = Path(erp_source)
     text = MANUAL.read_text(encoding="utf-8")
     restore_command = block(text, "restore-example")
@@ -154,16 +99,12 @@ def test_documented_restore_reader_and_missing_snapshot_examples_execute(tmp_pat
     assert "Poise Task DB" in text
     assert "missing_working_source" in text
     assert "Supply the matching snapshot asset; owner repair is unavailable." in text
-    for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
-        if link.startswith(("https://", "http://", "#")):
-            if link.startswith("#"):
-                assert_local_link(link)
-            continue
-        assert_local_link(link)
-    with pytest.raises(AssertionError):
-        assert_local_link("#definitely-nonexistent-heading")
-    with pytest.raises(AssertionError):
-        assert_local_link("project-setup.md#definitely-nonexistent-heading")
+    checked_docs, link_report = check_documentation(ROOT, "docs/configuration/local-assets.md")
+    assert checked_docs.returncode == 0, checked_docs.stderr + checked_docs.stdout
+    assert link_report["status"] == "valid"
+    assert link_report["errors"] == []
+    assert link_report["read_only"] is True
+    assert link_report["network_access"] is False
 
     target, source, manifest, request = fixture(tmp_path / "complete", erp)
     env = {
@@ -195,9 +136,7 @@ def test_documented_restore_reader_and_missing_snapshot_examples_execute(tmp_pat
     incomplete, error = run(restore_command, incomplete_env)
     assert incomplete.returncode == 3
     assert error == {
-        "status": "rejected", "code": "missing_working_source",
+        **ERRORS["missing_working_source"]["reply"],
         "asset": "ai-assistant/agent/document-intake-policy.json",
-        "reason": "Declared working source asset is missing.",
-        "recovery": "Supply the matching snapshot asset; owner repair is unavailable.",
     }
     assert not (missing_target / "ai-assistant/agent/output-policy.json").exists()

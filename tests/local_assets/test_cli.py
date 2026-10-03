@@ -73,61 +73,19 @@ def restore(manifest: Path, request: dict) -> tuple[subprocess.CompletedProcess[
     return completed, json.loads(completed.stdout)
 
 
-ERRORS = {
-    "missing_working_source": (
-        3, "Declared working source asset is missing.",
-        "Supply the matching snapshot asset; owner repair is unavailable.",
-    ),
-    "missing_repairable_source": (
-        3, "Declared working source asset is missing.",
-        "Supply the matching snapshot asset or run the declared owner repair, then retry.",
-    ),
-    "missing_example_source": (
-        3, "Declared example source asset is missing.",
-        "Supply the declared example in the source snapshot and retry.",
-    ),
-    "project_mismatch": (
-        2, "Project identity does not match the asset declaration.",
-        "Select the declared project ID and retry.",
-    ),
-    "target_root_mismatch": (
-        2, "Target root does not match the asset declaration.",
-        "Select the declared target Git checkout root and retry.",
-    ),
-    "unsafe_asset_path": (
-        2, "Asset path is not a safe relative path.",
-        "Correct the asset declaration path and retry.",
-    ),
-    "unsafe_source_path": (
-        2, "Source path is not a safe relative path.",
-        "Correct the source declaration path and retry.",
-    ),
-    "unsafe_source_root": (
-        2, "Source root is not a safe existing directory.",
-        "Select a real source snapshot directory and retry.",
-    ),
-    "unsafe_symlink": (
-        2, "Asset path contains a symlink.",
-        "Replace the symlinked path with a real path and retry.",
-    ),
-    "source_digest_mismatch": (
-        2, "Source asset digest does not match the declaration.",
-        "Restore the declared source bytes or correct the declaration through its owner.",
-    ),
-}
+ERRORS = json.loads(
+    (Path(__file__).parent / "fixtures/error-contracts.json").read_text(encoding="utf-8")
+)
 
 
 def assert_rejected(
     completed: subprocess.CompletedProcess[str], reply: dict, *,
     code: str, asset_path: str | None, secret: str = "SYNTHETIC_SECRET_DO_NOT_EXPOSE",
 ) -> None:
-    expected_exit, reason, recovery = ERRORS[code]
-    assert completed.returncode == expected_exit
+    expected = {**ERRORS[code]["reply"], "asset": asset_path}
+    assert completed.returncode == ERRORS[code]["exit_code"]
     assert completed.stderr == ""
-    assert reply == {
-        "status": "rejected", "code": code, "asset": asset_path,
-        "reason": reason, "recovery": recovery,
-    }
+    assert reply == expected
     assert secret not in completed.stdout
     assert secret not in completed.stderr
 
@@ -403,7 +361,7 @@ def test_invalid_later_asset_preflight_writes_nothing(
 def test_restored_policy_makes_owning_reader_usable(tmp_path: Path) -> None:
     erp = os.environ.get("ERP_SOURCE_ROOT")
     if erp is None:
-        pytest.skip("ERP_SOURCE_ROOT selects the owning reader and tracked policies")
+        pytest.fail("ERP_SOURCE_ROOT must explicitly select the owning reader and tracked policies")
     erp_root = Path(erp)
     reader = erp_root / "ai-assistant/agent/content-read.py"
     policy_paths = (
@@ -444,3 +402,81 @@ def test_restored_policy_makes_owning_reader_usable(tmp_path: Path) -> None:
     assert reader_reply["hash"] == digest(b"Fixture heading\n")
     assert reader_reply["content_bytes"] == len(b"Fixture heading\n")
     assert reader_reply["content_lines"] == 1
+
+
+@pytest.mark.parametrize("problem", [
+    "malformed_json", "non_object", "wrong_schema", "missing_project",
+    "unknown_field", "duplicate_project",
+])
+def test_invalid_request_is_diagnostic_and_writes_nothing(tmp_path: Path, problem: str) -> None:
+    relative = "ai-assistant/agent/document-intake-policy.json"
+    target, source, manifest, request = case(tmp_path, [(relative, b"required", "working")])
+    request["project"] = "SYNTHETIC_SECRET_DO_NOT_EXPOSE"
+    if problem == "malformed_json":
+        raw = '{"project":"SYNTHETIC_SECRET_DO_NOT_EXPOSE"'
+    elif problem == "non_object":
+        raw = json.dumps([request])
+    elif problem == "duplicate_project":
+        raw = json.dumps(request)[:-1] + ',"project":"ERP"}'
+    else:
+        if problem == "wrong_schema":
+            request["schema"] = "unknown"
+        elif problem == "missing_project":
+            del request["project"]
+        else:
+            request["extra"] = "SYNTHETIC_SECRET_DO_NOT_EXPOSE"
+        raw = json.dumps(request)
+    completed = subprocess.run(
+        [sys.executable, "-m", "poise", "local-assets", "--manifest", str(manifest)],
+        input=raw, text=True, capture_output=True, check=False,
+    )
+    assert completed.stdout, completed.stderr
+    assert_rejected(completed, json.loads(completed.stdout), code="invalid_request", asset_path=None)
+    assert not (target / relative).exists()
+    assert (source / relative).read_bytes() == b"required"
+
+
+@pytest.mark.parametrize("problem", [
+    "malformed_json", "non_object", "wrong_schema", "missing_assets",
+    "unknown_field", "duplicate_asset", "unknown_kind",
+])
+def test_invalid_declaration_is_diagnostic_and_writes_nothing(tmp_path: Path, problem: str) -> None:
+    relative = "ai-assistant/agent/document-intake-policy.json"
+    target, source, manifest, request = case(tmp_path, [(relative, b"required", "working")])
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    if problem == "malformed_json":
+        raw = '{"project":"SYNTHETIC_SECRET_DO_NOT_EXPOSE"'
+    elif problem == "non_object":
+        raw = json.dumps([document])
+    else:
+        if problem == "wrong_schema":
+            document["schema"] = "unknown"
+        elif problem == "missing_assets":
+            del document["assets"]
+        elif problem == "unknown_field":
+            document["extra"] = "SYNTHETIC_SECRET_DO_NOT_EXPOSE"
+        elif problem == "duplicate_asset":
+            document["assets"].append(dict(document["assets"][0]))
+        else:
+            document["assets"][0]["kind"] = "unknown"
+        raw = json.dumps(document)
+    manifest.write_text(raw, encoding="utf-8")
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="invalid_manifest", asset_path=None)
+    assert not (target / relative).exists()
+    assert (source / relative).read_bytes() == b"required"
+
+
+def test_declared_non_git_target_root_rejects_without_writing(tmp_path: Path) -> None:
+    relative = "ai-assistant/agent/document-intake-policy.json"
+    _, source, manifest, request = case(tmp_path, [(relative, b"required", "working")])
+    target = tmp_path / "not-a-checkout"
+    target.mkdir()
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    document["target_root"] = str(target)
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    request["target_root"] = str(target)
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="invalid_target_root", asset_path=None)
+    assert list(target.iterdir()) == []
+    assert (source / relative).read_bytes() == b"required"

@@ -1,0 +1,132 @@
+{
+  "missing_working_source": {
+    "exit_code": 3,
+    "reply": {
+      "status": "rejected",
+      "code": "missing_working_source",
+      "asset": null,
+      "reason": "Declared working source asset is missing.",
+      "recovery": "Supply the matching snapshot asset; owner repair is unavailable."
+    }
+  },
+  "missing_repairable_source": {
+    "exit_code": 3,
+    "reply": {
+      "status": "rejected",
+      "code": "missing_repairable_source",
+      "asset": null,
+      "reason": "Declared working source asset is missing.",
+      "recovery": "Supply the matching snapshot asset or run the declared owner repair, then retry."
+    }
+  },
+  "missing_example_source": {
+    "exit_code": 3,
+    "reply": {
+      "status": "rejected",
+      "code": "missing_example_source",
+      "asset": null,
+      "reason": "Declared example source asset is missing.",
+      "recovery": "Supply the declared example in the source snapshot and retry."
+    }
+  },
+  "project_mismatch": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "project_mismatch",
+      "asset": null,
+      "reason": "Project identity does not match the asset declaration.",
+      "recovery": "Select the declared project ID and retry."
+    }
+  },
+  "target_root_mismatch": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "target_root_mismatch",
+      "asset": null,
+      "reason": "Target root does not match the asset declaration.",
+      "recovery": "Select the declared target Git checkout root and retry."
+    }
+  },
+  "unsafe_asset_path": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "unsafe_asset_path",
+      "asset": null,
+      "reason": "Asset path is not a safe relative path.",
+      "recovery": "Correct the asset declaration path and retry."
+    }
+  },
+  "unsafe_source_path": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "unsafe_source_path",
+      "asset": null,
+      "reason": "Source path is not a safe relative path.",
+      "recovery": "Correct the source declaration path and retry."
+    }
+  },
+  "unsafe_source_root": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "unsafe_source_root",
+      "asset": null,
+      "reason": "Source root is not a safe existing directory.",
+      "recovery": "Select a real source snapshot directory and retry."
+    }
+  },
+  "unsafe_symlink": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "unsafe_symlink",
+      "asset": null,
+      "reason": "Asset path contains a symlink.",
+      "recovery": "Replace the symlinked path with a real path and retry."
+    }
+  },
+  "source_digest_mismatch": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "source_digest_mismatch",
+      "asset": null,
+      "reason": "Source asset digest does not match the declaration.",
+      "recovery": "Restore the declared source bytes or correct the declaration through its owner."
+    }
+  },
+  "invalid_request": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "invalid_request",
+      "asset": null,
+      "reason": "Restore request is invalid.",
+      "recovery": "Supply a valid local-assets-restore-1 request and retry."
+    }
+  },
+  "invalid_manifest": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "invalid_manifest",
+      "asset": null,
+      "reason": "Asset declaration is invalid.",
+      "recovery": "Supply a valid local-assets-1 declaration and retry."
+    }
+  },
+  "invalid_target_root": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "invalid_target_root",
+      "asset": null,
+      "reason": "Target root is not an existing Git checkout root.",
+      "recovery": "Select the declared existing Git checkout root and retry."
+    }
+  }
+}

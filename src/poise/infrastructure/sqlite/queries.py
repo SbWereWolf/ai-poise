@@ -87,14 +87,25 @@ class TaskQueries:
         from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
         status = TaskStatus.parse(row['status'])
         from .tasks import SqliteTaskRepository
+        repository = SqliteTaskRepository(db)
         from ...modules.tasks.duplicates import family_projection
-        duplicate = family_projection(SqliteTaskRepository(db).read_duplicate_family(task_id),task_id)
+        duplicate = family_projection(repository.read_duplicate_family(task_id),task_id)
         family_fields = {} if duplicate is None else {'duplicate':duplicate}
         workflow = {} if row['workflow'] is None else json.loads(row['workflow'])
         if 'duplicate_reuse' in workflow:
             family_fields['duplicate_reuse'] = workflow['duplicate_reuse']
+        metadata = json.loads(row['metadata']) | family_fields
+        if status is not TaskStatus.NEWBORN:
+            registry = repository._current_registry(task_id, metadata, workflow)
+            if is_terminal_task_status(status) and registry.executable_obligations:
+                registry.validate_inspection_exit()
+            metadata['contract']['methods'] = [entry.to_dict()['method'] for entry in registry.entries]
+            metadata['contract']['checks'] = {
+                stage['id']: [entry.method_id for entry in registry.entries
+                              if stage['id'] in entry.stages]
+                for stage in metadata['process']['stages']
+            }
         if is_terminal_task_status(status):
-            metadata = json.loads(row['metadata']) | family_fields
             execution = {} if row['execution'] is None else json.loads(row['execution'])
             return {**metadata, **execution, 'id': row['id'], 'status': status.value,
                     'version': row['version'], '_version': row['version'],
@@ -103,7 +114,6 @@ class TaskQueries:
                     'sprint_id': metadata.get('sprint_id'), 'worktree': execution.get('worktree'),
                     'result_commit': (execution.get('last_report') or {}).get('commit')}
         # Transitional DTO for the existing runner. Lifecycle fields are read-only here.
-        metadata = json.loads(row['metadata']) | family_fields
         from .tasks import progression_view
         progression = progression_view(db, task_id)
         history = [json.loads(item[0]) for item in db.execute(
@@ -138,13 +148,6 @@ class TaskQueries:
                 'history':history,
                 'progression':progression,
             }
-        from .tasks import without_retired_method_timeout
-        items = [without_retired_method_timeout(json.loads(r[0])) for r in db.execute(
-            'SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid', (task_id,)
-        )]
-        metadata['contract']['methods'] = [item['method'] for item in items]
-        metadata['contract']['checks'] = {s['id']:[item['method']['id'] for item in items if s['id'] in item['stages']]
-                                          for s in metadata['process']['stages']}
         execution = ({"worktree":None,"branch":None,"base":None,"attempts":0,"publication":None,
                       "pending":None,"entry_tree":None,"last_report":None} if row["execution"] is None else json.loads(row["execution"]))
         rowmap=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()

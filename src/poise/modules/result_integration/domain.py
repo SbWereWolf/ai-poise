@@ -294,6 +294,13 @@ class IntegrationRun:
             "running", "publishing", "publication_retry_started", failure=None,
         )
 
+    def recheck_publication(self):
+        if self.phase not in ("publishing", "publication_failed"):
+            raise DomainError("Only a pending publication can return to candidate checks")
+        return self._step(
+            "running", "candidate_ready", "publication_checks_restarted", failure=None,
+        )
+
     def publication_confirmed(self, target_ref, receipt, *, no_op, recovered):
         if (self.phase != "publishing" or self.integration_head is None
                 or self.last_included_target is None):

@@ -536,6 +536,10 @@ class RuntimeResultIntegration:
             path.mkdir(mode=0o700)
 
     def _backup_configuration(self, run):
+        def source_identity(info):
+            return (info.st_dev, info.st_ino, info.st_size, info.st_mode,
+                    info.st_mtime_ns, info.st_ctime_ns)
+
         paths = run.intent.config_backup_paths
         if not paths or run.cleanup["task_worktree"] == "removed":
             return run, True
@@ -547,6 +551,7 @@ class RuntimeResultIntegration:
         prior = next((item["details"]["files"] for item in run.history
                       if item.get("event") == "configuration_backup_completed"), None)
         files = []
+        failure_reason = "configuration_backup_failed"
         try:
             self._private_directory(recovery.parent)
             self._private_directory(recovery)
@@ -559,8 +564,12 @@ class RuntimeResultIntegration:
                 with os.fdopen(fd, "rb") as stream:
                     info = os.fstat(stream.fileno())
                     if not stat.S_ISREG(info.st_mode):
+                        failure_reason = "configuration_source_changed"
                         raise PoiseError("Declared configuration changed during backup")
                     content = stream.read()
+                    if source_identity(info) != source_identity(os.fstat(stream.fileno())):
+                        failure_reason = "configuration_source_changed"
+                        raise PoiseError("Declared configuration changed during backup")
                 destination = recovery
                 for part in Path(relative).parts[:-1]:
                     destination = destination / part
@@ -581,6 +590,10 @@ class RuntimeResultIntegration:
                         stream.write(content)
                         stream.flush()
                         os.fsync(stream.fileno())
+                failure_reason = "configuration_source_changed"
+                if source_identity(info) != source_identity(source.lstat()):
+                    raise PoiseError("Declared configuration changed during backup")
+                failure_reason = "configuration_backup_failed"
                 files.append({
                     "path": relative, "status": "copied", "sha256": digest,
                     "source_mode": stat.S_IMODE(info.st_mode),
@@ -588,7 +601,7 @@ class RuntimeResultIntegration:
                 })
         except (OSError, PoiseError):
             blocked = run.cleanup_blocked(
-                "task_worktree", {"reason": "configuration_backup_failed"}
+                "task_worktree", {"reason": failure_reason}
             )
             self._save(run.intent.task_id, blocked, run.version)
             return blocked, False

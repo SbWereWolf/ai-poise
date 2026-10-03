@@ -165,6 +165,7 @@ def test_configured_full_message_refusal_precedes_git_load_and_state_change(
     payload["authorization"] = "Accepted header\n\nAllowed body"
     tools.runtime.cfg["git"]["commit_pattern"] = "Accepted header\\n\\nAllowed body"
     before = business_state(tools), git_state(child), git_state(project["app"])
+    config_before = deepcopy(tools.runtime.cfg), project["config_path"].read_bytes()
 
     def forbidden(*args, **kwargs):
         pytest.fail("Invalid message reached Git or integration load")
@@ -177,6 +178,53 @@ def test_configured_full_message_refusal_precedes_git_load_and_state_change(
         else:
             tools.runtime.integration_tools.prepare_source(payload)
     assert (business_state(tools), git_state(child), git_state(project["app"])) == before
+    assert (tools.runtime.cfg, project["config_path"].read_bytes()) == config_before, (
+        "Configuration changed after invalid-message refusal"
+    )
+
+
+@pytest.mark.parametrize("entry", ["apply", "prepare_source"])
+@pytest.mark.parametrize("mutation", ["none", "runtime", "manifest"])
+def test_refusal_configuration_oracle_sensitivity(project, monkeypatch, entry, mutation):
+    """Exercise the actual refusal test with effect-free and poisoned refusals."""
+    calls = []
+
+    def refuse(runtime):
+        calls.append(mutation)
+        if mutation == "runtime":
+            runtime.cfg["git"]["commit_pattern"] = "REJECTION_MUTATED_CONFIGURATION"
+        elif mutation == "manifest":
+            # Only this fixture's temporary manifest; keep JSON valid.
+            manifest = project["config_path"]
+            manifest.write_bytes(manifest.read_bytes() + b" ")
+        raise PoiseError("configured pattern")
+
+    if entry == "apply":
+        original = WorkTools.invoke
+
+        def controlled(self, packet):
+            if packet["operation"] == "integrate":
+                return refuse(self.runtime)
+            return original(self, packet)
+
+        monkeypatch.setattr(WorkTools, "invoke", controlled)
+    else:
+        def controlled(self, packet):
+            return refuse(self.port.h)
+
+        monkeypatch.setattr(ResultIntegrationCommands, "prepare_source", controlled)
+
+    def observe():
+        test_configured_full_message_refusal_precedes_git_load_and_state_change(
+            project, monkeypatch, entry, "Accepted header\n\nForbidden body",
+        )
+
+    if mutation == "none":
+        observe()
+    else:
+        with pytest.raises(AssertionError, match="Configuration changed after invalid-message refusal"):
+            observe()
+    assert calls == [mutation]
 
 
 @pytest.mark.parametrize("message", [

@@ -20,7 +20,7 @@ from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, run_command, contains, method_passed, preview, timeout_profile
+from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, preview, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
 from .infrastructure.duplicate_admission import duplicate_admission
 from .common import worktree_root
@@ -1658,26 +1658,9 @@ class Poise:
                 maintenance_path=Path(maintenance['path'])
                 if not maintenance_path.is_file() or file_digest(maintenance_path)!=maintenance['digest']:
                     return False
-            declarations = method.get('outputs', [])
-            outputs = r.get('outputs')
-            if not isinstance(outputs, list) or len(outputs) != len(declarations):
+            intact, _ = inspect_declared_output_receipts(method.get('outputs', []), r.get('outputs'))
+            if not intact:
                 return False
-            for declaration, output in zip(declarations, outputs, strict=True):
-                expected_output = {
-                    'id': declaration['id'],
-                    'declared_path': declaration['path'],
-                    'required': declaration['required'],
-                }
-                if any(output.get(key) != value for key, value in expected_output.items()):
-                    return False
-                if output.get('status') == 'captured':
-                    captured = Path(output.get('path', ''))
-                    if (not captured.is_file() or captured.is_symlink()
-                            or output.get('digest') != file_digest(captured)
-                            or output.get('size') != captured.stat().st_size):
-                        return False
-                elif output.get('status') not in ('missing', 'invalid'):
-                    return False
         return True
 
     def _usable_receipts(self, task_id, receipts, invocations, tree):

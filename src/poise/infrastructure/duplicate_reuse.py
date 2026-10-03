@@ -208,7 +208,8 @@ class DuplicateReuseWorkspace:
             return tree, key, batch['receipts']
         if not is_check_attempt(data['pending']):
             h.runner.begin_check_attempt(task_id, h.session, tree, key, [m['id'] for m in methods],
-                h.cfg['limits']['verify_attempts'], data['_version'], candidate_digest)
+                h.cfg['limits']['verify_attempts'], data['_version'], candidate_digest,
+                h._attempt_identity(tree, invocations))
         else:
             h.runner.current_check_attempt(task_id, h.session, tree, key, [m['id'] for m in methods])
         data = h.task_queries.record(task_id)

@@ -222,7 +222,10 @@ class TaskQueries:
             if repository.is_newborn(task_id):
                 newborn = repository.load_newborn(task_id)
                 workflow = db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()
-                historical = None if workflow is None else json.loads(workflow[0]).get('registry')
+                historical = None
+                if workflow is not None:
+                    registry = repository.restarted_registry(task_id)
+                    historical = {**registry.to_state(), **registry.current_snapshot.to_dict()}
                 return {
                     'status': 'read_only', 'task': task_id, 'task_status': 'newborn',
                     'active_contract': False, 'revision': None, 'current': [],

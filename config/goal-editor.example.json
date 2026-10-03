@@ -6,7 +6,7 @@
   "responses": "projects/ai-poise/.runtime/config-responses",
   "file_mode": 420,
   "json_indent": 2,
-  "lock_seconds": 2.0,
+  "lock_seconds": 2,
   "lock_poll_seconds": 0.01,
   "max_changes": 2000,
   "max_input_bytes": 1000000,
@@ -24,13 +24,13 @@
   "templates": {
     "development-v1": {
       "path": "config/templates/development-v1.json",
-      "version": "2",
-      "digest": "a2ace5fc1b9d35d4f33c66ddb7fd7b0a98b61377dc057cf55fd95a26f6005447"
+      "version": "3",
+      "digest": "a94c6867d3a23ac7611d6866cc6043efdfa1eae3c79cd5079295ed6bed945f87"
     },
     "documentation-v1": {
       "path": "config/templates/documentation-v1.json",
-      "version": "2",
-      "digest": "04c409f1c71f48301cf7e69af79025212ef060cf071b2b1649fa6c32635f97d4"
+      "version": "3",
+      "digest": "a8b9447c0e75c4a659a30e4d49634abfe2df7d2496ca823d9359aace282a8b2d"
     }
   }
 }

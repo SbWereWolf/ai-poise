@@ -29,6 +29,14 @@ and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвента�
 shape is not a blocker; structural validation does not prove that known required writes and verification obligations
 were inventoried. Design exact future test methods and provenance at their owning stage after their sources are known.
 
+Separate Sprint graph planning, bounded Task formulation and detailed execution
+design. Do not implement a prototype merely to approve a Task formulation or demand
+future test names at creation. Preserve the accepted goal's meaning. Paired starters
+give each substantive executor result independent review; the reviewer checks
+stage separation and sufficient allowed_paths. Follow the canonical
+[paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
+and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
+
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
 present self-review as independent review.

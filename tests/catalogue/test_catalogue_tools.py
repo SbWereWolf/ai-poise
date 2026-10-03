@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 def test_shipped_editor_mutable_paths_are_project_local_and_configured():
-    project=json.loads((ROOT/'config/projects/ai-poise/project.json').read_text())
+    project=json.loads((ROOT/'config/projects/ai-poise/project.example.json').read_text())
     assert project['paths']['runtime']=='.runtime'
     assert project['paths']['standalone_tasks']=='standalone'
     assert 'tasks' not in project['paths']
@@ -22,7 +22,7 @@ def test_shipped_editor_mutable_paths_are_project_local_and_configured():
     assert project['paths']['database']=='database/tasks.sqlite'
     assert project['paths']['lock']=='database/tasks.lock'
 
-    for relative in ('config/catalogue/editor.json','config/goal-editor.json'):
+    for relative in ('config/catalogue/editor.example.json','config/goal-editor.example.json'):
         path=ROOT/relative
         settings=json.loads(path.read_text())
         assert (path.parent/settings['root']).resolve()==ROOT
@@ -35,8 +35,12 @@ def prepare(tmp_path):
     root=tmp_path/'home';root.mkdir()
     for name in ('process-templates','task-templates'):
         shutil.copytree(ROOT/'config/catalogue'/name,root/'config/catalogue'/name)
-    for name in ('settings.json','editor.json','reference.json'):
-        shutil.copy2(ROOT/'config/catalogue'/name,root/'config/catalogue'/name)
+    for source, name in (
+        ('settings.example.json', 'settings.json'),
+        ('editor.example.json', 'editor.example.json'),
+        ('reference.json', 'reference.json'),
+    ):
+        shutil.copy2(ROOT/'config/catalogue'/source,root/'config/catalogue'/name)
     repo=FileCatalogue(root/'config/catalogue/settings.json')
     tools=CatalogueCommands(repo,goal_config_tools(repo.editor.path),repo.raw['max_items'])
     items=[{'goal_type':g,'request_id':'install-'+g,'mode':'create','expected_revision':None,

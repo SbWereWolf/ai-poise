@@ -9,7 +9,7 @@ import stat
 import subprocess
 import uuid
 
-from ..common import descendant, file_digest, prohibit_git_push
+from ..common import descendant, digest, file_digest, prohibit_git_push
 from ..execution import method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
@@ -334,6 +334,8 @@ class RuntimeResultIntegration:
             self._checked_workspace(run)
             receipts.append({
                 **result, "id": check_id, "method": method["id"],
+                "definition_digest": digest(method),
+                "contract_digest": self._contract_digest(record),
                 "integration_head": head, "verified_tree": verified_tree,
                 "argv": method["argv"], "cwd": str(cwd),
                 "expected_exit_code": method["expected_exit_code"],
@@ -346,6 +348,62 @@ class RuntimeResultIntegration:
         checked = run.checks_recorded(receipts)
         self._save(run.intent.task_id, checked, run.version)
         return checked
+
+    @staticmethod
+    def _contract_digest(record):
+        return digest({"contract": record["contract"], "task_version": record["version"]})
+
+    def _has_current_checks(self, record, run):
+        worktree, head = self._checked_workspace(run)
+        tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
+        required = {method["id"]: method for method in self._select_checks(record)}
+        passed = next((event for event in reversed(run.history)
+                       if event["event"] == "checks_passed"), None)
+        if passed is None:
+            return False
+        details = passed.get("details")
+        if not isinstance(details, dict) or not isinstance(details.get("check_ids"), list):
+            return False
+        identifiers = details["check_ids"]
+        if (len(identifiers) != len(required)
+                or any(not isinstance(value, str) for value in identifiers)
+                or len(set(identifiers)) != len(identifiers)):
+            return False
+        selected = []
+        for identifier in identifiers:
+            matching = [item for item in run.checks
+                        if isinstance(item, dict) and item.get("id") == identifier]
+            if len(matching) != 1:
+                return False
+            selected.append(matching[0])
+        if {item.get("method") for item in selected} != set(required):
+            return False
+        contract_digest = self._contract_digest(record)
+        for receipt in selected:
+            method = required[receipt["method"]]
+            if (receipt.get("passed") is not True
+                    or receipt.get("integration_head") != head
+                    or receipt.get("verified_tree") != tree
+                    or receipt.get("definition_digest") != digest(method)
+                    or receipt.get("contract_digest") != contract_digest
+                    or receipt.get("argv") != method["argv"]
+                    or receipt.get("cwd") != str((worktree / method["cwd"]).resolve())
+                    or receipt.get("expected_exit_code") != method["expected_exit_code"]
+                    or receipt.get("actual_exit_code") != method["expected_exit_code"]
+                    or receipt.get("timed_out") is not False
+                    or receipt.get("cancelled") is True
+                    or receipt.get("capture_complete") is not True):
+                return False
+            for name in ("stdout", "stderr"):
+                value = receipt.get(name)
+                if not isinstance(value, str) or not value:
+                    return False
+                path = Path(value)
+                if not path.is_file() or file_digest(path) != receipt.get(name + "_digest"):
+                    return False
+            if not method_passed(method, receipt):
+                return False
+        return True
 
     def _publication_lock(self):
         identity = hashlib.sha256(self._target_ref().encode()).hexdigest()[:16]
@@ -708,6 +766,18 @@ class RuntimeResultIntegration:
                 if run.phase == "checks_failed":
                     return run.result()
             if run.phase == "publishing":
+                try:
+                    current_checks = self._has_current_checks(record, run)
+                except PoiseError as exc:
+                    run = self._publication_failed(
+                        run, "task_worktree_changed", {"error": str(exc)},
+                    )
+                    return run.result()
+                if not current_checks:
+                    renewed = run.require_current_checks()
+                    self._save(intent.task_id, renewed, run.version)
+                    run = renewed
+                    continue
                 run = self._publish(run, repository)
                 if run.phase == "updating":
                     continue

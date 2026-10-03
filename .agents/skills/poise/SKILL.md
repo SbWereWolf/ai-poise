@@ -52,6 +52,13 @@ hook SQLite registry manually. Reuse the same request after an interrupted write
 Read [installation identity
 reconciliation](../../../docs/configuration/runtime-hooks.md#согласование-installation-identity-после-переименования).
 
+Before an unfamiliar operation, follow [packet preparation and refusal
+handling](../../../docs/workflows/batch-work.md#подготовка-пакета-и-разбор-отказа): use the actual
+configured creation path, exact packet shape and current lifecycle; do not guess API fields. For an
+agent-use incident, follow [instruction
+clarity](../../../docs/governance/development-rules.md#ошибки-применения-и-точность-инструкций);
+detailed corrections belong in canonical docs, with a short skill link.
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
@@ -415,7 +422,8 @@ read-only sources of facts for this configuration boundary.
 
 ## Procedure for migrated skill selection
 
-For current Task discipline load [exec-task](../exec-task/SKILL.md); for preparing focused Tasks or Sprint graphs load
+For current Task discipline load [exec-task](../exec-task/SKILL.md); for formulating one Task load
+[task-design](../task-design/SKILL.md); for Sprint graphs load
 [sprint-design](../sprint-design/SKILL.md). Keep the exact packets, launcher, lifecycle and evidence semantics in this
 skill and its canonical documentation. Load other catalogue skills only when relevant to the current stage and real
 project stack, not as a blanket catalogue read.

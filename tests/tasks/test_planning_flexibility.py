@@ -381,7 +381,7 @@ def test_allocated_workspace_is_preserved_not_silently_replaced(project):
 
 def test_registered_goal_materializes_without_global_project_route(project):
     project['cfg']['task_planning'] = {
-        'catalogue': str(Path(__file__).resolve().parents[2] / 'config/catalogue/settings.json'),
+        'catalogue': str(Path(__file__).resolve().parents[2] / 'config/catalogue/settings.example.json'),
         'restart_revision_policy': deepcopy(POLICY)}
     c = client(project)
     out = task_action(c, action='create', task_id='TEST-WORK', sprint_id=None,

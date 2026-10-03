@@ -187,6 +187,8 @@ def validate_method(
         fields.add('verification_plan')
     if isinstance(method, dict) and 'outputs' in method:
         fields.add('outputs')
+    if isinstance(method, dict) and 'artifact_inputs' in method:
+        fields.add('artifact_inputs')
     exact_keys(method, fields, where)
     if not isinstance(method['argv'], list) or not method['argv'] or any(
         not isinstance(s, str) for s in method['argv']
@@ -201,6 +203,9 @@ def validate_method(
     for field in ('stdout_contains', 'stderr_contains'):
         if not isinstance(method[field], list) or any(not isinstance(x, str) for x in method[field]):
             raise DomainError(f'{where}.{field}: требуется список строк')
+    if 'artifact_inputs' in method:
+        from .retention import ArtifactInputs
+        ArtifactInputs.parse(method['artifact_inputs'], method['environment'])
     if not isinstance(method['id'], str) or not method['id']:
         raise DomainError(f'{where}: требуется id метода')
     if not isinstance(method['cwd'], str):

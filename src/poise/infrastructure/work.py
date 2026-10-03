@@ -15,8 +15,10 @@ class WorkResources:
     """Composition-side file/receipt adapter, not a generic editor of task tables."""
     def __init__(self,runtime):self.runtime=runtime
 
-    def factory(self):
-        h=self.runtime;task=h.store.current(h.session)
+    def factory(self, task=None):
+        h=self.runtime
+        if task is None:
+            task=h.store.current(h.session)
         roots={'runtime':h.runtime} if task is None else h._roots(task)
         if task is None:
             sprint=h.sprint_tools.overview(None)

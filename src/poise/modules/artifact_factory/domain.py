@@ -13,15 +13,34 @@ def relative(value):
     if not isinstance(value,str) or not value or '\\' in value or '\x00' in value:
         raise DomainError('Artifact path must be a nonempty relative POSIX path')
     if any(part in ('','..','.') for part in value.split('/')):
-        raise DomainError('Artifact path must remain below the selected owner directory')
+        raise DomainError('Artifact relative path must remain below the selected owner directory')
     return value
+
+
+@dataclass(frozen=True)
+class FileArtifactSource:
+    path: str
+    digest: str
+
+    @classmethod
+    def parse(cls, source):
+        exact(source, {'kind', 'path', 'digest'}, 'file source')
+        path = source['path']
+        if not isinstance(path, str) or not path.startswith('/'):
+            raise DomainError('Artifact source path must be absolute')
+        relative(path[1:])
+        checksum = source['digest']
+        if (not isinstance(checksum, str) or len(checksum) != 64
+                or any(c not in '0123456789abcdef' for c in checksum)):
+            raise DomainError(f'Artifact source digest must be SHA-256: {path}')
+        return cls(path, checksum)
 
 
 @dataclass(frozen=True)
 class ArtifactItem:
     scope: str
     path: str
-    content: str
+    content: str | FileArtifactSource
 
 
 @dataclass(frozen=True)
@@ -42,7 +61,9 @@ class ArtifactPlan:
             source=spec['source']
             if not isinstance(source,dict) or 'kind' not in source:
                 raise DomainError('Artifact source.kind is required')
-            if source['kind']=='text':
+            if source['kind']=='file':
+                text=FileArtifactSource.parse(source)
+            elif source['kind']=='text':
                 exact(source,{'kind','text'},'text source')
                 text=source['text']
             elif source['kind']=='template':
@@ -61,13 +82,16 @@ class ArtifactPlan:
                     raise DomainError(f'Invalid explicit artifact template: {exc}') from exc
             else:
                 raise DomainError('Unknown artifact source kind')
-            if not isinstance(text,str):
+            if isinstance(text, FileArtifactSource):
+                size = None
+            elif not isinstance(text,str):
                 raise DomainError('Artifact content must be text')
-            try:
-                size=len(text.encode('utf-8'))
-            except UnicodeError as exc:
-                raise DomainError('Artifact text must be valid UTF-8') from exc
-            if size>config['max_artifact_bytes']:
+            else:
+                try:
+                    size=len(text.encode('utf-8'))
+                except UnicodeError as exc:
+                    raise DomainError('Artifact text must be valid UTF-8') from exc
+            if size is not None and size>config['max_artifact_bytes']:
                 raise DomainError('Artifact exceeds configured max_artifact_bytes')
             item=ArtifactItem(scope,path,text)
             key=(scope,path)

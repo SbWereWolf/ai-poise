@@ -47,7 +47,12 @@ class LocalHandoff:
         if verified and tree!=data['last_report']['verified_tree']:
             raise PoiseError('Result changed after report: explicit rework before handoff')
         if not isinstance(args['artifact_paths'],list):raise PoiseError('artifact_paths list required')
+        h.retention.validate_bundle(data, data['last_report'])
         records=h.validate_artifact_paths(args['artifact_paths'],data)
+        report = data['last_report']
+        if report is not None and report.get('acceptance_manifests'):
+            records += h.validate_artifact_paths([item['path'] for item in h.store.artifact_records(data['id'])
+                                                if item['scope'] == 'task'], data)
         payload=args['result']
         if payload is None and not verified and not newborn:
             payload=h.task_queries.latest_submission(data['id'],h._stage(data)['id'],data['iteration'])
@@ -150,6 +155,7 @@ class LocalHandoff:
                 raise PoiseError('Worktree changed since handoff; do not adopt external changes silently')
             if not Path(receipt['bundle_path']).is_file() or file_digest(Path(receipt['bundle_path']))!=receipt['bundle_digest']:
                 raise PoiseError('Preserved source bundle missing or changed')
+        h.retention.validate_bundle(data, data['last_report'])
         return record
 
     def resume(self,data, *, force_duplicate_start=False):

@@ -5,7 +5,8 @@ import os
 import hashlib
 import stat
 import tempfile
-from ..modules.artifact_factory.domain import ArtifactPlan, relative
+import io
+from ..modules.artifact_factory.domain import ArtifactPlan, FileArtifactSource, relative
 from ..artifacts import artifact_identity
 from ..common import PoiseError
 from .locking import exclusive_lock
@@ -17,6 +18,7 @@ class PreparedFile:
     relative: str
     path: Path
     content: bytes
+    source: FileArtifactSource | None = None
 
 
 class FileArtifactFactory:
@@ -31,6 +33,7 @@ class FileArtifactFactory:
         root=Path(self.roots[scope])
         if root.is_symlink():
             raise PoiseError('Artifact owner root is a symlink')
+        self._without_links(root, 'Artifact destination owner root')
         full=root/self.config['artifact_directories'][scope]/relative
         # Refuse links rather than follow even an in-root alias. It keeps repeat
         # identity and destination stable across publication/recovery.
@@ -52,19 +55,42 @@ class FileArtifactFactory:
         prepared=[]
         for item in plan.items:
             path=self._destination(item.scope,item.path)
-            content=item.content.encode('utf-8')
-            if path.exists() and path.read_bytes()!=content:
+            source = item.content if isinstance(item.content, FileArtifactSource) else None
+            if source is None:
+                content=item.content.encode('utf-8')
+            else:
+                content=self._source_bytes(source)
+            if path.exists() and self._read_registered(path, 'Artifact destination') != hashlib.sha256(content).hexdigest():
                 raise PoiseError(f'Artifact already exists with different content: {path}; use a new path')
-            prepared.append(PreparedFile(item.scope,item.path,path,content))
+            prepared.append(PreparedFile(item.scope,item.path,path,content,source))
         return tuple(prepared)
+
+    def _source_bytes(self, source):
+        path = Path(source.path)
+        try:
+            self._without_links(path, 'Artifact source file')
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode):
+                raise PoiseError(f'Artifact source is not a regular file: {path}')
+            if info.st_size > self.config['max_artifact_bytes']:
+                raise PoiseError(f'Artifact source exceeds max_artifact_bytes: {path}')
+            output = io.BytesIO()
+            if self._read_registered(path, 'Artifact source file', output,
+                                     max_bytes=self.config['max_artifact_bytes']) != source.digest:
+                raise PoiseError(f'Artifact source digest mismatch: {path}')
+            return output.getvalue()
+        except OSError as exc:
+            raise PoiseError(f'Artifact source file missing or unreadable: {path}: {exc}') from exc
 
     def materialize(self, prepared):
         with exclusive_lock(self.lock,self.wait,self.poll):
             # Validate the entire batch again before publishing any member.
             for item in prepared:
+                if item.source is not None and self._source_bytes(item.source) != item.content:
+                    raise PoiseError(f'Artifact source changed after preparation: {item.source.path}')
                 if self._destination(item.scope,item.relative)!=item.path:
                     raise PoiseError('Artifact destination changed')
-                if item.path.exists() and item.path.read_bytes()!=item.content:
+                if item.path.exists() and self._read_registered(item.path, 'Artifact destination') != hashlib.sha256(item.content).hexdigest():
                     raise PoiseError('Artifact changed after preparation')
             completed=[]
             try:
@@ -104,7 +130,7 @@ class FileArtifactFactory:
         return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
     @classmethod
-    def _read_registered(cls, path, label, output=None):
+    def _read_registered(cls, path, label, output=None, *, max_bytes=None):
         """Read binary material without following links or blocking on a FIFO."""
         cls._without_links(path, label)
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -112,6 +138,8 @@ class FileArtifactFactory:
             before = os.fstat(source.fileno())
             if not stat.S_ISREG(before.st_mode):
                 raise PoiseError(f'{label} is not a regular file: {path}')
+            if max_bytes is not None and before.st_size > max_bytes:
+                raise PoiseError(f'{label} exceeds max_artifact_bytes: {path}')
             digest = hashlib.sha256()
             remaining = before.st_size
             while remaining:

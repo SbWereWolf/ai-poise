@@ -143,6 +143,9 @@ class Poise:
         from .infrastructure.work import WorkResources
         self.interactions=InteractionStore(self.store.database,self.cfg['project'],self.cfg['batch'])
         self.work_resources=WorkResources(self)
+        from .application.acceptance_retention import AcceptanceRetention
+        from .infrastructure.acceptance_retention import RuntimeAcceptanceRetention
+        self.retention = AcceptanceRetention(RuntimeAcceptanceRetention(self))
         from .application.accounting import AccountingCommands
         from .infrastructure.accounting import RuntimeAccounting
         from .infrastructure.telemetry import TelemetryDatabase
@@ -1149,6 +1152,7 @@ class Poise:
                 {'stage': self._stage(data)['id'], 'status': result['status'],
                  'completion_kind': 'duplicate_reuse'})
             return result
+        self.retention.validate_bundle(data, data['last_report'])
         self._require_report_identity(data)
         self.runner.accept(data['id'], self.session, False, None)
         data = self.task_queries.record(data['id'])
@@ -1367,6 +1371,7 @@ class Poise:
             raise PoiseError('Неизвестен исход прерванной проверки; не запускаем повтор вслепую. Смотрите журнал.')
         tree = self._current_tree(data)
         if data['status'] == 'verified':
+            self.retention.validate_bundle(data, data['last_report'])
             self._require_report_identity(data)
             if packet_digest is not None and self.work_resources.packet(data)!=packet_digest:
                 raise PoiseError('Different work packet after delivery requires rework')
@@ -1403,6 +1408,8 @@ class Poise:
         # Reject pre-existing path/identity failures before a submission can mutate
         # the current registry, content layers, evidence or Task history.
         self.validate_verification_artifacts(payload['artifact_paths'], data)
+        for method in self._select_checks(data, changed):
+            self.retention.bind_inputs(data, method)
         if pending_checks or pending_attempt:
             submitted_digest = self.runner.matching_submission_digest(
                 data['id'], self.session, payload
@@ -1527,7 +1534,16 @@ class Poise:
                     'context':context, 'next_work':'Дополнить evidence_work и вызвать verify в той же итерации.'}
         if self._current_tree(data) != tree:
             raise PoiseError('Проверки изменили дерево; требуется verify фактического нового состояния')
-        artifacts = self._candidate_artifacts(data, payload['artifact_paths'], roots)
+        retained_paths = []
+        for receipt in receipts:
+            if 'acceptance_manifest' in receipt:
+                self.retention.validate_receipt(data, receipt, commit)
+                retained_paths.append(receipt['acceptance_manifest']['path'])
+                retained_paths.extend(receipt[name] for name in ('stdout', 'stderr'))
+                retained_paths.extend(output['path'] for output in receipt['outputs'] if output['status'] == 'captured')
+                retained_paths.extend(str(roots['task'] / item['path'])
+                                      for item in receipt['retention_method']['artifact_inputs']['files'])
+        artifacts = self._candidate_artifacts(data, payload['artifact_paths'] + retained_paths, roots)
         gate = self._content_gate(data,'post',artifacts)
         if not gate['passed']:
             return self._content_blocked(data,gate,receipts)
@@ -1570,6 +1586,7 @@ class Poise:
                     raise PoiseError(f'Требуемая переменная среды отсутствует: {name}')
                 env[name]=os.environ[name]
             env.update(method['environment'])
+            env.update(self.retention.bind_inputs(self._task(), method))
             invocation={'method':method,'cwd':str(cwd),'environment':env}
             provenance=resolve_source_under_test(
                 method, worktree=worktree, cwd=cwd, environment=env
@@ -1582,6 +1599,7 @@ class Poise:
                 'stderr_contains': method['stderr_contains'],
                 'red_failure': method.get('verification_plan', {}).get('red_failure'),
                 'outputs': method.get('outputs', []),
+                **({'artifact_inputs': method['artifact_inputs']} if 'artifact_inputs' in method else {}),
             })
             invocations.append(invocation)
         return invocations
@@ -1626,6 +1644,10 @@ class Poise:
             ):
                 return False
             method=invocation['method']
+            if 'artifact_inputs' in method and r.get('passed') is True:
+                self.retention.validate_receipt(
+                    self.task_queries.record(task_id), r, invocation['commit'], method,
+                )
             expected={
                 'argv': method['argv'],
                 'commit': invocation['commit'],
@@ -1770,6 +1792,12 @@ class Poise:
                      'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]
+            if passed:
+                try:
+                    self.retention.create(data, method, receipt, invocation['commit'], tree)
+                except Exception:
+                    self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
+                    raise
             presentation=self.result_views.capture(receipt,run_dir)
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
@@ -1805,6 +1833,12 @@ class Poise:
                   'attempt':publication['attempt'],'commit':sha,'verification_commit':sha,'verified_tree':tree,'checks':publication['checks'],
                   'artifacts':[{'id':r['id'],'path':r['path']} for r in permanent],
                   'replayed':False,'next_work':'доложить пользователю; следующий этап не начинать'}
+        manifests = self.retention.references(publication['checks'])
+        if manifests:
+            report['acceptance_manifests'] = manifests
+        self.retention.validate_bundle(
+            data, report, submitted_paths=[record['path'] for record in current_artifacts],
+        )
         if 'allocations' in publication:report['allocations']=publication['allocations']
         if self.result_views.incidents:report['incidents']=list(self.result_views.incidents)
         self.runner.verified(data['id'], self.session, publication['payload_hash'], report,

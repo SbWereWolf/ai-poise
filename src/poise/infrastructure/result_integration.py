@@ -10,7 +10,7 @@ import subprocess
 import uuid
 
 from ..common import descendant, digest, file_digest, prohibit_git_push
-from ..execution import method_passed, preview, run_command
+from ..execution import capture_declared_outputs, method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
@@ -91,6 +91,16 @@ class RuntimeResultIntegration:
         return record, run
 
     def _save(self, task_id, run, expected_version):
+        paths = []
+        for check in run.checks:
+            if 'acceptance_manifest' in check:
+                paths.append(check['acceptance_manifest']['path'])
+                paths.extend(check[name] for name in ('stdout', 'stderr'))
+                paths.extend(item['path'] for item in check['outputs'] if item['status'] == 'captured')
+        records = []
+        if paths:
+            record = self.h.task_queries.record(task_id)
+            records = self.h.validate_artifact_paths(list(dict.fromkeys(paths)), record)
         with self.h.store.unit_of_work() as uow:
             data, version = uow.execution.load(task_id)
             current = data["pending"]
@@ -98,6 +108,7 @@ class RuntimeResultIntegration:
             if current_version != expected_version:
                 raise VersionConflict("Result integration state changed concurrently")
             data["pending"] = run.to_storage()
+            uow.artifacts.link_task(task_id, records)
             uow.execution.save(task_id, data, version)
         self.h.store.event(
             self.h.session, task_id, "result_integration.state",
@@ -170,6 +181,7 @@ class RuntimeResultIntegration:
     def prepare_source(self, intent):
         repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
         record, run = self._load(intent.task_id)
+        self.h.retention.validate_bundle(record, record['last_report'])
         if run is None:
             self._validate_new(record, intent, repository)
             return record
@@ -306,6 +318,8 @@ class RuntimeResultIntegration:
         for method, receipt in zip(methods, batch, strict=True):
             if not isinstance(receipt, dict):
                 return False
+            if 'artifact_inputs' in method:
+                self.h.retention.validate_receipt(record, receipt, head, method)
             check_id = receipt.get("id")
             try:
                 uuid.UUID(check_id)
@@ -398,27 +412,38 @@ class RuntimeResultIntegration:
                     raise PoiseError(f"Required environment variable is missing: {name}")
                 environment[name] = os.environ[name]
             environment.update(method["environment"])
+            environment.update(self.h.retention.bind_inputs(record, method))
             check_id = str(uuid.uuid4())
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            output_dir = run_dir / 'declared-outputs'
+            output_dir.mkdir(parents=True, exist_ok=True)
+            environment['POISE_RUN_OUTPUT_DIR'] = str(output_dir)
             result = run_command(
                 method["argv"], cwd, environment, None,
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
             self._checked_workspace(run)
-            receipts.append({
+            outputs, complete = capture_declared_outputs(
+                method.get('outputs', []), output_dir, run_dir / 'outputs',
+            )
+            receipt = {
                 **result, "id": check_id, "method": method["id"],
                 "definition_digest": digest(method),
                 "contract_digest": self._contract_digest(record),
                 "integration_head": head, "verified_tree": verified_tree,
                 "argv": method["argv"], "cwd": str(cwd),
                 "expected_exit_code": method["expected_exit_code"],
-                "passed": method_passed(method, result),
+                "passed": method_passed(method, result) and complete,
+                "outputs": outputs,
                 "stdout_digest": file_digest(Path(result["stdout"])),
                 "stderr_digest": file_digest(Path(result["stderr"])),
                 "preview": preview(Path(result["stderr"]),
                                    self.h.cfg["limits"]["preview_chars"]),
-            })
+            }
+            if receipt['passed']:
+                self.h.retention.create(record, method, receipt, head, verified_tree)
+            receipts.append(receipt)
         checked = run.checks_recorded(receipts)
         self._save(run.intent.task_id, checked, run.version)
         return checked
@@ -455,6 +480,8 @@ class RuntimeResultIntegration:
         contract_digest = self._contract_digest(record)
         for receipt in selected:
             method = required[receipt["method"]]
+            if 'artifact_inputs' in method:
+                self.h.retention.validate_receipt(record, receipt, head, method)
             if (receipt.get("passed") is not True
                     or receipt.get("integration_head") != head
                     or receipt.get("verified_tree") != tree
@@ -800,6 +827,7 @@ class RuntimeResultIntegration:
     def apply(self, intent):
         repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
         record, run = self._load(intent.task_id)
+        self.h.retention.validate_bundle(record, record['last_report'])
         if run is None:
             self._validate_new(record, intent, repository)
             run = self._new_run(record, intent)
@@ -808,7 +836,7 @@ class RuntimeResultIntegration:
             raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated":
             self._reconcile_terminal_ownership(run, repository)
-            return run.result(replayed=True)
+            return self._result(record, run, replayed=True)
         if run.phase == "checks_failed":
             run = self._retry_checks(record, run, repository)
         if run.phase == "candidate_failed":
@@ -817,7 +845,7 @@ class RuntimeResultIntegration:
             run = retried
         if run.phase == "awaiting_resolution":
             if not intent.resolutions:
-                return run.result()
+                return self._result(record, run)
             continued = run.continue_with(intent.resolutions)
             self._save(intent.task_id, continued, run.version)
             run = continued
@@ -830,12 +858,12 @@ class RuntimeResultIntegration:
             if run.phase == "updating":
                 run = self._prepare_candidate(run)
                 if run.phase in ("awaiting_resolution", "candidate_failed"):
-                    return run.result()
+                    return self._result(record, run)
             if run.phase == "candidate_ready":
                 record = self.h.task_queries.record(intent.task_id)
                 run = self._run_checks(record, run)
                 if run.phase == "checks_failed":
-                    return run.result()
+                    return self._result(record, run)
             if run.phase in ("publishing", "publication_failed"):
                 record = self.h.task_queries.record(intent.task_id)
                 if not self._complete_candidate_proof(record, run):
@@ -854,28 +882,47 @@ class RuntimeResultIntegration:
                     run = self._publication_failed(
                         run, "task_worktree_changed", {"error": str(exc)},
                     )
-                    return run.result()
+                    return self._result(record, run)
                 if not current_checks:
                     renewed = run.require_current_checks()
                     self._save(intent.task_id, renewed, run.version)
                     run = renewed
                     continue
+                self.h.retention.validate_bundle(record, record['last_report'])
                 run = self._publish(run, repository)
                 if run.phase == "updating":
                     continue
                 if run.phase == "publication_failed":
-                    return run.result()
+                    return self._result(record, run)
             if run.phase == "cleanup_pending":
+                self.h.retention.validate_bundle(record, record['last_report'])
                 run = self._cleanup(run, repository)
             if run.status == "integrated":
                 self._reconcile_terminal_ownership(run, repository)
-            return run.result()
+            return self._result(record, run)
+
+    def _result(self, record, run, replayed=False):
+        result = run.result(replayed=replayed)
+        passed_batch = next((event['details']['check_ids'] for event in reversed(run.history)
+                             if event['event'] == 'checks_passed'), [])
+        current = [check for check in run.checks
+                   if check['id'] in passed_batch and check.get('integration_head') == run.integration_head
+                   and check.get('passed') is True and 'acceptance_manifest' in check]
+        if current:
+            for check in current:
+                self.h.retention.validate_receipt(record, check, run.integration_head)
+            refs = self.h.retention.references(current)
+            result['acceptance_manifests'] = refs
+            result['artifacts'] = [{'id': item['id'], 'path': item['path']}
+                                   for item in self.h.store.artifact_records(record['id'])
+                                   if item['scope'] == 'task']
+        return result
 
     def query(self, task_id, request_id):
         if (not isinstance(task_id, str) or not task_id
                 or not isinstance(request_id, str) or not request_id):
             raise PoiseError("Integration query requires task_id and request_id")
-        _, run = self._load(task_id)
+        record, run = self._load(task_id)
         if run is None or run.intent.request_id != request_id:
             raise PoiseError("Result integration request was not found")
-        return run.result()
+        return self._result(record, run)

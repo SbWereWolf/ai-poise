@@ -1021,6 +1021,10 @@ Receipt содержит `effect=local_record_only`, `remote_publication=false`,
 
 ## Интеграция принятого результата
 
+До вызова операции прочитайте [выбор ветки основного
+checkout](../configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции)
+и сверьте наблюдаемую ветку основного checkout с рабочим `git.base_ref`.
+
 `integrate` — одна публичная операция для локальной интеграции окончательно принятой Task и
 последующей уборки. Она
 доступна только когда Task имеет статус `completed` и сохранённый итоговый commit. Сохранённый
@@ -1031,7 +1035,8 @@ branch в уже
 запускается из текущего
 установленного исходного кода AI poise.
 
-Синхронизация с текущим `master`, merge и разрешение конфликтов происходят только в task worktree.
+Синхронизация с текущей настроенной веткой `git.base_ref`, merge и разрешение конфликтов
+происходят только в task worktree.
 При конфликте
 операция сохраняет его точное состояние и возвращает `awaiting_resolution`; агент редактирует и
 разрешает только
@@ -1041,7 +1046,7 @@ methods с непустыми
 расписания терминального
 этапа; RED и baseline-only guards исключены. Непосредственно перед публикацией операция захватывает
 общий для target
-lock и повторно читает `master`. Если target сдвинулся, она автоматически повторяет update → agent
+lock и повторно читает настроенный target. Если target сдвинулся, она автоматически повторяет update → agent
 resolution при
 конфликте → checks. Стабильный target публикуется в основном checkout только командой `git merge
 --ff-only
@@ -1120,7 +1125,7 @@ JSON
 
 Статусы и восстановление:
 
-- `integrated`: `master` безопасно fast-forward-нут либо terminal no-op доказан; task worktree, task
+- `integrated`: настроенный target безопасно fast-forward-нут либо terminal no-op доказан; task worktree, task
   branch и scoped
   temporary-backup directory удалены; повтор возвращает сохранённый результат с `replayed: true`;
 - `awaiting_resolution`: task worktree оставлен в точном conflict state; исправьте только

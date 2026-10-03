@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 
@@ -76,6 +77,21 @@ def restore(manifest: Path, request: dict) -> tuple[subprocess.CompletedProcess[
 ERRORS = json.loads(
     (Path(__file__).parent / "fixtures/error-contracts.json").read_text(encoding="utf-8")
 )
+
+
+def tree_state(root: Path) -> dict:
+    """Independent filesystem oracle: names, types, modes, bytes and file mtimes."""
+    result = {}
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        info = path.lstat()
+        if path.is_symlink():
+            result[relative] = ("symlink", os.readlink(path), info.st_mode)
+        elif path.is_dir():
+            result[relative] = ("directory", info.st_mode)
+        else:
+            result[relative] = ("file", path.read_bytes(), info.st_mode, info.st_mtime_ns)
+    return result
 
 
 def assert_rejected(
@@ -205,13 +221,24 @@ def test_missing_working_source_reports_declared_owner_repair_without_using_it(t
     relative = "platform-infrastructure/config/dev/local-development.env"
     target, source, manifest, request = case(tmp_path, [(relative, b"secret", "working")])
     document = json.loads(manifest.read_text(encoding="utf-8"))
-    document["assets"][0]["repair"] = "bash ./start-dev repair"
+    spy = Path(__file__).parent / "fixtures/owner-repair-spy.sh"
+    marker = tmp_path / "repair-was-invoked.txt"
+    probe = tmp_path / "spy-control.txt"
+    subprocess.run(["bash", str(spy), str(probe)], check=True)
+    assert probe.read_bytes() == b"owner repair invoked\n"
+    probe.unlink()
+    document["assets"][0]["repair"] = shlex.join(["bash", str(spy), str(marker)])
     manifest.write_text(json.dumps(document), encoding="utf-8")
     (source / relative).unlink()
+    (target / "unrelated.txt").write_bytes(b"preserve target")
+    (source / "unrelated.txt").write_bytes(b"preserve source")
+    before = tree_state(tmp_path)
 
     completed, reply = restore(manifest, request)
     assert_rejected(completed, reply, code="missing_repairable_source", asset_path=relative)
     assert not (target / relative).exists()
+    assert not marker.exists()
+    assert tree_state(tmp_path) == before
 
 
 @pytest.mark.parametrize("missing_kind", ["working", "versioned_example", "untracked_example"])
@@ -480,3 +507,103 @@ def test_declared_non_git_target_root_rejects_without_writing(tmp_path: Path) ->
     assert_rejected(completed, reply, code="invalid_target_root", asset_path=None)
     assert list(target.iterdir()) == []
     assert (source / relative).read_bytes() == b"required"
+
+
+@pytest.mark.parametrize("problem,error_code", [
+    ("source_asset_directory", "invalid_source_asset"),
+    ("destination_asset_directory", "invalid_destination_asset"),
+    ("source_root_file", "unsafe_source_root"),
+    ("source_root_missing", "unsafe_source_root"),
+])
+def test_non_file_states_reject_before_any_write(
+    tmp_path: Path, problem: str, error_code: str,
+) -> None:
+    first = "agent/first.json"
+    later = "agent/later.env"
+    target, source, manifest, request = case(
+        tmp_path, [(first, b"valid first", "tracked"), (later, b"secret later", "working")],
+    )
+    (source / "unrelated.txt").write_bytes(b"source unchanged")
+    (target / "unrelated.txt").write_bytes(b"target unchanged")
+    (tmp_path / "outside.txt").write_bytes(b"outside unchanged")
+    if problem == "source_asset_directory":
+        (source / later).unlink()
+        (source / later).mkdir()
+        (source / later / "child.txt").write_bytes(b"directory content")
+    elif problem == "destination_asset_directory":
+        (target / later).mkdir(parents=True)
+        (target / later / "child.txt").write_bytes(b"existing directory content")
+    elif problem == "source_root_file":
+        selected_root = tmp_path / "source-root-file"
+        selected_root.write_bytes(b"not a directory")
+        request["source_root"] = str(selected_root)
+    else:
+        request["source_root"] = str(tmp_path / "absent-root")
+    before = tree_state(tmp_path)
+
+    completed, reply = restore(manifest, request)
+    assert_rejected(
+        completed, reply, code=error_code,
+        asset_path=later if problem.endswith("asset_directory") else None,
+    )
+    assert not (target / first).exists()
+    assert tree_state(tmp_path) == before
+
+
+@pytest.mark.parametrize("field,value", [
+    ("schema", []),
+    ("project", ["ERP"]),
+    ("target_root", 7),
+    ("source_root", {}),
+])
+def test_request_field_types_reject_without_effects(tmp_path: Path, field: str, value: object) -> None:
+    relative = "agent/policy.json"
+    target, _, manifest, request = case(tmp_path, [(relative, b"source", "working")])
+    (target / "unrelated.txt").write_bytes(b"preserve target")
+    (tmp_path / "outside.txt").write_bytes(b"preserve outside")
+    request[field] = value
+    before = tree_state(tmp_path)
+
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="invalid_request", asset_path=None)
+    assert tree_state(tmp_path) == before
+
+
+@pytest.mark.parametrize("field,value", [
+    ("schema", []),
+    ("project", ["ERP"]),
+    ("target_root", {}),
+    ("assets", "not a list"),
+    ("assets[1]", "not an object"),
+    ("path", ["agent/later.env"]),
+    ("source_path", {}),
+    ("sha256", 7),
+    ("kind", []),
+    ("mode", "0600"),
+    ("repair", ["bash ./start-dev repair"]),
+])
+def test_declaration_field_types_reject_before_any_write(
+    tmp_path: Path, field: str, value: object,
+) -> None:
+    first = "agent/first.json"
+    later = "agent/later.env"
+    target, source, manifest, request = case(
+        tmp_path, [(first, b"valid first", "tracked"), (later, b"secret later", "working")],
+    )
+    (target / "unrelated.txt").write_bytes(b"preserve target")
+    (source / "unrelated.txt").write_bytes(b"preserve source")
+    (tmp_path / "outside.txt").write_bytes(b"preserve outside")
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    if field in {"schema", "project", "target_root", "assets"}:
+        document[field] = value
+    elif field == "assets[1]":
+        document["assets"][1] = value
+    else:
+        document["assets"][1][field] = value
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    before = tree_state(tmp_path)
+
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="invalid_manifest", asset_path=None)
+    assert not (target / first).exists()
+    assert tree_state(tmp_path) == before

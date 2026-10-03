@@ -128,5 +128,25 @@
       "reason": "Target root is not an existing Git checkout root.",
       "recovery": "Select the declared existing Git checkout root and retry."
     }
+  },
+  "invalid_source_asset": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "invalid_source_asset",
+      "asset": null,
+      "reason": "Source asset is not a regular file.",
+      "recovery": "Supply a regular source snapshot file and retry."
+    }
+  },
+  "invalid_destination_asset": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "invalid_destination_asset",
+      "asset": null,
+      "reason": "Destination asset is not a regular file.",
+      "recovery": "Resolve the declared destination through its owner and retry."
+    }
   }
 }

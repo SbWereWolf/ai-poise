@@ -275,6 +275,10 @@ class RuntimeResultIntegration:
         methods = self._select_checks(record)
         if not methods:
             return True
+        receipt_ids = [item.get("id") if isinstance(item, dict) else None
+                       for item in run.checks]
+        if None in receipt_ids or len(receipt_ids) != len(set(receipt_ids)):
+            return False
         worktree, head = self._checked_workspace(run)
         tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
         if len(run.checks) < len(methods):

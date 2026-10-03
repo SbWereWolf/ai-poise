@@ -371,7 +371,8 @@ class RuntimeResultIntegration:
             return False
         selected = []
         for identifier in identifiers:
-            matching = [item for item in run.checks if item.get("id") == identifier]
+            matching = [item for item in run.checks
+                        if isinstance(item, dict) and item.get("id") == identifier]
             if len(matching) != 1:
                 return False
             selected.append(matching[0])
@@ -387,7 +388,20 @@ class RuntimeResultIntegration:
                     or receipt.get("contract_digest") != contract_digest
                     or receipt.get("argv") != method["argv"]
                     or receipt.get("cwd") != str((worktree / method["cwd"]).resolve())
-                    or receipt.get("expected_exit_code") != method["expected_exit_code"]):
+                    or receipt.get("expected_exit_code") != method["expected_exit_code"]
+                    or receipt.get("actual_exit_code") != method["expected_exit_code"]
+                    or receipt.get("timed_out") is not False
+                    or receipt.get("cancelled") is True
+                    or receipt.get("capture_complete") is not True):
+                return False
+            for name in ("stdout", "stderr"):
+                value = receipt.get(name)
+                if not isinstance(value, str) or not value:
+                    return False
+                path = Path(value)
+                if not path.is_file() or file_digest(path) != receipt.get(name + "_digest"):
+                    return False
+            if not method_passed(method, receipt):
                 return False
         return True
 
@@ -752,7 +766,14 @@ class RuntimeResultIntegration:
                 if run.phase == "checks_failed":
                     return run.result()
             if run.phase == "publishing":
-                if not self._has_current_checks(record, run):
+                try:
+                    current_checks = self._has_current_checks(record, run)
+                except PoiseError as exc:
+                    run = self._publication_failed(
+                        run, "task_worktree_changed", {"error": str(exc)},
+                    )
+                    return run.result()
+                if not current_checks:
                     renewed = run.require_current_checks()
                     self._save(intent.task_id, renewed, run.version)
                     run = renewed

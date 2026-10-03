@@ -98,6 +98,12 @@ names
 component inputs, one combined result, integration checks, and allowed paths covering all
 phase areas. Treat validation as declaration consistency, not proof that the inventory or
 declared scope is factually complete.
+`task_decomposition.skills` validates IDs declared in `decomposition.phases[].skills`;
+it does not restrict which available relevant skills an agent may read and apply.
+Use `documentation` when the work needs it even if that ID is absent from the
+project list. Do not report a skill gap or change project configuration solely
+because an available skill is absent there. Keep the declared narrow responsibility,
+role and Task scope intact.
 
 Every newborn Task `edit` request explicitly supplies both `patch` and `remove`; at least one
 is nonempty. Use `remove` in the same optimistic request when a goal-type change makes a saved

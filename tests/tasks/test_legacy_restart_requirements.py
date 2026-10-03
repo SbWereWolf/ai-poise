@@ -15,7 +15,7 @@ if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from batch.helpers import request, result, verify
-from conftest import add_test, bind_task_requirements
+from conftest import add_test, bind_task_requirements, write_json
 from poise.modules.foundation.errors import PoiseError
 from runtime_services.test_task_restart import git, restart
 from sprints.helpers import bootstrap as sprint_bootstrap
@@ -286,6 +286,8 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
     import json
 
     task_id = "PROOF-REVISED"
+    project["process"]["stages"][0]["sections"]["test_registry"] = "Register the audited method."
+    write_json(project["root"] / "config/processes/development.json", project["process"])
     client = tools(project, "proof-owner")
     initial = deepcopy(project["task"])
     initial["id"] = task_id
@@ -293,7 +295,25 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
         "task": initial, "decision": None, "feedback": None, "rework_stage": None,
     }))
     add_test(context["worktree"])
-    first = verify(client, result(context))
+    payload = result(context)
+    payload["sections"]["test_registry"] = "Register AUDITED-GREEN for the implementation stage."
+    registered = deepcopy(project["task"]["methods"][1])
+    registered["id"] = "AUDITED-GREEN"
+    registered["argv"] = [
+        sys.executable, "-B", "-m", "unittest", "discover",
+        "-s", "tests", "-p", "test_double.py", "-v",
+    ]
+    registered["verification_plan"]["green_stages"] = ["implementation"]
+    payload["method_additions"] = {
+        "request_id": "register-audited-green",
+        "expected_revision": 0,
+        "operations": [{
+            "kind": "add", "method_id": "AUDITED-GREEN",
+            "registration": {"method": registered, "stages": ["implementation"]},
+        }],
+        "executable_obligations": [],
+    }
+    first = verify(client, payload)
     assert first["status"] == "verified"
     assert first["checks"] and first["checks"][0]["passed"] is True
     previous = client.runtime.task_queries.record(task_id)
@@ -303,8 +323,13 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
     assert old["layers"] and old["evidence"]
     assert json.loads(old["current_proof"])["book"]["batches"]
     old_registry = json.loads(old["registry"])["registry"]
+    old_registry_view = deepcopy(client.runtime.task_queries.verification_registry(task_id))
     assert old["methods"]
-    assert old_registry["revision"] == 0
+    assert old_registry["revision"] == 1
+    assert old_registry["history"]
+    assert old_registry["requests"]
+    assert any(method_id == "AUDITED-GREEN" for method_id, _ in old["methods"])
+    assert any(item["method"]["id"] == "AUDITED-GREEN" for item in old_registry_view["current"])
     restarted = restart(client, task_id, previous["version"], request_id="restart-proof")
     revised = _new_revised_context(client, project, "A verified Task accepts a newly agreed requirement.")
     revised["definition_of_done"] = ["Independent verification of revised Task."]
@@ -316,6 +341,7 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
     assert json.loads(after["current_proof"])["book"]["batches"] == []
     assert after["methods"] == old["methods"]
     assert json.loads(after["registry"])["registry"] == old_registry
+    assert client.runtime.task_queries.verification_registry(task_id) == old_registry_view
     assert client.runtime.task_commands.requirements_snapshot(task_id) == revised["requirements_snapshot"]
     with client.runtime.store.unit_of_work() as uow:
         new_context = uow.tasks.restart_context(task_id)
@@ -470,6 +496,7 @@ def test_registry_change_during_preflight_rejects_without_task_mutation(project,
     after_registry_change = []
 
     def interleave_registry_change(*args, **kwargs):
+        prepared = original_prepare(*args, **kwargs)
         client.runtime.requirements_commands.apply({
             "request_id": "concurrent-registry-change",
             "expected_revision": 1,
@@ -479,11 +506,12 @@ def test_registry_change_during_preflight_rejects_without_task_mutation(project,
             }}],
         })
         after_registry_change.append(_observable_state(client, task_id))
-        return original_prepare(*args, **kwargs)
+        return prepared
 
     monkeypatch.setattr(commands, "prepare_creation", interleave_registry_change)
-    with pytest.raises(PoiseError, match="^Task requirements snapshot contains unresolved gaps$"):
+    with pytest.raises(PoiseError) as failure:
         _ready(client, task_id, changed["revision"], "ready-concurrent-registry")
+    assert str(failure.value) == "Task requirements registry changed after creation preflight"
     assert len(after_registry_change) == 1
     assert _observable_state(client, task_id) == after_registry_change[0]
 
@@ -500,10 +528,11 @@ def test_planned_restart_keeps_revision_authority(project):
         authorization={"role": "reviewer", "decision": "Reviewer authorized only goal correction."},
     )
     before = _observable_state(client, task_id)
-    with pytest.raises(PoiseError, match="revision policy|authorization"):
+    with pytest.raises(PoiseError) as failure:
         edit(client, task_id, restarted["revision"], {
             "definition_of_done": ["Unapproved acceptance revision."],
         }, "unapproved-planned-dod")
+    assert str(failure.value) == "Task restart revision policy forbids changes: ['definition_of_done']"
     assert _observable_state(client, task_id) == before
 
 
@@ -541,6 +570,11 @@ def test_revised_legacy_ready_replay_conflict_and_stale_revision(project):
     task_id = "REVISED-REPLAY"
     client, _, changed, revised = _create_restarted(project, task_id, "A revised ready must replay exactly.")
     request_id = "ready-revised-replay"
+    unborn = _observable_state(client, task_id)
+    with pytest.raises(PoiseError) as stale:
+        _ready(client, task_id, changed["revision"] - 1, "stale-revised-newborn")
+    assert str(stale.value) == "Newborn Task revision changed"
+    assert _observable_state(client, task_id) == unborn
     first = _ready(client, task_id, changed["revision"], request_id)
     assert first["status"] == "available"
     before = _observable_state(client, task_id)
@@ -550,8 +584,9 @@ def test_revised_legacy_ready_replay_conflict_and_stale_revision(project):
         _ready(client, task_id, changed["revision"] + 1, request_id)
     assert str(conflict.value) == "Request ID already used with another Task action intent"
     assert _observable_state(client, task_id) == before
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError) as unavailable:
         _ready(client, task_id, changed["revision"], "fresh-but-stale-revised-ready")
+    assert str(unavailable.value) == "Task is not newborn"
     assert _observable_state(client, task_id) == before
     assert client.runtime.task_queries.record(task_id)["contract"]["requirements"] == revised["requirements"]
 
@@ -567,8 +602,9 @@ def test_exact_replay_and_conflicting_request_id(project):
     replayed = _ready(client, task_id, filled["revision"], "ready-replay")
     assert replayed == first
     assert _observable_state(client, task_id) == before
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError) as conflict:
         _ready(client, task_id, filled["revision"] + 1, "ready-replay")
+    assert str(conflict.value) == "Request ID already used with another Task action intent"
     assert _observable_state(client, task_id) == before
 
 

@@ -1,0 +1,14 @@
+{
+  "id": "implementation",
+  "instruction": "Retain the exact input and verify the result.",
+  "read_only": false,
+  "allowed_paths": ["src/**"],
+  "normalization": "strip",
+  "sections": {"report": "Record actual verification."},
+  "required_sections": ["report"],
+  "artifact_requirements": [],
+  "handler": "produce",
+  "role": "executor",
+  "transitions": {"complete": null},
+  "rework_targets": ["implementation"]
+}

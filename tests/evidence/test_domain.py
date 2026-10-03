@@ -16,7 +16,8 @@ def plan(kind='logical', phase='continue'):
 
 def receipt(ok=True, timeout=False, id='RUN'):
     return {'id':id, 'guard':False, 'interpretable':True, 'method':'M', 'obligations':['M'], 'passed':ok, 'timed_out':timeout,
-            'actual_exit_code':0 if ok else 1, 'tree':'TREE', 'stdout':'/task/run/out', 'stderr':'/task/run/err'}
+            'actual_exit_code':0 if ok else 1, 'capture_complete':True,
+            'tree':'TREE', 'stdout':'/task/run/out', 'stderr':'/task/run/err'}
 
 
 def argument(verdict='proved'):

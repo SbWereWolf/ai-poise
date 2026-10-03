@@ -184,9 +184,13 @@ def test_archival_after_transfer_rolls_back_with_failed_restart(project, monkeyp
 
     _, receiver, original, calls = uncertain(project, monkeypatch)
     before = deepcopy(receiver.runtime.current_task())
+    ownership_before = receiver.runtime.ownership.snapshot(receiver.runtime.session)
+    assert ownership_before.task_id == 'T1'
+    assert ownership_before.worktree_task_id == 'T1'
     fail_once(monkeypatch, SqliteTaskRepository, 'restart_newborn')
     with pytest.raises(OSError, match='injected persistence failure'):
         authorised_restart(receiver, before['version'])
     assert receiver.runtime.current_task() == before
+    assert receiver.runtime.ownership.snapshot(receiver.runtime.session) == ownership_before
     assert calls == [original['pending']['runs'][0]['run_id']]
     assert authorised_restart(receiver, before['version'])['status'] == 'newborn'

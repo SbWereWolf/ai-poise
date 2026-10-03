@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Protocol
 from ..sprints.ports import SprintRepository
 from .domain import Task, TaskState, Change, EmptyReworkRecoveryPoint
+from ..verification.domain import CheckRegistry
 
 
 class TaskRepository(Protocol):
@@ -29,6 +30,7 @@ class TaskRepository(Protocol):
         target_sprint: str | None, expected_version: int,
     ) -> None: ...
     def restart_context(self, task_id: str) -> dict: ...
+    def restarted_registry(self, task_id: str) -> CheckRegistry: ...
     def publish_requirements_context(
         self, task_id: str, snapshot: dict, agreement: dict
     ) -> None: ...

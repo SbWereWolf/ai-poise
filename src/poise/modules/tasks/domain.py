@@ -532,6 +532,69 @@ class Task:
             **durable, 'replayed': False,
         }
 
+    def restore_restarted_registry(self, current: CheckRegistry, edited_fields: frozenset[str],
+                                   actor: str, request_id: str, allowed_changes: list[str] | None) -> Task:
+        """Reconcile explicit draft edits against the current owner, never creation history."""
+        proposed = {entry.method_id: entry.to_dict() for entry in self.check_registry.entries}
+        operations = []
+        changed_fields = set()
+        for entry in current.entries:
+            if 'methods' in edited_fields and entry.method_id not in proposed:
+                operations.append({'kind': 'remove', 'method_id': entry.method_id})
+                changed_fields.add('methods')
+                continue
+            value = entry.to_dict()
+            replacement = dict(value)
+            if 'methods' in edited_fields:
+                replacement['method'] = proposed[entry.method_id]['method']
+            if 'checks' in edited_fields:
+                if entry.method_id not in proposed:
+                    raise DomainError('Declare the current method before editing its schedule')
+                replacement['stages'] = proposed[entry.method_id]['stages']
+            if replacement != value:
+                operations.append({'kind': 'replace', 'method_id': entry.method_id,
+                                   'registration': replacement})
+                if replacement['method'] != value['method']:
+                    changed_fields.add('methods')
+                if replacement['stages'] != value['stages']:
+                    changed_fields.add('checks')
+        if 'methods' in edited_fields:
+            for method_id, entry in proposed.items():
+                if method_id not in current.method_ids:
+                    operations.append({'kind': 'add', 'method_id': method_id, 'registration': entry})
+                    changed_fields.add('methods')
+        obligations = (self.check_registry.executable_obligations
+                       if 'executable_obligations' in edited_fields else current.executable_obligations)
+        if obligations != current.executable_obligations:
+            changed_fields.add('executable_obligations')
+        if allowed_changes is not None and changed_fields - set(allowed_changes):
+            raise DomainError(f'Task restart authorization forbids registry changes: '
+                              f'{sorted(changed_fields - set(allowed_changes))}')
+        registry = replace(current, stages=self.check_registry.stages,
+                           inspection_stages=self.check_registry.inspection_stages,
+                           obligation_catalog=self.check_registry.obligation_catalog)
+        if operations:
+            change = {'request_id': request_id, 'expected_revision': current.revision,
+                      'operations': operations, 'executable_obligations': list(obligations)}
+            applied = registry.apply_change(change)
+            registry, _ = self._registry_change_audit(change, applied.registry, actor, applied.replayed)
+        elif obligations != current.executable_obligations:
+            raise DomainError('Changing executable obligations requires an explicit registry method change')
+        # Validate the current entries against the new route; historical snapshots stay immutable.
+        CheckRegistry.from_items([entry.to_dict() for entry in registry.entries], registry.stages,
+                                 require_source=True, require_plan=True)
+        registry = registry.with_executable_obligations(
+            tuple(obligations), registry.inspection_stages, registry.obligation_catalog)
+        registry.validate_route(self.route.with_stage_scopes(self._require_stage_contracts().to_list()))
+        policy = replace(self.content_policy, method_ids=registry.method_ids)
+        plan = EvidencePlan.parse(
+            {node.stage_id: self.evidence_plan.describe(node.stage_id) for node in self.route.nodes},
+            {node.stage_id: node.handler.value for node in self.route.nodes},
+            {node.stage_id: [entry.method_id for entry in registry.entries if node.stage_id in entry.stages]
+             for node in self.route.nodes},
+        )
+        return replace(self, content_policy=policy, check_registry=registry, evidence_plan=plan)
+
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
                commit_message: str, content_additions: dict, trace: dict,
                method_additions: list[dict] | dict, stage_work: dict, evidence_work: dict) -> Change:

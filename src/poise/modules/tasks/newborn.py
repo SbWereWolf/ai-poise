@@ -287,8 +287,16 @@ class NewbornTask:
             raise DomainError("Newborn Task is owned by another session")
         from .planning import require_revision
         require_revision(draft, process, self.restart_history)
+        history = list(deepcopy(self.restart_history))
+        if history and any(item.get('from_status') != 'newborn' for item in history):
+            edited = set(patch) | set(remove)
+            fields = edited & {'methods', 'checks', 'executable_obligations'}
+            if fields:
+                history[-1]['registry_edits'] = sorted(
+                    set(history[-1].get('registry_edits', [])) | fields
+                )
         return replace(self, version=self.version + 1, draft=draft, process=process,
-                       claimed_by=actor)
+                       claimed_by=actor, restart_history=tuple(history))
 
     def materialize_draft(self, draft: dict, processes: dict, actor: str):
         """Persist a Sprint planning draft even before goal type becomes valid."""

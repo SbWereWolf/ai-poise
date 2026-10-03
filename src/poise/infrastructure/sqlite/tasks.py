@@ -212,6 +212,14 @@ class SqliteTaskRepository:
             for key in ("requirements_snapshot", "requirements_agreement"):
                 if key in previous:
                     metadata[key] = deepcopy(previous[key])
+        if any(item.get('from_status') != 'newborn' for item in newborn.restart_history):
+            if not isinstance(previous.get('contract'), dict):
+                raise PoiseError('Restarted Task has no frozen registry contract context')
+            metadata['contract'] = deepcopy(previous['contract'])
+            context_key = 'registry_process' if 'newborn' in previous else 'process'
+            if not isinstance(previous.get(context_key), dict):
+                raise PoiseError('Restarted Task has no frozen registry process context')
+            metadata['registry_process'] = deepcopy(previous[context_key])
         return metadata
 
     def is_newborn(self, task_id):
@@ -707,30 +715,12 @@ class SqliteTaskRepository:
         record = self.db.execute("SELECT data FROM content_contracts WHERE task_id=? ORDER BY version DESC LIMIT 1", (task_id,)).fetchone()
         if record is None:
             raise PoiseError("Нет зарегистрированного контракта содержимого")
-        items = [without_retired_method_timeout(json.loads(r[0])) for r in self.db.execute(
-            "SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid", (task_id,)
-        )]
         saved = self.db.execute("SELECT data FROM task_workflows WHERE task_id=?", (task_id,)).fetchone()
         if saved is None:
             raise PoiseError("Нет сохранённого состояния маршрута")
         workflow = json.loads(saved[0])
-        from ...modules.tasks.definition import (
-            obligation_catalog,
-            registry_inspection_stages,
-            stored_executable_obligations,
-        )
-        registry = CheckRegistry.from_items(
-            items, tuple(s['id'] for s in metadata['process']['stages'])
-        ).with_executable_obligations(
-            stored_executable_obligations(
-                metadata['contract'],
-                metadata['process'],
-                workflow.get('registry'),
-            ),
-            registry_inspection_stages(metadata['process']),
-            obligation_catalog(metadata['contract']),
-        )
-        metadata['contract']['methods']=[item['method'] for item in items]
+        registry = self._current_registry(task_id, metadata, workflow)
+        metadata['contract']['methods']=[entry.to_dict()['method'] for entry in registry.entries]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
         contracts = (
             None
@@ -745,7 +735,6 @@ class SqliteTaskRepository:
         trace = self.db.execute("SELECT route_id,point_id,data FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY route_id,point_id ORDER BY submission_id DESC) AS n FROM trace_point_layers WHERE task_id=?) WHERE n=1 ORDER BY route_id,point_id", (task_id,)).fetchall()
         snapshot = ContentSnapshot(tuple(SectionValue(s["section_id"],s["content"],ContentState(s["content_state"])) for s in sections),
                                    tuple(TraceValue(t["route_id"],t["point_id"],t["data"]) for t in trace))
-        registry = registry.restore_state(workflow.get('registry'))
         proof_row = self.db.execute("SELECT data FROM task_proofs WHERE task_id=?",(task_id,)).fetchone()
         if proof_row is None: raise PoiseError("Нет обязательного evidence state")
         proof = json.loads(proof_row[0])
@@ -754,6 +743,37 @@ class SqliteTaskRepository:
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts,
                     None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]))
+
+    def _current_registry(self, task_id: str, metadata: dict, workflow: dict) -> CheckRegistry:
+        from ...modules.tasks.definition import (
+            obligation_catalog, registry_inspection_stages, stored_executable_obligations,
+        )
+        if not isinstance(workflow.get('registry'), dict):
+            raise PoiseError('Current verification registry state is missing or corrupt')
+        items = [without_retired_method_timeout(json.loads(row[0])) for row in self.db.execute(
+            'SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid', (task_id,)
+        )]
+        return CheckRegistry.from_items(
+            items, tuple(stage['id'] for stage in metadata['process']['stages'])
+        ).with_executable_obligations(
+            stored_executable_obligations(metadata['contract'], metadata['process'], workflow['registry']),
+            registry_inspection_stages(metadata['process']),
+            obligation_catalog(metadata['contract']),
+        ).restore_state(workflow['registry'])
+
+    def restarted_registry(self, task_id: str) -> CheckRegistry:
+        row = self.db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
+        if row is None:
+            raise PoiseError(f'Task not found: {task_id}')
+        metadata = json.loads(row[0])
+        if not isinstance(metadata.get('registry_process'), dict):
+            raise PoiseError('Restarted Task has no frozen registry process context')
+        workflow = self.db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()
+        if workflow is None:
+            raise PoiseError('Restarted Task has no current verification registry')
+        return self._current_registry(
+            task_id, {**metadata, 'process': metadata['registry_process']}, json.loads(workflow[0]),
+        )
 
     def start_candidates(self) -> list[dict]:
         """A coarse read projection; the Task and Sprint owners decide readiness."""

@@ -812,6 +812,17 @@ class TaskCommands:
                 uow.tasks.remember_action(task_id, actor, request_id, identity, result)
                 return result
             task = build_task(metadata, None)
+            if executed_restart:
+                histories = newborn.restart_history
+                start = max(index for index, item in enumerate(histories)
+                            if item.get('from_status') != 'newborn')
+                edited = frozenset(field for item in histories[start:]
+                                   for field in item.get('registry_edits', []))
+                authority = histories[-1].get('planning_revision')
+                task = task.restore_restarted_registry(
+                    uow.tasks.restarted_registry(task_id), edited, actor, request_id,
+                    None if authority is None else authority['allowed_changes'],
+                )
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)

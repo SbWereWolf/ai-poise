@@ -139,6 +139,21 @@ class SqliteOwnershipRepository:
                 'schema_version': self.db.execute('PRAGMA user_version').fetchone()[0],
                 'conflicts': pending}
 
+    def ordinary_release_receipt(self, request_id):
+        row = self.db.execute(
+            "SELECT data FROM journal WHERE event='ownership.ordinary_released' "
+            "AND json_extract(data,'$.request.request_id')=? ORDER BY seq DESC LIMIT 1",
+            (request_id,)).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def record_ordinary_release(self, intent, actor, result):
+        self.db.execute(
+            'INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+            (datetime.now(timezone.utc).isoformat(), actor, intent['task_id'],
+             'ownership.ordinary_released',
+             encode({'request': intent, 'actor': actor, 'before': result['before'],
+                     'after': result['after'], 'result': result})))
+
     def legacy_receipt(self, request_id):
         row = self.db.execute(
             "SELECT data FROM journal WHERE event='ownership.legacy_reconciled' "

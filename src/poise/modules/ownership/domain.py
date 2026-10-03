@@ -39,6 +39,22 @@ class OwnershipChange:
     recovered_sessions: tuple[str, ...]
 
 
+def parse_ordinary_release(value):
+    """A named optimistic release intent with no caller-supplied authority."""
+    from ..foundation.errors import PoiseError
+
+    fields = {'task_id', 'request_id', 'expected_version', 'reason'}
+    if not isinstance(value, dict) or set(value) != fields:
+        raise PoiseError('release requires exact task_id, request_id, expected_version and reason')
+    for key in ('task_id', 'request_id', 'reason'):
+        text = value[key]
+        if not isinstance(text, str) or not text.strip() or '\0' in text:
+            raise PoiseError(f'release requires explicit {key}')
+    if type(value['expected_version']) is not int or value['expected_version'] < 0:
+        raise PoiseError('release expected_version must be a nonnegative integer')
+    return dict(value)
+
+
 def parse_legacy_repair(value):
     """An explicit release-only decision, never a request to invent an owner."""
     from copy import deepcopy

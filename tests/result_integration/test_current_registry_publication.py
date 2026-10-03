@@ -46,7 +46,20 @@ def test_completed_query_projects_late_registered_methods_without_mutating_creat
         terminal_stage=terminal_stage,
     )
     database = project["root"] / project["cfg"]["paths"]["state"] / project["cfg"]["paths"]["database"]
+    persisted_queries = {
+        "creation": "SELECT id,metadata FROM tasks ORDER BY id",
+        "workflow": "SELECT task_id,data FROM task_workflows ORDER BY task_id",
+        "execution": "SELECT task_id,version,data FROM task_execution ORDER BY task_id",
+        "history": "SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq",
+        "submissions": "SELECT seq,task_id,stage,iteration,digest,data FROM submissions ORDER BY seq",
+        "workflow_layers": "SELECT task_id,submission_id,data FROM workflow_layers ORDER BY task_id,submission_id",
+        "method_history": "SELECT task_id,method_id,version,data FROM task_methods ORDER BY task_id,method_id",
+    }
     with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        persisted_before = {
+            name: connection.execute(sql).fetchall()
+            for name, sql in persisted_queries.items()
+        }
         row = connection.execute(
             "SELECT metadata FROM tasks WHERE id=?", ("T1",),
         ).fetchone()
@@ -54,6 +67,12 @@ def test_completed_query_projects_late_registered_methods_without_mutating_creat
     assert creation["contract"]["methods"] == []
     assert creation["contract"]["checks"]["implementation"] == []
     record = tools.runtime.task_queries.record("T1")
+    with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
+        persisted_after = {
+            name: connection.execute(sql).fetchall()
+            for name, sql in persisted_queries.items()
+        }
+    assert persisted_after == persisted_before
     assert record["status"] == "completed"
     assert [method["id"] for method in record["contract"]["methods"]] == ["CURRENT_RESULT"]
     assert record["contract"]["checks"]["implementation"] == ["CURRENT_RESULT"]

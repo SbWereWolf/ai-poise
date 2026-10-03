@@ -14,9 +14,15 @@ import pytest
 if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from conftest import bind_task_requirements
+from batch.helpers import request, result, verify
+from conftest import add_test, bind_task_requirements
 from poise.modules.foundation.errors import PoiseError
 from runtime_services.test_task_restart import git, restart
+from sprints.helpers import bootstrap as sprint_bootstrap
+from sprints.helpers import draft as sprint_draft
+from sprints.helpers import publish as sprint_publish
+from sprints.helpers import setup as setup_sprint
+from sprints.helpers import task as sprint_task
 from tasks.test_newborn_lifecycle import complete_patch, create, edit, task_action, tools
 from tasks.test_planning_flexibility import full_draft
 
@@ -106,6 +112,7 @@ def _observable_state(client, task_id: str) -> dict:
     return {
         "task": record,
         "context": context,
+        "proof_and_registry": _historical_proof_state(client, task_id),
         "receipts": receipts,
         "events": events,
         "proof": proof,
@@ -132,6 +139,7 @@ def _exercise_changed_context(project, task_id: str, requirement: str) -> str:
     assert client.runtime.task_commands.requirements_snapshot(task_id) == revised["requirements_snapshot"]
     with client.runtime.store.unit_of_work() as uow:
         context = uow.tasks.restart_context(task_id)
+    assert context["requirements_snapshot"] == revised["requirements_snapshot"]
     assert context["requirements_agreement"] == revised["requirements_agreement"]
     assert current["id"] == original["id"]
     assert current["sprint_id"] == original["sprint_id"]
@@ -140,6 +148,8 @@ def _exercise_changed_context(project, task_id: str, requirement: str) -> str:
     assert current["history"][:len(original["history"])] == original["history"]
     history = context["restart_history"]
     assert history[-1]["from_status"] == "available"
+    assert history[-1]["before_requirements_snapshot"] == original["requirements_snapshot"]
+    assert history[-1]["before_requirements_agreement"] == original["requirements_agreement"]
     return "accepted"
 
 
@@ -178,10 +188,152 @@ def test_unchanged_context_uses_persisted_history(project):
     assert client.runtime.task_commands.requirements_snapshot(task_id) == stored
 
 
-@pytest.mark.parametrize("invalid", (
-    "text-only", "snapshot-only", "agreement-only", "missing-snapshot", "missing-agreement",
+def test_revised_sprint_member_preserves_nonempty_worktree_and_wip(project):
+    _assert_source_identity()
+    task_id = "SPRINT-REVISED"
+    setup_sprint(project)
+    client = tools(project, "sprint-owner")
+    proposed = sprint_draft(client, [sprint_task(project, task_id)])
+    sprint_publish(client, proposed["revision"])
+    active = sprint_bootstrap(client, task_id)
+    worktree = Path(active["worktree"])
+    assert active["task"] == task_id
+    tracked = worktree / "src" / "double.py"
+    tracked.write_text("def double(value):\n    return value * 7\n", encoding="utf-8")
+    staged = worktree / "tests" / "sprint-staged.txt"
+    staged.parent.mkdir(exist_ok=True)
+    staged.write_bytes(b"staged WIP\n")
+    git(worktree, "add", "tests/sprint-staged.txt")
+    untracked = worktree / "local-note.txt"
+    untracked.write_bytes(b"untracked WIP\n")
+    before_git = {
+        "head": git(worktree, "rev-parse", "HEAD"),
+        "index": git(worktree, "write-tree"),
+        "status": git(worktree, "status", "--porcelain=v1", "--untracked-files=all"),
+        "tracked": tracked.read_bytes(),
+        "staged": staged.read_bytes(),
+        "untracked": untracked.read_bytes(),
+    }
+    assert before_git["status"]
+    before_task = deepcopy(client.runtime.task_queries.record(task_id))
+    assert before_task["sprint_id"] == "S"
+    assert before_task["branch"] and before_task["worktree"] == str(worktree)
+    restarted = restart(client, task_id, before_task["version"], request_id="restart-sprint-revised")
+    revised = _new_revised_context(client, project, "The sprint member's revised contract is agreed.")
+    revised["definition_of_done"] = ["Revised sprint member is validated."]
+    changed = edit(client, task_id, restarted["revision"], revised, "reagree-sprint")
+    assert _ready(client, task_id, changed["revision"], "ready-sprint-revised")["status"] == "available"
+    current = client.runtime.task_queries.record(task_id)
+    assert current["id"] == task_id
+    assert current["sprint_id"] == before_task["sprint_id"] == "S"
+    assert current["branch"] == before_task["branch"]
+    assert current["worktree"] == before_task["worktree"] == str(worktree)
+    assert current["contract"]["requirements"] == revised["requirements"]
+    assert {
+        "head": git(worktree, "rev-parse", "HEAD"),
+        "index": git(worktree, "write-tree"),
+        "status": git(worktree, "status", "--porcelain=v1", "--untracked-files=all"),
+        "tracked": tracked.read_bytes(),
+        "staged": staged.read_bytes(),
+        "untracked": untracked.read_bytes(),
+    } == before_git
+    assert client.runtime.sprint_tools.overview("S")["tasks"][0]["id"] == task_id
+
+
+def _historical_proof_state(client, task_id: str) -> dict:
+    with client.runtime.store.transaction() as database:
+        row = database.execute(
+            "SELECT data FROM task_proofs WHERE task_id=?", (task_id,)
+        ).fetchone()
+        workflow = database.execute(
+            "SELECT data FROM task_workflows WHERE task_id=?", (task_id,)
+        ).fetchone()
+        return {
+            "current_proof": None if row is None else row["data"],
+            "layers": tuple(
+                (item["version"], item["data"])
+                for item in database.execute(
+                    "SELECT version,data FROM task_proof_layers WHERE task_id=? ORDER BY version",
+                    (task_id,),
+                )
+            ),
+            "evidence": tuple(
+                (item["id"], item["data"])
+                for item in database.execute(
+                    "SELECT id,data FROM evidence WHERE task_id=? ORDER BY id", (task_id,)
+                )
+            ),
+            "registry": None if workflow is None else workflow["data"],
+            "methods": tuple(
+                (item["method_id"], item["data"])
+                for item in database.execute(
+                    "SELECT method_id,data FROM task_methods WHERE task_id=? ORDER BY method_id",
+                    (task_id,),
+                )
+            ),
+            "work_packets": tuple(
+                (item["stage"], item["iteration"], item["digest"])
+                for item in database.execute(
+                    "SELECT stage,iteration,digest FROM work_packets WHERE task_id=? ORDER BY stage,iteration",
+                    (task_id,),
+                )
+            ),
+        }
+
+
+def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
+    _assert_source_identity()
+    import json
+
+    task_id = "PROOF-REVISED"
+    client = tools(project, "proof-owner")
+    initial = deepcopy(project["task"])
+    initial["id"] = task_id
+    context = client.invoke(request("bootstrap", {
+        "task": initial, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    add_test(context["worktree"])
+    first = verify(client, result(context))
+    assert first["status"] == "verified"
+    assert first["checks"] and first["checks"][0]["passed"] is True
+    previous = client.runtime.task_queries.record(task_id)
+    old_snapshot = deepcopy(previous["requirements_snapshot"])
+    old_agreement = deepcopy(previous["requirements_agreement"])
+    old = _historical_proof_state(client, task_id)
+    assert old["layers"] and old["evidence"]
+    assert json.loads(old["current_proof"])["book"]["batches"]
+    old_registry = json.loads(old["registry"])["registry"]
+    assert old["methods"]
+    assert old_registry["revision"] == 0
+    restarted = restart(client, task_id, previous["version"], request_id="restart-proof")
+    revised = _new_revised_context(client, project, "A verified Task accepts a newly agreed requirement.")
+    revised["definition_of_done"] = ["Independent verification of revised Task."]
+    changed = edit(client, task_id, restarted["revision"], revised, "reagree-proof")
+    assert _ready(client, task_id, changed["revision"], "ready-proof-revised")["status"] == "available"
+    after = _historical_proof_state(client, task_id)
+    assert after["layers"][:len(old["layers"])] == old["layers"]
+    assert after["evidence"][:len(old["evidence"])] == old["evidence"]
+    assert json.loads(after["current_proof"])["book"]["batches"] == []
+    assert after["methods"] == old["methods"]
+    assert json.loads(after["registry"])["registry"] == old_registry
+    assert client.runtime.task_commands.requirements_snapshot(task_id) == revised["requirements_snapshot"]
+    with client.runtime.store.unit_of_work() as uow:
+        new_context = uow.tasks.restart_context(task_id)
+    assert old_agreement != revised["requirements_agreement"]
+    assert new_context["requirements_snapshot"] == revised["requirements_snapshot"]
+    assert new_context["requirements_agreement"] == revised["requirements_agreement"]
+    assert new_context["restart_history"][-1]["before_requirements_snapshot"] == old_snapshot
+    assert new_context["restart_history"][-1]["before_requirements_agreement"] == old_agreement
+
+
+@pytest.mark.parametrize("invalid, expected_cause", (
+    ("text-only", "Task requirements snapshot does not match Task requirements"),
+    ("snapshot-only", "Task requirements snapshot does not match Task requirements"),
+    ("agreement-only", "Explicit full-text requirements agreement is required"),
+    ("missing-snapshot", "Task requirements snapshot has an invalid shape"),
+    ("missing-agreement", "Explicit full-text requirements agreement is required"),
 ))
-def test_rejects_invalid_changed_context(project, invalid):
+def test_rejects_invalid_changed_context(project, invalid, expected_cause):
     _assert_source_identity()
     task_id = f"INVALID-{invalid.upper()}"
     client, _, changed, revised = _create_restarted(project, task_id, f"{invalid} revised requirement.")
@@ -208,8 +360,9 @@ def test_rejects_invalid_changed_context(project, invalid):
         patch = {"requirements_agreement": None}
     broken = edit(client, task_id, changed["revision"], patch, f"break-{invalid}")
     before = _observable_state(client, task_id)
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError) as failure:
         _ready(client, task_id, broken["revision"], f"invalid-ready-{invalid}")
+    assert str(failure.value) == expected_cause
     assert _observable_state(client, task_id) == before
 
 
@@ -224,12 +377,13 @@ def test_restart_rejects_missing_or_invalid_legacy_authority(project, authorizat
     }, "fill-authority")
     first = _ready(client, task_id, filled["revision"], "ready-authority")
     before = _observable_state(client, task_id)
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError) as failure:
         restart(
             client, task_id, first["revision"],
             request_id=f"restart-invalid-authority-{authorization}",
             authorization=authorization,
         )
+    assert str(failure.value) == "Task restart authorization is required"
     assert _observable_state(client, task_id) == before
 
 
@@ -238,8 +392,9 @@ def test_stale_revision_rejects_before_changed_context_preflight(project):
     task_id = "STALE-REVISION"
     client, _, changed, _ = _create_restarted(project, task_id, "Revised exact contract.")
     before = _observable_state(client, task_id)
-    with pytest.raises(PoiseError, match="revision"):
+    with pytest.raises(PoiseError) as failure:
         _ready(client, task_id, changed["revision"] - 1, "stale-revision-ready")
+    assert str(failure.value) == "Newborn Task revision changed"
     assert _observable_state(client, task_id) == before
 
 
@@ -256,9 +411,81 @@ def test_changed_context_rejects_stale_live_registry(project):
         }}],
     })
     before = _observable_state(client, task_id)
-    with pytest.raises(PoiseError):
+    with pytest.raises(PoiseError) as failure:
         _ready(client, task_id, changed["revision"], "stale-live-ready")
+    assert str(failure.value) == "Task requirements snapshot contains unresolved gaps"
     assert _observable_state(client, task_id) == before
+
+
+def test_publication_failure_after_promotion_rolls_back_task_state(project, monkeypatch):
+    _assert_source_identity()
+    task_id = "ROLLBACK-PUBLICATION"
+    client, _, changed, _ = _create_restarted(project, task_id, "Publication must be atomic with promotion.")
+    gate_type = type(client.runtime.task_commands.requirements_gate)
+    real_publish = gate_type.publish_created
+    invoked = []
+
+    def fail_after_publication(gate, uow, subject, context):
+        real_publish(gate, uow, subject, context)
+        invoked.append(subject)
+        raise RuntimeError("injected publication boundary failure")
+
+    monkeypatch.setattr(gate_type, "publish_created", fail_after_publication)
+    before = _observable_state(client, task_id)
+    with pytest.raises(RuntimeError, match="^injected publication boundary failure$"):
+        _ready(client, task_id, changed["revision"], "ready-publication-rollback")
+    assert invoked == [task_id]
+    assert _observable_state(client, task_id) == before
+
+
+def test_concurrent_task_edit_between_preflight_and_promotion_is_detected(project, monkeypatch):
+    _assert_source_identity()
+    task_id = "CONCURRENT-TASK-EDIT"
+    client, _, changed, _ = _create_restarted(project, task_id, "A concurrent edit must win cleanly.")
+    commands = client.runtime.task_commands
+    original_prepare = commands.prepare_creation
+    after_concurrent_edit = []
+
+    def interleave_edit(*args, **kwargs):
+        prepared = original_prepare(*args, **kwargs)
+        assert edit(client, task_id, changed["revision"], {
+            "goal": "Concurrent edit remains authoritative.",
+        }, "concurrent-goal-edit")["revision"] == changed["revision"] + 1
+        after_concurrent_edit.append(_observable_state(client, task_id))
+        return prepared
+
+    monkeypatch.setattr(commands, "prepare_creation", interleave_edit)
+    with pytest.raises(PoiseError, match="^Newborn Task changed after creation preflight$"):
+        _ready(client, task_id, changed["revision"], "ready-concurrent-task")
+    assert len(after_concurrent_edit) == 1
+    assert _observable_state(client, task_id) == after_concurrent_edit[0]
+
+
+def test_registry_change_during_preflight_rejects_without_task_mutation(project, monkeypatch):
+    _assert_source_identity()
+    task_id = "CONCURRENT-REGISTRY"
+    client, _, changed, _ = _create_restarted(project, task_id, "A concurrent registry edit invalidates the new context.")
+    commands = client.runtime.task_commands
+    original_prepare = commands.prepare_creation
+    after_registry_change = []
+
+    def interleave_registry_change(*args, **kwargs):
+        client.runtime.requirements_commands.apply({
+            "request_id": "concurrent-registry-change",
+            "expected_revision": 1,
+            "operations": [{"kind": "put_requirement", "requirement": {
+                "id": "FIXTURE-SYSTEM", "level": "system", "status": "obsolete",
+                "text": "Concurrent live change invalidates the new snapshot.",
+            }}],
+        })
+        after_registry_change.append(_observable_state(client, task_id))
+        return original_prepare(*args, **kwargs)
+
+    monkeypatch.setattr(commands, "prepare_creation", interleave_registry_change)
+    with pytest.raises(PoiseError, match="^Task requirements snapshot contains unresolved gaps$"):
+        _ready(client, task_id, changed["revision"], "ready-concurrent-registry")
+    assert len(after_registry_change) == 1
+    assert _observable_state(client, task_id) == after_registry_change[0]
 
 
 def test_planned_restart_keeps_revision_authority(project):
@@ -278,6 +505,55 @@ def test_planned_restart_keeps_revision_authority(project):
             "definition_of_done": ["Unapproved acceptance revision."],
         }, "unapproved-planned-dod")
     assert _observable_state(client, task_id) == before
+
+
+def test_planned_user_authority_accepts_reagreed_context(project):
+    _assert_source_identity()
+    task_id = "PLANNED-REAGREED"
+    client = tools(project, "owner-planned-positive")
+    born = create(client, task_id)
+    filled = edit(client, task_id, born["revision"], full_draft(project, task_id), "fill-planned-positive")
+    first = _ready(client, task_id, filled["revision"], "first-ready-planned-positive")
+    historical = client.runtime.task_commands.requirements_snapshot(task_id)
+    restarted = restart(
+        client, task_id, first["revision"], request_id="restart-planned-positive",
+        authorization={"role": "user", "decision": "User authorizes the revised Requirements context."},
+    )
+    revised = _new_revised_context(client, project, "The planning-enabled contract is revised by its user.")
+    revised["definition_of_done"] = ["The planning-enabled revision is independently checked."]
+    changed = edit(client, task_id, restarted["revision"], revised, "reagree-planned-positive")
+    assert _ready(client, task_id, changed["revision"], "ready-planned-positive")["status"] == "available"
+    current = client.runtime.task_queries.record(task_id)
+    assert current["contract"]["requirements"] == revised["requirements"]
+    assert client.runtime.task_commands.requirements_snapshot(task_id) == revised["requirements_snapshot"]
+    with client.runtime.store.unit_of_work() as uow:
+        context = uow.tasks.restart_context(task_id)
+    assert context["requirements_snapshot"] == revised["requirements_snapshot"]
+    assert context["requirements_agreement"] == revised["requirements_agreement"]
+    audit = context["restart_history"][-1]
+    assert audit["planning_revision"]["authorization"]["role"] == "user"
+    assert audit["planning_revision"]["before_contract"]["requirements_snapshot"] == historical
+    assert "requirements" in audit["resolved_revision"]["changed_fields"]
+
+
+def test_revised_legacy_ready_replay_conflict_and_stale_revision(project):
+    _assert_source_identity()
+    task_id = "REVISED-REPLAY"
+    client, _, changed, revised = _create_restarted(project, task_id, "A revised ready must replay exactly.")
+    request_id = "ready-revised-replay"
+    first = _ready(client, task_id, changed["revision"], request_id)
+    assert first["status"] == "available"
+    before = _observable_state(client, task_id)
+    assert _ready(client, task_id, changed["revision"], request_id) == first
+    assert _observable_state(client, task_id) == before
+    with pytest.raises(PoiseError) as conflict:
+        _ready(client, task_id, changed["revision"] + 1, request_id)
+    assert str(conflict.value) == "Request ID already used with another Task action intent"
+    assert _observable_state(client, task_id) == before
+    with pytest.raises(PoiseError):
+        _ready(client, task_id, changed["revision"], "fresh-but-stale-revised-ready")
+    assert _observable_state(client, task_id) == before
+    assert client.runtime.task_queries.record(task_id)["contract"]["requirements"] == revised["requirements"]
 
 
 def test_exact_replay_and_conflicting_request_id(project):

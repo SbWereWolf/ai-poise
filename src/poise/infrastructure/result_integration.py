@@ -74,19 +74,26 @@ class RuntimeResultIntegration:
             / "result-integration" / task_id / identity
         )
 
-    def _load(self, task_id):
+    def _load(self, task_id, requested_intent):
         record = self.h.task_queries.record(task_id)
         if record is None:
             raise PoiseError("Integration task does not exist")
         pending = record["pending"]
         if pending is None:
             return record, None
+        if isinstance(pending.get("intent"), dict) and "commit_message" not in pending["intent"]:
+            raise PoiseError(
+                "Saved integration request lacks explicit commit_message; history is retained "
+                "and automatic continuation cannot recover a message never recorded"
+            )
         if pending.get("schema") == "existing-task-worktree-1":
             return record, IntegrationRun.restore(pending)
         run = IntegrationRun.recover_legacy(
             pending, record["branch"], record["worktree"],
             self._temporary_backup_directory(task_id, pending["intent"]["request_id"]),
         )
+        if requested_intent is not None and not self._same_intent(run, requested_intent):
+            raise PoiseError("Task integration intent is immutable")
         self._save(task_id, run, pending["version"])
         return record, run
 
@@ -164,12 +171,15 @@ class RuntimeResultIntegration:
         if self._git(repository, "rev-parse", self._target_ref()) \
                 != intent.expected_target_commit:
             raise PoiseError("Expected target commit changed before integration")
-        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.authorization) is None:
+
+    def _validate_message(self, intent):
+        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.commit_message) is None:
             raise PoiseError("Integration commit message violates the configured pattern")
 
     def prepare_source(self, intent):
+        self._validate_message(intent)
         repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        record, run = self._load(intent.task_id)
+        record, run = self._load(intent.task_id, intent)
         if run is None:
             self._validate_new(record, intent, repository)
             return record
@@ -194,6 +204,12 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, ready, run.version)
         return ready
 
+    def _commit_candidate(self, run, worktree):
+        return self._run(
+            worktree, "commit", "--cleanup=verbatim", "-m", run.intent.commit_message,
+            env=self._actor(),
+        )
+
     def _prepare_candidate(self, run):
         worktree = Path(run.task_worktree).resolve(strict=True)
         target = run.last_included_target
@@ -214,16 +230,12 @@ class RuntimeResultIntegration:
             self._git(worktree, "add", "--", *sorted(run.conflicts))
             if self._conflicts(worktree):
                 raise PoiseError("The Git index still contains unresolved conflicts")
-            receipt = self._run(
-                worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-            )
+            receipt = self._commit_candidate(run, worktree)
             if receipt["actual_exit_code"] != 0:
                 return self._candidate_failed(run, "integration_commit_failed", receipt)
             return self._record_candidate(run, worktree, receipt)
         if merge_head == target and not conflicts:
-            receipt = self._run(
-                worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-            )
+            receipt = self._commit_candidate(run, worktree)
             if receipt["actual_exit_code"] != 0:
                 return self._candidate_failed(run, "integration_commit_failed", receipt)
             return self._record_candidate(run, worktree, {**receipt, "recovered": True})
@@ -251,9 +263,7 @@ class RuntimeResultIntegration:
             return self._candidate_failed(run, "merge_failed_without_conflicts", receipt)
         if self._optional_ref(worktree, "MERGE_HEAD") is None:
             return self._record_candidate(run, worktree, receipt)
-        commit = self._run(
-            worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-        )
+        commit = self._commit_candidate(run, worktree)
         if commit["actual_exit_code"] != 0:
             return self._candidate_failed(run, "integration_commit_failed", commit)
         return self._record_candidate(run, worktree, commit)
@@ -912,8 +922,9 @@ class RuntimeResultIntegration:
                 )
 
     def apply(self, intent):
+        self._validate_message(intent)
         repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        record, run = self._load(intent.task_id)
+        record, run = self._load(intent.task_id, intent)
         if run is None:
             self._validate_new(record, intent, repository)
             run = self._new_run(record, intent)
@@ -989,7 +1000,7 @@ class RuntimeResultIntegration:
         if (not isinstance(task_id, str) or not task_id
                 or not isinstance(request_id, str) or not request_id):
             raise PoiseError("Integration query requires task_id and request_id")
-        _, run = self._load(task_id)
+        _, run = self._load(task_id, None)
         if run is None or run.intent.request_id != request_id:
             raise PoiseError("Result integration request was not found")
         return run.result()

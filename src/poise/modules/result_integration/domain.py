@@ -42,13 +42,14 @@ class IntegrationIntent:
     expected_source_commit: str
     expected_target_commit: str
     authorization: str
+    commit_message: str
     resolutions: tuple[dict, ...]
     config_backup_paths: tuple[str, ...]
 
     @classmethod
     def parse(cls, value):
         keys = {"request_id", "task_id", "expected_source_commit", "expected_target_commit",
-                "authorization", "resolutions"}
+                "authorization", "commit_message", "resolutions"}
         if not isinstance(value, dict) or set(value) not in (keys, keys | {"config_backup_paths"}):
             raise DomainError("integrate input requires exact intent and resolutions fields")
         resolutions = value["resolutions"]
@@ -73,6 +74,7 @@ class IntegrationIntent:
             _commit(value["expected_source_commit"], "expected_source_commit"),
             _commit(value["expected_target_commit"], "expected_target_commit"),
             _text(value["authorization"], "authorization"),
+            _text(value["commit_message"], "commit_message"),
             parsed,
             tuple(backup_paths),
         )
@@ -84,6 +86,7 @@ class IntegrationIntent:
             "expected_source_commit": self.expected_source_commit,
             "expected_target_commit": self.expected_target_commit,
             "authorization": self.authorization,
+            "commit_message": self.commit_message,
             "config_backup_paths": list(self.config_backup_paths),
         }
 

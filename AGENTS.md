@@ -26,7 +26,8 @@ Before any work, including a request without a formal task, establish the goal, 
 Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
 target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
 and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
-shape is not a blocker; structural validation does not prove that every required write or check was inventoried.
+shape is not a blocker; structural validation does not prove that known required writes and verification obligations
+were inventoried. Design exact future test methods and provenance at their owning stage after their sources are known.
 
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not

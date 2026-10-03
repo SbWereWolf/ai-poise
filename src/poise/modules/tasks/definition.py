@@ -1,5 +1,6 @@
 """One pure creation contract for standalone and sprint-published tasks."""
 from copy import deepcopy
+from dataclasses import replace
 from .contracts import stages_from_process, candidate_content_policy_from_metadata, evidence_plan_from_metadata
 from .domain import Task, TaskStageContracts
 from ..verification.domain import (
@@ -92,7 +93,7 @@ def stored_executable_obligations(contract, process, registry_state):
     )
 
 
-def validate_creation(contract, process, automatic_checks, decomposition_policy):
+def validate_creation(contract, process, automatic_checks, decomposition_policy, *, current_registry=None):
     if isinstance(contract,dict) and 'method_inputs' not in contract:
         method_ids = [method.get('id') for method in contract.get('methods',[]) if isinstance(method,dict)]
         raise DomainError(
@@ -118,7 +119,7 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
     from .decomposition import FocusedDecomposition
     FocusedDecomposition.require_valid(contract['decomposition'], stages, decomposition_policy)
     route = RouteDefinition.from_process(process)
-    registry=CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
+    registry=current_registry if current_registry is not None else CheckRegistry.from_task(contract['methods'],contract['checks'],stages).with_executable_obligations(
         executable_obligations(contract, process),
         registry_inspection_stages(process),
         obligation_catalog(contract),
@@ -141,7 +142,7 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
             or not 0<=r['minimum']<=r['maximum']):
             raise DomainError('Некорректное требование артефактов')
     metadata={'contract':deepcopy(contract),'process':deepcopy(process)}
-    planned = build_task(metadata,None)  # All Content/Evidence/Workflow constructors, no I/O.
+    planned = build_task(metadata,None,current_registry=current_registry)  # Pure constructors, no I/O.
     preflight.validate_immutable_artifact_writes(
         planned.route,
         planned.content_policy,
@@ -150,18 +151,19 @@ def validate_creation(contract, process, automatic_checks, decomposition_policy)
     return metadata
 
 
-def build_task(metadata, actor):
+def build_task(metadata, actor, *, current_registry=None):
     stages=stages_from_process(metadata['process'])
     policy=candidate_content_policy_from_metadata(metadata,{'goal':metadata['process']['content_contract'],
                                                             'task':metadata['contract']['content_contract']})
     route = RouteDefinition.from_process(metadata['process'])
-    registry=CheckRegistry.from_task(
+    registry=current_registry if current_registry is not None else CheckRegistry.from_task(
         metadata['contract']['methods'], metadata['contract']['checks'], tuple(s.stage_id for s in stages)
     ).with_executable_obligations(
         executable_obligations(metadata['contract'], metadata['process']),
         registry_inspection_stages(metadata['process']),
         obligation_catalog(metadata['contract']),
     )
+    policy = replace(policy, method_ids=registry.method_ids)
     contracts = TaskStageContracts.parse(metadata['contract']['stage_contracts'], route, policy)
     registry.validate_route(route.with_stage_scopes(contracts.to_list()))
     args=(metadata['contract']['id'],stages,policy,registry,route,evidence_plan_from_metadata(metadata,registry),contracts)

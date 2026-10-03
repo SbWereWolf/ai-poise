@@ -227,7 +227,7 @@ class TaskCommands:
         if candidate != saved['contract']:
             raise DomainError('Existing task contract is immutable; bootstrap is not an editor')
 
-    def prepare_creation(self, intent, process, automatic_checks, base_revision, decomposition_policy):
+    def prepare_creation(self, intent, process, automatic_checks, base_revision, decomposition_policy, *, current_registry=None):
         return self._prepare_creation(
             intent,
             process,
@@ -235,10 +235,12 @@ class TaskCommands:
             base_revision,
             decomposition_policy,
             self.requirements_gate.prepare_contract,
+            current_registry=current_registry,
         )
 
     def _prepare_restarted_creation(
-        self, intent, process, automatic_checks, base_revision, decomposition_policy, persisted_context
+        self, intent, process, automatic_checks, base_revision, decomposition_policy, persisted_context,
+        *, current_registry=None
     ):
         return self._prepare_creation(
             intent,
@@ -251,10 +253,12 @@ class TaskCommands:
                 persisted_context["requirements_snapshot"],
                 persisted_context["requirements_agreement"],
             ),
+            current_registry=current_registry,
         )
 
     def _prepare_creation(
-        self, intent, process, automatic_checks, base_revision, decomposition_policy, prepare_requirements
+        self, intent, process, automatic_checks, base_revision, decomposition_policy, prepare_requirements,
+        *, current_registry=None
     ):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
         from ..modules.tasks.creation_preflight import CreationPreflight
@@ -266,7 +270,7 @@ class TaskCommands:
             preflight = CreationPreflight.parse(candidate, process)
         except KeyError as exc:
             validate_creation(
-                candidate, process, automatic_checks, decomposition_policy
+                candidate, process, automatic_checks, decomposition_policy, current_registry=current_registry
             )
             raise DomainError(
                 f"Task creation preflight requires field {exc.args[0]!r}"
@@ -276,7 +280,8 @@ class TaskCommands:
         preflight.validate_base(
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
-        validate_creation(candidate, process, automatic_checks, decomposition_policy)
+        validate_creation(candidate, process, automatic_checks, decomposition_policy,
+                          current_registry=current_registry)
         return PreparedCreation(
             source_intent,
             deepcopy(intent),
@@ -748,6 +753,20 @@ class TaskCommands:
             effective_hash = context['config_hash'] if executed_restart else config_hash
             effective_checks = automatic_checks
             effective_decomposition = decomposition_policy
+            current_registry = None
+            registry_change = None
+            if executed_restart:
+                histories = newborn.restart_history
+                start = max(index for index, item in enumerate(histories)
+                            if item.get('from_status') != 'newborn')
+                edited = frozenset(field for item in histories[start:]
+                                   for field in item.get('registry_edits', []))
+                authority = histories[-1].get('planning_revision')
+                from ..modules.tasks.domain import Task
+                current_registry, registry_change = Task.prepare_restarted_registry(
+                    uow.tasks.restarted_registry(task_id), contract, newborn.process, edited,
+                    request_id, None if authority is None else authority['allowed_changes'],
+                )
             restart_base = None
             if newborn.restart_history and uow.execution.exists(task_id):
                 restart_base = uow.execution.load(task_id)[0]['base']
@@ -772,6 +791,7 @@ class TaskCommands:
                 base_revision,
                 effective_decomposition,
                 context,
+                current_registry=current_registry,
             )
         else:
             prepared = self.prepare_creation(
@@ -780,6 +800,7 @@ class TaskCommands:
                 effective_checks,
                 base_revision,
                 effective_decomposition,
+                current_registry=current_registry,
             )
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
@@ -791,6 +812,7 @@ class TaskCommands:
             metadata = validate_creation(
                 prepared.intent, newborn.process, effective_checks,
                 effective_decomposition,
+                current_registry=current_registry,
             )
             metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
             if newborn.creation_request is not None:
@@ -811,18 +833,8 @@ class TaskCommands:
                 result = ready.describe()
                 uow.tasks.remember_action(task_id, actor, request_id, identity, result)
                 return result
-            task = build_task(metadata, None)
-            if executed_restart:
-                histories = newborn.restart_history
-                start = max(index for index, item in enumerate(histories)
-                            if item.get('from_status') != 'newborn')
-                edited = frozenset(field for item in histories[start:]
-                                   for field in item.get('registry_edits', []))
-                authority = histories[-1].get('planning_revision')
-                task = task.restore_restarted_registry(
-                    uow.tasks.restarted_registry(task_id), edited, actor, request_id,
-                    None if authority is None else authority['allowed_changes'],
-                )
+            task = build_task(metadata, None, current_registry=current_registry)
+            task = task.bind_restarted_registry_audit(registry_change, actor)
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)

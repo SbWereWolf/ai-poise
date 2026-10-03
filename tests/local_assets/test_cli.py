@@ -607,3 +607,95 @@ def test_declaration_field_types_reject_before_any_write(
     assert_rejected(completed, reply, code="invalid_manifest", asset_path=None)
     assert not (target / first).exists()
     assert tree_state(tmp_path) == before
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_destination_file_ancestor_collision_rejects_entire_batch(
+    tmp_path: Path, reverse: bool,
+) -> None:
+    target, source, manifest, request = case(
+        tmp_path, [("supplied/parent.bin", b"parent bytes", "tracked"),
+                   ("supplied/child.bin", b"child bytes", "working")],
+    )
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    document["assets"][0]["path"] = "agent/policy"
+    document["assets"][1]["path"] = "agent/policy/child.json"
+    if reverse:
+        document["assets"].reverse()
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    (target / "unrelated.txt").write_bytes(b"preserve target")
+    (source / "unrelated.txt").write_bytes(b"preserve source")
+    (tmp_path / "outside.txt").write_bytes(b"preserve outside")
+    before = tree_state(tmp_path)
+
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="asset_path_collision", asset_path=None)
+    assert not (target / "agent").exists()
+    assert tree_state(tmp_path) == before
+
+
+def test_shared_name_prefix_sibling_files_restore_normally(tmp_path: Path) -> None:
+    entries = [("agent/policy", b"policy bytes", "tracked"),
+               ("agent/policy-backup", b"backup bytes", "working")]
+    target, source, manifest, request = case(tmp_path, entries)
+    source_before = tree_state(source)
+    unrelated = target / "unrelated.txt"
+    unrelated.write_bytes(b"preserve target")
+
+    completed, reply = restore(manifest, request)
+    assert completed.returncode == 0, completed.stderr + completed.stdout
+    assert completed.stderr == ""
+    expected = json.loads(
+        (Path(__file__).parent / "fixtures/sibling-restore-reply.json").read_text(encoding="utf-8")
+    )
+    expected["target_root"] = str(target)
+    assert reply == expected
+    for relative, expected_bytes, _ in entries:
+        assert (target / relative).read_bytes() == expected_bytes
+        assert (target / relative).stat().st_mode & 0o777 == 0o600
+    assert tree_state(source) == source_before
+    assert unrelated.read_bytes() == b"preserve target"
+
+
+def test_missing_later_tracked_source_rejects_without_partial_write(tmp_path: Path) -> None:
+    first = "agent/first.json"
+    later = "agent/required-tracked.json"
+    target, source, manifest, request = case(
+        tmp_path, [(first, b"valid first", "working"), (later, b"tracked bytes", "tracked")],
+    )
+    (source / later).unlink()
+    (target / "unrelated.txt").write_bytes(b"preserve target")
+    (source / "unrelated.txt").write_bytes(b"preserve source")
+    (tmp_path / "outside.txt").write_bytes(b"preserve outside")
+    before = tree_state(tmp_path)
+
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="missing_tracked_source", asset_path=later)
+    assert not (target / first).exists()
+    assert tree_state(tmp_path) == before
+
+
+@pytest.mark.parametrize("kind", ["tracked", "versioned_example", "untracked_example"])
+def test_nonworking_repair_metadata_rejects_without_invocation_or_write(
+    tmp_path: Path, kind: str,
+) -> None:
+    first = "agent/first.json"
+    later = "agent/later.json"
+    target, source, manifest, request = case(
+        tmp_path, [(first, b"valid first", "working"), (later, b"later bytes", kind)],
+    )
+    spy = Path(__file__).parent / "fixtures/owner-repair-spy.sh"
+    marker = tmp_path / "repair-was-invoked.txt"
+    document = json.loads(manifest.read_text(encoding="utf-8"))
+    document["assets"][1]["repair"] = shlex.join(["bash", str(spy), str(marker)])
+    manifest.write_text(json.dumps(document), encoding="utf-8")
+    (target / "unrelated.txt").write_bytes(b"preserve target")
+    (source / "unrelated.txt").write_bytes(b"preserve source")
+    (tmp_path / "outside.txt").write_bytes(b"preserve outside")
+    before = tree_state(tmp_path)
+
+    completed, reply = restore(manifest, request)
+    assert_rejected(completed, reply, code="invalid_manifest", asset_path=None)
+    assert not marker.exists()
+    assert not (target / first).exists()
+    assert tree_state(tmp_path) == before

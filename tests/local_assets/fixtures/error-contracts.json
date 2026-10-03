@@ -148,5 +148,25 @@
       "reason": "Destination asset is not a regular file.",
       "recovery": "Resolve the declared destination through its owner and retry."
     }
+  },
+  "asset_path_collision": {
+    "exit_code": 2,
+    "reply": {
+      "status": "rejected",
+      "code": "asset_path_collision",
+      "asset": null,
+      "reason": "Declared destination asset paths collide.",
+      "recovery": "Declare independent file destinations and retry."
+    }
+  },
+  "missing_tracked_source": {
+    "exit_code": 3,
+    "reply": {
+      "status": "rejected",
+      "code": "missing_tracked_source",
+      "asset": null,
+      "reason": "Declared tracked source asset is missing.",
+      "recovery": "Supply the declared tracked file in the source snapshot and retry."
+    }
   }
 }

@@ -10,7 +10,7 @@ import subprocess
 import uuid
 
 from ..common import descendant, digest, file_digest, prohibit_git_push
-from ..execution import method_passed, preview, run_command
+from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
@@ -341,6 +341,12 @@ class RuntimeResultIntegration:
                         or receipt.get("stderr_digest") != file_digest(stderr)
                         or not method_passed(method, receipt)):
                     return False
+                if inspect_declared_output_receipts(method.get('outputs', []), receipt.get('outputs')) != (True, True):
+                    return False
+                if any(output['status'] == 'captured'
+                       and output['path'] != str(run_dir / 'outputs' / output['id'])
+                       for output in receipt['outputs']):
+                    return False
             except (OSError, KeyError, ValueError):
                 return False
         return True
@@ -400,12 +406,18 @@ class RuntimeResultIntegration:
             environment.update(method["environment"])
             check_id = str(uuid.uuid4())
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            declared_output_dir = run_dir / "declared-outputs"
+            declared_output_dir.mkdir(parents=True, exist_ok=True)
+            environment["POISE_RUN_OUTPUT_DIR"] = str(declared_output_dir)
             result = run_command(
                 method["argv"], cwd, environment, None,
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
             self._checked_workspace(run)
+            outputs, outputs_complete = capture_declared_outputs(
+                method.get("outputs", []), declared_output_dir, run_dir / "outputs",
+            )
             receipts.append({
                 **result, "id": check_id, "method": method["id"],
                 "definition_digest": digest(method),
@@ -413,7 +425,8 @@ class RuntimeResultIntegration:
                 "integration_head": head, "verified_tree": verified_tree,
                 "argv": method["argv"], "cwd": str(cwd),
                 "expected_exit_code": method["expected_exit_code"],
-                "passed": method_passed(method, result),
+                "passed": method_passed(method, result) and outputs_complete,
+                "outputs": outputs,
                 "stdout_digest": file_digest(Path(result["stdout"])),
                 "stderr_digest": file_digest(Path(result["stderr"])),
                 "preview": preview(Path(result["stderr"]),
@@ -428,56 +441,7 @@ class RuntimeResultIntegration:
         return digest({"contract": record["contract"], "task_version": record["version"]})
 
     def _has_current_checks(self, record, run):
-        worktree, head = self._checked_workspace(run)
-        tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
-        required = {method["id"]: method for method in self._select_checks(record)}
-        passed = next((event for event in reversed(run.history)
-                       if event["event"] == "checks_passed"), None)
-        if passed is None:
-            return False
-        details = passed.get("details")
-        if not isinstance(details, dict) or not isinstance(details.get("check_ids"), list):
-            return False
-        identifiers = details["check_ids"]
-        if (len(identifiers) != len(required)
-                or any(not isinstance(value, str) for value in identifiers)
-                or len(set(identifiers)) != len(identifiers)):
-            return False
-        selected = []
-        for identifier in identifiers:
-            matching = [item for item in run.checks
-                        if isinstance(item, dict) and item.get("id") == identifier]
-            if len(matching) != 1:
-                return False
-            selected.append(matching[0])
-        if {item.get("method") for item in selected} != set(required):
-            return False
-        contract_digest = self._contract_digest(record)
-        for receipt in selected:
-            method = required[receipt["method"]]
-            if (receipt.get("passed") is not True
-                    or receipt.get("integration_head") != head
-                    or receipt.get("verified_tree") != tree
-                    or receipt.get("definition_digest") != digest(method)
-                    or receipt.get("contract_digest") != contract_digest
-                    or receipt.get("argv") != method["argv"]
-                    or receipt.get("cwd") != str((worktree / method["cwd"]).resolve())
-                    or receipt.get("expected_exit_code") != method["expected_exit_code"]
-                    or receipt.get("actual_exit_code") != method["expected_exit_code"]
-                    or receipt.get("timed_out") is not False
-                    or receipt.get("cancelled") is True
-                    or receipt.get("capture_complete") is not True):
-                return False
-            for name in ("stdout", "stderr"):
-                value = receipt.get(name)
-                if not isinstance(value, str) or not value:
-                    return False
-                path = Path(value)
-                if not path.is_file() or file_digest(path) != receipt.get(name + "_digest"):
-                    return False
-            if not method_passed(method, receipt):
-                return False
-        return True
+        return self._complete_candidate_proof(record, run)
 
     def _publication_lock(self):
         identity = hashlib.sha256(self._target_ref().encode()).hexdigest()[:16]
@@ -638,6 +602,117 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, completed, run.version)
         return completed
 
+    @staticmethod
+    def _regular_config_source(worktree, relative):
+        source = worktree / relative
+        current = worktree
+        for part in Path(relative).parts[:-1]:
+            current = current / part
+            try:
+                mode = current.lstat().st_mode
+            except FileNotFoundError:
+                return None
+            if not stat.S_ISDIR(mode):
+                raise PoiseError("Declared configuration has an unsafe parent")
+        try:
+            mode = source.lstat().st_mode
+        except FileNotFoundError:
+            return None
+        if not stat.S_ISREG(mode) or not stat.S_IMODE(mode) & 0o444:
+            raise PoiseError("Declared configuration is not a regular file")
+        return source
+
+    @staticmethod
+    def _private_directory(path):
+        if path.exists() or path.is_symlink():
+            mode = path.lstat().st_mode
+            if not stat.S_ISDIR(mode) or stat.S_IMODE(mode) & 0o077:
+                raise PoiseError("Configuration recovery parent is unsafe")
+        else:
+            path.mkdir(mode=0o700)
+
+    def _backup_configuration(self, run):
+        def source_identity(info):
+            return (info.st_dev, info.st_ino, info.st_size, info.st_mode,
+                    info.st_mtime_ns, info.st_ctime_ns)
+
+        paths = run.intent.config_backup_paths
+        if not paths or run.cleanup["task_worktree"] == "removed":
+            return run, True
+        record = self.h.task_queries.record(run.intent.task_id)
+        recovery = task_root(
+            self.h.state, self.h.paths, run.intent.task_id, record["sprint_id"]
+        ) / "configuration-recovery" / self._identity(run.intent)
+        worktree = Path(run.task_worktree)
+        prior = next((item["details"]["files"] for item in run.history
+                      if item.get("event") == "configuration_backup_completed"), None)
+        files = []
+        failure_reason = "configuration_backup_failed"
+        try:
+            self._private_directory(recovery.parent)
+            self._private_directory(recovery)
+            for relative in paths:
+                source = self._regular_config_source(worktree, relative)
+                if source is None:
+                    files.append({"path": relative, "status": "absent"})
+                    continue
+                fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
+                with os.fdopen(fd, "rb") as stream:
+                    info = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(info.st_mode):
+                        failure_reason = "configuration_source_changed"
+                        raise PoiseError("Declared configuration changed during backup")
+                    content = stream.read()
+                    if source_identity(info) != source_identity(os.fstat(stream.fileno())):
+                        failure_reason = "configuration_source_changed"
+                        raise PoiseError("Declared configuration changed during backup")
+                destination = recovery
+                for part in Path(relative).parts[:-1]:
+                    destination = destination / part
+                    self._private_directory(destination)
+                destination = destination / Path(relative).name
+                digest = hashlib.sha256(content).hexdigest()
+                if destination.exists() or destination.is_symlink():
+                    mode = destination.lstat().st_mode
+                    if (not stat.S_ISREG(mode) or stat.S_IMODE(mode) & 0o077
+                            or file_digest(destination) != digest):
+                        raise PoiseError("Existing configuration backup conflicts with source")
+                else:
+                    fd = os.open(
+                        destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                        0o600,
+                    )
+                    with os.fdopen(fd, "wb") as stream:
+                        stream.write(content)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                failure_reason = "configuration_source_changed"
+                if source_identity(info) != source_identity(source.lstat()):
+                    raise PoiseError("Declared configuration changed during backup")
+                failure_reason = "configuration_backup_failed"
+                files.append({
+                    "path": relative, "status": "copied", "sha256": digest,
+                    "source_mode": stat.S_IMODE(info.st_mode),
+                    "recovery_path": str(destination),
+                })
+        except (OSError, PoiseError):
+            blocked = run.cleanup_blocked(
+                "task_worktree", {"reason": failure_reason}
+            )
+            self._save(run.intent.task_id, blocked, run.version)
+            return blocked, False
+        if prior is not None:
+            if files != prior:
+                blocked = run.cleanup_blocked(
+                    "task_worktree", {"reason": "configuration_backup_changed"}
+                )
+                self._save(run.intent.task_id, blocked, run.version)
+                return blocked, False
+            return run, True
+        completed = run.configuration_backup_completed(files)
+        self._save(run.intent.task_id, completed, run.version)
+        return completed, True
+
     def _cleanup(self, run, repository):
         if run.phase != "cleanup_pending":
             return run
@@ -646,6 +721,9 @@ class RuntimeResultIntegration:
             raise PoiseError("Current target does not contain the published integration head")
         if not self._contains(repository, run.accepted_commit, current_target):
             raise PoiseError("Current target does not contain the accepted commit")
+        run, backed_up = self._backup_configuration(run)
+        if not backed_up:
+            return run
         disposition = CommitDisposition(
             "integrated",
             expected_commit=run.accepted_commit,

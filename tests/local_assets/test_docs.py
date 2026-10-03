@@ -32,18 +32,20 @@ def local_link_target(link: str, manual: Path = MANUAL) -> tuple[Path, str]:
 
 def markdown_anchors(text: str) -> set[str]:
     prose = []
-    fence = None
+    fence: tuple[str, int] | None = None
     for line in text.splitlines():
-        stripped = line.lstrip()
-        marker = stripped[:3]
-        if fence is None and marker in ("```", "~~~"):
-            fence = marker
+        if fence is not None:
+            character, minimum = fence
+            if re.fullmatch(rf" {{0,3}}{re.escape(character)}{{{minimum},}}[ \t]*", line):
+                fence = None
             continue
-        if fence is not None and stripped.startswith(fence):
-            fence = None
-            continue
-        if fence is None:
-            prose.append(line)
+        opening = re.fullmatch(r" {0,3}(`{3,}|~{3,})(.*)", line)
+        if opening is not None:
+            marker, info = opening.groups()
+            if marker[0] != "`" or "`" not in info:
+                fence = (marker[0], len(marker))
+                continue
+        prose.append(line)
     prose_text = "\n".join(prose)
     anchors = set(re.findall(r'<a\s+id="([^"]+)"', prose_text))
     counts: dict[str, int] = {}
@@ -64,15 +66,29 @@ def assert_local_link(link: str, manual: Path = MANUAL) -> None:
         assert fragment in markdown_anchors(target.read_text(encoding="utf-8")), link
 
 
-def test_fenced_shell_comment_is_not_a_markdown_anchor(tmp_path: Path) -> None:
+@pytest.mark.parametrize("code_block", [
+    "```bash\n# Comment only\n```\n",
+    "````bash\n```\n# Comment only\n````\n",
+    "~~~~bash\n~~~\n# Comment only\n~~~~\n",
+    "```bash\n# Comment only\n````\n",
+    "```bash\n# Comment only\n```oops\n# Still code\n```\n",
+    "```bash\n# Comment only\n``` \t\n",
+])
+def test_fenced_shell_comment_is_not_a_markdown_anchor(
+    tmp_path: Path, code_block: str,
+) -> None:
     manual = tmp_path / "sample.md"
     manual.write_text(
-        "# Real heading\n```bash\n# Comment only\ntrue\n```\n",
+        "# Real heading\n" + code_block + "# After close\n",
         encoding="utf-8",
     )
     assert_local_link("#real-heading", manual)
+    assert_local_link("#after-close", manual)
     with pytest.raises(AssertionError):
         assert_local_link("#comment-only", manual)
+    if "# Still code" in code_block:
+        with pytest.raises(AssertionError):
+            assert_local_link("#still-code", manual)
 
 
 def run(command: str, env: dict[str, str]) -> tuple[subprocess.CompletedProcess[str], dict]:

@@ -215,10 +215,12 @@ contract](../../../docs/workflows/batch-work.md#изоляция-временн�
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks
 and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method.
 
+Before project setup, changing `git.base_ref`, or integration, read the canonical
+[target branch selection](../../../docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
 For final result integration, keep the accepted commit immutable. The public finisher advances the existing task branch
-in its existing task worktree; all updates from current `master`, merges, conflict resolution, and checks happen there,
+in its existing task worktree; all updates from the current configured target branch, merges, conflict resolution, and checks happen there,
 with no separate integration branch or worktree. If it returns a conflict, pause automation for agent resolution in that
-task worktree, then resume checks. The finisher rechecks `master` under the shared target lock and repeats update,
+task worktree, then resume checks. The finisher rechecks the configured target under the shared target lock and repeats update,
 resolution, and checks on drift. It publishes only through `git merge --ff-only <task-branch>` in the main checkout and
 never updates the target ref directly or by force.
 

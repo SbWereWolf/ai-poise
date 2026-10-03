@@ -38,10 +38,14 @@ class SqliteSprintRepository:
 
     def publish_members(self,record):
         plan=record['aggregate']['plan'];sid=plan['id']
+        dependencies=[(sid,e['predecessor'],e['successor'],e['kind']) for e in plan['dependencies']]
+        existing={tuple(row) for row in self.db.execute(
+            'SELECT sprint_id,predecessor,successor,kind FROM sprint_dependencies WHERE sprint_id=?',(sid,))}
+        if existing-set(dependencies):
+            raise PoiseError('Existing sprint dependency projection conflicts with the draft plan')
         self.db.executemany('INSERT OR IGNORE INTO sprint_members VALUES(?,?)',
                             [(sid,task_identity(t)) for t in plan['tasks']])
-        self.db.executemany('INSERT INTO sprint_dependencies VALUES(?,?,?,?)',
-            [(sid,e['predecessor'],e['successor'],e['kind']) for e in plan['dependencies']])
+        self.db.executemany('INSERT OR IGNORE INTO sprint_dependencies VALUES(?,?,?,?)',dependencies)
 
     def replace_dependencies(self,record):
         plan=record['aggregate']['plan'];sid=plan['id']

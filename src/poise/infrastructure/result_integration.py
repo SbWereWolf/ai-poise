@@ -506,6 +506,104 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, completed, run.version)
         return completed
 
+    @staticmethod
+    def _regular_config_source(worktree, relative):
+        source = worktree / relative
+        current = worktree
+        for part in Path(relative).parts[:-1]:
+            current = current / part
+            try:
+                mode = current.lstat().st_mode
+            except FileNotFoundError:
+                return None
+            if not stat.S_ISDIR(mode):
+                raise PoiseError("Declared configuration has an unsafe parent")
+        try:
+            mode = source.lstat().st_mode
+        except FileNotFoundError:
+            return None
+        if not stat.S_ISREG(mode) or not stat.S_IMODE(mode) & 0o444:
+            raise PoiseError("Declared configuration is not a regular file")
+        return source
+
+    @staticmethod
+    def _private_directory(path):
+        if path.exists() or path.is_symlink():
+            mode = path.lstat().st_mode
+            if not stat.S_ISDIR(mode) or stat.S_IMODE(mode) & 0o077:
+                raise PoiseError("Configuration recovery parent is unsafe")
+        else:
+            path.mkdir(mode=0o700)
+
+    def _backup_configuration(self, run):
+        paths = run.intent.config_backup_paths
+        if not paths or run.cleanup["task_worktree"] == "removed":
+            return run, True
+        record = self.h.task_queries.record(run.intent.task_id)
+        recovery = task_root(
+            self.h.state, self.h.paths, run.intent.task_id, record["sprint_id"]
+        ) / "configuration-recovery" / self._identity(run.intent)
+        worktree = Path(run.task_worktree)
+        prior = next((item["details"]["files"] for item in run.history
+                      if item.get("event") == "configuration_backup_completed"), None)
+        files = []
+        try:
+            self._private_directory(recovery.parent)
+            self._private_directory(recovery)
+            for relative in paths:
+                source = self._regular_config_source(worktree, relative)
+                if source is None:
+                    files.append({"path": relative, "status": "absent"})
+                    continue
+                fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
+                with os.fdopen(fd, "rb") as stream:
+                    info = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(info.st_mode):
+                        raise PoiseError("Declared configuration changed during backup")
+                    content = stream.read()
+                destination = recovery
+                for part in Path(relative).parts[:-1]:
+                    destination = destination / part
+                    self._private_directory(destination)
+                destination = destination / Path(relative).name
+                digest = hashlib.sha256(content).hexdigest()
+                if destination.exists() or destination.is_symlink():
+                    mode = destination.lstat().st_mode
+                    if (not stat.S_ISREG(mode) or stat.S_IMODE(mode) & 0o077
+                            or file_digest(destination) != digest):
+                        raise PoiseError("Existing configuration backup conflicts with source")
+                else:
+                    fd = os.open(
+                        destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                        0o600,
+                    )
+                    with os.fdopen(fd, "wb") as stream:
+                        stream.write(content)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                files.append({
+                    "path": relative, "status": "copied", "sha256": digest,
+                    "source_mode": stat.S_IMODE(info.st_mode),
+                    "recovery_path": str(destination),
+                })
+        except (OSError, PoiseError):
+            blocked = run.cleanup_blocked(
+                "task_worktree", {"reason": "configuration_backup_failed"}
+            )
+            self._save(run.intent.task_id, blocked, run.version)
+            return blocked, False
+        if prior is not None:
+            if files != prior:
+                blocked = run.cleanup_blocked(
+                    "task_worktree", {"reason": "configuration_backup_changed"}
+                )
+                self._save(run.intent.task_id, blocked, run.version)
+                return blocked, False
+            return run, True
+        completed = run.configuration_backup_completed(files)
+        self._save(run.intent.task_id, completed, run.version)
+        return completed, True
+
     def _cleanup(self, run, repository):
         if run.phase != "cleanup_pending":
             return run
@@ -514,6 +612,9 @@ class RuntimeResultIntegration:
             raise PoiseError("Current target does not contain the published integration head")
         if not self._contains(repository, run.accepted_commit, current_target):
             raise PoiseError("Current target does not contain the accepted commit")
+        run, backed_up = self._backup_configuration(run)
+        if not backed_up:
+            return run
         disposition = CommitDisposition(
             "integrated",
             expected_commit=run.accepted_commit,

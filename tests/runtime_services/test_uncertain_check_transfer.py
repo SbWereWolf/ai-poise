@@ -34,6 +34,9 @@ def _pending(project, monkeypatch):
     assert pending['runs'][0]['started'] is True
     assert producer.runtime.evidence_commands.list_for('T1') == []
     assert calls == [pending['runs'][0]['run_id']]
+    ownership = producer.runtime.ownership.snapshot(producer.runtime.session)
+    assert ownership.task_id == 'T1'
+    assert ownership.worktree_task_id == 'T1'
     return producer, payload, pending, calls
 
 
@@ -62,7 +65,9 @@ def test_stopped_missing_receipt_transfers_for_distinct_reviewer_restart(
     assert producer.runtime.current_task() == original
     transfer = _handoff(producer, pending)
     assert transfer['status'] == 'handed_off'
-    assert producer.runtime.ownership.snapshot(producer.runtime.session).task_id is None
+    released = producer.runtime.ownership.snapshot(producer.runtime.session)
+    assert released.task_id is None
+    assert released.worktree_task_id is None
 
     reviewer = WorkTools(WorkPoise(project['config_path'], 'independent-check-reviewer'))
     resumed = reviewer.invoke(request('bootstrap', {
@@ -100,10 +105,11 @@ def test_wrong_attempt_identity_refuses_recovery_transfer_without_effect(
 ):
     producer, _, pending, calls = _pending(project, monkeypatch)
     before = deepcopy(producer.runtime.current_task())
+    ownership_before = producer.runtime.ownership.snapshot(producer.runtime.session)
     with pytest.raises(PoiseError, match='attempt|identity|mismatch'):
         _handoff(producer, pending, request_id='wrong-attempt', attempt_id='another-attempt')
     assert producer.runtime.current_task() == before
-    assert producer.runtime.ownership.snapshot(producer.runtime.session).task_id == 'T1'
+    assert producer.runtime.ownership.snapshot(producer.runtime.session) == ownership_before
     assert calls == [pending['runs'][0]['run_id']]
 
 
@@ -155,13 +161,16 @@ def test_live_owned_run_refuses_transfer_from_separate_os_process(project):
         fresh = WorkTools(WorkPoise(project['config_path'], session))
         assert fresh.runtime.check_runner.active_ids() == ()
         before = deepcopy(fresh.runtime.current_task())
+        ownership_before = fresh.runtime.ownership.snapshot(session)
+        assert ownership_before.task_id == 'T1'
+        assert ownership_before.worktree_task_id == 'T1'
         pending = before['pending']
         assert pending['runs'][0]['run_id'] == active[0]
         assert pending['runs'][0]['started'] is True
         with pytest.raises(PoiseError, match='running|active|quiescence'):
             _handoff(fresh, pending, request_id='refuse-live-transfer')
         assert fresh.runtime.current_task() == before
-        assert fresh.runtime.ownership.snapshot(fresh.runtime.session).task_id == 'T1'
+        assert fresh.runtime.ownership.snapshot(session) == ownership_before
     finally:
         stop.set()
         child.join(timeout=10)
@@ -184,6 +193,9 @@ def test_uncertain_transfer_release_failure_rolls_back_and_replays_exact_intent(
     original_bytes = source.read_bytes()
     original_head = git(worktree, 'rev-parse', 'HEAD')
     original_status = git(worktree, 'status', '--short')
+    ownership_before = producer.runtime.ownership.snapshot(producer.runtime.session)
+    assert ownership_before.task_id == 'T1'
+    assert ownership_before.worktree_task_id == 'T1'
     original_replace = SqliteHandoffRepository.replace
 
     def fail_release(self, record):
@@ -195,7 +207,7 @@ def test_uncertain_transfer_release_failure_rolls_back_and_replays_exact_intent(
     with pytest.raises(OSError, match='injected release rollback'):
         _handoff(producer, pending, request_id='release-rollback')
     assert producer.runtime.current_task() == before
-    assert producer.runtime.ownership.snapshot(producer.runtime.session).task_id == 'T1'
+    assert producer.runtime.ownership.snapshot(producer.runtime.session) == ownership_before
     assert source.read_bytes() == original_bytes
     assert git(worktree, 'rev-parse', 'HEAD') == original_head
     assert git(worktree, 'status', '--short') == original_status
@@ -208,5 +220,8 @@ def test_uncertain_transfer_release_failure_rolls_back_and_replays_exact_intent(
     transfer = _handoff(producer, pending, request_id='release-rollback')
     assert transfer['status'] == 'handed_off'
     assert producer.runtime.current_task() is None
+    released = producer.runtime.ownership.snapshot(producer.runtime.session)
+    assert released.task_id is None
+    assert released.worktree_task_id is None
     assert source.read_bytes() == original_bytes
     assert calls == [pending['runs'][0]['run_id']]

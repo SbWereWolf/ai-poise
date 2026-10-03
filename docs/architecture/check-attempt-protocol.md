@@ -10,7 +10,9 @@
 
 До исправления [Runtime](../../src/poise/runtime.py) сохранял отдельные receipts после subprocess,
 затем снимает `pending=checks`, сохраняет execution и лишь затем вызывает
-`runner.record_observations`. Исходное воспроизведение — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R01-check-reexecution.json` (исторический артефакт; не включён в исходную поставку 044A)
+`runner.record_observations`. Исходное воспроизведение —
+`../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R01-check-reexecution.json`
+(исторический артефакт; не включён в исходную поставку 044A)
 показало повтор успешной команды после ошибки последнего сохранения. Исключение из
 `_execute_checks` тоже снимает pending, хотя часть команд уже могла выполниться.
 SQLite не может атомарно зафиксировать произвольный внешний эффект. Не обещаем
@@ -78,6 +80,28 @@ receipts → Task.record_observations/save → execution.pending=None/save → c
 | После save batch, до save execution / commit | Обе записи откатываются. | Fault execution.save; receipts сохранены, pending не снят, retry без subprocess. |
 | После commit FINISH, до ответа | Batch сохранён, pending снят. | Fault acknowledgement; exact replay не меняет run IDs и не вызывает runner. |
 | Новый payload/tree/invocation/owner или повреждённый файл | Прежняя попытка сохранена. | Отказ до новой Task mutation/subprocess; проверить snapshots. |
+
+### Архивирование после смены владельца
+
+Уточнено 2026-10-03. Разрешённый `task/restart` архивирует остановленную попытку,
+а не возобновляет её исполнение. Текущий владелец и разрешение на restart проверяются
+обычным владельцем Task. Если версия после резервирования изменилась, существующий
+журнал должен подтвердить непрерывный суффикс исключительно событий владения.
+Содержательное событие, пропущенная версия, будущая или некорректная версия попытки
+дают отказ до изменения данных.
+
+Для проверки исторической попытки используется её первоначальный actor/version
+и неизменённые Task ID, stage, iteration, submission digest и структура runs.
+Это только неизменяемый снимок для валидации: он не меняет текущего владельца
+и не выдаёт разрешение START_RUN. Проверка отсутствия работающих runs остаётся
+обязательной; restart и архивирование pending проходят в одной транзакции.
+Полная первоначальная попытка сохраняется в `restart_history.abandoned_check_attempt`,
+включая исходные actor/version, run IDs и неопределённый исход. Ошибка дальнейшего
+restart откатывает архивирование; точный replay не исполняет команды повторно.
+
+Это устраняет конфликт независимого reviewer restart с попыткой прежнего исполнителя.
+Проверки execute/replay по текущим actor/version не ослабляются; ручное исправление
+pending, подмена сессии и создание успешного receipt не являются восстановлением.
 
 Неизвестный исход согласуется только по **той же** попытке: восстановить её подлинный
 зарегистрированный terminal receipt и файлы из надёжного источника, затем exact verify

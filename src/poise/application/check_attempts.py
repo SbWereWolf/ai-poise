@@ -1,5 +1,6 @@
 """Short durable boundaries around external checks; never execute or retry effects."""
 from copy import deepcopy
+from dataclasses import replace
 from uuid import UUID, uuid4
 
 from ..modules.foundation.errors import DomainError
@@ -127,7 +128,20 @@ class CheckAttempts:
         attempt = execution['pending']
         if not is_check_attempt(attempt):
             return None  # Other external protocols keep their existing recovery guards.
-        validate_attempt(task, actor, attempt, attempt['verified_tree'], attempt['execution_key'])
+        task._owned(actor)
+        original_version = attempt.get('task_version')
+        if (type(original_version) is not int or original_version < 0
+                or original_version > task.state.version
+                or (original_version == task.state.version and attempt.get('actor') != actor)
+                or (original_version != task.state.version and not uow.tasks.ownership_event_suffix(
+                    task.state.task_id, original_version, task.state.version))):
+            raise DomainError('Check attempt context changed or protocol is unsupported')
+        # Validate the preserved context, not permission to execute as the new owner.
+        historical_task = replace(task, state=replace(
+            task.state, version=original_version, claimed_by=attempt.get('actor'),
+        ))
+        validate_attempt(historical_task, attempt.get('actor'), attempt,
+                         attempt.get('verified_tree'), attempt.get('execution_key'))
         if validate_quiescent is None:
             raise DomainError('Task restart requires a check-runner recovery preflight')
         validate_quiescent(attempt)

@@ -761,6 +761,14 @@ class SqliteTaskRepository:
             obligation_catalog(metadata['contract']),
         ).restore_state(workflow['registry'])
 
+    def restarted_feedback(self, task_id: str) -> FeedbackBook:
+        row = self.db.execute(
+            'SELECT data FROM task_workflows WHERE task_id=?', (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError('Restarted Task has no preserved feedback state')
+        return FeedbackBook.from_dict(json.loads(row[0])['feedback'])
+
     def restarted_registry(self, task_id: str) -> CheckRegistry:
         row = self.db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
         if row is None:

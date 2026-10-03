@@ -842,6 +842,8 @@ class TaskCommands:
                 return result
             task = build_task(metadata, None, current_registry=current_registry)
             task = task.bind_restarted_registry_audit(registry_change, actor)
+            if executed_restart:
+                task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)

@@ -787,7 +787,7 @@ class Poise:
         payload = None
         if prepare:
             self._roots(data)
-            payload = self.task_queries.latest_submission(data['id'],stage['id'],data['iteration'])
+            payload = self.task_queries.current_submission(data['id'])
             if payload is None:
                 payload = {'sections':stage['sections'].copy(),'artifact_paths':[], 'commit_message':'',
                     'content_additions':{'sections':[],'routes':[],'requirements':[]},'trace':{},'method_additions':[],

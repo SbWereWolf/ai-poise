@@ -51,9 +51,13 @@ class TaskQueries:
                 raise PoiseError("Точка трассировки не найдена")
             return {"task":task_id,"route":route_id,"point":point_id,"submission":row[0],"value":json.loads(row[1])}
 
-    def latest_submission(self, task_id, stage, iteration):
+    def current_submission(self, task_id):
         with self.database.transaction() as db:
-            row=db.execute("SELECT seq,data FROM submissions WHERE task_id=? AND stage=? AND iteration=? ORDER BY seq DESC LIMIT 1",(task_id,stage,iteration)).fetchone()
+            row=db.execute(
+                "SELECT s.seq,s.data FROM tasks t JOIN submissions s "
+                "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
+                (task_id,),
+            ).fetchone()
             if row is None:return None
             envelope=json.loads(row['data'])
             envelope['sections']={r['section_id']:r['content'] for r in db.execute(

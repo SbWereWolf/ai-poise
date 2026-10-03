@@ -331,6 +331,74 @@ def test_changed_source_or_backup_blocks_cleanup_on_replay(project, monkeypatch)
     assert not Path(worktree).exists()
 
 
+def test_in_place_change_during_read_keeps_current_child_config(project, monkeypatch):
+    def publish_example(root):
+        (root / "src" / ".gitignore").write_text(
+            "site.settings.json\n", encoding="utf-8"
+        )
+
+    tools, worktree, accepted = prepare_completed_task(project, publish_example)
+    worktree = Path(worktree)
+    child = worktree / "src" / "site.settings.json"
+    original_bytes = b"configuration version one\n"
+    current_bytes = b"configuration version two updated during read\n"
+    child.write_bytes(original_bytes)
+    packet = integration_input(project, accepted)
+    packet["config_backup_paths"] = ["src/site.settings.json"]
+    original_fdopen = os.fdopen
+    changed_during_read = False
+
+    class ChangingReader:
+        def __init__(self, stream):
+            self.stream = stream
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, kind, error, traceback):
+            return self.stream.__exit__(kind, error, traceback)
+
+        def fileno(self):
+            return self.stream.fileno()
+
+        def read(self, *args, **kwargs):
+            nonlocal changed_during_read
+            content = self.stream.read(*args, **kwargs)
+            assert content == original_bytes
+            child.write_bytes(current_bytes)
+            changed_during_read = True
+            return content
+
+    def changing_source_fdopen(fd, mode="r", *args, **kwargs):
+        stream = original_fdopen(fd, mode, *args, **kwargs)
+        if mode != "rb":
+            return stream
+        try:
+            opened_path = os.readlink(f"/proc/self/fd/{fd}")
+        except OSError:
+            return stream
+        return ChangingReader(stream) if opened_path == str(child) else stream
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "fdopen", changing_source_fdopen)
+        result = tools.invoke(request("integrate", packet))
+
+    assert changed_during_read
+    assert result["publication"]["status"] == "confirmed"
+    assert git(project["app"], "rev-parse", "refs/heads/main") == result["target_after"]
+    assert result["status"] == "cleanup_pending"
+    assert worktree.exists()
+    assert child.read_bytes() == current_bytes
+    assert not any(item.get("event") == "configuration_backup_completed"
+                   for item in result["history"])
+    assert _produced_recovery_files(project) == []
+    assert result["history"][-1]["details"]["receipt"] == {
+        "reason": "configuration_source_changed"
+    }
+    assert original_bytes.decode().strip() not in str(result)
+    assert current_bytes.decode().strip() not in str(result)
+
+
 def test_copy_before_receipt_interruption_reuses_real_copy_on_cold_replay(
     project, monkeypatch
 ):

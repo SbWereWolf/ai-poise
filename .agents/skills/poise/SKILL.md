@@ -52,6 +52,13 @@ hook SQLite registry manually. Reuse the same request after an interrupted write
 Read [installation identity
 reconciliation](../../../docs/configuration/runtime-hooks.md#согласование-installation-identity-после-переименования).
 
+Before an unfamiliar operation, follow [packet preparation and refusal
+handling](../../../docs/workflows/batch-work.md#подготовка-пакета-и-разбор-отказа): use the actual
+configured creation path, exact packet shape and current lifecycle; do not guess API fields. For an
+agent-use incident, follow [instruction
+clarity](../../../docs/governance/development-rules.md#ошибки-применения-и-точность-инструкций);
+detailed corrections belong in canonical docs, with a short skill link.
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):

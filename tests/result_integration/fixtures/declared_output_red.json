@@ -1,0 +1,71 @@
+{
+  "collected": 13,
+  "failed": [
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[empty-file-True-True-True-captured]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[invalid-True-True-False-invalid]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[missing-False-True-True-missing]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[missing-True-True-False-missing]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[none-True-False-True-None]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[optional-False-True-True-captured]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[optional-invalid-False-True-False-invalid]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_declared_output_contract[required-True-True-True-captured]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_public_integration_rejects_output_escape_without_publication",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rechecks_corrupt_declared_snapshot_before_publication[False-changed-bytes]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rechecks_corrupt_declared_snapshot_before_publication[False-deleted]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rechecks_corrupt_declared_snapshot_before_publication[True-changed-bytes]",
+      "phase": "call"
+    },
+    {
+      "missing_output_directory": true,
+      "nodeid": "tests/result_integration/test_declared_outputs.py::test_retry_rechecks_corrupt_declared_snapshot_before_publication[True-deleted]",
+      "phase": "call"
+    }
+  ],
+  "passed": 0
+}

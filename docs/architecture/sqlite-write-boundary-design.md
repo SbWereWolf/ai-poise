@@ -1,6 +1,7 @@
 # Общая ограниченная граница SQLite-записи
 
-Решение `REVIEW-ARCH-A05` для R03. Реализовано в `REVIEW-BUG-R03` 18 сентября 2026 года; схемы и конфигурационные пути не изменены.
+Решение `REVIEW-ARCH-A05` для R03. Реализовано в `REVIEW-BUG-R03` 18 сентября 2026 года; схемы и
+конфигурационные пути не изменены.
 База `101304f58aca34a1104d2cdcc27d6434e5f9fca8`.
 
 ## Основание
@@ -8,7 +9,9 @@
 [RequirementsStore._transaction](../../src/poise/infrastructure/requirements_registry.py)
 берёт application flock, открывает SQLite с timeout=0, затем deferred BEGIN. Независимый
 SQLite writer не обязан брать тот же lock-файл. Поэтому первое чтение может пройти,
-а DML — немедленно завершиться database is locked. Исходный опыт — `../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R03-requirements-contention.json` (исторический артефакт; не включён в исходную поставку 044A)
+а DML — немедленно завершиться database is locked. Исходный опыт —
+`../../projects/ai-poise/standalone/REVIEW-PLAN-20260918/artifacts/source-review/evidence/R03-requirements-contention.json`
+(исторический артефакт; не включён в исходную поставку 044A)
 фиксирует такой отказ за ~0.00032 s при writer hold 0.15 s и lock_seconds=1.0.
 Повреждение БД в этом опыте не показано; нужен bounded wait, не восстановление утраченных
 данных. Task Database уже использует общую правильную границу.
@@ -86,7 +89,10 @@ read-to-write upgrade; новый blanket retry ещё хуже — повтор
 Ввод — маленькая замена делегирования плюс RED/GREEN tests; нет schema migration,
 данные пользователя не переписываются. Откат возвращает старый immediate-failure
 риск, но не требует преобразования файлов. До любых дальнейших изменений схемы —
-отдельный проект и полная Gmail-копия. Матрица хранилищ обновляется с фактической
+отдельный проект и проверенная контрольная точка по
+[единому контракту](../workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление).
+Gmail требуется только при облачной разработке либо явном локальном поручении.
+Матрица хранилищ обновляется с фактической
 семантикой после внедрения R03.
 
 [Матрица хранилищ](storage-lifecycle.md) · [Анализ чтения](read-snapshot-analysis.md)

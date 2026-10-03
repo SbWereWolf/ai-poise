@@ -1,0 +1,101 @@
+{
+  "schema": "goal-config-editor-1",
+  "root": "../..",
+  "database": "projects/ai-poise/database/catalogue-editor.sqlite",
+  "lock": "projects/ai-poise/database/catalogue-editor.lock",
+  "responses": "projects/ai-poise/.runtime/catalogue-responses",
+  "file_mode": 420,
+  "json_indent": 2,
+  "lock_seconds": 2,
+  "lock_poll_seconds": 0.01,
+  "max_changes": 2000,
+  "max_input_bytes": 1000000,
+  "output_chars": 2200,
+  "exit_codes": {
+    "success": 0,
+    "rejected": 2,
+    "pending": 3
+  },
+  "processes": {
+    "development": "config/catalogue/processes/development.json",
+    "test_development": "config/catalogue/processes/test_development.json",
+    "verification": "config/catalogue/processes/verification.json",
+    "review": "config/catalogue/processes/review.json",
+    "design": "config/catalogue/processes/design.json",
+    "analysis": "config/catalogue/processes/analysis.json",
+    "profiling": "config/catalogue/processes/profiling.json",
+    "environment_diagnostics": "config/catalogue/processes/environment_diagnostics.json",
+    "environment_remediation": "config/catalogue/processes/environment_remediation.json",
+    "documentation": "config/catalogue/processes/documentation.json",
+    "task_planning": "config/catalogue/processes/task_planning.json",
+    "sprint_planning": "config/catalogue/processes/sprint_planning.json",
+    "integration": "config/catalogue/processes/integration.json"
+  },
+  "templates": {
+    "development-v1": {
+      "path": "config/catalogue/process-templates/development.json",
+      "version": "3",
+      "digest": "a94c6867d3a23ac7611d6866cc6043efdfa1eae3c79cd5079295ed6bed945f87"
+    },
+    "test_development-v1": {
+      "path": "config/catalogue/process-templates/test_development.json",
+      "version": "3",
+      "digest": "1feb066911c153a51c03c52b0b2f74f6ff8572345eb8fd424f85206436b88e44"
+    },
+    "verification-v1": {
+      "path": "config/catalogue/process-templates/verification.json",
+      "version": "2",
+      "digest": "fd02fcc5dc28fb25a63e5b4c47442a97eef3a8e2c470323f19d46ca1722777ad"
+    },
+    "review-v1": {
+      "path": "config/catalogue/process-templates/review.json",
+      "version": "2",
+      "digest": "b52793fdff51bc27a169e00371da06aef99cb7005bda61e0df385b74471b827c"
+    },
+    "design-v1": {
+      "path": "config/catalogue/process-templates/design.json",
+      "version": "3",
+      "digest": "57a97c72cb968cb25e5ac95c2e32d5e1424b14dd7dab5ed24d3376b7dd6a490c"
+    },
+    "analysis-v1": {
+      "path": "config/catalogue/process-templates/analysis.json",
+      "version": "2",
+      "digest": "75060254ee4be788dd18a38e24828992de6fd761b64f7e90d24ce0f51ab50209"
+    },
+    "profiling-v1": {
+      "path": "config/catalogue/process-templates/profiling.json",
+      "version": "2",
+      "digest": "4821d67a540f031fe9c3e200760c9cc02a8aabfea266d915a39e724321578b3d"
+    },
+    "environment_diagnostics-v1": {
+      "path": "config/catalogue/process-templates/environment_diagnostics.json",
+      "version": "2",
+      "digest": "5309898e61ae6bec7404d51583151dc783bfcdd1dbeb0b984f36bd2bb901bef8"
+    },
+    "environment_remediation-v1": {
+      "path": "config/catalogue/process-templates/environment_remediation.json",
+      "version": "3",
+      "digest": "9a1bbf6f1e1d4af225ee1d73f4954e2979080d288f9d21278cec7cc901da463b"
+    },
+    "documentation-v1": {
+      "path": "config/catalogue/process-templates/documentation.json",
+      "version": "3",
+      "digest": "a8b9447c0e75c4a659a30e4d49634abfe2df7d2496ca823d9359aace282a8b2d"
+    },
+    "task_planning-v1": {
+      "path": "config/catalogue/process-templates/task_planning.json",
+      "version": "3",
+      "digest": "04951fdf6b1f5397454d06309d6d3bfb1b9cf17f80e9161d14251aec7e8be462"
+    },
+    "sprint_planning-v1": {
+      "path": "config/catalogue/process-templates/sprint_planning.json",
+      "version": "3",
+      "digest": "cae74bb13744e0bb727c53a2db4f68a69473352a705b2c9db9ef16b250ab8453"
+    },
+    "integration-v1": {
+      "path": "config/catalogue/process-templates/integration.json",
+      "version": "3",
+      "digest": "824d3e1342d72ad27709230b5f2997e3b4aec5e7cde7a26397b057f5c97ec688"
+    }
+  }
+}

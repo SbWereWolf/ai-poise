@@ -693,7 +693,6 @@ class TaskCommands:
                 return replay
             newborn = uow.tasks.load_newborn(task_id)
             if newborn.version != expected_revision:
-                from ..modules.foundation.errors import VersionConflict
                 raise VersionConflict('Newborn Task revision changed')
             if newborn.claimed_by not in (None, actor):
                 raise DomainError('Newborn Task is owned by another session')
@@ -740,7 +739,6 @@ class TaskCommands:
                 return replay
             newborn = uow.tasks.load_newborn(task_id)
             if newborn.version != expected_revision:
-                from ..modules.foundation.errors import VersionConflict
                 raise VersionConflict('Newborn Task revision changed')
             if newborn.claimed_by != actor:
                 raise DomainError('Newborn ready requires current ownership')
@@ -783,7 +781,7 @@ class TaskCommands:
             contract.get('requirements_snapshot') == context['requirements_snapshot']
             and contract.get('requirements_agreement') == context['requirements_agreement']
         )
-        if executed_restart and (resolved_revision is None or frozen_context_unchanged):
+        if executed_restart and frozen_context_unchanged:
             prepared = self._prepare_restarted_creation(
                 contract,
                 snapshot.process,
@@ -809,6 +807,8 @@ class TaskCommands:
             newborn = uow.tasks.load_newborn(task_id)
             if newborn != snapshot:
                 raise VersionConflict('Newborn Task changed after creation preflight')
+            if executed_restart and not frozen_context_unchanged:
+                self.requirements_gate.require_current_registry(prepared.requirements_context)
             metadata = validate_creation(
                 prepared.intent, newborn.process, effective_checks,
                 effective_decomposition,
@@ -819,6 +819,13 @@ class TaskCommands:
                 metadata['creation_request'] = deepcopy(newborn.creation_request)
             if newborn.restart_history:
                 metadata['restart_history'] = list(deepcopy(newborn.restart_history))
+                if executed_restart:
+                    metadata['restart_history'][-1]['before_requirements_snapshot'] = deepcopy(
+                        context['requirements_snapshot']
+                    )
+                    metadata['restart_history'][-1]['before_requirements_agreement'] = deepcopy(
+                        context['requirements_agreement']
+                    )
                 if resolved_revision is not None:
                     metadata['restart_history'][-1]['resolved_revision'] = resolved_revision
             if newborn.stage_contract_history:
@@ -835,6 +842,8 @@ class TaskCommands:
                 return result
             task = build_task(metadata, None, current_registry=current_registry)
             task = task.bind_restarted_registry_audit(registry_change, actor)
+            if executed_restart:
+                task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)

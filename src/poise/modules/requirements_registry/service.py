@@ -20,10 +20,19 @@ class TaskRequirementsGate:
 
     def prepare_contract(self, intent):
         candidate, body = self._candidate(intent)
-        snapshot, plan = self._validate_snapshot(body, self._registry_loader(), "live registry")
+        registry = self._registry_loader()
+        snapshot, plan = self._validate_snapshot(body, registry, "live registry")
         agreement = deepcopy(body.get("requirements_agreement"))
         self._validate_agreement(agreement, plan)
-        return self._prepared(candidate, body, snapshot, agreement)
+        prepared, context = self._prepared(candidate, body, snapshot, agreement)
+        context["registry"] = registry.to_dict()
+        return prepared, context
+
+    def require_current_registry(self, context):
+        if not isinstance(context, dict) or "registry" not in context:
+            raise DomainError("Task creation preflight has no Requirements registry identity")
+        if self._registry_loader().to_dict() != context["registry"]:
+            raise DomainError("Task requirements registry changed after creation preflight")
 
     def prepare_restarted_contract(self, intent, persisted_snapshot, persisted_agreement):
         """Validate only the immutable context selected by the Task restart/replay owner."""

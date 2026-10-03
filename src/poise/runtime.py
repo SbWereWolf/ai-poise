@@ -787,7 +787,7 @@ class Poise:
         payload = None
         if prepare:
             self._roots(data)
-            payload = self.task_queries.latest_submission(data['id'],stage['id'],data['iteration'])
+            payload = self.task_queries.current_submission(data['id'])
             if payload is None:
                 payload = {'sections':stage['sections'].copy(),'artifact_paths':[], 'commit_message':'',
                     'content_additions':{'sections':[],'routes':[],'requirements':[]},'trace':{},'method_additions':[],
@@ -975,6 +975,8 @@ class Poise:
         if task is not None and decision is not None:
             raise PoiseError('Выбор задачи и решение по текущему этапу — разные входы')
         current = self.store.current(self.session)
+        if task is None and decision is None and current is not None and current['status']=='newborn':
+            return current
         allocation_receipt = None
         selected_by_id = False
         if task is not None and isinstance(task,dict) and set(task)=={'id'}:

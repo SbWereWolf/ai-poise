@@ -14,6 +14,7 @@
     "review",
     "security",
     "self_review",
+    "sprint_design",
     "task_design"
   ],
   "rules": [
@@ -199,6 +200,20 @@
         "paths_any": [],
         "facts_all": [
           "task_design"
+        ]
+      },
+      "skills": [
+        "task-design"
+      ]
+    },
+    {
+      "id": "sprint_design",
+      "priority": 50,
+      "when": {
+        "stages": [],
+        "paths_any": [],
+        "facts_all": [
+          "sprint_design"
         ]
       },
       "skills": [

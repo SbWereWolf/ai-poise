@@ -30,11 +30,11 @@ def test_independent_process_is_valid_and_has_complete_section_contract(goal):
     assert TaskBlueprint.parse(template).goal_type==goal
 
 
-def test_every_normative_node_is_present_without_new_engine():
+def test_historical_nodes_remain_present_in_the_expanded_reference_graph():
     source=json.loads((ROOT/'docs/architecture-design/data/stage-library-map.json').read_text())['nodes']
     expected={(n['goal_type'],n['stage']) for n in source}
     actual={(g,s['id']) for g in GOALS for s in documents(g)[0]['stages']}
-    assert actual==expected
+    assert expected <= actual
 
 
 def test_every_feedback_target_is_declared_for_user_rework():

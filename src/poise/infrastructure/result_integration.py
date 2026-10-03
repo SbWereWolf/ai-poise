@@ -9,7 +9,7 @@ import stat
 import subprocess
 import uuid
 
-from ..common import descendant, file_digest, prohibit_git_push
+from ..common import descendant, digest, file_digest, prohibit_git_push
 from ..execution import method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
@@ -271,6 +271,80 @@ class RuntimeResultIntegration:
                 selected.append(method)
         return selected
 
+    def _complete_candidate_proof(self, record, run):
+        methods = self._select_checks(record)
+        if not methods:
+            return True
+        latest_batch = next(
+            (entry.get("details") for entry in reversed(run.history)
+             if entry.get("event") == "checks_passed"), None,
+        )
+        if not isinstance(latest_batch, dict):
+            return False
+        batch_ids = latest_batch.get("check_ids")
+        if (not isinstance(batch_ids, list) or len(batch_ids) != len(methods)
+                or any(not isinstance(check_id, str) for check_id in batch_ids)
+                or len(batch_ids) != len(set(batch_ids))):
+            return False
+        worktree, head = self._checked_workspace(run)
+        tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
+        if len(run.checks) < len(methods):
+            return False
+        batch = run.checks[-len(methods):]
+        if [item.get("id") if isinstance(item, dict) else None for item in batch] != batch_ids:
+            return False
+        earlier_ids = {
+            item.get("id") for item in run.checks[:-len(methods)]
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        if earlier_ids.intersection(batch_ids):
+            return False
+        contract_digest = self._contract_digest(record)
+        owner_root = task_root(
+            self.h.state, self.h.paths, run.intent.task_id, record["sprint_id"],
+        )
+        for method, receipt in zip(methods, batch, strict=True):
+            if not isinstance(receipt, dict):
+                return False
+            check_id = receipt.get("id")
+            try:
+                uuid.UUID(check_id)
+            except (TypeError, ValueError, AttributeError):
+                return False
+            run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            stdout = descendant(run_dir, self.h.paths["stdout"])
+            stderr = descendant(run_dir, self.h.paths["stderr"])
+            expected = {
+                "method": method["id"],
+                "integration_head": head,
+                "verified_tree": tree,
+                "argv": method["argv"],
+                "cwd": str((worktree / method["cwd"]).resolve()),
+                "expected_exit_code": method["expected_exit_code"],
+                "definition_digest": digest(method),
+                "contract_digest": contract_digest,
+                "passed": True,
+                "timed_out": False,
+                "cancelled": False,
+                "capture_complete": True,
+                "actual_exit_code": method["expected_exit_code"],
+                "stdout": str(stdout),
+                "stderr": str(stderr),
+            }
+            if any(type(receipt.get(key)) is not type(value) or receipt.get(key) != value
+                   for key, value in expected.items()):
+                return False
+            try:
+                if (not stdout.is_file() or not stderr.is_file()
+                        or stdout.is_symlink() or stderr.is_symlink()
+                        or receipt.get("stdout_digest") != file_digest(stdout)
+                        or receipt.get("stderr_digest") != file_digest(stderr)
+                        or not method_passed(method, receipt)):
+                    return False
+            except (OSError, KeyError, ValueError):
+                return False
+        return True
+
     def _checked_workspace(self, run, *, exact_head=True):
         """Observe only: a bad retry must not advance the durable state machine."""
         worktree = Path(run.task_worktree).resolve(strict=True)
@@ -334,6 +408,8 @@ class RuntimeResultIntegration:
             self._checked_workspace(run)
             receipts.append({
                 **result, "id": check_id, "method": method["id"],
+                "definition_digest": digest(method),
+                "contract_digest": self._contract_digest(record),
                 "integration_head": head, "verified_tree": verified_tree,
                 "argv": method["argv"], "cwd": str(cwd),
                 "expected_exit_code": method["expected_exit_code"],
@@ -346,6 +422,62 @@ class RuntimeResultIntegration:
         checked = run.checks_recorded(receipts)
         self._save(run.intent.task_id, checked, run.version)
         return checked
+
+    @staticmethod
+    def _contract_digest(record):
+        return digest({"contract": record["contract"], "task_version": record["version"]})
+
+    def _has_current_checks(self, record, run):
+        worktree, head = self._checked_workspace(run)
+        tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
+        required = {method["id"]: method for method in self._select_checks(record)}
+        passed = next((event for event in reversed(run.history)
+                       if event["event"] == "checks_passed"), None)
+        if passed is None:
+            return False
+        details = passed.get("details")
+        if not isinstance(details, dict) or not isinstance(details.get("check_ids"), list):
+            return False
+        identifiers = details["check_ids"]
+        if (len(identifiers) != len(required)
+                or any(not isinstance(value, str) for value in identifiers)
+                or len(set(identifiers)) != len(identifiers)):
+            return False
+        selected = []
+        for identifier in identifiers:
+            matching = [item for item in run.checks
+                        if isinstance(item, dict) and item.get("id") == identifier]
+            if len(matching) != 1:
+                return False
+            selected.append(matching[0])
+        if {item.get("method") for item in selected} != set(required):
+            return False
+        contract_digest = self._contract_digest(record)
+        for receipt in selected:
+            method = required[receipt["method"]]
+            if (receipt.get("passed") is not True
+                    or receipt.get("integration_head") != head
+                    or receipt.get("verified_tree") != tree
+                    or receipt.get("definition_digest") != digest(method)
+                    or receipt.get("contract_digest") != contract_digest
+                    or receipt.get("argv") != method["argv"]
+                    or receipt.get("cwd") != str((worktree / method["cwd"]).resolve())
+                    or receipt.get("expected_exit_code") != method["expected_exit_code"]
+                    or receipt.get("actual_exit_code") != method["expected_exit_code"]
+                    or receipt.get("timed_out") is not False
+                    or receipt.get("cancelled") is True
+                    or receipt.get("capture_complete") is not True):
+                return False
+            for name in ("stdout", "stderr"):
+                value = receipt.get(name)
+                if not isinstance(value, str) or not value:
+                    return False
+                path = Path(value)
+                if not path.is_file() or file_digest(path) != receipt.get(name + "_digest"):
+                    return False
+            if not method_passed(method, receipt):
+                return False
+        return True
 
     def _publication_lock(self):
         identity = hashlib.sha256(self._target_ref().encode()).hexdigest()[:16]
@@ -797,10 +929,6 @@ class RuntimeResultIntegration:
             retried = run.retry_candidate()
             self._save(intent.task_id, retried, run.version)
             run = retried
-        if run.phase == "publication_failed":
-            retried = run.retry_publication()
-            self._save(intent.task_id, retried, run.version)
-            run = retried
         if run.phase == "awaiting_resolution":
             if not intent.resolutions:
                 return run.result()
@@ -818,10 +946,34 @@ class RuntimeResultIntegration:
                 if run.phase in ("awaiting_resolution", "candidate_failed"):
                     return run.result()
             if run.phase == "candidate_ready":
+                record = self.h.task_queries.record(intent.task_id)
                 run = self._run_checks(record, run)
                 if run.phase == "checks_failed":
                     return run.result()
+            if run.phase in ("publishing", "publication_failed"):
+                record = self.h.task_queries.record(intent.task_id)
+                if not self._complete_candidate_proof(record, run):
+                    rechecking = run.recheck_publication()
+                    self._save(intent.task_id, rechecking, run.version)
+                    run = rechecking
+                    continue
+                if run.phase == "publication_failed":
+                    retried = run.retry_publication()
+                    self._save(intent.task_id, retried, run.version)
+                    run = retried
             if run.phase == "publishing":
+                try:
+                    current_checks = self._has_current_checks(record, run)
+                except PoiseError as exc:
+                    run = self._publication_failed(
+                        run, "task_worktree_changed", {"error": str(exc)},
+                    )
+                    return run.result()
+                if not current_checks:
+                    renewed = run.require_current_checks()
+                    self._save(intent.task_id, renewed, run.version)
+                    run = renewed
+                    continue
                 run = self._publish(run, repository)
                 if run.phase == "updating":
                     continue

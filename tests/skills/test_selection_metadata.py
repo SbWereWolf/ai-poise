@@ -47,3 +47,11 @@ def test_no_instruction_bodies_or_commands_in_selection_metadata():
     assert all(set(r)=={'id','priority','when','skills'} for r in doc['rules'])
     assert all(set(r['when'])=={'stages','paths_any','facts_all'} for r in doc['rules'])
     assert doc['subject']=='ai-poise'
+
+
+def test_task_and_sprint_formulation_have_distinct_skill_routes():
+    raw, _ = inputs()
+    rules = {rule['id']: rule for rule in raw['rules']}
+    assert rules['task_design']['skills'] == ['task-design']
+    assert rules['sprint_design']['skills'] == ['sprint-design']
+    assert rules['sprint_design']['when']['facts_all'] == ['sprint_design']

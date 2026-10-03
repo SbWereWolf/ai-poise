@@ -1,0 +1,79 @@
+{
+  "replacement": {
+    "kind": "replace",
+    "method_id": "GREEN",
+    "registration": {
+      "method": {
+        "id": "GREEN",
+        "argv": ["<PYTHON>", "-B", "-m", "unittest", "discover", "-s", "tests", "-p", "test_double.py", "-v", "--failfast"],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {"kind": "repository", "bindings": [{"kind": "cwd", "path": "."}]},
+        "verification_plan": {
+          "responsibility": "Prove the approved replacement regression.",
+          "change_surface": ["src/**"],
+          "red_stages": [],
+          "green_stages": ["implementation"],
+          "red_failure": null
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": ["test_double", "Ran 1 test", "OK"]
+      },
+      "stages": ["implementation"],
+      "evidence_kind": "executable_test",
+      "covers": ["requirements[0]", "definition_of_done[0]"]
+    }
+  },
+  "addition": {
+    "kind": "add",
+    "method_id": "EXTRA",
+    "registration": {
+      "method": {
+        "id": "EXTRA",
+        "argv": ["<PYTHON>", "-B", "-c", "print('extra-guard')"],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {"kind": "repository", "bindings": [{"kind": "cwd", "path": "."}]},
+        "verification_plan": {
+          "responsibility": "Observe the explicitly added guard.",
+          "change_surface": ["src/**"],
+          "red_stages": [],
+          "green_stages": ["implementation"],
+          "red_failure": null
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": ["extra-guard"],
+        "stderr_contains": []
+      },
+      "stages": ["implementation"]
+    }
+  },
+  "removal": {"kind": "remove", "method_id": "EXTRA"},
+  "probe": {
+    "id": "PROBE",
+    "argv": ["<PYTHON>", "-B", "-c", "import os; from pathlib import Path; p=Path(os.environ['COUNTER']); f=p.open('a'); f.write('old\\n'); f.close(); print('prior-green')"],
+    "cwd": ".",
+    "environment": {"COUNTER": "<COUNTER>"},
+    "source_under_test": {"kind": "repository", "bindings": [{"kind": "cwd", "path": "."}]},
+    "verification_plan": {
+      "responsibility": "Observe a candidate-bound verification probe.",
+      "change_surface": ["tests/**"],
+      "red_stages": [],
+      "green_stages": ["test_implementation"],
+      "red_failure": null
+    },
+    "expected_exit_code": 0,
+    "stdout_contains": ["prior-green"],
+    "stderr_contains": []
+  },
+  "audit": {
+    "actor": "registry-executor",
+    "new_revision": 2,
+    "previous_revision": 1,
+    "request_id": "ready-current",
+    "stage": "test_implementation",
+    "iteration": 1,
+    "task": "T1"
+  }
+}

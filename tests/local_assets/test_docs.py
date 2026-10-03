@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from urllib.parse import unquote
 
 import pytest
 
@@ -21,6 +22,32 @@ def block(text: str, name: str) -> str:
     found = re.findall(rf"```bash {re.escape(name)}\n(.*?)\n```", text, re.DOTALL)
     assert len(found) == 1
     return found[0]
+
+
+def local_link_target(link: str) -> tuple[Path, str]:
+    path_part, _, fragment = unquote(link).partition("#")
+    target = MANUAL if not path_part else (MANUAL.parent / path_part).resolve()
+    return target, fragment
+
+
+def markdown_anchors(text: str) -> set[str]:
+    anchors = set(re.findall(r'<a\s+id="([^"]+)"', text))
+    counts: dict[str, int] = {}
+    for heading in re.findall(r"^#{1,6}\s+(.+?)\s*$", text, re.MULTILINE):
+        plain = re.sub(r"<[^>]*>", "", heading)
+        plain = re.sub(r"[`*_]", "", plain)
+        slug = re.sub(r"[^\w\- ]", "", plain.lower()).replace(" ", "-")
+        suffix = counts.get(slug, 0)
+        counts[slug] = suffix + 1
+        anchors.add(slug if suffix == 0 else f"{slug}-{suffix}")
+    return anchors
+
+
+def assert_local_link(link: str) -> None:
+    target, fragment = local_link_target(link)
+    assert target.is_file(), link
+    if fragment:
+        assert fragment in markdown_anchors(target.read_text(encoding="utf-8")), link
 
 
 def run(command: str, env: dict[str, str]) -> tuple[subprocess.CompletedProcess[str], dict]:
@@ -88,8 +115,14 @@ def test_documented_restore_reader_and_missing_snapshot_examples_execute(tmp_pat
     assert "Supply the matching snapshot asset; owner repair is unavailable." in text
     for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
         if link.startswith(("https://", "http://", "#")):
+            if link.startswith("#"):
+                assert_local_link(link)
             continue
-        assert (MANUAL.parent / link.split("#", 1)[0]).resolve().is_file(), link
+        assert_local_link(link)
+    with pytest.raises(AssertionError):
+        assert_local_link("#definitely-nonexistent-heading")
+    with pytest.raises(AssertionError):
+        assert_local_link("project-setup.md#definitely-nonexistent-heading")
 
     target, source, manifest, request = fixture(tmp_path / "complete", erp)
     env = {

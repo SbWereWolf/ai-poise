@@ -372,6 +372,15 @@ def test_invalid_later_asset_preflight_writes_nothing(
     elif problem == "digest":
         (source / second).write_bytes(b"SYNTHETIC_SECRET_DO_NOT_EXPOSE")
     manifest.write_text(json.dumps(document), encoding="utf-8")
+    source_asset_bytes_before = {
+        first: (source / first).read_bytes(),
+        second: (source / second).read_bytes(),
+    }
+    outside_files_before = {
+        path.name: path.read_bytes() for path in outside.iterdir() if path.is_file()
+    }
+    assert not (target / first).exists()
+    assert not (target / second).is_file()
 
     completed, reply = restore(manifest, request)
     assert_rejected(
@@ -383,6 +392,11 @@ def test_invalid_later_asset_preflight_writes_nothing(
     assert target_sentinel.read_bytes() == b"target untouched"
     assert source_sentinel.read_bytes() == b"source untouched"
     assert outside_sentinel.read_bytes() == b"outside untouched"
+    assert (source / first).read_bytes() == source_asset_bytes_before[first]
+    assert (source / second).read_bytes() == source_asset_bytes_before[second]
+    assert {
+        path.name: path.read_bytes() for path in outside.iterdir() if path.is_file()
+    } == outside_files_before
     assert not (outside / "escaped.json").exists()
 
 

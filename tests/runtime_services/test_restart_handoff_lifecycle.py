@@ -16,7 +16,7 @@ from runner.helpers import decision, finding, inspect, resolution
 from runner.test_runner_paths import edit, result as stage_result, setup_project
 
 
-def restarted_task(project):
+def restarted_task(project, *, include_baseline=False):
     runtime = WorkPoise(project["config_path"], "executor")
     tools = WorkTools(runtime)
     original = bootstrap(tools, project)
@@ -24,8 +24,14 @@ def restarted_task(project):
     historical = verify(tools, result(original, "Historical result"))
     assert historical["status"] == "verified"
     task_id = original["task"]
+    baseline = {
+        "submissions": submissions(runtime, task_id),
+        "proof": historical_proof(runtime, task_id),
+    }
     before = runtime.task_queries.record(task_id)
     restarted = restart(tools, task_id, before["version"])
+    assert submissions(runtime, task_id) == baseline["submissions"]
+    assert historical_proof(runtime, task_id) == baseline["proof"]
     ready = tools.invoke(request("task", {
         "action": "ready",
         "request_id": "ready-restarted-handoff",
@@ -33,12 +39,18 @@ def restarted_task(project):
         "expected_revision": restarted["revision"],
     }))
     assert ready["status"] == "available"
+    assert submissions(runtime, task_id) == baseline["submissions"]
+    assert historical_proof(runtime, task_id) == baseline["proof"]
     resumed = tools.invoke(request("bootstrap", {
         "task": {"id": task_id},
         "decision": None,
         "feedback": None,
         "rework_stage": None,
     }))
+    assert submissions(runtime, task_id) == baseline["submissions"]
+    assert historical_proof(runtime, task_id) == baseline["proof"]
+    if include_baseline:
+        return runtime, tools, resumed, baseline
     return runtime, tools, resumed
 
 
@@ -99,12 +111,12 @@ def git(worktree, *args):
 
 
 def test_restart_retains_historical_result_without_making_it_current(project):
-    runtime, tools, resumed = restarted_task(project)
+    runtime, tools, resumed, baseline = restarted_task(project, include_baseline=True)
     task_id = resumed["task"]
-    historical = submissions(runtime, task_id)
+    historical = baseline["submissions"]
     assert len(historical) == 1
     assert verified_results(runtime, task_id) == [historical[0][0]]
-    results, receipts, actors = historical_proof(runtime, task_id)
+    results, receipts, actors = baseline["proof"]
     assert len(results) == len(receipts) == len(actors) == 1
     assert actors == ["executor"]
     assert receipts[0]["source_provenance"]["kind"] == "repository"
@@ -148,9 +160,9 @@ def test_null_handoff_does_not_resubmit_pre_restart_result(project):
 
 
 def test_changed_source_keeps_old_proof_with_its_original_commit(project):
-    runtime, tools, resumed = restarted_task(project)
+    runtime, tools, resumed, baseline = restarted_task(project, include_baseline=True)
     task_id = resumed["task"]
-    previous = historical_proof(runtime, task_id)
+    previous = baseline["proof"]
     original_commit = previous[1][0]["commit"]
     source = Path(resumed["worktree"]) / "src/double.py"
     source.write_text("def double(n):\n    return n * 3\n", encoding="utf-8")
@@ -160,6 +172,7 @@ def test_changed_source_keeps_old_proof_with_its_original_commit(project):
 
     assert receipt["commit"] != original_commit
     assert historical_proof(runtime, task_id) == previous
+    assert submissions(runtime, task_id)[:len(baseline["submissions"])] == baseline["submissions"]
     assert source.read_text(encoding="utf-8") == "def double(n):\n    return n * 3\n"
     assert git(resumed["worktree"], "rev-parse", "HEAD") == receipt["commit"]
     receiver = WorkTools(WorkPoise(project["config_path"], "receiver"))
@@ -167,6 +180,8 @@ def test_changed_source_keeps_old_proof_with_its_original_commit(project):
         "task": {"id": task_id}, "decision": None,
         "feedback": None, "rework_stage": None,
     }))
+    assert historical_proof(runtime, task_id) == previous
+    assert submissions(runtime, task_id)[:len(baseline["submissions"])] == baseline["submissions"]
     assert acquired["result_template"]["sections"]["report"] != "Historical result"
 
 

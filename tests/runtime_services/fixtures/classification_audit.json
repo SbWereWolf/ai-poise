@@ -1,0 +1,15 @@
+{
+  "actor": "classification-executor",
+  "methods": [],
+  "new_revision": 1,
+  "previous_revision": 0,
+  "request_id": "ready-current",
+  "stage": "test_implementation",
+  "iteration": 1,
+  "task": "T1",
+  "previous_executable_obligations": [
+    "requirements[0]",
+    "definition_of_done[0]"
+  ],
+  "new_executable_obligations": []
+}

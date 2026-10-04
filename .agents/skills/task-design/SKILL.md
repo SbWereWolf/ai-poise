@@ -24,6 +24,15 @@ process, routing and supported public Task schema.
 2. Formulate one stable result-oriented goal, initial DoR/DoD, known requirements,
    exclusions and unknowns. Explain logical consistency and bounded feasibility;
    structural validation alone does not prove feasibility.
+   Apply the [product goal and requirements rule](../../../docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту):
+   a development goal states an application capability; each requirement aligns
+   with it and states observable product behaviour across the declared supported
+   scenarios and configurations. Requirements define what to verify, not a coding
+   plan. Keep incidents, reproduction paths, branches and installation facts in
+   the rationale; keep architecture constraints and implementation planning in
+   their respective content. Do not substitute maintenance of one installation
+   for product development. Write human-facing AI poise goals, requirements and
+   acceptance criteria in Russian, including within managed Task artifacts.
 3. Do not predict future class names, test names or commands as readiness gates.
    Supply the complete initial checks object explicitly; an empty object is valid
    for a development Task. Concrete test and code design belong to execution.
@@ -35,6 +44,10 @@ process, routing and supported public Task schema.
 6. Submit the draft for independent review of scope, feasibility, responsibility
    and allowed_paths. Paths may be narrow or explicitly broad; the reviewer checks
    sufficiency and stage separation, not just whitelist syntax.
+   Review every requirement against the goal and its observable result. Reject
+   incident narrative, implementation instructions or single-installation service
+   work presented as product requirements; one live installation is not proof of
+   the full declared product scope.
 7. Keep the current API limitations explicit. Before-stage DoR/DoD revision and
    mechanical rewind follow the [revision
    contract](../../../docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка);

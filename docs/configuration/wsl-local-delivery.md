@@ -6,7 +6,7 @@
 
 ## Архитектура локальной установки
 
-AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный project manifest, собственный каталог process configs, собственная Task DB, собственная Requirements DB и собственные task/sprint artifacts. Эти operational данные не являются частью обслуживаемой кодовой базы.
+AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный project manifest, собственный каталог process configs, собственная Task DB, собственная Requirements DB и собственные task/sprint artifacts. Эти рабочие данные отделены от версионируемых файлов продукта; физическое размещение внутри checkout допустимо по правилам соответствующего хранилища.
 
 Настройка создаёт проект, но не создаёт задачи и Sprint автоматически. Идентификаторы Task локальны для проекта и выделяются штатным allocator при публикации постановки.
 
@@ -31,7 +31,7 @@ Standalone Task хранит файлы в
 namespace. Поле `paths.standalone_tasks` обязательно. Удалённое `paths.tasks` не является
 alias и отклоняется при загрузке конфигурации.
 
-Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project configuration. Каноническая `requirements.sqlite` должна находиться в project-data AI poise, отдельно от `tasks.sqlite` и отдельно от обслуживаемой кодовой базы. Код AI poise не должен иметь скрытого универсального пути Requirements DB.
+Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project configuration. Requirements DB и lock должны быть отдельны друг от друга и от Task DB и lock. Внешнее размещение в этом шаблоне — конкретный выбор; допустимость внутренних игнорируемых и неотслеживаемых путей определяет [правило размещения](../workflows/requirements-registry.md#владение-и-явные-пути). Код AI poise не должен иметь скрытого универсального пути Requirements DB.
 
 ## Настройка проекта в WSL
 

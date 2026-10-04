@@ -1,0 +1,104 @@
+"""Accepted file proofs and preserved work through real post-restart replay."""
+
+from pathlib import Path
+
+import pytest
+
+from conftest import git
+from runtime_services.restart_auto_support import assert_recovery, launch, prepared
+
+
+@pytest.mark.parametrize("contents", [b"accepted text\n", b"\x00\xff\x80", b"{}"])
+def test_any_unchanged_accepted_file_is_sufficient(project, contents):
+    case = prepared(project, file_proof=contents, checks=False)
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_target_reached"
+    assert response["stage"] == "code_review"
+    assert [item["stage"] for item in response["replay"]["passed"]] == [
+        "tests", "test_review", "implementation",
+    ]
+    assert case["proof"].read_bytes() == contents
+    assert case["log"].read_text() == ""
+    assert_recovery(case, response)
+
+
+@pytest.mark.parametrize("mutation,reason", [
+    ("missing", "evidence_missing"), ("changed", "evidence_changed"),
+])
+def test_required_file_failure_stops_at_first_gate(project, mutation, reason):
+    case = prepared(project, file_proof=b"accepted bytes", checks=False)
+    if mutation == "missing":
+        case["proof"].unlink()
+        (case["proof"].parent / "unregistered.bin").write_bytes(b"accepted bytes")
+    else:
+        case["proof"].write_bytes(b"changed bytes")
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_stopped"
+    assert response["stage"] == "tests"
+    assert response["replay"]["reason"] == reason
+    assert response["replay"]["passed"] == []
+    assert response["replay"]["subject_commit"] == case["commits"][0]
+    assert git(case["root"], "rev-parse", "HEAD") == case["commits"][0]
+    assert case["log"].read_text() == ""
+    assert_recovery(case, response)
+
+
+def test_missing_recorded_commit_stops_without_guessed_checkout(project):
+    case = prepared(project)
+    source = case["commits"][0]
+    common = Path(git(case["root"], "rev-parse", "--path-format=absolute", "--git-common-dir"))
+    # Only a disposable test repository object is removed; no live Task or
+    # production database is edited to manufacture a missing source.
+    (common / "objects" / source[:2] / source[2:]).unlink()
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_stopped"
+    assert response["stage"] == "tests"
+    assert response["replay"]["reason"] == "source_unavailable"
+    assert response["replay"]["subject_commit"] is None
+    assert response["replay"]["passed"] == []
+    assert git(case["root"], "rev-parse", "HEAD") == case["saved"]
+    assert case["log"].read_text() == ""
+    assert_recovery(case, response)
+
+
+def test_mixed_gate_rechecks_historical_tests_and_preserves_file(project):
+    case = prepared(project, file_proof=b"accepted mixed proof")
+    response = launch(case, target="code_review")
+    assert response["stage"] == "code_review"
+    assert case["log"].read_text().splitlines() == case["commits"]
+    assert case["proof"].read_bytes() == b"accepted mixed proof"
+    assert_recovery(case, response)
+
+
+def test_requirement_revision_does_not_add_a_new_proof_gate(project):
+    case = prepared(project, file_proof=b"accepted proof", revise=True)
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_target_reached"
+    assert case["log"].read_text().splitlines() == case["commits"]
+    assert case["proof"].read_bytes() == b"accepted proof"
+    assert_recovery(case, response)
+
+
+def test_role_changes_do_not_require_participants_during_replay(project):
+    case = prepared(project, alternating_roles=True)
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_target_reached"
+    assert response["stage"] == "code_review"
+    assert case["log"].read_text().splitlines() == case["commits"]
+    assert [item["stage"] for item in response["replay"]["passed"]] == [
+        "tests", "test_review", "implementation",
+    ]
+    assert case["client"].runtime.task_queries.record("T1")["claimed_by"] == case["client"].runtime.session
+    assert_recovery(case, response)
+
+
+def test_failed_historical_test_stops_before_later_commit(project):
+    case = prepared(project)
+    case["fail_file"].write_text("test-owned failing historical check\n")
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_stopped"
+    assert response["stage"] == "tests"
+    assert response["replay"]["reason"] == "tests_failed"
+    assert response["replay"]["passed"] == []
+    assert git(case["root"], "rev-parse", "HEAD") == case["commits"][0]
+    assert_recovery(case, response)

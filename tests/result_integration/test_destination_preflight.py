@@ -309,6 +309,66 @@ class DestinationPreflightTests(unittest.TestCase):
         self.assertEqual(checkout_state(self.project["app"]), before)
         self.assertEqual(task_state(self.project), state)
 
+    def test_correct_destination_preserves_trailing_space_in_checkout_path(self):
+        # Arrange a legitimate path before the real public accepted Task is made.
+        original = self.project["app"]
+        spaced = original.with_name(original.name + " ")
+        original.rename(spaced)
+        self.project["app"] = spaced
+        self.project["cfg"]["git"]["repository"] = str(spaced)
+        self.assertTrue(spaced.name.endswith(" "))
+        self.prepare(guard=True)
+        # Direct protocol oracle preserves the path suffix, independent of _git.
+        self.assertEqual(
+            observe_git(spaced, "rev-parse", "--show-toplevel"),
+            (str(spaced.resolve()) + "\n").encode(),
+        )
+        try:
+            completed = self.invoke()
+        except PoiseError as error:
+            self.fail(f"Correct destination with a meaningful space was refused: {error}")
+        self.assertEqual(completed["status"], "integrated")
+        self.assertEqual(completed["accepted_commit"], self.accepted)
+        self.assertTrue(self.sentinel.exists())
+        self.assertFalse(self.source.exists())
+        self.assertEqual(
+            observe_git(spaced, "rev-parse", "refs/heads/main").decode().removesuffix("\n"),
+            completed["target_after"],
+        )
+
+    def test_malformed_current_phase_is_explicit_error_without_effects(self):
+        self.prepare(guard=True)
+        original = RuntimeResultIntegration._save
+
+        def stop_after_prepared(owner, task_id, run, version):
+            original(owner, task_id, run, version)
+            if run.phase == "prepared":
+                raise PoiseError("fixture interruption after prepared")
+
+        self.patch.setattr(RuntimeResultIntegration, "_save", stop_after_prepared)
+        with self.assertRaisesRegex(PoiseError, "fixture interruption after prepared"):
+            self.invoke()
+        self.patch.setattr(RuntimeResultIntegration, "_save", original)
+        with self.tools.runtime.store.unit_of_work() as uow:
+            data, version = uow.execution.load(self.task_id)
+            self.assertEqual(data["pending"]["schema"], "existing-task-worktree-1")
+            self.assertEqual(data["pending"]["phase"], "prepared")
+            data["pending"]["phase"] = []
+            uow.execution.save(self.task_id, data, version)
+        state = task_state(self.project, self.task_id)
+        roots = (self.project["app"], self.source)
+        before = [checkout_state(root) for root in roots]
+        error = None
+        try:
+            self.invoke()
+        except (PoiseError, TypeError) as observed:
+            error = observed
+        self.assertEqual(task_state(self.project, self.task_id), state)
+        self.assertEqual([checkout_state(root) for root in roots], before)
+        self.assertFalse(self.sentinel.exists())
+        self.assertIsInstance(error, PoiseError, "Malformed saved phase leaked a Python exception")
+        self.assertRegex(str(error).lower(), r"phase|state")
+
     def test_correct_destination_integrates_and_removes_owned_child(self):
         self.prepare(guard=True)
         completed = self.invoke()

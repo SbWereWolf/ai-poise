@@ -379,6 +379,9 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
                       'evidence': 'The original baseline report lacks its proof.'}],
         'resolution_decisions': []}
     assert verify(reviewer, payload)['stage_outcome'] == 'changes_requested'
+    feedback_before = deepcopy(reviewer.invoke(request('bootstrap', {
+        'task': None, 'decision': None, 'feedback': None,
+        'rework_stage': None}))['workflow']['feedback'])
     before = reviewer.runtime.task_queries.record('T1')
     with reviewer.runtime.store.transaction() as database:
         historical = [tuple(row) for row in database.execute(
@@ -401,7 +404,8 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
         'baseline': 1, 'baseline_inspection': 0, 'solution_planning': 0,
         'solution_planning_inspection': 0, 'test_implementation': 0,
         'test_inspection': 0, 'implementation': 0, 'implementation_inspection': 0}
-    assert fresh['workflow']['feedback']['findings'] == []
+    assert fresh['workflow']['feedback'] == feedback_before
+    assert [finding['id'] for finding in feedback_before['open_findings']] == ['F-HISTORY']
     assert fresh['workflow']['evidence']['assessment'] is None
     after = executor.runtime.task_queries.record('T1')
     assert after['process'] == before['process']
@@ -425,10 +429,30 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
         assert context['stage'] == stage
         assert context['status'] == 'active'
         fresh_payload = result(context, f'Fresh obligation {index + 1}.')
+        if index == 0:
+            fresh_payload['sections']['report'] = (
+                'Fresh baseline proof: all eight obligations are explicitly repeated; '
+                'no original report or assessment satisfies this baseline.')
+            fresh_payload['stage_work'] = {'resolutions': [{
+                'id': 'R-HISTORY', 'finding_id': 'F-HISTORY',
+                'description': 'Supply the previously missing fresh baseline proof.',
+                'evidence': fresh_payload['sections']['report']}]}
         if index % 2:
             fresh_payload['stage_work'] = {
                 'coverage': 'Independent fresh-stage proof.', 'findings': [],
                 'resolution_decisions': []}
+        if index == 1:
+            assert context['workflow']['feedback']['open_findings'] == feedback_before['open_findings']
+            assert [item['id'] for item in context['workflow']['feedback']['pending_resolutions']] == ['R-HISTORY']
+            from poise.modules.foundation.errors import DomainError
+            from poise.modules.inspection.domain import FeedbackBook
+            book = FeedbackBook.from_dict({name: context['workflow']['feedback'][name]
+                                          for name in ('findings', 'resolutions', 'decisions')})
+            with pytest.raises(DomainError, match='Unresolved findings.*F-HISTORY'):
+                book.require_resolved()
+            fresh_payload['stage_work']['resolution_decisions'] = [{
+                'resolution_id': 'R-HISTORY', 'decision': 'accepted',
+                'reason': 'Independent fresh baseline report contains the missing proof.'}]
         assert verify(actor, fresh_payload)['status'] == 'verified'
         if index < 7:
             assert actor.invoke(request('advance', target))['status'] == 'role_handoff_required'
@@ -449,3 +473,11 @@ def test_eight_stage_restart_preserves_historical_finding_without_current_credit
         'task': None, 'decision': None, 'feedback': None, 'rework_stage': None}))
     assert final_context['workflow']['visits'] == {
         stage: 1 for stage in names}
+    feedback = final_context['workflow']['feedback']
+    assert feedback['findings'] == feedback_before['findings']
+    assert feedback['open_findings'] == []
+    assert feedback['pending_resolutions'] == []
+    assert feedback['decisions'] == [{
+        'resolution_id': 'R-HISTORY', 'decision': 'accepted',
+        'reason': 'Independent fresh baseline report contains the missing proof.',
+        'stage': 'baseline_inspection', 'iteration': 1}]

@@ -248,6 +248,21 @@ task worktree, then resume checks. The finisher rechecks the configured target u
 resolution, and checks on drift. It publishes only through `git merge --ff-only <task-branch>` in the main checkout and
 never updates the target ref directly or by force.
 
+Public `integrate` requires separate explicit `authorization` and full `commit_message`.
+Keep the original permission and message unchanged across retries, conflicts, target drift,
+and crash resume. The configured `git.commit_pattern` matches the complete message before
+Git or saved-run loading; do not substitute permission, defaults, or a shortened subject.
+The shared candidate-commit owner preserves the full message with Git's documented final-LF
+framing. Authors separately check product meaning and 50/70 writing rules; these have no
+new automatic validator. Follow the exact [message contract and packet
+examples](../../../docs/workflows/batch-work.md#разрешение-и-сообщение-интеграционного-коммита).
+Retained integration history without a recorded message cannot automatically continue,
+even if a new request supplies one. Preserve history and recovery data; do not backfill
+from authorization, edit managed state, or change request identity to bypass refusal.
+Task inspection remains available but does not expose the full saved integration packet;
+the integration projection also requires a recorded message. Follow [missing-message recovery
+limits](../../../docs/workflows/batch-work.md#сохранённый-запрос-без-сообщения-коммита).
+
 Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
 The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate
 retroactively. A reviewed taskless correction with explicit user authority may use the separate manual local delivery

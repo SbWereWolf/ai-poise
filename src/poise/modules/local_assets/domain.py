@@ -56,9 +56,17 @@ def shape(value: object, keys: set[str], code: str) -> dict:
     return value
 
 
+def validate_utf8_text(value: str, code: str) -> None:
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise LocalAssetError(code) from None
+
+
 def text(value: object, code: str) -> str:
     if not isinstance(value, str) or not value.strip() or "\x00" in value:
         raise LocalAssetError(code)
+    validate_utf8_text(value, code)
     return value
 
 
@@ -105,6 +113,8 @@ class AssetSpec:
                 or type(mode) is not int or not 0 <= mode <= 0o777
                 or (repair is not None and (kind != "working" or not isinstance(repair, str) or not repair.strip()))):
             raise LocalAssetError("invalid_manifest")
+        if repair is not None:
+            validate_utf8_text(repair, "invalid_manifest")
         return cls(relative(path, "unsafe_asset_path", path),
                    relative(source, "unsafe_source_path", path), digest.lower(), kind, mode, repair)
 

@@ -43,7 +43,9 @@ class FileLocalAssets:
         try:
             try:
                 git = subprocess.run(["git", "-C", request.target_root, "rev-parse", "--show-toplevel"],
-                                     capture_output=True, text=True, check=False)
+                                     capture_output=True, text=True, check=False,
+                                     env={key: value for key, value in os.environ.items()
+                                          if not key.startswith("GIT_")})
             except OSError as exc:
                 raise LocalAssetError("invalid_target_root") from exc
             if git.returncode or git.stdout.rstrip("\n") != request.target_root:

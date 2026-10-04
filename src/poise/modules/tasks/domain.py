@@ -505,7 +505,8 @@ class Task:
                 )
         return result
 
-    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool):
+    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool,
+                               previous_executable_obligations: tuple[str, ...]):
         request = next(
             request for request in registry.requests
             if request.request_id == raw['request_id']
@@ -524,6 +525,11 @@ class Task:
             'iteration': self.state.iteration,
             'task': self.state.task_id,
         }
+        if previous_executable_obligations != registry.executable_obligations:
+            audit.update(
+                previous_executable_obligations=list(previous_executable_obligations),
+                new_executable_obligations=list(registry.executable_obligations),
+            )
         receipt_id = hashlib.sha256(json.dumps(
             audit, sort_keys=True, ensure_ascii=False, separators=(',', ':')
         ).encode('utf-8')).hexdigest()
@@ -595,22 +601,21 @@ class Task:
                            inspection_stages=registry_inspection_stages(process),
                            obligation_catalog=obligation_catalog(contract))
         change = None
-        if operations:
+        if operations or obligations != current.executable_obligations:
             change = {'request_id': request_id, 'expected_revision': current.revision,
                       'operations': operations, 'executable_obligations': list(obligations)}
             registry = registry.apply_change(change).registry
-        elif obligations != current.executable_obligations:
-            raise DomainError('Changing executable obligations requires an explicit registry method change')
         CheckRegistry.from_items([entry.to_dict() for entry in registry.entries], registry.stages,
                                  require_source=True, require_plan=True)
         registry = registry.with_executable_obligations(
             tuple(obligations), registry.inspection_stages, registry.obligation_catalog)
         return registry, change
 
-    def bind_restarted_registry_audit(self, change: dict | None, actor: str) -> Task:
-        if change is None:
-            return self
-        registry, _ = self._registry_change_audit(change, self.check_registry, actor, False)
+    def bind_restarted_registry_audit(self, change: dict, actor: str,
+                                      previous_executable_obligations: tuple[str, ...]) -> Task:
+        registry, _ = self._registry_change_audit(
+            change, self.check_registry, actor, False, previous_executable_obligations
+        )
         return replace(self, check_registry=registry)
 
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
@@ -637,7 +642,8 @@ class Task:
             elif observes_evidence:
                 result = self._observe_registry_change(method_additions)
                 observe_registry, registry_change = self._registry_change_audit(
-                    method_additions, result.registry, actor, result.replayed
+                    method_additions, result.registry, actor, result.replayed,
+                    self.check_registry.executable_obligations,
                 )
                 result = replace(result, registry=observe_registry)
                 if not result.replayed:

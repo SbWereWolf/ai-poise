@@ -477,8 +477,8 @@ class CheckRegistry:
             raise DomainError('registry change.request_id: требуется непустая строка')
         if type(expected) is not int or expected < 0:
             raise DomainError('registry change.expected_revision: требуется неотрицательный int')
-        if not isinstance(operations, list) or not operations:
-            raise DomainError('registry change.operations: требуется непустой список')
+        if not isinstance(operations, list):
+            raise DomainError('registry change.operations: требуется список')
         required = declared_executable_obligations(
             raw['executable_obligations'],
             self.obligation_catalog,
@@ -496,6 +496,8 @@ class CheckRegistry:
             raise DomainError(
                 f'registry change revision conflict: expected {expected}, current {self.revision}'
             )
+        if not operations and required == self.executable_obligations:
+            raise DomainError('registry change: требуется изменение методов или executable obligations')
         current = {entry.method_id: entry for entry in self.entries}
         order = list(self.method_ids)
         touched = set()

@@ -761,8 +761,9 @@ class TaskCommands:
                                    for field in item.get('registry_edits', []))
                 authority = histories[-1].get('planning_revision')
                 from ..modules.tasks.domain import Task
+                previous_registry = uow.tasks.restarted_registry(task_id)
                 current_registry, registry_change = Task.prepare_restarted_registry(
-                    uow.tasks.restarted_registry(task_id), contract, newborn.process, edited,
+                    previous_registry, contract, newborn.process, edited,
                     request_id, None if authority is None else authority['allowed_changes'],
                 )
             restart_base = None
@@ -841,7 +842,10 @@ class TaskCommands:
                 uow.tasks.remember_action(task_id, actor, request_id, identity, result)
                 return result
             task = build_task(metadata, None, current_registry=current_registry)
-            task = task.bind_restarted_registry_audit(registry_change, actor)
+            if registry_change is not None:
+                task = task.bind_restarted_registry_audit(
+                    registry_change, actor, previous_registry.executable_obligations
+                )
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)

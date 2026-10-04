@@ -144,6 +144,21 @@ class IntegrationRun:
             history=({"status": "prepared", "phase": "prepared"},), drift_retries=0,
         )
 
+    @property
+    def requires_destination_admission(self):
+        """Published recovery and terminal replay do not prepare a new candidate."""
+        if self.phase == "integrated" and self.status == "integrated":
+            return False
+        if self.phase == "cleanup_pending" and self.status == "cleanup_pending" \
+                and self.publication is not None:
+            return False
+        if self.phase in {
+            "prepared", "updating", "candidate_ready", "checks_failed",
+            "candidate_failed", "awaiting_resolution", "publishing", "publication_failed",
+        }:
+            return True
+        raise DomainError("Saved result integration phase is invalid")
+
     @classmethod
     def restore(cls, value):
         if (not isinstance(value, dict) or value.get("kind") != "result_integration"

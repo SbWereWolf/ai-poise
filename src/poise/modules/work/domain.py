@@ -67,6 +67,14 @@ def parse_request(value, config):
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
         shapes[op] = shapes[op] | {'force_duplicate_start'}
+    if op == 'handoff' and isinstance(value['input'], dict) and 'uncertain_check_recovery' in value['input']:
+        recovery = value['input']['uncertain_check_recovery']
+        exact(recovery, {'attempt_id', 'quiescence_evidence', 'effects_evidence'}, 'uncertain check recovery')
+        if any(not isinstance(item, str) or not item.strip() for item in recovery.values()):
+            raise DomainError('Uncertain check recovery requires explicit nonempty evidence and attempt ID')
+        if value['input']['result'] is not None:
+            raise DomainError('Uncertain check recovery requires null result')
+        shapes[op] = shapes[op] | {'uncertain_check_recovery'}
     if op not in ('task','sprint','transfer','integrate','artifact_drafts'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:

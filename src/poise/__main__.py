@@ -12,6 +12,8 @@ def parser():
     sub=p.add_subparsers(dest='command',required=True)
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
+    local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
+    local_assets.add_argument('--manifest',type=Path,required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
     project.add_argument('project_action',nargs='?',choices=('list',))
     project.add_argument('--settings',type=Path,required=True)
@@ -73,6 +75,9 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='local-assets':
+        from .interfaces.local_assets import execute
+        return execute(args.manifest,sys.stdin.buffer,sys.stdout)
     if args.command=='project':
         from .interfaces.projects import execute
         return execute(args.settings,sys.stdin.buffer,sys.stdout,args.project_action)

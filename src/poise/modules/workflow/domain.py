@@ -215,10 +215,18 @@ class RouteDefinition:
             following = self.next_inspection(corrective)
             if following is None:
                 raise DomainError(f"Inspection scope for {sid} has no corrective inspector; correct the process graph")
-            # Reinspection shares the positive result continuation. A different
-            # continuation would merge two distinct results through one producer.
-            if following != sid and inspector.target("clear") != inspectors[following].target("clear"):
-                raise DomainError(f"Inspection scope is ambiguous for {sid}, {corrective}, {following}; declare separate corrective results")
+            # A corrective pipeline may approve a plan before repairing the
+            # original result. Cross those approvals only within this explicit
+            # corrective branch; intermediate inspectors keep their own scopes.
+            visited = set()
+            while (following is not None and following != sid
+                   and inspector.target("clear") != inspectors[following].target("clear")):
+                if following in visited:
+                    raise DomainError(f"Inspection scope is ambiguous for {sid}: corrective inspections cycle; correct the process graph")
+                visited.add(following)
+                following = self.next_inspection(inspectors[following].target("clear"))
+            if following is None:
+                raise DomainError(f"Inspection scope is ambiguous for {sid}, {corrective}: no corrective inspector shares its positive continuation; declare separate corrective results")
             adjacent[sid].add(following)
             adjacent[following].add(sid)
         subject = self.next_inspection(stage_id)

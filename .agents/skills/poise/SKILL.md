@@ -59,6 +59,19 @@ agent-use incident, follow [instruction
 clarity](../../../docs/governance/development-rules.md#ошибки-применения-и-точность-инструкций);
 detailed corrections belong in canonical docs, with a short skill link.
 
+## Harness refusal and manual continuation
+
+Apply the canonical [failure and manual bypass rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+whenever normal work is blocked. Classify the cause and repeatability, journal the
+incident and chosen correction with alternatives, and continue authorized subject
+work manually when Poise obstructs it. Recurring failures require a repair draft.
+A trivial low-risk data repair does not automatically require new code. Always
+verify configuration corrections, roll back unsuccessful ones, and record rejected
+solutions. Preserve real evidence, independent review and foreign ownership; manual
+work is never a fabricated native stage receipt or Task completion. The ordinary
+managed-data prohibition below does not prohibit the narrowly scoped, documented
+manual recovery authorized by this canonical rule.
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
@@ -247,6 +260,21 @@ with no separate integration branch or worktree. If it returns a conflict, pause
 task worktree, then resume checks. The finisher rechecks the configured target under the shared target lock and repeats update,
 resolution, and checks on drift. It publishes only through `git merge --ff-only <task-branch>` in the main checkout and
 never updates the target ref directly or by force.
+
+Public `integrate` requires separate explicit `authorization` and full `commit_message`.
+Keep the original permission and message unchanged across retries, conflicts, target drift,
+and crash resume. The configured `git.commit_pattern` matches the complete message before
+Git or saved-run loading; do not substitute permission, defaults, or a shortened subject.
+The shared candidate-commit owner preserves the full message with Git's documented final-LF
+framing. Authors separately check product meaning and 50/70 writing rules; these have no
+new automatic validator. Follow the exact [message contract and packet
+examples](../../../docs/workflows/batch-work.md#разрешение-и-сообщение-интеграционного-коммита).
+Retained integration history without a recorded message cannot automatically continue,
+even if a new request supplies one. Preserve history and recovery data; do not backfill
+from authorization, edit managed state, or change request identity to bypass refusal.
+Task inspection remains available but does not expose the full saved integration packet;
+the integration projection also requires a recorded message. Follow [missing-message recovery
+limits](../../../docs/workflows/batch-work.md#сохранённый-запрос-без-сообщения-коммита).
 
 Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
 The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate

@@ -1,0 +1,44 @@
+{
+  "planning": {
+    "schema": "task-planning-1",
+    "template": null,
+    "restart_revision_policy": {
+      "reviewer": ["process"],
+      "user": ["process"]
+    }
+  },
+  "runner": {
+    "schema": "run-termination-1",
+    "child_reaped": true,
+    "process_group_stopped": true,
+    "capture_complete": true
+  },
+  "attempt": {
+    "schema": "check-run-termination-1",
+    "actual_exit_code": 0,
+    "child_reaped": true,
+    "process_group_stopped": true,
+    "capture_complete": true
+  },
+  "terminal_receipt": {
+    "actual_exit_code": 0,
+    "capture_complete": true,
+    "timed_out": false,
+    "guard": true,
+    "id": "run",
+    "method": "check",
+    "tree": "tree",
+    "obligations": [],
+    "interpretable": false,
+    "passed": false
+  },
+  "context_fields": [
+    "task_id",
+    "actor",
+    "attempt_id",
+    "stage",
+    "iteration",
+    "submission_digest",
+    "execution_key"
+  ]
+}

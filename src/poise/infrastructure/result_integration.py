@@ -89,6 +89,11 @@ class RuntimeResultIntegration:
             return record, None, None
         if not isinstance(pending, dict):
             raise PoiseError("Saved result integration state is invalid")
+        if isinstance(pending.get("intent"), dict) and "commit_message" not in pending["intent"]:
+            raise PoiseError(
+                "Saved integration request lacks explicit commit_message; history is retained "
+                "and automatic continuation cannot recover a message never recorded"
+            )
         try:
             if pending.get("schema") == "existing-task-worktree-1":
                 return record, IntegrationRun.restore(pending), None
@@ -100,8 +105,11 @@ class RuntimeResultIntegration:
         except (KeyError, TypeError, ValueError) as exc:
             raise PoiseError("Saved result integration state is invalid") from exc
 
-    def _load(self, task_id):
+    def _load(self, task_id, requested_intent):
         record, run, legacy_version = self._read_state(task_id)
+        if run is not None and requested_intent is not None \
+                and not self._same_intent(run, requested_intent):
+            raise PoiseError("Task integration intent is immutable")
         if legacy_version is not None:
             self._save(task_id, run, legacy_version)
         return record, run
@@ -276,10 +284,13 @@ class RuntimeResultIntegration:
         if self._git(repository, "rev-parse", self._target_ref()) \
                 != intent.expected_target_commit:
             raise PoiseError("Expected target commit changed before integration")
-        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.authorization) is None:
+
+    def _validate_message(self, intent):
+        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.commit_message) is None:
             raise PoiseError("Integration commit message violates the configured pattern")
 
     def prepare_source(self, intent):
+        self._validate_message(intent)
         record, run, repository = self._admit(intent)
         if run is None:
             self._validate_new(record, intent, repository)
@@ -303,6 +314,12 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, ready, run.version)
         return ready
 
+    def _commit_candidate(self, run, worktree):
+        return self._run(
+            worktree, "commit", "--cleanup=verbatim", "-m", run.intent.commit_message,
+            env=self._actor(),
+        )
+
     def _prepare_candidate(self, run):
         worktree = Path(run.task_worktree).resolve(strict=True)
         target = run.last_included_target
@@ -323,16 +340,12 @@ class RuntimeResultIntegration:
             self._git(worktree, "add", "--", *sorted(run.conflicts))
             if self._conflicts(worktree):
                 raise PoiseError("The Git index still contains unresolved conflicts")
-            receipt = self._run(
-                worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-            )
+            receipt = self._commit_candidate(run, worktree)
             if receipt["actual_exit_code"] != 0:
                 return self._candidate_failed(run, "integration_commit_failed", receipt)
             return self._record_candidate(run, worktree, receipt)
         if merge_head == target and not conflicts:
-            receipt = self._run(
-                worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-            )
+            receipt = self._commit_candidate(run, worktree)
             if receipt["actual_exit_code"] != 0:
                 return self._candidate_failed(run, "integration_commit_failed", receipt)
             return self._record_candidate(run, worktree, {**receipt, "recovered": True})
@@ -360,9 +373,7 @@ class RuntimeResultIntegration:
             return self._candidate_failed(run, "merge_failed_without_conflicts", receipt)
         if self._optional_ref(worktree, "MERGE_HEAD") is None:
             return self._record_candidate(run, worktree, receipt)
-        commit = self._run(
-            worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-        )
+        commit = self._commit_candidate(run, worktree)
         if commit["actual_exit_code"] != 0:
             return self._candidate_failed(run, "integration_commit_failed", commit)
         return self._record_candidate(run, worktree, commit)
@@ -985,6 +996,7 @@ class RuntimeResultIntegration:
                 )
 
     def apply(self, intent):
+        self._validate_message(intent)
         record, run, repository = self._admit(intent)
         if run is None:
             self._validate_new(record, intent, repository)
@@ -1022,7 +1034,16 @@ class RuntimeResultIntegration:
                     return run.result()
             if run.phase in ("publishing", "publication_failed"):
                 record = self.h.task_queries.record(intent.task_id)
-                if not self._complete_candidate_proof(record, run):
+                try:
+                    complete_proof = self._complete_candidate_proof(record, run)
+                except PoiseError as exc:
+                    if run.phase != "publishing":
+                        raise
+                    run = self._publication_failed(
+                        run, "task_worktree_changed", {"error": str(exc)},
+                    )
+                    return run.result()
+                if not complete_proof:
                     rechecking = run.recheck_publication()
                     self._save(intent.task_id, rechecking, run.version)
                     run = rechecking
@@ -1059,7 +1080,7 @@ class RuntimeResultIntegration:
         if (not isinstance(task_id, str) or not task_id
                 or not isinstance(request_id, str) or not request_id):
             raise PoiseError("Integration query requires task_id and request_id")
-        _, run = self._load(task_id)
+        _, run = self._load(task_id, None)
         if run is None or run.intent.request_id != request_id:
             raise PoiseError("Result integration request was not found")
         return run.result()

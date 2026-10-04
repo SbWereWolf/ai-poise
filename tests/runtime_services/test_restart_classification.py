@@ -324,12 +324,12 @@ def test_validation_after_classification_preparation_is_atomic(project, monkeypa
         assert candidate.revision == 1
         entered.append(True)
         invalid = deepcopy(contract)
-        invalid["stage_contracts"][0]["allowed_paths"] = ["src/**"]
+        invalid["stage_contracts"][0]["stage_id"] = "unknown-stage"
         return prepare(invalid, *args, **kwargs)
 
     monkeypatch.setattr(commands, "_prepare_restarted_creation", incompatible_contract)
     before = conservation(tools, root, wip)
-    with pytest.raises(PoiseError, match="allowed_paths|scope|пут|contract"):
+    with pytest.raises(PoiseError, match="stage contracts require exact route coverage"):
         ready_task(tools, "T1", edited["revision"])
     assert entered == [True]
     assert conservation(tools, root, wip) == before

@@ -9,7 +9,7 @@ from verification.retention_helpers import (
     FIXTURES, consumer, file_item, invoke_required, source_file, start, manifest,
 )
 from verification.retention_regression_helpers import (
-    damage_destination, file_snapshot, git_snapshot, semantic_snapshot,
+    damage_destination, node_snapshot, git_snapshot, semantic_snapshot,
 )
 
 
@@ -33,7 +33,8 @@ def test_invalid_manifest_destination_has_no_verification_effects(project, tmp_p
     invoke_required(tools, 'artifacts', {'items': [file_item(wheel)]})
     before = semantic_snapshot(tools.runtime)
     code = git_snapshot(context['worktree'])
-    files = file_snapshot(predicted_root / 'artifacts')
+    files = node_snapshot(predicted_root)
+    producer = node_snapshot(wheel.parent)
     try:
         with pytest.raises(PoiseError, match='[Mm]anifest|[Dd]irectory|[Ss]ymlink|[Aa]rtifact'):
             tools.invoke(request('verify', {'result': result(context), 'artifacts': []}))
@@ -41,7 +42,8 @@ def test_invalid_manifest_destination_has_no_verification_effects(project, tmp_p
         assert not marker.exists(), 'invalid destination executed the consumer'
         assert semantic_snapshot(tools.runtime) == before
         assert git_snapshot(context['worktree']) == code
-        assert file_snapshot(predicted_root / 'artifacts') == files
+        assert node_snapshot(predicted_root) == files
+        assert node_snapshot(wheel.parent) == producer
 
 
 @pytest.mark.parametrize('directory', ['artifacts', 'artifacts/new/nested', 'artifacts/existing'])
@@ -79,3 +81,63 @@ def test_undeclared_retention_has_no_manifest(project, tmp_path):
     done = invoke_required(tools, 'verify', {'result': result(context), 'artifacts': []})
     assert marker.read_text() == 'run\n'
     assert done.get('acceptance_manifests', []) == []
+
+
+@pytest.mark.parametrize('change', [
+    'create-directory', 'create-link', 'retarget-link', 'remove-link', 'remove-directory',
+])
+def test_node_inventory_detects_directory_and_link_effects(tmp_path, change):
+    root = tmp_path / 'owned'
+    root.mkdir()
+    first = root / 'first'
+    second = root / 'second'
+    first.mkdir()
+    second.mkdir()
+    link = root / 'alias'
+    if change in ('retarget-link', 'remove-link'):
+        link.symlink_to(first, target_is_directory=True)
+    before = node_snapshot(root)
+    if change == 'create-directory':
+        (root / 'new-empty').mkdir()
+    elif change == 'create-link':
+        link.symlink_to(first, target_is_directory=True)
+    elif change == 'retarget-link':
+        link.unlink()
+        link.symlink_to(second, target_is_directory=True)
+    elif change == 'remove-link':
+        link.unlink()
+    else:
+        second.rmdir()
+    after = node_snapshot(root)
+    assert after != before
+    assert after['.'] == ('directory',)
+    if change in ('create-link', 'retarget-link'):
+        assert after['alias'] == ('symlink', str(second if change == 'retarget-link' else first))
+
+
+def test_node_inventory_does_not_follow_a_foreign_symlink(tmp_path):
+    root = tmp_path / 'owned'
+    root.mkdir()
+    foreign = tmp_path / 'foreign'
+    foreign.mkdir()
+    (foreign / 'secret').write_bytes(b'outside initial bytes')
+    (root / 'alias').symlink_to(foreign, target_is_directory=True)
+    before = node_snapshot(root)
+    assert before == {'.': ('directory',), 'alias': ('symlink', str(foreign))}
+    (foreign / 'secret').write_bytes(b'outside changed bytes')
+    assert node_snapshot(root) == before
+
+
+@pytest.mark.parametrize('kind', ['directory', 'symlink'])
+def test_git_inventory_detects_empty_directory_and_link(project, kind):
+    directory = project['app']
+    before = git_snapshot(directory)
+    added = directory / 'new-node'
+    if kind == 'directory':
+        added.mkdir()
+    else:
+        added.symlink_to('missing-target')
+    assert git_snapshot(directory) != before
+    assert git_snapshot(directory)['nodes']['new-node'] == (
+        ('directory',) if kind == 'directory' else ('symlink', 'missing-target')
+    )

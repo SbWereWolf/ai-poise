@@ -1,6 +1,8 @@
 """Test-owned observations and concrete controls, never production oracles."""
 from copy import deepcopy
 import hashlib
+import os
+import stat
 from pathlib import Path
 
 from conftest import git
@@ -56,15 +58,50 @@ def git_snapshot(directory):
     return {'head': git(directory, 'rev-parse', 'HEAD'),
             'status': git(directory, 'status', '--porcelain=v2'),
             'index': hashlib.sha256(index.read_bytes()).hexdigest(),
-            'files': {str(p.relative_to(directory)): p.read_bytes()
-                      for p in directory.rglob('*')
-                      if p.is_file() and not p.is_symlink()
-                      and '.git' not in p.relative_to(directory).parts}}
+            'nodes': node_snapshot(directory, stop_directories=('.git',))}
 
 
-def file_snapshot(root):
-    return {str(p.relative_to(root)): p.read_bytes() for p in Path(root).rglob('*')
-            if p.is_file() and not p.is_symlink()}
+def node_snapshot(root, *, stop_directories=()):
+    """Inventory owned paths with lstat; never descend into a symlink or Git DB."""
+    root = Path(root)
+    nodes = {}
+
+    def observe(path, relative):
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            nodes[relative] = ('missing',)
+            return
+        if stat.S_ISLNK(info.st_mode):
+            nodes[relative] = ('symlink', os.readlink(path))
+        elif stat.S_ISDIR(info.st_mode):
+            nodes[relative] = ('directory',)
+            if relative not in stop_directories:
+                for child in sorted(path.iterdir()):
+                    observe(child, child.relative_to(root).as_posix())
+        elif stat.S_ISREG(info.st_mode):
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(descriptor, 'rb') as stream:
+                assert stat.S_ISREG(os.fstat(stream.fileno()).st_mode)
+                nodes[relative] = ('file', stream.read())
+        else:
+            nodes[relative] = ('special', stat.S_IFMT(info.st_mode))
+
+    observe(root, '.')
+    return nodes
+
+
+def assert_semantic_type_refusal(error, case):
+    message = str(error).lower()
+    fields = ('passed', 'actual_exit_code') if case == 'combined' else (
+        ('passed',) if case.startswith('passed') else ('actual_exit_code',)
+    )
+    assert message.startswith('acceptance manifest'), 'not a strict semantic type refusal'
+    assert 'receipt' in message and 'type' in message, 'not a strict semantic type refusal'
+    assert any(field in message for field in fields), 'wrong receipt field refused'
+    assert not any(word in message for word in (
+        'digest', 'path', 'missing', 'unreadable', 'environment', 'input', 'proof', 'byte',
+    )), 'transport failure cannot satisfy strict semantic type refusal'
 
 
 def damage_destination(root, case):

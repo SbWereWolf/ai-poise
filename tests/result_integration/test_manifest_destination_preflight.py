@@ -8,7 +8,7 @@ from conftest import git
 from poise.common import PoiseError
 from result_integration.helpers import integration_input
 from verification.retention_helpers import FIXTURES, consumer
-from verification.retention_regression_helpers import file_snapshot, git_snapshot, semantic_snapshot, integration_ready
+from verification.retention_regression_helpers import node_snapshot, git_snapshot, semantic_snapshot, integration_ready
 
 
 @pytest.mark.parametrize('entry', ['public', 'apply'])
@@ -48,7 +48,7 @@ def test_later_invalid_selected_method_prevents_all_integration_effects(project,
     state = semantic_snapshot(tools.runtime)
     main = git_snapshot(project['app'])
     source = git_snapshot(worktree)
-    files = file_snapshot(root)
+    files = node_snapshot(root)
     packet = integration_input(project, commit)
     try:
         with pytest.raises(PoiseError, match='[Mm]anifest|[Dd]irectory|[Ss]ymlink|[Aa]rtifact'):
@@ -61,5 +61,5 @@ def test_later_invalid_selected_method_prevents_all_integration_effects(project,
         assert semantic_snapshot(tools.runtime) == state
         assert git_snapshot(project['app']) == main
         assert git_snapshot(worktree) == source
-        assert file_snapshot(root) == files
+        assert node_snapshot(root) == files
         assert sentinel.read_bytes() == b'preserve operator WIP\n'

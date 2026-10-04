@@ -12,10 +12,11 @@ from poise.common import PoiseError
 from poise.infrastructure.artifact_factory import FileArtifactFactory
 from poise.modules.verification.retention import AcceptanceManifest
 from verification.retention_helpers import (
-    FIXTURES, file_item, manifest, source_file, start, verify_input,
+    FIXTURES, assert_bundle, file_item, manifest, source_file, start, verify_input,
 )
 from verification.retention_regression_helpers import (
-    CONTROL_CASES, assert_control_types, file_snapshot, malformed, semantic_snapshot,
+    CONTROL_CASES, assert_control_types, assert_semantic_type_refusal,
+    node_snapshot, malformed, semantic_snapshot,
 )
 
 
@@ -55,6 +56,23 @@ def test_real_producer_wrong_control_types_are_rejected(project, tmp_path, monke
     tools, context = start(project, marker)
     original = FileArtifactFactory.materialize
     published = []
+    authenticated = []
+    port = tools.runtime.retention.port
+    original_read = port.read
+
+    def read(task, reference):
+        actual = original_read(task, reference)
+        assert len(published) == 1
+        path, content = published[0]
+        assert reference['path'] == str(path)
+        assert reference['digest'] == hashlib.sha256(content).hexdigest()
+        assert path.read_bytes() == content
+        assert actual == json.loads(content)
+        assert_control_types(actual, case)
+        authenticated.append((deepcopy(reference), deepcopy(actual)))
+        return actual
+
+    monkeypatch.setattr(port, 'read', read)
 
     def publish(factory, prepared):
         changed = []
@@ -72,11 +90,13 @@ def test_real_producer_wrong_control_types_are_rejected(project, tmp_path, monke
 
     monkeypatch.setattr(FileArtifactFactory, 'materialize', publish)
     try:
-        with pytest.raises(PoiseError, match='[Mm]anifest|receipt|schema|type'):
+        with pytest.raises(PoiseError) as refused:
             tools.invoke(request('verify', {
                 'result': result(context), 'artifacts': [file_item(wheel)],
             }))
+        assert_semantic_type_refusal(refused.value, case)
     finally:
+        assert len(authenticated) == 1, 'no successful authenticated manifest readback'
         assert len(published) == 1, 'real manifest producer seam not exercised'
         path, content = published[0]
         assert path.read_bytes() == content
@@ -121,14 +141,15 @@ def test_public_accept_rejects_wrong_control_types_without_completion(project, t
     monkeypatch.setattr(port, 'read', read)
     before = semantic_snapshot(tools.runtime)
     record = deepcopy(tools.runtime.task_queries.record('T1'))
-    files = file_snapshot(Path(context['task_root']) / 'artifacts')
+    files = node_snapshot(Path(context['task_root']))
     try:
-        with pytest.raises(PoiseError, match='[Mm]anifest|receipt|schema|type'):
+        with pytest.raises(PoiseError) as refused:
             tools.invoke(request('accept', {}))
+        assert_semantic_type_refusal(refused.value, case)
     finally:
         assert observations and observations[0] == done['acceptance_manifests'][0]
         assert marker.read_text() == 'run\n'
-        assert file_snapshot(Path(context['task_root']) / 'artifacts') == files
+        assert node_snapshot(Path(context['task_root'])) == files
         assert tools.runtime.task_queries.record('T1') == record
         assert semantic_snapshot(tools.runtime) == before
 
@@ -148,12 +169,12 @@ def test_public_accept_typed_manifest_completes_without_rerunning_consumer(proje
         return deepcopy(value)
 
     monkeypatch.setattr(port, 'read', read)
-    files = file_snapshot(Path(context['task_root']) / 'artifacts')
+    files = node_snapshot(Path(context['task_root']))
     completed = tools.invoke(request('accept', {}))
     assert completed['status'] == 'completed'
     assert observations and observations[0]['path'] == str(path)
     assert marker.read_text() == 'run\n'
-    assert file_snapshot(Path(context['task_root']) / 'artifacts') == files
+    assert node_snapshot(Path(context['task_root'])) == files
 
 
 @pytest.mark.parametrize('entry', ['receipt', 'bundle'])
@@ -209,3 +230,38 @@ def test_saved_receipt_and_bundle_reject_wrong_control_types(entry, case):
                 'acceptance_manifests': [reference],
             })
     assert observed == [reference]
+
+
+@pytest.mark.parametrize('case', CONTROL_CASES)
+def test_producer_oracle_rejects_transport_failure_after_real_read(project, tmp_path, monkeypatch, case):
+    from poise.infrastructure.acceptance_retention import RuntimeAcceptanceRetention
+
+    original = RuntimeAcceptanceRetention.read
+    observed = []
+
+    def unrelated_digest_refusal(port, task, reference):
+        actual = original(port, task, reference)
+        assert_control_types(actual, case)
+        observed.append(deepcopy(reference))
+        raise PoiseError('Acceptance manifest digest changed: injected transport failure')
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(RuntimeAcceptanceRetention, 'read', unrelated_digest_refusal)
+        with pytest.raises(AssertionError, match='no successful authenticated manifest readback'):
+            test_real_producer_wrong_control_types_are_rejected(project, tmp_path, scoped, case)
+    assert len(observed) == 1, 'actual original read/digest validation was not exercised'
+
+
+def test_real_producer_typed_manifest_succeeds(project, tmp_path):
+    tools, context, done, _, marker = verify_input(project, tmp_path)
+    path, value = manifest(done, context)
+    actual = tools.runtime.retention.port.read(tools.runtime.task_queries.record('T1'),
+                                               done['acceptance_manifests'][0])
+    assert actual == value
+    assert type(actual['receipt']['actual_exit_code']) is int
+    assert actual['receipt']['actual_exit_code'] == 0
+    assert type(actual['receipt']['passed']) is bool
+    assert actual['receipt']['passed'] is True
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == done['acceptance_manifests'][0]['digest']
+    assert_bundle(done, context, done['commit'])
+    assert marker.read_text() == 'run\n'

@@ -1,6 +1,6 @@
 # Границы ответственности: DDD-04B
 
-Обновлено: **2026-09-13**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-10-04**. Срез **POISE-DDD-04B**.
 
 | Владелец | Обязанность | Запрещено |
 |---|---|---|
@@ -13,12 +13,16 @@
 | runtime/execution/artifacts | реальные наблюдения Git/команд/files; publication и transport | прямые UPDATE Task/evidence state |
 | Optional telemetry | неизменяемый `TelemetryEnvelope`, отдельные SQLite database/lock, асинхронная best-effort запись и partial coverage | брать authoritative Task DB lock, задерживать либо отменять результат WorkTools |
 
-`EvidenceBook` используется композиционно; это не BaseTask и не отдельный движок каждого goal type. Runner делегирует
-чистым handler/domain, не держит lock во время subprocess. Generic observe/check отличаются способом интерпретации
+`EvidenceBook` используется композиционно; это не BaseTask и не отдельный движок каждого goal type.
+Runner делегирует
+чистым handler/domain, не держит lock во время subprocess. Generic observe/check отличаются способом
+интерпретации
 заданных наблюдений, не названием цели.
 
-Правила происхождения, аргумента и осмотра остаются раздельными. `passed` — исход predicate, `interpretable` —
-распознанность наблюдения, `accepted/rejected` — последующий смысловой осмотр. Их нельзя сворачивать в один status.
+Правила происхождения, аргумента и осмотра остаются раздельными. `passed` — исход predicate,
+`interpretable` —
+распознанность наблюдения, `accepted/rejected` — последующий смысловой осмотр. Их нельзя сворачивать
+в один status.
 
 `CheckRegistry` владеет чистым контрактом provenance и сравнением методов. Runtime владеет
 разрешением repository-relative binding против текущего task worktree, проверкой границ и
@@ -43,8 +47,10 @@ Task лишь ссылается на то же наблюдение. Перед
 Task применяет переход только после этих проверок. Это разделение не создаёт второго writer,
 совместимого ключа или миграции evidence.
 
-Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw capture синхронный,
-адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы EvidenceBook.
+Общий output/async parser слой и runtime integrations ещё относятся к будущим срезам. В DDD-04 raw
+capture синхронный,
+адресуемый и durable у задачи. Не объявлять новый слой полностью реализованным на основании формы
+EvidenceBook.
 
 
 ## WorkOwnership
@@ -62,7 +68,8 @@ preflight, liveness и повторную проверку в UoW. SQLite adapte
 Нельзя выводить владение Task только из `sessions.task_id`.
 При неоднозначных v12 claims установка индексов откладывается, но весь проект
 не блокируется: `OwnershipCommands` и его SQLite adapter предоставляют
-[локальное публичное согласование](../workflows/batch-work.md#восстановление-неоднозначного-владения)
+[локальное публичное
+согласование](../workflows/batch-work.md#восстановление-неоднозначного-владения)
 по точному снимку связанного компонента. Task repository сохраняет версионное
 освобождение claimant; ownership repository — bindings и receipt той же UoW.
 Наблюдение до транзакции не разрешает запись без проверки актуального полного набора.
@@ -107,14 +114,16 @@ Schema `task-process-migration-2` имеет отдельный compile-time sco
 domain добавляет к legacy process только отсутствующий `worktree_required`, а её старый receipt
 остаётся replayable. Корректирующая schema `task-process-migration-3` имеет тот же точный scope,
 сохраняет уже добавленный совпадающий boolean и строит отсутствующий stage contract каждого route
-stage: scope берётся из сохранённого stage, gates — из сохранённых content requirements по phase. Storage
+stage: scope берётся из сохранённого stage, gates — из сохранённых content requirements по phase.
+Storage
 меняет только process и contract snapshots внутри metadata; Task version, lifecycle/result/
 content/evidence/ownership/Git поля и released handoff остаются прежними. После commit
 работоспособность доказывается обычным reviewer bootstrap сохранённой verified Task.
 
 ## Пакетный декларативный вход
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Task/config/artifact/interaction-вход реализован в DDD-04A/04B; Sprint
+Обновлено: **2026-09-06T22:58:21+05:00**. Task/config/artifact/interaction-вход реализован в
+DDD-04A/04B; Sprint
 использует тот же вход в DDD-05.
 
 | Владелец | Новая обязанность | Что остаётся вне него |
@@ -127,53 +136,77 @@ content/evidence/ownership/Git поля и released handoff остаются п�
 | Runtime/CLI adapter | Передать непосредственный payload и наблюдённый user event | Требовать заранее ручной JSON-файл или выдавать reported events за полный поток |
 | SQLite/filesystem adapters | Сохранить валидный кандидат, staging и receipt, согласованная активация | Бизнес-валидация истинности аргумента |
 
-Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги AI poise остаются в AI poise; generated
-project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация приложения — через
-нативные инструменты согласно правилам codebase. Полный контракт: [declarative-tools](declarative-tools.md).
+Реализация общего pipeline не подменяет API Task/Sprint. Все конфиги AI poise остаются в AI poise;
+generated
+project/process файлы не редактируются агентом напрямую. Код приложения, тесты и документация
+приложения — через
+нативные инструменты согласно правилам codebase. Полный контракт:
+[declarative-tools](declarative-tools.md).
 
 ## DDD-04A — 2026-09-06T20:26:43+05:00
 
-Новый доменный владелец `modules/goal_config` использует RouteDefinition, SectionRule и ContentPolicy без I/O.
+Новый доменный владелец `modules/goal_config` использует RouteDefinition, SectionRule и
+ContentPolicy без I/O.
 Application `GoalConfigCommands` делегирует файл/DB через ports; infrastructure размещена в
-`infrastructure/goal_config.py`. CLI adapter `interfaces/goal_config.py` принимает stdin, формирует bounded response и
+`infrastructure/goal_config.py`. CLI adapter `interfaces/goal_config.py` принимает stdin, формирует
+bounded response и
 не обходит доменную validation. Общий `infrastructure/locking.py` используется двумя хранилищами.
 
-Текущий Task process snapshot не зависит от актуальной копии pack; его project execution config остаётся отдельной
-границей. Версия store изменена явно. Новый editor не наследует чужой goal-type процесс: явный template копируется в
+Текущий Task process snapshot не зависит от актуальной копии pack; его project execution config
+остаётся отдельной
+границей. Версия store изменена явно. Новый editor не наследует чужой goal-type процесс: явный
+template копируется в
 независимое определение.
 
-Список [кандидатов правил](../governance/rule-candidates/rule-candidates.md) не является новым источником policy до
+Список [кандидатов правил](../governance/rule-candidates/rule-candidates.md) не является новым
+источником policy до
 решения пользователя.
 
 ## DDD-04B — новые владельцы и зависимости
 Обновлено: **2026-09-06T22:58:21+05:00**.
 
-WorkTools — application facade, не новый агрегат. Task остаётся владельцем секций, evidence и lifecycle. ArtifactPlan —
-чистая модель генерации; FileArtifactFactory — инфраструктура; существующий ArtifactRegistry — регистрация owner-scoped
-файлов. InteractionLedger владеет identity/user-event rules, SQLite InteractionStore — таблицами observations и
+WorkTools — application facade, не новый агрегат. Task остаётся владельцем секций, evidence и
+lifecycle. ArtifactPlan —
+чистая модель генерации; FileArtifactFactory — инфраструктура; существующий ArtifactRegistry —
+регистрация owner-scoped
+файлов. InteractionLedger владеет identity/user-event rules, SQLite InteractionStore — таблицами
+observations и
 bindings.
 
-`interfaces/work.py` читает stdin и оформляет bounded JSON/file response. Он не пишет таблицы Task. Application/work не
-импортирует SQL/filesystem. Composition root Runtime подключает порты. Чтение и запись пользовательских событий не
-поручаются LLM SQL-командами. Ledger transaction независима от Task verification: отрицательный test не отменяет
+`interfaces/work.py` читает stdin и оформляет bounded JSON/file response. Он не пишет таблицы Task.
+Application/work не
+импортирует SQL/filesystem. Composition root Runtime подключает порты. Чтение и запись
+пользовательских событий не
+поручаются LLM SQL-командами. Ledger transaction независима от Task verification: отрицательный test
+не отменяет
 реальное сообщение.
 
-Общий API не реализует 13 разных engines. DDD-04A editor и DDD-04B work entry остаются отдельными предметными
-сценариями. Конфигурационные шаблоны и артефакты имеют разные contracts; никакого универсального произвольного
+Общий API не реализует 13 разных engines. DDD-04A editor и DDD-04B work entry остаются отдельными
+предметными
+сценариями. Конфигурационные шаблоны и артефакты имеют разные contracts; никакого универсального
+произвольного
 `write_file` для служебных данных.
 
 
 ## DDD-05 — 2026-09-11T16:25:00+05:00
-Sprint владеет планом/графом/решениями; Task владеет доступностью, началом и состоянием работы. Published Sprint создаёт
-Task через общий доменный builder и TaskRepository в одной UoW. Клиент не подменяет исходные шаблоны/таблицы рабочими
+Sprint владеет планом/графом/решениями; Task владеет доступностью, началом и состоянием работы.
+Published Sprint создаёт
+Task через общий доменный builder и TaskRepository в одной UoW. Клиент не подменяет исходные
+шаблоны/таблицы рабочими
 JSON patch.
 
-`modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует SQL/filesystem.
-`infrastructure/sprint_work` вычисляет eligibility, формирует `result_provenance`, наблюдает текущий commit явно
-настроенного Git `base_ref` для новой Task и делегирует Task API. Result commits предшественников остаются provenance и
-не выбирают branch base. Точный наблюдённый base SHA сохраняется в reservation до Task start; recovery использует его
-повторно, а resume/handoff существующего worktree не наблюдают ref заново и не пересоздают workspace. База сериализует
-короткие записи; проверки и локальные commits параллельных worktrees не держат общий DB lock. Git push запрещён.
+`modules/sprints` и `modules/tasks/definition` не имеют I/O. `application/sprints` не импортирует
+SQL/filesystem.
+`infrastructure/sprint_work` вычисляет eligibility, формирует `result_provenance`, наблюдает текущий
+commit явно
+настроенного Git `base_ref` для новой Task и делегирует Task API. Result commits предшественников
+остаются provenance и
+не выбирают branch base. Точный наблюдённый base SHA сохраняется в reservation до Task start;
+recovery использует его
+повторно, а resume/handoff существующего worktree не наблюдают ref заново и не пересоздают
+workspace. База сериализует
+короткие записи; проверки и локальные commits параллельных worktrees не держат общий DB lock. Git
+push запрещён.
 
 Восстановлением ошибочной незавершённой Task владеет общий Task lifecycle. Application-команда
 `restart` проверяет optimistic version, ownership и terminal boundary; Task domain строит newborn
@@ -184,75 +217,105 @@ publication, pending и last_report, не изменяя worktree/branch/base/en
 Pending external outcome блокирует restart до выполнения его явного recovery protocol. Replay
 receipt проверяется до мутации; conflicting intent отклоняется. `ready` повторно валидирует
 сохранённый process, а `start` возобновляет прежнее execution/worktree. Public Sprint correction
-action `replace_task` удалён. Типизированная проекция замен Task удалена. Прежние решения читаются как
+action `replace_task` удалён. Типизированная проекция замен Task удалена. Прежние решения читаются
+как
 неизменяемые revision layers и аудит явной миграции, не как текущий процесс.
 
 ### Публичный обзор работ — 2026-09-11
 
-`WorkTools` композиционно строит `work_overview` через два узких read-порта: Sprint предоставляет идентификаторы
-опубликованного реестра и полные dependency-aware overview, Task предоставляет summary только самостоятельных задач.
-Application-слой проверяет разные словари статусов, применяет независимые фильтры к готовым owner-проекциям и собирает
+`WorkTools` композиционно строит `work_overview` через два узких read-порта: Sprint предоставляет
+идентификаторы
+опубликованного реестра и полные dependency-aware overview, Task предоставляет summary только
+самостоятельных задач.
+Application-слой проверяет разные словари статусов, применяет независимые фильтры к готовым
+owner-проекциям и собирает
 транспортный объект `{"sprints": ..., "standalone_tasks": ...}`.
 
-Этот query не становится новым владельцем lifecycle, membership или readiness. Sprint по-прежнему определяет факт
-публикации, состояние графа, `eligible`/`blocked` и доступность result objects; Task определяет принадлежность и
-lifecycle standalone Task. SQLite-адаптеры реализуют параметризованные project-scoped reads, но клиент не получает
-SQL-интерфейс. Последовательное чтение двух read-models не объявляется единым cross-domain snapshot. Публичный пакет и
+Этот query не становится новым владельцем lifecycle, membership или readiness. Sprint по-прежнему
+определяет факт
+публикации, состояние графа, `eligible`/`blocked` и доступность result objects; Task определяет
+принадлежность и
+lifecycle standalone Task. SQLite-адаптеры реализуют параметризованные project-scoped reads, но
+клиент не получает
+SQL-интерфейс. Последовательное чтение двух read-models не объявляется единым cross-domain snapshot.
+Публичный пакет и
 ограничения результата описаны в [batch
-work](../workflows/batch-work.md#обзор-опубликованных-спринтов-и-самостоятельных-задач), семантика Sprint — в [Sprint
+work](../workflows/batch-work.md#обзор-опубликованных-спринтов-и-самостоятельных-задач), семантика
+Sprint — в [Sprint
 API](../workflows/sprints.md#реестр-опубликованных-sprint).
 
 ## DDD-06: внешние планы
-Владелец плана — Actions: PlanSpec/ActionRun/Publication. Task остаётся единственным владельцем verified/accepted и
-переходов. Application PlanCommands связывает их коротким UoW; Git/command адаптер не выполняет SQL. Репозиторий actions
+Владелец плана — Actions: PlanSpec/ActionRun/Publication. Task остаётся единственным владельцем
+verified/accepted и
+переходов. Application PlanCommands связывает их коротким UoW; Git/command адаптер не выполняет SQL.
+Репозиторий actions
 сохраняет run+event, а не весь Task обходным путём.
 
-apply_plan/publish — обработчики общего runner. Sequential merge и command/probe различаются адаптерной стратегией
-plan.kind, не названием business goal. Источники/команды явные; нет автоматического чтения AGENTS.md как командного DSL.
+apply_plan/publish — обработчики общего runner. Sequential merge и command/probe различаются
+адаптерной стратегией
+plan.kind, не названием business goal. Источники/команды явные; нет автоматического чтения AGENTS.md
+как командного DSL.
 Метрика сообщений привязывается к фактической активной работе независимо от имени операции.
 
 ## Дополнение DDD-07
 
-Обновлено: **2026-09-07T00:07:53+05:00**. RuntimeIdentity/OutputPolicy — чистые модели. WorkTools остаётся единым
+Обновлено: **2026-09-07T00:07:53+05:00**. RuntimeIdentity/OutputPolicy — чистые модели. WorkTools
+остаётся единым
 прикладным входом. CLI `runtime` только получает packet, вызывает adapter и общий presenter.
 
-RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands меняет жизненный цикл только через Task API и UoW.
-LocalHandoff — инфраструктурная последовательность Git/files с receipts; session release согласован с Task и receipt в
-одной короткой транзакции. Sprint читает подтверждённое release через Repository и вычисляет resumable как часть
+RuntimeRegistry владеет binding/cursor, не Task. HandoffCommands меняет жизненный цикл только через
+Task API и UoW.
+LocalHandoff — инфраструктурная последовательность Git/files с receipts; session release согласован
+с Task и receipt в
+одной короткой транзакции. Sprint читает подтверждённое release через Repository и вычисляет
+resumable как часть
 собственного overview.
 
-Парсер не исполняет исходную команду повторно и не записывает бизнес-таблицы. Async worker создаёт лишь представления;
-Task verdict и Incident имеют разные источники. Разделение поддержано архитектурными тестами импорта и обхода, но они не
+Парсер не исполняет исходную команду повторно и не записывает бизнес-таблицы. Async worker создаёт
+лишь представления;
+Task verdict и Incident имеют разные источники. Разделение поддержано архитектурными тестами импорта
+и обхода, но они не
 заменяют осмотр произвольного будущего кода.
 
 
 ## DDD-07B — scoped Transfer
-Обновлено: **2026-09-07T00:25:38+05:00**. Transfer владеет протоколом пакета, выбором владельцев, локальными receipts и
-location mapping. Он не выбирает следующий этап и не подтверждает evidence. Application TransferCommands зависит от
-порта, не SQLite/файлов. Rehydration существующего same-schema snapshot проходит через специальные Task/Sprint
-repository методы и валидируется существующей доменной моделью. Совпадающие owner IDs не перезаписываются. Короткая
+Обновлено: **2026-09-07T00:25:38+05:00**. Transfer владеет протоколом пакета, выбором владельцев,
+локальными receipts и
+location mapping. Он не выбирает следующий этап и не подтверждает evidence. Application
+TransferCommands зависит от
+порта, не SQLite/файлов. Rehydration существующего same-schema snapshot проходит через специальные
+Task/Sprint
+repository методы и валидируется существующей доменной моделью. Совпадающие owner IDs не
+перезаписываются. Короткая
 транзакция публикует весь выбранный набор, внешние файлы/Git подготавливаются заранее.
 
-Тексты секций и исходные evidence неизменны; machine paths читаются через location adapter. Artifact ID основан на
-owner-relative location и переживает перенос. Runtime sessions/cursors источника не переносятся. Подробно:
+Тексты секций и исходные evidence неизменны; machine paths читаются через location adapter. Artifact
+ID основан на
+owner-relative location и переживает перенос. Runtime sessions/cursors источника не переносятся.
+Подробно:
 [transfer](../workflows/transfer.md) и [библиотечный API](library-api.md).
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
-- `modules/capabilities` и `modules/hook_transport`: pure contracts; нет subprocess, времени и filesystem.
+- `modules/capabilities` и `modules/hook_transport`: pure contracts; нет subprocess, времени и
+  filesystem.
 - `application/CapabilityChecks`, `HookCommands`: пакетные сценарии через порты.
-- `infrastructure/HookService`: composition с прежним WorkTools/InteractionStore; native hook не принимает и не
+- `infrastructure/HookService`: composition с прежним WorkTools/InteractionStore; native hook не
+  принимает и не
   завершает Task.
 - `HookRegistry`: собственные operational таблицы, без SQL к tasks/sprints.
-- `LocalProbeExecutor`/`StdioProbe`: реальные read-only наблюдения, не интерпретация пользовательского intent. Наличие
+- `LocalProbeExecutor`/`StdioProbe`: реальные read-only наблюдения, не интерпретация
+  пользовательского intent. Наличие
   inventory не выдаётся за успешный probe.
-- Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет скрыто приёмку AI
+- Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет
+  скрыто приёмку AI
   poise этапа.
 
 ### session-scoped source resolution
 
 Уточнено **2026-09-13**: session-scoped launcher исполняет каждый work-пакет только из явно
 настроенного `installation source`. `Task worktree` является предметом разработки и проверок,
-но не поставщиком исполняемого AI poise runtime. Иначе старая или изменяемая вместе с продуктом копия
+но не поставщиком исполняемого AI poise runtime. Иначе старая или изменяемая вместе с продуктом
+копия
 AI poise должна была прочитать текущую конфигурацию и Task DB, что создавало циклическую
 зависимость: обновление AI poise runtime могло заблокировать собственные `bootstrap`, `verify` и
 `handoff` ещё до выполнения публичной операции.
@@ -280,21 +343,32 @@ API, после чего гарантирует отсутствие current-tas
 
 Updated: 2026-09-12T00:25:00+05:00.
 
-Accounting owns raw usage, time cycles, benefit credits and explicit prior-result finding attribution, not Task/Sprint
-state. Domain is I/O-free; application uses the accounting port. SQLite mutations remain accounting-owned, external
-measurement executes outside the state lock. Task outcome precedes measuring benefit, never follows a fabricated metric.
-User-message ledger stays the source of message identity; no second counter duplicates it. Query projections may read
+Accounting owns raw usage, time cycles, benefit credits and explicit prior-result finding
+attribution, not Task/Sprint
+state. Domain is I/O-free; application uses the accounting port. SQLite mutations remain
+accounting-owned, external
+measurement executes outside the state lock. Task outcome precedes measuring benefit, never follows
+a fabricated metric.
+User-message ledger stays the source of message identity; no second counter duplicates it. Query
+projections may read
 other owners through existing query contracts.
 
-`Clock` is the accounting observation port. `Poise` and `RuntimeAccounting` require it at composition; production CLI,
-native hook and runtime adapters explicitly supply `SystemClock`, while tests supply deterministic adapters. The domain
-observation type carries audit UTC, a monotonic value and its comparison domain; filesystem and system-clock access
-remain infrastructure responsibilities. Accounting alone validates persisted clock continuity and stores
-measured/unmeasured cycle state. Query projection may combine audit start with a known monotonic duration for calendar
+`Clock` is the accounting observation port. `Poise` and `RuntimeAccounting` require it at
+composition; production CLI,
+native hook and runtime adapters explicitly supply `SystemClock`, while tests supply deterministic
+adapters. The domain
+observation type carries audit UTC, a monotonic value and its comparison domain; filesystem and
+system-clock access
+remain infrastructure responsibilities. Accounting alone validates persisted clock continuity and
+stores
+measured/unmeasured cycle state. Query projection may combine audit start with a known monotonic
+duration for calendar
 allocation, but no layer derives elapsed time from wall-clock subtraction.
 
-No hidden numerical defaults, provider tariff assumptions or goal-name dispatch. Missing counters/instrument stay
-unavailable. Sources, causes, categories, selected sections, calendar and limits are explicit config.
+No hidden numerical defaults, provider tariff assumptions or goal-name dispatch. Missing
+counters/instrument stay
+unavailable. Sources, causes, categories, selected sections, calendar and limits are explicit
+config.
 
 
 # DDD-09 — границы каталога
@@ -351,7 +425,8 @@ Task остаётся владельцем process snapshot и lifecycle. Обн
 manifest добавляется lock destination. Поэтому Task creation/claim не проходит между
 проверкой активной работы и публикацией. Перенос не удаляет source до подтверждённой копии и
 переключения manifest; overlapping roots и отсутствующий source отклоняются. Quiescence
-использует terminal-набор Task `completed`/`cancelled`; исходный статус старых записей сохраняется только
+использует terminal-набор Task `completed`/`cancelled`; исходный статус старых записей сохраняется
+только
 в журнале явной миграции, не как исполняемый alias. Детерминированный relocation staging
 принадлежит операции только после проверки его отсутствия и публикации matching pending
 receipt: первый запрос не удаляет уже существующий staging, а очистка частичной копии
@@ -384,7 +459,8 @@ Replay identity имеет project scope и не равен session binding: д�
 `Task` остаётся единственным владельцем lifecycle и route transitions. Чистый
 `progression_step` определяет достижение цели, необходимость реальной работы и границу ролей;
 `TaskCommands` координирует persisted progression intent, проверку `pending`, preflight
-следующего stage, отдельный `Task.progress_stage` без пользовательской приёмки и сохранение в одной UoW. `WorkTools`
+следующего stage, отдельный `Task.progress_stage` без пользовательской приёмки и сохранение в одной
+UoW. `WorkTools`
 только разбирает
 точный пакет `advance`, runtime наблюдает Git tree и формирует публичный ответ.
 
@@ -407,38 +483,62 @@ release и bootstrap другой сессии; операция не отпра
 
 Обновлено: **2026-09-12T21:36:11+05:00**.
 
-`ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и idempotent replay. Task
-остаётся единственным владельцем verified/accepted/completed lifecycle и содержательного результата: операция интеграции
-читает окончательный Task result, но не меняет его статус, секции или evidence. Sprint продолжает вычислять состояние из
+`ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и
+idempotent replay. Task
+остаётся единственным владельцем verified/accepted/completed lifecycle и содержательного результата:
+операция интеграции
+читает окончательный Task result, но не меняет его статус, секции или evidence. Sprint продолжает
+вычислять состояние из
 Task и не выполняет скрытый auto-merge.
 
-`ResultIntegrationCommands` — прикладная граница одного декларативного пакета. `RuntimeResultIntegration` реализует
-Git-наблюдения и эффекты, а сохранение выполняет через execution repository. WorkTools только маршрутизирует `integrate`
+`ResultIntegrationCommands` — прикладная граница одного декларативного пакета.
+`RuntimeResultIntegration` реализует
+Git-наблюдения и эффекты, а сохранение выполняет через execution repository. WorkTools только
+маршрутизирует `integrate`
 и `show integration`; domain не импортирует filesystem, subprocess или SQLite.
 
-Intent до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся target commit и пользовательскую
-authorization. Adapter проверяет окончательный Task result и чистый task worktree. Существующие task branch/worktree и
-task-scoped temporary-backup directory сохраняются до первого Git-эффекта; отдельные integration branch/worktree не
+Intent до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся target commit
+и пользовательскую
+authorization. Adapter проверяет окончательный Task result и чистый task worktree. Существующие task
+branch/worktree и
+task-scoped temporary-backup directory сохраняются до первого Git-эффекта; отдельные integration
+branch/worktree не
 создаются. Новый вызов с тем же request ID и изменённым intent отклоняется.
 
-Внешняя блокировка БД не удерживается во время Git. `IntegrationRun` сохраняет accepted commit, последний включённый
-target, mutable integration head, конфликты и решения, check receipts, publication receipt, cleanup outcomes и историю
-фаз. Незавершённый merge восстанавливается по task worktree, `MERGE_HEAD` и conflict set. Разрешение принимает ровно
-один rationale для каждого сохранённого conflict path. Точная legacy-форма blocked-запроса `integrate-0048-1` имеет
-узкий adapter, сохраняющий старую историю и accepted commit; остальные неизвестные формы отклоняются.
+Внешняя блокировка БД не удерживается во время Git. `IntegrationRun` сохраняет accepted commit,
+последний включённый
+target, mutable integration head, конфликты и решения, check receipts, publication receipt, cleanup
+outcomes и историю
+фаз. Незавершённый merge восстанавливается по task worktree, `MERGE_HEAD` и conflict set. Разрешение
+принимает ровно
+один rationale для каждого сохранённого conflict path. Точная legacy-форма blocked-запроса
+`integrate-0048-1` имеет
+узкий adapter, сохраняющий старую историю и accepted commit; остальные неизвестные формы
+отклоняются.
 
-На готовом integration head в task worktree запускаются текущие produced-result GREEN методы реестра: `green_stages` и
-`change_surface` непусты. Текущий терминальный stage не фильтрует этот набор; RED и baseline-only методы исключены.
-Публикация сериализуется общим lock по target. Под lock adapter снова читает target ref: drift обновляет ту же task
-branch и повторяет проверки. Стабильный candidate публикуется в основном checkout только `git merge --ff-only
-<task-branch>`; crash после эффекта распознаётся по текущему ref и не повторяет публикацию. При отказе сохраняется
-before/after fingerprint `HEAD`, binding, index, tracked/untracked content, types, modes и operation state.
+На готовом integration head в task worktree запускаются текущие produced-result GREEN методы
+реестра: `green_stages` и
+`change_surface` непусты. Текущий терминальный stage не фильтрует этот набор; RED и baseline-only
+методы исключены.
+Публикация сериализуется общим lock по target. Под lock adapter снова читает target ref: drift
+обновляет ту же task
+branch и повторяет проверки. Стабильный candidate публикуется в основном checkout только `git merge
+--ff-only
+<task-branch>`; crash после эффекта распознаётся по текущему ref и не повторяет публикацию. При
+отказе сохраняется
+before/after fingerprint `HEAD`, binding, index, tracked/untracked content, types, modes и operation
+state.
 
-Только после подтверждённой публикации начинается монотонная уборка: task worktree removal предшествует task branch
-deletion, scoped temporary directory удаляется последним. Текущий target обязан содержать integration head и accepted
-commit; descendant допускается, переписанная история сохраняет recovery state. Ref удаляется compare-and-delete. Чужие
-worktrees и operator/deliverable/recovery backups не затрагиваются. Hook route относит `integrate` к installation
-source, поэтому устаревший accepted код не управляет завершителем. Состояние остаётся в Task execution snapshot; новая
+Только после подтверждённой публикации начинается монотонная уборка: task worktree removal
+предшествует task branch
+deletion, scoped temporary directory удаляется последним. Текущий target обязан содержать
+integration head и accepted
+commit; descendant допускается, переписанная история сохраняет recovery state. Ref удаляется
+compare-and-delete. Чужие
+worktrees и operator/deliverable/recovery backups не затрагиваются. Hook route относит `integrate` к
+installation
+source, поэтому устаревший accepted код не управляет завершителем. Состояние остаётся в Task
+execution snapshot; новая
 таблица не требуется.
 
 ## Terminal cleanup ресурсов Task — 2026-09-12
@@ -513,3 +613,34 @@ identity неизменна: общий `check_candidate_digest` выбирае�
 отклоняет конфликт зарегистрированной идентичности и фиксирует только локальные ссылки в
 той же UoW, что `reuse_verified`. Файлы и SQLite не образуют общей транзакции: частичные
 идентичные файлы сохраняются для точного повтора, но не объявляются принятым результатом.
+
+
+## Сохранность комплекта приёмки
+
+Обновлено: **2026-10-04**.
+
+| Владелец | Ответственность |
+|---|---|
+| `verification/ArtifactInputs` | Чистая явная декларация сохранённых входов и связывания окружения. |
+| `verification/AcceptanceManifest` | Точная схема и конкретные типы реального манифеста, затем сравнение с настоящим receipt, кандидатом и полным inventory. |
+| `application/AcceptanceRetention` и `AcceptanceRetentionPort` | Композиция предварительной проверки, входов, proof, публикации и повторного чтения без собственной Task lifecycle. |
+| `RuntimeAcceptanceRetention` | Наблюдение фактических постоянных байтов, digest, registry и манифеста через существующих владельцев. |
+| `FileArtifactFactory` | Один механизм наблюдения назначения файла/каталога: configured prefix, корень, родители, отсутствие links, конечный тип; действительная неизменяемая публикация и её lock. |
+| `RuntimeResultIntegration` | Набор текущих методов, предварительная проверка всего набора до эффектов кандидата и первого потребителя, сохранение terminal replay и очистка. |
+| Task и application UoW | Владение, transitions, результаты и приёмка; файловая публикация не объявляется частью SQLite-транзакции. |
+
+Поток: декларация → наблюдение каталога и точных входов → runner → настоящий
+receipt и захваченные доказательства → публикация → чтение фактических байтов и
+digest → доменная схема/типы/соответствие → исходная verified-доставка. Обратная
+проверка каждого поля ведёт к исходному принятому файлу, объявленному производителю,
+реальным байтам результата, receipt и точному commit/tree/definition метода.
+
+Filesystem-правило остаётся у владельца артефактов; consumers используют тот же
+узкий порт. Приложение не создаёт второй валидатор путей, domain не читает диск,
+а интеграция сохраняет существующего владельца выбора проверок. Каталог манифеста
+повторно наблюдается при публикации, реальный файл проверяется под существующим
+lock. Это проверка известных границ и точных байтов при штатном жизненном цикле;
+позднее произвольное внешнее изменение остаётся диагностируемым отказом.
+
+Публичные декларации и восстановление имеют одного
+[канонического владельца](../workflows/evidence.md#сохраняемые-входы-и-приёмочный-манифест).

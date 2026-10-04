@@ -1,0 +1,13 @@
+{
+  "action": "supported_config_update",
+  "interface": "poise project-config",
+  "settings_path": "$settings",
+  "config_path": "$config",
+  "supported_fields": [
+    "git.repository",
+    "git.base_ref"
+  ],
+  "limitations": [
+    "Изменение требует актуальной ревизии и покоя проекта; поля paths имеют отдельного владельца, данные автоматически не перемещаются."
+  ]
+}

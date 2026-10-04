@@ -110,7 +110,7 @@ def test_public_ready_reclassifies_empty_registry_and_replays_without_work(proje
 
 
 def test_requirements_publication_failure_rolls_back_classification(project, monkeypatch):
-    tools, _, _, edited, root, wip = prepare_documentation_restart(project)
+    tools, _, active_registry_before, edited, root, wip = prepare_documentation_restart(project)
     before = persisted(tools, "T1")
     registry_before = projection(tools)
     ownership = tools.runtime.ownership.snapshot("classification-executor")
@@ -137,7 +137,7 @@ def test_requirements_publication_failure_rolls_back_classification(project, mon
     assert work_state(root, wip) == work
     monkeypatch.setattr(gate, "publish_created", original)
     assert ready_task(tools, "T1", edited["revision"])["status"] == "available"
-    assert projection(tools)["revision"] == registry_before["revision"] + 1
+    assert projection(tools)["revision"] == active_registry_before["revision"] + 1
 
 
 def authority_restart(tools, role="reviewer", fields=None):

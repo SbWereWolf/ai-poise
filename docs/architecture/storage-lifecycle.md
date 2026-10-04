@@ -30,7 +30,7 @@ Task DB хранит собственные Task requirements и согласо�
 
 ## Явные пути и переносимая поставка
 
-`paths.state` — явный root рабочих данных, а checkout/worktree — объект кодовой работы, не альтернативный root установки. Task DB, Requirements DB и optional telemetry не должны ссылаться на один физический файл либо общий lock. Политика новых проектов и ранее разрешённое расположение ai-poise различаются: см. [владение и явные пути](../workflows/requirements-registry.md#владение-и-явные-пути).
+`paths.state` — явный root рабочих данных, а checkout/worktree — объект кодовой работы, не альтернативный root установки. Task DB, Requirements DB и optional telemetry не должны ссылаться на один физический файл либо общий lock. Рабочие Requirements-файлы отделены от версионируемых файлов продукта: допускается внешнее размещение либо игнорируемое и неотслеживаемое внутреннее, подтверждённое Git для каждого пути. Точные условия отказа и разрешение путей: см. [владение и явные пути](../workflows/requirements-registry.md#владение-и-явные-пути).
 
 В доставленной конфигурации ai-poise Requirements DB настроена на `/home/sbwerewolf/workdata/poise-project-data/ai-poise/requirements.sqlite`, lock — соседний `requirements.lock`. Переносимая копия в полном архиве находится в `projects/ai-poise/database/requirements.sqlite`. Распаковка архива сама по себе не записывает её на пользовательский хост и не перенастраивает runtime.
 

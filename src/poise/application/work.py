@@ -39,6 +39,7 @@ class WorkTools:
             elif op=='bootstrap':
                 out=h.bootstrap(**args)
             elif op=='handoff':out=h.handoff(args)
+            elif op=='release':out=h.ownership.release(args)
             elif op=='recover_empty_rework':out=h.recover_empty_rework(**args)
             elif op=='recover_empty_advance':out=h.recover_empty_advance(**args)
             elif op=='advance':out=h.advance(**args)

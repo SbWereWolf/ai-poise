@@ -35,6 +35,9 @@ def test_invalid_manifest_destination_has_no_verification_effects(project, tmp_p
     code = git_snapshot(context['worktree'])
     files = node_snapshot(predicted_root)
     producer = node_snapshot(wheel.parent)
+    # This exact external fixture is owned by this test; do not resolve aliases.
+    external_fixture = predicted_root.parent / 'foreign-directory'
+    external_nodes = node_snapshot(external_fixture) if case == 'symlink-outside' else None
     try:
         with pytest.raises(PoiseError, match='[Mm]anifest|[Dd]irectory|[Ss]ymlink|[Aa]rtifact'):
             tools.invoke(request('verify', {'result': result(context), 'artifacts': []}))
@@ -44,6 +47,8 @@ def test_invalid_manifest_destination_has_no_verification_effects(project, tmp_p
         assert git_snapshot(context['worktree']) == code
         assert node_snapshot(predicted_root) == files
         assert node_snapshot(wheel.parent) == producer
+        if external_nodes is not None:
+            assert node_snapshot(external_fixture) == external_nodes, 'external fixture changed'
 
 
 @pytest.mark.parametrize('directory', ['artifacts', 'artifacts/new/nested', 'artifacts/existing'])
@@ -141,3 +146,35 @@ def test_git_inventory_detects_empty_directory_and_link(project, kind):
     assert git_snapshot(directory)['nodes']['new-node'] == (
         ('directory',) if kind == 'directory' else ('symlink', 'missing-target')
     )
+
+
+@pytest.mark.parametrize('empty', [False, True], ids=['input', 'empty'])
+def test_preflight_oracle_detects_known_external_fixture_effect(project, tmp_path, monkeypatch, empty):
+    from poise.application.work import WorkTools
+
+    original = WorkTools.invoke
+    effects = []
+
+    def bad_preflight(tools, packet):
+        if packet['operation'] != 'verify':
+            return original(tools, packet)
+        record = tools.runtime.task_queries.record('T1')
+        root = Path(tools.runtime._roots(record)['task'])
+        external_fixture = root.parent / 'foreign-directory'
+        assert external_fixture.is_dir() and not external_fixture.is_symlink()
+        alias = root / 'artifacts/alias'
+        assert alias.is_symlink() and alias.readlink() == external_fixture
+        effect = external_fixture / 'manifests'
+        assert not effect.exists()
+        effect.mkdir()
+        assert effect.is_dir()
+        effects.append(effect)
+        raise PoiseError('Manifest directory rejected after a forbidden external fixture effect')
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(WorkTools, 'invoke', bad_preflight)
+        with pytest.raises(AssertionError, match='external fixture changed'):
+            test_invalid_manifest_destination_has_no_verification_effects(
+                project, tmp_path, 'symlink-outside', empty,
+            )
+    assert len(effects) == 1 and effects[0].is_dir()

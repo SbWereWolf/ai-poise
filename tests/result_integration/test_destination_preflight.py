@@ -364,8 +364,8 @@ class DestinationPreflightTests(unittest.TestCase):
         self.assertEqual(task_state(self.project), before)
         self.assertEqual([checkout_state(root) for root in (self.project["app"], self.source)], roots)
 
-    def interrupted_candidate(self, phase):
-        self.prepare()
+    def interrupted_candidate(self, phase, *, guard=False, invalidate_proof=False):
+        self.prepare(guard=guard)
         original = RuntimeResultIntegration._save
 
         def stop_after_saved_phase(owner, task_id, run, version):
@@ -379,6 +379,11 @@ class DestinationPreflightTests(unittest.TestCase):
         self.patch.setattr(RuntimeResultIntegration, "_save", original)
         saved = self.tools.runtime.task_queries.record(self.task_id)["pending"]
         self.assertEqual(saved["phase"], phase)
+        if invalidate_proof:
+            self.assertTrue(saved["checks"])
+            # Lost terminal output makes the real publication proof incomplete.
+            Path(saved["checks"][0]["stdout"]).unlink()
+        self.sentinel.unlink(missing_ok=True)
         self.wrong_branch()
         self.refusal(expected=("other-target",))
 
@@ -390,6 +395,29 @@ class DestinationPreflightTests(unittest.TestCase):
 
     def test_candidate_ready_resume_refuses_before_candidate_verification(self):
         self.interrupted_candidate("candidate_ready")
+
+    def test_publishing_resume_refuses_before_proof_recheck_and_state_changes(self):
+        self.interrupted_candidate("publishing", guard=True, invalidate_proof=True)
+
+    def test_failed_candidate_resume_refuses_before_retry_state_and_checks(self):
+        self.prepare(guard=True)
+        original = RuntimeResultIntegration._run
+
+        def fail_candidate_merge(owner, cwd, *args, env=None):
+            if args[:3] == ("merge", "--no-ff", "--no-commit"):
+                return {"argv": ["git", *args], "actual_exit_code": 2,
+                        "stdout": "", "stderr": "fixture candidate merge failure"}
+            return original(owner, cwd, *args, env=env)
+
+        self.patch.setattr(RuntimeResultIntegration, "_run", fail_candidate_merge)
+        blocked = self.invoke()
+        self.assertEqual(blocked["phase"], "candidate_failed")
+        saved = self.tools.runtime.task_queries.record(self.task_id)["pending"]
+        self.assertEqual(saved["phase"], "candidate_failed")
+        self.assertFalse(self.sentinel.exists())
+        self.patch.setattr(RuntimeResultIntegration, "_run", original)
+        self.wrong_branch()
+        self.refusal(expected=("other-target",))
 
     def test_conflict_waiting_resume_preserves_in_progress_merge(self):
         self.prepare(change=conflicting_source_change)

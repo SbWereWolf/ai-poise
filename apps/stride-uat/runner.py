@@ -5,7 +5,7 @@ interprets an application's result.json as certification, and never resumes a ru
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 import json
 import math
@@ -141,6 +141,7 @@ class Prepared:
     workspace: Path
     roots: list[Path]
     hashes: dict[Path, str]
+    selected_inputs: set[str] = field(default_factory=set)
 
     def unchanged(self) -> bool:
         try:
@@ -151,7 +152,7 @@ class Prepared:
 
 
 def prepare(cfg: dict, state: Path, workspace: Path, roots: list[Path],
-            base: Path, inp: Any, operation: str) -> Prepared:
+            base: Path, inp: Any, operation: str, *, qualifying: bool = False) -> Prepared:
     shape(inp, {'program_path', 'profile_id'} | ({'run_id'} if operation == 'execute' else set()),
           '/input', 'invalid_packet')
     limits = cfg['limits']
@@ -186,22 +187,23 @@ def prepare(cfg: dict, state: Path, workspace: Path, roots: list[Path],
     if iso_id not in cfg['isolations']:
         fail('invalid_packet', '/config/isolations', 'Unknown isolation descriptor')
     isolation = cfg['isolations'][iso_id]
-    shape(isolation, {'kind', 'forbidden_roots'}, '/config/isolations/' + iso_id, 'invalid_packet')
-    if isolation['kind'] != 'trusted-local':
-        fail('capability_unavailable', '/config/isolations/' + iso_id, 'Requested isolation is unavailable')
-    forbidden = []
-    for value in array(isolation['forbidden_roots'], '/config/isolations/forbidden_roots', 'invalid_packet'):
-        p = Path(text(value, '/config/isolations/forbidden_roots', 'invalid_packet'))
-        if not p.is_absolute():
-            fail('invalid_packet', '/config/isolations/forbidden_roots', 'Expected absolute resource roots')
-        forbidden.append(p.resolve())
-    own_roots = [state, workspace, *roots]
-    for i, root in enumerate(own_roots):
-        if any(overlaps(root, other) for other in own_roots[i + 1:] + forbidden):
-            fail('invalid_packet', '/config', 'Resource roots overlap')
-    for root in roots:
-        if not root.is_dir():
-            fail('input_invalid', str(root), 'Input root is unavailable')
+    if not qualifying:
+        shape(isolation, {'kind', 'forbidden_roots'}, '/config/isolations/' + iso_id, 'invalid_packet')
+        if isolation['kind'] != 'trusted-local':
+            fail('capability_unavailable', '/config/isolations/' + iso_id, 'Requested isolation is unavailable')
+        forbidden = []
+        for value in array(isolation['forbidden_roots'], '/config/isolations/forbidden_roots', 'invalid_packet'):
+            p = Path(text(value, '/config/isolations/forbidden_roots', 'invalid_packet'))
+            if not p.is_absolute():
+                fail('invalid_packet', '/config/isolations/forbidden_roots', 'Expected absolute resource roots')
+            forbidden.append(p.resolve())
+        own_roots = [state, workspace, *roots]
+        for i, root in enumerate(own_roots):
+            if any(overlaps(root, other) for other in own_roots[i + 1:] + forbidden):
+                fail('invalid_packet', '/config', 'Resource roots overlap')
+        for root in roots:
+            if not root.is_dir():
+                fail('input_invalid', str(root), 'Input root is unavailable')
     # Time arithmetic must be representable; there is no hidden duration default.
     for key in ('step_timeout_seconds', 'total_timeout_seconds'):
         try:
@@ -224,7 +226,7 @@ def prepare(cfg: dict, state: Path, workspace: Path, roots: list[Path],
     text(program['version'], '/program/version', 'program_invalid')
     apps = ids(program['application_ids'], '/program/application_ids', limits, 'program_invalid')
     array(program['graphs'], '/program/graphs', 'program_invalid', empty=True)
-    if program['graphs']:
+    if program['graphs'] and not qualifying:
         fail('capability_unavailable', '/program/graphs', 'Graph qualification requires T030')
     steps = array(program['steps'], '/program/steps', 'program_invalid')
     if len(steps) > limits['steps']:
@@ -257,7 +259,7 @@ def prepare(cfg: dict, state: Path, workspace: Path, roots: list[Path],
         if len(argv) + len(args) > limits['argv_items']:
             fail('limit_exceeded', '/program/steps/arguments', 'Combined argv exceeds argv_items')
         required_inputs.update(ids(command['source_inputs'], '/config/commands/source_inputs', limits, 'invalid_packet'))
-        if step['graph_id'] is not None:
+        if step['graph_id'] is not None and not qualifying:
             fail('capability_unavailable', '/program/steps/graph_id', 'Graph qualification requires T030')
         duration = step['timeout_seconds']
         if type(duration) is not int or duration <= 0 or duration > limits['step_timeout_seconds']:
@@ -265,17 +267,19 @@ def prepare(cfg: dict, state: Path, workspace: Path, roots: list[Path],
     hashes = {path: digest(raw)}
     if len(required_inputs) > limits['steps']:
         fail('limit_exceeded', '/config/inputs', 'Selected input count exceeds steps')
-    for input_id in sorted(required_inputs):
-        if input_id not in cfg['inputs']:
-            fail('invalid_packet', '/config/inputs', 'Missing declared input binding')
-        item = cfg['inputs'][input_id]
-        shape(item, {'kind', 'path'}, '/config/inputs/' + input_id, 'invalid_packet')
-        if item['kind'] != 'file':
-            fail('capability_unavailable', '/config/inputs/' + input_id, 'Only file inputs are supported in T029')
-        selected = Path(text(item['path'], '/config/inputs/' + input_id, 'invalid_packet'))
-        selected = selected if selected.is_absolute() else base / selected
-        hashes[selected] = digest(read_input(selected, roots, limits['program_bytes']))
-    return Prepared(program, digest(raw), profile_id, profile, cfg, state, workspace, roots, hashes)
+    if not qualifying:
+        for input_id in sorted(required_inputs):
+            if input_id not in cfg['inputs']:
+                fail('invalid_packet', '/config/inputs', 'Missing declared input binding')
+            item = cfg['inputs'][input_id]
+            shape(item, {'kind', 'path'}, '/config/inputs/' + input_id, 'invalid_packet')
+            if item['kind'] != 'file':
+                fail('capability_unavailable', '/config/inputs/' + input_id, 'Only file inputs are supported in T029')
+            selected = Path(text(item['path'], '/config/inputs/' + input_id, 'invalid_packet'))
+            selected = selected if selected.is_absolute() else base / selected
+            hashes[selected] = digest(read_input(selected, roots, limits['program_bytes']))
+
+    return Prepared(program, digest(raw), profile_id, profile, cfg, state, workspace, roots, hashes, required_inputs)
 
 
 def observe(profile: dict) -> dict:
@@ -366,7 +370,8 @@ def step_record(prepared: Prepared, step: dict, run_id: str, env: dict) -> tuple
     return record, context
 
 
-def collect(record: dict, environment: dict, timeout: float, limits: dict) -> None:
+def collect(record: dict, environment: dict, timeout: float, limits: dict,
+            *, launch_argv: list[str] | None = None) -> None:
     """Bound both pipes while draining; terminate the one owned process group."""
     started = time.monotonic()
     proc = None
@@ -385,7 +390,7 @@ def collect(record: dict, environment: dict, timeout: float, limits: dict) -> No
                 return
             # Caller has durably written the RUNNING intent before this attempt.
             try:
-                proc = subprocess.Popen(record['argv'], cwd=record['cwd'], env=environment,
+                proc = subprocess.Popen(launch_argv or record['argv'], cwd=record['cwd'], env=environment,
                                         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE, start_new_session=True, shell=False)
             except OSError:
@@ -426,6 +431,11 @@ def collect(record: dict, environment: dict, timeout: float, limits: dict) -> No
                 except ProcessLookupError:
                     pass
             code = proc.wait()
+            if launch_argv is not None:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
             record.update(state='EXITED', exit_code=code, signal=-code if code < 0 else None)
             if not record['reason'] and code != 0:
                 record['reason'] = 'signal' if code < 0 else 'command_failed'

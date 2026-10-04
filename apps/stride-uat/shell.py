@@ -61,16 +61,16 @@ def main(argv=None):
   exact(packet,{'schema','operation','input'},'/');
   if packet['schema']!=SCHEMA: raise Problem('unsupported_schema','Unsupported schema',{'schema':packet.get('schema') if isinstance(packet.get('schema'),str) else None})
   op=packet['operation']; inp=packet['input']
-  if op in ('run','resume'): raise Problem('capability_unavailable','Qualification and resume require T030',{'path':'/operation'})
+  profile = cfg['profiles'].get(inp.get('profile_id'), {}) if isinstance(inp,dict) and isinstance(inp.get('profile_id'),str) else {}
+  iso = cfg['isolations'].get(profile.get('isolation_id'), {}) if isinstance(profile,dict) and isinstance(profile.get('isolation_id'),str) else {}
+  if op in ('run','resume','inspect') or (op=='validate' and isinstance(iso,dict) and 'uid' in iso):
+   from protocol import run as qualify
+   result,code=qualify(cfg,state,workspace,input_roots,Path(a.config).absolute().parent,op,inp,Path(a.config).absolute())
+   emit(result); return code
   if op in ('validate','execute'):
    from runner import run
    result,code=run(cfg,state,workspace,input_roots,Path(a.config).absolute().parent,op,inp)
    emit(result); return code
-  if op!='inspect': raise Problem('invalid_packet','Unsupported operation',{'path':'/operation'})
-  exact(inp,{'run_id'},'/input'); valid_id(inp['run_id'],cfg['limits']['id_bytes'],'/input/run_id')
-  protocol=state/inp['run_id']/'protocol.json'
-  if not protocol.is_file(): raise Problem('not_found','UAT run does not exist',{'run_id':inp['run_id']})
-  # Full protocol readback/integrity is delivered by T030; reject existing material rather than infer PASS.
-  raise Problem('store_incompatible','Existing UAT protocol requires the T030 protocol implementation',{'schema':None})
+  raise Problem('invalid_packet','Unsupported operation',{'path':'/operation'})
  except Problem as e:return reject(e.code,e.message,e.details)
 if __name__=='__main__': raise SystemExit(main())

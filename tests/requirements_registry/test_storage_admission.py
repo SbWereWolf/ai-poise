@@ -61,8 +61,12 @@ def assert_git_fact(repo, file, *, ignored, tracked=False):
 
 
 def pair_bytes(db, lock):
-    return {str(p): p.read_bytes() for folder in {db.parent, lock.parent}
-            if folder.exists() for p in folder.glob('*') if p.is_file()}
+    parents = {db.parent, lock.parent}
+    return {
+        'parents': {str(folder): folder.exists() for folder in parents},
+        'files': {str(p): p.read_bytes() for folder in parents
+                  if folder.exists() for p in folder.glob('*') if p.is_file()},
+    }
 
 
 def query(config):
@@ -346,3 +350,78 @@ def test_invalid_update_process_cannot_publish_candidate(project):
     assert code == 2 and reply['status'] == 'rejected', reply
     assert (config.read_bytes(), process.read_bytes()) == before
     assert not (project['app'] / 'operations/project-update-1.json').exists()
+
+
+@pytest.mark.parametrize('member', ['database', 'lock'])
+@pytest.mark.parametrize('invalid', ['tracked', 'nonignored'])
+def test_update_denial_preserves_live_publication_and_pair(project, member, invalid):
+    settings, packet, config = case(project)
+    packet['edits'][1]['value'] = str(project['root'])
+    data = project['app'] / 'shared-data'
+    data.mkdir()
+    db, lock = data / 'requirements.sqlite', data / 'requirements.lock'
+    bad = db if member == 'database' else lock
+    valid = lock if member == 'database' else db
+    db.write_bytes(b'database-before-update')
+    lock.write_bytes(b'lock-before-update')
+    ignore(project['app'], '/shared-data/\n' if invalid == 'tracked'
+           else '/' + str(valid.relative_to(project['app'])) + '\n')
+    if invalid == 'tracked':
+        assert git(project['app'], 'add', '-f', '--', str(bad.relative_to(project['app']))).returncode == 0
+    assert_git_fact(project['app'], bad, ignored=invalid == 'tracked', tracked=invalid == 'tracked')
+    assert_git_fact(project['app'], valid, ignored=True)
+    edit(packet, 'requirements_database', db)
+    edit(packet, 'requirements_lock', lock)
+    code, created = invoke(setup_execute, settings, packet)
+    assert code == 0, created  # Actual external source config; no fixture failure.
+    process = config.parent / 'config/processes/development.json'
+    registry = project['app'] / 'state/project-registry.json'
+    before = config.read_bytes(), process.read_bytes(), registry.read_bytes(), pair_bytes(db, lock)
+    import hashlib
+    raw = json.loads(process.read_text())
+    revision = hashlib.sha256(json.dumps(raw, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+    request = update_request(config, created['revision'], manifest_edits=[
+        {'path': ['git', 'repository'], 'value': str(project['app'])},
+    ], process_updates=[{
+        'goal_type': 'development', 'expected_revision': revision,
+        'changes': [{'op': 'patch_stage', 'id': 'tests', 'set': {'instruction': 'Valid unpublished candidate instruction.'}}],
+    }])
+    receipt = project['app'] / 'operations/project-update-1.json'
+    pending = project['app'] / 'operations/project-update-1.json.pending'
+    assert not receipt.exists() and not pending.exists()
+    code, reply = invoke(update_execute, settings, request)
+    assert code == 2 and reply['status'] == 'rejected', reply
+    assert 'Requirements' in reply['reason'], reply
+    assert (config.read_bytes(), process.read_bytes(), registry.read_bytes(), pair_bytes(db, lock)) == before
+    assert not receipt.exists() and not pending.exists()
+
+
+@pytest.mark.parametrize('member', ['database', 'lock'])
+def test_denial_preserves_absent_requirements_parents(project, member):
+    settings, packet, config = case(project)
+    db = project['app'] / 'absent-db-parent/requirements.sqlite'
+    lock = project['app'] / 'absent-lock-parent/requirements.lock'
+    valid = lock if member == 'database' else db
+    bad = db if member == 'database' else lock
+    ignore(project['app'], '/' + str(valid.relative_to(project['app'])) + '\n')
+    assert not db.parent.exists() and not lock.parent.exists()
+    assert_git_fact(project['app'], valid, ignored=True)
+    assert_git_fact(project['app'], bad, ignored=False)
+    edit(packet, 'requirements_database', db)
+    edit(packet, 'requirements_lock', lock)
+    before = pair_bytes(db, lock)
+    code, reply = invoke(setup_execute, settings, packet)
+    assert code == 2 and reply['status'] == 'rejected', reply
+    assert not config.exists()
+    assert not db.parent.exists() and not lock.parent.exists()
+    assert not db.exists() and not lock.exists()
+    assert pair_bytes(db, lock) == before
+    raw = json.loads(project['config_path'].read_text())
+    raw['paths']['requirements_database'] = str(db)
+    raw['paths']['requirements_lock'] = str(lock)
+    live = write_json(project['root'] / 'absent-parent-denied.json', raw)
+    code, reply = query(live)
+    assert code == 2 and reply['status'] == 'rejected', reply
+    assert not db.parent.exists() and not lock.parent.exists()
+    assert not db.exists() and not lock.exists()
+    assert pair_bytes(db, lock) == before

@@ -522,10 +522,10 @@ JSON
 выполните команды чтения:
 
 ```bash
-git -C /absolute/path/to/primary-checkout rev-parse --show-toplevel
-git -C /absolute/path/to/primary-checkout worktree list --porcelain
-git -C /absolute/path/to/primary-checkout symbolic-ref --quiet --short HEAD
-git -C /absolute/path/to/primary-checkout symbolic-ref --quiet HEAD
+git -C "/absolute/path/to/primary-checkout" rev-parse --show-toplevel
+git -C "/absolute/path/to/primary-checkout" worktree list --porcelain -z
+git -C "/absolute/path/to/primary-checkout" symbolic-ref --quiet --short HEAD
+git -C "/absolute/path/to/primary-checkout" symbolic-ref --quiet HEAD
 ```
 
 Замените путь в примере выбранным checkout; для действующего проекта это значение
@@ -542,7 +542,7 @@ manifest: короткое имя и полный ref могут обознач�
 наблюдаемой ветки в том же checkout, заменив оба значения примера:
 
 ```bash
-git -C /absolute/path/to/primary-checkout rev-parse --verify --end-of-options 'YOUR_PRIMARY_CHECKOUT_BRANCH^{commit}'
+git -C "/absolute/path/to/primary-checkout" rev-parse --verify --end-of-options 'YOUR_PRIMARY_CHECKOUT_BRANCH^{commit}'
 ```
 
 При несовпадении исправляйте `git.base_ref` только через [публичное обновление
@@ -561,6 +561,20 @@ commit настроенного `git.base_ref`, повторно читает ta
 `git merge --ff-only <task-branch>`. Чужие изменения основного checkout и рабочий
 manifest сохраняются; `git push` запрещён. Подробный lifecycle находится в
 [интеграции завершённого результата](../governance/development-rules.md#интеграция-завершённого-результата).
+
+Проверка оператора при выборе назначения и [ранний допуск
+интеграции](../workflows/batch-work.md#ранняя-проверка-назначения-интеграции) имеют
+разные моменты выполнения. Новая интеграция и незавершённый кандидат проверяют
+фактические корни, общий Git-каталог, активные ветки и зарегистрированное дерево Task
+до изменений кандидата или состояния. При отказе диагностика содержит настроенные
+и наблюдённые значения и способ исправления. После поддерживаемого исправления
+повторяется исходный запрос; поздние проверки публикации продолжают действовать.
+
+Передавайте путь целиком одним аргументом, сохраняя его значимые символы. Пробелы,
+табуляция, CR и LF могут входить в имя папки; нельзя нормализовать их через `strip`
+или восстанавливать путь из preview. Для машинного чтения списка worktree используйте
+полный NUL-разделённый вывод. Полный ref и Git path относятся к разным данным:
+сравнение веток не разрешает менять написание пути.
 
 ### Подключение и диагностика хуков
 

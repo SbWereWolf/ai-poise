@@ -276,6 +276,7 @@ def check_protocol(c, response):
     assert j['fingerprint'] == response['fingerprint']; check_digest(j['fingerprint'])
     assert set(j['input_snapshot']) == set(fields['snapshot'])
     snap = j['input_snapshot']
+    assert j['fingerprint'] == hashlib.sha256(canonical(snap)).hexdigest(), 'fingerprint does not hash frozen identity'
     assert snap['program_sha256'] == sha(c.program_path)
     for name in ('program_sha256', 'config_sha256', 'environment_sha256'):
         check_digest(snap[name])
@@ -291,6 +292,7 @@ def check_protocol(c, response):
     assert snap['graphs'] == ([{'graph_id': 'only-graph', 'input_id': 'graph-source', 'sha256': sha(c.graph_path)}] if c.program['graphs'] else [])
     env = j['environment_observation']
     assert set(env) == set(fields['environment'])
+    assert snap['environment_sha256'] == hashlib.sha256(canonical(env)).hexdigest(), 'observed environment digest mismatch'
     actual = platform.freedesktop_os_release()
     assert env['os_id'] == actual['ID'] and env['os_version'] == actual['VERSION_ID']
     assert env['python_version'] == [sys.version_info.major, sys.version_info.minor] and env['uid'] == os.geteuid()
@@ -640,7 +642,8 @@ def context_integrity():
 
 
 def journal_integrity():
-    for change in ('duplicate', 'order', 'attempt', 'partial-pass', 'exit', 'graph', 'revision', 'extra'):
+    for change in ('duplicate', 'order', 'attempt', 'partial-pass', 'exit', 'graph', 'revision', 'extra',
+                   'fingerprint', 'snapshot', 'environment'):
         with Case() as c:
             b, j = reported(c) if change != 'partial-pass' else prefix(c)
             if change == 'duplicate': j['steps'][1] = copy.deepcopy(j['steps'][0])
@@ -650,6 +653,15 @@ def journal_integrity():
             elif change == 'exit': j['steps'][0]['exit_code'] = 1
             elif change == 'graph': j['graph_results'] = [{'graph_id': 'invented'}]
             elif change == 'revision': j['revision'] = True
+            elif change == 'fingerprint':
+                j['fingerprint'] = ('1' if j['fingerprint'][0] != '1' else '2')+j['fingerprint'][1:]
+            elif change == 'snapshot':
+                j['input_snapshot']['config_sha256'] = '0'*64
+                j['fingerprint'] = hashlib.sha256(canonical(j['input_snapshot'])).hexdigest()
+            elif change == 'environment':
+                j['environment_observation']['uid'] += 1
+                j['input_snapshot']['environment_sha256'] = hashlib.sha256(canonical(j['environment_observation'])).hexdigest()
+                j['fingerprint'] = hashlib.sha256(canonical(j['input_snapshot'])).hexdigest()
             else: j['extra'] = 'not-allowed'
             write(c.state/'run-1/protocol.json', j)
             rejected(c, 'evidence_mismatch', operation='inspect')

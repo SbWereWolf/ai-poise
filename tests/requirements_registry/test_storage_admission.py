@@ -425,3 +425,34 @@ def test_denial_preserves_absent_requirements_parents(project, member):
     assert not db.parent.exists() and not lock.parent.exists()
     assert not db.exists() and not lock.exists()
     assert pair_bytes(db, lock) == before
+
+
+def test_malformed_git_output_cannot_admit_or_publish_storage(project, monkeypatch):
+    settings, packet, config = case(project)
+    ignore(project['app'], '/projects/demo/state/\n')
+    db, lock = config.parent / 'state/requirements.sqlite', config.parent / 'state/requirements.lock'
+    assert_git_fact(project['app'], db, ignored=True)
+    assert_git_fact(project['app'], lock, ignored=True)
+    registry = project['app'] / 'state/project-registry.json'
+    before = registry.read_bytes(), pair_bytes(db, lock)
+    real_run = subprocess.run
+    damaged = []
+
+    def append_empty_record(argv, **kwargs):
+        observed = real_run(argv, **kwargs)
+        if 'check-ignore' in argv and observed.returncode == 0:
+            assert observed.stdout and observed.stdout.endswith(b'\0')
+            damaged.append(True)
+            return subprocess.CompletedProcess(argv, 0, observed.stdout + b'\0', observed.stderr)
+        return observed
+
+    # Keep real Git preconditions/observation; corrupt only terminal framing.
+    with monkeypatch.context() as patch:
+        patch.setattr('poise.infrastructure.repository_tree.subprocess.run', append_empty_record)
+        code, reply = invoke(setup_execute, settings, packet)
+    assert code == 2, f'malformed-output-admitted: {reply}'
+    assert damaged == [True]
+    assert reply['status'] == 'rejected' and 'git' in reply['reason'].lower()
+    assert not config.exists()
+    assert not db.parent.exists() and not lock.parent.exists()
+    assert (registry.read_bytes(), pair_bytes(db, lock)) == before

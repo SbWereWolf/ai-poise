@@ -1,6 +1,6 @@
 """Shared, pure stage strategies; no lifecycle writes or project knowledge."""
 from dataclasses import dataclass
-from .domain import HandlerKind, exact, text
+from .domain import HandlerKind, RouteDefinition, exact, text
 from ..inspection.domain import FeedbackBook
 
 
@@ -8,6 +8,23 @@ from ..inspection.domain import FeedbackBook
 class HandlerResult:
     outcome: str | None
     feedback: FeedbackBook
+
+
+def evaluate_stage(route: RouteDefinition, work: dict, book: FeedbackBook,
+                   stage: str, iteration: int) -> HandlerResult:
+    """Apply a route-owned inspection scope and retain the global ledger."""
+    node = route.node(stage)
+    if node.handler == HandlerKind.PUBLISH:
+        return handler(node.handler).evaluate(work, book, stage, iteration)
+    scope = route.inspection_scope(stage)
+    inspectors = {n.stage_id for n in route.nodes if n.handler == HandlerKind.INSPECT}
+    for finding in book.findings:
+        if finding.stage not in inspectors:
+            from ..foundation.errors import DomainError
+            raise DomainError(f"Inspection scope has unknown finding owner {finding.stage}; restore its inspector in the Task process before continuing")
+    scoped = book.for_stages(scope)
+    evaluated = handler(node.handler).evaluate(work, scoped, stage, iteration)
+    return HandlerResult(evaluated.outcome, book.append_inspection(scoped, evaluated.feedback))
 
 
 def substantive_feedback(work, book, stage, iteration, label):
@@ -93,6 +110,7 @@ class ApplyPlanHandler:
 
 class PublishHandler:
     def evaluate(self,work,book,stage,iteration):
+        book.require_resolved()
         from ..actions.domain import Publication
         if isinstance(work,dict) and 'kind' in work:
             from ..catalogue.publication import DataPublication

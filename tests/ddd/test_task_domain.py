@@ -144,3 +144,180 @@ def test_malformed_route_fails_before_work():
     with pytest.raises(DomainError): new_task("T", (), "S")
     s = StageSpec("s", ())
     with pytest.raises(DomainError): new_task("T", (s,s), "S")
+
+
+def scope_final_review(publish=False):
+    from runner.helpers import task as routed_task, verify as routed_verify, inspect as packet, stage
+    from runner.test_handlers import scope_process
+    cfg = scope_process()
+    if publish:
+        next(s for s in cfg["stages"] if s["id"] == "examine")["transitions"]["clear"] = "release"
+        cfg["stages"].append(stage("release", "publish", {"complete": None}, True, [], ["build"]))
+    t = routed_task(cfg)
+    for work in ({}, packet(), {}):
+        t = routed_verify(t, work).accept("S", True).task
+    return routed_verify(t, packet())
+
+
+def scope_global_book(pending):
+    from poise.modules.inspection.domain import FeedbackBook, Finding, Resolution
+    findings = (Finding("EARLY", "result", "Unfixed earlier result", "Counterexample", "screen", 1),)
+    resolutions = ((Resolution("EARLY-R", "EARLY", "Uninspected fix", "Proof", "prepare", 2),)
+                   if pending else ())
+    return FeedbackBook(findings, resolutions, ())
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_scope_global_terminal_gate_preserves_unresolved_history(pending):
+    from dataclasses import replace
+    before = replace(scope_final_review(), feedback=scope_global_book(pending))
+    with pytest.raises(DomainError, match="^Нельзя завершить задачу с открытыми внутренними находками$"):
+        before.accept("S", False)
+    assert before.state.status == "verified"
+    assert tuple(f.id for f in before.feedback.open_findings) == ("EARLY",)
+    assert tuple(r.id for r in before.feedback.pending_resolutions) == (("EARLY-R",) if pending else ())
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_scope_publish_entry_refuses_global_obligations_before_transition(pending):
+    from dataclasses import replace
+    before = replace(scope_final_review(publish=True), feedback=scope_global_book(pending))
+    with pytest.raises(DomainError, match="(?i)finding|resolution|обязатель|наход|исправлен"):
+        before.accept("S", True)
+    assert before.stage.stage_id == "examine"
+    assert before.state.status == "verified"
+    assert before.feedback == scope_global_book(pending)
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_scope_publish_submission_refuses_global_obligations_before_effect_intent(pending):
+    from dataclasses import replace
+    from runner.helpers import submit as routed_submit
+    before = scope_final_review(publish=True).accept("S", True).task
+    before = replace(before, feedback=scope_global_book(pending))
+    with pytest.raises(DomainError, match="(?i)finding|resolution|обязатель|наход|исправлен"):
+        routed_submit(before, {"target_ref": "refs/heads/main", "expected_commit": "a" * 40,
+                              "authorization": "User accepted publication."})
+    assert before.state.submission_digest is None
+    assert before.progress.stage_work is None
+    assert before.action_assessment is None
+
+
+def test_scope_public_restart_replay_preserves_feedback_and_unblocks_earlier_inspection(project):
+    from copy import deepcopy
+    from conftest import write_json, WorkPoise, git
+    from poise.application.work import WorkTools
+    from batch.helpers import request, result as public_result, verify as public_verify, bootstrap
+    from runtime_services.test_task_restart import restart, immutable_audit_rows
+    from runner.test_runner_paths import setup_project, edit
+    from runner.test_handlers import scope_process
+    from runner.helpers import inspect as packet, finding
+
+    setup_project(project, "development")
+    process = scope_process()
+    process["goal_type"] = "development"
+    for node in process["stages"]:
+        node["role"] = "executor"  # Identity separation has its own existing tests.
+    write_json(project["root"] / "config/processes/development.json", process)
+    contract = deepcopy(project["task"])
+    ids = [s["id"] for s in process["stages"]]
+    contract["checks"] = {sid: ["TARGETED"] for sid in ids}
+    contract["methods"][0]["verification_plan"]["green_stages"] = ids
+    contract["evidence_plan"] = {sid: {"subject_methods": {}, "arguments": [], "review_arguments": []} for sid in ids}
+    contract["stage_contracts"] = [{"stage_id": s["id"], "allowed_paths": s["allowed_paths"],
+                                  "entry_requirements": [], "exit_requirements": []} for s in process["stages"]]
+    contract["decomposition"]["phases"] = [{"stage": sid, "skills": ["workflow"], "areas": []} for sid in ids]
+    write_json(project["task_path"], contract)
+    runtime = WorkPoise(project["config_path"], "S1")
+    tools = WorkTools(runtime)
+    context = bootstrap(tools, {**project, "task": contract})
+    edit(context, "development", "Controlled subject baseline\n")
+    for work in ({}, packet(), {}):
+        payload = public_result(context)
+        payload["stage_work"] = work
+        assert public_verify(tools, payload)["status"] == "verified"
+        context = runtime.bootstrap(decision="continue")
+    payload = public_result(context)
+    payload["stage_work"] = packet([finding("CODE-1"), finding("CODE-2"), finding("CODE-3")])
+    assert public_verify(tools, payload)["stage_outcome"] == "changes_requested"
+    book = runtime.task_commands.workflow_context("T1")["feedback"]
+    assert [(f["id"], f["stage"], f["iteration"]) for f in book["findings"]] == [
+        ("CODE-1", "examine", 1), ("CODE-2", "examine", 1), ("CODE-3", "examine", 1)]
+    from pathlib import Path
+    from poise.common import PoiseError
+    before_ref = git(project["app"], "rev-parse", "main")
+    before_source = git(Path(context["worktree"]), "rev-parse", "HEAD")
+    before_audit = immutable_audit_rows(runtime, "T1")
+    with pytest.raises(PoiseError):
+        tools.invoke(request("integrate", {"request_id": "scope-unfinished-integration", "task_id": "T1",
+            "expected_source_commit": before_source, "expected_target_commit": before_ref,
+            "authorization": "User authorizes integration after all required obligations are resolved.",
+            "resolutions": []}))
+    assert git(project["app"], "rev-parse", "main") == before_ref
+    assert git(Path(context["worktree"]), "rev-parse", "HEAD") == before_source
+    assert immutable_audit_rows(runtime, "T1") == before_audit
+    old_version = runtime.task_queries.record("T1")["version"]
+    restarted = restart(tools, "T1", old_version, request_id="scope-restart")
+    assert restarted["status"] == "newborn"
+    audit = immutable_audit_rows(runtime, "T1")
+    replay = restart(tools, "T1", old_version, request_id="scope-restart")
+    assert replay["replayed"] is True
+    assert immutable_audit_rows(runtime, "T1") == audit
+    with pytest.raises(PoiseError):
+        tools.invoke(request("task", {"action": "ready", "request_id": "scope-stale-ready",
+            "task_id": "T1", "expected_revision": restarted["revision"] + 99}))
+    assert immutable_audit_rows(runtime, "T1") == audit
+    assert tools.invoke(request("task", {"action": "ready", "request_id": "scope-ready",
+        "task_id": "T1", "expected_revision": restarted["revision"]}))["status"] == "available"
+    context = tools.invoke(request("bootstrap", {"task": {"id": "T1"}, "decision": None,
+                                                 "feedback": None, "rework_stage": None}))
+    assert context["stage"] == "prepare"
+    assert context["workflow"]["feedback"] == book
+    payload = public_result(context)
+    payload["stage_work"] = {}
+    assert public_verify(tools, payload)["status"] == "verified"
+    context = runtime.bootstrap(decision="continue")
+    payload = public_result(context)
+    payload["stage_work"] = packet()
+    inspected = public_verify(tools, payload)
+    assert inspected["stage_outcome"] == "clear"
+    assert inspected["next_stage"] == "build"
+    assert runtime.task_commands.workflow_context("T1")["feedback"] == book
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_scope_public_publish_refuses_before_local_effect_and_keeps_refs(project, monkeypatch, pending):
+    from dataclasses import replace
+    from pathlib import Path
+    from conftest import git
+    from actions.helpers import setup, verify as public_verify, result as public_result, advance, inspect as public_inspect
+    from poise.application.actions import PlanCommands
+    from poise.common import PoiseError
+    from poise.modules.inspection.domain import FeedbackBook, Finding, Resolution
+    runtime, context, plan, base = setup(project, conflict=False)
+    assert public_verify(runtime, public_result(context, {
+        "plan": plan, "phase": "prepare", "resolutions": [], "finding_resolutions": []}))["status"] == "verified"
+    assert public_inspect(runtime, advance(runtime))["status"] == "verified"
+    context = advance(runtime)
+    assert context["stage"] == "publish"
+    book = FeedbackBook((Finding("GLOBAL", "result", "Unresolved", "Counterexample", "review", 1),),
+        (Resolution("GLOBAL-R", "GLOBAL", "Uninspected", "Proof", "fix", 1),) if pending else (), ())
+    # Explicit domain fixture at the real pre-effect boundary; no fabricated inspection or effect receipt.
+    with runtime.store.unit_of_work() as unit:
+        original = unit.tasks.load(context["task"])
+        change = original._change("fixture_global_obligation", None, None)
+        unit.tasks.save(replace(change, task=replace(change.task, feedback=book)), original.state.version)
+    before_ref = git(project["app"], "rev-parse", "main")
+    before_source = git(Path(context["worktree"]), "rev-parse", "HEAD")
+    calls = []
+    def forbidden_effect(*args, **kwargs):
+        calls.append("publish_local")
+        pytest.fail("Publication effect reached with globally unresolved obligations")
+    monkeypatch.setattr(PlanCommands, "publish_local", forbidden_effect)
+    with pytest.raises(PoiseError, match="(?i)finding|resolution|обязатель|наход|исправлен"):
+        public_verify(runtime, public_result(context, {"target_ref": "refs/heads/main",
+            "expected_commit": base, "authorization": "User accepted publication."}))
+    assert calls == []
+    assert git(project["app"], "rev-parse", "main") == before_ref
+    assert git(Path(context["worktree"]), "rev-parse", "HEAD") == before_source
+    assert runtime.task_commands.workflow_context(context["task"])["feedback"] == book.context()

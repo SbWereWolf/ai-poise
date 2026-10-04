@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import locale
 import os
 from pathlib import Path
 import re
 import shutil
 import stat
 import subprocess
+import sys
 import uuid
 
 from ..common import descendant, digest, file_digest, prohibit_git_push
@@ -39,24 +41,26 @@ class RuntimeResultIntegration:
         prohibit_git_push(["git", *args])
         try:
             result = subprocess.run(
-                ["git", "-C", str(cwd), *args], capture_output=True, text=True,
+                ["git", "-C", str(cwd), *args], capture_output=True,
                 timeout=self.h.cfg["limits"]["git_seconds"],
                 env=os.environ if env is None else env,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f"Git {args[0]} did not complete: {exc}") from exc
+        # Match subprocess text encoding without translating path CR/CRLF.
+        encoding = "utf-8" if sys.flags.utf8_mode else locale.getencoding()
         return {
             "argv": ["git", "-C", str(cwd), *args],
             "actual_exit_code": result.returncode,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
+            "stdout": result.stdout.decode(encoding, errors="strict"),
+            "stderr": result.stderr.decode(encoding, errors="strict"),
         }
 
     def _git(self, cwd, *args, env=None):
         receipt = self._run(cwd, *args, env=env)
         if receipt["actual_exit_code"] != 0:
             raise PoiseError(f"Git {args[0]}: {receipt['stderr']}")
-        return receipt["stdout"] if "-z" in args else receipt["stdout"].strip()
+        return receipt["stdout"] if "-z" in args else receipt["stdout"].removesuffix("\n")
 
     def _optional_ref(self, cwd, ref):
         receipt = self._run(cwd, "rev-parse", "--verify", "--quiet", ref)

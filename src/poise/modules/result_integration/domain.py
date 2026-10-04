@@ -166,7 +166,8 @@ class IntegrationRun:
             raise DomainError("Saved result integration state is invalid")
         intent = IntegrationIntent.parse({**value["intent"], "resolutions": []})
         return cls(
-            intent=intent, status=value["status"], phase=value["phase"],
+            intent=intent, status=value["status"],
+            phase=_text(value["phase"], "Saved result integration phase"),
             version=value["version"], accepted_commit=value["accepted_commit"],
             task_branch=value["task_branch"], task_worktree=value["task_worktree"],
             temporary_backup_directory=value["temporary_backup_directory"],

@@ -66,8 +66,7 @@ class AcceptanceManifest:
 
     @staticmethod
     def validate(actual, expected):
-        if not isinstance(actual, dict) or actual.get('schema') != 'acceptance-manifest-1':
-            raise DomainError('Invalid acceptance manifest schema')
+        AcceptanceManifest._schema(actual)
         for key in ('task_id', 'method_id', 'commit', 'tree', 'receipt'):
             if actual.get(key) != expected[key]:
                 raise DomainError(f'Acceptance manifest candidate/{key} mismatch')
@@ -78,3 +77,53 @@ class AcceptanceManifest:
             raise DomainError('Acceptance manifest proof inventory mismatch')
         if set(actual) != set(expected):
             raise DomainError('Acceptance manifest has unknown fields')
+
+    @staticmethod
+    def _strings(record, fields, label):
+        for field in fields:
+            value = record[field]
+            if type(value) is not str:
+                raise DomainError(f'Acceptance manifest {label}{field}: invalid type')
+            if not value.strip():
+                raise DomainError(f'Acceptance manifest {label}{field}: empty string')
+
+    @classmethod
+    def _schema(cls, actual):
+        exact(actual, {'schema', 'task_id', 'method_id', 'commit', 'tree',
+                       'inputs', 'evidence', 'receipt'}, 'Acceptance manifest')
+        cls._strings(actual, ('schema', 'task_id', 'method_id', 'commit', 'tree'), '')
+        if actual['schema'] != 'acceptance-manifest-1':
+            raise DomainError('Invalid acceptance manifest schema')
+        for field in ('commit', 'tree'):
+            checksum(actual[field], 40, f'Acceptance manifest {field}')
+        receipt = actual['receipt']
+        exact(receipt, {'id', 'actual_exit_code', 'passed', 'definition_digest'},
+              'Acceptance manifest receipt')
+        cls._strings(receipt, ('id', 'definition_digest'), 'receipt.')
+        checksum(receipt['definition_digest'], 64, 'Acceptance manifest receipt.definition_digest')
+        if type(receipt['actual_exit_code']) is not int:
+            raise DomainError('Acceptance manifest receipt.actual_exit_code: invalid type')
+        if type(receipt['passed']) is not bool:
+            raise DomainError('Acceptance manifest receipt.passed: invalid type')
+        for field in ('inputs', 'evidence'):
+            if type(actual[field]) is not list:
+                raise DomainError(f'Acceptance manifest {field}: invalid type')
+        for item in actual['inputs']:
+            exact(item, {'id', 'path', 'digest', 'producer', 'input_ref'},
+                  'Acceptance manifest input')
+            cls._strings(item, ('id', 'path', 'digest', 'input_ref'), 'input.')
+            checksum(item['digest'], 64, 'Acceptance manifest input.digest')
+            producer = item['producer']
+            exact(producer, {'task_id', 'commit'}, 'Acceptance manifest input.producer')
+            cls._strings(producer, ('task_id', 'commit'), 'input.producer.')
+            checksum(producer['commit'], 40, 'Acceptance manifest input.producer.commit')
+        for item in actual['evidence']:
+            if type(item) is not dict or type(item.get('kind')) is not str:
+                raise DomainError('Acceptance manifest evidence.kind: invalid type')
+            kind = item['kind']
+            if kind not in ('stdout', 'stderr', 'output'):
+                raise DomainError('Acceptance manifest evidence.kind: unknown kind')
+            fields = {'kind', 'path', 'digest'} | ({'id'} if kind == 'output' else set())
+            exact(item, fields, 'Acceptance manifest evidence')
+            cls._strings(item, tuple(sorted(fields)), 'evidence.')
+            checksum(item['digest'], 64, 'Acceptance manifest evidence.digest')

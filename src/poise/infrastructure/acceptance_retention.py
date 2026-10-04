@@ -81,12 +81,15 @@ class RuntimeAcceptanceRetention:
                 raise PoiseError(f"Required proof missing/invalid: {declaration['id']}")
         return facts
 
+    def observe_manifest_directory(self, task, declaration):
+        return self.h.work_resources.factory(task).observe_directory(
+            'task', declaration.manifest_directory,
+        )
+
     def publish(self, task, declaration, receipt_id, value):
-        directory = self._path(task, declaration.manifest_directory)
+        directory = self.observe_manifest_directory(task, declaration)
         prefix = self.h.cfg['batch']['artifact_directories']['task']
         artifact_root = self.h._roots(task)['task'] / prefix
-        if not directory.is_relative_to(artifact_root):
-            raise PoiseError('Manifest directory must be inside configured permanent Task artifacts')
         path = directory / (receipt_id + '.json')
         factory = self.h.work_resources.factory(task)
         factory.materialize(factory.prepare([{

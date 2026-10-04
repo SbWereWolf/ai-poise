@@ -184,12 +184,14 @@ class RuntimeResultIntegration:
         self.h.retention.validate_bundle(record, record['last_report'])
         if run is None:
             self._validate_new(record, intent, repository)
+            self._preflight_checks(record)
             return record
         if not self._same_intent(run, intent) and not self._completed_replay(run, intent):
             raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated" or run.phase == "cleanup_pending":
             return None
         self._validate_source(record, intent, repository, run)
+        self._preflight_checks(record)
         return record
 
     def _conflicts(self, worktree):
@@ -282,6 +284,10 @@ class RuntimeResultIntegration:
             if plan["green_stages"] and plan["change_surface"]:
                 selected.append(method)
         return selected
+
+    def _preflight_checks(self, record):
+        for method in self._select_checks(record):
+            self.h.retention.bind_inputs(record, method)
 
     def _complete_candidate_proof(self, record, run):
         methods = self._select_checks(record)
@@ -392,6 +398,7 @@ class RuntimeResultIntegration:
         return retried
 
     def _run_checks(self, record, run):
+        self._preflight_checks(record)
         worktree, head = self._checked_workspace(run)
         verified_tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
         receipts = []
@@ -830,10 +837,14 @@ class RuntimeResultIntegration:
         self.h.retention.validate_bundle(record, record['last_report'])
         if run is None:
             self._validate_new(record, intent, repository)
+            self._preflight_checks(record)
             run = self._new_run(record, intent)
             self._save(intent.task_id, run, -1)
         elif not self._same_intent(run, intent) and not self._completed_replay(run, intent):
             raise PoiseError("Task integration intent is immutable")
+        elif run.status != "integrated" and run.phase != "cleanup_pending":
+            self._validate_source(record, intent, repository, run)
+            self._preflight_checks(record)
         if run.status == "integrated":
             self._reconcile_terminal_ownership(run, repository)
             return self._result(record, run, replayed=True)

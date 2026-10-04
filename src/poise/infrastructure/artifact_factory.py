@@ -27,28 +27,34 @@ class FileArtifactFactory:
         self.config=config
         self.lock,self.wait,self.poll=lock,wait,poll
 
-    def _destination(self, scope, relative):
+    def _observe_destination(self, scope, name, *, directory):
         if scope not in self.roots:
             raise PoiseError(f'No current {scope} owner for artifact')
-        root=Path(self.roots[scope])
-        if root.is_symlink():
-            raise PoiseError('Artifact owner root is a symlink')
+        root = Path(self.roots[scope])
         self._without_links(root, 'Artifact destination owner root')
-        full=root/self.config['artifact_directories'][scope]/relative
-        # Refuse links rather than follow even an in-root alias. It keeps repeat
-        # identity and destination stable across publication/recovery.
-        cursor=root
-        for part in full.relative_to(root).parts:
-            cursor=cursor/part
-            if cursor.is_symlink():
-                raise PoiseError('Artifact destination contains a symlink')
-            if cursor.exists() and cursor!=full and not cursor.is_dir():
-                raise PoiseError('Artifact parent is not a directory')
+        if root.exists() and not root.is_dir():
+            raise PoiseError('Artifact owner root is not a directory')
+        artifact_root = root / self.config['artifact_directories'][scope]
+        full = root / relative(name)
+        if not full.is_relative_to(artifact_root):
+            raise PoiseError('Artifact directory must be inside configured permanent artifacts')
+        self._without_links(full, 'Artifact destination')
         if not full.resolve().is_relative_to(root.resolve()):
             raise PoiseError('Artifact destination leaves its owner')
-        if full.exists() and not full.is_file():
-            raise PoiseError('Artifact destination is not a regular file')
+        if full.exists() and not (full.is_dir() if directory else full.is_file()):
+            kind = 'directory' if directory else 'regular file'
+            raise PoiseError(f'Artifact destination is not a {kind}')
         return full
+
+    def _destination(self, scope, name):
+        if scope not in self.roots:
+            raise PoiseError(f'No current {scope} owner for artifact')
+        prefix = self.config['artifact_directories'][scope]
+        return self._observe_destination(scope, f'{prefix}/{name}', directory=False)
+
+    def observe_directory(self, scope, owner_relative_path):
+        """Observe an explicit owner-relative directory without creating it."""
+        return self._observe_destination(scope, owner_relative_path, directory=True)
 
     def prepare(self, items):
         plan=ArtifactPlan.parse(items,self.config)

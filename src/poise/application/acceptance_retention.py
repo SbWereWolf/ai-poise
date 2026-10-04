@@ -14,6 +14,7 @@ class AcceptanceRetention:
         if 'artifact_inputs' not in method:
             return {}
         declaration = ArtifactInputs.parse(method['artifact_inputs'], method['environment'])
+        self.port.observe_manifest_directory(task, declaration)
         inputs = self.port.inputs(task, declaration)
         return {item['environment']: fact['path']
                 for item, fact in zip(declaration.files, inputs, strict=True)}

@@ -282,3 +282,72 @@ def test_scope_ambiguous_corrective_owner_is_explicit_error():
     with pytest.raises(DomainError, match="(?i)scope|ownership|ambig|област|влад|неоднознач"):
         before = task(cfg)
         verify(before, {})
+
+
+def scope_process_with_corrective_plan(names=("prepare", "screen", "build", "examine",
+                                              "draft_fix", "inspect_fix_plan", "fix", "inspect_fix")):
+    """Separate plan approval precedes correction of the original result."""
+    from .helpers import stage
+    prepare, screen, build, examine, draft, plan_review, fix, fix_review = names
+    cfg = scope_process(names[:4])
+    next(n for n in cfg["stages"] if n["id"] == examine)["transitions"]["changes_requested"] = draft
+    cfg["stages"] = [
+        stage(fix_review, "inspect", {"clear": None, "changes_requested": draft},
+              True, [], [draft], role="reviewer"),
+        stage(draft, "produce", {"complete": plan_review}, True, [], [draft]),
+        *cfg["stages"],
+        stage(fix, "revise", {"complete": fix_review}, False, ["src/**"], [draft]),
+        stage(plan_review, "inspect", {"clear": fix, "changes_requested": draft},
+              True, [], [draft], role="reviewer"),
+    ]
+    return cfg
+
+
+@pytest.mark.parametrize("names", [
+    ("prepare", "screen", "build", "examine", "draft_fix", "inspect_fix_plan", "fix", "inspect_fix"),
+    ("a", "z", "b", "y", "c", "x", "d", "w"),
+])
+def test_scope_corrective_plan_review_is_distinct_from_result_reinspection(names):
+    from poise.modules.workflow.domain import RouteDefinition
+    route = RouteDefinition.from_process(scope_process_with_corrective_plan(names))
+    assert route.inspection_scope(names[1]) == (names[1],)
+    assert set(route.inspection_scope(names[3])) == {names[3], names[7]}
+    assert set(route.inspection_scope(names[6])) == {names[3], names[7]}
+    assert route.inspection_scope(names[4]) == (names[5],)
+    assert route.inspection_scope(names[5]) == (names[5],)
+
+
+@pytest.mark.parametrize("names", [
+    ("prepare", "screen", "build", "examine", "draft_fix", "inspect_fix_plan", "fix", "inspect_fix"),
+    ("a", "z", "b", "y", "c", "x", "d", "w"),
+])
+def test_scope_corrective_plan_accepts_only_plan_fix_and_preserves_code_obligation(names):
+    from poise.modules.inspection.domain import FeedbackBook, Finding
+    from poise.modules.workflow.domain import RouteDefinition
+    from poise.modules.workflow.handlers import evaluate_stage
+    route = RouteDefinition.from_process(scope_process_with_corrective_plan(names))
+    book = FeedbackBook((Finding("CODE", "code", "Broken bytes", "Actual counterexample", names[3], 1),
+                         Finding("PLAN", "plan", "Missing tests", "Actual missing test", names[5], 2)), (), ())
+    before = book.to_dict()
+    early = evaluate_stage(route, inspect(), book, names[1], 3)
+    assert early.outcome == "clear" and early.feedback.to_dict() == before
+    proposed = evaluate_stage(route, {"resolutions": [resolution("PLAN-R", "PLAN")]}, book, names[4], 3)
+    assert proposed.feedback.findings == book.findings
+    assert [r.finding_id for r in proposed.feedback.pending_resolutions] == ["PLAN"]
+    reviewed = evaluate_stage(route, inspect(decisions=[decision("PLAN-R")]), proposed.feedback, names[5], 3)
+    assert reviewed.outcome == "clear"
+    assert [f.id for f in reviewed.feedback.open_findings] == ["CODE"]
+    assert reviewed.feedback.findings == book.findings
+    code_review = evaluate_stage(route, inspect(), reviewed.feedback, names[7], 3)
+    assert code_review.outcome == "changes_requested"
+    assert code_review.feedback == reviewed.feedback
+    with pytest.raises(DomainError, match="(?i)open|unresolved|открыт|неразреш"):
+        reviewed.feedback.require_resolved()
+
+
+def test_scope_public_restart_with_corrective_plan_keeps_late_findings(project, monkeypatch):
+    from ddd.test_task_domain import test_scope_public_restart_replay_preserves_feedback_and_unblocks_earlier_inspection
+    from runner import test_handlers
+    fixture = scope_process_with_corrective_plan()
+    monkeypatch.setattr(test_handlers, "scope_process", lambda: fixture)
+    test_scope_public_restart_replay_preserves_feedback_and_unblocks_earlier_inspection(project)

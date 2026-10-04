@@ -36,7 +36,7 @@ class RunnerTimeoutPolicy:
             raise PoiseError('diagnostic override maximum must not be below initial timeout')
         return cls(data)
 
-    def select(self, successful_durations, diagnostic_override=None, evidence_ids=()):
+    def select(self, successful_durations, diagnostic_override=None, evidence_ids=(), *, workload_contract=None):
         durations = []
         for value in successful_durations:
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
@@ -68,13 +68,29 @@ class RunnerTimeoutPolicy:
             basis = 'diagnostic_override'
             override_receipt = evidence
             override_reason = reason.strip()
+        progress_gap = float(self.data['progress_gap_seconds'])
+        if workload_contract is not None:
+            fields = {'progress_mode', 'inner_budget_seconds', 'teardown_seconds'}
+            if not isinstance(workload_contract, dict) or set(workload_contract) != fields:
+                raise PoiseError('workload contract requires exactly mode, budget and teardown fields')
+            if workload_contract['progress_mode'] != 'non_streaming':
+                raise PoiseError('Unsupported workload progress mode')
+            for field in ('inner_budget_seconds', 'teardown_seconds'):
+                value = workload_contract[field]
+                if (isinstance(value, bool) or not isinstance(value, (int, float))
+                        or not math.isfinite(value) or value <= 0):
+                    raise PoiseError(f'workload {field} must be positive and finite')
+            budget = workload_contract['inner_budget_seconds'] + workload_contract['teardown_seconds']
+            if not math.isfinite(budget) or budget > selected:
+                raise PoiseError('non_streaming workload budget exceeds the outer deadline')
+            progress_gap = max(progress_gap, budget)
         return {
             'seconds': selected,
             'basis': basis,
             'history_count': len(durations),
             'longest_verified_success_seconds': longest,
             'history_multiplier': float(self.data['history_multiplier']),
-            'progress_gap_seconds': float(self.data['progress_gap_seconds']),
+            'progress_gap_seconds': progress_gap,
             'poll_seconds': float(self.data['poll_seconds']),
             'diagnostic_evidence_run_id': override_receipt,
             'diagnostic_override_reason': override_reason,
@@ -134,11 +150,12 @@ class RegisteredCheckRunner:
             return tuple(sorted(key for key, state in self._active.items() if state['child'] is not None))
 
     @staticmethod
-    def _kill_group(child: subprocess.Popen) -> None:
+    def _kill_group(child: subprocess.Popen) -> bool:
         try:
             os.killpg(child.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
+        return True  # Kernel accepted uncatchable group kill, or group no longer exists.
 
     def cancel(self, run_id: str) -> bool:
         """Cancel only a process group currently owned by this runner."""
@@ -195,6 +212,8 @@ class RegisteredCheckRunner:
         streams = []
         cleanup_deadline = None
         capture_complete = False
+        group_stopped = False
+        child_reaped = False
         timed_out = False
         timeout_reason = None
         cancellation_reason = None
@@ -243,7 +262,7 @@ class RegisteredCheckRunner:
                             if code is not None or state['cancel_requested'] or timed_out:
                                 # One budget for both pipes and direct-child reaping.
                                 cleanup_deadline = now + cleanup_seconds
-                                self._kill_group(child)
+                                group_stopped = self._kill_group(child) is True
                         if cleanup_deadline is not None:
                             if not selector.get_map():
                                 capture_complete = True
@@ -279,9 +298,10 @@ class RegisteredCheckRunner:
                         if child is not None:
                             if cleanup_deadline is None:
                                 cleanup_deadline = time.monotonic() + cleanup_seconds
-                            self._kill_group(child)
+                            group_stopped = self._kill_group(child) is True
                             try:
                                 code = child.wait(timeout=max(0, cleanup_deadline - time.monotonic()))
+                                child_reaped = True
                             except subprocess.TimeoutExpired as exc:
                                 raise PoiseError(f'Registered cleanup deadline exceeded: {run_id}') from exc
                             finally:
@@ -298,11 +318,15 @@ class RegisteredCheckRunner:
             cancelled = bool(state['cancel_requested'])
             if cancelled and cancellation_reason is None:
                 cancellation_reason = 'explicit_cancel'
-            return {
+            result = {
                 'actual_exit_code': code,
                 'timed_out': timed_out,
                 'timeout_reason': timeout_reason,
                 'capture_complete': capture_complete,
+                'termination': {'schema': 'run-termination-1',
+                                'child_reaped': child_reaped,
+                                'process_group_stopped': group_stopped,
+                                'capture_complete': capture_complete},
                 'capture_reason': None if capture_complete else 'drain_limit',
                 'cleanup_seconds': cleanup_seconds,
                 'cancelled': cancelled,
@@ -312,9 +336,18 @@ class RegisteredCheckRunner:
                 'duration_seconds': time.monotonic() - start,
                 'stdout': str(stdout_path),
                 'stderr': str(stderr_path),
-                'stdout_preview': preview(stdout_path, self.preview_chars),
-                'stderr_preview': preview(stderr_path, self.preview_chars),
             }
+            # Display I/O cannot discard the actual owner's terminal facts.
+            preview_errors = {}
+            for name, path in (('stdout', stdout_path), ('stderr', stderr_path)):
+                try:
+                    result[f'{name}_preview'] = preview(path, self.preview_chars)
+                except OSError as exc:
+                    result[f'{name}_preview'] = ''
+                    preview_errors[name] = type(exc).__name__
+            if preview_errors:
+                result['preview_errors'] = preview_errors
+            return result
         finally:
             with self._lock:
                 self._active.pop(run_id, None)
@@ -368,6 +401,47 @@ def capture_declared_outputs(declarations: list[dict], output_dir: Path, capture
             'size': target.stat().st_size,
         })
     return records, complete
+
+
+def inspect_declared_output_receipts(declarations: list[dict], outputs: object) -> tuple[bool, bool]:
+    """Distinguish intact recorded outcomes from complete successful outputs."""
+    if not isinstance(outputs, list) or len(outputs) != len(declarations):
+        return False, False
+    complete = True
+    for declaration, output in zip(declarations, outputs, strict=True):
+        if not isinstance(output, dict):
+            return False, False
+        expected = {
+            'id': declaration['id'],
+            'declared_path': declaration['path'],
+            'required': declaration['required'],
+        }
+        if any(type(output.get(key)) is not type(value) or output.get(key) != value
+               for key, value in expected.items()):
+            return False, False
+        status = output.get('status')
+        if status == 'captured':
+            path = output.get('path')
+            if (not isinstance(path, str) or not path
+                    or not isinstance(output.get('digest'), str)
+                    or type(output.get('size')) is not int):
+                return False, False
+            captured = Path(path)
+            try:
+                if (not captured.is_file() or captured.is_symlink()
+                        or output['digest'] != _file_sha256(captured)
+                        or output['size'] != captured.stat().st_size):
+                    return False, False
+            except (OSError, ValueError):
+                return False, False
+        elif status in ('missing', 'invalid'):
+            if any(key not in output or output[key] is not None for key in ('path', 'digest', 'size')):
+                return False, False
+            if status == 'invalid' or declaration['required']:
+                complete = False
+        else:
+            return False, False
+    return True, complete
 
 
 def _file_sha256(path: Path) -> str:

@@ -1,5 +1,6 @@
 """Preserve/release and resume are domain commands, not SQL updates by a hook."""
 from ..modules.foundation.errors import PoiseError
+from .check_attempts import validate_preserved_attempt_in
 
 
 class HandoffCommands:
@@ -37,6 +38,13 @@ class HandoffCommands:
             state=(uow.tasks.load_newborn(record['task_id']) if uow.tasks.is_newborn(record['task_id'])
                    else uow.tasks.load(record['task_id']).state)
             if state.version!=record['version']:raise PoiseError('Task changed during handoff')
+            recovery = record['plan'].get('uncertain_check_recovery')
+            if recovery is not None:
+                execution, _ = uow.execution.load(record['task_id'])
+                if execution['pending'] != recovery['attempt']:
+                    raise PoiseError('Uncertain attempt changed before handoff release')
+                validate_preserved_attempt_in(uow, uow.tasks.load(record['task_id']),
+                                              actor, execution['pending'])
             uow.accounting_cycles.release(actor,record['task_id'])
             release_task_in(uow, actor, record['task_id'], record['plan']['reason'])
             uow.handoffs.replace({**record,'state':'released','receipt':receipt})

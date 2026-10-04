@@ -72,8 +72,12 @@ def install(home):
     source=SOURCE/'config/catalogue'
     for directory in ('process-templates','task-templates'):
         shutil.copytree(source/directory,home/'config/catalogue'/directory)
-    for name in ('settings.json','editor.json','reference.json'):
-        shutil.copy2(source/name,home/'config/catalogue'/name)
+    for template, name in (
+        ('settings.example.json', 'settings.json'),
+        ('editor.example.json', 'editor.example.json'),
+        ('reference.json', 'reference.json'),
+    ):
+        shutil.copy2(source/template,home/'config/catalogue'/name)
     path=home/'config/catalogue/settings.json'
     repo=FileCatalogue(path)
     commands=CatalogueCommands(repo,goal_config_tools(repo.editor.path),repo.raw['max_items'])
@@ -193,8 +197,17 @@ def prepare_task(
     blueprint=repo.task_blueprint(_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'))
     # The development reference scenario supplies its concrete initial schedule. The
     # product template neither names future methods nor invents a missing schedule.
-    checks=(_initial_checks(process,methods) if goal=='development'
-            else blueprint.data['task']['checks'])
+    if goal == 'development':
+        checks = _initial_checks(process, methods)
+    elif blueprint.data['task']['checks'] == {'$input': 'checks'}:
+        # These exact commands belong to this fixture, never to a Task starter.
+        reference = json.loads((SOURCE/'config/catalogue/reference.json').read_text())
+        schedule = next(item['method_schedule'] for item in reference['goal_types']
+                        if item['id'] == goal)
+        checks = {stage['id']: ([schedule[stage['id']]] if stage['id'] in schedule else [])
+                  for stage in process['stages']}
+    else:
+        checks = blueprint.data['task']['checks']
     surfaces={
         ('development','TEST_RED'):['tests/**'],
         ('development','TEST_GREEN'):['src/**'],
@@ -234,7 +247,11 @@ def prepare_task(
             evidence[sid]['arguments']=[{'id':'argument-'+sid,'kind':'logical','phase':'continue','observation_methods':mids}]
     for stage in process['stages']:
         if stage['handler']=='inspect':
-            evidence[stage['id']]['review_arguments']=[a['id'] for sid,v in evidence.items() for a in v['arguments']]
+            preceding = {item['id'] for item in process['stages'][:process['stages'].index(stage)]}
+            evidence[stage['id']]['review_arguments']=[
+                argument['id'] for sid, value in evidence.items() if sid in preceding
+                for argument in value['arguments']
+            ]
     vals={'identity':task_id,'membership':membership,'goal':f'Reference {goal}: create and verify its declared result.',
           'requirements':['The declared reference result is supported by current observations.'],
           'dod':['The route finishes with retained evidence and reviewed result; no unrelated repository edits.'],
@@ -245,7 +262,8 @@ def prepare_task(
           'decomposition':_decomposition(process, goal)}
     if goal in ('development','test_development'):
         vals['executable_obligations']=['requirements[0]']
-    if goal=='development':vals['checks']=checks
+    if blueprint.data['task']['checks'] == {'$input': 'checks'}:
+        vals['checks'] = checks
     task = commands.tasks(
         [{'template':_selection(repo.raw['task_templates'][goal+'-v1'],goal+'-v1'),
           'parameters':vals}], processes, [], decomposition_policy
@@ -273,7 +291,9 @@ def _seed(app,home,goal,scenario):
     if goal=='test_development':(app/'src/double.py').write_text('def double(n):\n    return n * 2\n')
     (app/'data').mkdir(exist_ok=True);save(app/'data/sample.json',[1,2,3])
     save(home/'service-state.json',{'ready':False,'revision':0})
-    git(app,'add','.');git(app,'commit','-m','Reference fixture inputs');git(app,'push','backup','main')
+    git(app,'add','.');git(app,'commit','-m','Reference fixture inputs')
+    # Seed only the invocation-owned local fixture remote; never invoke Git push.
+    git(home.parent/'remote.git', 'fetch', str(app), 'main:refs/heads/main')
     base=git(app,'rev-parse','HEAD');sources=[]
     if goal=='integration':
         for name in ('left','right'):

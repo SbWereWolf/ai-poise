@@ -23,6 +23,27 @@ expires. Platform safety constraints and storage integrity are not project rules
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
 Before any work, including a request without a formal task, establish the goal, the requirements for the result, the definition of done and how completion will be demonstrated. Keep this preparation proportional to the request. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. `ready` freezes the resolved Task contract and its restart-revision authority; runtime enforces that resolved contract, not the original template.
+Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
+target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
+and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
+shape is not a blocker; structural validation does not prove that known required writes and verification obligations
+were inventoried. Design exact future test methods and provenance at their owning stage after their sources are known.
+
+Separate Sprint graph planning, bounded Task formulation and detailed execution
+design. Do not implement a prototype merely to approve a Task formulation or demand
+future test names at creation. Preserve the accepted goal's meaning. Paired starters
+give each substantive executor result independent review; the reviewer checks
+stage separation and sufficient allowed_paths. Follow the canonical
+[paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
+and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
+
+Development goals state application capabilities. Requirements align with the goal
+and define observable product behaviour across the declared supported scenarios
+and configurations, not a coding plan or maintenance of one installation. Keep
+incidents and concrete installation facts in the rationale, architecture constraints
+in their own content, and implementation choices in execution planning. Apply the
+[product formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту)
+when creating and independently reviewing a Task.
 
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
@@ -61,6 +82,11 @@ One session works on one task. Stage ownership follows the canonical [executor/r
 
 Use `poise project` or `poise project-init` with an explicitly selected template to prepare a new project; do not
 hand-edit its managed configuration. See [project setup](docs/configuration/project-setup.md).
+Before project setup, correcting `git.base_ref`, or integrating a result, read
+[target branch selection](docs/configuration/project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
+Inspect the configured primary checkout and its symbolic branch read-only. Treat a detached checkout,
+uncertain binding, or mismatch with `git.base_ref` as a stop condition until the authorized configuration
+owner resolves it. Do not switch the primary checkout to satisfy a manifest value.
 
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their
 working files or database directly. Native coding tools remain appropriate for source code, tests and target
@@ -95,6 +121,13 @@ or claim automatic enforcement. If a needed specialist skill is missing or insuf
 report the stage, missing expertise, impact and proposed planner action in the final
 answer; raise actual blockers immediately. Follow [skill-gap
 reporting](docs/workflows/task-stage-skills-draft.md#использование-навыков-и-сообщение-о-нехватке).
+The current `task_decomposition.skills` list validates skill IDs declared in
+`decomposition.phases[].skills`; it is not a whitelist for skills the agent may
+read or apply. Use any available relevant skill, including `documentation` when
+absent from that list. Absence from the list alone is not a skill gap, blocker or
+reason to change project configuration. Additional skill use does not change
+declared narrow responsibilities, role or Task scope.
+See [decomposition focus](docs/governance/development-rules.md#фокус-декомпозиции).
 
 ## Commit message example
 
@@ -130,8 +163,10 @@ The canonical policy is [Development
 rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2).
 Keep this English projection and its Russian source consistent in the same change.
 
-- Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`,
-  `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
+- Answer humans and write human-facing documentation in Russian. Write agent-facing files and instructions (`AGENTS.md`,
+  `.agents/**`, `.codex/**`, technical instructions in managed artifacts) in English. Write human-facing AI poise Task
+  goals, requirements and acceptance criteria in Russian, including within managed artifacts. Preserve native identifiers
+  and syntax.
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts
   implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation
   with behaviour, configuration or workflow changes.
@@ -287,19 +322,21 @@ Keep this English projection and its Russian source consistent in the same chang
 - Destructive migrations require explicit authorization naming the objects and action. Never execute `git push`: the
   prohibition is absolute for every agent, AI poise tool, publication handler, and configurable command runner, and user
   publication authority does not waive it. Reject `push_required=true` before any Git command; `push_required=false`
-  never contacts a remote. Integrate accepted results only through the public local `integrate` lifecycle using `git
-  merge --ff-only`. Commits required by the documented workflow of an explicitly assigned task are authorized without
-  another confirmation, including the necessary baseline and result commits. Include only the task-owned or explicitly
+  never contacts a remote. Integrate completed Task results only through the public local `integrate` lifecycle using `git
+  merge --ff-only`. Explicitly authorized work begun without a Task follows the separate, independently reviewed
+  [manual local route](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка), without
+  retroactive Task stages or receipts. Commits required by the documented workflow of an explicitly assigned task are
+  authorized without another confirmation, including the necessary baseline and result commits. Include only the task-owned or explicitly
   approved files; unrelated commits still require explicit authorization. Follow AI poise's public lifecycle tools when
   available.
 - Finish accepted work only through the public result-integration lifecycle running from the current AI poise
   installation source. Keep the accepted commit immutable; advance the existing task branch in its existing task
-  worktree while updating from current `master`, merging, resolving conflicts, and rerunning every current
+  worktree while updating from the current configured target branch, merging, resolving conflicts, and rerunning every
   produced-result GREEN registry method whose `green_stages` and `change_surface` are nonempty. The terminal
   content-stage schedule does not narrow integration checks; exclude RED and baseline-only guards. Never create a
   separate integration branch or worktree. Every content-producing merge, rebase, cherry-pick, conflict resolution,
   and integration commit must run in the Task-owned child worktree; the primary checkout is never a preparation or
-  working copy. Under the shared target lock, recheck `master` immediately before
+  working copy. Under the shared target lock, recheck the configured target immediately before
   publication; repeat update, resolution, and checks on drift, then publish only with `git merge --ff-only
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
@@ -308,7 +345,8 @@ Keep this English projection and its Russian source consistent in the same chang
   local branch, temporary files, and temporary backups. Preserve the main checkout, foreign resources, durable task
   history and artifacts, operator backups, and recovery data for unfinished operations.
 - The commit disposition requires a separate explicit decision. Cleanup itself authorizes neither publication to
-  `master` nor destruction of unique commits and does not prescribe merge or discard. Clean accepted successful work
+  the configured target branch nor destruction of unique commits and does not prescribe merge or discard. Clean
+  accepted successful work
   only after its separately authorized integration completes. On cancellation, record a separate commit-disposition
   decision before removing a resource would destroy unique commits.
 - These rules establish a manual agent obligation. This documentation task neither implements cleanup automation nor
@@ -524,3 +562,26 @@ Before recording Tasks or relocating installation state, read
 [operator selection and state relocation](docs/configuration/wsl-local-delivery.md#выбор-операторской-установки-и-перенос-состояния).
 Use the selected operator installation; do not cancel a Task to repair its contract
 or delete a hook registry to compensate for an unsupported relocation.
+
+
+## Harness failure and manual bypass
+
+Follow [harness failure and manual bypass](docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+whenever Poise prevents normal progress. Classify evidence as agent/task-planner
+misuse, defective configuration, code defect, or damaged manually edited working
+data; distinguish unresolved causes. Assess one-off, possible recurring, or permanent
+failure. Prefer a proportionate manual repair for trivial low-risk incidents over
+unnecessary code. Always correct defective configuration; verify the original
+problem is removed, roll back unsuccessful changes, record rejected solutions,
+and avoid cycles of configuration workarounds.
+
+Record every incident and every manual correction separately in Sprint working
+documents, or Task working materials for a standalone Task. Include cause, evidence,
+method, alternatives, verification, and remaining limits. Prepare a repair Task
+draft for recurring failures; label an offline draft honestly while the API is
+unavailable. Maintain active causes and reusable recovery methods in known bugs.
+Continue authorized honest subject work manually when the harness obstructs it;
+preserve TDD and independent review, foreign WIP and data integrity. Do not invent
+native receipts or Task completion. A narrow manual data repair needs proven exact
+scope, preserved original data, no competing writer, and verified postconditions.
+Never use a bypass to fabricate external outcomes, evidence, or foreign ownership.

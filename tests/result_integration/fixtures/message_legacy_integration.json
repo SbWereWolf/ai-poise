@@ -1,0 +1,17 @@
+{
+  "kind": "result_integration",
+  "intent": {},
+  "status": "blocked",
+  "version": 2,
+  "target_before": null,
+  "target_after": null,
+  "conflicts": [],
+  "resolutions": [],
+  "merge": null,
+  "failure": {
+    "reason": "merge_failed_without_conflicts",
+    "receipt": {"actual_exit_code": 2, "stdout": "", "stderr": "Aborting\n"}
+  },
+  "cleanup": {"worktree": "pending", "branch": "pending"},
+  "history": [{"status": "blocked", "event": "preserve_this_history"}]
+}

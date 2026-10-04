@@ -241,6 +241,38 @@ class OwnershipCommands:
             uow.ownership.bind_worktree(actor, task_id)
             return OwnershipChange(before, uow.ownership.snapshot(actor), tuple(sorted(recovered)))
 
+    def release(self, actor, request):
+        from dataclasses import asdict
+        from ..modules.ownership.domain import parse_ordinary_release
+
+        intent = parse_ordinary_release(request)
+        task_id = intent['task_id']
+        with self.uow() as uow:
+            receipt = uow.ownership.ordinary_release_receipt(intent['request_id'])
+            if receipt is not None:
+                if receipt['actor'] != actor or receipt['request'] != intent:
+                    raise PoiseError('Ordinary release caller or request conflict')
+                return {**receipt['result'], 'replayed': True}
+            before = uow.ownership.snapshot(actor)
+            target = uow.ownership.preflight(actor, task_id)
+            if target.task_owner != actor or before.task_id != task_id:
+                raise PoiseError('Release requires the named Task owned by the current caller')
+            if uow.tasks.is_newborn(task_id):
+                raise PoiseError('Ordinary release requires an executable nonterminal Task')
+            task = uow.tasks.load(task_id)
+            if task.state.version != intent['expected_version']:
+                raise PoiseError('Release version conflict; refresh the current Task version')
+            if (uow.ownership.worktree_required(task_id)
+                    and target.worktree_owner not in (None, actor)):
+                raise PoiseError('Release rejected inconsistent foreign dependent worktree ownership')
+            _release_task_in(uow, actor, task_id)
+            after = uow.ownership.snapshot(actor)
+            result = {'status': 'ownership_released', 'task': task_id,
+                      'request_id': intent['request_id'], 'replayed': False,
+                      'before': asdict(before), 'after': asdict(after)}
+            uow.ownership.record_ordinary_release(intent, actor, result)
+            return result
+
     def release_task(self, actor, task_id):
         with self.uow() as uow:
             before = uow.ownership.snapshot(actor)
@@ -276,6 +308,9 @@ class BoundOwnership:
 
     def acquire_worktree(self, task_id):
         return self.commands.acquire_worktree(self.actor, task_id)
+
+    def release(self, request):
+        return self.commands.release(self.actor, request)
 
     def release_task(self, task_id):
         return self.commands.release_task(self.actor, task_id)

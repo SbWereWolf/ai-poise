@@ -193,6 +193,54 @@ class RouteDefinition:
     def index(self, stage_id: str) -> int:
         return tuple(n.stage_id for n in self.nodes).index(self.node(stage_id).stage_id)
 
+    def next_inspection(self, stage_id: str) -> str | None:
+        """Find the inspector of a producer's result, without crossing an inspect."""
+        visited = set()
+        while stage_id is not None:
+            if stage_id in visited:
+                raise DomainError("Inspection scope is ambiguous: positive route cycles without an inspector; correct the process graph")
+            visited.add(stage_id)
+            node = self.node(stage_id)
+            if node.handler == HandlerKind.INSPECT:
+                return stage_id
+            stage_id = node.target(POSITIVE_OUTCOME[node.handler])
+        return None
+
+    def inspection_scope(self, stage_id: str) -> tuple[str, ...]:
+        """Group original/follow-up inspectors through their corrective result."""
+        inspectors = {n.stage_id: n for n in self.nodes if n.handler == HandlerKind.INSPECT}
+        adjacent = {sid: set() for sid in inspectors}
+        for sid, inspector in inspectors.items():
+            corrective = inspector.target("changes_requested")
+            following = self.next_inspection(corrective)
+            if following is None:
+                raise DomainError(f"Inspection scope for {sid} has no corrective inspector; correct the process graph")
+            # A corrective pipeline may approve a plan before repairing the
+            # original result. Cross those approvals only within this explicit
+            # corrective branch; intermediate inspectors keep their own scopes.
+            visited = set()
+            while (following is not None and following != sid
+                   and inspector.target("clear") != inspectors[following].target("clear")):
+                if following in visited:
+                    raise DomainError(f"Inspection scope is ambiguous for {sid}: corrective inspections cycle; correct the process graph")
+                visited.add(following)
+                following = self.next_inspection(inspectors[following].target("clear"))
+            if following is None:
+                raise DomainError(f"Inspection scope is ambiguous for {sid}, {corrective}: no corrective inspector shares its positive continuation; declare separate corrective results")
+            adjacent[sid].add(following)
+            adjacent[following].add(sid)
+        subject = self.next_inspection(stage_id)
+        if subject is None:
+            return ()
+        reached, pending = set(), [subject]
+        while pending:
+            current = pending.pop()
+            if current in reached:
+                continue
+            reached.add(current)
+            pending.extend(adjacent[current] - reached)
+        return tuple(sorted(reached))
+
     def can_reach(self, start: str, target: str) -> bool:
         self.node(start)
         self.node(target)

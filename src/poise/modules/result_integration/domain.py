@@ -42,13 +42,15 @@ class IntegrationIntent:
     expected_source_commit: str
     expected_target_commit: str
     authorization: str
+    commit_message: str
     resolutions: tuple[dict, ...]
+    config_backup_paths: tuple[str, ...]
 
     @classmethod
     def parse(cls, value):
         keys = {"request_id", "task_id", "expected_source_commit", "expected_target_commit",
-                "authorization", "resolutions"}
-        if not isinstance(value, dict) or set(value) != keys:
+                "authorization", "commit_message", "resolutions"}
+        if not isinstance(value, dict) or set(value) not in (keys, keys | {"config_backup_paths"}):
             raise DomainError("integrate input requires exact intent and resolutions fields")
         resolutions = value["resolutions"]
         if not isinstance(resolutions, list):
@@ -56,13 +58,25 @@ class IntegrationIntent:
         parsed = tuple(_resolution(item) for item in resolutions)
         if len({item["path"] for item in parsed}) != len(parsed):
             raise DomainError("Resolution paths must be unique")
+        backup_paths = value.get("config_backup_paths", [])
+        if not isinstance(backup_paths, list):
+            raise DomainError("config_backup_paths must be a list")
+        if any(
+            not isinstance(path, str) or not path or "\x00" in path
+            or "\\" in path or path.startswith("/")
+            or any(part in ("", ".", "..") for part in path.split("/"))
+            for path in backup_paths
+        ) or len(set(backup_paths)) != len(backup_paths):
+            raise DomainError("config_backup_paths must contain unique safe relative paths")
         return cls(
             _text(value["request_id"], "request_id"),
             _text(value["task_id"], "task_id"),
             _commit(value["expected_source_commit"], "expected_source_commit"),
             _commit(value["expected_target_commit"], "expected_target_commit"),
             _text(value["authorization"], "authorization"),
+            _text(value["commit_message"], "commit_message"),
             parsed,
+            tuple(backup_paths),
         )
 
     def identity(self):
@@ -72,6 +86,8 @@ class IntegrationIntent:
             "expected_source_commit": self.expected_source_commit,
             "expected_target_commit": self.expected_target_commit,
             "authorization": self.authorization,
+            "commit_message": self.commit_message,
+            "config_backup_paths": list(self.config_backup_paths),
         }
 
 
@@ -252,7 +268,8 @@ class IntegrationRun:
         checks = self.checks + batch
         if all(item.get("passed") is True for item in batch):
             return self._step(
-                "running", "publishing", "checks_passed", checks=checks, failure=None
+                "running", "publishing", "checks_passed", checks=checks, failure=None,
+                details={"check_ids": [item["id"] for item in batch]},
             )
         failure = {"reason": "checks_failed", "checks": list(batch)}
         return self._step(
@@ -294,6 +311,20 @@ class IntegrationRun:
             "running", "publishing", "publication_retry_started", failure=None,
         )
 
+    def recheck_publication(self):
+        if self.phase not in ("publishing", "publication_failed"):
+            raise DomainError("Only a pending publication can return to candidate checks")
+        return self._step(
+            "running", "candidate_ready", "publication_checks_restarted", failure=None,
+        )
+
+    def require_current_checks(self):
+        if self.phase != "publishing":
+            raise DomainError("Current verification requires a publication candidate")
+        return self._step(
+            "running", "candidate_ready", "current_checks_required", failure=None,
+        )
+
     def publication_confirmed(self, target_ref, receipt, *, no_op, recovered):
         if (self.phase != "publishing" or self.integration_head is None
                 or self.last_included_target is None):
@@ -319,6 +350,14 @@ class IntegrationRun:
         return self._step(
             "cleanup_pending", "cleanup_pending", f"{component}_cleanup_blocked",
             details=details, cleanup=cleanup,
+        )
+
+    def configuration_backup_completed(self, files):
+        if self.phase != "cleanup_pending":
+            raise DomainError("Configuration backup requires confirmed publication")
+        return self._step(
+            "cleanup_pending", "cleanup_pending", "configuration_backup_completed",
+            details={"files": list(files)},
         )
 
     def cleanup_completed(self, component, outcome):

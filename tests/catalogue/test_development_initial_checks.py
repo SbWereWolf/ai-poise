@@ -227,7 +227,7 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
     from poise.modules.goal_config.domain import fingerprint
 
     template = json.loads(TEMPLATE_PATH.read_text())
-    settings = json.loads((ROOT / "config/catalogue/settings.json").read_text())
+    settings = json.loads((ROOT / "config/catalogue/settings.example.json").read_text())
     reference = json.loads((ROOT / "config/catalogue/reference.json").read_text())
     entry = settings["task_templates"]["development-v1"]
     assert entry["digest"] == fingerprint(template)
@@ -237,7 +237,7 @@ def test_catalogue_identity_reference_and_example_use_explicit_checks():
     assert development["method_schedule"] == {}
     assert reference["methods"]["development"] == {}
     walkthrough = _load_walkthrough()
-    catalogue = FileCatalogue(ROOT / "config/catalogue/settings.json")
+    catalogue = FileCatalogue(ROOT / "config/catalogue/settings.example.json")
     process = GoalTypeDefinition.parse(json.loads(PROCESS_PATH.read_text())).data
     task = walkthrough["prepare_task"](
         catalogue,

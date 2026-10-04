@@ -1,0 +1,212 @@
+{
+  "route": {
+    "entry": "baseline"
+  },
+  "goal_type": "development",
+  "worktree_required": true,
+  "stages": [
+    {
+      "id": "baseline",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**",
+        "tests/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "role": "executor",
+      "transitions": {
+        "complete": "baseline_inspection"
+      },
+      "rework_targets": [
+        "baseline"
+      ]
+    },
+    {
+      "id": "baseline_inspection",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "role": "reviewer",
+      "transitions": {
+        "clear": "solution_planning",
+        "changes_requested": "baseline"
+      },
+      "rework_targets": [
+        "baseline"
+      ]
+    },
+    {
+      "id": "solution_planning",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**",
+        "tests/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "role": "executor",
+      "transitions": {
+        "complete": "solution_planning_inspection"
+      },
+      "rework_targets": [
+        "solution_planning"
+      ]
+    },
+    {
+      "id": "solution_planning_inspection",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "role": "reviewer",
+      "transitions": {
+        "clear": "test_implementation",
+        "changes_requested": "solution_planning"
+      },
+      "rework_targets": [
+        "solution_planning"
+      ]
+    },
+    {
+      "id": "test_implementation",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**",
+        "tests/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "role": "executor",
+      "transitions": {
+        "complete": "test_inspection"
+      },
+      "rework_targets": [
+        "test_implementation"
+      ]
+    },
+    {
+      "id": "test_inspection",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "role": "reviewer",
+      "transitions": {
+        "clear": "implementation",
+        "changes_requested": "test_implementation"
+      },
+      "rework_targets": [
+        "test_implementation"
+      ]
+    },
+    {
+      "id": "implementation",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": false,
+      "allowed_paths": [
+        "src/**",
+        "tests/**"
+      ],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "role": "executor",
+      "transitions": {
+        "complete": "implementation_inspection"
+      },
+      "rework_targets": [
+        "implementation"
+      ]
+    },
+    {
+      "id": "implementation_inspection",
+      "instruction": "Complete the test-owned stage obligation.",
+      "read_only": true,
+      "allowed_paths": [],
+      "normalization": "strip",
+      "sections": {
+        "report": "Record actual result."
+      },
+      "required_sections": [
+        "report"
+      ],
+      "artifact_requirements": [],
+      "handler": "inspect",
+      "role": "reviewer",
+      "transitions": {
+        "clear": null,
+        "changes_requested": "implementation"
+      },
+      "rework_targets": [
+        "implementation"
+      ]
+    }
+  ],
+  "benefit": {
+    "git_categories": [
+      "code"
+    ],
+    "sections": []
+  },
+  "content_contract": {
+    "sections": [],
+    "routes": [],
+    "requirements": []
+  }
+}

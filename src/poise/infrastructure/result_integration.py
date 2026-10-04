@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import locale
 import os
 from pathlib import Path
 import re
 import shutil
 import stat
 import subprocess
+import sys
 import uuid
 
 from ..common import descendant, digest, file_digest, prohibit_git_push
-from ..execution import method_passed, preview, run_command
+from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, preview, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
@@ -38,24 +41,26 @@ class RuntimeResultIntegration:
         prohibit_git_push(["git", *args])
         try:
             result = subprocess.run(
-                ["git", "-C", str(cwd), *args], capture_output=True, text=True,
+                ["git", "-C", str(cwd), *args], capture_output=True,
                 timeout=self.h.cfg["limits"]["git_seconds"],
                 env=os.environ if env is None else env,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f"Git {args[0]} did not complete: {exc}") from exc
+        # Match subprocess text encoding without translating path CR/CRLF.
+        encoding = "utf-8" if sys.flags.utf8_mode else locale.getencoding()
         return {
             "argv": ["git", "-C", str(cwd), *args],
             "actual_exit_code": result.returncode,
-            "stdout": result.stdout[-self.h.cfg["limits"]["preview_chars"]:],
-            "stderr": result.stderr[-self.h.cfg["limits"]["preview_chars"]:],
+            "stdout": result.stdout.decode(encoding, errors="strict"),
+            "stderr": result.stderr.decode(encoding, errors="strict"),
         }
 
     def _git(self, cwd, *args, env=None):
         receipt = self._run(cwd, *args, env=env)
         if receipt["actual_exit_code"] != 0:
             raise PoiseError(f"Git {args[0]}: {receipt['stderr']}")
-        return receipt["stdout"] if "-z" in args else receipt["stdout"].strip()
+        return receipt["stdout"] if "-z" in args else receipt["stdout"].removesuffix("\n")
 
     def _optional_ref(self, cwd, ref):
         receipt = self._run(cwd, "rev-parse", "--verify", "--quiet", ref)
@@ -74,21 +79,136 @@ class RuntimeResultIntegration:
             / "result-integration" / task_id / identity
         )
 
-    def _load(self, task_id):
+    def _read_state(self, task_id):
+        """Decode through the existing domain owner without persisting recovery."""
         record = self.h.task_queries.record(task_id)
         if record is None:
             raise PoiseError("Integration task does not exist")
         pending = record["pending"]
         if pending is None:
-            return record, None
-        if pending.get("schema") == "existing-task-worktree-1":
-            return record, IntegrationRun.restore(pending)
-        run = IntegrationRun.recover_legacy(
-            pending, record["branch"], record["worktree"],
-            self._temporary_backup_directory(task_id, pending["intent"]["request_id"]),
-        )
-        self._save(task_id, run, pending["version"])
+            return record, None, None
+        if not isinstance(pending, dict):
+            raise PoiseError("Saved result integration state is invalid")
+        if isinstance(pending.get("intent"), dict) and "commit_message" not in pending["intent"]:
+            raise PoiseError(
+                "Saved integration request lacks explicit commit_message; history is retained "
+                "and automatic continuation cannot recover a message never recorded"
+            )
+        try:
+            if pending.get("schema") == "existing-task-worktree-1":
+                return record, IntegrationRun.restore(pending), None
+            run = IntegrationRun.recover_legacy(
+                pending, record["branch"], record["worktree"],
+                self._temporary_backup_directory(task_id, pending["intent"]["request_id"]),
+            )
+            return record, run, pending["version"]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PoiseError("Saved result integration state is invalid") from exc
+
+    def _load(self, task_id, requested_intent):
+        record, run, legacy_version = self._read_state(task_id)
+        if run is not None and requested_intent is not None \
+                and not self._same_intent(run, requested_intent):
+            raise PoiseError("Task integration intent is immutable")
+        if legacy_version is not None:
+            self._save(task_id, run, legacy_version)
         return record, run
+
+    def _destination_refusal(self, reason, facts):
+        diagnostic = {
+            **facts, "reason": reason,
+            "correction": (
+                "Владелец конфигурации должен исправить привязку репозитория; "
+                "оператор должен восстановить объявленную целевую ветку в нужном "
+                "checkout, сохранив рабочие изменения. Автоматического переключения "
+                "веток и синхронизации в существующую Task другого хранилища нет."
+            ),
+        }
+        raise PoiseError(
+            "Назначение интеграции не соответствует договору: "
+            + json.dumps(diagnostic, ensure_ascii=False, sort_keys=True)
+        )
+
+    def _observe_destination(self, root, facts, prefix):
+        environment = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
+        try:
+            resolved = Path(root).resolve(strict=True)
+            facts[prefix + "_root"] = self._git(
+                resolved, "rev-parse", "--show-toplevel", env=environment,
+            )
+            facts[prefix + "_common_directory"] = self._git(
+                resolved, "rev-parse", "--path-format=absolute", "--git-common-dir",
+                env=environment,
+            )
+            branch = self._run(resolved, "symbolic-ref", "--quiet", "HEAD", env=environment)
+            if branch["actual_exit_code"] not in (0, 1):
+                raise PoiseError("Git could not observe the checked-out branch")
+            facts[prefix + "_branch"] = (
+                branch["stdout"].strip() if branch["actual_exit_code"] == 0 else "detached"
+            )
+            return resolved
+        except (OSError, TypeError, ValueError, PoiseError) as exc:
+            facts["observation_error"] = str(exc)
+            self._destination_refusal(prefix + "_unavailable", facts)
+
+    def _validate_destination(self, record):
+        facts = {
+            "configured_repository": self.h.cfg["git"]["repository"],
+            "configured_target_ref": self._target_ref(),
+            "registered_task_worktree": record["worktree"],
+            "registered_task_branch": record["branch"],
+        }
+        repository = self._observe_destination(facts["configured_repository"], facts, "observed")
+        source = self._observe_destination(facts["registered_task_worktree"], facts, "source")
+        if Path(facts["observed_root"]).resolve() != repository:
+            self._destination_refusal("publication_checkout_root_mismatch", facts)
+        if Path(facts["source_root"]).resolve() != source or source == repository:
+            self._destination_refusal("task_checkout_root_mismatch", facts)
+        if Path(facts["observed_common_directory"]).resolve() \
+                != Path(facts["source_common_directory"]).resolve():
+            self._destination_refusal("repository_mismatch", facts)
+        if facts["observed_branch"] != facts["configured_target_ref"]:
+            self._destination_refusal("target_not_checked_out", facts)
+        source_ref = "refs/heads/" + self._short_branch(record["branch"])
+        if facts["source_branch"] != source_ref:
+            self._destination_refusal("task_branch_mismatch", facts)
+        environment = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
+        try:
+            self._git(repository, "rev-parse", "--verify", self._target_ref(), env=environment)
+            listed = self._git(repository, "worktree", "list", "--porcelain", "-z", env=environment)
+        except PoiseError as exc:
+            facts["observation_error"] = str(exc)
+            self._destination_refusal("destination_registration_unavailable", facts)
+        entries, entry = [], {}
+        for field in listed.split("\0"):
+            if not field:
+                if entry:
+                    entries.append(entry)
+                    entry = {}
+                continue
+            key, _, value = field.partition(" ")
+            entry[key] = value
+        if entry:
+            entries.append(entry)
+        if not any(
+            Path(item["worktree"]).resolve() == source and item.get("branch") == source_ref
+            for item in entries if "worktree" in item
+        ):
+            self._destination_refusal("task_worktree_not_registered", facts)
+        return repository
+
+    def _admit(self, intent):
+        record, run, legacy_version = self._read_state(intent.task_id)
+        if run is not None and not self._same_intent(run, intent) \
+                and not self._completed_replay(run, intent):
+            raise PoiseError("Task integration intent is immutable")
+        if run is None or run.requires_destination_admission:
+            repository = self._validate_destination(record)
+        else:
+            repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
+        if legacy_version is not None:
+            self._save(intent.task_id, run, legacy_version)
+        return record, run, repository
 
     def _save(self, task_id, run, expected_version):
         with self.h.store.unit_of_work() as uow:
@@ -164,17 +284,17 @@ class RuntimeResultIntegration:
         if self._git(repository, "rev-parse", self._target_ref()) \
                 != intent.expected_target_commit:
             raise PoiseError("Expected target commit changed before integration")
-        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.authorization) is None:
+
+    def _validate_message(self, intent):
+        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.commit_message) is None:
             raise PoiseError("Integration commit message violates the configured pattern")
 
     def prepare_source(self, intent):
-        repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        record, run = self._load(intent.task_id)
+        self._validate_message(intent)
+        record, run, repository = self._admit(intent)
         if run is None:
             self._validate_new(record, intent, repository)
             return record
-        if not self._same_intent(run, intent) and not self._completed_replay(run, intent):
-            raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated" or run.phase == "cleanup_pending":
             return None
         self._validate_source(record, intent, repository, run)
@@ -193,6 +313,12 @@ class RuntimeResultIntegration:
         ready = run.candidate_ready(head, receipt)
         self._save(run.intent.task_id, ready, run.version)
         return ready
+
+    def _commit_candidate(self, run, worktree):
+        return self._run(
+            worktree, "commit", "--cleanup=verbatim", "-m", run.intent.commit_message,
+            env=self._actor(),
+        )
 
     def _prepare_candidate(self, run):
         worktree = Path(run.task_worktree).resolve(strict=True)
@@ -214,16 +340,12 @@ class RuntimeResultIntegration:
             self._git(worktree, "add", "--", *sorted(run.conflicts))
             if self._conflicts(worktree):
                 raise PoiseError("The Git index still contains unresolved conflicts")
-            receipt = self._run(
-                worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-            )
+            receipt = self._commit_candidate(run, worktree)
             if receipt["actual_exit_code"] != 0:
                 return self._candidate_failed(run, "integration_commit_failed", receipt)
             return self._record_candidate(run, worktree, receipt)
         if merge_head == target and not conflicts:
-            receipt = self._run(
-                worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-            )
+            receipt = self._commit_candidate(run, worktree)
             if receipt["actual_exit_code"] != 0:
                 return self._candidate_failed(run, "integration_commit_failed", receipt)
             return self._record_candidate(run, worktree, {**receipt, "recovered": True})
@@ -251,9 +373,7 @@ class RuntimeResultIntegration:
             return self._candidate_failed(run, "merge_failed_without_conflicts", receipt)
         if self._optional_ref(worktree, "MERGE_HEAD") is None:
             return self._record_candidate(run, worktree, receipt)
-        commit = self._run(
-            worktree, "commit", "-m", run.intent.authorization, env=self._actor()
-        )
+        commit = self._commit_candidate(run, worktree)
         if commit["actual_exit_code"] != 0:
             return self._candidate_failed(run, "integration_commit_failed", commit)
         return self._record_candidate(run, worktree, commit)
@@ -341,6 +461,12 @@ class RuntimeResultIntegration:
                         or receipt.get("stderr_digest") != file_digest(stderr)
                         or not method_passed(method, receipt)):
                     return False
+                if inspect_declared_output_receipts(method.get('outputs', []), receipt.get('outputs')) != (True, True):
+                    return False
+                if any(output['status'] == 'captured'
+                       and output['path'] != str(run_dir / 'outputs' / output['id'])
+                       for output in receipt['outputs']):
+                    return False
             except (OSError, KeyError, ValueError):
                 return False
         return True
@@ -400,12 +526,18 @@ class RuntimeResultIntegration:
             environment.update(method["environment"])
             check_id = str(uuid.uuid4())
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            declared_output_dir = run_dir / "declared-outputs"
+            declared_output_dir.mkdir(parents=True, exist_ok=True)
+            environment["POISE_RUN_OUTPUT_DIR"] = str(declared_output_dir)
             result = run_command(
                 method["argv"], cwd, environment, None,
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
             self._checked_workspace(run)
+            outputs, outputs_complete = capture_declared_outputs(
+                method.get("outputs", []), declared_output_dir, run_dir / "outputs",
+            )
             receipts.append({
                 **result, "id": check_id, "method": method["id"],
                 "definition_digest": digest(method),
@@ -413,7 +545,8 @@ class RuntimeResultIntegration:
                 "integration_head": head, "verified_tree": verified_tree,
                 "argv": method["argv"], "cwd": str(cwd),
                 "expected_exit_code": method["expected_exit_code"],
-                "passed": method_passed(method, result),
+                "passed": method_passed(method, result) and outputs_complete,
+                "outputs": outputs,
                 "stdout_digest": file_digest(Path(result["stdout"])),
                 "stderr_digest": file_digest(Path(result["stderr"])),
                 "preview": preview(Path(result["stderr"]),
@@ -428,56 +561,7 @@ class RuntimeResultIntegration:
         return digest({"contract": record["contract"], "task_version": record["version"]})
 
     def _has_current_checks(self, record, run):
-        worktree, head = self._checked_workspace(run)
-        tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
-        required = {method["id"]: method for method in self._select_checks(record)}
-        passed = next((event for event in reversed(run.history)
-                       if event["event"] == "checks_passed"), None)
-        if passed is None:
-            return False
-        details = passed.get("details")
-        if not isinstance(details, dict) or not isinstance(details.get("check_ids"), list):
-            return False
-        identifiers = details["check_ids"]
-        if (len(identifiers) != len(required)
-                or any(not isinstance(value, str) for value in identifiers)
-                or len(set(identifiers)) != len(identifiers)):
-            return False
-        selected = []
-        for identifier in identifiers:
-            matching = [item for item in run.checks
-                        if isinstance(item, dict) and item.get("id") == identifier]
-            if len(matching) != 1:
-                return False
-            selected.append(matching[0])
-        if {item.get("method") for item in selected} != set(required):
-            return False
-        contract_digest = self._contract_digest(record)
-        for receipt in selected:
-            method = required[receipt["method"]]
-            if (receipt.get("passed") is not True
-                    or receipt.get("integration_head") != head
-                    or receipt.get("verified_tree") != tree
-                    or receipt.get("definition_digest") != digest(method)
-                    or receipt.get("contract_digest") != contract_digest
-                    or receipt.get("argv") != method["argv"]
-                    or receipt.get("cwd") != str((worktree / method["cwd"]).resolve())
-                    or receipt.get("expected_exit_code") != method["expected_exit_code"]
-                    or receipt.get("actual_exit_code") != method["expected_exit_code"]
-                    or receipt.get("timed_out") is not False
-                    or receipt.get("cancelled") is True
-                    or receipt.get("capture_complete") is not True):
-                return False
-            for name in ("stdout", "stderr"):
-                value = receipt.get(name)
-                if not isinstance(value, str) or not value:
-                    return False
-                path = Path(value)
-                if not path.is_file() or file_digest(path) != receipt.get(name + "_digest"):
-                    return False
-            if not method_passed(method, receipt):
-                return False
-        return True
+        return self._complete_candidate_proof(record, run)
 
     def _publication_lock(self):
         identity = hashlib.sha256(self._target_ref().encode()).hexdigest()[:16]
@@ -638,6 +722,117 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, completed, run.version)
         return completed
 
+    @staticmethod
+    def _regular_config_source(worktree, relative):
+        source = worktree / relative
+        current = worktree
+        for part in Path(relative).parts[:-1]:
+            current = current / part
+            try:
+                mode = current.lstat().st_mode
+            except FileNotFoundError:
+                return None
+            if not stat.S_ISDIR(mode):
+                raise PoiseError("Declared configuration has an unsafe parent")
+        try:
+            mode = source.lstat().st_mode
+        except FileNotFoundError:
+            return None
+        if not stat.S_ISREG(mode) or not stat.S_IMODE(mode) & 0o444:
+            raise PoiseError("Declared configuration is not a regular file")
+        return source
+
+    @staticmethod
+    def _private_directory(path):
+        if path.exists() or path.is_symlink():
+            mode = path.lstat().st_mode
+            if not stat.S_ISDIR(mode) or stat.S_IMODE(mode) & 0o077:
+                raise PoiseError("Configuration recovery parent is unsafe")
+        else:
+            path.mkdir(mode=0o700)
+
+    def _backup_configuration(self, run):
+        def source_identity(info):
+            return (info.st_dev, info.st_ino, info.st_size, info.st_mode,
+                    info.st_mtime_ns, info.st_ctime_ns)
+
+        paths = run.intent.config_backup_paths
+        if not paths or run.cleanup["task_worktree"] == "removed":
+            return run, True
+        record = self.h.task_queries.record(run.intent.task_id)
+        recovery = task_root(
+            self.h.state, self.h.paths, run.intent.task_id, record["sprint_id"]
+        ) / "configuration-recovery" / self._identity(run.intent)
+        worktree = Path(run.task_worktree)
+        prior = next((item["details"]["files"] for item in run.history
+                      if item.get("event") == "configuration_backup_completed"), None)
+        files = []
+        failure_reason = "configuration_backup_failed"
+        try:
+            self._private_directory(recovery.parent)
+            self._private_directory(recovery)
+            for relative in paths:
+                source = self._regular_config_source(worktree, relative)
+                if source is None:
+                    files.append({"path": relative, "status": "absent"})
+                    continue
+                fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
+                with os.fdopen(fd, "rb") as stream:
+                    info = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(info.st_mode):
+                        failure_reason = "configuration_source_changed"
+                        raise PoiseError("Declared configuration changed during backup")
+                    content = stream.read()
+                    if source_identity(info) != source_identity(os.fstat(stream.fileno())):
+                        failure_reason = "configuration_source_changed"
+                        raise PoiseError("Declared configuration changed during backup")
+                destination = recovery
+                for part in Path(relative).parts[:-1]:
+                    destination = destination / part
+                    self._private_directory(destination)
+                destination = destination / Path(relative).name
+                digest = hashlib.sha256(content).hexdigest()
+                if destination.exists() or destination.is_symlink():
+                    mode = destination.lstat().st_mode
+                    if (not stat.S_ISREG(mode) or stat.S_IMODE(mode) & 0o077
+                            or file_digest(destination) != digest):
+                        raise PoiseError("Existing configuration backup conflicts with source")
+                else:
+                    fd = os.open(
+                        destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                        0o600,
+                    )
+                    with os.fdopen(fd, "wb") as stream:
+                        stream.write(content)
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                failure_reason = "configuration_source_changed"
+                if source_identity(info) != source_identity(source.lstat()):
+                    raise PoiseError("Declared configuration changed during backup")
+                failure_reason = "configuration_backup_failed"
+                files.append({
+                    "path": relative, "status": "copied", "sha256": digest,
+                    "source_mode": stat.S_IMODE(info.st_mode),
+                    "recovery_path": str(destination),
+                })
+        except (OSError, PoiseError):
+            blocked = run.cleanup_blocked(
+                "task_worktree", {"reason": failure_reason}
+            )
+            self._save(run.intent.task_id, blocked, run.version)
+            return blocked, False
+        if prior is not None:
+            if files != prior:
+                blocked = run.cleanup_blocked(
+                    "task_worktree", {"reason": "configuration_backup_changed"}
+                )
+                self._save(run.intent.task_id, blocked, run.version)
+                return blocked, False
+            return run, True
+        completed = run.configuration_backup_completed(files)
+        self._save(run.intent.task_id, completed, run.version)
+        return completed, True
+
     def _cleanup(self, run, repository):
         if run.phase != "cleanup_pending":
             return run
@@ -646,6 +841,9 @@ class RuntimeResultIntegration:
             raise PoiseError("Current target does not contain the published integration head")
         if not self._contains(repository, run.accepted_commit, current_target):
             raise PoiseError("Current target does not contain the accepted commit")
+        run, backed_up = self._backup_configuration(run)
+        if not backed_up:
+            return run
         disposition = CommitDisposition(
             "integrated",
             expected_commit=run.accepted_commit,
@@ -798,14 +996,12 @@ class RuntimeResultIntegration:
                 )
 
     def apply(self, intent):
-        repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        record, run = self._load(intent.task_id)
+        self._validate_message(intent)
+        record, run, repository = self._admit(intent)
         if run is None:
             self._validate_new(record, intent, repository)
             run = self._new_run(record, intent)
             self._save(intent.task_id, run, -1)
-        elif not self._same_intent(run, intent) and not self._completed_replay(run, intent):
-            raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated":
             self._reconcile_terminal_ownership(run, repository)
             return run.result(replayed=True)
@@ -838,7 +1034,16 @@ class RuntimeResultIntegration:
                     return run.result()
             if run.phase in ("publishing", "publication_failed"):
                 record = self.h.task_queries.record(intent.task_id)
-                if not self._complete_candidate_proof(record, run):
+                try:
+                    complete_proof = self._complete_candidate_proof(record, run)
+                except PoiseError as exc:
+                    if run.phase != "publishing":
+                        raise
+                    run = self._publication_failed(
+                        run, "task_worktree_changed", {"error": str(exc)},
+                    )
+                    return run.result()
+                if not complete_proof:
                     rechecking = run.recheck_publication()
                     self._save(intent.task_id, rechecking, run.version)
                     run = rechecking
@@ -875,7 +1080,7 @@ class RuntimeResultIntegration:
         if (not isinstance(task_id, str) or not task_id
                 or not isinstance(request_id, str) or not request_id):
             raise PoiseError("Integration query requires task_id and request_id")
-        _, run = self._load(task_id)
+        _, run = self._load(task_id, None)
         if run is None or run.intent.request_id != request_id:
             raise PoiseError("Result integration request was not found")
         return run.result()

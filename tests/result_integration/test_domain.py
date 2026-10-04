@@ -11,6 +11,7 @@ def intent():
         "expected_source_commit": "a" * 40,
         "expected_target_commit": "b" * 40,
         "authorization": "The user accepted the completed task result.",
+        "commit_message": "Preserve the accepted product outcome",
         "resolutions": [],
     })
 

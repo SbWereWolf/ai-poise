@@ -1,0 +1,72 @@
+[
+  {
+    "node": "test_unpaired_surrogate_request_is_rejected_before_effects[project-high-start]",
+    "label": "project-high-start",
+    "cause": "unicode-published"
+  },
+  {
+    "node": "test_unpaired_surrogate_request_is_rejected_before_effects[project-high-end]",
+    "label": "project-high-end",
+    "cause": "unicode-published"
+  },
+  {
+    "node": "test_unpaired_surrogate_request_is_rejected_before_effects[project-low-start]",
+    "label": "project-low-start",
+    "cause": "unicode-published"
+  },
+  {
+    "node": "test_unpaired_surrogate_request_is_rejected_before_effects[project-low-end]",
+    "label": "project-low-end",
+    "cause": "unicode-published"
+  },
+  {
+    "node": "test_unpaired_surrogate_request_is_rejected_before_effects[target_root]",
+    "label": "target_root",
+    "cause": "target_root_mismatch"
+  },
+  {
+    "node": "test_unpaired_surrogate_request_is_rejected_before_effects[source_root]",
+    "label": "source_root",
+    "cause": "unicode-preflight"
+  },
+  {
+    "node": "test_unpaired_surrogate_declaration_is_rejected_before_effects[project]",
+    "label": "project",
+    "cause": "project_mismatch"
+  },
+  {
+    "node": "test_unpaired_surrogate_declaration_is_rejected_before_effects[target_root]",
+    "label": "target_root",
+    "cause": "target_root_mismatch"
+  },
+  {
+    "node": "test_unpaired_surrogate_declaration_is_rejected_before_effects[later_path]",
+    "label": "later_path",
+    "cause": "unicode-later-path"
+  },
+  {
+    "node": "test_unpaired_surrogate_declaration_is_rejected_before_effects[later_source_path]",
+    "label": "later_source_path",
+    "cause": "unicode-preflight"
+  },
+  {
+    "node": "test_unpaired_surrogate_declaration_is_rejected_before_effects[working_repair]",
+    "label": "working_repair",
+    "cause": "accepted-publication"
+  },
+  {
+    "node": "test_donor_git_environment_does_not_validate_plain_target",
+    "label": "plain-donor",
+    "cause": "accepted-publication"
+  },
+  {
+    "node": "test_distinct_donor_overrides_do_not_redirect_genuine_target[ordinary]",
+    "label": "genuine-donor-ordinary",
+    "cause": "invalid_target_root"
+  },
+  {
+    "node": "test_distinct_donor_overrides_do_not_redirect_genuine_target[linked]",
+    "label": "genuine-donor-linked",
+    "cause": "invalid_target_root"
+  }
+]

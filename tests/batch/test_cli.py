@@ -40,6 +40,32 @@ def test_cli_no_file_input_compatibility(project):
     assert old.returncode==2
 
 
+def test_cli_accepts_public_ordinary_release_packet(project):
+    configure(project)
+    started=call(project,request('bootstrap',{
+        'task':project['task'],'decision':None,'feedback':None,'rework_stage':None,
+    }))
+    assert started.returncode==0,started.stdout+started.stderr
+    start_view=json.loads(started.stdout)
+    start_result=json.loads(Path(start_view['response_path']).read_text())
+    packet=json.loads((Path(__file__).parents[1]/'ownership/fixtures/public-release.json').read_text())
+    packet['input']['request_id']='cli-ordinary-release-1'
+    packet['input']['expected_version']=start_result['version']
+    released=call(project,packet)
+    assert released.returncode==0,released.stdout+released.stderr
+    release_view=json.loads(released.stdout)
+    release_result=json.loads(Path(release_view['response_path']).read_text())
+    assert release_result['status']=='ownership_released'
+    assert release_result['task']=='T1'
+    assert release_result['after']['task_id'] is None
+    assert release_result['after']['worktree_task_id'] is None
+    replay=call(project,packet)
+    assert replay.returncode==0,replay.stdout+replay.stderr
+    replay_view=json.loads(replay.stdout)
+    replay_result=json.loads(Path(replay_view['response_path']).read_text())
+    assert replay_result['replayed'] is True
+
+
 def test_small_output_cap_blocks_before_bootstrap_effect(project):
     configure(project);project['cfg']['limits']['output_chars']=1
     project['config_path'].write_text(json.dumps(project['cfg']))

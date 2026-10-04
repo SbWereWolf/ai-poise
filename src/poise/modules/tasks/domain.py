@@ -6,7 +6,7 @@ import json
 from ..content.domain import SectionBook, SectionRule, SectionValue
 from ..foundation.errors import DomainError
 from ..workflow.domain import HandlerKind, RouteDefinition, RouteProgress
-from ..workflow.handlers import handler, HandlerResult
+from ..workflow.handlers import handler, HandlerResult, evaluate_stage
 from ..evidence.domain import EvidencePlan, EvidenceBook
 from ..inspection.domain import FeedbackBook
 from ..verification.domain import CheckRegistry
@@ -627,8 +627,7 @@ class Task:
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
         self.evidence_plan.validate_work(self.stage.stage_id, evidence_work)
-        stage_handler = handler(self.route.node(self.stage.stage_id).handler)
-        handling = stage_handler.evaluate(stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
+        handling = evaluate_stage(self.route, stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
         registry_change = None
         registry_event = None
@@ -839,7 +838,7 @@ class Task:
             raise DomainError("Нет проверенного outcome этапа")
         target = self.route.node(self.stage.stage_id).target(self.progress.outcome)
         if target is None:
-            if self.feedback.open_findings:
+            if self.feedback.open_findings or self.feedback.pending_resolutions:
                 raise DomainError("Нельзя завершить задачу с открытыми внутренними находками")
             return self._change("user_accept", None, None, status=TaskStatus.COMPLETED, claimed_by=None)
         if advance:
@@ -871,6 +870,8 @@ class Task:
         )
 
     def _enter(self, event: str, reason: str | None, actor: str, target: str, progress: RouteProgress) -> Change:
+        if self.route.node(target).handler == HandlerKind.PUBLISH:
+            self.feedback.require_resolved()
         state = replace(self.state, version=self.state.version + 1,
                         stage_index=self.route.index(target), iteration=dict(progress.visits)[target],
                         status=TaskStatus.ACTIVE, claimed_by=actor, submission_digest=None)
@@ -882,21 +883,15 @@ class Task:
         pending_resolutions = self.feedback.pending_resolutions
         if not pending_resolutions:
             return
-        current = self.route.node(self.stage.stage_id)
-        inspection_stage = (
-            self.stage.stage_id
-            if current.handler == HandlerKind.INSPECT
-            else current.target(self.progress.outcome)
-        )
-        if (inspection_stage is None or
-                self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
+        inspectors = {resolution.id: self.route.next_inspection(resolution.stage)
+                      for resolution in pending_resolutions}
+        if any(stage is None for stage in inspectors.values()):
             raise DomainError(
                 "Rework недоступен: маршрут не определяет обязательный этап "
                 "осмотра ожидающих исправлений"
             )
-        resolution_ids = ", ".join(
-            resolution.id for resolution in pending_resolutions
-        )
+        resolution_ids = ", ".join(pending.id for pending in pending_resolutions)
+        inspection_stage = ", ".join(dict.fromkeys(inspectors.values()))
         raise DomainError(
             f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
             f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
@@ -1038,8 +1033,8 @@ class Task:
                 "stage_contract":contracts.stage(self.stage.stage_id).to_dict()}
 
     def _handling(self):
-        handling = handler(self.route.node(self.stage.stage_id).handler).evaluate(
-            json.loads(self.progress.stage_work), self.feedback, self.stage.stage_id, self.state.iteration)
+        handling = evaluate_stage(self.route, json.loads(self.progress.stage_work),
+                                  self.feedback, self.stage.stage_id, self.state.iteration)
         if self.route.node(self.stage.stage_id).handler.value in ('apply_plan','publish'):
             if self.action_assessment is None:
                 return handling
@@ -1073,8 +1068,8 @@ class Task:
         if book == self.evidence_book:
             return self._unchanged()
         change = self._change('observations_recorded',None,None)
-        base=handler(self.route.node(self.stage.stage_id).handler).evaluate(
-            json.loads(self.progress.stage_work),self.feedback,self.stage.stage_id,self.state.iteration)
+        base=evaluate_stage(self.route, json.loads(self.progress.stage_work),
+                            self.feedback,self.stage.stage_id,self.state.iteration)
         return replace(change,task=replace(change.task,evidence_book=book,evidence_assessment=None,
                                            progress=replace(self.progress,outcome=base.outcome)))
 

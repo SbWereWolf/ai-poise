@@ -310,6 +310,32 @@ class RegistrySnapshot:
     revision: int
     entries: tuple[RegisteredCheck, ...]
 
+    @classmethod
+    def from_dict(cls, raw: dict) -> RegistrySnapshot:
+        exact_keys(raw, {'revision', 'entries'}, 'registry snapshot')
+        if type(raw['revision']) is not int or raw['revision'] < 0:
+            raise DomainError('registry snapshot.revision: требуется неотрицательный int')
+        if not isinstance(raw['entries'], list):
+            raise DomainError('Реестр методов должен быть списком')
+        stages = []
+        for entry in raw['entries']:
+            scheduled = entry.get('stages') if isinstance(entry, dict) else None
+            if (not isinstance(scheduled, list)
+                    or any(not isinstance(stage, str) or not stage for stage in scheduled)):
+                raise DomainError('Метод имеет неизвестные/повторные этапы')
+            for stage in scheduled:
+                if stage not in stages:
+                    stages.append(stage)
+            method = entry.get('method')
+            validate_method(method, 'historical method')
+            plan = method.get('verification_plan')
+            if plan is not None:
+                for stage in plan['red_stages'] + plan['green_stages']:
+                    if stage not in stages:
+                        stages.append(stage)
+        entries = CheckRegistry.from_items(raw['entries'], tuple(stages)).entries
+        return cls(raw['revision'], entries)
+
     def to_dict(self) -> dict:
         return {'revision': self.revision, 'entries': [entry.to_dict() for entry in self.entries]}
 
@@ -639,13 +665,7 @@ class CheckRegistry:
         revision = raw['revision']
         if type(revision) is not int or revision < 0:
             raise DomainError('registry state.revision: требуется неотрицательный int')
-        history = tuple(
-            RegistrySnapshot(
-                item['revision'],
-                CheckRegistry.from_items(item['entries'], self.stages).entries,
-            )
-            for item in raw['history']
-        )
+        history = tuple(RegistrySnapshot.from_dict(item) for item in raw['history'])
         requests = tuple(RegistryRequest(
             item['request_id'],
             item['digest'],

@@ -116,7 +116,19 @@ from .modules.verification.domain import validate_method
 
 
 def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
-    root = path.resolve().parent
+    return _load_config(path, path.resolve().parent, legacy_process_requirements)
+
+
+def validate_candidate_config(path: Path, final_root: Path) -> tuple[Path, dict, dict]:
+    """Validate staged bytes at their explicit final configuration coordinates."""
+    return _load_config(path, final_root, None)
+
+
+def _load_config(path: Path, final_root: Path,
+                 legacy_process_requirements: dict[str, bool] | None) -> tuple[Path, dict, dict]:
+    root = final_root.resolve()
+    material_root = path.resolve().parent
+    final_manifest = root / path.name
     cfg = read_json(path)
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
@@ -182,7 +194,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     except (KeyError,ValueError,re.error) as exc:
         raise PoiseError(f'Некорректное правило Git: {exc}') from exc
     state = configured_root(root, cfg['paths']['state'])
-    if state.is_relative_to(path.resolve()) or path.resolve().is_relative_to(state):
+    if state.is_relative_to(final_manifest) or final_manifest.is_relative_to(state):
         raise PoiseError('Mutable state root overlaps the project manifest')
     for key in ('database','lock','runtime','standalone_tasks','sprints'):
         descendant(state, cfg['paths'][key])
@@ -197,8 +209,21 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     if len(set(requirements_storage + task_storage)) != 4:
         raise PoiseError('Requirements DB/lock должны быть отделены от Task DB/lock')
     codebase = Path(cfg['git']['repository']).resolve()
-    if any(path.is_relative_to(codebase) for path in requirements_storage):
-        raise PoiseError("Requirements storage must be outside the served codebase")
+    internal = tuple(path.relative_to(codebase).as_posix()
+                     for path in requirements_storage if path.is_relative_to(codebase))
+    if internal:
+        from .infrastructure.repository_tree import GitRepositoryTree
+        try:
+            facts = GitRepositoryTree(
+                codebase, cfg['limits']['git_seconds'], cfg['limits']['preview_chars'],
+            ).current_path_facts(internal)
+        except (OSError, PoiseError) as exc:
+            raise PoiseError(f'Requirements storage: не удалось проверить Git: {exc}') from exc
+        for name in internal:
+            if name in facts['tracked']:
+                raise PoiseError(f'Requirements storage: Git отслеживает путь в codebase: {name}')
+            if name not in facts['ignored']:
+                raise PoiseError(f'Requirements storage: Git не игнорирует путь в codebase: {name}')
     for index, left in enumerate(requirements_storage):
         for right in [*task_storage, *requirements_storage[index + 1:]]:
             try:
@@ -272,7 +297,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
         process_path=descendant(root, rel)
         if state.is_relative_to(process_path) or process_path.is_relative_to(state):
             raise PoiseError('Mutable state root overlaps a process configuration')
-        process = read_json(process_path)
+        process = read_json(descendant(material_root, rel))
         from .modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS
         if (legacy_process_requirements is not None
                 and set(process) == PROCESS_FIELDS - {'worktree_required'}):

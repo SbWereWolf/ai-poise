@@ -188,6 +188,7 @@ class Poise:
         self.transfer_tools=TransferCommands(RuntimeTransfers(self),self.cfg['runtime_services']['transfer'])
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
+        self.source_under_test_resolver = resolve_source_under_test
         self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
         from .application.task_cleanup import TaskResourceCleanup
         from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup

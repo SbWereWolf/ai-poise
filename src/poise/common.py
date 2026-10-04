@@ -116,8 +116,12 @@ from .modules.verification.domain import validate_method
 
 
 def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
+    return load_config_document(path, read_json(path), legacy_process_requirements)
+
+
+def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
+    """Validate one observed manifest through the canonical configuration contract."""
     root = path.resolve().parent
-    cfg = read_json(path)
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}

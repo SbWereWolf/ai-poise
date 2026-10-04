@@ -2,10 +2,10 @@
 
 No migration, remote store import or automatic backup delivery is implied.
 """
+from ..modules.actions.domain import CommitMessagePolicy
 from copy import deepcopy
 import json
 import os
-import re
 import shutil
 from pathlib import Path
 from ..common import PoiseError,descendant,digest,file_digest,encoded
@@ -58,9 +58,9 @@ class LocalHandoff:
         head=data['base'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         dirty=False if worktree_free else h._git(worktree,'rev-parse','HEAD^{tree}')!=tree
         msg=args['commit_message']
-        if dirty and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
+        if dirty and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
             raise PoiseError('WIP requires explicit valid repository commit message')
-        if not dirty and msg is not None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
+        if not dirty and msg is not None and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
             raise PoiseError('Invalid supplied handoff commit message')
         directory=descendant(h._roots(data)['task'],self.config['directory'])/digest([h.session,request_id])
         # Every selected runtime artifact is copied to task before cleanup; data in

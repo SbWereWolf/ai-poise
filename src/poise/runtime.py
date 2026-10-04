@@ -1,8 +1,8 @@
 from __future__ import annotations
+from .modules.actions.domain import CommitMessagePolicy
 from copy import deepcopy
 import json
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -737,8 +737,7 @@ class Poise:
                 raise PoiseError('Unknown pending check outcome: restore its inputs or use authorised task/restart')
             if data['worktree'] is None or not (changed or pending_merge):
                 raise PoiseError('Worktree-free or unchanged Task cannot commit repository changes')
-            if not isinstance(message, str) or not re.fullmatch(self.cfg['git']['commit_pattern'], message):
-                raise PoiseError('Сообщение коммита не соответствует правилу проекта')
+            CommitMessagePolicy(self.cfg['git']['commit_pattern']).require(message)
             self._git(workspace, 'add', '--all')
             if self._git(workspace, 'write-tree') != tree:
                 raise PoiseError('Индекс не равен проверяемому дереву')
@@ -984,7 +983,10 @@ class Poise:
             if self.sprint_tools.known(task['id']):
                 return self.sprint_tools.select(task['id'])
             selected=self.task_queries.record(task['id'])
-            if selected is None:raise PoiseError('Неизвестный task/sprint ID')
+            if selected is None:
+                from .infrastructure.project_context import FileProjectContext
+                raise PoiseError(FileProjectContext(Path(__file__).resolve().parents[1]).lookup_failure(
+                    self.config_path, self.cfg, task['id']))
             if selected['status']=='newborn':
                 if selected['claimed_by'] is None and self.handoff_tools.commands.latest(selected['id']) is not None:
                     self.handoff_tools.resume(selected)
@@ -1416,8 +1418,8 @@ class Poise:
         else:
             submitted = self.runner.submit(data['id'], self.session, payload)
             data = self._task()
-        if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
-            raise PoiseError('Сообщение коммита не соответствует правилу проекта')
+        if changed:
+            CommitMessagePolicy(self.cfg['git']['commit_pattern']).require(payload['commit_message'])
         roots = self._roots(data)
         artifacts = self._candidate_artifacts(data, payload['artifact_paths'], roots)
         check_counts(artifacts, stage['artifact_requirements'])

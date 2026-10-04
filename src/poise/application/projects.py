@@ -1,5 +1,5 @@
 """Batch input through one port; no project-specific commands or storage access."""
-from ..modules.projects.ports import ProjectSetupPort, ProjectAvailabilityPort
+from ..modules.projects.ports import ProjectSetupPort, ProjectAvailabilityPort, ProjectPreflightPort
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import DomainError, PoiseError
 
@@ -17,9 +17,56 @@ def validate_request(request):
 
 
 class ProjectCommands:
-    def __init__(self, port: ProjectSetupPort, availability: ProjectAvailabilityPort | None = None):
+    def __init__(self, port: ProjectSetupPort, availability: ProjectAvailabilityPort | None = None,
+                 preflight: ProjectPreflightPort | None = None):
         self.port = port
         self.availability = availability
+        self.preflight = preflight
+
+    def input_failure(self, raw, reason):
+        from ..modules.projects.preflight import ProjectPreflightReport
+        if self.preflight is None:
+            raise DomainError('No read-only project preflight port configured')
+        return ProjectPreflightReport(self.preflight.settings_path,
+                                      self.preflight.request_context(raw)).input_failure(reason)
+
+    def check(self, raw):
+        from ..modules.actions.domain import CommitMessagePolicy
+        from ..modules.projects.preflight import ProjectPreflightReport, ProjectPreflightRequest
+        if self.preflight is None:
+            raise DomainError('No read-only project preflight port configured')
+        try:
+            request = ProjectPreflightRequest.parse(raw)
+        except PoiseError as exc:
+            return self.input_failure(raw, str(exc))
+        report = ProjectPreflightReport(self.preflight.settings_path,
+                                        self.preflight.request_context(raw))
+        component = 'configuration'
+        try:
+            observation = self.preflight.observe_configuration(request)
+            report.context = observation.context
+            if observation.rejection is not None:
+                report.record(component, 'rejected', observation.rejection)
+                return report.finish()
+            cfg = observation.configuration
+            report.record(component, 'passed')
+            component = 'git'
+            if request.probe_repository:
+                self.preflight.probe_git(cfg)
+                report.record(component, 'passed')
+            component = 'commit_policy'
+            if request.commit_message is not None:
+                CommitMessagePolicy(cfg['git']['commit_pattern']).require(request.commit_message)
+                report.record(component, 'passed')
+            component = 'task_lookup'
+            if request.task_id is not None:
+                self.preflight.require_task(request.config_path, cfg, request.task_id)
+                report.record(component, 'passed')
+        except PoiseError as exc:
+            report.record(component, 'rejected', str(exc))
+        except Exception as exc:
+            report.record(component, 'unknown', f'{type(exc).__name__}: {exc}')
+        return report.finish()
 
     def apply(self,request):
         validate_request(request)

@@ -13,7 +13,7 @@ def parser():
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
-    project.add_argument('project_action',nargs='?',choices=('list',))
+    project.add_argument('project_action',nargs='?',choices=('list','check'))
     project.add_argument('--settings',type=Path,required=True)
     next_command=sub.add_parser('next',help='Read all startable Tasks across configured projects; never claim')
     next_command.add_argument('--settings',type=Path,required=True)

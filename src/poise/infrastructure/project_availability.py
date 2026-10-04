@@ -25,6 +25,19 @@ class ReadOnlyProjectAvailability:
             root, cfg, _ = load_config(Path(project['config_path']))
             if cfg['project'] != project['project']:
                 raise PoiseError('Configured project identity changed during discovery')
+            return self._with_store(root, cfg, lambda db, state: self._read(db, project, cfg, state))
+        except (OSError, sqlite3.Error, ValueError, KeyError, TypeError, RecursionError) as exc:
+            raise PoiseError(f'Cannot read configured project Tasks: {exc}') from exc
+
+    def require_task(self, config_path, cfg, task_id):
+        def require(db, state):
+            if not SqliteTaskRepository(db).exists(task_id):
+                raise PoiseError(f'Configured Task DB has no Task: {task_id}')
+        self._with_store(Path(config_path).resolve().parent, cfg, require)
+
+    @staticmethod
+    def _with_store(root, cfg, consumer):
+        try:
             state = configured_root(root, cfg['paths']['state'])
             path = descendant(state, cfg['paths']['database'])
             if not path.is_file():
@@ -37,7 +50,7 @@ class ReadOnlyProjectAvailability:
                 db.execute('BEGIN')
                 if db.execute('PRAGMA user_version').fetchone()[0] != SCHEMA_VERSION:
                     raise PoiseError('Task DB schema is not current; next never migrates a store')
-                return self._read(db, project, cfg, state)
+                return consumer(db, state)
         except (OSError, sqlite3.Error, ValueError, KeyError, TypeError, RecursionError) as exc:
             raise PoiseError(f'Cannot read configured project Tasks: {exc}') from exc
 

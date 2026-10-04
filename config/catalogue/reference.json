@@ -13,6 +13,13 @@
           "after": []
         },
         {
+          "id": "baseline_inspection",
+          "source_id": "PAIRED-20261003-baseline_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "solution_planning",
           "source_id": "GS-DEV-02",
           "handler": "produce",
@@ -25,13 +32,26 @@
           "after": []
         },
         {
+          "id": "solution_planning_inspection",
+          "source_id": "PAIRED-20261003-solution_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "verification_planning",
           "source_id": "GS-DEV-03",
           "handler": "produce",
           "before": [
-            "verification_plan",
-            "test_registry"
+            "verification_plan"
           ],
+          "after": []
+        },
+        {
+          "id": "verification_planning_inspection",
+          "source_id": "PAIRED-20261003-verification_planning_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -67,6 +87,22 @@
           "after": []
         },
         {
+          "id": "implementation_design",
+          "source_id": "PAIRED-20261003-implementation_design",
+          "handler": "produce",
+          "before": [
+            "implementation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "implementation_design_inspection",
+          "source_id": "PAIRED-20261003-implementation_design_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "implementation",
           "source_id": "GS-DEV-08",
           "handler": "produce",
@@ -76,6 +112,22 @@
         {
           "id": "implementation_inspection",
           "source_id": "GS-DEV-09",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "implementation_remediation_planning",
+          "source_id": "PAIRED-20261003-implementation_remediation_planning",
+          "handler": "produce",
+          "before": [
+            "implementation_remediation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "implementation_remediation_planning_inspection",
+          "source_id": "PAIRED-20261003-implementation_remediation_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -95,12 +147,35 @@
           "after": []
         },
         {
+          "id": "documentation_planning",
+          "source_id": "PAIRED-20261003-documentation_planning",
+          "handler": "produce",
+          "before": [
+            "documentation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "documentation_planning_inspection",
+          "source_id": "PAIRED-20261003-documentation_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "documentation",
           "source_id": "GS-DEV-12",
           "handler": "produce",
           "before": [
             "result"
           ],
+          "after": []
+        },
+        {
+          "id": "documentation_inspection",
+          "source_id": "PAIRED-20261003-documentation_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         }
       ],
@@ -118,6 +193,13 @@
           "after": []
         },
         {
+          "id": "baseline_inspection",
+          "source_id": "PAIRED-20261003-baseline_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "coverage_planning",
           "source_id": "GS-TST-02",
           "handler": "produce",
@@ -127,15 +209,28 @@
           "after": []
         },
         {
+          "id": "coverage_planning_inspection",
+          "source_id": "PAIRED-20261003-coverage_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "test_planning",
           "source_id": "GS-TST-03",
           "handler": "produce",
           "before": [
             "verification_plan",
-            "test_registry",
             "fixture_plan",
             "sensitivity_plan"
           ],
+          "after": []
+        },
+        {
+          "id": "test_planning_inspection",
+          "source_id": "PAIRED-20261003-test_planning_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -145,6 +240,13 @@
           "before": [
             "test_registry"
           ],
+          "after": []
+        },
+        {
+          "id": "test_implementation_inspection",
+          "source_id": "PAIRED-20261003-test_implementation_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -285,12 +387,26 @@
           "after": []
         },
         {
+          "id": "framing_inspection",
+          "source_id": "PAIRED-20261003-framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "alternatives",
           "source_id": "GS-DES-02",
           "handler": "produce",
           "before": [
             "alternatives"
           ],
+          "after": []
+        },
+        {
+          "id": "alternatives_inspection",
+          "source_id": "PAIRED-20261003-alternatives_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -301,6 +417,13 @@
             "selected_approach",
             "decisions"
           ],
+          "after": []
+        },
+        {
+          "id": "decision_inspection",
+          "source_id": "PAIRED-20261003-decision_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -315,6 +438,13 @@
           "after": []
         },
         {
+          "id": "detailed_design_inspection",
+          "source_id": "PAIRED-20261003-detailed_design_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "design_verification",
           "source_id": "GS-DES-05",
           "handler": "check",
@@ -326,6 +456,22 @@
         {
           "id": "design_inspection",
           "source_id": "GS-DES-06",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation_planning",
+          "source_id": "PAIRED-20261003-remediation_planning",
+          "handler": "produce",
+          "before": [
+            "remediation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_planning_inspection",
+          "source_id": "PAIRED-20261003-remediation_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -586,9 +732,23 @@
           "after": []
         },
         {
+          "id": "framing_inspection",
+          "source_id": "PAIRED-20261003-framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "baseline",
           "source_id": "GS-ENV-02",
           "handler": "observe",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "baseline_inspection",
+          "source_id": "PAIRED-20261003-baseline_inspection",
+          "handler": "inspect",
           "before": [],
           "after": []
         },
@@ -604,9 +764,23 @@
           "after": []
         },
         {
+          "id": "change_planning_inspection",
+          "source_id": "PAIRED-20261003-change_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "application",
           "source_id": "GS-ENV-04",
           "handler": "apply_plan",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "application_inspection",
+          "source_id": "PAIRED-20261003-application_inspection",
+          "handler": "inspect",
           "before": [],
           "after": []
         },
@@ -626,6 +800,22 @@
           "before": [
             "result"
           ],
+          "after": []
+        },
+        {
+          "id": "correction_planning",
+          "source_id": "PAIRED-20261003-correction_planning",
+          "handler": "produce",
+          "before": [
+            "correction_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "correction_planning_inspection",
+          "source_id": "PAIRED-20261003-correction_planning_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -670,12 +860,26 @@
           "after": []
         },
         {
+          "id": "framing_inspection",
+          "source_id": "PAIRED-20261003-framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "outline",
           "source_id": "GS-DOC-02",
           "handler": "produce",
           "before": [
             "outline"
           ],
+          "after": []
+        },
+        {
+          "id": "outline_inspection",
+          "source_id": "PAIRED-20261003-outline_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -686,6 +890,13 @@
             "content",
             "examples_commands"
           ],
+          "after": []
+        },
+        {
+          "id": "drafting_inspection",
+          "source_id": "PAIRED-20261003-drafting_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -704,6 +915,22 @@
           "before": [
             "result"
           ],
+          "after": []
+        },
+        {
+          "id": "remediation_planning",
+          "source_id": "PAIRED-20261003-remediation_planning",
+          "handler": "produce",
+          "before": [
+            "remediation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_planning_inspection",
+          "source_id": "PAIRED-20261003-remediation_planning_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -746,6 +973,13 @@
           "after": []
         },
         {
+          "id": "framing_inspection",
+          "source_id": "PAIRED-20261003-framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "classification",
           "source_id": "GS-TPL-02",
           "handler": "produce",
@@ -755,12 +989,26 @@
           "after": []
         },
         {
+          "id": "classification_inspection",
+          "source_id": "PAIRED-20261003-classification_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "requirements",
           "source_id": "GS-TPL-03",
           "handler": "produce",
           "before": [
             "planned_task"
           ],
+          "after": []
+        },
+        {
+          "id": "requirements_inspection",
+          "source_id": "PAIRED-20261003-requirements_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -774,6 +1022,13 @@
           "after": []
         },
         {
+          "id": "acceptance_design_inspection",
+          "source_id": "PAIRED-20261003-acceptance_design_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "work_planning",
           "source_id": "GS-TPL-05",
           "handler": "produce",
@@ -781,6 +1036,13 @@
             "work_plan",
             "planned_task"
           ],
+          "after": []
+        },
+        {
+          "id": "work_planning_inspection",
+          "source_id": "PAIRED-20261003-work_planning_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -796,6 +1058,22 @@
         {
           "id": "task_inspection",
           "source_id": "GS-TPL-07",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation_planning",
+          "source_id": "PAIRED-20261003-remediation_planning",
+          "handler": "produce",
+          "before": [
+            "remediation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_planning_inspection",
+          "source_id": "PAIRED-20261003-remediation_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -841,12 +1119,26 @@
           "after": []
         },
         {
+          "id": "framing_inspection",
+          "source_id": "PAIRED-20261003-framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "decomposition",
           "source_id": "GS-SPL-02",
           "handler": "produce",
           "before": [
             "decomposition"
           ],
+          "after": []
+        },
+        {
+          "id": "decomposition_inspection",
+          "source_id": "PAIRED-20261003-decomposition_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -859,12 +1151,27 @@
           "after": []
         },
         {
+          "id": "task_classification_inspection",
+          "source_id": "PAIRED-20261003-task_classification_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "task_contracts",
           "source_id": "GS-SPL-04",
           "handler": "produce",
           "before": [
-            "task_contracts"
+            "task_contracts",
+            "planned_sprint"
           ],
+          "after": []
+        },
+        {
+          "id": "task_contracts_inspection",
+          "source_id": "PAIRED-20261003-task_contracts_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -874,6 +1181,13 @@
           "before": [
             "dependency_plan"
           ],
+          "after": []
+        },
+        {
+          "id": "dependency_design_inspection",
+          "source_id": "PAIRED-20261003-dependency_design_inspection",
+          "handler": "inspect",
+          "before": [],
           "after": []
         },
         {
@@ -889,6 +1203,13 @@
           "after": []
         },
         {
+          "id": "execution_planning_inspection",
+          "source_id": "PAIRED-20261003-execution_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "coverage_analysis",
           "source_id": "GS-SPL-07",
           "handler": "check",
@@ -900,6 +1221,22 @@
         {
           "id": "sprint_inspection",
           "source_id": "GS-SPL-08",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation_planning",
+          "source_id": "PAIRED-20261003-remediation_planning",
+          "handler": "produce",
+          "before": [
+            "remediation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_planning_inspection",
+          "source_id": "PAIRED-20261003-remediation_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []
@@ -948,6 +1285,13 @@
           "after": []
         },
         {
+          "id": "framing_inspection",
+          "source_id": "PAIRED-20261003-framing_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "integration_planning",
           "source_id": "GS-INT-02",
           "handler": "produce",
@@ -958,6 +1302,13 @@
           "after": []
         },
         {
+          "id": "integration_planning_inspection",
+          "source_id": "PAIRED-20261003-integration_planning_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
           "id": "integration",
           "source_id": "GS-INT-03",
           "handler": "apply_plan",
@@ -965,6 +1316,13 @@
           "after": [
             "conflict_resolutions"
           ]
+        },
+        {
+          "id": "integration_inspection",
+          "source_id": "PAIRED-20261003-integration_inspection",
+          "handler": "inspect",
+          "before": [],
+          "after": []
         },
         {
           "id": "verification",
@@ -978,6 +1336,22 @@
         {
           "id": "inspection",
           "source_id": "GS-INT-05",
+          "handler": "inspect",
+          "before": [],
+          "after": []
+        },
+        {
+          "id": "remediation_planning",
+          "source_id": "PAIRED-20261003-remediation_planning",
+          "handler": "produce",
+          "before": [
+            "remediation_plan"
+          ],
+          "after": []
+        },
+        {
+          "id": "remediation_planning_inspection",
+          "source_id": "PAIRED-20261003-remediation_planning_inspection",
           "handler": "inspect",
           "before": [],
           "after": []

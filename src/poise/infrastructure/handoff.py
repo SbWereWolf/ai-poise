@@ -60,7 +60,7 @@ class LocalHandoff:
         records=h.validate_artifact_paths(args['artifact_paths'],data)
         payload=args['result']
         if payload is None and not verified and not newborn and recovery is None:
-            payload=h.task_queries.latest_submission(data['id'],h._stage(data)['id'],data['iteration'])
+            payload=h.task_queries.current_submission(data['id'])
         if payload is not None:
             if verified:raise PoiseError('Verified handoff does not accept a replacement result')
             h.validate_stage_result(data['id'],payload)

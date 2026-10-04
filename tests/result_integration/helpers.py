@@ -26,6 +26,7 @@ def prepare_completed_task(
     checks=(),
     artifact_files=None,
     terminal_stage=False,
+    registered_methods=(),
 ):
     methods = [deepcopy(method) for method in methods]
     for method in methods:
@@ -53,6 +54,9 @@ def prepare_completed_task(
         "transitions": {"complete": "documentation" if terminal_stage else None},
         "rework_targets": ["implementation"],
     }
+    if registered_methods:
+        implementation["sections"]["test_registry"] = "Register current verification methods."
+        implementation["required_sections"].append("test_registry")
     stages = [implementation]
     if terminal_stage:
         stages.append({
@@ -135,6 +139,23 @@ def prepare_completed_task(
     result = deepcopy(context["result_template"])
     result["sections"]["report"] = "Accepted source result."
     result["commit_message"] = "feat: accepted source result"
+    if registered_methods:
+        result["sections"]["test_registry"] = "Methods added after Task creation."
+        result["method_additions"] = {
+            "expected_revision": 0,
+            "request_id": "register-current-methods",
+            "executable_obligations": ["requirements[0]"],
+            "operations": [{
+                "kind": "replace" if method["id"] in {item["id"] for item in methods} else "add",
+                "method_id": method["id"],
+                "registration": {
+                    "method": deepcopy(method),
+                    "stages": ["implementation"],
+                    "evidence_kind": "executable_test",
+                    "covers": ["requirements[0]"],
+                },
+            } for method in registered_methods],
+        }
     for relative, content in ({} if artifact_files is None else artifact_files).items():
         artifact = (
             Path(context["task_root"])
@@ -178,6 +199,7 @@ def integration_input(
         "expected_source_commit": source_commit,
         "expected_target_commit": git(project["app"], "rev-parse", "refs/heads/main"),
         "authorization": "The user accepted the completed task result.",
+        "commit_message": "Preserve the accepted product outcome",
         "resolutions": list(resolutions),
     }
 

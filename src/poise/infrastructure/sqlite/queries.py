@@ -51,9 +51,13 @@ class TaskQueries:
                 raise PoiseError("Точка трассировки не найдена")
             return {"task":task_id,"route":route_id,"point":point_id,"submission":row[0],"value":json.loads(row[1])}
 
-    def latest_submission(self, task_id, stage, iteration):
+    def current_submission(self, task_id):
         with self.database.transaction() as db:
-            row=db.execute("SELECT seq,data FROM submissions WHERE task_id=? AND stage=? AND iteration=? ORDER BY seq DESC LIMIT 1",(task_id,stage,iteration)).fetchone()
+            row=db.execute(
+                "SELECT s.seq,s.data FROM tasks t JOIN submissions s "
+                "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
+                (task_id,),
+            ).fetchone()
             if row is None:return None
             envelope=json.loads(row['data'])
             envelope['sections']={r['section_id']:r['content'] for r in db.execute(
@@ -81,6 +85,17 @@ class TaskQueries:
             return self.record_in(db, task_id)
 
     @staticmethod
+    def _project_check_registry(db, task_id, metadata, workflow):
+        from .tasks import SqliteTaskRepository
+        registry = SqliteTaskRepository(db).load_check_registry(task_id, metadata, workflow)
+        metadata['contract']['methods'] = [entry.to_dict()['method'] for entry in registry.entries]
+        metadata['contract']['checks'] = {
+            stage: [entry.method_id for entry in registry.entries if stage in entry.stages]
+            for stage in registry.stages
+        }
+        return registry
+
+    @staticmethod
     def record_in(db, task_id: str) -> dict | None:
         row=db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, e.data AS execution, e.version AS execution_version,w.data AS workflow FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id LEFT JOIN task_workflows w ON w.task_id=t.id WHERE t.id=?",(task_id,)).fetchone()
         if row is None: return None
@@ -95,6 +110,12 @@ class TaskQueries:
             family_fields['duplicate_reuse'] = workflow['duplicate_reuse']
         if is_terminal_task_status(status):
             metadata = json.loads(row['metadata']) | family_fields
+            if status == TaskStatus.COMPLETED:
+                if not isinstance(workflow.get('registry'), dict):
+                    raise PoiseError("Нет текущего состояния реестра проверок завершённой задачи")
+                registry = TaskQueries._project_check_registry(db, task_id, metadata, workflow)
+                if registry.executable_obligations:
+                    registry.validate_inspection_exit()
             execution = {} if row['execution'] is None else json.loads(row['execution'])
             return {**metadata, **execution, 'id': row['id'], 'status': status.value,
                     'version': row['version'], '_version': row['version'],
@@ -138,13 +159,7 @@ class TaskQueries:
                 'history':history,
                 'progression':progression,
             }
-        from .tasks import without_retired_method_timeout
-        items = [without_retired_method_timeout(json.loads(r[0])) for r in db.execute(
-            'SELECT data FROM task_methods WHERE task_id=? ORDER BY rowid', (task_id,)
-        )]
-        metadata['contract']['methods'] = [item['method'] for item in items]
-        metadata['contract']['checks'] = {s['id']:[item['method']['id'] for item in items if s['id'] in item['stages']]
-                                          for s in metadata['process']['stages']}
+        TaskQueries._project_check_registry(db, task_id, metadata, workflow)
         execution = ({"worktree":None,"branch":None,"base":None,"attempts":0,"publication":None,
                       "pending":None,"entry_tree":None,"last_report":None} if row["execution"] is None else json.loads(row["execution"]))
         rowmap=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()

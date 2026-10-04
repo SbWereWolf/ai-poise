@@ -719,7 +719,7 @@ class SqliteTaskRepository:
         if saved is None:
             raise PoiseError("Нет сохранённого состояния маршрута")
         workflow = json.loads(saved[0])
-        registry = self._current_registry(task_id, metadata, workflow)
+        registry = self.load_check_registry(task_id, metadata, workflow)
         metadata['contract']['methods']=[entry.to_dict()['method'] for entry in registry.entries]
         policy = stored_content_policy_from_metadata(metadata, json.loads(record[0]))
         contracts = (
@@ -744,7 +744,7 @@ class SqliteTaskRepository:
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts,
                     None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]))
 
-    def _current_registry(self, task_id: str, metadata: dict, workflow: dict) -> CheckRegistry:
+    def load_check_registry(self, task_id: str, metadata: dict, workflow: dict) -> CheckRegistry:
         from ...modules.tasks.definition import (
             obligation_catalog, registry_inspection_stages, stored_executable_obligations,
         )
@@ -761,6 +761,14 @@ class SqliteTaskRepository:
             obligation_catalog(metadata['contract']),
         ).restore_state(workflow['registry'])
 
+    def restarted_feedback(self, task_id: str) -> FeedbackBook:
+        row = self.db.execute(
+            'SELECT data FROM task_workflows WHERE task_id=?', (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError('Restarted Task has no preserved feedback state')
+        return FeedbackBook.from_dict(json.loads(row[0])['feedback'])
+
     def restarted_registry(self, task_id: str) -> CheckRegistry:
         row = self.db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
         if row is None:
@@ -771,7 +779,7 @@ class SqliteTaskRepository:
         workflow = self.db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()
         if workflow is None:
             raise PoiseError('Restarted Task has no current verification registry')
-        return self._current_registry(
+        return self.load_check_registry(
             task_id, {**metadata, 'process': metadata['registry_process']}, json.loads(workflow[0]),
         )
 

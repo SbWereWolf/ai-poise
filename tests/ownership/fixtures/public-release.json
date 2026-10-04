@@ -1,0 +1,10 @@
+{
+  "operation": "release",
+  "input": {
+    "task_id": "T1",
+    "request_id": "ordinary-release-1",
+    "expected_version": 4,
+    "reason": "Reviewer must recover the preserved unknown check"
+  },
+  "messages": []
+}

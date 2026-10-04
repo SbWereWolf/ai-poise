@@ -14,7 +14,8 @@
     "contract": "object",
     "evidence": "object",
     "stage_contracts": "list",
-    "decomposition": "object"
+    "decomposition": "object",
+    "checks": "object"
   },
   "task": {
     "id": {
@@ -43,22 +44,7 @@
       "$input": "method_inputs"
     },
     "checks": {
-      "baseline": [
-        "BASELINE"
-      ],
-      "coverage_planning": [],
-      "test_planning": [],
-      "test_implementation": [
-        "TEST_GREEN"
-      ],
-      "sensitivity_verification": [
-        "SENSITIVITY"
-      ],
-      "test_inspection": [],
-      "remediation": [
-        "TEST_GREEN"
-      ],
-      "remediation_inspection": []
+      "$input": "checks"
     },
     "artifact_requirements": {
       "$input": "artifact_requirements"

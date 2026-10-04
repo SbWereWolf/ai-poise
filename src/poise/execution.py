@@ -403,6 +403,47 @@ def capture_declared_outputs(declarations: list[dict], output_dir: Path, capture
     return records, complete
 
 
+def inspect_declared_output_receipts(declarations: list[dict], outputs: object) -> tuple[bool, bool]:
+    """Distinguish intact recorded outcomes from complete successful outputs."""
+    if not isinstance(outputs, list) or len(outputs) != len(declarations):
+        return False, False
+    complete = True
+    for declaration, output in zip(declarations, outputs, strict=True):
+        if not isinstance(output, dict):
+            return False, False
+        expected = {
+            'id': declaration['id'],
+            'declared_path': declaration['path'],
+            'required': declaration['required'],
+        }
+        if any(type(output.get(key)) is not type(value) or output.get(key) != value
+               for key, value in expected.items()):
+            return False, False
+        status = output.get('status')
+        if status == 'captured':
+            path = output.get('path')
+            if (not isinstance(path, str) or not path
+                    or not isinstance(output.get('digest'), str)
+                    or type(output.get('size')) is not int):
+                return False, False
+            captured = Path(path)
+            try:
+                if (not captured.is_file() or captured.is_symlink()
+                        or output['digest'] != _file_sha256(captured)
+                        or output['size'] != captured.stat().st_size):
+                    return False, False
+            except (OSError, ValueError):
+                return False, False
+        elif status in ('missing', 'invalid'):
+            if any(key not in output or output[key] is not None for key in ('path', 'digest', 'size')):
+                return False, False
+            if status == 'invalid' or declaration['required']:
+                complete = False
+        else:
+            return False, False
+    return True, complete
+
+
 def _file_sha256(path: Path) -> str:
     import hashlib
     value = hashlib.sha256()

@@ -1,0 +1,32 @@
+{
+  "schema": "acceptance-manifest-1",
+  "task_id": "T1",
+  "method_id": "READ_WHEEL",
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "tree": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "inputs": [
+    {
+      "id": "wheel",
+      "path": "/task/artifacts/wheel.whl",
+      "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "producer": {
+        "task_id": "PRODUCER",
+        "commit": "dddddddddddddddddddddddddddddddddddddddd"
+      },
+      "input_ref": "accepted-wheel"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "stdout",
+      "path": "/task/runs/check/stdout.txt",
+      "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "receipt": {
+    "id": "check",
+    "actual_exit_code": 0,
+    "passed": true,
+    "definition_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  }
+}

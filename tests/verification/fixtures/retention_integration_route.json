@@ -1,0 +1,73 @@
+[
+  {
+    "id": "implementation",
+    "instruction": "Arrange genuine integration-only selected checks.",
+    "read_only": false,
+    "allowed_paths": [
+      "src/**"
+    ],
+    "normalization": "strip",
+    "sections": {
+      "report": "Record actual fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "handler": "produce",
+    "role": "executor",
+    "transitions": {
+      "complete": "inspection"
+    },
+    "rework_targets": [
+      "implementation"
+    ]
+  },
+  {
+    "id": "inspection",
+    "instruction": "Arrange genuine integration-only selected checks.",
+    "read_only": true,
+    "allowed_paths": [],
+    "normalization": "strip",
+    "sections": {
+      "report": "Record actual fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "handler": "inspect",
+    "role": "executor",
+    "transitions": {
+      "clear": null,
+      "changes_requested": "repair"
+    },
+    "rework_targets": [
+      "inspection"
+    ]
+  },
+  {
+    "id": "repair",
+    "instruction": "Arrange genuine integration-only selected checks.",
+    "read_only": false,
+    "allowed_paths": [
+      "src/**"
+    ],
+    "normalization": "strip",
+    "sections": {
+      "report": "Record actual fixture result."
+    },
+    "required_sections": [
+      "report"
+    ],
+    "artifact_requirements": [],
+    "handler": "produce",
+    "role": "executor",
+    "transitions": {
+      "complete": "inspection"
+    },
+    "rework_targets": [
+      "repair"
+    ]
+  }
+]

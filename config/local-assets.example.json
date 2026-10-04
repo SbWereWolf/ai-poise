@@ -1,0 +1,119 @@
+{
+  "schema": "local-assets-1",
+  "project": "ERP",
+  "target_root": "/absolute/path/to/erp",
+  "assets": [
+    {
+      "path": "ai-assistant/agent/document-intake-policy.example.json",
+      "source_path": "ai-assistant/agent/document-intake-policy.example.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "versioned_example",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "ai-assistant/agent/document-intake-policy.json",
+      "source_path": "ai-assistant/agent/document-intake-policy.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "working",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "ai-assistant/agent/document-intake-registry-policy.json",
+      "source_path": "ai-assistant/agent/document-intake-registry-policy.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "tracked",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "ai-assistant/agent/output-policy.json",
+      "source_path": "ai-assistant/agent/output-policy.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "tracked",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "ai-assistant/agent/workflow-backend.settings.example.json",
+      "source_path": "ai-assistant/agent/workflow-backend.settings.example.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "untracked_example",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "ai-assistant/agent/workflow-backend.settings.json",
+      "source_path": "ai-assistant/agent/workflow-backend.settings.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "working",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.example.json",
+      "source_path": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.example.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "versioned_example",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.json",
+      "source_path": "platform-infrastructure/config/dev/local-dev-host-runtime.settings.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "working",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "platform-infrastructure/config/dev/local-development.settings.example.json",
+      "source_path": "platform-infrastructure/config/dev/local-development.settings.example.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "versioned_example",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "platform-infrastructure/config/dev/local-development.settings.json",
+      "source_path": "platform-infrastructure/config/dev/local-development.settings.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "working",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "platform-infrastructure/config/dev/local-development.example.env",
+      "source_path": "platform-infrastructure/config/dev/local-development.example.env",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "versioned_example",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": "platform-infrastructure/config/dev/local-development.env",
+      "source_path": "platform-infrastructure/config/dev/local-development.env",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "working",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": ".codex/config.example.toml",
+      "source_path": ".codex/config.example.toml",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "versioned_example",
+      "mode": 384,
+      "repair": null
+    },
+    {
+      "path": ".codex/config.toml",
+      "source_path": ".codex/config.toml",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "kind": "working",
+      "mode": 384,
+      "repair": null
+    }
+  ]
+}

@@ -37,6 +37,14 @@ stage separation and sufficient allowed_paths. Follow the canonical
 [paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
 and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
 
+Development goals state application capabilities. Requirements align with the goal
+and define observable product behaviour across the declared supported scenarios
+and configurations, not a coding plan or maintenance of one installation. Keep
+incidents and concrete installation facts in the rationale, architecture constraints
+in their own content, and implementation choices in execution planning. Apply the
+[product formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту)
+when creating and independently reviewing a Task.
+
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
 present self-review as independent review.
@@ -155,8 +163,10 @@ The canonical policy is [Development
 rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2).
 Keep this English projection and its Russian source consistent in the same change.
 
-- Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`,
-  `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
+- Answer humans and write human-facing documentation in Russian. Write agent-facing files and instructions (`AGENTS.md`,
+  `.agents/**`, `.codex/**`, technical instructions in managed artifacts) in English. Write human-facing AI poise Task
+  goals, requirements and acceptance criteria in Russian, including within managed artifacts. Preserve native identifiers
+  and syntax.
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts
   implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation
   with behaviour, configuration or workflow changes.

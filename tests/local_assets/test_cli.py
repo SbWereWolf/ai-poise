@@ -385,7 +385,9 @@ def test_invalid_later_asset_preflight_writes_nothing(
     assert not (outside / "escaped.json").exists()
 
 
-def test_restored_policy_makes_owning_reader_usable(tmp_path: Path) -> None:
+def test_restored_policy_makes_owning_reader_usable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("AGENT_ARTIFACT_SESSION_ID", "CODEX_SESSION_ID", "CODEX_THREAD_ID"):
+        monkeypatch.delenv(name, raising=False)
     erp = os.environ.get("ERP_SOURCE_ROOT")
     if erp is None:
         pytest.fail("ERP_SOURCE_ROOT must explicitly select the owning reader and tracked policies")
@@ -405,7 +407,7 @@ def test_restored_policy_makes_owning_reader_usable(tmp_path: Path) -> None:
     (target / "AGENTS.md").write_text("Fixture heading\n", encoding="utf-8")
     before = subprocess.run(
         [sys.executable, str(reader), "--repository-root", str(target), "--path", "AGENTS.md",
-         "--lines", "1:1", "--json"],
+         "--lines", "1:1", "--json", "--session-id", "local-assets-reader-fixture"],
         text=True, capture_output=True, check=False,
     )
     assert before.returncode == 3
@@ -416,7 +418,7 @@ def test_restored_policy_makes_owning_reader_usable(tmp_path: Path) -> None:
     assert reply["status"] == "restored"
     after = subprocess.run(
         [sys.executable, str(reader), "--repository-root", str(target), "--path", "AGENTS.md",
-         "--lines", "1:1", "--json"],
+         "--lines", "1:1", "--json", "--session-id", "local-assets-reader-fixture"],
         text=True, capture_output=True, check=False,
     )
     assert after.returncode == 0, after.stderr + after.stdout

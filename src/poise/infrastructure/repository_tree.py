@@ -26,9 +26,15 @@ class GitRepositoryTree:
             detail = result.stderr.decode(errors='replace')[-self.preview_chars:]
             raise PoiseError(f'Ошибка Git-проверки путей ({result.returncode}): {detail}')
         if ((result.stdout and not result.stdout.endswith(b'\0'))
-                or (result.returncode == 1 and result.stdout)):
+                or (result.returncode == 1 and result.stdout)
+                or (result.returncode == 0 and 1 in allowed_exit_codes and not result.stdout)):
             raise PoiseError('Git вернул некорректные сведения о путях')
-        return frozenset(os.fsdecode(name) for name in result.stdout.split(b'\0') if name)
+        if not result.stdout:
+            return frozenset()
+        records = result.stdout[:-1].split(b'\0')
+        if any(not name for name in records):
+            raise PoiseError('Git вернул пустую запись пути')
+        return frozenset(os.fsdecode(name) for name in records)
 
     def current_path_facts(self, paths):
         """Read current tracking and ignore facts without creating path members."""

@@ -963,7 +963,16 @@ class RuntimeResultIntegration:
                     return run.result()
             if run.phase in ("publishing", "publication_failed"):
                 record = self.h.task_queries.record(intent.task_id)
-                if not self._complete_candidate_proof(record, run):
+                try:
+                    complete_proof = self._complete_candidate_proof(record, run)
+                except PoiseError as exc:
+                    if run.phase != "publishing":
+                        raise
+                    run = self._publication_failed(
+                        run, "task_worktree_changed", {"error": str(exc)},
+                    )
+                    return run.result()
+                if not complete_proof:
                     rechecking = run.recheck_publication()
                     self._save(intent.task_id, rechecking, run.version)
                     run = rechecking

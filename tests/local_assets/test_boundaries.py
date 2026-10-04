@@ -64,7 +64,14 @@ def invoke(manifest: Path, request: dict, extra: dict[str, str] | None = None):
 
 
 def states(roots: dict[str, Path]) -> dict:
-    return {name: tree_state(root) for name, root in roots.items()}
+    result = {}
+    for name, root in roots.items():
+        if name == "manifest":
+            info = root.lstat()
+            result[name] = (root.read_bytes(), info.st_mode, info.st_mtime_ns)
+        else:
+            result[name] = tree_state(root)
+    return result
 
 
 def observe(node, label: str, completed, reply, roots: dict[str, Path], before: dict) -> None:
@@ -112,14 +119,12 @@ def test_unpaired_surrogate_request_is_rejected_before_effects(
         declaration = json.loads(manifest.read_text())
         declaration["project"] = packet[field]
         manifest.write_text(json.dumps(declaration), encoding="utf-8")
-    roots = {"target": target, "source": source, "outside": outside}
+    roots = {"target": target, "source": source, "outside": outside, "manifest": manifest}
     before = states(roots)
-    manifest_before = manifest.read_bytes(), manifest.stat().st_mtime_ns
     completed, reply = invoke(manifest, packet)
     observe(request.node, request.node.callspec.id, completed, reply, roots, before)
     rejected(completed, reply, "invalid_request")
     assert states(roots) == before
-    assert (manifest.read_bytes(), manifest.stat().st_mtime_ns) == manifest_before
 
 
 @pytest.mark.parametrize("field", ["project", "target_root", "later_path",
@@ -138,14 +143,12 @@ def test_unpaired_surrogate_declaration_is_rejected_before_effects(
     else:
         declaration["assets"][1]["repair"] = "owner repair \ud800"
     manifest.write_text(json.dumps(declaration), encoding="utf-8")
-    roots = {"target": target, "source": source, "outside": outside}
+    roots = {"target": target, "source": source, "outside": outside, "manifest": manifest}
     before = states(roots)
-    manifest_before = manifest.read_bytes(), manifest.stat().st_mtime_ns
     completed, reply = invoke(manifest, packet)
     observe(request.node, field, completed, reply, roots, before)
     rejected(completed, reply, "invalid_manifest")
     assert states(roots) == before
-    assert (manifest.read_bytes(), manifest.stat().st_mtime_ns) == manifest_before
 
 
 def donor(tmp_path: Path) -> Path:
@@ -171,7 +174,8 @@ def test_donor_git_environment_does_not_validate_plain_target(
     (target / "sentinel.txt").write_bytes(b"plain target untouched")
     foreign = donor(tmp_path)
     change_target(manifest, packet, target)
-    roots = {"target": target, "source": source, "outside": outside, "donor": foreign}
+    roots = {"target": target, "source": source, "outside": outside,
+             "donor": foreign, "manifest": manifest}
     before = states(roots)
     control, control_reply = invoke(manifest, packet)
     rejected(control, control_reply, "invalid_target_root")
@@ -200,7 +204,7 @@ def selected_target(tmp_path: Path, target: Path, kind: str) -> Path:
 def success_and_repeat(target, source, manifest, packet, outside, *, primary=None):
     declaration = json.loads(manifest.read_text())
     paths = [item["path"] for item in declaration["assets"]]
-    roots = {"target": target, "source": source, "outside": outside}
+    roots = {"target": target, "source": source, "outside": outside, "manifest": manifest}
     if primary is not None:
         roots["primary"] = primary
     before = states(roots)
@@ -237,7 +241,8 @@ def test_distinct_donor_overrides_do_not_redirect_genuine_target(
     change_target(manifest, packet, target)
     foreign = donor(tmp_path)
     extra = {"GIT_DIR": str(foreign / ".git"), "GIT_WORK_TREE": str(foreign)}
-    roots = {"target": target, "source": source, "outside": outside, "donor": foreign}
+    roots = {"target": target, "source": source, "outside": outside,
+             "donor": foreign, "manifest": manifest}
     if kind == "linked":
         roots["primary"] = original
     before = states(roots)
@@ -290,14 +295,14 @@ def test_git_root_probe_preserves_caller_environment(tmp_path: Path, monkeypatch
     from poise.infrastructure.local_assets import FileLocalAssets
     from poise.modules.local_assets.domain import RestoreRequest
 
-    target, source, _, _, outside = arrange(tmp_path)
+    target, source, manifest, _, outside = arrange(tmp_path)
     for name in tuple(os.environ):
         if name.startswith("GIT_"):
             monkeypatch.delenv(name)
     monkeypatch.setenv("GIT_DIR", str(target / ".git"))
     monkeypatch.setenv("GIT_WORK_TREE", str(target))
     before_environment = dict(os.environ)
-    roots = {"target": target, "source": source, "outside": outside}
+    roots = {"target": target, "source": source, "outside": outside, "manifest": manifest}
     before = states(roots)
     with FileLocalAssets().open_roots(RestoreRequest("ERP", str(target), str(source))):
         assert dict(os.environ) == before_environment

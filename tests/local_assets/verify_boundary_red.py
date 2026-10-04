@@ -42,7 +42,7 @@ def cause_matches(case: dict, observed: dict) -> bool:
     if set(observed) != fields or type(observed["exit_code"]) is not int:
         return False
     changed = observed["changed"]
-    roots = {"target", "source", "outside"}
+    roots = {"target", "source", "outside", "manifest"}
     if case["label"] == "plain-donor" or case["label"].startswith("genuine-donor-"):
         roots.add("donor")
     if case["label"] == "genuine-donor-linked":

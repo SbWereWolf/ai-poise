@@ -159,6 +159,10 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
                   'git_index','runs','stdout','stderr','response'}
     requirements_paths = {'requirements_database', 'requirements_lock'}
     exact_keys(cfg['paths'], task_paths | requirements_paths, 'paths')
+    for key in ('database', 'lock'):
+        value = cfg['paths'][key]
+        if not isinstance(value, str) or not value.strip() or '\0' in value:
+            raise PoiseError(f'paths.{key}: требуется явный непустой путь без NUL')
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
     for key, value in cfg['limits'].items():

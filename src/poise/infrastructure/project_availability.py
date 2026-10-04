@@ -1,7 +1,6 @@
 """Read-only adapter for the configured-project registry; no runtime bootstrap."""
 from __future__ import annotations
 
-from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -14,6 +13,7 @@ from ..modules.foundation.errors import DomainError, PoiseError
 from ..modules.sprints.domain import Sprint
 from .sqlite.artifacts import SqliteArtifactRepository
 from .sqlite.database import SCHEMA_VERSION
+from .sqlite.readonly import readonly_snapshot
 from .sqlite.sprints import SqliteSprintRepository
 from .sqlite.tasks import SqliteTaskRepository, SqliteExecutionRepository
 from .task_paths import sprint_root, task_root
@@ -43,8 +43,7 @@ class ReadOnlyProjectAvailability:
             if not path.is_file():
                 raise PoiseError(f'Configured Task DB does not exist: {path}')
             # Never construct Database/Runtime: both perform initialization writes.
-            with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True,
-                                         timeout=cfg['limits']['lock_seconds'])) as db:
+            with readonly_snapshot(path, lock_seconds=cfg['limits']['lock_seconds']) as db:
                 db.row_factory = sqlite3.Row
                 db.execute('PRAGMA query_only=ON')
                 db.execute('BEGIN')

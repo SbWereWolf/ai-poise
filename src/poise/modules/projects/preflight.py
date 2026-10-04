@@ -47,7 +47,8 @@ class ProjectPreflightRequest:
 class ConfigurationObservation:
     context: dict
     configuration: dict | None
-    rejection: str | None
+    status: str
+    reason: str | None
 
 
 class ProjectPreflightReport:

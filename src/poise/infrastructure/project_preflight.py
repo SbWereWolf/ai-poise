@@ -28,9 +28,12 @@ class FileProjectPreflight:
             if configuration['project'] != request.project_id:
                 raise PoiseError(f'Manifest project identity is {configuration["project"]!r}, '
                                  f'expected {request.project_id!r}')
-            return ConfigurationObservation(context, configuration, None)
+            return ConfigurationObservation(context, configuration, 'passed', None)
         except PoiseError as exc:
-            return ConfigurationObservation(context, None, str(exc))
+            return ConfigurationObservation(context, None, 'rejected', str(exc))
+        except Exception as exc:
+            return ConfigurationObservation(context, None, 'unknown',
+                                            f'{type(exc).__name__}: {exc}')
 
     def probe_git(self, configuration):
         return self.setup._probe(configuration, True)

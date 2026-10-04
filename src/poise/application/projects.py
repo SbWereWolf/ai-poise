@@ -45,8 +45,8 @@ class ProjectCommands:
         try:
             observation = self.preflight.observe_configuration(request)
             report.context = observation.context
-            if observation.rejection is not None:
-                report.record(component, 'rejected', observation.rejection)
+            if observation.status != 'passed':
+                report.record(component, observation.status, observation.reason)
                 return report.finish()
             cfg = observation.configuration
             report.record(component, 'passed')

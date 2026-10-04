@@ -113,6 +113,13 @@ or claim automatic enforcement. If a needed specialist skill is missing or insuf
 report the stage, missing expertise, impact and proposed planner action in the final
 answer; raise actual blockers immediately. Follow [skill-gap
 reporting](docs/workflows/task-stage-skills-draft.md#использование-навыков-и-сообщение-о-нехватке).
+The current `task_decomposition.skills` list validates skill IDs declared in
+`decomposition.phases[].skills`; it is not a whitelist for skills the agent may
+read or apply. Use any available relevant skill, including `documentation` when
+absent from that list. Absence from the list alone is not a skill gap, blocker or
+reason to change project configuration. Additional skill use does not change
+declared narrow responsibilities, role or Task scope.
+See [decomposition focus](docs/governance/development-rules.md#фокус-декомпозиции).
 
 ## Commit message example
 

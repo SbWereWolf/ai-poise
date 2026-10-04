@@ -318,7 +318,7 @@ class RegisteredCheckRunner:
             cancelled = bool(state['cancel_requested'])
             if cancelled and cancellation_reason is None:
                 cancellation_reason = 'explicit_cancel'
-            return {
+            result = {
                 'actual_exit_code': code,
                 'timed_out': timed_out,
                 'timeout_reason': timeout_reason,
@@ -336,9 +336,18 @@ class RegisteredCheckRunner:
                 'duration_seconds': time.monotonic() - start,
                 'stdout': str(stdout_path),
                 'stderr': str(stderr_path),
-                'stdout_preview': preview(stdout_path, self.preview_chars),
-                'stderr_preview': preview(stderr_path, self.preview_chars),
             }
+            # Display I/O cannot discard the actual owner's terminal facts.
+            preview_errors = {}
+            for name, path in (('stdout', stdout_path), ('stderr', stderr_path)):
+                try:
+                    result[f'{name}_preview'] = preview(path, self.preview_chars)
+                except OSError as exc:
+                    result[f'{name}_preview'] = ''
+                    preview_errors[name] = type(exc).__name__
+            if preview_errors:
+                result['preview_errors'] = preview_errors
+            return result
         finally:
             with self._lock:
                 self._active.pop(run_id, None)

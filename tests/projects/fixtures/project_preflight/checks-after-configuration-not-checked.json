@@ -1,0 +1,17 @@
+[
+  {
+    "name": "git",
+    "status": "not_checked",
+    "reason": null
+  },
+  {
+    "name": "commit_policy",
+    "status": "not_checked",
+    "reason": null
+  },
+  {
+    "name": "task_lookup",
+    "status": "not_checked",
+    "reason": null
+  }
+]

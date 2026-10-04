@@ -47,9 +47,10 @@ def main():
     reports = Reports()
     stdout, stderr = io.StringIO(), io.StringIO()
     selectors = ['tests/projects/test_project_preflight.py',
-                 'tests/projects/test_preflight_store_preservation.py']
+                 'tests/projects/test_preflight_store_preservation.py',
+                 'tests/projects/test_preflight_request_denials.py']
     if args.selection == 'behavior':
-        selectors += ['-k', 'not advertised_git_update and not unavailable_settings and not missing_settings_argument']
+        selectors += ['-k', 'not advertised_git_update and not unavailable_settings and not missing_settings_argument and not preservation_guard_detects and not git_cause_preservation_guard']
     with redirect_stdout(stdout), redirect_stderr(stderr):
         code = int(pytest.main(['-q', *selectors], plugins=[reports]))
     (output / 'pytest.stdout.txt').write_text(stdout.getvalue(), encoding='utf-8')

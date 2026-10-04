@@ -1,6 +1,7 @@
 """Real selected stores: duplicate labels, claims, pending work and recovery."""
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import sqlite3
 
@@ -123,10 +124,7 @@ def test_existing_work_unknown_task_names_actual_selected_context(case):
     _, other, config = selected_stores(case)
     before = snapshot(case[0]['root'].parent)
     with pytest.raises(PoiseError) as failure:
-        WorkTools(other).invoke({
-            'operation': 'bootstrap',
-            'input': {'task': {'id': 'EXISTS-HERE'}, 'decision': None,
-                      'feedback': None, 'rework_stage': None}, 'messages': []})
+        WorkTools(other).invoke(fixture('work-unknown-task.json', {}))
     # The existing work transport has its separate optional telemetry owner;
     # this assertion proves Task/store/Git/material preservation, not absence
     # of work-transport accounting. The new check tests exclude no paths.
@@ -139,6 +137,44 @@ def test_existing_work_unknown_task_names_actual_selected_context(case):
     for identity in (case[3]['source'], str(config), 'demo',
                      str(case[0]['root'] / 'other-state'), case[3]['repository'], 'POISE_CONFIG'):
         assert identity in reason
+
+
+@pytest.mark.parametrize('damage', ['corrupt', 'incompatible', 'inaccessible'])
+def test_selected_store_denial_retains_canonical_owner_cause_and_all_state(case, damage):
+    from poise.infrastructure.project_availability import ReadOnlyProjectAvailability
+    selected_stores(case)
+    project, _, _, values = case
+    database = Path(values['task_db'])
+    readable_fds = None
+    descriptor = None
+    if damage == 'corrupt':
+        database.write_bytes(b'Corrupt selected Task database; do not repair or replace')
+    elif damage == 'incompatible':
+        with sqlite3.connect(database) as db:
+            db.execute('PRAGMA user_version=0')
+    else:
+        # This Linux fixture must actually deny path access to the process. A
+        # descriptor opened before chmod independently preserves byte evidence.
+        assert os.geteuid() != 0, 'access-denial fixture requires the configured non-root Ubuntu user'
+        descriptor = os.open(database, os.O_RDONLY)
+        readable_fds = {str(database): descriptor}
+        database.chmod(0)
+    try:
+        before = snapshot(project['root'].parent, readable_fds=readable_fds)
+        with pytest.raises(PoiseError) as original:
+            ReadOnlyProjectAvailability().startable({'project': 'demo', 'config_path': values['config']})
+        assert snapshot(project['root'].parent, readable_fds=readable_fds) == before
+        original_reason = str(original.value)
+        body = request(case)
+        body['task_id'] = 'EXISTS-HERE'
+        wanted = expected(case, status='rejected', ready=False, reason=original_reason)
+        wanted['context']['requested_task_id'] = 'EXISTS-HERE'
+        wanted['checks'] = fixture('checks-task-refused.json', {'cause': original_reason})
+        assert invoke(case, body, readable_fds=readable_fds) == (23, wanted)
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+            database.chmod(0o600)
 
 
 @pytest.mark.parametrize('condition', ['stale', 'claimed', 'pending'])
@@ -160,12 +196,39 @@ def test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, 
                            ('OWNED', '{"pending":{"kind":"checks","request_id":"preserved"}}', 0))
     packet = update_request(config, '0' * 64 if condition == 'stale' else created['revision'],
                             manifest_edits=[{'path': ['git', 'base_ref'], 'value': 'corrected-branch'}])
+    # Every preexisting lock remains part of the full snapshot. The setup owner
+    # has already created its own exact lock during installed_project; opening
+    # it a+b and flocking it is not authority to alter its bytes or mode.
+    for lock in (config.parent / 'preserved-operator.lock',
+                 config.parent / 'state/state.lock',
+                 config.parent / 'state/requirements.lock'):
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_bytes(b'Preserve existing lock bytes\n')
+        lock.chmod(0o640)
     before = snapshot(project['root'].parent)
     with pytest.raises(PoiseError):
         update_tools(settings).apply(packet)
-    # The existing config owner may hold a lock file; test persistent input/data
-    # content separately from that existing operation's transient lock metadata.
     after = snapshot(project['root'].parent)
-    assert {p: (v[0], v[4]) for p, v in after.items() if not p.endswith('.lock')} == {
-        p: (v[0], v[4]) for p, v in before.items() if not p.endswith('.lock')}
+    assert after == before
     assert json.loads(config.read_text())['git']['base_ref'] == 'main'
+
+
+@pytest.mark.parametrize('damage', ['corrupt', 'delete', 'unexpected-path'])
+def test_managed_update_preservation_guard_detects_lock_damage(project, monkeypatch, damage):
+    import tests.projects.test_preflight_store_preservation as subject
+    original = subject.update_tools
+    class FaultyUpdate:
+        def __init__(self, settings):
+            self.owner = original(settings)
+        def apply(self, packet):
+            path = Path(packet['config_path']).parent / 'preserved-operator.lock'
+            if damage == 'corrupt':
+                path.write_bytes(b'CORRUPTED BY REFUSED OPERATION')
+            elif damage == 'delete':
+                path.unlink()
+            else:
+                path.with_name('unexpected.lock').write_bytes(b'Unexpected lock')
+            return self.owner.apply(packet)
+    monkeypatch.setattr(subject, 'update_tools', FaultyUpdate)
+    with pytest.raises(AssertionError):
+        subject.test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, 'stale')

@@ -32,13 +32,23 @@ def fixture(name, values):
     return replace(json.loads((FIXTURES / name).read_text(encoding='utf-8')))
 
 
-def snapshot(root):
+def snapshot(root, *, readable_fds=None):
     """Every fixture entry, including absence, symlinks, dirs and Git internals."""
     entries = {}
     for path in [root, *sorted(root.rglob('*'))]:
         info = path.lstat()
-        value = os.readlink(path) if stat.S_ISLNK(info.st_mode) else (
-            path.read_bytes() if stat.S_ISREG(info.st_mode) else None)
+        value = None
+        if stat.S_ISLNK(info.st_mode):
+            value = os.readlink(path)
+        elif stat.S_ISREG(info.st_mode):
+            try:
+                value = path.read_bytes()
+            except PermissionError:
+                if readable_fds is None or str(path) not in readable_fds:
+                    raise
+                # Explicit test arrangement: descriptor opened before chmod.
+                # Byte reads still observe this file, and lstat catches replacement.
+                value = os.pread(readable_fds[str(path)], info.st_size, 0)
         entries[str(path.relative_to(root))] = (
             info.st_mode, info.st_ino, info.st_mtime_ns, info.st_ctime_ns, value)
     return entries
@@ -69,16 +79,20 @@ def case(project):
     return project, settings, cfg, values
 
 
-def invoke(case, request):
+def invoke_raw(case, raw, *, readable_fds=None):
     project, settings, _, _ = case
-    before = snapshot(project['root'].parent)
+    before = snapshot(project['root'].parent, readable_fds=readable_fds)
     output = io.StringIO()
-    code = execute(settings, io.BytesIO(json.dumps(request).encode()), output, action='check')
+    code = execute(settings, io.BytesIO(raw), output, action='check')
     # Assert preservation before protocol: even an incorrect refusal must be read-only.
-    assert snapshot(project['root'].parent) == before
+    assert snapshot(project['root'].parent, readable_fds=readable_fds) == before
     packet = json.loads(output.getvalue())
     assert set(packet) == {'schema', 'status', 'ready', 'reason', 'context', 'checks', 'recovery'}
     return code, packet
+
+
+def invoke(case, request, *, readable_fds=None):
+    return invoke_raw(case, json.dumps(request).encode(), readable_fds=readable_fds)
 
 
 def request(case):
@@ -180,10 +194,16 @@ def test_aliased_requirements_and_task_storage_are_rejected(case):
 
 
 def test_git_refusal_is_local_and_retains_reusable_owner_result(case, monkeypatch):
-    from poise.infrastructure.projects import FileProjectSetup
+    from poise.infrastructure.projects import FileProjectSetup, ProjectSettings
+    from poise.common import PoiseError
     project, _, cfg, _ = case
     cfg['git']['base_ref'] = 'absent-preflight-branch'
     write_json(project['config_path'], cfg)
+    before = snapshot(project['root'].parent)
+    with pytest.raises(PoiseError) as owner_failure:
+        FileProjectSetup(ProjectSettings(case[1]))._probe(cfg, True)
+    assert snapshot(project['root'].parent) == before
+    original_reason = str(owner_failure.value)
     calls = []
     original = FileProjectSetup._probe
     def observe(owner, configuration, enabled):
@@ -205,15 +225,35 @@ def test_git_refusal_is_local_and_retains_reusable_owner_result(case, monkeypatc
         ['rev-parse', '--verify', '--end-of-options', 'absent-preflight-branch^{commit}']]
     assert code == 23
     assert actual['status'] == 'rejected' and actual['ready'] is False
-    assert actual['reason'].startswith('Local Git probe rev-parse failed: fatal:')
-    assert actual['checks'] == [
-        {'name': 'configuration', 'status': 'passed', 'reason': None},
-        {'name': 'git', 'status': 'rejected', 'reason': actual['reason']},
-        {'name': 'commit_policy', 'status': 'not_checked', 'reason': None},
-        {'name': 'task_lookup', 'status': 'not_checked', 'reason': None}]
+    assert actual['reason'] == original_reason
+    assert actual['checks'] == fixture('checks-git-refused.json', {'cause': original_reason})
     assert actual['context']['base_ref'] == 'absent-preflight-branch'
     assert actual['recovery'] == [
         *fixture('recovery.json', case[3]), fixture('git-update-recovery.json', case[3])]
+
+
+def test_git_cause_preservation_guard_detects_loss(case, monkeypatch):
+    """Sensitivity check of the actual contract test, not product acceptance."""
+    import tests.projects.test_project_preflight as subject
+    from poise.infrastructure.projects import FileProjectSetup, ProjectSettings
+    from poise.common import PoiseError
+    def lossy_execute(settings, stream, output, action=None):
+        # Retain the real selected owner and Git invocation. Substitute only
+        # the cause after that owner's verified refusal, as in the finding.
+        body = json.loads(stream.read())
+        configuration = json.loads(Path(body['config_path']).read_text())
+        with pytest.raises(PoiseError):
+            FileProjectSetup(ProjectSettings(settings))._probe(configuration, True)
+        cause = 'Local Git probe rev-parse failed: fatal: generic failure'
+        result = expected(case, status='rejected', ready=False, reason=cause)
+        result['context']['base_ref'] = 'absent-preflight-branch'
+        result['checks'] = fixture('checks-git-refused.json', {'cause': cause})
+        result['recovery'].append(fixture('git-update-recovery.json', case[3]))
+        output.write(json.dumps(result))
+        return 23
+    monkeypatch.setattr(subject, 'execute', lossy_execute)
+    with pytest.raises(AssertionError):
+        subject.test_git_refusal_is_local_and_retains_reusable_owner_result(case, monkeypatch)
 
 
 def test_unclassified_owner_error_is_inconclusive_not_invalid_or_ready(case, monkeypatch):
@@ -226,9 +266,7 @@ def test_unclassified_owner_error_is_inconclusive_not_invalid_or_ready(case, mon
     assert actual['checks'][1]['status'] == 'unknown'
     assert 'fixture Git observation unavailable' in actual['checks'][1]['reason']
     assert actual['reason'] == actual['checks'][1]['reason']
-    assert actual['checks'][2:] == [
-        {'name': 'commit_policy', 'status': 'not_checked', 'reason': None},
-        {'name': 'task_lookup', 'status': 'not_checked', 'reason': None}]
+    assert actual['checks'][2:] == fixture('later-checks-not-checked.json', {})
     assert actual['recovery'] == fixture('recovery.json', case[3])
 
 
@@ -246,12 +284,8 @@ def test_invalid_required_storage_parameter_exposes_no_fallback(case, key, value
     assert actual['status'] == 'rejected' and actual['ready'] is False
     assert actual['reason'] == 'Requirements storage: explicit nonempty file path required'
     assert actual['context']['requirements_database' if key.endswith('database') else 'requirements_lock'] is None
-    assert actual['checks'] == [
-        {'name': 'configuration', 'status': 'rejected', 'reason': actual['reason']},
-        {'name': 'git', 'status': 'not_checked', 'reason': None},
-        {'name': 'commit_policy', 'status': 'not_checked', 'reason': None},
-        {'name': 'task_lookup', 'status': 'not_checked', 'reason': None},
-    ]
+    assert actual['checks'] == fixture('checks-configuration-refused.json', {
+        'cause': 'Requirements storage: explicit nonempty file path required'})
     assert actual['recovery'] == fixture('recovery.json', case[3])
 
 
@@ -284,9 +318,7 @@ def test_configuration_failure_preserves_observed_identity_and_uncertainty(case,
     assert code == 23 and actual['status'] == 'rejected' and actual['ready'] is False
     assert actual['checks'][0]['status'] == 'rejected'
     assert actual['checks'][0]['reason'] == actual['reason']
-    assert actual['checks'][1:] == [
-        {'name': name, 'status': 'not_checked', 'reason': None}
-        for name in ('git', 'commit_policy', 'task_lookup')]
+    assert actual['checks'][1:] == fixture('checks-after-configuration-not-checked.json', {})
     assert actual['context']['installation_source'] == values['source']
     assert actual['context']['config_path'] == values['config']
     assert actual['context']['requested_project_id'] == body['project_id']
@@ -335,9 +367,7 @@ def test_invalid_request_rejects_before_manifest_git_or_store_read(case, change)
     assert actual['status'] == 'rejected' and actual['ready'] is False
     assert isinstance(actual['reason'], str) and actual['reason']
     assert 'No such file' not in actual['reason']
-    assert actual['checks'] == [
-        {'name': name, 'status': 'not_checked', 'reason': None}
-        for name in ('configuration', 'git', 'commit_policy', 'task_lookup')]
+    assert actual['checks'] == fixture('checks-not-checked.json', {})
     assert actual['context']['repository'] is None
     assert actual['recovery'] == fixture('recovery.json', {
         **case[3], 'config': body.get('config_path') if change != 'relative' else None})

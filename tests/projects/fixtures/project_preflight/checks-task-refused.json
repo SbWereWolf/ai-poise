@@ -1,0 +1,22 @@
+[
+  {
+    "name": "configuration",
+    "status": "passed",
+    "reason": null
+  },
+  {
+    "name": "git",
+    "status": "passed",
+    "reason": null
+  },
+  {
+    "name": "commit_policy",
+    "status": "passed",
+    "reason": null
+  },
+  {
+    "name": "task_lookup",
+    "status": "rejected",
+    "reason": "$cause"
+  }
+]

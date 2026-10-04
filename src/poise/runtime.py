@@ -1495,6 +1495,10 @@ class Poise:
         if intact:
             receipts = batch['receipts']
             attempt = data['attempts']
+            self.runner.record_observations(
+                data['id'], self.session, tree, execution_key, receipts
+            )
+            data = self._task()
         else:
             if not pending_attempt:
                 self.runner.begin_check_attempt(

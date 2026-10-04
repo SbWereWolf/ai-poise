@@ -1,0 +1,14 @@
+{
+  "response": ["schema", "status", "run_id", "revision", "verdict", "protocol_path", "fingerprint", "completed_steps", "total_steps", "graph_results", "replayed"],
+  "protocol": ["schema", "run_id", "revision", "program_id", "program_version", "fingerprint", "input_snapshot", "profile_id", "environment_observation", "verdict", "steps", "remaining_step_ids", "graph_results", "stop_reason", "diagnostics"],
+  "step": ["step_id", "state", "attempt_id", "argv", "context_sha256", "exit_code", "signal", "timed_out", "duration_seconds", "effects", "reason", "outputs", "graph"],
+  "context": ["schema", "run_id", "step_id", "application_id", "public_argv", "workspace", "result_path", "graph"],
+  "result": ["schema", "run_id", "step_id", "application_id", "status", "reason", "graph"],
+  "snapshot": ["program_sha256", "config_sha256", "environment_sha256", "isolation_id", "inputs", "graphs"],
+  "environment": ["os_id", "os_version", "python_version", "uid", "configured_environment_sha256"],
+  "input": ["input_id", "kind", "inventory_sha256"],
+  "graph_input": ["graph_id", "input_id", "sha256"],
+  "graph_result": ["graph_id", "graph_sha256", "required_step_ids", "passed_step_ids", "verdict"],
+  "output": ["path", "sha256", "bytes"],
+  "error": ["code", "message", "retryable", "details"]
+}

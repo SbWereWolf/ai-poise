@@ -1,0 +1,1 @@
+{"schema":"toy-selected-graph/v1","entry":"only-check","stages":[{"id":"only-check","terminal":true}],"note":"Independent opaque selection; not a replacement for Execution graph scenarios."}

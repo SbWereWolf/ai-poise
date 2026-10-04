@@ -1,0 +1,52 @@
+{
+  "schema": "stride-uat-config/v1",
+  "state_root": "test/state",
+  "workspace_root": "test/workspace",
+  "input_roots": ["inputs", "@BINARY_ROOT@"],
+  "limits": {
+    "packet_bytes": 1048576, "program_bytes": 16777216, "steps": 32,
+    "id_bytes": 128, "argv_items": 32, "argument_bytes": 8192,
+    "result_bytes": 1048576, "stdout_bytes": 32768, "stderr_bytes": 32768,
+    "step_timeout_seconds": 8, "lock_timeout_seconds": 1,
+    "total_timeout_seconds": 30
+  },
+  "profiles": {
+    "isolated": {
+      "os_ids": ["@OS_ID@"], "os_versions": ["@OS_VERSION@"],
+      "python_versions": [["@MAJOR@", "@MINOR@"]], "allow_root": true,
+      "isolation_id": "dedicated",
+      "environment": {
+        "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "CASE_FLAG": "declared",
+        "SECRET_VALUE": "private-test-token",
+        "PROTECTED_ROOT": "@PROTECTED_ROOT@", "PROTECTED_CANARY": "@CANARY@"
+      }
+    }
+  },
+  "commands": {
+    "external-cases": {
+      "application_id": "external-toy",
+      "argv": ["@PYTHON@", "-I", "@ADAPTER@", "pass"],
+      "source_inputs": ["adapter-source", "python", "launcher"]
+    }
+  },
+  "applications": {
+    "external-toy": {
+      "public_argv": ["@PYTHON@", "-I", "@SUBJECT@", "@MODULE@"],
+      "delivery_inputs": ["installed-subject", "adapter-source", "python"]
+    }
+  },
+  "inputs": {
+    "adapter-source": {"kind": "tree", "path": "@SOURCE@", "excludes": []},
+    "installed-subject": {"kind": "delivery", "path": "@DELIVERY@", "excludes": []},
+    "python": {"kind": "file", "path": "@PYTHON@"},
+    "launcher": {"kind": "file", "path": "@LAUNCHER@"}
+  },
+  "isolations": {
+    "dedicated": {
+      "kind": "linux-setpriv/v1", "launcher": "@LAUNCHER@",
+      "uid": "@UID@", "gid": "@GID@",
+      "test_roots": ["@TEST_ROOT@"], "forbidden_roots": ["@PROTECTED_ROOT@"],
+      "lease_root": "@LEASE_ROOT@"
+    }
+  }
+}

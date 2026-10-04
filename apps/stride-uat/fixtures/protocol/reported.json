@@ -1,0 +1,1 @@
+{"schema":"stride-uat/v1","status":"reported","run_id":"run-1","revision":"@REVISION@","verdict":"PASS","protocol_path":"@PROTOCOL@","fingerprint":"@FINGERPRINT@","completed_steps":2,"total_steps":2,"graph_results":[],"replayed":false}

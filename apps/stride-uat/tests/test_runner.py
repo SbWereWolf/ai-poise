@@ -390,7 +390,9 @@ def capability():
     with Case() as c:
         c.program['graphs']=[{'id':'graph','input_id':'owner-source','required_step_ids':['first']}];c.program['steps'][0]['graph_id']='graph';c.save();reject(c,'capability_unavailable')
     for op in ('run','resume'):
-        with Case() as c:reject(c,'capability_unavailable',operation=op)
+        with Case() as c:
+            b=reject(c,'invalid_packet',operation=op)
+            assert b['error']['details']=={'path':'/input/step_limit' if op=='run' else '/input'},b
 
 
 def context():

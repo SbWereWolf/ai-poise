@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import platform
@@ -112,10 +113,19 @@ def select(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Pat
     except Problem as exc:
         raise normalize_problem(exc) from exc
     limits = cfg['limits']
+    for key in ('step_timeout_seconds', 'lock_timeout_seconds', 'total_timeout_seconds'):
+        try:
+            finite = math.isfinite(limits[key])
+        except (OverflowError, TypeError):
+            finite = False
+        if not finite:
+            invalid('/config/limits/' + key)
     iso = cfg['isolations'][p.profile['isolation_id']]
     shape(iso, {'kind', 'launcher', 'uid', 'gid', 'test_roots', 'forbidden_roots', 'lease_root'}, '/config/isolations')
-    if not isinstance(iso['kind'], str) or not iso['kind']:
-        invalid('/config/isolations/kind')
+    try:
+        runner.text(iso['kind'], '/config/isolations/kind', 'program_invalid')
+    except Problem as exc:
+        raise normalize_problem(exc) from exc
     for key in ('uid', 'gid'):
         if type(iso[key]) is not int or not 0 < iso[key] < 2**32-1:
             invalid('/config/isolations/' + key)
@@ -131,6 +141,12 @@ def select(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Pat
             if not isinstance(v, str) or not Path(v).is_absolute():
                 invalid('/config/isolations/' + key)
             absolute(base, v, '/config/isolations/' + key)
+    for step in p.program['steps']:
+        if step['graph_id'] is not None:
+            try:
+                runner.identifier(step['graph_id'], '/program/steps/graph_id', limits['id_bytes'], 'program_invalid')
+            except Problem as exc:
+                raise normalize_problem(exc) from exc
     step_ids = [s['id'] for s in p.program['steps']]
     graph_ids: set[str] = set()
     graph_inputs: set[str] = set()
@@ -176,6 +192,10 @@ def select(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Pat
         if not isinstance(excludes, list) or any(not isinstance(x, str) for x in excludes):
             invalid('/config/inputs/' + key + '/excludes')
         for x in excludes:
+            try:
+                runner.text(x, '/config/inputs/' + key + '/excludes', 'program_invalid')
+            except Problem as exc:
+                raise normalize_problem(exc) from exc
             px = PurePosixPath(x)
             if not x or px.is_absolute() or '..' in px.parts or '.' == x or str(px) != x or '\\' in x or '\0' in x:
                 invalid('/config/inputs/' + key + '/excludes')

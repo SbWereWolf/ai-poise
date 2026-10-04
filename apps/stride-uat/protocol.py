@@ -37,6 +37,7 @@ ENVIRONMENT_FIELDS = {'os_id', 'os_version', 'python_version', 'uid', 'configure
 SNAPSHOT_FIELDS = {'program_sha256', 'config_sha256', 'environment_sha256', 'isolation_id', 'inputs', 'graphs'}
 VERDICTS = {'PASS', 'FAIL', 'BLOCKED', 'RUNNING'}
 PROCESS_REASONS = {'spawn_failed', 'timeout', 'signal', 'output_limit'}
+PREREQUISITES = {'input_unavailable', 'environment_mismatch', 'isolation_unavailable'}
 FAILURE_REASONS = PROCESS_REASONS | {'invalid_case_result', 'evidence_missing', 'graph_mismatch',
                                    'graph_checks_failed', 'case_failed', 'input_drift'}
 
@@ -47,6 +48,16 @@ def reject(code: str, details: dict, message: str | None = None) -> None:
 
 def damage(run_id: str, steps: list[str] | None = None) -> None:
     reject('evidence_mismatch', {'run_id': run_id, 'step_ids': steps or []})
+
+
+def require_owned(path: Path, mode: int, *, directory: bool = False, owner: int | None = None) -> None:
+    """Check retained ownership/permissions without repairing foreign metadata."""
+    info = path.lstat()
+    expected_owner = os.geteuid() if owner is None else owner
+    kind = stat.S_ISDIR if directory else stat.S_ISREG
+    if (not runner.no_symlinks(path) or not kind(info.st_mode)
+            or info.st_uid != expected_owner or stat.S_IMODE(info.st_mode) != mode):
+        raise ValueError('Retained resource ownership or permissions changed')
 
 
 def read_bytes(path: Path, bound: int) -> bytes:
@@ -86,6 +97,7 @@ def validate_record(record: Any, path: Path, bound: int) -> bytes:
     if (not isinstance(record, dict) or set(record) != RECORD_FIELDS or record['path'] != str(path)
             or type(record['bytes']) is not int or record['bytes'] < 0):
         raise ValueError('Invalid captured output record')
+    require_owned(path, 0o600)
     actual, raw = file_record(path, bound)
     if actual != record:
         raise ValueError('Captured output bytes differ')
@@ -107,6 +119,8 @@ def freeze_records(state: Path, frozen: Frozen, limits: dict) -> None:
 
 def load_frozen(state: Path, limits: dict) -> Frozen:
     directory = state / 'frozen'
+    require_owned(directory, 0o700, directory=True)
+    require_owned(directory / 'files.json', 0o600)
     manifest = read_json(directory / 'files.json', limits['result_bytes'])
     if not isinstance(manifest, dict) or set(manifest) != {'files'} or not isinstance(manifest['files'], list):
         raise ValueError('Invalid frozen record membership')
@@ -118,6 +132,9 @@ def load_frozen(state: Path, limits: dict) -> Frozen:
             raise ValueError('Invalid frozen record path')
         relative = record['path']
         bound = limits['program_bytes'] if relative == 'program.json' or relative.startswith('graph-inputs/') else limits['result_bytes']
+        require_owned(directory / relative, 0o600)
+        if Path(relative).parent != Path('.'):
+            require_owned((directory / relative).parent, 0o700, directory=True)
         raw = read_bytes(directory / relative, bound)
         if type(record['bytes']) is not int or record['bytes'] != len(raw) or record['sha256'] != hashlib.sha256(raw).hexdigest():
             raise ValueError('Frozen record changed')
@@ -129,6 +146,9 @@ def load_frozen(state: Path, limits: dict) -> Frozen:
     if not isinstance(graphs, list):
         raise ValueError('Invalid frozen graphs')
     expected = basic | {'graph-inputs/' + g['graph_id'] + '.bin' for g in graphs if g['sha256'] is not None}
+    actual_files = {str(p.relative_to(directory)) for p in directory.rglob('*') if not p.is_dir()}
+    if actual_files != expected | {'files.json'}:
+        raise ValueError('Frozen directory membership changed')
     if set(contents) != expected:
         raise ValueError('Unexpected frozen records')
     graph_bytes = {g['graph_id']: contents['graph-inputs/' + g['graph_id'] + '.bin'] for g in graphs if g['sha256'] is not None}
@@ -259,6 +279,12 @@ class Journal:
         if not first:
             journal['revision'] += 1
         journal['graph_results'] = self.graphs(journal, frozen, program)
+        # Validate every retained prefix and this candidate BEFORE publishing any
+        # verdict, especially PASS. A corrupt prefix leaves the previous durable
+        # RUNNING intent, never a persisted certificate followed by rejection.
+        if self.frozen() != frozen:
+            damage(self.run_id)
+        self.validate(journal, frozen, program)
         runner.atomic_json(self.path, journal, self.limits['result_bytes'])
 
     def reserve_budget(self, selection: Selection, frozen: Frozen) -> None:
@@ -364,8 +390,10 @@ class Journal:
             return 'BLOCKED', result['reason'], output, graph
         return 'FAIL', 'case_failed', output, graph
 
-    def read(self) -> tuple[dict, Frozen, dict]:
+    def header(self) -> dict:
         try:
+            require_owned(self.state, 0o700, directory=True)
+            require_owned(self.path, 0o600)
             j = read_json(self.path, self.limits['result_bytes'])
             if not isinstance(j, dict):
                 damage(self.run_id)
@@ -373,8 +401,22 @@ class Journal:
                 reject('store_incompatible', {'schema': j.get('schema') if isinstance(j.get('schema'), str) else None})
             if set(j) != JOURNAL_FIELDS or j['run_id'] != self.run_id or type(j['revision']) is not int or j['revision'] < 1:
                 damage(self.run_id)
-            frozen = load_frozen(self.state, self.limits)
-            program = loads(frozen.program.decode('utf-8'))
+            return j
+        except Problem:
+            raise
+        except (OSError, ValueError, KeyError, TypeError, IndexError, OverflowError, RecursionError):
+            damage(self.run_id)
+        raise AssertionError('unreachable')
+
+    def validate(self, j: dict, frozen: Frozen, program: dict) -> None:
+        try:
+            require_owned(self.state, 0o700, directory=True)
+            require_owned(self.state / 'evidence', 0o700, directory=True)
+            if (not isinstance(j, dict) or set(j) != JOURNAL_FIELDS
+                    or j['schema'] != PROTOCOL or j['run_id'] != self.run_id
+                    or type(j['revision']) is not int or j['revision'] < 1
+                    or loads(frozen.program.decode('utf-8')) != program):
+                damage(self.run_id)
             if (j['program_id'] != program['program_id'] or j['program_version'] != program['version']
                     or j['profile_id'] != frozen.configuration['profile_id']
                     or j['input_snapshot'] != frozen.snapshot or j['fingerprint'] != frozen.fingerprint
@@ -411,8 +453,15 @@ class Journal:
                               'argv': argv, 'environment': frozen.configuration['profile']['environment']}:
                     damage(self.run_id, [sid])
                 cwd = Path(context['workspace'])
-                if not runner.no_symlinks(cwd) or not cwd.is_dir():
-                    damage(self.run_id, [sid])
+                require_owned(self.workspace, 0o711, directory=True)
+                require_owned(self.workspace / '.control', 0o755, directory=True)
+                require_owned(ctxpath.parent, 0o755, directory=True)
+                require_owned(ctxpath, 0o444)
+                require_owned(ctxpath.with_name('launch.json'), 0o444)
+                if context['graph'] is not None:
+                    require_owned(Path(context['graph']['path']), 0o444)
+                require_owned(cwd, 0o700, directory=True, owner=(
+                    frozen.configuration['isolation']['uid'] if step['state'] == 'RUNNING' else os.geteuid()))
                 if step['state'] == 'RUNNING':
                     if (index != len(steps)-1 or any(step[k] is not None for k in ('exit_code','signal','duration_seconds','reason','graph'))
                             or any(x is not None for x in step['outputs'].values()) or step['timed_out']):
@@ -445,7 +494,9 @@ class Journal:
                 if j['stop_reason'] != expected or (expected == 'step_limit' and (not all_pass or not j['remaining_step_ids'])):
                     damage(self.run_id)
             elif j['verdict'] == 'BLOCKED':
-                if j['stop_reason'] is None or (steps and (steps[-1]['state'] != 'BLOCKED' or j['stop_reason'] != steps[-1]['reason'])):
+                prerequisite_stop = j['stop_reason'] in PREREQUISITES and all_pass
+                case_stop = bool(steps) and steps[-1]['state'] == 'BLOCKED' and j['stop_reason'] == steps[-1]['reason']
+                if not (prerequisite_stop or case_stop):
                     damage(self.run_id)
             elif (not isinstance(j['stop_reason'], str) or not j['stop_reason']
                   or (j['stop_reason'] != 'input_drift' and (not steps or steps[-1]['state'] != 'FAIL'
@@ -453,12 +504,36 @@ class Journal:
                 damage(self.run_id)
             if j['graph_results'] != self.graphs(j, frozen, program):
                 damage(self.run_id)
-            return j, frozen, program
+            return
         except Problem:
             raise
         except (OSError, ValueError, KeyError, TypeError, IndexError, OverflowError, RecursionError):
             damage(self.run_id)
         raise AssertionError('unreachable')
+
+    def frozen(self) -> Frozen:
+        try:
+            return load_frozen(self.state, self.limits)
+        except (OSError, ValueError, KeyError, TypeError, IndexError, OverflowError, RecursionError):
+            damage(self.run_id)
+        raise AssertionError('unreachable')
+
+    def read(self, header: dict | None = None) -> tuple[dict, Frozen, dict]:
+        j = self.header() if header is None else header
+        frozen = self.frozen()
+        try:
+            program = loads(frozen.program.decode('utf-8'))
+        except (ValueError, TypeError, RecursionError):
+            damage(self.run_id)
+        self.validate(j, frozen, program)
+        return j, frozen, program
+
+    def preflight_suffix(self, journal: dict, program: dict) -> None:
+        """Reject occupied future resources before lease/probe or journal writes."""
+        for step in program['steps'][len(journal['steps']):]:
+            for path in (self.workspace / step['id'], self.workspace / '.control' / step['id']):
+                if os.path.lexists(path):
+                    reject('workspace_conflict', {'path': str(path)})
 
     def report(self, journal: dict, total: int, replayed: bool = False) -> tuple[dict, int]:
         return {'schema': SCHEMA, 'status': 'reported', 'run_id': self.run_id,
@@ -470,6 +545,7 @@ class Journal:
     def execute(self, selection: Selection, frozen: Frozen, journal: dict, step_limit: int,
                 prerequisite: str | None = None) -> tuple[dict, int]:
         p = selection.parsed.program
+        self.preflight_suffix(journal, p)
         env = frozen.environment
         profile = selection.parsed.profile
         if prerequisite is None and (env['os_id'] not in profile['os_ids'] or env['os_version'] not in profile['os_versions']
@@ -498,7 +574,10 @@ class Journal:
                     self.publish(journal, frozen, p)
                     break
                 context, argv, ctxpath = self.context(frozen, step)
-                launch = boundary.prepare_step(step['id'], context, argv, frozen.graph_bytes.get(step['graph_id']))
+                try:
+                    launch = boundary.prepare_step(step['id'], context, argv, frozen.graph_bytes.get(step['graph_id']))
+                except (Unavailable, FileExistsError):
+                    reject('workspace_conflict', {'path': str(self.workspace / step['id'])})
                 intent = self.intent(step, argv, hashlib.sha256(read_bytes(ctxpath, self.limits['result_bytes'])).hexdigest())
                 journal['steps'].append(intent)
                 journal['remaining_step_ids'] = [s['id'] for s in p['steps'][len(journal['steps']):]]
@@ -564,18 +643,21 @@ def run(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Path,
         reject('workspace_conflict', {'path': str(journal.workspace)})
     if exists:
         with locked(journal.state, run_id, cfg['limits']['lock_timeout_seconds'], False):
-            old, frozen, program = journal.read()
+            header = journal.header()
+            if operation == 'resume' and inp['expected_revision'] != header['revision']:
+                reject('revision_conflict', {'expected': inp['expected_revision'], 'actual': header['revision']})
             if operation == 'inspect':
+                old, frozen, program = journal.read(header)
                 return journal.report(old, len(program['steps']))
-            if operation == 'resume' and inp['expected_revision'] != old['revision']:
-                reject('revision_conflict', {'expected': inp['expected_revision'], 'actual': old['revision']})
             assert selection is not None
+            frozen = journal.frozen()
             current, unavailable = observe_or_block(selection)
             if current.fingerprint != frozen.fingerprint:
                 if operation == 'run':
                     reject('run_conflict', {'run_id': run_id})
-                changed = [key for key in frozen.snapshot if frozen.snapshot[key] != current.snapshot[key]]
+                changed = [key for key in current.snapshot if frozen.snapshot[key] != current.snapshot[key]]
                 reject('input_mismatch', {'run_id': run_id, 'changed': changed})
+            old, frozen, program = journal.read(header)
             if operation == 'run':
                 return journal.report(old, len(program['steps']), True)
             for step in old['steps']:

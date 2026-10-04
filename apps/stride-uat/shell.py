@@ -48,7 +48,7 @@ def load_config(path):
  return d,state,workspace,input_roots
 
 def valid_id(v,limit,path):
- if not isinstance(v,str) or len(v.encode())>limit or not ID_RE.fullmatch(v): raise Problem('invalid_packet','Invalid identifier',{'path':path})
+ if not isinstance(v,str) or not ID_RE.fullmatch(v) or len(v.encode())>limit: raise Problem('invalid_packet','Invalid identifier',{'path':path})
 def main(argv=None):
  p=argparse.ArgumentParser(add_help=True); p.add_argument('--config',required=True); a=p.parse_args(argv)
  try: cfg,state,workspace,input_roots=load_config(Path(a.config))

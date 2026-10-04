@@ -443,6 +443,15 @@ def revision():
         assert result['error']['details'] == {'expected': future, 'actual': b['revision']}
         reported(c, operation='resume', revision=b['revision'])
 
+    with Case() as c:
+        b, j = prefix(c)
+        with Path(j['steps'][0]['outputs']['stdout']['path']).open('ab') as out:
+            out.write(b'corrupt retained prefix')
+        stale = b['revision'] - 1
+        result = rejected(c, 'revision_conflict', operation='resume', revision=stale)
+        assert result['error']['details'] == {'expected': stale, 'actual': b['revision']}
+        rejected(c, 'evidence_mismatch', operation='resume', revision=b['revision'])
+
 
 def changed_input(c, mutate):
     b, _ = prefix(c)
@@ -640,6 +649,21 @@ def context_integrity():
         b, j = prefix(c); path, _ = context_for(j)
         damaged(c, path, 'remove', b['revision'])
 
+    for target in ('context', 'launch', 'control', 'frozen', 'journal', 'completed_workspace'):
+        with Case() as c:
+            b, j = prefix(c)
+            context_path, _ = context_for(j)
+            path = {
+                'context': context_path, 'launch': context_path.with_name('launch.json'),
+                'control': context_path.parent, 'frozen': c.state/'run-1/frozen/environment.json',
+                'journal': c.state/'run-1/protocol.json',
+                'completed_workspace': c.workspace/'run-1/first',
+            }[target]
+            path.chmod(0o755 if path.is_dir() else 0o644)
+            if target == 'control': path.chmod(0o775)
+            rejected(c, 'evidence_mismatch', operation='inspect')
+            rejected(c, 'evidence_mismatch', operation='resume', revision=b['revision'])
+
 
 def journal_integrity():
     for change in ('duplicate', 'order', 'attempt', 'partial-pass', 'exit', 'graph', 'revision', 'extra',
@@ -668,6 +692,18 @@ def journal_integrity():
     with Case() as c:
         _, j = reported(c); j['schema'] = 'unknown-journal/v2'; write(c.state/'run-1/protocol.json', j)
         rejected(c, 'store_incompatible', operation='inspect')
+
+    with Case() as c:
+        p, body = c.call(outer=c.fault('corrupt-prefix'))
+        trace = [json.loads(line) for line in (c.root/'fault-trace.jsonl').read_text().splitlines()]
+        assert len(trace) == 1 and trace[0]['action'] == 'corrupt-prefix', trace
+        assert [x['state'] for x in trace[0]['journal']['steps']] == ['PASS', 'RUNNING']
+        assert p.returncode == 2 and p.stderr == b'' and body['error']['code'] == 'evidence_mismatch', (p.returncode, body)
+        persisted = c.raw_protocol()
+        assert persisted['verdict'] == 'RUNNING', 'invalid prefix was durably certified PASS before rejection'
+        assert [x['state'] for x in persisted['steps']] == ['PASS', 'RUNNING']
+        assert persisted['stop_reason'] == 'unknown_attempt'
+        rejected(c, 'evidence_mismatch', operation='inspect')
 
 
 def inventory_integrity():
@@ -752,6 +788,17 @@ def isolation_blocked():
     with Case() as c:
         c.config['profiles']['isolated']['os_ids'] = ['not-the-observed-os']; c.save()
         zero_blocked(c, 'environment_mismatch')
+
+    with Case() as c:
+        b, _ = prefix(c)
+        before = inventory(c.workspace/'run-1/first')
+        c.protected.chmod(0o755)
+        blocked, journal = reported(c, 'BLOCKED', operation='resume', revision=b['revision'])
+        assert journal['stop_reason'] == 'isolation_unavailable'
+        assert [x['state'] for x in journal['steps']] == ['PASS']
+        assert blocked['completed_steps'] == 1 and not (c.workspace/'run-1/second').exists()
+        inspected, _ = reported(c, 'BLOCKED', operation='inspect')
+        assert inspected == blocked and before == inventory(c.workspace/'run-1/first')
 
 
 def result_matrix():
@@ -884,6 +931,14 @@ def workspace():
         reported(c, operation='resume', revision=b['revision'])
         assert prior == inventory(c.workspace/'run-1/first')
 
+    for relative in ('second', '.control/second'):
+        with Case() as c:
+            b, _ = prefix(c)
+            foreign = c.workspace/'run-1'/relative
+            foreign.mkdir(); (foreign/'KEEP').write_bytes(b'foreign bytes must survive')
+            rejected(c, 'workspace_conflict', operation='resume', revision=b['revision'])
+            assert (foreign/'KEEP').read_bytes() == b'foreign bytes must survive'
+
 
 def graph():
     with Case() as c:
@@ -959,6 +1014,18 @@ def bounds():
         c.config['limits']['packet_bytes'] = 16; c.save(); rejected(c, 'limit_exceeded')
     with Case() as c:
         c.module.unlink(); zero_blocked(c)
+
+    for graph_id in ([], {}, True, 3, "\ud800"):
+        with Case() as c:
+            c.program['steps'][0]['graph_id'] = graph_id
+            c.program_path.write_text(json.dumps(c.program, ensure_ascii=True), encoding='utf-8')
+            rejected(c, 'program_invalid')
+    with Case() as c:
+        packet = c.packet(); packet['input']['run_id'] = "\ud800"
+        rejected(c, 'invalid_packet', raw=(json.dumps(packet, ensure_ascii=True)+'\n').encode())
+    with Case() as c:
+        c.config['limits']['lock_timeout_seconds'] = 10**400
+        c.save(); rejected(c, 'program_invalid')
 
 
 GROUPS = [('protocol.'+name, fn) for name, fn in (

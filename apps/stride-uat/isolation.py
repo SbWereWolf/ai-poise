@@ -188,7 +188,10 @@ class Boundary:
         if os.path.lexists(cwd):
             raise Unavailable('Step workspace already exists')
         directory = self.control / step_id
-        owned_directory(directory, 0o755)
+        if os.path.lexists(directory):
+            raise Unavailable('Step control directory already exists')
+        directory.mkdir(mode=0o755)
+        sync_directory(self.control)
         immutable_json(directory / 'context.json', context, self.selected.limits['result_bytes'])
         if graph_raw is not None:
             graph = directory / 'graph.bin'

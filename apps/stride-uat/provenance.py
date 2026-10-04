@@ -106,13 +106,8 @@ class Selection:
         return Frozen(raw, self.effective, env, inventories, graphs, graph_bytes)
 
 
-def select(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Path, inp: dict) -> Selection:
-    try:
-        p = runner.prepare(cfg, state, workspace, roots, base,
-                           {k: inp[k] for k in ('program_path', 'profile_id')}, 'validate', qualifying=True)
-    except Problem as exc:
-        raise normalize_problem(exc) from exc
-    limits = cfg['limits']
+def validate_durations(limits: dict) -> None:
+    """Validate timers without selecting or reading live programme inputs."""
     for key in ('step_timeout_seconds', 'lock_timeout_seconds', 'total_timeout_seconds'):
         try:
             finite = math.isfinite(limits[key])
@@ -120,6 +115,16 @@ def select(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Pat
             finite = False
         if not finite:
             invalid('/config/limits/' + key)
+
+
+def select(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Path, inp: dict) -> Selection:
+    try:
+        p = runner.prepare(cfg, state, workspace, roots, base,
+                           {k: inp[k] for k in ('program_path', 'profile_id')}, 'validate', qualifying=True)
+    except Problem as exc:
+        raise normalize_problem(exc) from exc
+    limits = cfg['limits']
+    validate_durations(limits)
     iso = cfg['isolations'][p.profile['isolation_id']]
     shape(iso, {'kind', 'launcher', 'uid', 'gid', 'test_roots', 'forbidden_roots', 'lease_root'}, '/config/isolations')
     try:

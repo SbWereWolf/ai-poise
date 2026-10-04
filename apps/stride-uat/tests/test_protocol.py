@@ -1026,6 +1026,23 @@ def bounds():
     with Case() as c:
         c.config['limits']['lock_timeout_seconds'] = 10**400
         c.save(); rejected(c, 'program_invalid')
+    for duration in ('lock_timeout_seconds', 'step_timeout_seconds', 'total_timeout_seconds'):
+        with Case() as c:
+            prefix(c)
+            c.config['limits'][duration] = 10**400
+            c.save()
+            b = rejected(c, 'program_invalid', operation='inspect')
+            assert b['error']['details'] == {'issues': [
+                {'path': '/config/limits/' + duration, 'code': 'invalid_binding'}]}
+    with Case() as c:
+        b, journal = prefix(c)
+        before = (inventory(c.state), inventory(c.workspace))
+        # Compare retained evidence, not a helper that re-hashes deleted live inputs.
+        c.config['profiles'] = {}; c.save(); c.program_path.unlink(); c.module.unlink()
+        p, inspected = c.call('inspect')
+        assert p.returncode == 3 and p.stderr == b'' and inspected == b
+        assert c.raw_protocol() == journal
+        assert before == (inventory(c.state), inventory(c.workspace))
 
 
 GROUPS = [('protocol.'+name, fn) for name, fn in (

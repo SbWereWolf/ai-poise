@@ -21,7 +21,8 @@ from typing import Any, Iterator
 
 from shell import Problem, SCHEMA, exact, loads, valid_id
 import runner
-from provenance import Frozen, Selection, absolute, canonical, environment, hashed, inventory, limit, select
+from provenance import (Frozen, Selection, absolute, canonical, environment, hashed,
+                        inventory, limit, select, validate_durations)
 from isolation import Boundary, SAFE_ENVIRONMENT, Unavailable, active_identity, owned_directory, seal
 
 PROTOCOL = 'stride-uat-protocol/v1'
@@ -618,6 +619,7 @@ class Journal:
 def run(cfg: dict, state: Path, workspace: Path, roots: list[Path], base: Path,
         operation: str, inp: Any, config_path: Path) -> tuple[dict, int]:
     check_input(inp, operation, cfg['limits']['id_bytes'])
+    validate_durations(cfg['limits'])
     if operation == 'inspect':
         selection = None
     else:

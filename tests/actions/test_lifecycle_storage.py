@@ -1,7 +1,6 @@
 """Independent persisted-input and conservation tests for current action scope."""
 from copy import deepcopy
 import json
-import re
 
 import pytest
 
@@ -41,13 +40,35 @@ def audit_refusal(operation):
     try:
         operation()
     except PoiseError as error:
-        if not re.search(r"restart|lifecycle|audit|history|boundary|цикл|аудит|истори|перезап",
-                         str(error), re.IGNORECASE):
+        prefix = "Invalid Task lifecycle audit: "
+        if not str(error).startswith(prefix) or not str(error)[len(prefix):].strip():
             # JUnit retains the actual exception context. The literal diagnostic
             # distinguishes a stale-plan rejection from the required audit gate.
             pytest.fail("INVALID_LIFECYCLE_WRONG_REJECTION_REASON")
     else:
         pytest.fail("INVALID_LIFECYCLE_AUDIT_ACCEPTED")
+
+
+@pytest.mark.parametrize("message", [
+    "history service is unavailable", "restart is forbidden for this caller",
+    "lifecycle operation unsupported", "Задача связана с другой сессией",
+    "Invalid Task lifecycle audit", "Invalid Task lifecycle audit: ",
+    "Invalid Task lifecycle audit:  ", "Invalid Task lifecycle audit service: unavailable",
+    "invalid Task lifecycle audit: invalid input", "Invalid Task lifecycle audit:invalid input",
+    "service says Invalid Task lifecycle audit: invalid input",
+], ids=["service", "authority", "operation", "owner", "bare", "empty", "blank", "near-match",
+        "case", "spacing", "embedded"])
+def test_audit_refusal_oracle_rejects_unrelated_errors(message):
+    def invoke():
+        raise PoiseError(message)
+    with pytest.raises(pytest.fail.Exception, match="^INVALID_LIFECYCLE_WRONG_REJECTION_REASON$"):
+        audit_refusal(invoke)
+
+
+def test_audit_refusal_oracle_accepts_only_precise_invalid_input_category():
+    def invoke():
+        raise PoiseError("Invalid Task lifecycle audit: from_version must be a nonnegative integer")
+    audit_refusal(invoke)
 
 
 STAGES = [
@@ -228,6 +249,12 @@ def test_prepared_binding_survives_release_reacquisition_and_ordinary_versions(p
     assert resumed["action"]["plan"] == plan.data
     assert rows(receiver, context["task"]) == before
     assert not marker.exists()
+    changed = original.start(0, {"marker": "absent"})
+    saved = commands(receiver).update(context["task"], receiver.session, context["stage"], 1,
+                                      original, changed)
+    assert saved.to_dict() == changed.to_dict()
+    assert commands(receiver).snapshot(context["task"], context["stage"], 1) == changed.to_dict()
+    assert len(rows(receiver, context["task"])["runs"]) == len(before["runs"])
 
 
 def test_foreign_actor_cannot_mutate_current_binding(project, tmp_path):
@@ -237,4 +264,100 @@ def test_foreign_actor_cannot_mutate_current_binding(project, tmp_path):
     before = refusal_snapshot(client, context, marker)
     with pytest.raises(PoiseError, match="Задача связана с другой сессией"):
         commands(client).obtain(context["task"], "FOREIGN", context["stage"], 1, plan)
+    assert refusal_snapshot(client, context, marker) == before
+
+
+@pytest.mark.parametrize("denial", ["foreign", "stale", "unauthorized"])
+def test_restart_and_action_denial_gates_remain_effective_after_restart(project, tmp_path, denial):
+    from .helpers import call
+    client, context = runtime(project)
+    seed_history(client, context)
+    client, context = restart_current(client, context)
+    marker = tmp_path / "effect.txt"
+    before = refusal_snapshot(client, context, marker)
+    version = client.task_queries.record(context["task"])["version"]
+    if denial == "foreign":
+        with pytest.raises(PoiseError, match="^Задача связана с другой сессией$"):
+            commands(client).obtain(context["task"], "FOREIGN", context["stage"], 1,
+                                    PlanSpec.parse(command_plan(marker, "forbidden"), 1))
+        foreign = WorkPoise(project["config_path"], "FOREIGN")
+        with pytest.raises(PoiseError, match="owned.*another|handoff"):
+            call(foreign, "task", {
+                "action": "restart", "request_id": "denied-current-foreign",
+                "task_id": context["task"], "expected_version": version,
+                "reason": "Foreign actor cannot restart current work.",
+                "authorization": "Independent restart grant.",
+            })
+    else:
+        with pytest.raises(PoiseError, match="version" if denial == "stale" else
+                           "^Task restart authorization is required$"):
+            call(client, "task", {
+                "action": "restart", "request_id": "denied-current-" + denial,
+                "task_id": context["task"],
+                "expected_version": version + 1 if denial == "stale" else version,
+                "reason": "Test the current lifecycle denial gate.",
+                "authorization": "Independent restart grant." if denial == "stale" else "",
+            })
+    assert refusal_snapshot(client, context, marker) == before
+
+
+@pytest.mark.parametrize("restarted", [True, False], ids=["restarted", "initial"])
+def test_retained_restarted_run_saves_after_ordinary_version_and_actor_changes(project, tmp_path, restarted):
+    client, context = runtime(project)
+    if restarted:
+        seed_history(client, context)
+    historical = rows(client, context["task"])
+    if restarted:
+        client, context = restart_current(client, context)
+    marker = tmp_path / "effect.txt"
+    plan = PlanSpec.parse(command_plan(marker, "current"), 1)
+    try:
+        retained = commands(client).obtain(context["task"], client.session, context["stage"], 1, plan)
+    except PoiseError as error:
+        if "immutable" in str(error):
+            pytest.fail("LIFECYCLE_POSITIVE_SAVE_SELECTED_HISTORY")
+        raise
+    version = client.task_queries.record(context["task"])["version"]
+    release_current(client, context, "retained-restarted")
+    receiver = WorkPoise(project["config_path"], "RETAINED-CURRENT-RECEIVER")
+    resumed = start(receiver, {"id": context["task"]})
+    assert receiver.task_queries.record(context["task"])["version"] > version
+    before = rows(receiver, context["task"])
+    running = retained.start(0, {"marker": "absent"})
+    commands(receiver).update(context["task"], receiver.session, context["stage"], 1, retained, running)
+    assert commands(receiver).snapshot(context["task"], context["stage"], 1) == running.to_dict()
+    count = 2 if restarted else 1
+    assert len(rows(receiver, context["task"])["runs"]) == len(before["runs"]) == count
+    # Execute the real declared effect through its runtime owner, then let the
+    # normal public verify recover the retained running action by its probe.
+    applied = receiver.plan_actions._method(receiver.current_task(), plan.steps[0]["apply"])
+    assert applied["passed"] and marker.read_text() == "current\n"
+    out = verify(receiver, prepare(resumed, plan.data))
+    assert out["status"] == "verified" and out["action"]["status"] == "complete"
+    assert out["action"]["steps"][0]["result"]["effect"] == "recovered_by_probe"
+    assert marker.read_text() == "current\n"
+    assert_preserved(historical, rows(receiver, context["task"]))
+    assert len(rows(receiver, context["task"])["runs"]) == count
+
+
+@pytest.mark.parametrize("contradiction", ["equal-current-version", "retained-earlier-prefix"])
+def test_exact_version_and_nonempty_owner_event_contradictions_reject(project, tmp_path, contradiction):
+    client, context = runtime(project)
+    seed_history(client, context)
+    client, context = restart_current(client, context, suffix="first-audit")
+    if contradiction == "retained-earlier-prefix":
+        client, context = restart_current(client, context, suffix="second-audit", edit=True)
+    history = metadata(client, context["task"])["restart_history"]
+    if contradiction == "equal-current-version":
+        history[-1]["from_version"] = client.task_queries.record(context["task"])["version"]
+    else:
+        assert len(history) == 2 and history[0]["from_version"] < history[1]["from_version"]
+        history = history[:1]
+    corrupt_history(client, context["task"], history)
+    marker = tmp_path / "effect.txt"
+    before = refusal_snapshot(client, context, marker)
+    if contradiction == "retained-earlier-prefix":
+        assert sum(json.loads(row[2])["event"] == "restarted_newborn"
+                   for row in before["task_events"]) == 2
+    audit_refusal(lambda: commands(client).snapshot(context["task"], context["stage"], 1))
     assert refusal_snapshot(client, context, marker) == before

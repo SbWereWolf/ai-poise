@@ -159,11 +159,13 @@ def test_current_lifecycle_keeps_explicit_failed_or_blocked_action_rework(projec
     assert len(rows(client, context["task"])["runs"]) == 3
 
 
-def test_public_cli_after_restart_does_not_return_completed_historical_action(project, tmp_path):
+@pytest.mark.parametrize("restarted", [True, False], ids=["restarted", "initial"])
+def test_public_cli_after_restart_does_not_return_completed_historical_action(project, tmp_path, restarted):
     client, context = runtime(project)
     marker = tmp_path / "effects.txt"
-    verify(client, prepare(context, command_plan(marker, "old")))
-    client, context = restart_current(client, context)
+    if restarted:
+        verify(client, prepare(context, command_plan(marker, "old")))
+        client, context = restart_current(client, context)
     transfer(client, "cli")
     binding_parent = tmp_path / "cli-caller"
     binding_parent.mkdir()
@@ -182,7 +184,45 @@ def test_public_cli_after_restart_does_not_return_completed_historical_action(pr
     actual = json.loads(Path(wire["response_path"]).read_text()) if "response_path" in wire else wire
     if actual["action"] is not None:
         pytest.fail("LIFECYCLE_CLI_SELECTED_HISTORICAL_ACTION")
-    assert marker.read_text() == "old\n"
+    prefix = "old\n" if restarted else ""
+    assert (marker.read_text() if marker.exists() else "") == prefix
+    historical = rows(client, context["task"])
+    current = command_plan(marker, "cli-current")
+
+    def cli(operation, inputs):
+        request = {"operation": operation, "input": inputs, "messages": []}
+        output = subprocess.run([sys.executable, "-B", "-m", "poise", "work"],
+                                input=json.dumps(request), env=env, text=True, capture_output=True)
+        assert output.stderr == ""
+        minimal = json.loads(output.stdout)
+        full = (json.loads(Path(minimal["response_path"]).read_text())
+                if "response_path" in minimal else minimal)
+        return output.returncode, full
+
+    exit_code, started = cli("verify", {"result": prepare(actual, current), "artifacts": []})
+    assert exit_code == 0 and started["status"] == "verified"
+    assert started["action"]["plan"] == current
+    assert started["action"]["status"] == "complete" and started["action"]["cursor"] == 1
+    assert marker.read_text() == prefix + "cli-current\n"
+    after = rows(client, context["task"])
+    assert_preserved(historical, after)
+    assert len(after["runs"]) == (2 if restarted else 1)
+    exit_code, readback = cli("bootstrap", packet["input"])
+    assert exit_code == 0 and readback["action"] == started["action"]
+    before = rows(client, context["task"])
+    exit_code, replayed = cli("verify", {"result": None, "artifacts": []})
+    assert exit_code == 0 and replayed["replayed"] is True
+    assert replayed["action"] == started["action"]
+    assert rows(client, context["task"]) == before
+    from .lifecycle_helpers import refusal_snapshot
+    refusal_before = refusal_snapshot(client, context, marker)
+    changed = command_plan(marker, "cli-forbidden")
+    exit_code, rejected = cli("verify", {"result": prepare(actual, changed), "artifacts": []})
+    assert exit_code == 2 and rejected == {
+        "status": "rejected", "reason": "Different result after delivery requires rework",
+    }
+    assert refusal_snapshot(client, context, marker) == refusal_before
+    assert marker.read_text() == prefix + "cli-current\n"
 
 
 def test_local_publication_after_restart_uses_current_inspected_candidate(project):
@@ -214,3 +254,48 @@ def test_local_publication_after_restart_uses_current_inspected_candidate(projec
     assert git(project["remote"], "rev-parse", "main") == base
     assert_preserved(history, rows(client, context["task"]))
     assert len(rows(client, context["task"])["runs"]) == 4
+
+
+@pytest.mark.parametrize("restarted", [True, False], ids=["restarted", "initial"])
+def test_interrupted_running_current_action_recovers_once_after_restart(project, tmp_path, monkeypatch, restarted):
+    client, context = runtime(project)
+    marker = tmp_path / "effects.txt"
+    if restarted:
+        verify(client, prepare(context, command_plan(marker, "historical")))
+    history = rows(client, context["task"])
+    if restarted:
+        client, context = restart_current(client, context)
+    current = command_plan(marker, "running-current")
+    original = client.plan_actions._method
+    effects = []
+
+    def lose_response(data, method):
+        receipt = original(data, method)
+        if method["id"] == "APPLY-COUNTER":
+            effects.append(receipt)
+            raise RuntimeError("lost current lifecycle action response")
+        return receipt
+
+    monkeypatch.setattr(client.plan_actions, "_method", lose_response)
+    with pytest.raises(RuntimeError, match="^lost current lifecycle action response$"):
+        verify_current(client, context, current)
+    assert len(effects) == 1 and effects[0]["passed"]
+    running = client.plan_actions.snapshot(client.current_task())
+    assert running["status"] == "running" and running["cursor"] == 0 and running["attempts"] == 1
+    assert running["plan"] == current
+    prefix = "historical\n" if restarted else ""
+    assert marker.read_text() == prefix + "running-current\n"
+    before_resume = rows(client, context["task"])
+    reloaded = WorkPoise(project["config_path"], client.session)
+    # Pending execution resumes through the original exact packet, not handoff,
+    # fabricated receipt or another action allocation.
+    out = verify(reloaded, prepare(context, current))
+    assert out["status"] == "verified" and out["action"]["status"] == "complete"
+    assert out["action"]["attempts"] == 1 and out["action"]["cursor"] == 1
+    assert out["action"]["steps"][0]["result"]["effect"] == "recovered_by_probe"
+    assert marker.read_text() == prefix + "running-current\n"
+    after = rows(reloaded, context["task"])
+    assert len(after["runs"]) == len(before_resume["runs"]) == (2 if restarted else 1)
+    assert_preserved(history, after)
+    assert verify(reloaded, None)["replayed"] is True
+    assert rows(reloaded, context["task"]) == after

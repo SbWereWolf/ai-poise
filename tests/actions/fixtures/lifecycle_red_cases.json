@@ -32,7 +32,7 @@
     "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
   },
   {
-    "nodeid": "tests/actions/test_task_lifecycle.py::test_public_cli_after_restart_does_not_return_completed_historical_action",
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_public_cli_after_restart_does_not_return_completed_historical_action[restarted]",
     "diagnostic": "Failed: LIFECYCLE_CLI_SELECTED_HISTORICAL_ACTION"
   },
   {
@@ -214,5 +214,21 @@
   {
     "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_boundary_public_prepare_rejects_before_current_effect",
     "diagnostic": "Failed: INVALID_LIFECYCLE_WRONG_REJECTION_REASON"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_retained_restarted_run_saves_after_ordinary_version_and_actor_changes[restarted]",
+    "diagnostic": "Failed: LIFECYCLE_POSITIVE_SAVE_SELECTED_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_interrupted_running_current_action_recovers_once_after_restart[restarted]",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_exact_version_and_nonempty_owner_event_contradictions_reject[equal-current-version]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_exact_version_and_nonempty_owner_event_contradictions_reject[retained-earlier-prefix]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
   }
 ]

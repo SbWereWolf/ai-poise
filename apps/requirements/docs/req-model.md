@@ -196,7 +196,9 @@ Ready/publication требует одновременно:
 4. Пустой `future` placeholder не подтверждает текущую обязательную работу и не
    становится evidence. Пока такой unresolved placeholder входит в публикуемый
    statement, публикация не готова.
-5. Statement и выбранный graph читаются в одной owner-local consistent view.
+5. Statement, выбранный graph и все выбранные purpose revisions читаются в одной
+   owner-local consistent view. Полная basis из §5.1 фиксируется той же publication;
+   snapshot без нужного назначения/rationale не публикуется.
 
 Если применимые основания отсутствуют, результат — `unresolved_gaps`, а не пустой
 готовый Task. Структурно неверный JSON/key/type отклоняется как contract error;
@@ -291,7 +293,7 @@ Schema1 нельзя молча открыть как новую schema или �
 | `task_requirement_keys` / `(task_id,key)` | Резерв устойчивой identity; удалённые из live statement keys остаются reserved |
 | `task_requirement_versions` / `(task_id,statement_revision,key)` | Position, status, полный text; FK к identity и statement |
 | `application_task_links` / `(task_id,statement_revision,key,application_id)` | Нормализованная проекция `applications`; не независимо редактируемый источник |
-| `task_snapshots` / `(task_id,snapshot_revision)` | Полный frozen payload + digest и exact statement/registry revisions; unique `(task_id,statement_revision)` |
+| `task_snapshots` / `(task_id,snapshot_revision)` | Versioned полный frozen payload + digest, exact statement/registry revisions и встроенная выбранная Application basis из §5.1; unique `(task_id,statement_revision)` |
 | `requirement_outcomes` / `outcome_id` | Exact task/snapshot, kind, keys, digest; не копия execution attempts |
 | `requirement_requests` / `(protocol_namespace,request_id)` | Exact canonical request digest и response; legacy replay изолирован от target replay |
 | `legacy_imports` / `source_digest` | Fingerprints, format, manifest, diagnostics, disposition и immutable completion receipt |
@@ -314,6 +316,67 @@ Statement, snapshot и source origin имеют разные номера. Task 
 `stage_index`, submission sequence и Requirements `registry_revision` не являются
 взаимозаменяемыми. Snapshot хранит собственную принятую basis; последующие изменения
 текста, edge или purpose не переписывают этот payload.
+
+### 5.1 Frozen Application basis как часть snapshot identity
+
+Назначение/rationale участвуют в ready gate, поэтому одного номера live registry
+недостаточно. Новая purpose-aware publication сохраняет один immutable объект:
+`stride-requirements-snapshot/v2`, с **ровно** полями `schema`, `snapshot`,
+`application_basis`, `digest`. `snapshot` — прежний полный core из contract-req §4.3,
+с точными `task_id`, `snapshot_revision`, `statement_revision`, `registry_revision`,
+`statement`, `requirements`, `links`. Wrapper не создаёт второй snapshot или ID.
+
+`application_basis` — список записей с **ровно** полями `application_id`, `purpose`,
+`purpose_revision`, `rationale`, `origin`. Для каждого Application в frozen
+`requirements` присутствует ровно одна запись. Этот набор Application IDs равен
+набору оснований statement и endpoints `links.application_task`; неизвестные,
+лишние, повторные и отсутствующие записи запрещены. System endpoints существуют
+в том же frozen core с правильным level. Проверяются оба M:N и точное равенство
+statement applications нормализованным links, а не только размеры массивов.
+Список basis упорядочен по точному Application ID; строки IDs не нормализуются.
+
+`purpose` имеет только выбранное `behavioral` или `auxiliary` значение;
+`purpose_revision` — positive integer, не boolean. `rationale` всегда строка,
+для auxiliary непустая. Каждая запись содержит полное значение именно выбранной
+revision, не pointer на latest rationale. Для behavioral проверяется его реальный
+System parent в этом же core. Auxiliary с нулём System parents допустим, но его
+rationale и origin всё равно обязательны. Unclassified basis не является v2 ready
+snapshot. Назначение immutable по Application ID, rationale имеет свою историю.
+
+`origin` — discriminated object с точными полями одного из вариантов:
+
+- `{"type":"explicit","request_id":"purpose-request-1","operation_id":"purpose-1"}`:
+  точные идентификаторы принятой owner mutation и её item, непустые строки;
+- `{"type":"imported","source_digest":"<64 lowercase hex>","source_locator":"<exact locator>"}`:
+  проверенные fingerprint и непустой locator исходной записи. Угловые скобки здесь
+  обозначают тип значения, не допустимые literal данные.
+
+Это происхождение решения, не токен authority и не archived caller binding.
+В snapshot копируется exact origin сохранённой purpose revision. Сам импорт
+wrapper добавляет собственный transfer provenance, но не заменяет этот origin.
+
+Digest определяется без самоссылки: SHA256 от UTF-8 JSON всего wrapper **без**
+поля `digest`; ключи объектов сортируются по Unicode code points, separators
+равны `,` и `:`, Unicode не ASCII-экранируется, завершающей новой строки нет.
+Не допускаются duplicate JSON keys, non-finite numbers, invalid Unicode,
+необъявленные поля и coercion типов. Тексты/opaque IDs не Unicode-нормализуются;
+порядок statement/DoD и массивов frozen core сохраняется. В digest входят schema,
+все четыре числовые/строковые identity поля core, полный statement, оба отношения,
+все requirement records и полные purpose/rationale/origin. Для revisions допустимы
+только объявленные integer диапазоны; регистр hash — lowercase hex.
+
+При совпадении `{task_id,snapshot_revision}` допускается только равенство schema,
+полного canonical payload и digest. Тот же ключ с иной basis — conflict всего
+batch, не новая скрытая версия. Digest — проверка целостности, не подпись или
+доказательство правдивости происхождения. Import требует отдельной явной authority.
+Ни read, ни import, ни downstream verification не достраивают basis из live registry.
+
+Позднее исправление rationale создаёт следующую purpose revision. Старый wrapper
+не меняется. Принять новую basis для той же формулировки можно только явной новой
+statement revision и её отдельной publication. Обе версии с их полными basis
+остаются читаемыми и переносимыми даже после удаления исходной live projection.
+Snapshot history достаточна сама по себе; live purpose tables не становятся
+обязательной внешней зависимостью её чтения.
 
 ## 6. Перенос 044A: карта источников и отказов
 
@@ -464,15 +527,117 @@ System satisfied. Ни один вывод не вычисляется по ко
 этот путь. Новая публикация другой statement revision может иметь другой graph;
 она не наследует satisfaction автоматически от старой.
 
+### 7.2 Старое и новое rationale: перенос в пустого владельца
+
+Следующие значения — полный literal пример целевой модели, не исторические данные
+044A и не результат выполнения будущей команды Requirements. Первая публикация:
+
+```json
+{
+  "schema": "stride-requirements-snapshot/v2",
+  "snapshot": {
+    "task_id": "000042",
+    "snapshot_revision": 1,
+    "statement_revision": 1,
+    "registry_revision": 10,
+    "statement": {
+      "task_id": "000042",
+      "statement_revision": 1,
+      "goal": "Восстановить существующий индекс.",
+      "task_requirements": [
+        {
+          "key": "R1",
+          "status": "current",
+          "text": "Восстановить целостность индекса.",
+          "applications": [
+            "APP-MAINT-INDEX"
+          ]
+        }
+      ],
+      "definition_of_done": [
+        "Индекс снова поддерживает прежнее чтение."
+      ]
+    },
+    "requirements": {
+      "APP-MAINT-INDEX": {
+        "id": "APP-MAINT-INDEX",
+        "level": "application",
+        "status": "current",
+        "text": "Восстановить целостность существующего индекса без нового поведения."
+      }
+    },
+    "links": {
+      "system_application": [],
+      "application_task": [
+        {
+          "application": "APP-MAINT-INDEX",
+          "task_id": "000042",
+          "key": "R1"
+        }
+      ]
+    }
+  },
+  "application_basis": [
+    {
+      "application_id": "APP-MAINT-INDEX",
+      "purpose": "auxiliary",
+      "purpose_revision": 1,
+      "rationale": "Ремонт повреждённого индекса при прежнем чтении.",
+      "origin": {
+        "type": "explicit",
+        "request_id": "purpose-request-1",
+        "operation_id": "purpose-1"
+      }
+    }
+  ],
+  "digest": "aa73abcfef7903e9e6447e157b538d7181533a8bff4e5433e250008aa94f8785"
+}
+```
+
+Затем явный request `purpose-request-2` сохраняет purpose revision 2 с rationale
+«Ремонт того же индекса после уточнения причины повреждения.», прежним
+`purpose:auxiliary` и origin `{type:explicit,request_id:purpose-request-2,operation_id:purpose-1}`.
+Live owner revision становится 11. Повтор publication statement revision 1 всё ещё
+возвращает snapshot revision 1 с прежней basis и прежним digest; нового snapshot нет.
+
+Явная `revise_task` создаёт statement revision 2 с теми же текстами/keys; новая
+publication создаёт snapshot revision 2. Во втором wrapper меняются core
+`snapshot_revision`, `statement_revision`, `statement.statement_revision` на 2,
+`registry_revision` на 11 и единственная basis на purpose revision 2 с указанными
+rationale/origin. Остальные поля полностью равны первому примеру. Его digest:
+
+```text
+aaf40d0923f5e29992910004b4eb8576e03949d30e2a79675575fffd8cca990d
+```
+
+Полный v2 export включает statements [1,2], оба wrapper snapshots [1,2], outcomes [],
+точно соответствующий membership и вычисленный slice digest. В пустом owner после
+импорта queries `snapshot_with_basis(000042,1)` и `(000042,2)` возвращают точные
+первый и второй wrappers, хотя live registry и purpose projections пусты. Первый
+сохраняет старое rationale/origin, второй — новое; повторный экспорт равен исходному
+по canonical content и digest. Отсутствие live registry не позволяет публиковать
+statement revision 3 без обычного ready gate и не меняет исторические ответы.
+
+Удаление basis, перестановка её identity на другое Application, изменение rationale
+без согласованного snapshot digest, missing referenced statement или повтор той же
+snapshot identity с другим wrapper отклоняются до публикации import. Даже пересчёт
+hashes не делает malformed references допустимыми и не разрешает подменить уже
+сохранённый исторический ключ. Эти условия проверяются вместе с shape и membership,
+а не заменяются обещанием, что SHA256 сам восстанавливает утраченное основание.
+
 ## 8. Контракты, конфигурация и ошибки реализации
 
 ### 8.1 Что остаётся неизменным
 
 Точный target `stride-requirements/v1`, `apply/query`, request replay, базовый
-requirement record, task statement/snapshot/outcome формы и коды из
+requirement record, task statement/outcome формы, прежняя snapshot shape и коды из
 [public contract](contract-req.md#7-stable-rejection-envelope) сохраняются.
 `application_task` изменяется только через `revise_task`. Публичный target `import_slice`
 принимает Requirements slice, а не пути приватных БД других приложений.
+
+Сохранение старой shape не означает, что она переносит новое auxiliary-основание.
+Для purpose-aware snapshots вводятся отдельные явно выбранные variants §8.5.
+Они не добавляют поля в старый v1 snapshot и не маскируются под прежний slice.
 
 Текущий executable `apps/requirements/bin/requirements` продолжает подчиняться
 [shell contract](shell-req.md); новые операции ниже пока не являются исполнимыми.
@@ -573,6 +738,89 @@ Legacy history возвращает exact original bytes/hash и typed mapping, 
 без содержимого приватной соседней БД. Message предназначен человеку, branching —
 по code. Rejection не публикует успех для удачной половины batch.
 
+### 8.5 Явный совместимый snapshot/transfer variant
+
+Расширение выбирается новым `kind` в уже определённом target envelope
+`stride-requirements/v1`. До реализации — `unknown_operation`, без попытки
+отправить packet в legacy shell. Поля существующих variants и response envelope
+не меняются. Следующие точные query items возвращают `value` с указанной schema:
+
+```json
+{"id":"read-basis","kind":"snapshot_with_basis","task_id":"000042","snapshot_revision":1}
+```
+
+```json
+{"id":"export-basis","kind":"export_slice_with_basis","task_id":"000042"}
+```
+
+Первый возвращает wrapper §5.1. Для реально сохранённого старого core без purpose
+basis он возвращает явный history wrapper с ровно `schema`, `snapshot`,
+`basis_status`, `digest`: schema `stride-requirements-snapshot/v1`,
+`basis_status:"unavailable"`, неизменённый core и digest по тому же алгоритму.
+Этот transport digest не выдаётся за старое proof-of-readiness. Он не создаёт
+purpose revision, не заполняет rationale и не снимает исторический gap.
+
+Старый `snapshot` query возвращает core только для действительно сохранённого
+формата v1. Для purpose-aware v2 он отклоняет `unsupported_policy`, а не отбрасывает
+basis. Старый `export_slice` также отклоняет `unsupported_policy`, если выбранная
+история содержит v2. Старый `import_slice` принимает только прежний
+`stride-requirements-slice/v1`; неизвестная schema отклоняется `unsupported_schema`.
+Ни одно старое API не возвращает урезанный v2 объект с видимостью полного успеха.
+
+`export_slice_with_basis` возвращает `stride-requirements-slice/v2` с ровно полями:
+`schema`, `task_id`, `statements`, `snapshots`, `outcomes`, `membership`, `digest`.
+Statements/outcomes сохраняют прежние полные shapes. Каждый элемент snapshots —
+один из двух явно различимых wrappers выше. Так одна Task может переносить старую
+v1 историю и новые v2 snapshots без потери или ретроспективного обогащения старого.
+
+`membership` имеет ровно `statement_revisions`, `snapshot_revisions`, `outcome_ids`:
+полные уникальные отсортированные списки IDs реально включённых записей.
+Export охватывает всю сохранённую target-историю выбранной Task в одной consistent
+view, не только latest snapshot. Statements/snapshots идут по возрастающей revision,
+outcomes — по exact outcome ID. Полный digest slice вычисляется по алгоритму §5.1
+без собственного поля digest, но с membership и всеми nested snapshot digests.
+Manifest определяет заявленный переносимый набор; без доверенного source receipt
+он не доказывает, что источник не скрыл иные данные.
+
+Proposed mutation item с ровно полями `id`, `kind`, `slice`:
+
+```json
+{"id":"import-basis","kind":"import_slice_with_basis","slice":{"schema":"stride-requirements-slice/v2","task_id":"000042","statements":[],"snapshots":[],"outcomes":[],"membership":{"statement_revisions":[],"snapshot_revisions":[],"outcome_ids":[]},"digest":"<computed SHA256>"}}
+```
+
+Это schema illustration, не literal успешный import: пустой набор и placeholder
+hash не проходят validator. Реальная Task требует непустой последовательности
+statements; её snapshots/outcomes могут отсутствовать только как действительная
+draft history. Result нового mutation variant содержит ровно `id`, `kind`,
+`task_id`, `changed`, `imported`, `reused`; imported/reused — объекты с ровно
+`statements`, `snapshots`, `outcomes` и неотрицательными целыми counts. Exact outer
+request replay возвращает первоначальный result; повтор новым request различает
+полные совпадающие записи от новых и не меняет historical content.
+
+До **любой** записи валидатор проверяет exact schemas/fields/types, оба уровня
+hashes, task identity всех записей, равенство membership фактическим уникальным
+наборам, непрерывность target revisions, snapshot→statement полное равенство,
+outcome→snapshot/key, все typed edges и полный basis membership. Исторические
+nominal snapshots нельзя считать полными только по одному совпавшему hash.
+Для нормальной target history revisions начинаются с 1 и не имеют пропусков;
+неполные legacy срезы идут отдельным adapter §8.3 и не получают выдуманные номера.
+
+Импорт пустому Requirements owner не требует текущего Application registry:
+полные frozen System/Application records, statement, links и basis находятся
+внутри переданного slice. Он резервирует точные Task ID/keys и сохраняет историю,
+но не создаёт live registry/purpose projections и не объявляет импортированную Task
+готовой к новой публикации. Для новой publication нужен обычный текущий ready gate.
+Это устраняет зависимость истории от живых foreign или Requirements stores.
+
+Если запись с тем же Task/snapshot/statement/outcome ключом уже есть, сравнивается
+полный canonical content. Вторая basis с тем же historical ключом или две разные
+записи внутри одного input дают `referential_conflict` (outcome —
+`outcome_conflict`), digest mismatch — `store_incompatible`. Missing/extra basis,
+неизвестная wrapper schema или ошибка reference отклоняют весь owner batch без
+partial writes и без live fallback. Existing request-ID conflict остаётся
+`request_reuse_conflict`. Старые core-only snapshots нельзя повторно импортировать
+как v2 под тем же snapshot key; новое основание требует новой publication.
+
 ## 9. Concurrency, безопасность и наблюдаемость
 
 Все изменяющие operations сериализуются owner-local lock и транзакцией с expected
@@ -609,12 +857,12 @@ T037 — полную attempt/restart policy; T038 — outcome/satisfaction; T03
 | Требование / критерий | Конкретное доказательство в документе |
 | --- | --- |
 | REQ-01 / C1 | §3.1 и §7.1: typed три уровня, оба M:N, второй parent и обратный путь |
-| REQ-04 / C2 | §4 и §8.2: explicit auxiliary rationale, zero fictional System parents, никакого promotion |
+| REQ-04 / C2 | §4, §5.1, §7.2, §8.2 и §8.5: explicit auxiliary rationale, zero fictional System parents, никакого promotion |
 | REQ-06 / C3 | §1, §3.2 и §6.2: Requirements-owned exact ID/replay, collisions и source-bound keys |
 | REQ-07 / C4 | §3.3: at least one Application basis, draft gaps отдельно от ready publication |
-| REQ-14 / C5 | §5 и §7: immutable statement/snapshot history, current/future/obsolete, read и nonvacuous satisfaction |
+| REQ-14 / C5 | §5, §5.1, §7 и §8.5: immutable statement/snapshot history, current/future/obsolete, read и nonvacuous satisfaction |
 | DoD0 / C6 | §2 и §6: реальные schema1/schema13, empty input, каждый источник у явного owner, неизвестная история не придумана |
-| DoD1 / C7 | §8–9: current/target distinction, config/CLI boundaries, proposed variants, failures/side effects и validator obligations |
+| DoD1 / C7 | §8–9: current/target distinction, config/CLI boundaries, proposed variants, полный versioned frozen basis/transfer, failures/side effects и validator obligations |
 
 Semantic verification выполняется по этой карте и фактическим source observations,
 а не по количеству Markdown заголовков. Ни один открытый обязательный критерий

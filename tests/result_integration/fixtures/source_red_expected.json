@@ -1,0 +1,1 @@
+{"collected":1,"failed":[{"cause":true,"nodeid":"tests/result_integration/test_source_provenance.py::test_repository_environment_selects_candidate_sources","phase":"call"}],"passed":0}

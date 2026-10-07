@@ -1,0 +1,32 @@
+{
+  "task_planning": {
+    "catalogue": "config/task-catalogue.json",
+    "restart_revision_policy": {
+      "reviewer": [],
+      "user": []
+    }
+  },
+  "source_reader": {
+    "policy": "config/source-reader.json",
+    "receipt_file": "runtime/source-reader-receipt.json"
+  },
+  "development_routing": {
+    "catalog": "config/skills.json",
+    "selection": "config/selection.json",
+    "policy": "config/routing.json",
+    "packages": "config/packages.json"
+  },
+  "telemetry_delivery": {
+    "directory": "telemetry/outbox",
+    "policy": {
+      "max_entries": 100,
+      "max_bytes": 100000,
+      "max_event_bytes": 4000,
+      "max_attempts": 3,
+      "batch_items": 10,
+      "retry_seconds": 1,
+      "lock_seconds": 2,
+      "lock_poll_seconds": 0.01
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "collected": [
+    "tests/projects/test_preflight_lock_and_path_contracts.py::test_mandatory_filesystem_input_classification[paths.runtime-integer]",
+    "tests/projects/test_preflight_lock_and_path_contracts.py::test_preexisting_caller_sqlite_lock_survives[writer-refusal]"
+  ],
+  "errors": [],
+  "exit_code": 1,
+  "failed": [
+    "tests/projects/test_preflight_lock_and_path_contracts.py::test_mandatory_filesystem_input_classification[paths.runtime-integer]",
+    "tests/projects/test_preflight_lock_and_path_contracts.py::test_preexisting_caller_sqlite_lock_survives[writer-refusal]"
+  ],
+  "passed": []
+}

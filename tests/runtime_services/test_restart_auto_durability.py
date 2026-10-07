@@ -10,13 +10,15 @@ from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from runtime_services.restart_auto_support import (
-    assert_projection, launch, owned_rows, prepared, snapshot,
+    assert_checkout, assert_effect_counts, assert_projection, launch, owned_rows,
+    prepared, replay_effects, snapshot,
 )
 
 
 @pytest.mark.parametrize("boundary", ["before_checkout", "receipt", "assessment", "transition"])
 def test_each_confirmed_boundary_resumes_once(project, monkeypatch, boundary):
     case = prepared(project)
+    baseline = owned_rows(case)
     runtime = case["client"].runtime
     fired = []
     confirmed = []
@@ -63,11 +65,39 @@ def test_each_confirmed_boundary_resumes_once(project, monkeypatch, boundary):
     assert case["log"].read_text().splitlines() == (
         [] if boundary == "before_checkout" else case["commits"][:1]
     )
+    assert_checkout(case, case["saved"] if boundary == "before_checkout" else case["commits"][0])
+    interrupted_effects = replay_effects(case, baseline)
+    expected = {
+        "before_checkout": (0, 0, 0, 0), "receipt": (1, 1, 0, 0),
+        "assessment": (1, 1, 1, 0), "transition": (1, 1, 1, 1),
+    }
+    assert_effect_counts(interrupted_effects, expected[boundary])
+    if boundary == "assessment":
+        with runtime.store.transaction() as database:
+            proof = json.loads(database.execute(
+                "SELECT data FROM task_proofs WHERE task_id=?", ("T1",),
+            ).fetchone()[0])
+        assessment = json.loads(proof["assessment"])
+        assert assessment["ready"] is True
+        assert assessment["tree"] == case["checkouts"][case["commits"][0]]["tree"]
+        assert assessment["execution_key"]
     monkeypatch.setattr(owner, name, original)
     response = launch(case, target="code_review")
     assert_projection(case, response)
     assert case["log"].read_text().splitlines() == case["commits"]
     rows = owned_rows(case)
+    resumed_effects = replay_effects(case, baseline)
+    assert_effect_counts(resumed_effects, (3, 3, 3, 3))
+    assert resumed_effects["launches"] == case["commits"]
+    for key in ("receipts", "assessments", "transitions"):
+        # Preserve the exact durable identities and payloads confirmed before the crash.
+        assert resumed_effects[key][:len(interrupted_effects[key])] == interrupted_effects[key]
+    assert [row[2] for row in resumed_effects["receipts"]] == ["tests", "test_review", "implementation"]
+    assert [json.loads(row[-1])["commit"] for row in resumed_effects["receipts"]] == case["commits"]
+    for key in ("assessments", "transitions"):
+        assert [json.loads(row[-1])["stage"] for row in resumed_effects[key]] == [
+            "tests", "test_review", "implementation",
+        ]
     if boundary == "receipt":
         assert len([row for row in rows["evidence"] if row[0] == confirmed[0]]) == 1
     if boundary == "transition":

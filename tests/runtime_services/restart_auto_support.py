@@ -3,6 +3,7 @@
 from copy import deepcopy
 from pathlib import Path
 import json
+import subprocess
 
 import pytest
 
@@ -49,6 +50,41 @@ def snapshot(case):
     }
 
 
+def capture_checkout(root, commit):
+    """Capture fixture-owned Git objects before the operation under test."""
+    entries = subprocess.check_output([
+        "git", "-C", str(root), "ls-tree", "-rz", "--full-tree", commit,
+    ]).split(b"\0")
+    index = []
+    files = {}
+    for entry in filter(None, entries):
+        metadata, path = entry.split(b"\t", 1)
+        mode, kind, oid = metadata.split()
+        assert kind == b"blob"
+        index.append(mode + b" " + oid + b" 0\t" + path)
+        files[path.decode()] = subprocess.check_output([
+            "git", "-C", str(root), "cat-file", "blob", oid.decode(),
+        ])
+    return {"tree": git(root, "rev-parse", f"{commit}^{{tree}}"),
+            "index": sorted(index), "files": files, "untracked": b""}
+
+
+def assert_checkout(case, commit):
+    expected = case["checkouts"][commit]
+    root = case["root"]
+    assert git(root, "rev-parse", "HEAD") == commit
+    index = subprocess.check_output([
+        "git", "-C", str(root), "ls-files", "--stage", "-z",
+    ])
+    assert sorted(filter(None, index.split(b"\0"))) == expected["index"]
+    assert git(root, "diff-index", "--cached", "--name-only", expected["tree"]) == ""
+    assert {path: (root / path).read_bytes() for path in expected["files"]} == expected["files"]
+    assert subprocess.check_output([
+        "git", "-C", str(root), "ls-files", "--others", "--exclude-standard", "-z",
+    ]) == expected["untracked"]
+    assert git(root, "diff", "--name-only") == ""
+
+
 def owned_rows(case):
     """Read persisted effects in this disposable test DB, never live state."""
     columns = {
@@ -65,6 +101,25 @@ def owned_rows(case):
             )]
             for table, fields in columns.items()
         }
+
+
+def replay_effects(case, baseline):
+    rows = owned_rows(case)
+    events = rows["task_events"][len(baseline["task_events"]):]
+    return {
+        "launches": case["log"].read_text().splitlines(),
+        "receipts": rows["evidence"][len(baseline["evidence"]):],
+        "assessments": [row for row in events if json.loads(row[-1])["event"] == "evidence_assessed"],
+        "transitions": [row for row in events if json.loads(row[-1])["event"] == "stage_progressed"],
+    }
+
+
+def assert_effect_counts(effects, expected):
+    assert tuple(len(effects[key]) for key in (
+        "launches", "receipts", "assessments", "transitions",
+    )) == expected
+    for key in ("receipts", "assessments", "transitions"):
+        assert len({row[0] for row in effects[key]}) == len(effects[key])
 
 
 def assert_projection(case, response, *, mode="target", target="code_review",
@@ -90,6 +145,8 @@ def assert_projection(case, response, *, mode="target", target="code_review",
     assert record["id"] == "T1"
     assert record["worktree"] == str(case["root"])
     assert git(case["root"], "symbolic-ref", "--short", "HEAD") == case["branch"]
+    checkout = subject or (case["visits"][count - 1]["commit"] if count else case["saved"])
+    assert_checkout(case, checkout)
     if noop:
         assert replay["recovery_ref"] is None
     else:
@@ -262,6 +319,7 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
     git(root, "add", "src/saved.txt")
     git(root, "commit", "-m", "Preserve task work before restart")
     saved = git(root, "rev-parse", "HEAD")
+    checkouts = {commit: capture_checkout(root, commit) for commit in {*commits, saved}}
     current = client.runtime.task_queries.record("T1")
     with client.runtime.store.transaction() as database:
         historical_results = [tuple(row) for row in database.execute(
@@ -307,4 +365,5 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
         "saved": saved, "proof": proof, "project": project, "fail_file": fail_file,
         "historical_results": historical_results,
         "visits": visits, "branch": git(root, "symbolic-ref", "--short", "HEAD"),
+        "checkouts": checkouts,
     }

@@ -59,3 +59,48 @@ def test_terminal_task_rejects_replay_without_revival(project, terminal):
         }))
     assert snapshot(case) == before
     assert case["client"].runtime.task_queries.record("T1")["status"] == terminal
+
+
+@pytest.mark.parametrize("damage", [None, "stale_index", "dirty_file", "untracked"])
+def test_checkout_oracle_detects_wrong_material_independently(project, damage):
+    from conftest import git
+    from runtime_services.restart_auto_support import assert_checkout, capture_checkout
+
+    root = project["app"]
+    commit = git(root, "rev-parse", "HEAD")
+    expected = capture_checkout(root, commit)
+    case = {"root": root, "checkouts": {commit: expected}}
+    path = root / "src/double.py"
+    if damage in ("stale_index", "dirty_file"):
+        path.write_bytes(b"wrong working bytes\n")
+        if damage == "stale_index":
+            git(root, "add", "src/double.py")
+            path.write_bytes(expected["files"]["src/double.py"])
+    elif damage == "untracked":
+        (root / "unexpected.txt").write_bytes(b"unexpected replay output\n")
+    if damage is None:
+        assert_checkout(case, commit)
+    else:
+        with pytest.raises(AssertionError):
+            assert_checkout(case, commit)
+    assert git(root, "rev-parse", "HEAD") == commit
+
+
+@pytest.mark.parametrize("duplicated", ["receipts", "assessments", "transitions"])
+def test_effect_oracle_detects_duplicate_confirmed_records(duplicated):
+    from runtime_services.restart_auto_support import assert_effect_counts
+
+    effects = {
+        "launches": ["C1", "C2", "C3"],
+        "receipts": [(1,), (2,), (3,)],
+        "assessments": [(4,), (5,), (6,)],
+        "transitions": [(7,), (8,), (9,)],
+    }
+    assert_effect_counts(effects, (3, 3, 3, 3))
+    effects[duplicated].append((10,))
+    with pytest.raises(AssertionError):
+        assert_effect_counts(effects, (3, 3, 3, 3))
+    effects[duplicated].pop()
+    effects[duplicated][-1] = effects[duplicated][0]
+    with pytest.raises(AssertionError):
+        assert_effect_counts(effects, (3, 3, 3, 3))

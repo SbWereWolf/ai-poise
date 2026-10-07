@@ -7,7 +7,7 @@ import pytest
 from batch.helpers import request
 from conftest import git
 from poise.common import PoiseError
-from runtime_services.restart_auto_support import assert_projection, assert_recovery, bootstrap, launch, prepared, snapshot
+from runtime_services.restart_auto_support import assert_checkout, assert_projection, assert_recovery, bootstrap, launch, prepared, snapshot
 from batch.helpers import result, verify
 
 
@@ -75,6 +75,7 @@ def test_post_checkout_interruption_resumes_without_lost_saved_work(project, mon
         }))
     assert interrupted == [True]
     assert git(case["root"], "rev-parse", "HEAD") == case["commits"][0]
+    assert_checkout(case, case["commits"][0])
     monkeypatch.setattr(runtime, "_git", real_git)
     resumed = launch(case, target="code_review")
     assert resumed["status"] == "progression_target_reached"

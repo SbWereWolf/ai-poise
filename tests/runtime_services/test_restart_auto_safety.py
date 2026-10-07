@@ -7,7 +7,7 @@ import pytest
 from batch.helpers import request
 from conftest import git
 from poise.common import PoiseError
-from runtime_services.restart_auto_support import assert_recovery, bootstrap, launch, prepared, snapshot
+from runtime_services.restart_auto_support import assert_projection, assert_recovery, bootstrap, launch, prepared, snapshot
 from batch.helpers import result, verify
 
 
@@ -41,6 +41,8 @@ def test_recovery_reference_keeps_tracked_and_new_saved_bytes(project):
     case = prepared(project)
     response = launch(case, target="implementation")
     assert_recovery(case, response)
+    assert_projection(case, response, target="implementation", stage="implementation", count=2,
+                      subject=case["commits"][2])
     ref = response["replay"]["recovery_ref"]
     assert git(case["root"], "show", f"{ref}:src/double.py") == "def double(n):\n    return n * 2"
     assert git(case["root"], "show", f"{ref}:src/saved.txt") == "saved work"
@@ -78,12 +80,14 @@ def test_post_checkout_interruption_resumes_without_lost_saved_work(project, mon
     assert resumed["status"] == "progression_target_reached"
     assert case["log"].read_text().splitlines() == case["commits"]
     assert_recovery(case, resumed)
+    assert_projection(case, resumed)
 
 
 def test_replay_preserves_history_and_normal_verify_handoff(project):
     case = prepared(project)
     response = launch(case, target="code_review")
     assert response["status"] == "progression_target_reached"
+    assert_projection(case, response)
     context = bootstrap(case["client"], {"id": "T1"})
     assert context["stage"] == "code_review"
     delivered = verify(case["client"], result(context))
@@ -102,3 +106,12 @@ def test_replay_preserves_history_and_normal_verify_handoff(project):
     assert released["verified"] is True
     assert case["client"].runtime.task_queries.record("T1")["claimed_by"] is None
     assert git(case["root"], "rev-parse", response["replay"]["recovery_ref"]) == case["saved"]
+
+
+def test_same_identity_cannot_change_target_mode_to_maximum(project):
+    case = prepared(project)
+    launch(case, target="implementation")
+    before = snapshot(case)
+    with pytest.raises(PoiseError, match="request|identity|intent"):
+        case["client"].invoke(request("advance", {"request_id": "replay", "task_id": "T1"}))
+    assert snapshot(case) == before

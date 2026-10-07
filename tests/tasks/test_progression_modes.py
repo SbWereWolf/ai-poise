@@ -2,9 +2,10 @@
 
 import pytest
 
-from conftest import git
+from conftest import WorkPoise, git
+from poise.application.work import WorkTools
 from runtime_services.restart_auto_support import (
-    assert_recovery, launch, prepared, snapshot,
+    assert_projection, assert_recovery, launch, prepared, snapshot,
 )
 
 
@@ -26,6 +27,8 @@ def test_default_mode_replays_accepted_stages_to_first_new_work(project):
     assert case["log"].read_text().splitlines() == case["commits"]
     assert git(case["root"], "rev-parse", "HEAD") == case["commits"][2]
     assert_recovery(case, response)
+    assert_projection(case, response, mode="maximum", target=None,
+                      reason="work_required")
 
 
 @pytest.mark.parametrize("target,index", [("test_review", 1), ("implementation", 2)])
@@ -41,6 +44,8 @@ def test_explicit_target_stops_before_its_checks(project, target, index):
     assert case["log"].read_text().splitlines() == case["commits"][:index]
     assert git(case["root"], "rev-parse", "HEAD") == case["commits"][index]
     assert_recovery(case, response)
+    assert_projection(case, response, target=target, stage=target, count=index,
+                      subject=case["commits"][index])
 
 
 def test_already_current_target_is_a_complete_no_op(project):
@@ -58,14 +63,15 @@ def test_already_current_target_is_a_complete_no_op(project):
     assert replay["reason"] == "target_reached"
     assert replay["passed"] == []
     after = snapshot(case)
-    for key in ("head", "index", "status", "files", "refs", "effects"):
-        assert after[key] == before[key]
+    assert after == before
+    assert_projection(case, response, target="tests", stage="tests", count=0, noop=True)
 
 
 def test_exact_target_retry_preserves_projection_and_check_effects(project):
     case = prepared(project)
     first = launch(case, target="implementation")
     before = snapshot(case)
+    case["client"] = WorkTools(WorkPoise(project["config_path"], case["client"].runtime.session))
     repeated = launch(case, target="implementation")
     assert repeated["replay"] == first["replay"]
     assert snapshot(case) == before

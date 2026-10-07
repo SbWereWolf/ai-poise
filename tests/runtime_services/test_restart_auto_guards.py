@@ -43,3 +43,19 @@ def test_preexisting_unknown_effect_cannot_trigger_replay(project):
             "request_id": "pending", "task_id": "T1", "target_stage": "code_review",
         }))
     assert snapshot(case) == before
+
+
+@pytest.mark.parametrize("terminal", ["completed", "cancelled"])
+def test_terminal_task_rejects_replay_without_revival(project, terminal):
+    case = prepared(project)
+    # A terminal aggregate fault fixture, confined to this disposable DB.
+    with case["client"].runtime.store.transaction() as database:
+        database.execute("UPDATE tasks SET status=?,claimed_by=NULL WHERE id=?", (terminal, "T1"))
+        database.execute("UPDATE sessions SET task_id=NULL WHERE id=?", (case["client"].runtime.session,))
+    before = snapshot(case)
+    with pytest.raises(PoiseError):
+        case["client"].invoke(request("advance", {
+            "request_id": "terminal", "task_id": "T1", "target_stage": "code_review",
+        }))
+    assert snapshot(case) == before
+    assert case["client"].runtime.task_queries.record("T1")["status"] == terminal

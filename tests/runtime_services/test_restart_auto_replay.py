@@ -5,12 +5,15 @@ from pathlib import Path
 import pytest
 
 from conftest import git
-from runtime_services.restart_auto_support import assert_recovery, launch, prepared
+from runtime_services.restart_auto_support import assert_projection, assert_recovery, launch, prepared
 
 
-@pytest.mark.parametrize("contents", [b"accepted text\n", b"\x00\xff\x80", b"{}"])
-def test_any_unchanged_accepted_file_is_sufficient(project, contents):
-    case = prepared(project, file_proof=contents, checks=False)
+@pytest.mark.parametrize("name,contents", [
+    ("accepted.txt", b"accepted text\n"), ("accepted.weird", b"\x00\xff\x80"),
+    ("accepted.json", b"{}"), ("no-extension", b"arbitrary bytes"),
+])
+def test_any_unchanged_accepted_file_is_sufficient(project, name, contents):
+    case = prepared(project, file_proof=contents, proof_name=name, checks=False)
     response = launch(case, target="code_review")
     assert response["status"] == "progression_target_reached"
     assert response["stage"] == "code_review"
@@ -20,6 +23,7 @@ def test_any_unchanged_accepted_file_is_sufficient(project, contents):
     assert case["proof"].read_bytes() == contents
     assert case["log"].read_text() == ""
     assert_recovery(case, response)
+    assert_projection(case, response)
 
 
 @pytest.mark.parametrize("mutation,reason", [
@@ -41,6 +45,8 @@ def test_required_file_failure_stops_at_first_gate(project, mutation, reason):
     assert git(case["root"], "rev-parse", "HEAD") == case["commits"][0]
     assert case["log"].read_text() == ""
     assert_recovery(case, response)
+    assert_projection(case, response, stage="tests", reason=reason, count=0,
+                      subject=case["commits"][0])
 
 
 def test_missing_recorded_commit_stops_without_guessed_checkout(project):
@@ -59,6 +65,7 @@ def test_missing_recorded_commit_stops_without_guessed_checkout(project):
     assert git(case["root"], "rev-parse", "HEAD") == case["saved"]
     assert case["log"].read_text() == ""
     assert_recovery(case, response)
+    assert_projection(case, response, stage="tests", reason="source_unavailable", count=0)
 
 
 def test_mixed_gate_rechecks_historical_tests_and_preserves_file(project):
@@ -68,6 +75,7 @@ def test_mixed_gate_rechecks_historical_tests_and_preserves_file(project):
     assert case["log"].read_text().splitlines() == case["commits"]
     assert case["proof"].read_bytes() == b"accepted mixed proof"
     assert_recovery(case, response)
+    assert_projection(case, response)
 
 
 def test_requirement_revision_does_not_add_a_new_proof_gate(project):
@@ -77,6 +85,7 @@ def test_requirement_revision_does_not_add_a_new_proof_gate(project):
     assert case["log"].read_text().splitlines() == case["commits"]
     assert case["proof"].read_bytes() == b"accepted proof"
     assert_recovery(case, response)
+    assert_projection(case, response)
 
 
 def test_role_changes_do_not_require_participants_during_replay(project):
@@ -90,6 +99,7 @@ def test_role_changes_do_not_require_participants_during_replay(project):
     ]
     assert case["client"].runtime.task_queries.record("T1")["claimed_by"] == case["client"].runtime.session
     assert_recovery(case, response)
+    assert_projection(case, response)
 
 
 def test_failed_historical_test_stops_before_later_commit(project):
@@ -102,3 +112,29 @@ def test_failed_historical_test_stops_before_later_commit(project):
     assert response["replay"]["passed"] == []
     assert git(case["root"], "rev-parse", "HEAD") == case["commits"][0]
     assert_recovery(case, response)
+    assert_projection(case, response, stage="tests", reason="tests_failed", count=0,
+                      subject=case["commits"][0])
+    assert case["log"].read_text().splitlines() == case["commits"][:1]
+
+
+@pytest.mark.parametrize("failure,reason", [
+    ("test", "tests_failed"), ("file_missing", "evidence_missing"),
+    ("file_changed", "evidence_changed"),
+])
+def test_mixed_gate_requires_each_proof_component(project, failure, reason):
+    case = prepared(project, file_proof=b"accepted mixed proof")
+    if failure == "test":
+        case["fail_file"].write_text("fail\n")
+    elif failure == "file_missing":
+        case["proof"].unlink()
+    else:
+        case["proof"].write_bytes(b"changed")
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_stopped"
+    assert_projection(case, response, stage="tests", reason=reason, count=0,
+                      subject=case["commits"][0])
+    effects = case["log"].read_text().splitlines()
+    assert effects in ([], case["commits"][:1])
+    if failure == "test":
+        assert effects == case["commits"][:1]
+    assert git(case["root"], "rev-parse", "HEAD") == case["commits"][0]

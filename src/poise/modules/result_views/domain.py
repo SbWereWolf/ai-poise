@@ -38,9 +38,11 @@ def bounded_envelope(result, response_path, budget, metadata, collections, comma
     view = dict(result)
     if response_path is not None:
         view['response_path'] = str(response_path)
-    if command_views:
-        view['command_views'] = command_views
     text = _envelope_text(view)
+    if command_views:
+        enriched = _envelope_text({**view, 'command_views': command_views})
+        if len(enriched) <= budget:
+            return enriched
     if len(text) <= budget:
         return text
     if response_path is None:

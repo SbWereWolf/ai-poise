@@ -1112,7 +1112,7 @@ class RuntimeResultIntegration:
     def _result(self, record, run, replayed=False):
         result = run.result(replayed=replayed)
         passed_batch = next((event['details']['check_ids'] for event in reversed(run.history)
-                             if event['event'] == 'checks_passed'), [])
+                             if event.get('event') == 'checks_passed'), [])
         current = [check for check in run.checks
                    if check['id'] in passed_batch and check.get('integration_head') == run.integration_head
                    and check.get('passed') is True and 'acceptance_manifest' in check]

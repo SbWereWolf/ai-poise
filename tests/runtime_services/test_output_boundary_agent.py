@@ -2,6 +2,7 @@
 from copy import deepcopy
 import io
 import json
+import sys
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -182,6 +183,56 @@ class AgentBoundaryTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assert_full_response(output, payload, 2000)
         self.assertFalse(payload['nested']['capture_complete'])
+
+    def test_structured_routes_use_one_presentation_owner(self):
+        # Observe real executed project frames, without importing a future helper
+        # or prescribing its name, class, signature or command-parser profile.
+        # An owner must see the complete result AND form bounded valid JSON with
+        # its truthful receipt pointer. Persistence-only functions do not qualify.
+        source = (ROOT / 'src' / 'poise').resolve()
+        marker = self.fixture['structured_result']['diagnostic']
+        routes = {
+            'work': self.test_work_full_nested_error_and_status_are_unchanged,
+            'hook': self.test_hook_envelope_keeps_full_structured_response,
+            'goal-config': self.test_goal_config_envelope_keeps_full_result_and_business_status,
+            'catalogue': self.test_catalogue_envelope_keeps_full_result_without_fake_success,
+        }
+        owners = {}
+        previous = sys.getprofile()
+        try:
+            for name, invoke in routes.items():
+                seen = set()
+                def observe(frame, event, returned):
+                    if event != 'return' or not Path(frame.f_code.co_filename).resolve().is_relative_to(source):
+                        return
+                    values = tuple(frame.f_locals.values())
+                    complete = [value for value in values if isinstance(value, dict)
+                                and value.get('diagnostic') == marker]
+                    if not complete:
+                        return
+                    for candidate in (returned, *values):
+                        if isinstance(candidate, str):
+                            if len(candidate) > 2000:
+                                continue
+                            try:
+                                candidate = json.loads(candidate)
+                            except (ValueError, TypeError):
+                                continue
+                        if (isinstance(candidate, dict)
+                                and isinstance(candidate.get('response_path'), str)
+                                and candidate.get('status') in {value['status'] for value in complete}
+                                and len(json.dumps(candidate, ensure_ascii=False) + '\n') <= 2000):
+                            seen.add((str(Path(frame.f_code.co_filename).resolve()), frame.f_code.co_qualname))
+                            break
+                sys.setprofile(observe)
+                invoke()  # Existing independent full-file/status/budget assertions.
+                sys.setprofile(previous)
+                owners[name] = seen
+        finally:
+            sys.setprofile(previous)
+        common = set.intersection(*owners.values())
+        self.assertTrue(common, 'All four agent routes must execute one shared presentation owner; '
+                        f'observed owners by route: {owners}')
 
     def test_known_and_unknown_selection_are_explicit(self):
         policy = OutputPolicy.parse(self.policy)

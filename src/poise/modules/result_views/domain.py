@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from copy import deepcopy
 import math
+import json
 import re
 from ..artifact_factory.domain import exact, relative
 from ..foundation.errors import DomainError
@@ -10,6 +11,57 @@ from ..foundation.errors import DomainError
 def _positive(value, where, integral=True):
     if type(value) not in ((int,) if integral else (int,float)) or value<=0 or not math.isfinite(value):
         raise DomainError(f'{where} requires an explicit finite positive value')
+
+
+def _envelope_text(value):
+    return json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n'
+
+
+def response_required(result, budget):
+    """Whether the complete agent reply needs a durable pointer."""
+    _positive(budget, 'output budget')
+    return len(_envelope_text(result)) > budget
+
+
+def primary_text(text, parser, selection_pattern, chars):
+    """One command display selection; never used to interpret raw execution."""
+    if parser == 'lines':
+        text = '\n'.join(line for line in text.splitlines() if re.search(selection_pattern, line))
+    elif parser != 'tail':
+        raise DomainError('Unknown output parser, no fallback')
+    return text[-chars:]
+
+
+def bounded_envelope(result, response_path, budget, metadata, collections, command_views):
+    """Represent a complete saved result; never mutate or clip machine data."""
+    _positive(budget, 'output budget')
+    view = dict(result)
+    if response_path is not None:
+        view['response_path'] = str(response_path)
+    if command_views:
+        view['command_views'] = command_views
+    text = _envelope_text(view)
+    if len(text) <= budget:
+        return text
+    if response_path is None:
+        raise DomainError('Output budget requires a persisted full result')
+    minimal = {'status': result['status'], 'response_path': str(response_path)}
+    view = {**metadata, **minimal}
+    if len(_envelope_text(view)) > budget:
+        view = minimal
+    if len(_envelope_text(view)) > budget:
+        raise DomainError('Output budget cannot fit the persisted result address')
+    for field, items in [*collections.items(), ('command_views', command_views)]:
+        if not items:
+            continue
+        selected = []
+        for item in items:
+            candidate = {**view, field: [*selected, item]}
+            if len(_envelope_text(candidate)) > budget:
+                break
+            selected.append(item)
+            view = candidate
+    return _envelope_text(view)
 
 
 @dataclass(frozen=True)

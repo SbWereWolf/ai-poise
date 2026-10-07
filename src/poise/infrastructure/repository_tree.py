@@ -12,7 +12,6 @@ class GitRepositoryTree:
     def __init__(self, repository, timeout_seconds, preview_chars):
         self.repository = Path(repository).resolve(strict=True)
         self.timeout_seconds = timeout_seconds
-        self.preview_chars = preview_chars
 
     def _read_path_facts(self, arguments, input_data, allowed_exit_codes):
         try:
@@ -23,7 +22,7 @@ class GitRepositoryTree:
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f'Git-проверка путей не завершена: {exc}') from exc
         if result.returncode not in allowed_exit_codes:
-            detail = result.stderr.decode(errors='replace')[-self.preview_chars:]
+            detail = result.stderr.decode(errors='strict')
             raise PoiseError(f'Ошибка Git-проверки путей ({result.returncode}): {detail}')
         if ((result.stdout and not result.stdout.endswith(b'\0'))
                 or (result.returncode == 1 and result.stdout)
@@ -61,7 +60,7 @@ class GitRepositoryTree:
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f"Git tree preflight не завершён: {exc}") from exc
         if result.returncode:
-            error = result.stderr.decode(errors="replace")[-self.preview_chars:]
+            error = result.stderr.decode(errors='strict')
             raise PoiseError(f"Git tree preflight: {error}")
         entries = tuple(
             path.decode() for path in result.stdout.split(b"\0") if path
@@ -83,5 +82,5 @@ class GitRepositoryTree:
             raise PoiseError(f'Git ancestry preflight did not finish: {exc}') from exc
         if result.returncode not in (0, 1):
             raise PoiseError('Git ancestry preflight: ' +
-                             result.stderr.decode(errors='replace')[-self.preview_chars:])
+                             result.stderr.decode(errors='strict'))
         return result.returncode == 0

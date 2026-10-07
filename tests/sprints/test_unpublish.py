@@ -6,8 +6,8 @@ import subprocess
 
 import pytest
 
-from batch.helpers import configure, request
-from conftest import WorkPoise as Poise, bind_task_requirements
+from batch.helpers import configure, request, text_artifact
+from conftest import WorkPoise as Poise, bind_task_requirements, write_json
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from runtime_services.test_task_restart import restart
@@ -58,6 +58,8 @@ def task_rows(planner):
         'artifacts': 'SELECT id,owner,scope,path,digest FROM artifacts ORDER BY id',
         'members': 'SELECT sprint_id,task_id FROM sprint_members ORDER BY sprint_id,task_id',
         'owners': 'SELECT id,task_id FROM sessions ORDER BY id',
+        'handoffs': 'SELECT seq,actor,request_id,task_id,state,data FROM handoffs ORDER BY seq',
+        'progression': "SELECT seq,task_id,event,data FROM journal WHERE event LIKE 'progression.%' ORDER BY seq",
     }
     with planner.runtime.store.transaction() as db:
         return {name: [tuple(row) for row in db.execute(sql)] for name, sql in queries.items()}
@@ -83,6 +85,7 @@ def handoff(worker, suffix):
         'result': None, 'commit_message': None, 'artifact_paths': [],
     }))
     assert released['status'] == 'handed_off'
+    return released
 
 
 def prepare_member(project, state):
@@ -105,6 +108,67 @@ def git_state(path):
     return tuple(subprocess.check_output(['git', '-C', str(path), *args]) for args in (
         ['rev-parse', 'HEAD'], ['show-ref'], ['status', '--porcelain=v1'], ['ls-files', '--stage'],
     ))
+
+
+def verified_materials(project):
+    worker = client(project, 'executor')
+    context = bootstrap(worker, 'A')
+    payload = deepcopy(context['result_template'])
+    payload['sections']['report'] = 'Original verified result with permanent proof.'
+    payload['commit_message'] = 'test: preserve verified proof'
+    report = worker.invoke(request('verify', {'result': payload, 'artifacts': [
+        text_artifact('task', 'original-proof.txt', 'original artifact bytes\n'),
+    ]}))
+    assert report['status'] == 'verified'
+    released = handoff(worker, 'material-proof')
+    paths = [Path(released['receipt_path'])]
+    for check in report['checks']:
+        paths.extend([Path(check['stdout']), Path(check['stderr'])])
+    paths.extend(Path(item['path']) for item in report['artifacts'])
+    assert len(report['checks']) == 1 and len(report['artifacts']) == 1
+    assert Path(report['checks'][0]['stdout']).read_bytes() == b'checked\n'
+    assert Path(report['artifacts'][0]['path']).read_bytes() == b'original artifact bytes\n'
+    proof = {path: path.read_bytes() for path in paths}
+    root = Path(context['worktree'])
+    staged = root / 'src/staged-wip.txt'
+    staged.write_bytes(b'original staged WIP\n')
+    staged.chmod(0o640)
+    subprocess.run(['git', '-C', str(root), 'add', '--', 'src/staged-wip.txt'], check=True)
+    staged.write_bytes(b'distinct unstaged WIP\x00\xff\n')
+    untracked = root / 'src/untracked-wip.txt'
+    untracked.write_bytes(b'unique untracked WIP\x00\xfe\n')
+    untracked.chmod(0o600)
+    files = {path: (path.read_bytes(), path.stat().st_mode) for path in (staged, untracked)}
+    return context, proof, files, git_state(root)
+
+
+def assert_materials(context, proof, files, git):
+    assert {path: path.read_bytes() for path in proof} == proof
+    assert {path: (path.read_bytes(), path.stat().st_mode) for path in files} == files
+    assert git_state(Path(context['worktree'])) == git
+
+
+def two_stage_plan(project):
+    setup(project)
+    process = project['process']
+    second = deepcopy(process['stages'][0])
+    second.update(id='next', transitions={'complete': None}, rework_targets=['next'])
+    process['stages'][0]['transitions'] = {'complete': 'next'}
+    process['stages'].append(second)
+    write_json(project['root'] / 'config/processes/development.json', process)
+    planner = client(project, 'planner')
+    members = [task(project, 'A'), task(project, 'B')]
+    for member in members:
+        member['checks']['next'] = []
+        member['evidence_plan']['next'] = {'subject_methods': {}, 'arguments': [], 'review_arguments': []}
+    born = draft(planner, members, [{'predecessor': 'A', 'successor': 'B', 'kind': 'completion'}])
+    return planner, publish(planner, born['revision'])
+
+
+def advance_member(worker):
+    return worker.invoke(request('advance', {
+        'request_id': 'advance-A-to-next', 'task_id': 'A', 'target_stage': 'next',
+    }))
 
 
 def test_reopen_available_preserves_every_task_and_real_graph(planned):
@@ -337,12 +401,14 @@ def test_started_successor_prerequisite_change_needs_authorized_restart(planned)
 
 def test_verified_restart_ready_and_republish_preserve_history(planned):
     project, planner, published = planned
-    context = prepare_member(project, 'verified')
+    context, proof, files, git = verified_materials(project)
     prior = deepcopy(planner.runtime.task_queries.record('A'))
     opened = reopen(planner, published['revision'])
+    assert_materials(context, proof, files, git)
     owner = client(project, 'restart-owner')
     restarted = restart(owner, 'A', prior['version'], request_id='revise-A')
     assert restarted['status'] == 'newborn'
+    assert_materials(context, proof, files, git)
     revised_contract = deepcopy(prior['contract'])
     revised_contract['goal'] = 'Revised A capability.'
     revised_contract['requirements'] = ['Revised A prerequisite capability.']
@@ -354,13 +420,16 @@ def test_verified_restart_ready_and_republish_preserve_history(planned):
         'action': 'edit', 'task_id': 'A', 'request_id': 'edit-revised-A',
         'expected_revision': restarted['revision'], 'patch': patch, 'remove': [],
     }))
+    assert_materials(context, proof, files, git)
     ready = owner.invoke(request('task', {
         'action': 'ready', 'task_id': 'A', 'request_id': 'ready-revised-A',
         'expected_revision': changed['revision'],
     }))
     assert ready['status'] == 'newborn'
     assert ready['ready'] is True
+    assert_materials(context, proof, files, git)
     handoff(owner, 'readied-A')
+    assert_materials(context, proof, files, git)
     assert planner.runtime.task_queries.record('A')['status'] == 'newborn'
     republished = publish(planner, opened['revision'], 'republish-revised-A')
     assert republished['eligible'] == ['A']
@@ -369,7 +438,7 @@ def test_verified_restart_ready_and_republish_preserve_history(planned):
     assert after['contract']['goal'] == 'Revised A capability.'
     assert after['contract']['requirements'] == ['Revised A prerequisite capability.']
     assert after['history'][:len(prior['history'])] == prior['history']
-    assert Path(context['worktree']).exists()
+    assert_materials(context, proof, files, git)
 
 
 def test_publication_conflict_preserves_concurrent_edit(planned, monkeypatch):
@@ -447,3 +516,87 @@ def test_fixture_guard_pending_projection_is_independent(planned):
         row = db.execute('SELECT data FROM task_execution WHERE task_id=?', ('A',)).fetchone()
     assert json.loads(row['data'])['pending'] == {'kind': 'unresolved-external-effect'}
     assert planner.runtime.task_queries.record('A')['status'] == 'available'
+
+
+@pytest.mark.parametrize('state', ['active', 'verified'])
+def test_draft_refuses_released_started_resume_then_republish_allows_it(planned, state):
+    project, planner, published = planned
+    context = prepare_member(project, state)
+    opened = reopen(planner, published['revision'])
+    worker = client(project, 'resumer')
+    before = unchanged(planner), git_state(Path(context['worktree']))
+    with pytest.raises(PoiseError, match='draft|published|чернов|опублик'):
+        bootstrap(worker, 'A')
+    assert (unchanged(planner), git_state(Path(context['worktree']))) == before
+    publish(planner, opened['revision'], 'republish-resume')
+    resumed = bootstrap(worker, 'A')
+    assert resumed['status'] == state
+    assert resumed['worktree'] == context['worktree']
+
+
+def test_draft_refuses_actual_verified_stage_advance_then_republish_allows_it(project):
+    planner, published = two_stage_plan(project)
+    worker = client(project, 'executor')
+    context = bootstrap(worker, 'A')
+    assert verify(worker, context)['status'] == 'verified'
+    handoff(worker, 'before-stage-advance')
+    opened = reopen(planner, published['revision'])
+    # Claiming ownership is distinct from permission to execute a stage.
+    worker.runtime.ownership.acquire_task('A')
+    before = unchanged(planner), git_state(Path(context['worktree']))
+    with pytest.raises(PoiseError, match='draft|published|чернов|опублик'):
+        advance_member(worker)
+    assert (unchanged(planner), git_state(Path(context['worktree']))) == before
+    worker.runtime.ownership.release_task('A')
+    publish(planner, opened['revision'], 'republish-advance')
+    assert bootstrap(worker, 'A')['status'] == 'verified'
+    advanced = advance_member(worker)
+    assert advanced['stage'] == 'next'
+    assert planner.runtime.task_queries.record('A')['stage_index'] == 1
+
+
+def test_member_claim_race_refuses_publication_without_partial_writes(planned, monkeypatch):
+    project, planner, published = planned
+    prepare_member(project, 'active')
+    opened = reopen(planner, published['revision'])
+    commands = planner.runtime.sprint_tools.commands
+    original = commands.publication_preflight
+    holder = client(project, 'concurrent-owner')
+    before_sprint = sprint_rows(planner)
+    snapshots = []
+
+    def race(packet, identity):
+        prepared = original(packet, identity)
+        holder.runtime.ownership.acquire_task('A')
+        assert holder.runtime.ownership.snapshot('concurrent-owner').task_id == 'A'
+        assert sprint_rows(planner) == before_sprint
+        snapshots.append(unchanged(planner))
+        return prepared
+
+    monkeypatch.setattr(commands, 'publication_preflight', race)
+    with pytest.raises(PoiseError, match=r'claim|owned|owner|changed|version|влад|измен|верси'):
+        publish(planner, opened['revision'], 'member-racing-publish')
+    assert len(snapshots) == 1
+    assert unchanged(planner) == snapshots[0]
+    assert planner.runtime.task_queries.record('A')['claimed_by'] == 'concurrent-owner'
+
+
+def test_fixture_guard_two_stages_permit_real_progression(project):
+    planner, _ = two_stage_plan(project)
+    worker = client(project, 'executor')
+    context = bootstrap(worker, 'A')
+    assert verify(worker, context)['status'] == 'verified'
+    advanced = advance_member(worker)
+    assert advanced['stage'] == 'next'
+    assert planner.runtime.task_queries.record('A')['stage_index'] == 1
+
+
+def test_fixture_guard_verified_materials_are_real_and_distinct(planned):
+    project, _, _ = planned
+    context, proof, files, git = verified_materials(project)
+    assert_materials(context, proof, files, git)
+    root = Path(context['worktree'])
+    staged = subprocess.check_output(['git', '-C', str(root), 'show', ':src/staged-wip.txt'])
+    assert staged == b'original staged WIP\n'
+    assert (root / 'src/staged-wip.txt').read_bytes() == b'distinct unstaged WIP\x00\xff\n'
+    assert b'?? src/untracked-wip.txt' in git[2]

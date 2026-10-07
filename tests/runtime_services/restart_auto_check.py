@@ -22,7 +22,8 @@ GROUPS = {
     "proof-files": [SELECTION[1], "-k", "unchanged_accepted_file or required_file_failure or missing_recorded_commit"],
     "proof-checks": [SELECTION[1], "-k", "not (unchanged_accepted_file or required_file_failure or missing_recorded_commit)"],
     "safety": [SELECTION[2]],
-    "history": [SELECTION[3]],
+    "history": [SELECTION[3], "-k", "not (changed_route or maximum_replay)"],
+    "history-route": [SELECTION[3], "-k", "changed_route or maximum_replay"],
     "durability-boundaries": [SELECTION[4], "-k", "each_confirmed_boundary or unsafe_material"],
     "durability-effects": [SELECTION[4], "-k", "not (each_confirmed_boundary or unsafe_material)"],
 }

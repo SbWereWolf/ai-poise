@@ -159,14 +159,9 @@
     ]
   },
   "history": {
-    "collected": 9,
+    "collected": 6,
     "passed": 0,
     "failed": [
-      {
-        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_changed_route_stops_before_unsupported_historical_mapping",
-        "phase": "call",
-        "intentional": true
-      },
       {
         "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[ambiguous_visit-history_unavailable-False]",
         "phase": "call",
@@ -189,16 +184,6 @@
       },
       {
         "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[verified_event-history_unavailable-False]",
-        "phase": "call",
-        "intentional": true
-      },
-      {
-        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_maximum_replay_respects_separate_final_authority[False-progression_stopped-task_acceptance_required-code_review]",
-        "phase": "call",
-        "intentional": true
-      },
-      {
-        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_maximum_replay_respects_separate_final_authority[True-user_acceptance_required-acceptance_required-publish]",
         "phase": "call",
         "intentional": true
       },
@@ -266,6 +251,27 @@
       },
       {
         "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_saved_stop_is_exact_but_new_intent_rechecks_changed_grounds",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "history-route": {
+    "collected": 3,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_changed_route_stops_before_unsupported_historical_mapping",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_maximum_replay_respects_separate_final_authority[False-progression_stopped-task_acceptance_required-code_review]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_maximum_replay_respects_separate_final_authority[True-user_acceptance_required-acceptance_required-publish]",
         "phase": "call",
         "intentional": true
       }

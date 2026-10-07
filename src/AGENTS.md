@@ -133,6 +133,14 @@ Every stage-authorized `test_registry` mutation supplies the full explicit list;
 infer it from all requirements/DoD. Restore the current classification only
 from validated registry state, without rewriting historical methods or receipts and
 without a migration or fallback to immutable creation metadata.
+Keep classification-only guarded mutation in the same owner: empty operations require
+an actual obligation change and valid retained methods. A fresh unchanged empty packet
+is rejected; unchanged restart/ready creates no registry mutation, and accepted exact
+replay retains its original receipt. Task owns restart authorization, candidate validation
+and atomic ready promotion; bind its existing audit with explicit previous obligations.
+Include previous/new obligation lists in the audit and receipt identity only when they
+change, preserving method-only audit shape and historical evidence. Follow [Registry
+after Task restart](../docs/workflows/batch-work.md#реестр-после-перезапуска-task).
 
 For AI-poise's own changed-input test selection, use the existing package owner and
 single router; preserve Task-assigned methods, report unmapped inputs, and never fall

@@ -46,8 +46,9 @@ awaiting_continuation. Неизвестные ссылки/невалидный 
 явный `bootstrap(decision=rework, feedback, rework_stage)` в пределах действующего поручения может
 провести ту же
 Task через объявленный `rework_targets`, если сохранился точный доступный failed batch текущих
-stage, iteration, submission, tree и execution key и нет неизвестного `pending`. Цель `revise` без
-открытых findings отклоняется до изменения состояния. Переход сохраняет contracts, worktree, историю
+stage, iteration, submission, tree и execution key и `pending=null`. Точный terminal failed batch
+допускает переход в объявленную цель `revise` и без открытых findings; фиктивное замечание
+проверяющего не требуется. Переход сохраняет contracts, worktree, историю
 и receipts, применяет семантические правила route и scope целевого этапа и очищает только
 заброшенное retry-состояние. Полные условия и пакет запроса определены в [пакетном
 контракте](batch-work.md#явный-rework-после-checks_failed).

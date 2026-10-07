@@ -6,7 +6,7 @@ import json
 from ..content.domain import SectionBook, SectionRule, SectionValue
 from ..foundation.errors import DomainError
 from ..workflow.domain import HandlerKind, RouteDefinition, RouteProgress
-from ..workflow.handlers import handler, HandlerResult
+from ..workflow.handlers import handler, HandlerResult, evaluate_stage
 from ..evidence.domain import EvidencePlan, EvidenceBook
 from ..inspection.domain import FeedbackBook
 from ..verification.domain import CheckRegistry
@@ -505,7 +505,8 @@ class Task:
                 )
         return result
 
-    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool):
+    def _registry_change_audit(self, raw: dict, registry, actor: str, replayed: bool,
+                               previous_executable_obligations: tuple[str, ...]):
         request = next(
             request for request in registry.requests
             if request.request_id == raw['request_id']
@@ -524,6 +525,11 @@ class Task:
             'iteration': self.state.iteration,
             'task': self.state.task_id,
         }
+        if previous_executable_obligations != registry.executable_obligations:
+            audit.update(
+                previous_executable_obligations=list(previous_executable_obligations),
+                new_executable_obligations=list(registry.executable_obligations),
+            )
         receipt_id = hashlib.sha256(json.dumps(
             audit, sort_keys=True, ensure_ascii=False, separators=(',', ':')
         ).encode('utf-8')).hexdigest()
@@ -595,22 +601,21 @@ class Task:
                            inspection_stages=registry_inspection_stages(process),
                            obligation_catalog=obligation_catalog(contract))
         change = None
-        if operations:
+        if operations or obligations != current.executable_obligations:
             change = {'request_id': request_id, 'expected_revision': current.revision,
                       'operations': operations, 'executable_obligations': list(obligations)}
             registry = registry.apply_change(change).registry
-        elif obligations != current.executable_obligations:
-            raise DomainError('Changing executable obligations requires an explicit registry method change')
         CheckRegistry.from_items([entry.to_dict() for entry in registry.entries], registry.stages,
                                  require_source=True, require_plan=True)
         registry = registry.with_executable_obligations(
             tuple(obligations), registry.inspection_stages, registry.obligation_catalog)
         return registry, change
 
-    def bind_restarted_registry_audit(self, change: dict | None, actor: str) -> Task:
-        if change is None:
-            return self
-        registry, _ = self._registry_change_audit(change, self.check_registry, actor, False)
+    def bind_restarted_registry_audit(self, change: dict, actor: str,
+                                      previous_executable_obligations: tuple[str, ...]) -> Task:
+        registry, _ = self._registry_change_audit(
+            change, self.check_registry, actor, False, previous_executable_obligations
+        )
         return replace(self, check_registry=registry)
 
     def submit(self, actor: str, sections: dict[str, str], artifact_paths: tuple[str, ...],
@@ -622,8 +627,7 @@ class Task:
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
         self.evidence_plan.validate_work(self.stage.stage_id, evidence_work)
-        stage_handler = handler(self.route.node(self.stage.stage_id).handler)
-        handling = stage_handler.evaluate(stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
+        handling = evaluate_stage(self.route, stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
         registry_change = None
         registry_event = None
@@ -637,7 +641,8 @@ class Task:
             elif observes_evidence:
                 result = self._observe_registry_change(method_additions)
                 observe_registry, registry_change = self._registry_change_audit(
-                    method_additions, result.registry, actor, result.replayed
+                    method_additions, result.registry, actor, result.replayed,
+                    self.check_registry.executable_obligations,
                 )
                 result = replace(result, registry=observe_registry)
                 if not result.replayed:
@@ -833,7 +838,7 @@ class Task:
             raise DomainError("Нет проверенного outcome этапа")
         target = self.route.node(self.stage.stage_id).target(self.progress.outcome)
         if target is None:
-            if self.feedback.open_findings:
+            if self.feedback.open_findings or self.feedback.pending_resolutions:
                 raise DomainError("Нельзя завершить задачу с открытыми внутренними находками")
             return self._change("user_accept", None, None, status=TaskStatus.COMPLETED, claimed_by=None)
         if advance:
@@ -865,6 +870,8 @@ class Task:
         )
 
     def _enter(self, event: str, reason: str | None, actor: str, target: str, progress: RouteProgress) -> Change:
+        if self.route.node(target).handler == HandlerKind.PUBLISH:
+            self.feedback.require_resolved()
         state = replace(self.state, version=self.state.version + 1,
                         stage_index=self.route.index(target), iteration=dict(progress.visits)[target],
                         status=TaskStatus.ACTIVE, claimed_by=actor, submission_digest=None)
@@ -876,21 +883,15 @@ class Task:
         pending_resolutions = self.feedback.pending_resolutions
         if not pending_resolutions:
             return
-        current = self.route.node(self.stage.stage_id)
-        inspection_stage = (
-            self.stage.stage_id
-            if current.handler == HandlerKind.INSPECT
-            else current.target(self.progress.outcome)
-        )
-        if (inspection_stage is None or
-                self.route.node(inspection_stage).handler != HandlerKind.INSPECT):
+        inspectors = {resolution.id: self.route.next_inspection(resolution.stage)
+                      for resolution in pending_resolutions}
+        if any(stage is None for stage in inspectors.values()):
             raise DomainError(
                 "Rework недоступен: маршрут не определяет обязательный этап "
                 "осмотра ожидающих исправлений"
             )
-        resolution_ids = ", ".join(
-            resolution.id for resolution in pending_resolutions
-        )
+        resolution_ids = ", ".join(pending.id for pending in pending_resolutions)
+        inspection_stage = ", ".join(dict.fromkeys(inspectors.values()))
         raise DomainError(
             f"Rework недоступен: исправления {resolution_ids} ещё не осмотрены. "
             f"Продолжите задачу на этап {inspection_stage} и рассмотрите каждое "
@@ -1032,8 +1033,8 @@ class Task:
                 "stage_contract":contracts.stage(self.stage.stage_id).to_dict()}
 
     def _handling(self):
-        handling = handler(self.route.node(self.stage.stage_id).handler).evaluate(
-            json.loads(self.progress.stage_work), self.feedback, self.stage.stage_id, self.state.iteration)
+        handling = evaluate_stage(self.route, json.loads(self.progress.stage_work),
+                                  self.feedback, self.stage.stage_id, self.state.iteration)
         if self.route.node(self.stage.stage_id).handler.value in ('apply_plan','publish'):
             if self.action_assessment is None:
                 return handling
@@ -1067,8 +1068,8 @@ class Task:
         if book == self.evidence_book:
             return self._unchanged()
         change = self._change('observations_recorded',None,None)
-        base=handler(self.route.node(self.stage.stage_id).handler).evaluate(
-            json.loads(self.progress.stage_work),self.feedback,self.stage.stage_id,self.state.iteration)
+        base=evaluate_stage(self.route, json.loads(self.progress.stage_work),
+                            self.feedback,self.stage.stage_id,self.state.iteration)
         return replace(change,task=replace(change.task,evidence_book=book,evidence_assessment=None,
                                            progress=replace(self.progress,outcome=base.outcome)))
 

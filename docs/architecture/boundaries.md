@@ -481,7 +481,7 @@ release и bootstrap другой сессии; операция не отпра
 
 ## DDD-10 — интеграция принятого результата
 
-Обновлено: **2026-09-12T21:36:11+05:00**.
+Обновлено: **2026-10-04**.
 
 `ResultIntegration` владеет неизменным intent, состояниями merge/conflict/cleanup, receipts и
 idempotent replay. Task
@@ -497,9 +497,18 @@ Git-наблюдения и эффекты, а сохранение выполн
 маршрутизирует `integrate`
 и `show integration`; domain не импортирует filesystem, subprocess или SQLite.
 
-Intent до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся target commit
-и пользовательскую
-authorization. Adapter проверяет окончательный Task result и чистый task worktree. Существующие task
+`IntegrationIntent` до эффекта фиксирует task ID, request ID, accepted source commit, наблюдавшийся
+target commit, пользовательскую `authorization` и отдельное полное `commit_message`. Domain
+проверяет
+обязательность и допустимый тип сообщения, сохраняет исходный текст в идентичности, storage и
+replay.
+Runtime проверяет полное сообщение по настроенному `git.commit_pattern` до Git и загрузки
+сохранённой
+интеграции. Одна реализация создания коммита передаёт этот текст с `--cleanup=verbatim` при обычном
+слиянии, разрешении конфликтов и продолжении `MERGE_HEAD`; разрешение остаётся основанием уборки.
+Точный внешний контракт принадлежит
+[пакетной интеграции](../workflows/batch-work.md#разрешение-и-сообщение-интеграционного-коммита).
+Adapter проверяет окончательный Task result и чистый task worktree. Существующие task
 branch/worktree и
 task-scoped temporary-backup directory сохраняются до первого Git-эффекта; отдельные integration
 branch/worktree не
@@ -512,9 +521,10 @@ outcomes и историю
 фаз. Незавершённый merge восстанавливается по task worktree, `MERGE_HEAD` и conflict set. Разрешение
 принимает ровно
 один rationale для каждого сохранённого conflict path. Точная legacy-форма blocked-запроса
-`integrate-0048-1` имеет
-узкий adapter, сохраняющий старую историю и accepted commit; остальные неизвестные формы
-отклоняются.
+`integrate-0048-1` имеет узкий adapter, сохраняющий старую историю и accepted commit, только если
+сообщение уже записано. Runtime сравнивает входящую идентичность до сохранения восстановления.
+Отсутствующее сообщение даёт явный отказ без Git или изменения истории; новый вызов не дописывает
+его. Остальные неизвестные формы отклоняются. Это ограничение восстановления, не новая миграция.
 
 На готовом integration head в task worktree запускаются текущие produced-result GREEN методы
 реестра: `green_stages` и
@@ -528,6 +538,13 @@ branch и повторяет проверки. Стабильный candidate п
 отказе сохраняется
 before/after fingerprint `HEAD`, binding, index, tracked/untracked content, types, modes и operation
 state.
+
+Отказ проверки рабочего дерева при сверке сохранённого доказательства в фазе `publishing`
+проходит через существующий доменный переход
+`publication_blocked`: публикация сохраняется как заблокированная, чужой WIP остаётся на месте.
+Та же ошибка при повторе уже `publication_failed` отклоняет вызов без новой записи состояния.
+Неполное доказательство продолжает прежний путь повторных проверок; проверки чистоты, ancestry,
+receipt и раннего retry после `checks_failed` не обходятся.
 
 Только после подтверждённой публикации начинается монотонная уборка: task worktree removal
 предшествует task branch

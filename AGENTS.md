@@ -37,6 +37,14 @@ stage separation and sufficient allowed_paths. Follow the canonical
 [paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
 and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
 
+Development goals state application capabilities. Requirements align with the goal
+and define observable product behaviour across the declared supported scenarios
+and configurations, not a coding plan or maintenance of one installation. Keep
+incidents and concrete installation facts in the rationale, architecture constraints
+in their own content, and implementation choices in execution planning. Apply the
+[product formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту)
+when creating and independently reviewing a Task.
+
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
 present self-review as independent review.
@@ -113,6 +121,13 @@ or claim automatic enforcement. If a needed specialist skill is missing or insuf
 report the stage, missing expertise, impact and proposed planner action in the final
 answer; raise actual blockers immediately. Follow [skill-gap
 reporting](docs/workflows/task-stage-skills-draft.md#использование-навыков-и-сообщение-о-нехватке).
+The current `task_decomposition.skills` list validates skill IDs declared in
+`decomposition.phases[].skills`; it is not a whitelist for skills the agent may
+read or apply. Use any available relevant skill, including `documentation` when
+absent from that list. Absence from the list alone is not a skill gap, blocker or
+reason to change project configuration. Additional skill use does not change
+declared narrow responsibilities, role or Task scope.
+See [decomposition focus](docs/governance/development-rules.md#фокус-декомпозиции).
 
 ## Commit message example
 
@@ -148,8 +163,10 @@ The canonical policy is [Development
 rules](docs/governance/development-rules.md#%D0%BE%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D0%B0%D0%B3%D0%B5%D0%BD%D1%82%D0%BE%D0%B2).
 Keep this English projection and its Russian source consistent in the same change.
 
-- Answer humans and write human-facing documentation in Russian. Write agent-facing files (`AGENTS.md`, `.agents/**`,
-  `.codex/**`, managed task artifacts) in English. Preserve native identifiers and syntax.
+- Answer humans and write human-facing documentation in Russian. Write agent-facing files and instructions (`AGENTS.md`,
+  `.agents/**`, `.codex/**`, technical instructions in managed artifacts) in English. Write human-facing AI poise Task
+  goals, requirements and acceptance criteria in Russian, including within managed artifacts. Preserve native identifiers
+  and syntax.
 - Canonical human documentation owns durable workflow semantics. Skills, agent rules, configurations and scripts
   implement that contract; historical plans and reports are not independent policy. Co-deliver affected documentation
   with behaviour, configuration or workflow changes.
@@ -545,3 +562,26 @@ Before recording Tasks or relocating installation state, read
 [operator selection and state relocation](docs/configuration/wsl-local-delivery.md#выбор-операторской-установки-и-перенос-состояния).
 Use the selected operator installation; do not cancel a Task to repair its contract
 or delete a hook registry to compensate for an unsupported relocation.
+
+
+## Harness failure and manual bypass
+
+Follow [harness failure and manual bypass](docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+whenever Poise prevents normal progress. Classify evidence as agent/task-planner
+misuse, defective configuration, code defect, or damaged manually edited working
+data; distinguish unresolved causes. Assess one-off, possible recurring, or permanent
+failure. Prefer a proportionate manual repair for trivial low-risk incidents over
+unnecessary code. Always correct defective configuration; verify the original
+problem is removed, roll back unsuccessful changes, record rejected solutions,
+and avoid cycles of configuration workarounds.
+
+Record every incident and every manual correction separately in Sprint working
+documents, or Task working materials for a standalone Task. Include cause, evidence,
+method, alternatives, verification, and remaining limits. Prepare a repair Task
+draft for recurring failures; label an offline draft honestly while the API is
+unavailable. Maintain active causes and reusable recovery methods in known bugs.
+Continue authorized honest subject work manually when the harness obstructs it;
+preserve TDD and independent review, foreign WIP and data integrity. Do not invent
+native receipts or Task completion. A narrow manual data repair needs proven exact
+scope, preserved original data, no competing writer, and verified postconditions.
+Never use a bypass to fabricate external outcomes, evidence, or foreign ownership.

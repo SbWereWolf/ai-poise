@@ -1,0 +1,15 @@
+{
+  "status": "unchanged",
+  "project": "ERP",
+  "target_root": null,
+  "assets": [
+    {
+      "path": "first.conf",
+      "status": "preserved"
+    },
+    {
+      "path": "nested/second.conf",
+      "status": "preserved"
+    }
+  ]
+}

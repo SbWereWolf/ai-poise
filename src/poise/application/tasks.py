@@ -761,8 +761,9 @@ class TaskCommands:
                                    for field in item.get('registry_edits', []))
                 authority = histories[-1].get('planning_revision')
                 from ..modules.tasks.domain import Task
+                previous_registry = uow.tasks.restarted_registry(task_id)
                 current_registry, registry_change = Task.prepare_restarted_registry(
-                    uow.tasks.restarted_registry(task_id), contract, newborn.process, edited,
+                    previous_registry, contract, newborn.process, edited,
                     request_id, None if authority is None else authority['allowed_changes'],
                 )
             restart_base = None
@@ -841,7 +842,12 @@ class TaskCommands:
                 uow.tasks.remember_action(task_id, actor, request_id, identity, result)
                 return result
             task = build_task(metadata, None, current_registry=current_registry)
-            task = task.bind_restarted_registry_audit(registry_change, actor)
+            if registry_change is not None:
+                task = task.bind_restarted_registry_audit(
+                    registry_change, actor, previous_registry.executable_obligations
+                )
+            if executed_restart:
+                task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
             if newborn.restart_history and restart_base is not None:
                 from ..application.ownership import release_dependent_worktree_in
                 release_dependent_worktree_in(uow, actor, task_id)
@@ -1349,14 +1355,17 @@ class TaskCommands:
                 change=task.record_observations(actor,tree,execution_key,receipts)
                 uow.tasks.save(change,task.state.version)
 
-    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest):
-        return CheckAttempts(self.unit_of_work).begin(task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest)
+    def begin_check_attempt(self, task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity):
+        return CheckAttempts(self.unit_of_work).begin(task_id, actor, tree, execution_key, methods, limit, expected_version, submission_digest, identity)
 
     def current_check_attempt(self, task_id, actor, tree, execution_key, methods):
         return CheckAttempts(self.unit_of_work).current(task_id, actor, tree, execution_key, methods)
 
     def start_check_run(self, task_id, actor, expected, run_id):
         return CheckAttempts(self.unit_of_work).start_run(task_id, actor, expected, run_id)
+
+    def record_check_termination(self, task_id, actor, expected, run_id, outcome):
+        return CheckAttempts(self.unit_of_work).record_termination(task_id, actor, expected, run_id, outcome)
 
     def recover_pending_checks(
         self, task_id, actor, submission_digest, tree, execution_key, receipts

@@ -39,6 +39,7 @@ def parse_request(value, config):
     shapes={'restore_context':{'reason','event_id','facts','cwd','reads'},'routing':{'facts'},'bootstrap':{'task','decision','feedback','rework_stage'},
             'verify':{'result','artifacts'},'show':{'queries'},'accept':set(),
             'reuse':{'task_id','source_task_id','request_id','expected_version'},
+            'release':{'task_id','request_id','expected_version','reason'},
             'recover_empty_rework':{'task_id','reason'},
             'recover_empty_advance':{'task_id','reason'},
             'advance':{'request_id','task_id','target_stage'},
@@ -66,6 +67,14 @@ def parse_request(value, config):
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')
         shapes[op] = shapes[op] | {'force_duplicate_start'}
+    if op == 'handoff' and isinstance(value['input'], dict) and 'uncertain_check_recovery' in value['input']:
+        recovery = value['input']['uncertain_check_recovery']
+        exact(recovery, {'attempt_id', 'quiescence_evidence', 'effects_evidence'}, 'uncertain check recovery')
+        if any(not isinstance(item, str) or not item.strip() for item in recovery.values()):
+            raise DomainError('Uncertain check recovery requires explicit nonempty evidence and attempt ID')
+        if value['input']['result'] is not None:
+            raise DomainError('Uncertain check recovery requires null result')
+        shapes[op] = shapes[op] | {'uncertain_check_recovery'}
     if op not in ('task','sprint','transfer','integrate','artifact_drafts'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
@@ -88,6 +97,9 @@ def parse_request(value, config):
         if value['input']['result'] is not None and not isinstance(value['input']['result'],dict):raise DomainError('handoff result must be an object or null')
     if op=='artifacts' and not isinstance(value['input']['items'],list):
         raise DomainError('items must be a list')
+    if op=='release':
+        from ..ownership.domain import parse_ordinary_release
+        parse_ordinary_release(value['input'])
     if op=='recover_ownership':
         from ..ownership.domain import parse_legacy_repair, parse_crash_recovery
         parser = parse_crash_recovery if 'mode' in value['input'] else parse_legacy_repair

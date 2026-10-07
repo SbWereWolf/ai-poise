@@ -59,6 +59,19 @@ agent-use incident, follow [instruction
 clarity](../../../docs/governance/development-rules.md#ошибки-применения-и-точность-инструкций);
 detailed corrections belong in canonical docs, with a short skill link.
 
+## Harness refusal and manual continuation
+
+Apply the canonical [failure and manual bypass rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+whenever normal work is blocked. Classify the cause and repeatability, journal the
+incident and chosen correction with alternatives, and continue authorized subject
+work manually when Poise obstructs it. Recurring failures require a repair draft.
+A trivial low-risk data repair does not automatically require new code. Always
+verify configuration corrections, roll back unsuccessful ones, and record rejected
+solutions. Preserve real evidence, independent review and foreign ownership; manual
+work is never a fabricated native stage receipt or Task completion. The ordinary
+managed-data prohibition below does not prohibit the narrowly scoped, documented
+manual recovery authorized by this canonical rule.
+
 ## Start or resume work
 
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
@@ -98,6 +111,12 @@ names
 component inputs, one combined result, integration checks, and allowed paths covering all
 phase areas. Treat validation as declaration consistency, not proof that the inventory or
 declared scope is factually complete.
+`task_decomposition.skills` validates IDs declared in `decomposition.phases[].skills`;
+it does not restrict which available relevant skills an agent may read and apply.
+Use `documentation` when the work needs it even if that ID is absent from the
+project list. Do not report a skill gap or change project configuration solely
+because an available skill is absent there. Keep the declared narrow responsibility,
+role and Task scope intact.
 
 Every newborn Task `edit` request explicitly supplies both `patch` and `remove`; at least one
 is nonempty. Use `remove` in the same optimistic request when a goal-type change makes a saved
@@ -105,6 +124,17 @@ draft field invalid. Never encode deletion with null, silently clean the draft, 
 as a compatibility path. Preserve exact replay and reject unknown, absent, duplicate, immutable or patch-conflicting removals. Flexible drafts may remove required fields temporarily; `ready` requires the complete resolved contract. Frozen edits require authorized restart.
 
 When a saved execution contract makes DoD unattainable, the next stage fails its own DoR, or the executor concludes from evidence that the available workaround is not adequate to the Task, do not bypass Poise or manufacture success. Preserve the evidence and agree the exact restart/Task-contract change with the independent reviewer. The agents decide and execute a restart without another user decision. An authorized owner uses the public Task action; the executor must not impersonate the reviewer. For fields outside the frozen restart-revision policy, the reviewer records the exact approved Task fields in `authorization.revision_fields`. Project/harness rule changes require separate user authority and are not mutated by Task restart. Preserve Task identity, immutable history, Sprint membership, worktree/branch and all WIP; reject terminal work, a foreign live owner, stale version, or a pending external outcome before mutation. Resolve pending uncertainty through its explicit recovery protocol first. Do not use or recreate the removed Sprint `replace_task` correction action. Historical relations exist only as opaque revision/audit records, not a current replacement projection.
+
+Follow [post-restart handoff](../../../docs/workflows/local-handoff.md#передача-после-перезапуска):
+restart preserves historical results, proof and provenance; restart alone does not make
+proof inapplicable. Apply the existing source/condition/provenance rules. A historical
+submission is not new work. Current templates and null-result handoff use only the Task's
+authoritative current submission, never a latest historical stage/iteration match.
+Without a new current result, preserve actual Task state; with one, transfer that result.
+Ready preserves the feedback book, including open findings and previous review decisions;
+do not reapply rejected historical corrections or manufacture finding closure.
+Use public handoff to release a restarted Task, including newborn work; restart itself
+retains ownership. Preserve ordinary refusal, material-integrity and exact-replay gates.
 
 Task restart atomically invalidates every mutable current `work-packet identity` for that
 Task in the same Unit of Work as the newborn lifecycle reset. This does not rewrite or delete
@@ -187,6 +217,16 @@ Produced-result GREEN methods require a non-empty surface
 covered by their stage. Follow [Batch work → Current verification
 registry](../../../docs/workflows/batch-work.md#текущий-реестр-методов-проверки).
 
+A guarded registry packet may use `operations: []` only for an actual change to
+`executable_obligations`; retained methods must remain valid. Do not invent a method
+to reclassify a restarted Task. Use the authorized public restart/edit/ready route:
+the Task owner derives the mutation, and a schema without the field requires its
+explicit removal from the draft. A fresh empty packet with unchanged classification
+is rejected; unchanged ready creates no registry mutation, while accepted exact replay
+returns its original receipt. Preserve historical evidence and conditional old/new
+classification audit fields. Follow [Batch work → Registry after Task
+restart](../../../docs/workflows/batch-work.md#реестр-после-перезапуска-task).
+
 When a current observation command has become stale, do not recreate the Task or edit its
 database. Read the current registry with one `show` query of kind `verification_registry`, then
 submit one guarded `method_additions` change from the current `observe` stage. Replace only a
@@ -230,6 +270,21 @@ with no separate integration branch or worktree. If it returns a conflict, pause
 task worktree, then resume checks. The finisher rechecks the configured target under the shared target lock and repeats update,
 resolution, and checks on drift. It publishes only through `git merge --ff-only <task-branch>` in the main checkout and
 never updates the target ref directly or by force.
+
+Public `integrate` requires separate explicit `authorization` and full `commit_message`.
+Keep the original permission and message unchanged across retries, conflicts, target drift,
+and crash resume. The configured `git.commit_pattern` matches the complete message before
+Git or saved-run loading; do not substitute permission, defaults, or a shortened subject.
+The shared candidate-commit owner preserves the full message with Git's documented final-LF
+framing. Authors separately check product meaning and 50/70 writing rules; these have no
+new automatic validator. Follow the exact [message contract and packet
+examples](../../../docs/workflows/batch-work.md#разрешение-и-сообщение-интеграционного-коммита).
+Retained integration history without a recorded message cannot automatically continue,
+even if a new request supplies one. Preserve history and recovery data; do not backfill
+from authorization, edit managed state, or change request identity to bypass refusal.
+Task inspection remains available but does not expose the full saved integration packet;
+the integration projection also requires a recorded message. Follow [missing-message recovery
+limits](../../../docs/workflows/batch-work.md#сохранённый-запрос-без-сообщения-коммита).
 
 Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
 The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate

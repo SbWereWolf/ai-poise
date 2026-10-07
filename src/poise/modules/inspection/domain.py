@@ -61,6 +61,36 @@ class FeedbackBook:
         decided = {d.resolution_id for d in self.decisions}
         return tuple(r for r in self.resolutions if r.id not in decided)
 
+    def for_stages(self, stages: tuple[str, ...]) -> FeedbackBook:
+        """An explicit inspection view; the authoritative global book is unchanged."""
+        findings = tuple(f for f in self.findings if f.stage in stages)
+        finding_ids = {f.id for f in findings}
+        resolutions = tuple(r for r in self.resolutions if r.finding_id in finding_ids)
+        resolution_ids = {r.id for r in resolutions}
+        decisions = tuple(d for d in self.decisions if d.resolution_id in resolution_ids)
+        return FeedbackBook(findings, resolutions, decisions)
+
+    def append_inspection(self, prior: FeedbackBook, updated: FeedbackBook) -> FeedbackBook:
+        """Merge only append-only inspection deltas, preserving global IDs/history."""
+        additions = []
+        for name in ("findings", "resolutions", "decisions"):
+            before, after = getattr(prior, name), getattr(updated, name)
+            if after[:len(before)] != before:
+                raise DomainError("Inspection must preserve prior feedback history")
+            additions.append(after[len(before):])
+        findings, resolutions, decisions = additions
+        if {f.id for f in findings} & {f.id for f in self.findings}:
+            raise DomainError("Повтор ID находки; прежняя запись не заменяется")
+        if {r.id for r in resolutions} & {r.id for r in self.resolutions}:
+            raise DomainError("Повтор ID исправления")
+        return FeedbackBook(self.findings + findings, self.resolutions + resolutions, self.decisions + decisions)
+
+    def require_resolved(self) -> None:
+        if self.open_findings or self.pending_resolutions:
+            findings = ", ".join(f.id for f in self.open_findings)
+            resolutions = ", ".join(r.id for r in self.pending_resolutions)
+            raise DomainError(f"Unresolved findings [{findings}] or resolutions [{resolutions}] forbid publication; continue their owning inspections and resolve them first")
+
     def propose(self, items, stage, iteration):
         if not isinstance(items, list) or not items:
             raise DomainError("revise требует предложения исправлений")

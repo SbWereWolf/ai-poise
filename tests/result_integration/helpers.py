@@ -199,6 +199,7 @@ def integration_input(
         "expected_source_commit": source_commit,
         "expected_target_commit": git(project["app"], "rev-parse", "refs/heads/main"),
         "authorization": "The user accepted the completed task result.",
+        "commit_message": "Preserve the accepted product outcome",
         "resolutions": list(resolutions),
     }
 

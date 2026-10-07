@@ -51,9 +51,13 @@ class TaskQueries:
                 raise PoiseError("Точка трассировки не найдена")
             return {"task":task_id,"route":route_id,"point":point_id,"submission":row[0],"value":json.loads(row[1])}
 
-    def latest_submission(self, task_id, stage, iteration):
+    def current_submission(self, task_id):
         with self.database.transaction() as db:
-            row=db.execute("SELECT seq,data FROM submissions WHERE task_id=? AND stage=? AND iteration=? ORDER BY seq DESC LIMIT 1",(task_id,stage,iteration)).fetchone()
+            row=db.execute(
+                "SELECT s.seq,s.data FROM tasks t JOIN submissions s "
+                "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
+                (task_id,),
+            ).fetchone()
             if row is None:return None
             envelope=json.loads(row['data'])
             envelope['sections']={r['section_id']:r['content'] for r in db.execute(
@@ -233,7 +237,10 @@ class TaskQueries:
             if repository.is_newborn(task_id):
                 newborn = repository.load_newborn(task_id)
                 workflow = db.execute('SELECT data FROM task_workflows WHERE task_id=?', (task_id,)).fetchone()
-                historical = None if workflow is None else json.loads(workflow[0]).get('registry')
+                historical = None
+                if workflow is not None:
+                    registry = repository.restarted_registry(task_id)
+                    historical = {**registry.to_state(), **registry.current_snapshot.to_dict()}
                 return {
                     'status': 'read_only', 'task': task_id, 'task_status': 'newborn',
                     'active_contract': False, 'revision': None, 'current': [],

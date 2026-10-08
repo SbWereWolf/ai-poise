@@ -39,7 +39,8 @@ class GitReplayWorkspace:
             raise PoiseError('Replay requires the registered original Task worktree')
         allowed = [pattern for contract in self.data['contract']['stage_contracts']
                    for pattern in contract['allowed_paths']]
-        changed = self.git(self.root, 'diff', '--name-only', self.data['base'], 'HEAD').splitlines()
+        changed = filter(None, self.git(self.root, 'diff', '--name-only', '-z',
+                                        self.data['base'], 'HEAD').split('\0'))
         if any(not any(matches_allowed_path(path, pattern) for pattern in allowed) for path in changed):
             raise PoiseError('Preservation commit contains forbidden out-of-scope configuration or files')
         self.require_no_ignored_collisions([
@@ -48,9 +49,11 @@ class GitReplayWorkspace:
         return self.head()
 
     def require_no_ignored_collisions(self, commits):
-        ignored = set(self.git(self.root, 'ls-files', '--others', '--ignored', '--exclude-standard').splitlines())
+        ignored = set(filter(None, self.git(self.root, 'ls-files', '--others', '--ignored',
+                                            '--exclude-standard', '-z').split('\0')))
         for commit in commits:
-            paths = set(self.git(self.root, 'ls-tree', '-r', '--name-only', commit).splitlines())
+            paths = set(filter(None, self.git(self.root, 'ls-tree', '-r', '--name-only',
+                                              '-z', commit).split('\0')))
             if any(left == right or left.startswith(right + '/') or right.startswith(left + '/')
                    for left in ignored for right in paths):
                 raise PoiseError('Ignored files collide with accepted checkout; preserve them first')

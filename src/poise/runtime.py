@@ -454,7 +454,11 @@ class Poise:
         owners = {'runtime': self.session, 'task': task_id}
         if data['sprint_id'] is not None:
             owners['sprint'] = data['sprint_id']
+        delivery = self.transfer_tools.port.repo.delivery_for_task(task_id)
+        omitted = set() if delivery is None else set(delivery['manifest']['omitted_artifacts'])
         for accepted in source['report']['artifacts']:
+            if accepted['id'] in omitted:
+                continue
             original = registered.get(accepted['id'])
             if original is None or any(original[key] != accepted[key]
                                        for key in ('id', 'path')):
@@ -462,7 +466,7 @@ class Poise:
             if not Path(original['path']).exists():
                 return 'evidence_missing'
             try:
-                current = inspect_paths([original['path']], roots, owners)[0]
+                current = self._inspect_artifacts(data, [original['path']], roots, owners)[0]
             except PoiseError:
                 return 'evidence_changed'
             if any(current[key] != original[key] for key in ('id', 'scope', 'owner', 'path', 'digest')):
@@ -479,11 +483,11 @@ class Poise:
         selection['contract']['checks'][stage_id] = list(dict.fromkeys(
             data['contract']['checks'][stage_id] + [m['id'] for m in source['methods']]))
         checks = self._select_checks(selection, [])
-        invocations, key = self._verification_execution(data, source['tree'], checks, worktree)
-        batch = self.task_commands.submission_observation_batch(task_id, candidate_digest, source['tree'], key)
+        invocations, key = self._verification_execution(data, source['current_tree'], checks, worktree)
+        batch = self.task_commands.submission_observation_batch(task_id, candidate_digest, source['current_tree'], key)
         if batch is not None:
             receipts = batch['receipts']
-            if not self._intact_receipts(task_id, receipts, invocations, source['tree']):
+            if not self._intact_receipts(task_id, receipts, invocations, source['current_tree']):
                 return {'reason': 'unknown_effect', 'execution_key': key}
         else:
             pending = data['pending']
@@ -494,29 +498,29 @@ class Poise:
                 for run, invocation in zip(pending['runs'], invocations, strict=True):
                     if run['started'] and (not receipt_matches(pending, run, recorded.get(run['run_id']))
                             or not self._intact_receipts(task_id, [recorded[run['run_id']]],
-                                                        [invocation], source['tree'])):
+                                                        [invocation], source['current_tree'])):
                         return {'reason': 'unknown_effect', 'execution_key': key}
                 data['pending'] = self.runner.current_check_attempt(
-                    task_id, self.session, source['tree'], key, [m['id'] for m in checks])
+                    task_id, self.session, source['current_tree'], key, [m['id'] for m in checks])
             else:
-                self.runner.begin_check_attempt(task_id, self.session, source['tree'], key,
+                self.runner.begin_check_attempt(task_id, self.session, source['current_tree'], key,
                     [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
-                    data['_version'], candidate_digest, self._attempt_identity(source['tree'], invocations))
+                    data['_version'], candidate_digest, self._attempt_identity(source['current_tree'], invocations))
                 data = self.task_queries.record(task_id)
-            receipts = self._execute_checks(data, self._stage(data), source['tree'], checks,
+            receipts = self._execute_checks(data, self._stage(data), source['current_tree'], checks,
                                             invocations, self._roots(data))
-            if not self._intact_receipts(task_id, receipts, invocations, source['tree']):
+            if not self._intact_receipts(task_id, receipts, invocations, source['current_tree']):
                 return {'reason': 'unknown_effect', 'execution_key': key}
-            self.runner.record_observations(task_id, self.session, source['tree'], key, receipts)
+            self.runner.record_observations(task_id, self.session, source['current_tree'], key, receipts)
         if not all(r['passed'] and r['interpretable'] and r['source_unchanged'] for r in receipts):
             return {'reason': 'tests_failed', 'execution_key': key}
         if data['status'] == 'verified':
             assessment = self.runner.context(task_id)['evidence']['assessment']
-            if (assessment is None or not assessment['ready'] or assessment['tree'] != source['tree']
+            if (assessment is None or not assessment['ready'] or assessment['tree'] != source['current_tree']
                     or assessment['execution_key'] != key or assessment['submission_digest'] != candidate_digest):
                 return {'reason': 'unknown_effect', 'execution_key': key}
         else:
-            assessment = self.task_commands.assess_evidence(task_id, self.session, source['tree'], key)
+            assessment = self.task_commands.assess_evidence(task_id, self.session, source['current_tree'], key)
         return {'reason': None if assessment['ready'] else 'evidence_missing', 'execution_key': key}
 
     def recover_missing_worktree(self, task_id: str, reason: str) -> dict:
@@ -774,25 +778,10 @@ class Poise:
 
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
+        from .infrastructure.git_snapshot import snapshot_tree
         configured_index = descendant(self.runtime, self.paths['git_index'])
-        # Session cleanup may overlap another invocation of this same session.
-        # Its temporary index has an independent lifetime, outside that cache.
-        self.runtime.parent.mkdir(parents=True, exist_ok=True)
-        invocation = Path(tempfile.mkdtemp(
-            prefix=f'{self.session}.{configured_index.name}.',
-            dir=self.runtime.parent,
-        ))
-        index = invocation / 'index'
-        env = {**os.environ, 'GIT_INDEX_FILE': str(index)}
-        try:
-            self._git(worktree, 'read-tree', 'HEAD', env=env)
-            self._git(worktree, 'add', '--all', env=env)
-            return self._git(worktree, 'write-tree', env=env)
-        finally:
-            try:
-                shutil.rmtree(invocation)
-            except FileNotFoundError:
-                pass  # Only absence is idempotent; real I/O/lock errors propagate.
+        return snapshot_tree(self._git, worktree, self.runtime.parent,
+                             f'{self.session}.{configured_index.name}.')
 
     def _changed(self, data: dict, tree: str) -> list[str]:
         if data['worktree'] is None:
@@ -891,6 +880,12 @@ class Poise:
         if prepare:
             self._roots(data)
             payload = self.task_queries.current_submission(data['id'])
+            if payload is not None:
+                delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
+                if delivery is not None:
+                    omitted = set(delivery['manifest']['omitted_artifacts'])
+                    missing = {item['path'] for item in self.store.artifact_records(data['id']) if item['id'] in omitted}
+                    payload['artifact_paths'] = [path for path in payload['artifact_paths'] if path not in missing]
             if payload is None:
                 payload = {'sections':stage['sections'].copy(),'artifact_paths':[], 'commit_message':'',
                     'content_additions':{'sections':[],'routes':[],'requirements':[]},'trace':{},'method_additions':[],
@@ -1302,11 +1297,20 @@ class Poise:
                 grouped[key]['observation_rules'].append(data['contract']['evidence_plan'][stage_id]['subject_methods'][method_id])
         return list(grouped.values())
 
+    def _inspect_artifacts(self, data, paths, roots, owners):
+        from .infrastructure.recovery_artifacts import artifact_placement
+        delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
+        return artifact_placement(inspect_paths(paths, roots, owners), delivery)
+
     def _candidate_artifacts(self, data: dict, submitted: list[str], roots: dict[str,Path]):
         owners = {'runtime':self.session, 'task':data['id']}
         if 'sprint' in roots: owners['sprint'] = data['sprint_id']
-        records = inspect_paths(submitted, roots, owners)
+        records = self._inspect_artifacts(data, submitted, roots, owners)
         previous = self.store.artifact_records(data['id'])
+        delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
+        if delivery is not None:
+            omitted = set(delivery['manifest']['omitted_artifacts'])
+            previous = [item for item in previous if item['id'] not in omitted]
         drafts = self.store.artifact_drafts(data['id'])
         previous_ids = {item['id'] for item in previous}
         submitted_paths = {item['path'] for item in records}
@@ -1320,7 +1324,7 @@ class Poise:
             old = dict(prior)
             if old['scope'] not in roots:
                 raise PoiseError('Registered artifact scope has no current owner root; use explicit recover_artifacts')
-            current = inspect_paths([old['path']], roots, owners)[0]
+            current = self._inspect_artifacts(data, [old['path']], roots, owners)[0]
             if any(current[key] != old[key] for key in ('id', 'owner', 'scope')):
                 raise PoiseError('Registered artifact identity/owner mismatch; inspect ownership before recovery')
             if current['digest'] != old['digest']:
@@ -1365,7 +1369,7 @@ class Poise:
             if prior['scope'] not in roots:
                 continue
             try:
-                current = inspect_paths([prior['path']], roots, owners)[0]
+                current = self._inspect_artifacts(data, [prior['path']], roots, owners)[0]
             except PoiseError:
                 continue
             if current['digest'] != prior['digest']:
@@ -1706,10 +1710,13 @@ class Poise:
         return invocations
 
     def _verification_execution(self, data, tree, checks, worktree):
+        from .infrastructure.evidence_configuration import EvidenceConfigurationCapture
+        systems = EvidenceConfigurationCapture(self.cfg['runtime_services']['transfer']['recovery']['systems'], self._git).preflight() if checks else None
         invocations = self._invocations(checks, worktree)
         commit = self._git(worktree, 'rev-parse', 'HEAD')
         for invocation in invocations:
             invocation['commit'] = commit
+            invocation['systems'] = systems
         execution_key = digest({
             'commit': commit,
             'stage': self._stage(data)['id'],
@@ -1754,6 +1761,22 @@ class Poise:
                 or recorded.get(r['id']) != r
             ):
                 return False
+            systems = r.get('systems')
+            expected_systems = invocation.get('systems')
+            if not isinstance(systems, dict) or set(systems) != {'poise', 'project'} or expected_systems is None:
+                return False
+            for owner, system in systems.items():
+                if system.get('commit') != expected_systems[owner]['commit']:
+                    return False
+                configs = system.get('configs')
+                if not isinstance(configs, list) or len(configs) != len(expected_systems[owner]['configs']):
+                    return False
+                for config, original in zip(configs, expected_systems[owner]['configs'], strict=True):
+                    if {key: config.get(key) for key in ('path', 'digest')} != original:
+                        return False
+                    captured = Path(config['captured_path'])
+                    if captured.is_symlink() or not captured.is_file() or file_digest(captured) != config['digest']:
+                        return False
             method=invocation['method']
             expected={
                 'argv': method['argv'],
@@ -1845,6 +1868,9 @@ class Poise:
                 json.dumps(timeout_snapshot,sort_keys=True,ensure_ascii=False,indent=2)+'\n',
                 encoding='utf-8',
             )
+            from .infrastructure.evidence_configuration import EvidenceConfigurationCapture
+            config_capture = EvidenceConfigurationCapture(self.cfg['runtime_services']['transfer']['recovery']['systems'], self._git)
+            systems = config_capture.capture(run_dir, invocation['systems'])
             attempt = self.runner.start_check_run(data['id'], self.session, attempt, run_id)
             result=self.check_runner.run(
                 run_id, method['argv'], Path(invocation['cwd']), run_environment, timeout_selection['seconds'],
@@ -1866,7 +1892,8 @@ class Poise:
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
                                all(contains(Path(result['stderr']),t) for t in rule['stderr_contains'])
                                for rule in method['observation_rules']))
-            receipt={**result,'commit':invocation['commit'],
+            source_unchanged = source_unchanged and config_capture.preflight() == invocation['systems']
+            receipt={**result,'commit':invocation['commit'], 'systems':systems,
                      'observed_commit_after':observed_commit,'source_unchanged':source_unchanged,
                      'attempt_id':attempt['attempt_id'],
                      'submission_digest':attempt['submission_digest'], 'execution_key':attempt['execution_key'],

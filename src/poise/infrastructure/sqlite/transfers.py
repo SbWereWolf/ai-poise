@@ -170,3 +170,31 @@ class SqliteTransferRepository:
         with self.database.transaction() as db:
             row=db.execute('SELECT data FROM transfer_imports WHERE package_digest=?',(sha,)).fetchone()
             return None if row is None else json.loads(row['data'])
+
+    def delivery_for_task(self, task_id):
+        with self.database.transaction() as db:
+            return SqliteTransferContext(db).delivery_for_task(task_id)
+
+
+class SqliteTransferContext:
+    """Imported availability and one-time fresh verification, owned by delivery."""
+    def __init__(self, connection):
+        self.db = connection
+
+    def delivery_for_task(self, task_id):
+        row = self.db.execute(
+            "SELECT i.data FROM transfer_imports i JOIN json_each(i.data,'$.task_ids') t "
+            "ON t.value=?", (task_id,)).fetchone()
+        if row is None:
+            return None
+        receipt = json.loads(row['data'])
+        opened = self.db.execute(
+            "SELECT 1 FROM journal WHERE task_id=? AND event='transfer.verification_opened' "
+            "AND json_extract(data,'$.package_digest')=?", (task_id, receipt['package_digest'])).fetchone()
+        return {**receipt['delivery'], 'package_digest': receipt['package_digest'],
+                'verification_opened': opened is not None}
+
+    def open_verification(self, task_id, actor, package_digest):
+        self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+                        (datetime.now(timezone.utc).isoformat(), actor, task_id,
+                         'transfer.verification_opened', encoded({'package_digest': package_digest})))

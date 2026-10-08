@@ -84,7 +84,7 @@ def relocate_receipt(value,locations):
     if not isinstance(value,dict):return value
     result={}
     for key,item in value.items():
-        if key in ('path','worktree','directory','manifest','stdout','stderr','bundle_path','receipt_path'):
+        if key in ('path','worktree','directory','manifest','stdout','stderr','bundle_path','receipt_path','captured_path'):
             result[key]=relocate_path(item,locations)
         elif key in ('artifact_paths','preserved_artifacts'):
             result[key]=[relocate_path(x,locations) for x in item]

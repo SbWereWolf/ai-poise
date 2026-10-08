@@ -25,11 +25,11 @@ class LocalHandoff:
         self.h=poise;self.commands=HandoffCommands(poise.store.unit_of_work)
         self.config=poise.cfg['runtime_services']['handoff']
 
-    def preserve(self,args):
+    def preserve(self,args, *, portable=False):
         h=self.h
         request_id=h._identifier(args['request_id'])
         if not isinstance(args['reason'],str) or not args['reason'].strip():raise PoiseError('Handoff reason required')
-        key=digest(args);prior=self.commands.lookup(h.session,request_id)
+        key=digest({'arguments': args, 'portable': True} if portable else args);prior=self.commands.lookup(h.session,request_id)
         if prior is not None:
             if prior['digest']!=key:raise PoiseError('Handoff request reused with different content')
             if prior['state'] in ('released','resumed'):
@@ -75,7 +75,7 @@ class LocalHandoff:
         head=data['base'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         dirty=False if worktree_free else h._git(worktree,'rev-parse','HEAD^{tree}')!=tree
         msg=args['commit_message']
-        if dirty and recovery is None and wip_context is None and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
+        if dirty and not portable and recovery is None and wip_context is None and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
             raise PoiseError('WIP requires explicit valid repository commit message')
         if (not dirty or wip_context is not None) and msg is not None and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
             raise PoiseError('Invalid supplied handoff commit message')
@@ -103,6 +103,7 @@ class LocalHandoff:
         plan={'reason':args['reason'],'tree':tree,'head_at_start':head,'directory':str(directory),
               'verified':verified,'commit_message':msg,'preserved_artifacts':list(dict.fromkeys(preserved)),
               'artifact_mapping':mapping}
+        if portable: plan['portable'] = True
         if wip_context is not None:
             plan['wip_context'] = wip_context
             plan['wip_snapshot'] = (prior['plan']['wip_snapshot'] if prior is not None
@@ -122,7 +123,7 @@ class LocalHandoff:
             plan=prior['plan']
             if tree!=plan['tree'] or data['_version']!=prior['version']:
                 raise PoiseError('Preserved inputs changed during unfinished handoff')
-        if recovery is None and wip_context is None and not worktree_free and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']:
+        if not portable and recovery is None and wip_context is None and not worktree_free and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']:
             h._git(worktree,'add','--all')
             if h._git(worktree,'write-tree')!=plan['tree']:raise PoiseError('WIP index no longer matches captured state')
             actor={k:h.cfg['git'][v] for k,v in [('GIT_AUTHOR_NAME','author_name'),('GIT_COMMITTER_NAME','author_name'),
@@ -131,18 +132,18 @@ class LocalHandoff:
         sha=plan['head_at_start'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         if (not worktree_free and
                 (h._tree(worktree)!=plan['tree'] or
-                 (recovery is None and wip_context is None and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']) or
+                 (not portable and recovery is None and wip_context is None and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']) or
                  (recovery is not None and sha != plan['head_at_start']))):
             h.store.event(h.session,data['id'],'incident.handoff_tree_changed',{'expected_tree':plan['tree'],'commit':sha})
             raise PoiseError('Commit hook changed WIP tree; claim retained')
         directory=Path(plan['directory']);bundle=descendant(directory,self.config['bundle'])
         # Bundle is an offline copy, not a push and not proof of task completion.
-        if not worktree_free and not bundle.exists():
+        if not portable and not worktree_free and not bundle.exists():
             temp=bundle.with_name(bundle.name+'.pending')
             if temp.exists():temp.unlink()
             h._git(worktree,'bundle','create',str(temp),'HEAD')
             h._git(worktree,'bundle','verify',str(temp));os.replace(temp,bundle)
-        if not worktree_free:
+        if not portable and not worktree_free:
             heads=h._git(worktree,'bundle','list-heads',str(bundle))
             if not any(line.split()[0]==sha for line in heads.splitlines()):raise PoiseError('Bundle does not preserve current commit')
         receipt_path=descendant(directory,self.config['receipt'])
@@ -151,15 +152,15 @@ class LocalHandoff:
                  'task_status':data['status'],
                  'verified':plan['verified'],'commit':sha,'tree':plan['tree'],
                  'worktree':None if worktree_free else str(worktree),
-                 'receipt_path':str(receipt_path),'bundle_path':None if worktree_free else str(bundle),
-                 'bundle_digest':None if worktree_free else file_digest(bundle),
+                 'receipt_path':str(receipt_path),'bundle_path':None if worktree_free or portable else str(bundle),
+                 'bundle_digest':None if worktree_free or portable else file_digest(bundle),
                  'preserved_artifacts':plan['preserved_artifacts'],'artifact_mapping':plan['artifact_mapping'],
                  'reason':plan['reason'],'replayed':False,'transfer_scope':'same_store_local_resume'}
         if 'wip_snapshot' in plan:
             receipt['wip_snapshot'] = plan['wip_snapshot']
         atomic_write(receipt_path,(encoded(receipt)+'\n').encode(),self.config['file_mode'])
         owned=[*plan['preserved_artifacts'],str(receipt_path)]
-        if not worktree_free:owned.append(str(bundle))
+        if not worktree_free and not portable:owned.append(str(bundle))
         if 'wip_snapshot' in plan:owned.append(plan['wip_snapshot']['path'])
         h.register_artifact_paths(owned,data)
         h.result_views.finish()
@@ -177,6 +178,22 @@ class LocalHandoff:
         h=self.h;record=self.commands.latest(data['id'])
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
+        delivery = h.transfer_tools.port.repo.delivery_for_task(data['id'])
+        if delivery is not None and not delivery['verification_opened']:
+            manifest = delivery['manifest']
+            spec = manifest['workspaces'][data['id']]
+            if spec is not None:
+                tree = Path(data['worktree'])
+                if (h._git(tree, 'rev-parse', 'HEAD') != spec['commit'] or h._tree(tree) != spec['tree']
+                        or h._git(tree, 'symbolic-ref', '--short', 'HEAD') != spec['branch']):
+                    raise PoiseError('Delivered worktree changed before resume')
+            for item in manifest['files']:
+                if item.get('task_id') != data['id'] or 'placement' not in item:
+                    continue
+                path = Path(delivery['binding']['locations'][item['placement']])
+                if path.is_symlink() or not path.is_file() or file_digest(path) != item['digest']:
+                    raise PoiseError('Delivered current Task material missing or changed')
+            return record
         if 'wip_snapshot' in receipt:
             if self._validate_wip_snapshot(Path(data['worktree']), receipt['wip_snapshot'])['task_id'] != data['id']:
                 raise PoiseError('WIP snapshot Task identity changed before resume')
@@ -197,7 +214,7 @@ class LocalHandoff:
             if (h._tree(worktree)!=receipt['tree'] or h._git(worktree,'rev-parse','HEAD')!=receipt['commit']
                 or h._git(worktree,'symbolic-ref','--short','HEAD')!=data['branch']):
                 raise PoiseError('Worktree changed since handoff; do not adopt external changes silently')
-            if not Path(receipt['bundle_path']).is_file() or file_digest(Path(receipt['bundle_path']))!=receipt['bundle_digest']:
+            if not record['plan'].get('portable') and (not Path(receipt['bundle_path']).is_file() or file_digest(Path(receipt['bundle_path']))!=receipt['bundle_digest']):
                 raise PoiseError('Preserved source bundle missing or changed')
         return record
 

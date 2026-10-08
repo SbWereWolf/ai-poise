@@ -1197,10 +1197,10 @@ class TaskCommands:
                 uow.tasks.save(change, task.state.version)
             return uow.tasks.remember_replay_result(task_id, actor, request_id, identity, result)
 
-    def prepare_replay_visit(self, task_id, actor, request_id, source):
+    def prepare_replay_visit(self, task_id, actor, request_id, source, commit, tree):
         candidate = {'request_id': request_id, 'stage': source['stage'],
                      'visit_id': source['visit_id'], 'source_digest': source['digest'],
-                     'commit': source['commit'], 'tree': source['tree'],
+                     'commit': commit, 'tree': tree,
                      'outcome': source['report']['stage_outcome'],
                      'stage_work': source['envelope']['stage_work'],
                      'evidence_work': source['envelope']['evidence_work'],
@@ -1259,7 +1259,9 @@ class TaskCommands:
                 if candidate['request_id'] != replay_request or task.state.status != TaskStatus.VERIFIED:
                     raise DomainError('Historical transition requires its verified candidate')
                 source = cursor['sources'][task.stage.stage_id]
-                if candidate['commit'] != source['commit'] or entry_tree != source['tree']:
+                if (candidate['commit'] != cursor['start_commit'] or candidate['tree'] != cursor['current_tree']
+                        or entry_tree != cursor['current_tree'] or candidate['visit_id'] != source['visit_id']
+                        or candidate['source_digest'] != source['digest']):
                     raise DomainError('Historical transition source drift')
                 following = task.route.node(task.stage.stage_id).target(task.progress.outcome)
                 if following is not None and task.route.node(following).handler.value != 'publish':

@@ -58,7 +58,16 @@ class TaskQueries:
                 "ON s.seq=t.current_submission_id AND s.task_id=t.id WHERE t.id=?",
                 (task_id,),
             ).fetchone()
-            if row is None:return None
+            if row is None:
+                from .transfers import SqliteTransferContext
+                delivery = SqliteTransferContext(db).delivery_for_task(task_id)
+                if delivery is None or not delivery['verification_opened']:
+                    return None
+                current = self.record_in(db, task_id)
+                stage = current['process']['stages'][current['stage_index']]['id']
+                row = db.execute('SELECT seq,data FROM submissions WHERE task_id=? AND stage=? AND iteration=? '
+                                 'ORDER BY seq DESC LIMIT 1', (task_id, stage, current['iteration'])).fetchone()
+                if row is None: return None
             envelope=json.loads(row['data'])
             envelope['sections']={r['section_id']:r['content'] for r in db.execute(
                 "SELECT section_id,content FROM section_layers WHERE task_id=? AND submission_id=?",(task_id,row['seq']))}

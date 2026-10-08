@@ -411,20 +411,27 @@ class RuntimeResultIntegration:
         for method in self._select_checks(record):
             self.h.retention.bind_inputs(record, method)
 
-    def _complete_candidate_proof(self, record, run):
-        methods = self._select_checks(record)
-        if not methods:
-            return True
+    @staticmethod
+    def _passed_batch_ids(run):
         latest_batch = next(
             (entry.get("details") for entry in reversed(run.history)
              if entry.get("event") == "checks_passed"), None,
         )
         if not isinstance(latest_batch, dict):
-            return False
+            return None
         batch_ids = latest_batch.get("check_ids")
-        if (not isinstance(batch_ids, list) or len(batch_ids) != len(methods)
+        if (not isinstance(batch_ids, list)
                 or any(not isinstance(check_id, str) for check_id in batch_ids)
                 or len(batch_ids) != len(set(batch_ids))):
+            return None
+        return batch_ids
+
+    def _complete_candidate_proof(self, record, run):
+        methods = self._select_checks(record)
+        if not methods:
+            return True
+        batch_ids = self._passed_batch_ids(run)
+        if batch_ids is None or len(batch_ids) != len(methods):
             return False
         worktree, head = self._checked_workspace(run)
         tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
@@ -1137,8 +1144,9 @@ class RuntimeResultIntegration:
 
     def _result(self, record, run, replayed=False):
         result = run.result(replayed=replayed)
-        passed_batch = next((event['details']['check_ids'] for event in reversed(run.history)
-                             if event.get('event') == 'checks_passed'), [])
+        passed_batch = self._passed_batch_ids(run)
+        if passed_batch is None:
+            return result
         current = [check for check in run.checks
                    if check['id'] in passed_batch and check.get('integration_head') == run.integration_head
                    and check.get('passed') is True and 'acceptance_manifest' in check]

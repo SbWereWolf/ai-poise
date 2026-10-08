@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from ..modules.foundation.errors import PoiseError
+from ..application.artifact_materials import ArtifactMaterialResolver
 from ..application.check_attempts import is_check_attempt
 from ..artifacts import check_counts
 from .artifact_factory import FileArtifactFactory
@@ -13,6 +14,13 @@ from ..common import descendant
 class DuplicateReuseWorkspace:
     def __init__(self, runtime):
         self.h = runtime
+
+    def material_scope(self):
+        return self.h.delivery_effects.locked()
+
+    def admit_material(self, task_id, source_task_id):
+        self.h.delivery_tools.material_admission(task_id, 'reuse')
+        self.h.delivery_tools.material_admission(source_task_id, 'reuse_source')
 
     def _git(self, cwd, *args):
         return self.h._git(cwd, *args)
@@ -129,8 +137,9 @@ class DuplicateReuseWorkspace:
         roots, owners = self._artifact_locations(task_id, context['sprint_id'])
         source_roots, source_owners = self._artifact_locations(source['task_id'], source['sprint_id'])
         source_roots = {s: str(source_roots[s]) for s in {a['scope'] for a in source['records']}}
-        planned = self._artifact_factory(roots).plan_registered_copy(
-            source['records'], source_roots, source_owners, owners)
+        planned = self._artifact_factory(roots).plan_material_copy(
+            source['records'], source_roots, source_owners, owners,
+            materials=ArtifactMaterialResolver(self.h.delivery_tools).resolve(source['task_id'],source['records']))
         existing = self.h._candidate_artifacts(
             {'id': task_id, 'sprint_id': context['sprint_id']}, [], roots)
         merged = {a['id']: a for a in existing}
@@ -151,10 +160,12 @@ class DuplicateReuseWorkspace:
         source_roots = {s: str(source_roots[s]) for s in {a['scope'] for a in source['records']}}
         # Recheck the immutable plan before any new file is published on retry.
         factory = self._artifact_factory(roots)
-        planned = factory.plan_registered_copy(source['records'], source_roots, source_owners, owners)
+        planned = factory.plan_material_copy(source['records'], source_roots, source_owners, owners,
+            materials=ArtifactMaterialResolver(self.h.delivery_tools).resolve(source['task_id'],source['records']))
         if planned != candidate['artifact_delivery']:
             raise PoiseError('Artifact reuse delivery plan changed')
-        published = (factory.copy_registered(source['records'], source_roots, source_owners, owners)
+        published = (factory.copy_materials(source['records'], source_roots, source_owners, owners,
+            materials=ArtifactMaterialResolver(self.h.delivery_tools).resolve(source['task_id'],source['records']))
                      if planned else [])
         if published != planned:
             raise PoiseError('Artifact reuse publication differs from its candidate')
@@ -188,6 +199,9 @@ class DuplicateReuseWorkspace:
         observed = self._observe(data, candidate['source_commit'])
         if any(observed[k] != candidate[k] for k in ('head', 'verified_tree', 'base_ref', 'worktree')):
             raise PoiseError('Reuse workspace changed after local verification')
+        delivery = self.plan_artifacts(task_id, data, candidate['artifact_source'])
+        if delivery != candidate['artifact_delivery']:
+            raise PoiseError('Reuse permanent artifact provenance changed')
         self.validate_artifacts(task_id)
         checks = self._checks(methods)
         tree = observed['verified_tree']

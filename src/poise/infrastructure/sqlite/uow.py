@@ -7,6 +7,7 @@ from .ownership import SqliteOwnershipRepository
 from .accounting import SqliteAccountingCycles
 from .work_packets import SqliteWorkPacketRepository
 from .artifacts import SqliteArtifactRepository
+from .task_delivery import SqliteTaskDeliveryRepository
 
 
 class SqliteUnitOfWork:
@@ -28,6 +29,7 @@ class SqliteUnitOfWork:
         self.accounting_cycles = SqliteAccountingCycles(connection)
         self.work_packets = SqliteWorkPacketRepository(connection)
         self.artifacts = SqliteArtifactRepository(connection)
+        self.task_delivery = SqliteTaskDeliveryRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

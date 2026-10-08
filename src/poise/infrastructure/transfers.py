@@ -8,13 +8,14 @@ import stat
 import uuid
 import zipfile
 from ..common import PoiseError, descendant, digest, encoded, file_digest, read_json, worktree_root
-from ..modules.transfers.domain import TRANSFER_FORMAT
+from ..modules.transfers.domain import TRANSFER_FORMAT, ExportPreparation
 from .sqlite.transfers import (SqliteTransferRepository,completed_external_execution,
                                snapshot_fingerprint)
 from .sqlite.transfer_records import relocate_path, relocate_receipt
 from .sqlite.database import SCHEMA_VERSION
 from .goal_config import atomic_write
 from .locking import exclusive_lock
+from .file_publication import BinaryFilePublisher
 from .task_paths import sprint_root, task_root
 
 
@@ -57,7 +58,7 @@ class RuntimeTransfers:
                 raise PoiseError('Saved transfer package missing or changed; no false successful replay')
             return {**receipt,'replayed':True}
         selected=args['task_ids']
-        if args['handoff'] is not None:
+        if old is None and args['handoff'] is not None:
             current=h.current_task()
             if current is None:raise PoiseError('No current task for combined transfer/handoff')
             if selected is not None and current['id'] not in selected:
@@ -66,10 +67,29 @@ class RuntimeTransfers:
                 raise PoiseError('Current handoff is outside selected sprint')
             if selected is None and args['sprint_id'] is None:selected=[current['id']]
             h.handoff(args['handoff'])
+        if old is not None and old['phase'] == 'prepared':
+            prepared = ExportPreparation.parse(old)
+        else:
+            with h.delivery_effects.locked():
+                prepared = self._prepare_export(args, selected, old)
+        return self._publish_prepared(args, prepared)
+
+    def _prepare_export(self, args, selected, old):
+        h, c, identity = self.h, self.policy, digest(args)
         h.result_views.finish()
         tables=self.repo.capture(selected,args['sprint_id'],h.cfg['project'],c['max_tasks'])
         task_ids=[r['id'] for r in tables['tasks']];sprint_ids=[r['id'] for r in tables['sprints']]
+        preparation = ExportPreparation.parse({'phase': 'preparing', 'task_ids': task_ids,
+            'sprint_ids': sprint_ids, 'fingerprint': snapshot_fingerprint(tables)})
+        if old is not None and ExportPreparation.parse(old).data != preparation.data:
+            raise PoiseError('Original export inputs changed before preparation completed')
+        for task_id in task_ids:
+            h.delivery_tools.material_admission(task_id, 'export')
+        if old is None:
+            self.repo.remember_export(h.session, args['request_id'], identity,
+                                      preparation.data, expected_phase=None)
         directory=self._request_dir(args);stage=directory/'preparing'
+        BinaryFilePublisher.without_links(stage, 'Export staging')
         if stage.exists():shutil.rmtree(stage)
         stage.mkdir(parents=True)
         task_rows = {row['id']: row for row in tables['tasks']}
@@ -95,6 +115,7 @@ class RuntimeTransfers:
             if target!=source:
                 with source.open('rb') as incoming,target.open('wb') as out:
                     while chunk:=incoming.read(c['chunk_bytes']):out.write(chunk)
+                    out.flush();os.fsync(out.fileno())
                 os.chmod(target,c['file_mode'])
             sha=file_digest(target)
             if source.stat().st_size!=size or file_digest(source)!=sha:raise PoiseError('Source changed while packaging')
@@ -161,18 +182,103 @@ class RuntimeTransfers:
                   'files':files,'database':c['database'], 'state_fingerprint':stable(tables)}
         manifest_path=descendant(stage,c['manifest'])
         atomic_write(manifest_path,(encoded(manifest)+'\n').encode(),c['file_mode'])
-        package=descendant(directory,c['archive']);package.parent.mkdir(parents=True,exist_ok=True)
-        pending=package.with_name(package.name+'.pending')
-        with zipfile.ZipFile(pending,'w',compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.write(manifest_path,c['manifest'])
-            for item in files:archive.write(descendant(stage,item['path']),item['path'])
-        os.chmod(pending,c['file_mode']);os.replace(pending,package)
-        receipt={'status':'exported','package_path':str(package),'package_digest':file_digest(package),
-                 'task_ids':task_ids,'sprint_ids':sprint_ids,'replayed':False,
-                 'delivery':'local_package_only','next_work':'Copy this package; import with explicit destination project configuration'}
-        self.repo.remember(h.session,args['request_id'],identity,{'phase':'complete','receipt':receipt})
-        h.store.event(h.session,None,'transfer.exported',receipt)
-        shutil.rmtree(stage);h._cleanup_runtime()
+        # Persist a sealed, validated snapshot before any archive effect.
+        prepared = preparation.seal(str(manifest_path), file_digest(manifest_path))
+        self._validate_prepared(args, prepared)
+        for item in [manifest_path, *(descendant(stage, f['path']) for f in files)]:
+            fd = os.open(item, os.O_RDONLY | os.O_NOFOLLOW)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            BinaryFilePublisher.sync_parent(item)
+        BinaryFilePublisher.sync_parent(stage)
+        self.repo.remember_export(h.session, args['request_id'], identity,
+                                  prepared.data, expected_phase='preparing')
+        return prepared
+
+    def _validate_manifest(self, manifest):
+        c = self.policy
+        expected = {'format', 'schema_version', 'project', 'execution_policy', 'source_config_hash',
+                    'task_ids', 'sprint_ids', 'owners', 'workspaces', 'files', 'database', 'state_fingerprint'}
+        if not isinstance(manifest, dict) or set(manifest) != expected:
+            raise PoiseError('Incomplete transfer manifest')
+        if manifest['format'] != TRANSFER_FORMAT or manifest['schema_version'] != SCHEMA_VERSION:
+            raise PoiseError('Incompatible transfer schema; no migration')
+        if manifest['project'] != self.h.cfg['project'] or manifest['execution_policy'] != execution_policy(self.h.cfg):
+            raise PoiseError('Destination project execution policy differs; no implicit changes')
+        if manifest['database'] != c['database']:
+            raise PoiseError('Explicit snapshot filename differs')
+        inventory = {x['path']: x for x in manifest['files']}
+        if len(inventory) != len(manifest['files']) or c['manifest'] in inventory:
+            raise PoiseError('Duplicate transfer file identity')
+        total = 0
+        if len(inventory) > c['max_files']:
+            raise PoiseError('Transfer entry count invalid')
+        for name, item in inventory.items():
+            relative = PurePosixPath(name)
+            if relative.is_absolute() or '..' in relative.parts or str(relative) != name or '\\' in name:
+                raise PoiseError('Unsafe transfer file path')
+            if type(item['size']) is not int or not 0 <= item['size'] <= c['max_file_bytes']:
+                raise PoiseError('Transfer file exceeds configured limit')
+            total += item['size']
+        if total > c['max_total_bytes']:
+            raise PoiseError('Transfer exceeds configured byte limit')
+        return inventory
+
+    def _validate_prepared(self, args, prepared):
+        data, c = prepared.data, self.policy
+        stage = self._request_dir(args) / 'preparing'
+        manifest_path = descendant(stage, c['manifest'])
+        if data['phase'] != 'prepared' or data['manifest']['path'] != str(manifest_path):
+            raise PoiseError('Prepared export staging owner changed')
+        if BinaryFilePublisher.read(manifest_path, 'Prepared export manifest') != data['manifest']['digest']:
+            raise PoiseError('Prepared export manifest integrity mismatch')
+        manifest = read_json(manifest_path)
+        inventory = self._validate_manifest(manifest)
+        if (manifest['task_ids'], manifest['sprint_ids'], manifest['state_fingerprint']) != (
+                data['task_ids'], data['sprint_ids'], data['fingerprint']):
+            raise PoiseError('Prepared export selection changed')
+        for name, item in inventory.items():
+            path = descendant(stage, name)
+            if BinaryFilePublisher.read(path, 'Prepared export file') != item['digest'] or path.stat().st_size != item['size']:
+                raise PoiseError('Prepared export file integrity mismatch')
+        tables = self.repo.read_snapshot(descendant(stage, c['database']))
+        if snapshot_fingerprint(tables) != data['fingerprint']:
+            raise PoiseError('Prepared export snapshot integrity mismatch')
+        if sorted(row['id'] for row in tables['tasks']) != sorted(data['task_ids']):
+            raise PoiseError('Prepared export snapshot owner changed')
+        for workspace in manifest['workspaces'].values():
+            if workspace is not None:
+                self.h._git(Path(self.h.cfg['git']['repository']), 'bundle', 'verify',
+                            str(descendant(stage, workspace['bundle'])))
+        return manifest
+
+    def _publish_prepared(self, args, prepared):
+        h, c, identity = self.h, self.policy, digest(args)
+        manifest = self._validate_prepared(args, prepared)
+        directory = self._request_dir(args)
+        stage = directory / 'preparing'
+        manifest_path = descendant(stage, c['manifest'])
+        package = descendant(directory, c['archive'])
+        pending = package.with_name(package.name + '.pending')
+        BinaryFilePublisher.without_links(pending, 'Export publication')
+        with zipfile.ZipFile(pending, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.write(manifest_path, c['manifest'])
+            for item in manifest['files']:
+                archive.write(descendant(stage, item['path']), item['path'])
+        self._validate_prepared(args, prepared)
+        BinaryFilePublisher.publish(pending, package, file_digest(pending), c['file_mode'])
+        pending.unlink()
+        receipt = {'status': 'exported', 'package_path': str(package), 'package_digest': file_digest(package),
+                   'task_ids': prepared.data['task_ids'], 'sprint_ids': prepared.data['sprint_ids'],
+                   'replayed': False, 'delivery': 'local_package_only',
+                   'next_work': 'Copy this package; import with explicit destination project configuration'}
+        self.repo.remember_export(h.session, args['request_id'], identity,
+                                  {'phase': 'complete', 'receipt': receipt}, expected_phase='prepared')
+        h.store.event(h.session, None, 'transfer.exported', receipt)
+        shutil.rmtree(stage)
+        h._cleanup_runtime()
         return receipt
 
     def restore(self,args):
@@ -199,18 +305,9 @@ class RuntimeTransfers:
                 if total>c['max_total_bytes']:raise PoiseError('Transfer exceeds configured byte limit')
                 if c['manifest'] not in names:raise PoiseError('Missing configured transfer manifest')
                 manifest=json.loads(archive.read(c['manifest']))
-                expected={'format','schema_version','project','execution_policy','source_config_hash',
-                          'task_ids','sprint_ids','owners','workspaces','files','database','state_fingerprint'}
-                if not isinstance(manifest,dict) or set(manifest)!=expected:
-                    raise PoiseError('Incomplete transfer manifest')
-                if manifest['format']!=TRANSFER_FORMAT or manifest['schema_version']!=SCHEMA_VERSION:
-                    raise PoiseError('Incompatible transfer schema; no migration')
-                if manifest['project']!=self.h.cfg['project'] or manifest['execution_policy']!=execution_policy(self.h.cfg):
-                    raise PoiseError('Destination project execution policy differs; no implicit changes')
-                inventory={x['path']:x for x in manifest['files']}
-                if len(inventory)!=len(manifest['files']) or set(names)!=set(inventory)|{c['manifest']}:
+                inventory = self._validate_manifest(manifest)
+                if set(names) != set(inventory) | {c['manifest']}:
                     raise PoiseError('Missing, extra or duplicate packaged files')
-                if manifest['database']!=c['database']:raise PoiseError('Explicit snapshot filename differs')
                 for entry in entries:
                     destination=descendant(target,entry.filename);destination.parent.mkdir(parents=True,exist_ok=True)
                     count=0

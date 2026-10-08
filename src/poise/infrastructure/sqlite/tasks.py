@@ -62,6 +62,15 @@ class SqliteTaskRepository:
     def __init__(self, connection):
         self.db = connection
 
+    def pending_artifact_consumers(self, source_id):
+        rows = self.db.execute("SELECT t.id,w.data FROM tasks t JOIN task_workflows w ON w.task_id=t.id WHERE t.id!=? AND t.status NOT IN ('completed','cancelled') AND json_extract(w.data,'$.duplicate_reuse') IS NOT NULL", (source_id,))
+        for row in rows:
+            proof = json.loads(row['data'])['duplicate_reuse']
+            candidate = proof['candidate']
+            if candidate['source_task_id'] == source_id and candidate['artifact_source']['records'] and not proof['verified']:
+                return True
+        return False
+
     def read_duplicate_family(self, task_id):
         from .duplicate_tasks import read_duplicate_family
         # Library use outside an existing UoW still gets one read snapshot.
@@ -262,7 +271,7 @@ class SqliteTaskRepository:
                 continue
             if data.get("digest") != digest:
                 raise PoiseError("Request ID already used with another Task action intent")
-            return deepcopy(data["result"])
+            return {**deepcopy(data["result"]), "replayed": True}
         return None
 
     def stage_contract_receipt(self, task_id: str, request_id: str, intent: dict):

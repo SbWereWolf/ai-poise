@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded,digest
-from ...modules.transfers.domain import validate_saved_work
+from ...modules.transfers.domain import validate_saved_work, ExportPreparation
 from .database import SCHEMA,SCHEMA_VERSION
 from .tasks import SqliteTaskRepository
 from .sprints import SqliteSprintRepository
@@ -31,6 +31,34 @@ def completed_external_execution(pending):
 
 class SqliteTransferRepository:
     def __init__(self,database):self.database=database
+
+    def pending_consumers(self, task_id):
+        return self._consumers(task_id, ('preparing', 'prepared'))
+
+    def preparing_consumers(self, task_id):
+        return self._consumers(task_id, ('preparing',))
+
+    def _consumers(self, task_id, phases):
+        with self.database.transaction() as db:
+            rows = db.execute("SELECT data FROM transfer_requests WHERE json_extract(data,'$.phase') IN (" +
+                              ','.join('?' for _ in phases) + ")", phases)
+            # Import preparation has a different contract and is not an export consumer.
+            return any('task_ids' in data and task_id in ExportPreparation.parse(data).data['task_ids']
+                       for data in (json.loads(row[0]) for row in rows))
+
+    def remember_export(self, actor, rid, identity, data, expected_phase):
+        if data['phase'] != 'complete':
+            ExportPreparation.parse(data)
+        with self.database.transaction() as db:
+            prior = db.execute('SELECT digest,data FROM transfer_requests WHERE actor=? AND request_id=?',
+                               (actor, rid)).fetchone()
+            if prior is not None and prior['digest'] != identity:
+                raise PoiseError('Transfer request identity conflict')
+            phase = None if prior is None else json.loads(prior['data'])['phase']
+            if phase != expected_phase:
+                raise PoiseError('Export preparation phase changed concurrently')
+            db.execute('INSERT INTO transfer_requests VALUES(?,?,?,?) ON CONFLICT(actor,request_id) DO UPDATE SET data=excluded.data',
+                       (actor, rid, identity, encoded(data)))
 
     def request(self,actor,rid,identity):
         with self.database.transaction() as db:

@@ -193,6 +193,31 @@ class Poise:
         from .application.task_cleanup import TaskResourceCleanup
         from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup
         self.cleanup_tools=TaskResourceCleanup(RuntimeTaskResourceCleanup(self))
+        from .application.task_delivery import TaskDeliveryCommands
+        from .infrastructure.task_delivery import RuntimeTaskDelivery
+        self.delivery_effects=RuntimeTaskDelivery(self)
+        self.delivery_tools=TaskDeliveryCommands(lambda: self.store.unit_of_work(),self.delivery_effects,self.session)
+
+    def retired_receipt(self,receipt):
+        task_id=self.task_queries.receipt_task(receipt['id'])
+        return task_id is not None and self.delivery_tools.unavailable(task_id)
+
+    def delivery_after(self,result,operation):
+        task_id=result['task']
+        state=self.delivery_tools.state(task_id)
+        if state is None:
+            return result
+        delivery=self.delivery_tools.settle({'action':'settle','task_id':task_id,
+                                             'request_id':operation+'-terminal-delivery'})
+        if operation in ('cleanup','integrate') and delivery['status']!='delivery_complete':
+            return {**result,'status':'cleanup_blocked','delivery':delivery}
+        return {**result,'delivery':delivery}
+
+    def require_closed_drafts(self,task_id):
+        with self.store.unit_of_work() as uow:
+            if any(row['state']!='finalized' for row in uow.artifacts.drafts(task_id).values()):
+                raise PoiseError('Open artifact draft must be reviewed and finalized before terminal transition')
+
 
     def _result_event(self,event,payload):
         current=self.current_task()
@@ -988,6 +1013,8 @@ class Poise:
 
     def _terminal_context(self, data: dict) -> dict:
         snapshot = self.task_queries.terminal_snapshot(data['id'])
+        if self.delivery_tools.unavailable(data['id']):
+            snapshot['evidence']['records']=[{**r,'availability':'retired'} for r in snapshot['evidence']['records']]
         sid = snapshot['metadata'].get('sprint_id')
         return {**snapshot, 'session': self.session,
                 'goal': snapshot['metadata'].get('goal'),
@@ -1071,6 +1098,16 @@ class Poise:
 
     @duplicate_admission
     def bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
+        selected_id = task.get('id') if isinstance(task, dict) else None
+        selected = self.task_queries.record(selected_id) if selected_id is not None else self.store.current(self.session)
+        if selected is not None and is_terminal_task_status(selected['status']):
+            return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+        with self.delivery_effects.locked():
+            if selected is not None:
+                self.delivery_tools.material_admission(selected['id'], 'bootstrap')
+            return self._bootstrap(task, decision, feedback, rework_stage, force_duplicate_start=force_duplicate_start)
+
+    def _bootstrap(self, task: dict | None = None, decision: str | None = None, feedback: str | None = None, rework_stage: str | None = None, *, force_duplicate_start: bool = False) -> dict:
         if type(force_duplicate_start) is not bool:
             raise PoiseError('force_duplicate_start must be boolean')
         if rework_stage is not None and decision != 'rework':
@@ -1250,6 +1287,7 @@ class Poise:
 
     def accept(self) -> dict:
         data = self._task()
+        self.require_closed_drafts(data['id'])
         if data.get('duplicate_reuse') is not None:
             from .application.duplicate_reuse import DuplicateReuseCommands
             from .infrastructure.duplicate_reuse import DuplicateReuseWorkspace
@@ -1866,7 +1904,8 @@ class Poise:
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
                                all(contains(Path(result['stderr']),t) for t in rule['stderr_contains'])
                                for rule in method['observation_rules']))
-            receipt={**result,'commit':invocation['commit'],
+            receipt={**result,'stage':stage['id'],'iteration':data['iteration'],
+                     'commit':invocation['commit'],
                      'observed_commit_after':observed_commit,'source_unchanged':source_unchanged,
                      'attempt_id':attempt['attempt_id'],
                      'submission_digest':attempt['submission_digest'], 'execution_key':attempt['execution_key'],
@@ -1930,6 +1969,7 @@ class Poise:
     def cancel(self, reason: str) -> dict:
         if not isinstance(reason,str) or not reason.strip(): raise PoiseError('Нужна инструкция пользователя об отмене')
         data = self._task()
+        self.require_closed_drafts(data['id'])
         if data['pending'] is not None: raise PoiseError('Сначала установить исход незавершённой операции')
         if data['status'] == 'newborn':
             self.task_commands.cancel_newborn(data['id'], self.session, reason)

@@ -21,6 +21,7 @@ from ...modules.inspection.domain import FeedbackBook
 from ...modules.evidence.domain import EvidenceBook
 from ...modules.foundation.errors import PoiseError, VersionConflict
 from ...modules.tasks.newborn import NewbornTask
+from ...modules.tasks.lifecycle import TaskLifecycle, invalid_audit
 
 
 def encode(value: object) -> str:
@@ -513,6 +514,35 @@ class SqliteTaskRepository:
             'sprint_id':newborn.sprint_id,
             **deepcopy(newborn.draft),
         }
+
+    def action_lifecycle(self, task_id: str) -> TaskLifecycle:
+        row = self.db.execute(
+            "SELECT version,metadata FROM tasks WHERE id=?", (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError(f"Задача не найдена: {task_id}")
+        try:
+            metadata = json.loads(row[1])
+        except (ValueError, TypeError) as exc:
+            raise invalid_audit("Task metadata must contain valid JSON") from exc
+        if not isinstance(metadata, dict):
+            raise invalid_audit("Task metadata must be an object")
+        restart_versions = []
+        for event in self.db.execute(
+            "SELECT version,data FROM task_events WHERE task_id=? ORDER BY seq",
+            (task_id,),
+        ):
+            try:
+                data = json.loads(event[1])
+            except (ValueError, TypeError) as exc:
+                raise invalid_audit("Task event must contain valid JSON") from exc
+            if not isinstance(data, dict):
+                raise invalid_audit("Task event must be an object")
+            if data.get("event") == "restarted_newborn":
+                restart_versions.append(event[0])
+        return TaskLifecycle.from_audit(
+            row[0], metadata.get("restart_history", []), restart_versions
+        )
 
     def restart_context(self, task_id: str) -> dict:
         row = self.db.execute(

@@ -10,6 +10,8 @@ Use for creating or revising one authorized Task draft. Use
 [exec-task](../exec-task/SKILL.md) for execution. Read the canonical
 [formulation
 contract](../../../docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение).
+Apply the canonical [product goal and requirements
+rule](../../../docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
 
 ## Inputs
 
@@ -21,18 +23,17 @@ process, routing and supported public Task schema.
 
 1. Inspect the existing code through applicable semantic tools. Do not implement a
    prototype to approve a formulation. Separate observed facts from assumptions.
-2. Formulate one stable result-oriented goal, initial DoR/DoD, known requirements,
-   exclusions and unknowns. Explain logical consistency and bounded feasibility;
-   structural validation alone does not prove feasibility.
-   Apply the [product goal and requirements rule](../../../docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту):
-   a development goal states an application capability; each requirement aligns
-   with it and states observable product behaviour across the declared supported
-   scenarios and configurations. Requirements define what to verify, not a coding
-   plan. Keep incidents, reproduction paths, branches and installation facts in
-   the rationale; keep architecture constraints and implementation planning in
-   their respective content. Do not substitute maintenance of one installation
-   for product development. Write human-facing AI poise goals, requirements and
-   acceptance criteria in Russian, including within managed Task artifacts.
+2. Formulate one stable application-capability goal, initial DoR/DoD and observable
+   product requirements across the supported scenarios and configurations. Keep
+   incident history and concrete installation facts in the factual basis,
+   architectural obligations in constraints, and implementation choices in their
+   execution stages. Use the selected Task schema, not invented rationale fields.
+   Combine related checks of one behavior without dropping obligations or imposing
+   a fixed requirement count. Record exclusions and unknowns. Explain logical
+   consistency and bounded feasibility; structural validation alone does not prove
+   feasibility or product formulation quality.
+   Write human-facing AI poise goals, requirements and acceptance criteria in
+   Russian, including within managed Task artifacts.
 3. Do not predict future class names, test names or commands as readiness gates.
    Supply the complete initial checks object explicitly; an empty object is valid
    for a development Task. Concrete test and code design belong to execution.

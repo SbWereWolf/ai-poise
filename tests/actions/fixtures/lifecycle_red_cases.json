@@ -1,0 +1,234 @@
+[
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_restart_reentry_has_no_historical_current_action[different]",
+    "diagnostic": "Failed: LIFECYCLE_CURRENT_CONTEXT_IS_HISTORICAL"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_restart_reentry_has_no_historical_current_action[identical]",
+    "diagnostic": "Failed: LIFECYCLE_CURRENT_CONTEXT_IS_HISTORICAL"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_different_current_merge_plan_is_executable_after_public_restart",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_repeated_and_newborn_restarts_create_distinct_current_runs",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_current_exact_plan_stays_immutable_after_restart_and_reload",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_current_run_survives_handoff_reacquisition_and_exact_replay",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_current_lifecycle_keeps_explicit_failed_or_blocked_action_rework[failed]",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_current_lifecycle_keeps_explicit_failed_or_blocked_action_rework[blocked]",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_public_cli_after_restart_does_not_return_completed_historical_action[restarted]",
+    "diagnostic": "Failed: LIFECYCLE_CLI_SELECTED_HISTORICAL_ACTION"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_local_publication_after_restart_uses_current_inspected_candidate",
+    "diagnostic": "Failed: LIFECYCLE_LOCAL_PUBLICATION_SELECTED_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[ordinary]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[suffix]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[prefix]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[json]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[unicode]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[spaces]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[encoding]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_initial_and_restarted_stage_storage_are_disjoint_without_rewriting_history[nul]",
+    "diagnostic": "Failed: LIFECYCLE_STORAGE_SELECTED_INITIAL_ROW"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_old_equal_version_run_cannot_overwrite_current_lifecycle[different]",
+    "diagnostic": "Failed: LIFECYCLE_OBTAIN_SELECTED_HISTORICAL_PLAN"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_old_equal_version_run_cannot_overwrite_current_lifecycle[identical]",
+    "diagnostic": "Failed: STALE_EQUAL_VERSION_ACTION_BINDING_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_native_zero_boundary_is_real_and_is_not_initial_absence",
+    "diagnostic": "Failed: ZERO_RESTART_BOUNDARY_SELECTED_INITIAL_ACTION"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-null]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-true]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-false]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-zero-string]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-integer-string]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-text]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-negative]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[snapshot-fractional]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-null]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-true]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-false]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-zero-string]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-integer-string]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-text]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-negative]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_persisted_boundary_rejects_without_selection_or_writes[obtain-fractional]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[null-list]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[text-list]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[number-list]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[bool-list]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[object-list]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[null-record]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[text-record]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[number-record]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[bool-record]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[nested-list]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_malformed_persisted_history_is_rejected_before_action_read[missing-boundary]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_known_restart_cannot_silently_regain_initial_scope_when_history_is_missing[empty]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_known_restart_cannot_silently_regain_initial_scope_when_history_is_missing[absent]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_native_owner_contradictory_boundaries_are_rejected_without_mutation[duplicate]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_native_owner_contradictory_boundaries_are_rejected_without_mutation[decreasing]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_native_owner_contradictory_boundaries_are_rejected_without_mutation[future-version]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_invalid_boundary_public_prepare_rejects_before_current_effect",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_WRONG_REJECTION_REASON"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_retained_restarted_run_saves_after_ordinary_version_and_actor_changes[restarted]",
+    "diagnostic": "Failed: LIFECYCLE_POSITIVE_SAVE_SELECTED_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_interrupted_running_current_action_recovers_once_after_restart[restarted]",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_exact_version_and_nonempty_owner_event_contradictions_reject[equal-current-version]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  },
+  {
+    "nodeid": "tests/actions/test_lifecycle_storage.py::test_exact_version_and_nonempty_owner_event_contradictions_reject[retained-earlier-prefix]",
+    "diagnostic": "Failed: INVALID_LIFECYCLE_AUDIT_ACCEPTED"
+  }
+]

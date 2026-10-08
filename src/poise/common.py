@@ -116,8 +116,31 @@ from .modules.verification.domain import validate_method
 
 
 def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
-    root = path.resolve().parent
-    cfg = read_json(path)
+    return load_config_document(path, read_json(path), legacy_process_requirements)
+
+
+def validate_candidate_config(path: Path, final_root: Path) -> tuple[Path, dict, dict]:
+    """Validate staged bytes at their explicit final configuration coordinates."""
+    return _load_config_document(path, final_root, read_json(path), None)
+
+
+def _require_config_path(value, field, *, nonblank):
+    """Attribute malformed input before its existing placement owner resolves it."""
+    if (not isinstance(value, str) or not value or '\0' in value
+            or (nonblank and not value.strip())):
+        raise PoiseError(f'{field}: требуется непустой строковый путь без NUL')
+
+
+def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
+    """Validate one observed manifest through the canonical configuration contract."""
+    return _load_config_document(path, path.resolve().parent, cfg, legacy_process_requirements)
+
+
+def _load_config_document(path: Path, final_root: Path, cfg: dict,
+                          legacy_process_requirements: dict[str, bool] | None) -> tuple[Path, dict, dict]:
+    root = final_root.resolve()
+    material_root = path.resolve().parent
+    final_manifest = root / path.name
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
@@ -126,7 +149,8 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
         from .modules.tasks.planning import validate_planning
         settings = cfg['task_planning']
         exact_keys(settings, {'catalogue', 'restart_revision_policy'}, 'task_planning')
-        if not isinstance(settings['catalogue'], str) or not settings['catalogue'].strip():
+        if (not isinstance(settings['catalogue'], str) or not settings['catalogue'].strip()
+                or '\0' in settings['catalogue']):
             raise PoiseError('task_planning.catalogue requires an explicit path')
         validate_planning({'schema': 'task-planning-1', 'template': None,
                            'restart_revision_policy': settings['restart_revision_policy']})
@@ -155,6 +179,11 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
                   'git_index','runs','stdout','stderr','response'}
     requirements_paths = {'requirements_database', 'requirements_lock'}
     exact_keys(cfg['paths'], task_paths | requirements_paths, 'paths')
+    for key in sorted(task_paths | requirements_paths):
+        _require_config_path(
+            cfg['paths'][key], f'paths.{key}',
+            nonblank=key in {'state', 'database', 'lock', 'requirements_database', 'requirements_lock'},
+        )
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
     for key, value in cfg['limits'].items():
@@ -170,6 +199,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     for key in ('repository','base_ref','remote','branch_template','commit_pattern','author_name','author_email'):
         if not isinstance(cfg['git'][key],str) or not cfg['git'][key].strip():
             raise PoiseError(f'git.{key}: требуется непустая строка')
+    _require_config_path(cfg['git']['repository'], 'git.repository', nonblank=True)
     if not Path(cfg['git']['repository']).is_absolute():
         raise PoiseError('git.repository: требуется абсолютный путь')
     if type(cfg['git']['push_required']) is not bool:
@@ -182,7 +212,7 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     except (KeyError,ValueError,re.error) as exc:
         raise PoiseError(f'Некорректное правило Git: {exc}') from exc
     state = configured_root(root, cfg['paths']['state'])
-    if state.is_relative_to(path.resolve()) or path.resolve().is_relative_to(state):
+    if state.is_relative_to(final_manifest) or final_manifest.is_relative_to(state):
         raise PoiseError('Mutable state root overlaps the project manifest')
     for key in ('database','lock','runtime','standalone_tasks','sprints'):
         descendant(state, cfg['paths'][key])
@@ -197,8 +227,21 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     if len(set(requirements_storage + task_storage)) != 4:
         raise PoiseError('Requirements DB/lock должны быть отделены от Task DB/lock')
     codebase = Path(cfg['git']['repository']).resolve()
-    if any(path.is_relative_to(codebase) for path in requirements_storage):
-        raise PoiseError("Requirements storage must be outside the served codebase")
+    internal = tuple(path.relative_to(codebase).as_posix()
+                     for path in requirements_storage if path.is_relative_to(codebase))
+    if internal:
+        from .infrastructure.repository_tree import GitRepositoryTree
+        try:
+            facts = GitRepositoryTree(
+                codebase, cfg['limits']['git_seconds'], cfg['limits']['preview_chars'],
+            ).current_path_facts(internal)
+        except (OSError, PoiseError) as exc:
+            raise PoiseError(f'Requirements storage: не удалось проверить Git: {exc}') from exc
+        for name in internal:
+            if name in facts['tracked']:
+                raise PoiseError(f'Requirements storage: Git отслеживает путь в codebase: {name}')
+            if name not in facts['ignored']:
+                raise PoiseError(f'Requirements storage: Git не игнорирует путь в codebase: {name}')
     for index, left in enumerate(requirements_storage):
         for right in [*task_storage, *requirements_storage[index + 1:]]:
             try:
@@ -253,7 +296,9 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     OutputPolicy.parse(cfg['runtime_services']['output'])
     transfer=cfg['runtime_services']['handoff']
     exact_keys(transfer,{'directory','receipt','bundle','preserved_directory','file_mode'},'handoff config')
-    for key in ('directory','receipt','bundle','preserved_directory'):descendant(state,transfer[key])
+    for key in ('directory', 'receipt', 'bundle', 'preserved_directory'):
+        _require_config_path(transfer[key], f'runtime_services.handoff.{key}', nonblank=False)
+        descendant(state, transfer[key])
     if len({transfer['receipt'],transfer['bundle'],transfer['preserved_directory']})!=3:
         raise PoiseError('Handoff filenames must be distinct')
     if type(transfer['file_mode']) is not int or not 0<=transfer['file_mode']<=0o777:
@@ -269,10 +314,11 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     validate_config(cfg['batch'])
     processes = {}
     for kind, rel in cfg['processes'].items():
+        _require_config_path(rel, f'processes.{kind}', nonblank=False)
         process_path=descendant(root, rel)
         if state.is_relative_to(process_path) or process_path.is_relative_to(state):
             raise PoiseError('Mutable state root overlaps a process configuration')
-        process = read_json(process_path)
+        process = read_json(descendant(material_root, rel))
         from .modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS
         if (legacy_process_requirements is not None
                 and set(process) == PROCESS_FIELDS - {'worktree_required'}):

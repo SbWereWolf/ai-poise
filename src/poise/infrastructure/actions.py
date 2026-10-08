@@ -4,6 +4,7 @@ Only the current task worktree is changed. Long operations never hold a DB lock.
 A Git checkpoint is explicitly UNVERIFIED and never publishes the target branch.
 """
 from __future__ import annotations
+from ..modules.actions.domain import CommitMessagePolicy
 from pathlib import Path
 import json
 import os
@@ -46,9 +47,9 @@ class RuntimePlanActions:
                 raise PoiseError('Started plan is immutable; explicit rework is required')
             if plan.kind=='git_merge':
                 for source in plan.steps:
-                    if re.fullmatch(self.h.cfg['git']['commit_pattern'],source['checkpoint_message']) is None:
+                    if not CommitMessagePolicy(self.h.cfg['git']['commit_pattern']).matches(source['checkpoint_message']):
                         raise PoiseError('Checkpoint message does not follow repository rules')
-                if not re.fullmatch(self.h.cfg['git']['commit_pattern'],payload['commit_message']):
+                if not CommitMessagePolicy(self.h.cfg['git']['commit_pattern']).matches(payload['commit_message']):
                     raise PoiseError('Verified integration commit needs its explicit message before effects')
         elif kind=='publish':
             if isinstance(work,dict) and 'kind' in work:

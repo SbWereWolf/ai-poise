@@ -1,0 +1,42 @@
+[
+  {
+    "id": "malformed",
+    "text": "{",
+    "cause": "Неверный JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+    "id": "empty",
+    "text": "",
+    "cause": "Неверный JSON: Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+    "id": "duplicate-schema",
+    "text": "{\"schema\":\"project-preflight-1\",\"schema\":\"project-preflight-1\"}",
+    "cause": "Повтор поля JSON: schema"
+  },
+  {
+    "id": "nested-duplicate",
+    "text": "{\"nested\":{\"key\":1,\"key\":2}}",
+    "cause": "Повтор поля JSON: key"
+  },
+  {
+    "id": "nan",
+    "text": "{\"probe_repository\":NaN}",
+    "cause": "Недопустимое JSON-число: NaN"
+  },
+  {
+    "id": "infinity",
+    "text": "{\"probe_repository\":Infinity}",
+    "cause": "Недопустимое JSON-число: Infinity"
+  },
+  {
+    "id": "negative-infinity",
+    "text": "{\"probe_repository\":-Infinity}",
+    "cause": "Недопустимое JSON-число: -Infinity"
+  },
+  {
+    "id": "invalid-utf8",
+    "hex": "ff",
+    "cause": "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+  }
+]

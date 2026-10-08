@@ -1,0 +1,219 @@
+[
+  {
+    "id": "schema-0",
+    "field": "schema",
+    "value": null,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "schema-1",
+    "field": "schema",
+    "value": 7,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "schema-2",
+    "field": "schema",
+    "value": "",
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "config_path-0",
+    "field": "config_path",
+    "value": null,
+    "context_config_path": null,
+    "context_project_id": "demo"
+  },
+  {
+    "id": "config_path-1",
+    "field": "config_path",
+    "value": 7,
+    "context_config_path": null,
+    "context_project_id": "demo"
+  },
+  {
+    "id": "config_path-2",
+    "field": "config_path",
+    "value": "",
+    "context_config_path": null,
+    "context_project_id": "demo"
+  },
+  {
+    "id": "config_path-3",
+    "field": "config_path",
+    "value": "  ",
+    "context_config_path": null,
+    "context_project_id": "demo"
+  },
+  {
+    "id": "config_path-4",
+    "field": "config_path",
+    "value": [],
+    "context_config_path": null,
+    "context_project_id": "demo"
+  },
+  {
+    "id": "project_id-0",
+    "field": "project_id",
+    "value": null,
+    "context_config_path": "$config",
+    "context_project_id": null
+  },
+  {
+    "id": "project_id-1",
+    "field": "project_id",
+    "value": 7,
+    "context_config_path": "$config",
+    "context_project_id": null
+  },
+  {
+    "id": "project_id-2",
+    "field": "project_id",
+    "value": "",
+    "context_config_path": "$config",
+    "context_project_id": null
+  },
+  {
+    "id": "project_id-3",
+    "field": "project_id",
+    "value": "  ",
+    "context_config_path": "$config",
+    "context_project_id": null
+  },
+  {
+    "id": "project_id-4",
+    "field": "project_id",
+    "value": [],
+    "context_config_path": "$config",
+    "context_project_id": null
+  },
+  {
+    "id": "task_id-0",
+    "field": "task_id",
+    "value": 7,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "task_id-1",
+    "field": "task_id",
+    "value": false,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "task_id-2",
+    "field": "task_id",
+    "value": "",
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "task_id-3",
+    "field": "task_id",
+    "value": "  ",
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "task_id-4",
+    "field": "task_id",
+    "value": [],
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "commit_message-0",
+    "field": "commit_message",
+    "value": 7,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "commit_message-1",
+    "field": "commit_message",
+    "value": false,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "commit_message-2",
+    "field": "commit_message",
+    "value": [],
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "commit_message-3",
+    "field": "commit_message",
+    "value": {},
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "probe_repository-0",
+    "field": "probe_repository",
+    "value": null,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "probe_repository-1",
+    "field": "probe_repository",
+    "value": "true",
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "probe_repository-2",
+    "field": "probe_repository",
+    "value": [],
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "missing-schema",
+    "field": "schema",
+    "omit": true,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "missing-config_path",
+    "field": "config_path",
+    "omit": true,
+    "context_config_path": null,
+    "context_project_id": "demo"
+  },
+  {
+    "id": "missing-project_id",
+    "field": "project_id",
+    "omit": true,
+    "context_config_path": "$config",
+    "context_project_id": null
+  },
+  {
+    "id": "missing-task_id",
+    "field": "task_id",
+    "omit": true,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "missing-probe_repository",
+    "field": "probe_repository",
+    "omit": true,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  },
+  {
+    "id": "missing-commit_message",
+    "field": "commit_message",
+    "omit": true,
+    "context_config_path": "$config",
+    "context_project_id": "demo"
+  }
+]

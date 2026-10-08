@@ -1,0 +1,11 @@
+{
+  "kind": "repository",
+  "bindings": [
+    {
+      "kind": "environment",
+      "name": "PYTHONPATH",
+      "path": "src",
+      "resolved_path": "$ROOT/src"
+    }
+  ]
+}

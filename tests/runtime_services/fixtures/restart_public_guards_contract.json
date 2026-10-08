@@ -1,0 +1,28 @@
+{
+  "invalid_authorities": [
+    {
+      "id": "null",
+      "authorization": null
+    },
+    {
+      "id": "empty-text",
+      "authorization": ""
+    },
+    {
+      "id": "empty-object",
+      "authorization": {}
+    },
+    {
+      "id": "empty-decision",
+      "authorization": {
+        "role": "reviewer",
+        "decision": ""
+      }
+    }
+  ],
+  "replay_contexts": [
+    "unchanged-control",
+    "same-owner-release-and-reacquire",
+    "distinct-owner-release-and-acquire"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "repository",
+  "bindings": [
+    {"kind": "cwd", "path": ".", "resolved_path": "$ROOT"}
+  ]
+}

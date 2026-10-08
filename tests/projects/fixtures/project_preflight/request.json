@@ -1,0 +1,8 @@
+{
+  "schema": "project-preflight-1",
+  "config_path": "$config",
+  "project_id": "demo",
+  "task_id": null,
+  "probe_repository": true,
+  "commit_message": "Change\n\nReason"
+}

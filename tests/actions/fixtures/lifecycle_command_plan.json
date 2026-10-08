@@ -1,0 +1,35 @@
+{
+  "kind": "commands",
+  "steps": [
+    {
+      "id": "COUNTER",
+      "apply": {
+        "id": "APPLY-COUNTER",
+        "argv": [],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+          "kind": "external",
+          "reason": "Isolated test-owned effect marker, outside operational state."
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": []
+      },
+      "probe": {
+        "id": "PROBE-COUNTER",
+        "argv": [],
+        "cwd": ".",
+        "environment": {},
+        "source_under_test": {
+          "kind": "external",
+          "reason": "Observe only the isolated test-owned effect marker."
+        },
+        "expected_exit_code": 0,
+        "stdout_contains": [],
+        "stderr_contains": []
+      },
+      "probe_false_exit_codes": [1]
+    }
+  ]
+}

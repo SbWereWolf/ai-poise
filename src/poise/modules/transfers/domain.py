@@ -19,7 +19,10 @@ class TransferPolicy:
         limits = {'max_tasks', 'max_files', 'max_file_bytes', 'max_total_bytes', 'chunk_bytes'}
         exact(raw, paths | limits | {'file_mode'}, 'transfer config')
         for key in paths:
-            relative(raw[key])
+            try:
+                relative(raw[key])
+            except DomainError as exc:
+                raise DomainError(f'runtime_services.transfer.{key}: {exc}') from exc
         names = [raw[k] for k in paths - {'directory'}]
         if len(names) != len(set(names)) or any(a.startswith(b + '/') or b.startswith(a + '/')
                                                 for i,a in enumerate(names) for b in names[i+1:]):

@@ -1,0 +1,16 @@
+[
+  {"id":"initial-absent","absent":true,"history":[],"stage":"apply","iteration":1,"stored_stage":"apply","stored_iteration":1},
+  {"id":"initial-empty","absent":false,"history":[],"stage":"apply","iteration":2,"stored_stage":"apply","stored_iteration":2},
+  {"id":"native-zero","absent":false,"history":[{"from_version":0}],"stage":"apply","iteration":1,"stored_stage":"[0,\"apply\"]","stored_iteration":-1},
+  {"id":"positive","absent":false,"history":[{"from_version":7}],"stage":"apply","iteration":1,"stored_stage":"[7,\"apply\"]","stored_iteration":-1},
+  {"id":"increasing","absent":false,"history":[{"from_version":0},{"from_version":7},{"from_version":19}],"stage":"apply","iteration":1,"stored_stage":"[19,\"apply\"]","stored_iteration":-1},
+  {"id":"iteration-two","absent":false,"history":[{"from_version":7}],"stage":"apply","iteration":2,"stored_stage":"[7,\"apply\"]","stored_iteration":-2},
+  {"id":"suffix","absent":false,"history":[{"from_version":7}],"stage":"apply@restart:1","iteration":1,"stored_stage":"[7,\"apply@restart:1\"]","stored_iteration":-1},
+  {"id":"prefix","absent":false,"history":[{"from_version":7}],"stage":"restart:0:apply","iteration":1,"stored_stage":"[7,\"restart:0:apply\"]","stored_iteration":-1},
+  {"id":"json","absent":false,"history":[{"from_version":7}],"stage":"[\"apply\",1]","iteration":1,"stored_stage":"[7,\"[\\\"apply\\\",1]\"]","stored_iteration":-1},
+  {"id":"unicode","absent":false,"history":[{"from_version":7}],"stage":"этап/λ","iteration":1,"stored_stage":"[7,\"этап/λ\"]","stored_iteration":-1},
+  {"id":"spaces","absent":false,"history":[{"from_version":7}],"stage":"two words","iteration":1,"stored_stage":"[7,\"two words\"]","stored_iteration":-1},
+  {"id":"encoding","absent":false,"history":[{"from_version":0}],"stage":"[0,\"apply\"]","iteration":1,"stored_stage":"[0,\"[0,\\\"apply\\\"]\"]","stored_iteration":-1},
+  {"id":"nul","absent":false,"history":[{"from_version":7}],"stage":"scope\u0000apply","iteration":1,"stored_stage":"[7,\"scope\\u0000apply\"]","stored_iteration":-1},
+  {"id":"quotes","absent":false,"history":[{"from_version":7}],"stage":"quote\"\\path","iteration":1,"stored_stage":"[7,\"quote\\\"\\\\path\"]","stored_iteration":-1}
+]

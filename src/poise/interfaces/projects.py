@@ -5,7 +5,7 @@ from copy import deepcopy
 from ..modules.foundation.errors import PoiseError
 from ..infrastructure.projects import ProjectSettings
 from ..infrastructure.goal_config import strict_json
-from ..composition import project_tools
+from ..composition import project_tools, compose_project_tools
 
 
 def emit(settings,result,category,output):
@@ -19,6 +19,19 @@ def execute(settings_path,stream,output,action=None):
         settings=ProjectSettings(settings_path)
         if action=='list':
             return emit(settings,project_tools(settings_path).list(),'success',output)
+        if action == 'check':
+            tools = compose_project_tools(settings)
+            raw = None
+            try:
+                content = stream.read(settings.raw['max_input_bytes'] + 1)
+                if len(content) > settings.raw['max_input_bytes']:
+                    raise PoiseError('Project input limit exceeded')
+                raw = strict_json(content.decode('utf-8'))
+            except (PoiseError, UnicodeError, RecursionError) as exc:
+                result = tools.input_failure(raw, str(exc))
+            else:
+                result = tools.check(raw)
+            return emit(settings, result, 'success' if result['ready'] else 'rejected', output)
         raw=stream.read(settings.raw['max_input_bytes']+1)
         if len(raw)>settings.raw['max_input_bytes']:raise PoiseError('Project input limit exceeded')
         result=project_tools(settings_path).apply(strict_json(raw.decode('utf-8')))

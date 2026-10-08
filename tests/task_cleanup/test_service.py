@@ -77,9 +77,9 @@ def test_explicit_discard_removes_only_exact_task_resources_and_replays(project)
     assert operator_backup.read_text(encoding="utf-8") == "operator-owned\n"
     assert git(project["app"], "rev-parse", "HEAD") == main_before
     assert tools.runtime.task_queries.history("T1")[:len(history_before)] == history_before
-    assert tools.runtime.store.artifact_records("T1") == artifacts_before
     durable = next(item for item in artifacts_before if item["path"].endswith("durable-before-cleanup.txt"))
-    assert Path(durable["path"]).read_text(encoding="utf-8") == "durable task evidence\n"
+    assert not Path(durable["path"]).exists()
+    assert (project["root"] / "delivered-evidence.txt").read_bytes() == b"durable task evidence\n"
 
     replay = tools.invoke(packet)
     assert replay["status"] == "cleanup_complete" and replay["replayed"] is True
@@ -90,7 +90,7 @@ def test_explicit_discard_removes_only_exact_task_resources_and_replays(project)
         tools.invoke(changed)
 
 
-def test_preserve_creates_verified_durable_bundle_before_ref_deletion(project):
+def test_preserve_creates_verified_pending_bundle_before_ref_deletion(project):
     tools, worktree, commit, _ = prepare_cancelled_task(project)
     packet = request("cleanup", cleanup_input(commit, kind="preserved"))
 

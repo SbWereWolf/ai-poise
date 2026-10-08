@@ -20,6 +20,21 @@ def prepare_cancelled_task(project, *, task_id="T1", durable_artifact=False):
             if durable_artifact else None
         ),
     )
+    if durable_artifact:
+        import hashlib
+        record = tools.runtime.store.artifact_records(task_id)[0]
+        destination = project["root"] / "delivered-evidence.txt"
+        value = tools.invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))["results"][0]["value"]
+        tools.invoke(request("delivery", {
+            "action": "agree", "request_id": "deliver-before-cancel", "task_id": task_id,
+            "expected_version": value["version"],
+            "authorization": "The fixture customer explicitly retains this evidence at its permanent path.",
+            "declaration": {"disposition": "deliver", "outputs": [{
+                "id": "retained-evidence", "kind": "file", "source": record["path"],
+                "destination": str(destination),
+                "digest": hashlib.sha256(b"durable task evidence\n").hexdigest(),
+            }]},
+        }))
     cancelled = tools.invoke(request("cancel", {"reason": "User cancelled this exact Task."}))
     return tools, Path(worktree), commit, cancelled
 

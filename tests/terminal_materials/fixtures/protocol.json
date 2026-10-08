@@ -1,0 +1,15 @@
+{
+  "agreement": {
+    "action": "agree",
+    "request_id": "agree-materials",
+    "task_id": "T1",
+    "expected_version": 0,
+    "authorization": "The fixture customer agrees to these exact destinations.",
+    "declaration": {}
+  },
+  "customer_acknowledgement": {
+    "receiver": "fixture-customer",
+    "digest": "b14288ac7de16fe4ff08d0154c40028e370c8497407bfd3d8026d46280ade947",
+    "received_path": "CUSTOMER_PATH"
+  }
+}

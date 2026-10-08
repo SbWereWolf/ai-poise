@@ -105,10 +105,11 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Before every completed-task boundary or risky transition, create and locally verify a portable checkpoint.
-Only cloud development requires sending the archive and readable text transport to Gmail and verifying attachment
-readback. Local development does not require Gmail delivery or readback to complete or integrate a Task; perform
-mail delivery locally only when explicitly requested. On resume, inspect already attached files before
+Only cloud development requires a portable checkpoint before completed-task boundaries or risky transitions,
+restoration verification, Gmail archive/text delivery, and full attachment readback. Local development requires
+none of those actions for Task completion, integration, or Sprint continuation. Create local checkpoints or
+archives, verify their restoration, or send them only when the user explicitly requests those actions separately.
+Saving commits and check evidence does not require an archive. On resume, inspect already attached files before
 asking for another upload. Follow [checkpoint and
 recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
 passed check, a delivery receipt, and Task completion.

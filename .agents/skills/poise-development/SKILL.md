@@ -176,7 +176,7 @@ inferring classes from names. `poise skills` reads metadata without Task ownersh
 
 ## Resumable work
 
-After each task and before a risky transition apply [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление) using `tools/work_checkpoint.py` and verify the checkpoint locally. Gmail delivery and full attachment readback are mandatory only for cloud development. In local development they require an explicit request and must not block Task completion, integration or Sprint continuation. On resume inspect provided attachments first. Preserve explicit next work and rejected baselines.
+Only for cloud development, after each task and before a risky transition apply [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление), verify restoration, and complete Gmail delivery and full attachment readback. Local Task completion, integration, and Sprint continuation do not require checkpoints, archives, restoration checks, or mail delivery. Perform those local actions only on a separate explicit user request. On resume inspect provided attachments first. Preserve explicit next work and rejected baselines.
 
 For authoring-stage Python boundary diagnostics and same-Task repair, use
 [the configured architecture gate](../../../docs/workflows/architecture-boundaries.md#проверка-архитектуры-перед-авторской-сдачей).

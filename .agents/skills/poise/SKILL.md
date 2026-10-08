@@ -293,7 +293,7 @@ limits](../../../docs/workflows/batch-work.md#сохранённый-запро�
 Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
 The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate
 retroactively. A reviewed taskless correction with explicit user authority may use the separate manual local delivery
-route, preserving exact commit/check identity, checkpoint, target and foreign WIP. Follow the canonical
+route, preserving exact commit/check identity, target and foreign WIP. Checkpoint creation and verification are cloud-only obligations; local work requires them only on a separate explicit user request. Follow the canonical
 [route decision](../../../docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка) and
 [pre-ready procedure](../../../docs/workflows/pilot-task-preflight.md#выбор-маршрута-до-первой-записи). Never manufacture
 Task stages, acceptance or receipts for earlier taskless work.

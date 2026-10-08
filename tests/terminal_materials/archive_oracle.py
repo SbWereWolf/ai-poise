@@ -1,6 +1,7 @@
 """Bounded test-owned proof-byte observation; never alters legitimate audit rows."""
 import base64
 import io
+import hashlib
 import json
 import zipfile
 import zlib
@@ -73,3 +74,33 @@ def no_new_archive(tools, before, markers):
     for path in tools.runtime.state.rglob("*"):
         if path.is_file() and path not in native_files and path.suffix != ".lock":
             assert not contains_proof(path.read_bytes(), markers), str(path)
+
+
+def material_provenance(tools, markers):
+    """Bounded exact-file plus logical-cell provenance for this isolated store.
+
+    Only the actual live SQLite database/WAL/SHM use logical cell observation.
+    Snapshot databases, lock-named files and byte archives are ordinary files;
+    no directory, extension or archive family is exempted.
+    """
+    database = tools.runtime.store.database.path
+    native = {database, Path(str(database) + "-wal"), Path(str(database) + "-shm")}
+    paths = list(tools.runtime.state.rglob("*"))
+    assert len(paths) <= 2000, "Isolated provenance observation exceeds declared bound"
+    files = {}
+    for path in paths:
+        if path.is_file() and path not in native:
+            data = path.read_bytes()
+            assert len(data) <= 4 * 1024 * 1024, "Isolated file exceeds declared observation bound"
+            if contains_proof(data, markers):
+                files[str(path)] = hashlib.sha256(data).hexdigest()
+    return {"cells": proof_cells(tools, markers), "files": files}
+
+
+def no_new_material_archive(tools, before, markers):
+    """Permit unchanged exact live inputs/package and existing historical cells."""
+    after = material_provenance(tools, markers)
+    assert all(key in before["cells"] and weight <= before["cells"][key]
+               for key, weight in after["cells"].items()), "New SQLite proof-byte archive"
+    assert all(before["files"].get(path) == digest for path, digest in after["files"].items()), \
+        "New filesystem proof-byte archive"

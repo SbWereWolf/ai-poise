@@ -5,7 +5,8 @@ import pytest
 
 from batch.helpers import request, text_artifact
 from poise.common import PoiseError
-from .archive_oracle import no_new_archive, proof_cells
+from .archive_oracle import (material_provenance, no_new_archive,
+                             no_new_material_archive, proof_cells)
 from .helpers import (absent, agree, arrange, cli, declaration, delivery_status,
                       file_output, finish)
 
@@ -38,10 +39,38 @@ def test_real_proof_arrangement_executes_registered_method(project):
 def test_archive_oracle_falsifies_a_new_sqlite_proof_copy(project):
     tools, _, _, _, _, _ = checked(project)
     before = proof_cells(tools, MARKERS)
+    # Test the export-boundary observer itself on real temporary files, without
+    # pretending the baseline already implements terminal delivery/export recovery.
+    import zipfile
+    preparing = tools.runtime.state / "transfers" / "oracle-request" / "preparing"
+    preparing.mkdir(parents=True)
+    (preparing / "proof.txt").write_bytes(MARKERS[0])
+    package = preparing.parent / "work.zip"
+    with zipfile.ZipFile(package, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("proof.txt", MARKERS[0])
+    provenance = material_provenance(tools, MARKERS)
+    assert str(package) in provenance["files"]
+    no_new_material_archive(tools, provenance, MARKERS)
+    hidden = preparing.with_name("hidden-retired-preparation")
+    preparing.rename(hidden)
+    with pytest.raises(AssertionError, match="New filesystem proof-byte archive"):
+        no_new_material_archive(tools, provenance, MARKERS)
+    hidden.rename(preparing)
+    # A disguised lock file and an extra compressed package are not exclusions.
+    for copied, payload in ((preparing.parent / "hidden.lock", MARKERS[0]),
+                            (preparing.parent / "hidden.zip", package.read_bytes())):
+        copied.write_bytes(payload)
+        with pytest.raises(AssertionError, match="New filesystem proof-byte archive"):
+            no_new_material_archive(tools, provenance, MARKERS)
+        copied.unlink()
+    no_new_material_archive(tools, provenance, MARKERS)
+    assert (preparing / "proof.txt").read_bytes() == MARKERS[0]
     with tools.runtime.store.transaction() as database:
         database.execute("CREATE TABLE fixture_illegal_archive(payload BLOB NOT NULL)")
         database.execute("INSERT INTO fixture_illegal_archive(payload) VALUES (?)", (MARKERS[2],))
     assert set(proof_cells(tools, MARKERS)) - set(before) == {("fixture_illegal_archive", 1, "payload")}
+    with pytest.raises(AssertionError, match="New SQLite proof-byte archive"):
+        no_new_material_archive(tools, provenance, MARKERS)
 
 
 def test_actual_proofs_and_registered_temporary_artifact_retire_without_new_archive(project):

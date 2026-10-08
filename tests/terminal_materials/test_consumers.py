@@ -231,8 +231,17 @@ def test_interrupted_export_blocks_retirement_until_exact_export_finishes(projec
 @pytest.mark.parametrize("phase", ["after-receipt", "during-cleanup"])
 @pytest.mark.parametrize("retire_first", [False, True], ids=["replay-before-retirement", "replay-after-retirement"])
 def test_completed_export_replay_finishes_only_original_preparation(project, monkeypatch, phase, retire_first):
-    """003: completed package receipt does not imply its temporary copy is gone."""
+    _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_replay=False)
+
+
+def test_completed_export_replay_cleanup_failure_is_truthful_and_resumable(project, monkeypatch):
+    _completed_export_recovery(project, monkeypatch, "after-receipt", True, fail_replay=True)
+
+
+def _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_replay):
+    """003/008/009: real original and replay effects, exact package, no new copy."""
     from transfer.helpers import enabled, export
+    from .archive_oracle import material_provenance, no_new_material_archive
 
     enabled(project)
     tools, root, source, commit = arrange(project)
@@ -247,7 +256,7 @@ def test_completed_export_replay_finishes_only_original_preparation(project, mon
     assert tools.runtime.task_queries.record("T1")["claimed_by"] is None
     request_id = "export-cleanup-recovery"
     fired, removed = [], []
-    original_event, original_rmtree, original_unlink = tools.runtime.store.event, shutil.rmtree, os.unlink
+    original_event = tools.runtime.store.event
     with monkeypatch.context() as fault:
         if phase == "after-receipt":
             def interrupted_event(actor, task_id, event, data):
@@ -257,21 +266,8 @@ def test_completed_export_replay_finishes_only_original_preparation(project, mon
                 return original_event(actor, task_id, event, data)
             fault.setattr(tools.runtime.store, "event", interrupted_event)
         else:
-            def interrupted_removal(path, *args, **kwargs):
-                if Path(path).name == "preparing" and not fired:
-                    with monkeypatch.context() as unlink_fault:
-                        def interrupted_unlink(name, *a, **kw):
-                            value = original_unlink(name, *a, **kw)
-                            if not fired:
-                                removed.append(str(name))
-                                fired.append(True)
-                                raise OSError("INJECTED-EXPORT-CLEANUP-FAULT")
-                            return value
-                        unlink_fault.setattr(os, "unlink", interrupted_unlink)
-                        return original_rmtree(path, *args, **kwargs)
-                return original_rmtree(path, *args, **kwargs)
-            interrupted_removal.avoids_symlink_attacks = original_rmtree.avoids_symlink_attacks
-            fault.setattr(shutil, "rmtree", interrupted_removal)
+            _interrupt_preparation_removal(fault, lambda path: path.name == "preparing",
+                                           fired, removed, "INJECTED-EXPORT-CLEANUP-FAULT")
         with pytest.raises((OSError, PoiseError), match="INJECTED-EXPORT-CLEANUP-FAULT"):
             export(tools, ids=["T1"], request_id=request_id, handoff=None)
     assert fired, "The original export must reach the actual post-receipt effect"
@@ -309,9 +305,41 @@ def test_completed_export_replay_finishes_only_original_preparation(project, mon
     owner = WorkTools(WorkPoise(project["config_path"], "material-owner"))
     before = owner.runtime.task_queries.record("T1")
     history = owner.runtime.task_queries.history("T1")
+    markers = (b"temporary proof must disappear\n", b"customer result\n")
+    provenance = material_provenance(owner, markers)
+    # Explicitly admit only known live original inputs, original preparation and
+    # this exact deliberately delivered package; no service/archive subtree waiver.
+    assert all(Path(path).is_relative_to(root) or Path(path).is_relative_to(preparing)
+               or Path(path) == package for path in provenance["files"])
+    if fail_replay:
+        before_files = _preparation_files(preparing)
+        retry_fired, retry_removed = [], []
+        with monkeypatch.context() as fault:
+            _interrupt_preparation_removal(fault, lambda path: path == preparing,
+                                           retry_fired, retry_removed, "INJECTED-REPLAY-CLEANUP-FAULT")
+            with pytest.raises((OSError, PoiseError), match="INJECTED-REPLAY-CLEANUP-FAULT"):
+                export(owner, ids=["T1"], request_id=request_id, handoff=None)
+            # Observe failure before removing the fault, through read-only owners.
+            assert retry_fired and len(retry_removed) == 1
+            remaining = _preparation_files(preparing)
+            assert preparing.is_dir() and remaining
+            assert len(remaining) == len(before_files) - 1
+            assert all(before_files.get(path) == data for path, data in remaining.items())
+            failed_digest, failed_state = _export_record(owner, request_id)
+            assert failed_digest == original_digest and failed_state["receipt"] == receipt
+            assert package.read_bytes() == package_bytes and package.stat().st_ino == package_inode
+            assert owner.runtime.task_queries.record("T1") == before
+            assert owner.runtime.task_queries.history("T1") == history
+            assert owner.runtime.current_task() is None
+            assert foreign.read_bytes() == b"other request working material\n"
+            absent(root)
+            no_new_material_archive(owner, provenance, markers)
+        # The same original request is resumed by a fresh original-actor runtime.
+        owner = WorkTools(WorkPoise(project["config_path"], "material-owner"))
     replay = export(owner, ids=["T1"], request_id=request_id, handoff=None)
     assert replay == {**receipt, "replayed": True}
     assert not os.path.lexists(preparing), "003: exact completed replay stranded original preparation"
+    no_new_material_archive(owner, provenance, markers)
     assert package.read_bytes() == package_bytes and package.stat().st_ino == package_inode
     digest, state = _export_record(owner, request_id)
     assert digest == original_digest and state["receipt"] == receipt
@@ -327,6 +355,7 @@ def test_completed_export_replay_finishes_only_original_preparation(project, mon
                           ids=["T1"], request_id=request_id, handoff=None)
     assert replay_again == {**receipt, "replayed": True}
     assert not os.path.lexists(preparing)
+    no_new_material_archive(owner, provenance, markers)
     absent(root)
     assert owner.runtime.task_queries.record("T1") == terminal
     assert package.read_bytes() == package_bytes and package.stat().st_ino == package_inode
@@ -343,3 +372,28 @@ def _export_record(tools, request_id):
         ).fetchone()
     assert row is not None
     return row["digest"], json.loads(row["data"])
+
+
+def _preparation_files(preparing):
+    return {str(path.relative_to(preparing)): path.read_bytes()
+            for path in preparing.rglob("*") if path.is_file()}
+
+
+def _interrupt_preparation_removal(patch, matches, fired, removed, message):
+    """Interrupt one actual unlink inside the selected real rmtree traversal."""
+    original_rmtree, original_unlink = shutil.rmtree, os.unlink
+    def interrupted_removal(path, *args, **kwargs):
+        if matches(Path(path)) and not fired:
+            with patch.context() as unlink_fault:
+                def interrupted_unlink(name, *a, **kw):
+                    result = original_unlink(name, *a, **kw)
+                    if not fired:
+                        removed.append(str(name))
+                        fired.append(True)
+                        raise OSError(message)
+                    return result
+                unlink_fault.setattr(os, "unlink", interrupted_unlink)
+                return original_rmtree(path, *args, **kwargs)
+        return original_rmtree(path, *args, **kwargs)
+    interrupted_removal.avoids_symlink_attacks = original_rmtree.avoids_symlink_attacks
+    patch.setattr(shutil, "rmtree", interrupted_removal)

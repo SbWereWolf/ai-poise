@@ -15,7 +15,7 @@ def parser():
     local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
     local_assets.add_argument('--manifest',type=Path,required=True)
     project=sub.add_parser('project',help='Create a complete configured project from one explicit batch')
-    project.add_argument('project_action',nargs='?',choices=('list',))
+    project.add_argument('project_action',nargs='?',choices=('list','check'))
     project.add_argument('--settings',type=Path,required=True)
     next_command=sub.add_parser('next',help='Read all startable Tasks across configured projects; never claim')
     next_command.add_argument('--settings',type=Path,required=True)

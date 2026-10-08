@@ -74,6 +74,10 @@ manual recovery authorized by this canonical rule.
 
 ## Start or resume work
 
+Tool views are for agent display. Use complete saved responses or native read-only tools for machine parsing and
+decisions; never repeat a mutation just to retrieve output. Internal tool composition receives full stdout, stderr
+and structured fields, without agent-budget clipping. Follow [full output](../../../docs/workflows/runner.md#полный-вывод-и-preview).
+
 Apply the canonical [ownership rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
 at most one Task and one worktree per session, independently owned. The process snapshot
 defines a dependent worktree; release it with its Task but preserve independent ownership.

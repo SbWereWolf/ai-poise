@@ -1,0 +1,14 @@
+{
+  "installation_source": "$source",
+  "config_path": null,
+  "requested_project_id": null,
+  "project_id": null,
+  "requested_task_id": null,
+  "state": null,
+  "task_database": null,
+  "task_lock": null,
+  "requirements_database": null,
+  "requirements_lock": null,
+  "repository": null,
+  "base_ref": null
+}

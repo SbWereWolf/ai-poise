@@ -1,8 +1,8 @@
 from __future__ import annotations
+from .modules.actions.domain import CommitMessagePolicy
 from copy import deepcopy
 import json
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -20,7 +20,7 @@ from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, preview, timeout_profile
+from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
 from .infrastructure.duplicate_admission import duplicate_admission
 from .common import worktree_root
@@ -188,6 +188,7 @@ class Poise:
         self.transfer_tools=TransferCommands(RuntimeTransfers(self),self.cfg['runtime_services']['transfer'])
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
+        self.source_under_test_resolver = resolve_source_under_test
         self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
         from .application.task_cleanup import TaskResourceCleanup
         from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup
@@ -660,14 +661,20 @@ class Poise:
     def _git(self, cwd: Path, *args: str, env: dict | None = None) -> str:
         prohibit_git_push(['git', *args])
         execution_env = dict(os.environ) if env is None else env
+        if '-z' in args:
+            from .infrastructure.git_transport import run_git_receipt
+            receipt = run_git_receipt(cwd, args, self.cfg['limits']['git_seconds'], execution_env)
+            if receipt['actual_exit_code']:
+                raise PoiseError(f"Git {args[0]}: {receipt['stderr']}")
+            return receipt['stdout']
         try:
             r = subprocess.run(['git', '-C', str(cwd), *args], env=execution_env,
                                capture_output=True, text=True, timeout=self.cfg['limits']['git_seconds'])
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f'Git не завершил операцию {args[0]}: {exc}') from exc
         if r.returncode:
-            raise PoiseError(f"Git {args[0]}: {r.stderr[-self.cfg['limits']['preview_chars']:]}")
-        return r.stdout.strip() if '-z' not in args else r.stdout
+            raise PoiseError(f"Git {args[0]}: {r.stderr}")
+        return r.stdout.strip()
 
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
@@ -738,8 +745,7 @@ class Poise:
                 raise PoiseError('Unknown pending check outcome: restore its inputs or use authorised task/restart')
             if data['worktree'] is None or not (changed or pending_merge):
                 raise PoiseError('Worktree-free or unchanged Task cannot commit repository changes')
-            if not isinstance(message, str) or not re.fullmatch(self.cfg['git']['commit_pattern'], message):
-                raise PoiseError('Сообщение коммита не соответствует правилу проекта')
+            CommitMessagePolicy(self.cfg['git']['commit_pattern']).require(message)
             self._git(workspace, 'add', '--all')
             if self._git(workspace, 'write-tree') != tree:
                 raise PoiseError('Индекс не равен проверяемому дереву')
@@ -985,7 +991,10 @@ class Poise:
             if self.sprint_tools.known(task['id']):
                 return self.sprint_tools.select(task['id'])
             selected=self.task_queries.record(task['id'])
-            if selected is None:raise PoiseError('Неизвестный task/sprint ID')
+            if selected is None:
+                from .infrastructure.project_context import FileProjectContext
+                raise PoiseError(FileProjectContext(Path(__file__).resolve().parents[1]).lookup_failure(
+                    self.config_path, self.cfg, task['id']))
             if selected['status']=='newborn':
                 if selected['claimed_by'] is None and self.handoff_tools.commands.latest(selected['id']) is not None:
                     self.handoff_tools.resume(selected)
@@ -1421,8 +1430,8 @@ class Poise:
         else:
             submitted = self.runner.submit(data['id'], self.session, payload)
             data = self._task()
-        if changed and (not isinstance(payload['commit_message'],str) or not re.fullmatch(self.cfg['git']['commit_pattern'],payload['commit_message'])):
-            raise PoiseError('Сообщение коммита не соответствует правилу проекта')
+        if changed:
+            CommitMessagePolicy(self.cfg['git']['commit_pattern']).require(payload['commit_message'])
         roots = self._roots(data)
         artifacts = self._candidate_artifacts(data, payload['artifact_paths'], roots)
         check_counts(artifacts, stage['artifact_requirements'])
@@ -1771,11 +1780,11 @@ class Poise:
                      'timeout_maintenance':{
                          'path':str(timeout_snapshot_path),
                          'digest':file_digest(timeout_snapshot_path),
-                     },
-                     'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
+                     }}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]
             presentation=self.result_views.capture(receipt,run_dir)
+            receipt['preview']=presentation['primary']
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
             receipts.append(receipt)

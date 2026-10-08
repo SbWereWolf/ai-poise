@@ -24,6 +24,20 @@ def commit_id(value):
     return value
 
 
+class CommitMessagePolicy:
+    """The configured repository rule, shared by all commit-producing routes."""
+
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def matches(self, message):
+        return isinstance(message, str) and re.fullmatch(self.pattern, message) is not None
+
+    def require(self, message):
+        if not self.matches(message):
+            raise DomainError('Сообщение коммита не соответствует правилу проекта')
+
+
 @dataclass(frozen=True)
 class PlanSpec:
     content: str

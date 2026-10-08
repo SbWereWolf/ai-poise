@@ -53,8 +53,9 @@ class MetricPolicy:
         exact(value,{'timezone','week_start','max_events','max_files','max_blob_bytes','time_mode','causes','sources','path_categories','tokenizer','storage'},'accounting config')
         storage=value['storage'];exact(storage,{'database','lock'},'accounting.storage')
         for key in ('database','lock'):
-            if not isinstance(storage[key],str) or not storage[key].strip():
-                raise DomainError(f'accounting.storage.{key}: nonempty path required')
+            if (not isinstance(storage[key], str) or not storage[key].strip()
+                    or '\0' in storage[key]):
+                raise DomainError(f'accounting.storage.{key}: nonempty path without NUL required')
         for key in ('max_events','max_files','max_blob_bytes'):
             if type(value[key]) is not int or value[key]<=0:raise DomainError(f'{key}: positive explicit bound required')
         if not isinstance(value['timezone'],str) or not value['timezone']:raise DomainError('timezone required')

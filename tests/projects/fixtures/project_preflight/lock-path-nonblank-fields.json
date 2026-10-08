@@ -1,0 +1,18 @@
+[
+  "paths.state",
+  "paths.database",
+  "paths.lock",
+  "paths.requirements_database",
+  "paths.requirements_lock",
+  "accounting.storage.database",
+  "accounting.storage.lock",
+  "git.repository",
+  "task_planning.catalogue",
+  "source_reader.policy",
+  "source_reader.receipt_file",
+  "development_routing.catalog",
+  "development_routing.selection",
+  "development_routing.policy",
+  "development_routing.packages",
+  "telemetry_delivery.directory"
+]

@@ -434,12 +434,15 @@ class RuntimeResultIntegration:
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
             stdout = descendant(run_dir, self.h.paths["stdout"])
             stderr = descendant(run_dir, self.h.paths["stderr"])
+            invocation = self._check_invocation(method, worktree, run_dir)
             expected = {
                 "method": method["id"],
                 "integration_head": head,
                 "verified_tree": tree,
                 "argv": method["argv"],
-                "cwd": str((worktree / method["cwd"]).resolve()),
+                "cwd": str(invocation["cwd"]),
+                "source_provenance": invocation["source_provenance"],
+                "provenance_digest": invocation["provenance_digest"],
                 "expected_exit_code": method["expected_exit_code"],
                 "definition_digest": digest(method),
                 "contract_digest": contract_digest,
@@ -503,6 +506,28 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, retried, run.version)
         return retried
 
+    def _check_invocation(self, method, worktree, run_dir):
+        """Prepare current command context without executing or writing its outputs."""
+        cwd = (worktree / method["cwd"]).resolve()
+        if not cwd.is_relative_to(worktree) or not cwd.is_dir():
+            raise PoiseError("Integration check cwd must stay inside the task worktree")
+        environment = {}
+        for name in self.h.cfg["environment_names"]:
+            if name not in os.environ:
+                raise PoiseError(f"Required environment variable is missing: {name}")
+            environment[name] = os.environ[name]
+        environment.update(method["environment"])
+        environment["POISE_RUN_OUTPUT_DIR"] = str(run_dir / "declared-outputs")
+        provenance = self.h.source_under_test_resolver(
+            method, worktree=worktree, cwd=cwd, environment=environment,
+        )
+        return {
+            "cwd": cwd,
+            "environment": environment,
+            "source_provenance": provenance,
+            "provenance_digest": digest(provenance),
+        }
+
     def _run_checks(self, record, run):
         worktree, head = self._checked_workspace(run)
         verified_tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
@@ -515,22 +540,13 @@ class RuntimeResultIntegration:
         )
         for method in self._select_checks(record):
             self._checked_workspace(run)
-            cwd = (worktree / method["cwd"]).resolve()
-            if not cwd.is_relative_to(worktree) or not cwd.is_dir():
-                raise PoiseError("Integration check cwd must stay inside the task worktree")
-            environment = {}
-            for name in self.h.cfg["environment_names"]:
-                if name not in os.environ:
-                    raise PoiseError(f"Required environment variable is missing: {name}")
-                environment[name] = os.environ[name]
-            environment.update(method["environment"])
             check_id = str(uuid.uuid4())
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            invocation = self._check_invocation(method, worktree, run_dir)
             declared_output_dir = run_dir / "declared-outputs"
             declared_output_dir.mkdir(parents=True, exist_ok=True)
-            environment["POISE_RUN_OUTPUT_DIR"] = str(declared_output_dir)
             result = run_command(
-                method["argv"], cwd, environment, None,
+                method["argv"], invocation["cwd"], invocation["environment"], None,
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
@@ -543,7 +559,9 @@ class RuntimeResultIntegration:
                 "definition_digest": digest(method),
                 "contract_digest": self._contract_digest(record),
                 "integration_head": head, "verified_tree": verified_tree,
-                "argv": method["argv"], "cwd": str(cwd),
+                "argv": method["argv"], "cwd": str(invocation["cwd"]),
+                "source_provenance": invocation["source_provenance"],
+                "provenance_digest": invocation["provenance_digest"],
                 "expected_exit_code": method["expected_exit_code"],
                 "passed": method_passed(method, result) and outputs_complete,
                 "outputs": outputs,
@@ -1018,6 +1036,7 @@ class RuntimeResultIntegration:
             self._save(intent.task_id, continued, run.version)
             run = continued
         while True:
+            checks_ran = False
             if run.phase == "prepared":
                 observed = self._git(repository, "rev-parse", self._target_ref())
                 previous = run.version
@@ -1030,6 +1049,7 @@ class RuntimeResultIntegration:
             if run.phase == "candidate_ready":
                 record = self.h.task_queries.record(intent.task_id)
                 run = self._run_checks(record, run)
+                checks_ran = True
                 if run.phase == "checks_failed":
                     return run.result()
             if run.phase in ("publishing", "publication_failed"):
@@ -1044,6 +1064,12 @@ class RuntimeResultIntegration:
                     )
                     return run.result()
                 if not complete_proof:
+                    if checks_ran:
+                        run = self._publication_failed(
+                            run, "candidate_proof_invalid",
+                            {"integration_head": run.integration_head},
+                        )
+                        return run.result()
                     rechecking = run.recheck_publication()
                     self._save(intent.task_id, rechecking, run.version)
                     run = rechecking

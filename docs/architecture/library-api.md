@@ -1,6 +1,6 @@
 # Библиотечный API — DDD-04B
 
-Обновлено: **2026-09-06T22:58:21+05:00**. Срез **POISE-DDD-04B**.
+Обновлено: **2026-10-08**. Исходный срез **POISE-DDD-04B** и последующие API.
 
 ## Доменные библиотеки
 - `Task`: create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel. Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.
@@ -161,6 +161,14 @@ Batch work получил optional `telemetry`, а batch show — kind `accounti
 | `Survey.answer/keep/back` | Явное изменение позиции/ответов; нет файлов или публикации |
 | `ProjectCommands.apply(request)` | Проверка пакетного намерения и вызов port |
 | `ProjectCommands.list()` | Read-only выдача настроенных проектов через тот же port |
+| `ProjectCommands.check(raw)` | Явная конфигурация → существующий Git probe → commit policy → опциональный поиск Task; известный отказ и неожиданная ошибка различаются |
+| `ProjectCommands.input_failure(raw, reason)` | Полный диагностический ответ при невалидном вводе, без вызова проверяемых владельцев |
+| `ProjectPreflightRequest.parse(raw)` | Ровно шесть полей `project-preflight-1`, без неявных селекторов |
+| `ProjectPreflightReport` | Один владелец verdict, четырёх checks и recovery; готовность не даёт claim |
+| `ConfigurationObservation` | Наблюдённый context, configuration либо `null`, status и reason; известные отказы не становятся `unknown` |
+| `FileProjectContext` | Двенадцать фактических полей установки, запроса, manifest и разрешённых путей, без выбора другого проекта |
+| `FileProjectPreflight` | Одно чтение manifest и общая валидация; композиция существующих Git и availability владельцев |
+| `ReadOnlyProjectAvailability.startable/require_task` | Общий защищённый доступ к выбранной Task DB; обычные Task/Sprint repositories и правила доступности без повторного SQL |
 | `ProjectCommands.questionnaire(request)` | Тот же contract для CLI анкеты |
 | `project_tools(settings_path)` | Явная composition библиотеки |
 | `FileProjectSetup.apply` | Независимые snapshots, общий load_config, локальные probes, atomic create, receipt и регистрация |
@@ -170,6 +178,68 @@ CLI `project` без действия принимает один JSON stdin; е
 `ProjectCommands` и не читает stdin. CLI `project-init` получает ответы через bounded
 questionnaire и применяет один тот же пакет при publish. Создание и анкета публикуют запись
 через registry-владельца, а список остаётся read-only. Эти операции не изменяют Task/Sprint.
+
+Публичные поля, verdict, CLI и маршруты исправления определены в
+[проверке согласованности проекта](../configuration/project-setup.md#проверка-согласованности-проекта).
+`FileProjectPreflight.observe_configuration` сохраняет уже прочитанные факты при известном
+отказе валидации и неожиданной ошибке. Прикладной слой использует это наблюдение и прекращает
+последующие проверки; он не повторяет валидацию конфигурации, Git или commit policy.
+Разрешение Requirements DB/lock — проверка размещения, не открытие этой базы.
+
+## Защищённое чтение хранилища задач
+
+`poise.infrastructure.sqlite.readonly.readonly_snapshot(path, *, lock_seconds)` — общий
+владелец защищённого rollback-снимка для `ReadOnlyProjectAvailability._with_store`.
+Его используют поиск точного Task ID и обзор доступных задач `next`. Consumer получает
+SQLite connection в памяти. `_with_store` задаёт `row_factory`, `query_only=ON`, начинает
+транзакцию, проверяет текущую версию схемы и вызывает существующие repositories.
+`Database`/`Runtime` для такого чтения не создаются: их инициализация выполняет записи.
+
+Исходный обычный файл открывает только отдельный stdlib-процесс `readonly_worker.py`.
+Он удерживает shared OFD-блокировку всего файла до EOF, проверяет заголовок, отсутствие
+sidecar-файлов, inode/размер/режим/mtime/ctime, длину образа и неизменность заголовка. Родитель
+получает полный образ через pipe и использует `deserialize` в `:memory:` с
+`temp_store=MEMORY`; SQLite connection к исходному файлу не открывается. Родитель не
+открывает исходный inode даже для чтения образа, поэтому его закрытие не снимает уже
+существующие POSIX SQLite-блокировки вызывающего процесса.
+
+Защита дочернего процесса живёт до закрытия memory consumer, включая выход по исключению.
+После этого родитель закрывает stdin, дочитывает stdout до ожидания завершения, закрывает
+pipe и забирает результат процесса. Ошибка consumer/транспорта остаётся первичной;
+вторичная ошибка cleanup добавляется к ней как примечание. Без первичной ошибки сбой
+cleanup возвращается как `SnapshotWorkerError`. Ожидаемый отказ передаётся как
+`PoiseError` с исходной причиной, неожиданный сбой worker/протокола остаётся неопределённостью,
+а не ошибкой конфигурации по предположению. Решение о `rejected`/`unknown` принимает
+существующая композиция проверки проекта.
+
+Дочерний процесс запускается текущим `sys.executable` с `-I -B`, без shell, подмены
+окружения, другого runtime или файлового IPC. `-I` исключает влияние переменных Python,
+user-site и пути скрипта на поиск модулей; он **не отключает** установленные system-site
+`.pth` и `sitecustomize`. Полная изоляция установленной Python-среды не обещается.
+
+Границы поддержанного чтения:
+
+- Linux LP64 OFD ABI для `x86_64` и `aarch64`, с явной проверкой платформы и раскладки
+  `struct flock`; альтернативы через POSIX/flock нет. Текущие проверки выполнены на
+  `x86_64`; это не свидетельство запуска на каждом поддержанном ABI.
+- Нужен `sqlite3.Connection.deserialize`. При его отсутствии — явный отказ без чтения
+  исходного файла через SQLite.
+- Поддержан согласованный rollback-файл с текущей Task DB schema. Отсутствующий,
+  повреждённый, несовместимый файл и конфликтующий писатель отклоняются.
+- WAL-заголовок отклоняется даже без sidecar-файлов. Любой `-wal`, `-shm`, `-journal`,
+  включая broken symlink, вызывает отказ до unsafe main-only чтения. Наличие journal
+  не объявляется доказательством, что он hot; checkpoint, recovery и удаление журнала
+  не выполняются.
+- Образ и memory SQLite требуют память порядка размера БД; временная файловая копия,
+  скрытый лимит размера и иной способ чтения не подставляются. Недостаток памяти — отказ.
+  `lock_seconds` приходит из конфигурации для memory connection, не задаёт retry worker.
+- Гарантия относится к взаимодействию с SQLite-писателями, соблюдающими файловые
+  блокировки. Защита от произвольной намеренной подмены файла, custom VFS и восстановления
+  `journal_mode=OFF` не подтверждена этим контрактом.
+
+Чтение не меняет исходные файлы, schema, Task history, claim или pending и не выделяет
+новые Git-ресурсы. Успешный снимок одного проекта не создаёт общий snapshot нескольких
+проектов и не резервирует последующий старт Task.
 
 ## Verification source provenance — task 0037
 

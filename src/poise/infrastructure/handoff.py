@@ -3,10 +3,15 @@
 No migration, remote store import or automatic backup delivery is implied.
 """
 from copy import deepcopy
+import hashlib
+import io
 import json
 import os
 import re
 import shutil
+import stat
+import tarfile
+import tempfile
 from pathlib import Path
 from ..common import PoiseError,descendant,digest,file_digest,encoded
 from ..application.handoff import HandoffCommands
@@ -36,6 +41,7 @@ class LocalHandoff:
             raise PoiseError('Newborn handoff requires null result; edit the draft instead of submitting a stage result')
         worktree=h._verification_workspace(data)
         recovery = args.get('uncertain_check_recovery')
+        wip_context = None if recovery is not None else self.commands.preservation_context(data['id'], h.session)
         if recovery is not None:
             if (not is_check_attempt(data['pending'])
                     or recovery['attempt_id'] != data['pending']['attempt_id']):
@@ -68,9 +74,9 @@ class LocalHandoff:
         head=data['base'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         dirty=False if worktree_free else h._git(worktree,'rev-parse','HEAD^{tree}')!=tree
         msg=args['commit_message']
-        if dirty and recovery is None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
+        if dirty and recovery is None and wip_context is None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
             raise PoiseError('WIP requires explicit valid repository commit message')
-        if not dirty and msg is not None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
+        if msg is not None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
             raise PoiseError('Invalid supplied handoff commit message')
         directory=descendant(h._roots(data)['task'],self.config['directory'])/digest([h.session,request_id])
         # Every selected runtime artifact is copied to task before cleanup; data in
@@ -96,6 +102,12 @@ class LocalHandoff:
         plan={'reason':args['reason'],'tree':tree,'head_at_start':head,'directory':str(directory),
               'verified':verified,'commit_message':msg,'preserved_artifacts':list(dict.fromkeys(preserved)),
               'artifact_mapping':mapping}
+        if wip_context is not None:
+            plan['wip_context'] = wip_context
+            plan['wip_snapshot'] = (prior['plan']['wip_snapshot'] if prior is not None
+                                    else self._preserve_wip_snapshot(worktree, data, directory))
+            if self._validate_wip_snapshot(worktree, plan['wip_snapshot'])['task_id'] != data['id']:
+                raise PoiseError('WIP snapshot Task identity changed')
         if recovery is not None:
             plan['uncertain_check_recovery'] = {'intent': deepcopy(recovery), 'attempt': deepcopy(data['pending'])}
             if not worktree_free:
@@ -109,7 +121,7 @@ class LocalHandoff:
             plan=prior['plan']
             if tree!=plan['tree'] or data['_version']!=prior['version']:
                 raise PoiseError('Preserved inputs changed during unfinished handoff')
-        if recovery is None and not worktree_free and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']:
+        if recovery is None and wip_context is None and not worktree_free and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']:
             h._git(worktree,'add','--all')
             if h._git(worktree,'write-tree')!=plan['tree']:raise PoiseError('WIP index no longer matches captured state')
             actor={k:h.cfg['git'][v] for k,v in [('GIT_AUTHOR_NAME','author_name'),('GIT_COMMITTER_NAME','author_name'),
@@ -118,7 +130,7 @@ class LocalHandoff:
         sha=plan['head_at_start'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         if (not worktree_free and
                 (h._tree(worktree)!=plan['tree'] or
-                 (recovery is None and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']) or
+                 (recovery is None and wip_context is None and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']) or
                  (recovery is not None and sha != plan['head_at_start']))):
             h.store.event(h.session,data['id'],'incident.handoff_tree_changed',{'expected_tree':plan['tree'],'commit':sha})
             raise PoiseError('Commit hook changed WIP tree; claim retained')
@@ -142,13 +154,18 @@ class LocalHandoff:
                  'bundle_digest':None if worktree_free else file_digest(bundle),
                  'preserved_artifacts':plan['preserved_artifacts'],'artifact_mapping':plan['artifact_mapping'],
                  'reason':plan['reason'],'replayed':False,'transfer_scope':'same_store_local_resume'}
+        if 'wip_snapshot' in plan:
+            receipt['wip_snapshot'] = plan['wip_snapshot']
         atomic_write(receipt_path,(encoded(receipt)+'\n').encode(),self.config['file_mode'])
         owned=[*plan['preserved_artifacts'],str(receipt_path)]
         if not worktree_free:owned.append(str(bundle))
+        if 'wip_snapshot' in plan:owned.append(plan['wip_snapshot']['path'])
         h.register_artifact_paths(owned,data)
         h.result_views.finish()
         if recovery is not None and not worktree_free:
             self._validate_recovery_worktree(worktree, plan)
+        if 'wip_snapshot' in plan:
+            self._validate_wip_snapshot(worktree, plan['wip_snapshot'])
         self.commands.release(h.session,request_id,receipt)
         h.store.event(h.session,data['id'],'handoff.released',{'receipt':str(receipt_path),'commit':sha,'verified':verified})
         h._cleanup_runtime()
@@ -159,6 +176,9 @@ class LocalHandoff:
         h=self.h;record=self.commands.latest(data['id'])
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
+        if 'wip_snapshot' in receipt:
+            if self._validate_wip_snapshot(Path(data['worktree']), receipt['wip_snapshot'])['task_id'] != data['id']:
+                raise PoiseError('WIP snapshot Task identity changed before resume')
         recovery = record['plan'].get('uncertain_check_recovery')
         if recovery is not None:
             if data['pending'] != recovery['attempt']:
@@ -194,3 +214,214 @@ class LocalHandoff:
         receipt = record['receipt']
         self.commands.resume(data['id'],h.session,record['actor'],record['request_id'],force_duplicate_start=force_duplicate_start)
         h.store.event(h.session,data['id'],'handoff.resumed',{'from_session':record['actor'],'commit':receipt['commit']})
+
+    @staticmethod
+    def _snapshot_path(name):
+        path = Path(name)
+        if not isinstance(name, str) or not name or path.is_absolute() or '..' in path.parts or str(path) != name:
+            raise PoiseError('Unsafe WIP snapshot path')
+        return path
+
+    @staticmethod
+    def _read_working_file(worktree, relative):
+        """Open each component without following a symlink, including races."""
+        directory = os.open(worktree, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            for component in relative.parts[:-1]:
+                child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+                os.close(directory)
+                directory = child
+            descriptor = os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+            with os.fdopen(descriptor, 'rb') as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    raise PoiseError(f'WIP file type changed: {relative}')
+                return stream.read()
+        finally:
+            os.close(directory)
+
+    def _index_material(self, worktree, temporary):
+        h = self.h
+        if h._git(worktree, 'rev-parse', '--shared-index-path'):
+            raise PoiseError('WIP snapshot does not support split-index dependencies; claims retained')
+        index = Path(h._git(worktree, 'rev-parse', '--git-path', 'index'))
+        if not index.is_absolute():
+            index = worktree / index
+        if not stat.S_ISREG(index.lstat().st_mode):
+            raise PoiseError('WIP snapshot requires a regular index')
+        raw = index.read_bytes()
+        copy = temporary / 'index'
+        copy.write_bytes(raw)
+        environment = {**os.environ, 'GIT_INDEX_FILE': str(copy)}
+        entries = []
+        for row in h._git(worktree, 'ls-files', '--stage', '-z', env=environment).split('\0'):
+            if not row:
+                continue
+            metadata, name = row.split('\t', 1)
+            mode, oid, stage = metadata.split()
+            self._snapshot_path(name)
+            if stage != '0' or mode not in ('100644', '100755', '120000'):
+                raise PoiseError(f'Unsupported staged snapshot entry {name}; claims retained')
+            entries.append({'path': name, 'mode': mode, 'oid': oid})
+        tree = h._git(worktree, 'write-tree', env=environment)
+        return raw, stat.S_IMODE(index.lstat().st_mode), entries, tree
+
+    def _observe_wip(self, worktree, task_id):
+        h = self.h
+        names = set()
+        for arguments in (('ls-tree', '-r', '-z', '--name-only', 'HEAD'),
+                          ('ls-files', '-z', '--cached', '--others', '--exclude-standard')):
+            names.update(name for name in h._git(worktree, *arguments).split('\0') if name)
+        files = {}
+        payloads = {}
+        for name in sorted(names):
+            relative = self._snapshot_path(name)
+            # lstat each ancestor before inspecting the leaf: never follow a
+            # directory symlink into unrelated/private filesystem material.
+            for parent in reversed(relative.parents):
+                if str(parent) == '.':
+                    continue
+                location = worktree / parent
+                try:
+                    mode = location.lstat().st_mode
+                except FileNotFoundError:
+                    continue
+                if not stat.S_ISDIR(mode):
+                    raise PoiseError(f'Unsafe symlink/special ancestor {parent}; claims and WIP retained')
+                files[str(parent)] = {'path': str(parent), 'kind': 'directory',
+                                      'mode': stat.S_IMODE(mode), 'payload': None}
+            path = worktree / relative
+            try:
+                mode = path.lstat().st_mode
+            except FileNotFoundError:
+                files[name] = {'path': name, 'kind': 'absent', 'mode': None, 'payload': None}
+                continue
+            if stat.S_ISLNK(mode):
+                content = os.fsencode(os.readlink(path))
+                kind = 'symlink'
+            elif stat.S_ISREG(mode):
+                content = self._read_working_file(worktree, relative)
+                kind = 'file'
+            else:
+                raise PoiseError(f'Unsupported WIP snapshot file {name}; claims retained')
+            checksum = hashlib.sha256(content).hexdigest()
+            payload = 'payloads/' + checksum
+            payloads[payload] = content
+            files[name] = {'path': name, 'kind': kind, 'mode': stat.S_IMODE(mode),
+                           'payload': payload, 'sha256': checksum}
+        with tempfile.TemporaryDirectory(dir=h.runtime.parent, prefix='handoff-index-') as directory:
+            raw, mode, entries, staged_tree = self._index_material(worktree, Path(directory))
+        payloads['index'] = raw
+        return {'schema': 'poise-handoff-wip-1', 'task_id': task_id,
+                'head': h._git(worktree, 'rev-parse', 'HEAD'),
+                'branch': h._git(worktree, 'symbolic-ref', '--short', 'HEAD'),
+                'tree': h._tree(worktree),
+                'index': {'path': 'index', 'sha256': hashlib.sha256(raw).hexdigest(), 'mode': mode},
+                'staged_tree': {'path': 'staged-tree.tar', 'tree': staged_tree, 'entries': entries},
+                'files': [files[name] for name in sorted(files)]}, payloads
+
+    def _validate_staged_archive(self, worktree, content, expected):
+        entries = {item['path']: item for item in expected}
+        if len(entries) != len(expected):
+            raise PoiseError('Duplicate staged snapshot inventory')
+        with tarfile.open(fileobj=io.BytesIO(content)) as archive:
+            members = archive.getmembers()
+            seen = set()
+            leaves = {}
+            ancestors = {str(parent) for name in entries for parent in Path(name).parents if str(parent) != '.'}
+            for member in members:
+                name = member.name.rstrip('/') if member.isdir() else member.name
+                self._snapshot_path(name)
+                if name in seen:
+                    raise PoiseError(f'Duplicate staged archive entry {name}; claims retained')
+                seen.add(name)
+                if member.isdir():
+                    if name not in ancestors:
+                        raise PoiseError(f'Unexpected staged archive directory {name}')
+                else:
+                    leaves[name] = member
+            missing = entries.keys() - leaves.keys()
+            extra = leaves.keys() - entries.keys()
+            if missing or extra:
+                raise PoiseError(f'Incomplete staged archive: missing {sorted(missing)}, unexpected {sorted(extra)}; claims retained')
+            with tempfile.TemporaryDirectory(dir=self.h.runtime.parent, prefix='handoff-blobs-') as directory:
+                for number, (name, entry) in enumerate(entries.items()):
+                    member = leaves[name]
+                    if entry['mode'] == '120000' and member.issym():
+                        raw = os.fsencode(member.linkname)
+                    elif entry['mode'] in ('100644', '100755') and member.isfile():
+                        if bool(member.mode & 0o111) != (entry['mode'] == '100755'):
+                            raise PoiseError(f'Staged archive mode mismatch {name}')
+                        raw = archive.extractfile(member).read()
+                    else:
+                        raise PoiseError(f'Staged archive type mismatch {name}')
+                    blob = Path(directory) / str(number)
+                    blob.write_bytes(raw)
+                    oid = self.h._git(worktree, 'hash-object', '--no-filters', '--', str(blob))
+                    if oid != entry['oid']:
+                        raise PoiseError(f'Staged archive blob mismatch {name}; claims retained')
+
+    def _validate_wip_snapshot(self, worktree, descriptor):
+        try:
+            if set(descriptor) != {'schema', 'path', 'digest'} or descriptor['schema'] != 'poise-handoff-wip-1':
+                raise PoiseError('Unsupported WIP snapshot descriptor')
+            path = Path(descriptor['path'])
+            if not stat.S_ISREG(path.lstat().st_mode):
+                raise PoiseError('WIP snapshot missing or changed')
+            raw = path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != descriptor['digest']:
+                raise PoiseError('WIP snapshot missing or changed')
+            with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+                members = archive.getmembers()
+                if len({item.name for item in members}) != len(members):
+                    raise PoiseError('Duplicate WIP snapshot payload')
+                for member in members:
+                    self._snapshot_path(member.name)
+                    if not member.isfile():
+                        raise PoiseError('WIP snapshot payload must be regular data')
+                payloads = {member.name: archive.extractfile(member).read() for member in members}
+            manifest = json.loads(payloads.pop('manifest.json'))
+            if set(manifest) != {'schema', 'task_id', 'head', 'branch', 'tree', 'index', 'staged_tree', 'files'}:
+                raise PoiseError('Invalid WIP snapshot manifest schema')
+            if manifest['schema'] != descriptor['schema']:
+                raise PoiseError('WIP snapshot schema mismatch')
+            live, live_payloads = self._observe_wip(worktree, manifest['task_id'])
+            declared_staged = manifest['staged_tree']
+            if set(declared_staged) != {'path', 'tree', 'entries', 'sha256'}:
+                raise PoiseError('Invalid staged archive manifest')
+            observed = deepcopy(manifest)
+            observed['staged_tree'].pop('sha256')
+            if live != observed:
+                raise PoiseError('WIP snapshot material/index/branch changed; claims retained')
+            staged = payloads.pop(declared_staged['path'])
+            if hashlib.sha256(staged).hexdigest() != declared_staged['sha256'] or payloads != live_payloads:
+                raise PoiseError('WIP snapshot payload changed')
+            self._validate_staged_archive(worktree, staged, declared_staged['entries'])
+            return manifest
+        except (PoiseError, OSError, ValueError, KeyError, TypeError, tarfile.TarError) as exc:
+            raise PoiseError(f'Invalid WIP snapshot; claims retained: {exc}') from exc
+
+    def _preserve_wip_snapshot(self, worktree, data, directory):
+        target = descendant(directory, self.config['preserved_directory']) / 'wip-snapshot.tar'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            descriptor = {'schema': 'poise-handoff-wip-1', 'path': str(target), 'digest': file_digest(target)}
+            return descriptor
+        manifest, payloads = self._observe_wip(worktree, data['id'])
+        with tempfile.TemporaryDirectory(dir=self.h.runtime.parent, prefix='handoff-archive-') as temporary:
+            archive = Path(temporary) / 'staged-tree.tar'
+            self.h._git(worktree, 'archive', '--output=' + str(archive), manifest['staged_tree']['tree'])
+            staged = archive.read_bytes()
+        self._validate_staged_archive(worktree, staged, manifest['staged_tree']['entries'])
+        manifest['staged_tree']['sha256'] = hashlib.sha256(staged).hexdigest()
+        payloads['staged-tree.tar'] = staged
+        payloads['manifest.json'] = (encoded(manifest) + '\n').encode()
+        content = io.BytesIO()
+        with tarfile.open(fileobj=content, mode='w') as archive:
+            for name, raw in sorted(payloads.items()):
+                member = tarfile.TarInfo(name)
+                member.size = len(raw)
+                archive.addfile(member, io.BytesIO(raw))
+        atomic_write(target, content.getvalue(), self.config['file_mode'])
+        descriptor = {'schema': 'poise-handoff-wip-1', 'path': str(target), 'digest': file_digest(target)}
+        return descriptor

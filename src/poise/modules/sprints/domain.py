@@ -204,6 +204,10 @@ class Sprint:
     def reopened(self):
         return any(item['kind'] == 'unpublish' for item in self.decisions)
 
+    def preserves_readied_member(self, task_id):
+        return (self.state == 'draft' and self.reopened
+                and task_id in {task_identity(item) for item in self.plan.data['tasks']})
+
     def require_execution(self, task_id):
         if self.state != 'published':
             raise DomainError('Sprint is a draft or cancelled; publish it before executing members')

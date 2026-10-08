@@ -6,6 +6,43 @@ from .check_attempts import validate_preserved_attempt_in
 class HandoffCommands:
     def __init__(self,unit_of_work):self.uow=unit_of_work
 
+    @staticmethod
+    def _preservation_context_in(uow, task_id, actor):
+        from ..modules.sprints.domain import Sprint
+        if not uow.tasks.is_newborn(task_id):
+            return None
+        task = uow.tasks.load_newborn(task_id)
+        if (task.claimed_by != actor or not task.ready or task.sprint_id is None
+                or not any(item.get('from_status') in ('available', 'active', 'verified', 'accepted')
+                           for item in task.restart_history)):
+            return None
+        record = uow.sprints.get(task.sprint_id)
+        if record is None:
+            return None
+        sprint = Sprint.restore(record['aggregate'])
+        if not sprint.preserves_readied_member(task_id):
+            return None
+        if not uow.execution.exists(task_id):
+            return None
+        execution, version = uow.execution.load(task_id)
+        if (execution['worktree'] is None or execution['pending'] is not None
+                or execution['publication'] is not None):
+            return None
+        if uow.ownership.snapshot(actor).worktree_task_id != task_id:
+            return None
+        return {'task_id': task_id, 'task_version': task.version,
+                'sprint_id': task.sprint_id, 'sprint_revision': sprint.revision,
+                'execution_version': version, 'worktree': execution['worktree'],
+                'branch': execution['branch'], 'base': execution['base']}
+
+    def preservation_context(self, task_id, actor):
+        with self.uow() as uow:
+            return self._preservation_context_in(uow, task_id, actor)
+
+    def _require_preservation_in(self, uow, task_id, actor, plan):
+        if 'wip_context' in plan and self._preservation_context_in(uow, task_id, actor) != plan['wip_context']:
+            raise PoiseError('Task/Sprint preservation context changed; claims and WIP retained')
+
     def lookup(self,actor,request_id):
         with self.uow() as uow:return uow.handoffs.get(actor,request_id)
 
@@ -22,6 +59,7 @@ class HandoffCommands:
                    else uow.tasks.load(task_id).state)
             if state.version!=version or state.claimed_by!=actor:
                 raise PoiseError('Task changed before handoff preparation')
+            self._require_preservation_in(uow, task_id, actor, plan)
             record={'actor':actor,'request_id':request_id,'digest':digest,'task_id':task_id,
                     'version':version,'state':'preparing','plan':plan,'receipt':None}
             uow.handoffs.insert(record)
@@ -38,6 +76,7 @@ class HandoffCommands:
             state=(uow.tasks.load_newborn(record['task_id']) if uow.tasks.is_newborn(record['task_id'])
                    else uow.tasks.load(record['task_id']).state)
             if state.version!=record['version']:raise PoiseError('Task changed during handoff')
+            self._require_preservation_in(uow, record['task_id'], actor, record['plan'])
             recovery = record['plan'].get('uncertain_check_recovery')
             if recovery is not None:
                 execution, _ = uow.execution.load(record['task_id'])

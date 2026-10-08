@@ -54,7 +54,7 @@ Keep domain code independent of I/O. Application services coordinate domain obje
 
 `ResultIntegration` keeps the accepted commit immutable and advances only the existing task branch in its existing task worktree. Run update, conflict resolution, and checks there; do not create an integration branch or worktree. Serialize publication per target, reread it under that lock, repeat update and checks on drift, and publish only through `git merge --ff-only <task-branch>` in the main checkout. On a blocked fast-forward, record proof that the checkout state is unchanged. Poise-owned executables, hooks and configuration keep their existing path resolution. Development or verification operations that act on another checkout receive its concrete filesystem path/cwd explicitly; see [path resolution and working copies](../docs/migrations/erp-runtime-migration-retrospective-2026-09-15.md#разрешение-путей-и-рабочие-копии). Persist replay phases and limit cleanup to the task worktree, task branch, and scoped temporary backups.
 
-Stage progression belongs to Tasks: keep the durable target and replay identity in the Task journal, read role boundaries from explicit role fields in the frozen Task route, and perform every move through the existing Task transition. Application services may coordinate progression, entry-gate preflight and confirmed handoff resumption; transport only parses and presents it. Never add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
+Stage progression belongs to Tasks: keep the durable target and replay identity in the Task journal, for new work read role boundaries from explicit role fields in the frozen Task route, and perform every move through the existing Task transition. Application services may coordinate progression, entry-gate preflight and confirmed handoff resumption; transport only parses and presents it. Never add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
 
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type defines its own process; it does not require a new execution engine.
 
@@ -240,3 +240,19 @@ the actual produced-result stage role with the inspecting stage role from the Ta
 Equal roles require no identity separation; unequal roles require distinct effective actors
 with saved provenance. Keep ownership, evidence and gate validation unchanged. Never infer
 missing legacy roles or rewrite stored Task snapshots as an implicit upgrade.
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice when current proof obligations
+remain compatible. Restart or requirement wording alone does not invalidate proof.
+Never substitute old methods, expectations, schedules or evidence plans for an
+explicitly changed current contract. Revalidate ignored collisions and preservation
+before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

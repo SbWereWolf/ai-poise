@@ -352,12 +352,32 @@ class Poise:
         return self._recover_empty_transition(task_id, reason, "advance")
 
     @duplicate_admission
-    def advance(self, request_id: str, task_id: str, target_stage: str, *, force_duplicate_start=False) -> dict:
+    def advance(self, request_id: str, task_id: str, target_stage: str | None = None, *, force_duplicate_start=False) -> dict:
         self._identifier(task_id)
         data = self.task_queries.record(task_id)
         if data is None:
             raise PoiseError("Unknown progression Task")
         self.task_commands.execution_preflight(task_id)
+        saved = self.task_commands.progression_request(
+            task_id, self.session, request_id, target_stage,
+            lambda: self._git(Path(data['worktree']), 'rev-parse', 'HEAD'))
+        if saved is not None and saved['result'] is not None:
+            return {**self._context(self.task_queries.record(task_id), False), **saved['result']}
+        replay_context = self.task_commands.replay_context(task_id, request_id)
+        if replay_context['cursor'] is not None or (
+                replay_context['sources'] is not None and data['status'] == 'active'
+                and data['last_report'] is None):
+            from .application.replay import ReplayCoordinator
+            from .infrastructure.replay_workspace import GitReplayWorkspace
+            workspace = GitReplayWorkspace(self._git, data, self.cfg['git']['repository'])
+            result = ReplayCoordinator(
+                self.task_commands, workspace, self.task_queries.record,
+                lambda source: self._check_replay_files(task_id, source),
+                self._run_replay_checks,
+                lambda current: self._artifact_facts(self._existing_artifacts(current)),
+            ).run(task_id, self.session, request_id, target_stage, replay_context,
+                  force_duplicate_start=force_duplicate_start)
+            return {**self._context(self.task_queries.record(task_id), False), **result}
         self.task_commands.reviewer_preflight(task_id, self.session)
         self._require_report_identity(data)
         entry_tree = self._current_tree(data)
@@ -384,6 +404,9 @@ class Poise:
                 progression=progression,
             )
         current = self._task()
+        if outcome['kind'] == 'task_acceptance_required':
+            return {**self._context(current, False), 'status': 'progression_stopped',
+                    'progression': progression, 'reason': 'task_acceptance_required'}
         if outcome["kind"] == "role_handoff_required":
             step = outcome["step"]
             return {
@@ -426,6 +449,78 @@ class Poise:
                 else "The requested stage is current; perform its work."
             ),
         }
+
+    def _check_replay_files(self, task_id, source):
+        data = self.task_queries.record(task_id)
+        registered = {item['id']: item for item in self.store.artifact_records(task_id)}
+        roots = self._roots(data)
+        owners = {'runtime': self.session, 'task': task_id}
+        if data['sprint_id'] is not None:
+            owners['sprint'] = data['sprint_id']
+        for accepted in source['report']['artifacts']:
+            original = registered.get(accepted['id'])
+            if original is None or any(original[key] != accepted[key]
+                                       for key in ('id', 'path')):
+                return 'evidence_changed'
+            if not Path(original['path']).exists():
+                return 'evidence_missing'
+            try:
+                current = inspect_paths([original['path']], roots, owners)[0]
+            except PoiseError:
+                return 'evidence_changed'
+            if any(current[key] != original[key] for key in ('id', 'scope', 'owner', 'path', 'digest')):
+                return 'evidence_changed'
+        return None
+
+    def _run_replay_checks(self, task_id, source, candidate_digest):
+        data = self.task_queries.record(task_id)
+        worktree = Path(data['worktree'])
+        selection = deepcopy(data)
+        stage_id = source['stage']
+        # Keep current definitions and evidence authoritative. Recheck previously
+        # accepted supplemental commands without dropping any current obligation.
+        selection['contract']['checks'][stage_id] = list(dict.fromkeys(
+            data['contract']['checks'][stage_id] + [m['id'] for m in source['methods']]))
+        checks = self._select_checks(selection, [])
+        invocations, key = self._verification_execution(data, source['tree'], checks, worktree)
+        batch = self.task_commands.submission_observation_batch(task_id, candidate_digest, source['tree'], key)
+        if batch is not None:
+            receipts = batch['receipts']
+            if not self._intact_receipts(task_id, receipts, invocations, source['tree']):
+                return {'reason': 'unknown_effect', 'execution_key': key}
+        else:
+            pending = data['pending']
+            if pending is not None:
+                if not is_check_attempt(pending):
+                    return {'reason': 'unknown_effect', 'execution_key': key}
+                recorded = {r['id']: r for r in self.evidence_commands.list_for(task_id)}
+                for run, invocation in zip(pending['runs'], invocations, strict=True):
+                    if run['started'] and (not receipt_matches(pending, run, recorded.get(run['run_id']))
+                            or not self._intact_receipts(task_id, [recorded[run['run_id']]],
+                                                        [invocation], source['tree'])):
+                        return {'reason': 'unknown_effect', 'execution_key': key}
+                data['pending'] = self.runner.current_check_attempt(
+                    task_id, self.session, source['tree'], key, [m['id'] for m in checks])
+            else:
+                self.runner.begin_check_attempt(task_id, self.session, source['tree'], key,
+                    [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
+                    data['_version'], candidate_digest, self._attempt_identity(source['tree'], invocations))
+                data = self.task_queries.record(task_id)
+            receipts = self._execute_checks(data, self._stage(data), source['tree'], checks,
+                                            invocations, self._roots(data))
+            if not self._intact_receipts(task_id, receipts, invocations, source['tree']):
+                return {'reason': 'unknown_effect', 'execution_key': key}
+            self.runner.record_observations(task_id, self.session, source['tree'], key, receipts)
+        if not all(r['passed'] and r['interpretable'] and r['source_unchanged'] for r in receipts):
+            return {'reason': 'tests_failed', 'execution_key': key}
+        if data['status'] == 'verified':
+            assessment = self.runner.context(task_id)['evidence']['assessment']
+            if (assessment is None or not assessment['ready'] or assessment['tree'] != source['tree']
+                    or assessment['execution_key'] != key or assessment['submission_digest'] != candidate_digest):
+                return {'reason': 'unknown_effect', 'execution_key': key}
+        else:
+            assessment = self.task_commands.assess_evidence(task_id, self.session, source['tree'], key)
+        return {'reason': None if assessment['ready'] else 'evidence_missing', 'execution_key': key}
 
     def recover_missing_worktree(self, task_id: str, reason: str) -> dict:
         self._identifier(task_id)

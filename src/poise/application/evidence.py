@@ -1,4 +1,6 @@
 """Application API for observed command evidence. I/O remains behind ports."""
+import json
+
 from ..modules.evidence.domain import EvidenceBook
 from ..modules.foundation.errors import DomainError
 
@@ -16,7 +18,9 @@ class EvidenceCommands:
                 raise DomainError('Receipt requires current active task owner')
             if (task.stage.stage_id,task.state.iteration)!=(stage,iteration):
                 raise DomainError('Receipt belongs to a different stage/iteration')
-            if set(receipt['obligations'])-set(task.check_registry.method_ids):
+            admitted = (task.check_registry.method_ids if task.replay_candidate is None else
+                        json.loads(task.replay_candidate)['method_ids'])
+            if set(receipt['obligations'])-set(admitted):
                 raise DomainError('Receipt references unknown verification method')
             uow.evidence.record(task_id,stage,iteration,receipt)
 

@@ -176,7 +176,7 @@ inferring classes from names. `poise skills` reads metadata without Task ownersh
 
 ## Resumable work
 
-After each task and before a risky transition apply [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление) using `tools/work_checkpoint.py` and verify the checkpoint locally. Gmail delivery and full attachment readback are mandatory only for cloud development. In local development they require an explicit request and must not block Task completion, integration or Sprint continuation. On resume inspect provided attachments first. Preserve explicit next work and rejected baselines.
+**Applicability: when working in the cloud.** After each task and before a risky transition apply [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление), verify restoration, and complete Gmail delivery and full attachment readback. Local Task completion, integration, and Sprint continuation do not require checkpoints, archives, restoration checks, or mail delivery. Perform those local actions only on a separate explicit user request. On resume inspect provided attachments first. Preserve explicit next work and rejected baselines.
 
 For authoring-stage Python boundary diagnostics and same-Task repair, use
 [the configured architecture gate](../../../docs/workflows/architecture-boundaries.md#проверка-архитектуры-перед-авторской-сдачей).
@@ -208,3 +208,19 @@ through RequirementsCommands, and Task/Sprint publication through TaskRequiremen
 Do not add implicit storage paths or rewrite historical Task context. See
 [storage ownership](../../../docs/workflows/requirements-registry.md#владение-и-явные-пути)
 and [publication](../../../docs/workflows/requirements-registry.md#публикация-и-исторический-снимок).
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice when current proof obligations
+remain compatible. Restart or requirement wording alone does not invalidate proof.
+Never substitute old methods, expectations, schedules or evidence plans for an
+explicitly changed current contract. Revalidate ignored collisions and preservation
+before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

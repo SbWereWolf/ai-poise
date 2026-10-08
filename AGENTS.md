@@ -31,8 +31,14 @@ were inventoried. Design exact future test methods and provenance at their ownin
 
 Separate Sprint graph planning, bounded Task formulation and detailed execution
 design. Do not implement a prototype merely to approve a Task formulation or demand
-future test names at creation. Preserve the accepted goal's meaning. Paired starters
-give each substantive executor result independent review; the reviewer checks
+future test names at creation. Before the first substantive Task result is confirmed
+by an independent reviewer, an inadequate goal may be clarified during review through
+an authorized restart. After that confirmation, do not change the same Task's goal,
+even if restart returns it to newborn and the API permits the edit. Ready, start,
+baseline observations, plans and unconfirmed results do not by themselves establish
+this boundary. Follow the
+[canonical goal rule](docs/governance/development-rules.md#task-goal-preservation).
+Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
 [paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
 and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
@@ -59,6 +65,13 @@ as display: use full output for machine parsing and decisions via existing saved
 rerun a mutation just to obtain its output. Follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
 decisions enforceable development rules and keep responsibility boundaries documented. Do not leave authoritative
 decisions only in conversation history.
+Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
+exact section; co-deliver the Russian source and English projection. Follow
+[global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Reconcile a stale completion status with an actually completed, independently reviewed, accepted and integrated
+result through its public owner or an authorized audited manual correction. Preserve historical stages and native
+receipts; distinguish manual reconciliation from native lifecycle completion. Follow
+[harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 For changed documentation or rule targets, follow [local links and exact
 headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to
 changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.
@@ -105,10 +118,12 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Before every completed-task boundary or risky transition, create and locally verify a portable checkpoint.
-Only cloud development requires sending the archive and readable text transport to Gmail and verifying attachment
-readback. Local development does not require Gmail delivery or readback to complete or integrate a Task; perform
-mail delivery locally only when explicitly requested. On resume, inspect already attached files before
+**Applicability: when working in the cloud.**
+Require a portable checkpoint before completed-task boundaries or risky transitions,
+restoration verification, Gmail archive/text delivery, and full attachment readback. Local development requires
+none of those actions for Task completion, integration, or Sprint continuation. Create local checkpoints or
+archives, verify their restoration, or send them only when the user explicitly requests those actions separately.
+Saving commits and check evidence does not require an archive. On resume, inspect already attached files before
 asking for another upload. Follow [checkpoint and
 recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
 passed check, a delivery receipt, and Task completion.
@@ -190,8 +205,8 @@ Keep this English projection and its Russian source consistent in the same chang
   message; the recipient acquires before working. No per-review user command is required. Follow [direct role
   handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим); messaging never replaces
   ownership or independent review.
-- Use the public `advance` operation with one stable request identity when work must reach an explicit later stage.
-  Replay it after each verified current-role stage, lawful correction or restart. It stops for real work, entry gates,
+- Use public `advance` with one stable request identity; omit the target for maximum progression or name a stage to stop on entry.
+  For ordinary new work, replay it after each verified current-role stage or lawful correction. It stops for real work, entry gates,
   role boundaries and separately controlled publish acceptance; after public handoff, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
@@ -588,3 +603,19 @@ preserve TDD and independent review, foreign WIP and data integrity. Do not inve
 native receipts or Task completion. A narrow manual data repair needs proven exact
 scope, preserved original data, no competing writer, and verified postconditions.
 Never use a bypass to fabricate external outcomes, evidence, or foreign ownership.
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice when current proof obligations
+remain compatible. Restart or requirement wording alone does not invalidate proof.
+Never substitute old methods, expectations, schedules or evidence plans for an
+explicitly changed current contract. Revalidate ignored collisions and preservation
+before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

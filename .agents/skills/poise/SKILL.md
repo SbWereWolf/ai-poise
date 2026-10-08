@@ -104,6 +104,12 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
+Apply the [accepted-goal rule](../../../docs/governance/development-rules.md#task-goal-preservation):
+review may clarify an inadequate goal until an independent reviewer confirms the first
+substantive result. After that confirmation, agents must keep the goal unchanged even
+when a lawful restart returns the Task to newborn. The API's newborn edit capability
+does not enforce this historical agent rule.
+
 Read task_decomposition from the selected project's project-specific routing. Declare every process phase before an
 ordinary or integration Task is made ready. Each phase names its
 skills and areas; the phase set must exactly match the selected process snapshot. Meta and general skills do not split a
@@ -250,8 +256,8 @@ limit. Continue stages of your own role; at a role boundary follow the handoff p
 act as your own independent reviewer. Stop for a real blocker, a new required decision, or separately controlled
 acceptance/publication/integration.
 
-When a requested stage is beyond the current stage, use the public `advance` operation with a stable `request_id`, the
-exact Task ID and exact `target_stage`. Replay that exact request after completing and verifying each current-role
+Use public `advance` with a stable `request_id` and exact Task ID. Supply an exact
+`target_stage` to stop on entry, or omit it for maximum progression. For ordinary new work, replay that exact request after completing and verifying each current-role
 stage, after a lawful correction or restart, and after the receiving session bootstraps a public handoff. Treat
 `progression_work_required`, `role_handoff_required` and `user_acceptance_required` as pauses, not success. At a role
 boundary, include the active progression identity in the direct handoff message. Never change its target under the same
@@ -293,7 +299,9 @@ limits](../../../docs/workflows/batch-work.md#сохранённый-запро�
 Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
 The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate
 retroactively. A reviewed taskless correction with explicit user authority may use the separate manual local delivery
-route, preserving exact commit/check identity, checkpoint, target and foreign WIP. Follow the canonical
+route, preserving exact commit/check identity, target and foreign WIP.
+**Checkpoint applicability: when working in the cloud.** Creation and verification remain required in that environment;
+local work requires them only on a separate explicit user request. Follow the canonical
 [route decision](../../../docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка) and
 [pre-ready procedure](../../../docs/workflows/pilot-task-preflight.md#выбор-маршрута-до-первой-записи). Never manufacture
 Task stages, acceptance or receipts for earlier taskless work.
@@ -596,3 +604,19 @@ terminal inspection snapshot. The result is read_only_verified where applicable;
 it does not reclaim the task, restore its worktree or repeat acceptance.
 Use the returned persisted results for read-only history, not the released
 current-session binding.
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice when current proof obligations
+remain compatible. Restart or requirement wording alone does not invalidate proof.
+Never substitute old methods, expectations, schedules or evidence plans for an
+explicitly changed current contract. Revalidate ignored collisions and preservation
+before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

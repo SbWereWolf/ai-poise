@@ -40,7 +40,7 @@ def progression_view(db, task_id: str, request_id: str | None = None) -> dict | 
         return None
     action = actions[-1]
     reached = db.execute(
-        "SELECT 1 FROM journal WHERE task_id=? AND event='progression.reached' "
+        "SELECT 1 FROM journal WHERE task_id=? AND event IN ('progression.reached','progression.result') "
         "AND json_extract(data,'$.request_id')=? LIMIT 1",
         (task_id, action["request_id"]),
     ).fetchone()
@@ -363,12 +363,77 @@ class SqliteTaskRepository:
             })),
         )
 
+    def accepted_replay_sources(self, task_id):
+        from .replay import accepted_sources
+        return accepted_sources(self.db, task_id)
+
+    def replay_progress(self, task_id, request_id):
+        row = self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event='progression.phase' "
+            "AND json_extract(data,'$.request_id')=? ORDER BY seq DESC LIMIT 1",
+            (task_id, request_id),
+        ).fetchone()
+        return None if row is None else json.loads(row[0])['cursor']
+
+    def remember_replay_progress(self, task_id, actor, request_id, cursor):
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), actor, task_id, 'progression.phase',
+             encode({'request_id': request_id, 'cursor': deepcopy(cursor)})),
+        )
+
+    def remember_replay_result(self, task_id, actor, request_id, digest, result):
+        saved = self.progression_request(task_id, request_id, digest)
+        if saved is not None and saved['result'] is not None:
+            if saved['result'] != result:
+                raise PoiseError('Terminal progression result is immutable')
+            return saved['result']
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), actor, task_id, 'progression.result',
+             encode({'request_id': request_id, 'digest': digest, 'result': deepcopy(result)})),
+        )
+        return deepcopy(result)
+
+    def progression_request(self, task_id, request_id, digest):
+        rows = self.db.execute(
+            "SELECT event,data FROM journal WHERE task_id=? "
+            "AND event IN ('progression.started','progression.noop','progression.result') "
+            "AND json_extract(data,'$.request_id')=? ORDER BY seq", (task_id, request_id),
+        ).fetchall()
+        result = None
+        for row in rows:
+            value = json.loads(row['data'])
+            if value['digest'] != digest:
+                raise PoiseError('Progression request conflict: identity has another target or mode')
+            if row['event'] in ('progression.noop', 'progression.result'):
+                if result is not None:
+                    raise PoiseError('Contradictory terminal progression identity')
+                result = deepcopy(value['result'])
+        return None if not rows else {'result': result, 'intent': json.loads(rows[0]['data'])}
+
+    def remember_progression_noop(self, task_id, actor, request_id, digest, result):
+        saved = self.progression_request(task_id, request_id, digest)
+        if saved is not None:
+            if saved['result'] is None:
+                raise PoiseError('Progression identity already belongs to an active request')
+            return saved['result']
+        self.db.execute(
+            "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+            (datetime.now(timezone.utc).isoformat(), actor, task_id, 'progression.noop',
+             encode({'request_id': request_id, 'digest': digest, 'result': deepcopy(result)})),
+        )
+        return deepcopy(result)
+
     def begin_progression(
         self, task_id: str, actor: str, request_id: str, digest: str,
-        target_stage: str,
+        target_stage: str | None,
     ) -> dict:
         if not isinstance(request_id, str) or not request_id:
             raise PoiseError("Progression request_id is required")
+        saved_request = self.progression_request(task_id, request_id, digest)
+        if saved_request is not None and saved_request["result"] is not None:
+            raise PoiseError("Progression request already has a terminal result")
         existing = progression_view(self.db, task_id, request_id)
         if existing is not None:
             row = self.db.execute(
@@ -772,7 +837,8 @@ class SqliteTaskRepository:
                     RouteDefinition.from_process(metadata["process"]),
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts,
-                    None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]))
+                    None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]),
+                    None if "replay_candidate" not in workflow else json.dumps(workflow["replay_candidate"], sort_keys=True, ensure_ascii=False))
 
     def load_check_registry(self, task_id: str, metadata: dict, workflow: dict) -> CheckRegistry:
         from ...modules.tasks.definition import (

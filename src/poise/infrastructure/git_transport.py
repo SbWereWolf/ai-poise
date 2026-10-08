@@ -1,5 +1,6 @@
 """Complete Git receipts; display budgets never enter machine transport."""
 import locale
+import os
 import subprocess
 import sys
 
@@ -15,6 +16,9 @@ def run_git_receipt(cwd, arguments, timeout_seconds, environment):
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise PoiseError(f'Git {arguments[0]} did not complete: {exc}') from exc
     encoding = 'utf-8' if sys.flags.utf8_mode else locale.getencoding()
+    def decode(value):
+        if '-z' in arguments:
+            return os.fsdecode(value)
+        return value.decode(encoding, errors='strict')
     return {'argv': argv, 'actual_exit_code': result.returncode,
-            'stdout': result.stdout.decode(encoding, errors='strict'),
-            'stderr': result.stderr.decode(encoding, errors='strict')}
+            'stdout': decode(result.stdout), 'stderr': decode(result.stderr)}

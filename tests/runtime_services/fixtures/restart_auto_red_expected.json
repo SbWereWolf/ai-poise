@@ -1,0 +1,374 @@
+{
+  "modes": {
+    "collected": 5,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/tasks/test_progression_modes.py::test_already_current_target_is_a_complete_no_op",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/tasks/test_progression_modes.py::test_default_mode_replays_accepted_stages_to_first_new_work",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/tasks/test_progression_modes.py::test_exact_target_retry_preserves_projection_and_check_effects",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/tasks/test_progression_modes.py::test_explicit_target_stops_before_its_checks[implementation-2]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/tasks/test_progression_modes.py::test_explicit_target_stops_before_its_checks[test_review-1]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "proof-files": {
+    "collected": 7,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_any_unchanged_accepted_file_is_sufficient[accepted.json-{}]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_any_unchanged_accepted_file_is_sufficient[accepted.txt-accepted text\\n]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_any_unchanged_accepted_file_is_sufficient[accepted.weird-\\x00\\xff\\x80]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_any_unchanged_accepted_file_is_sufficient[no-extension-arbitrary bytes]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_missing_recorded_commit_stops_without_guessed_checkout",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_required_file_failure_stops_at_first_gate[changed-evidence_changed]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_required_file_failure_stops_at_first_gate[missing-evidence_missing]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "proof-checks": {
+    "collected": 7,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_failed_historical_test_stops_before_later_commit",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_mixed_gate_rechecks_historical_tests_and_preserves_file",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_mixed_gate_requires_each_proof_component[file_changed-evidence_changed]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_mixed_gate_requires_each_proof_component[file_missing-evidence_missing]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_mixed_gate_requires_each_proof_component[test-tests_failed]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_requirement_revision_does_not_add_a_new_proof_gate",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_replay.py::test_role_changes_do_not_require_participants_during_replay",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "safety": {
+    "collected": 8,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_changed_request_target_cannot_reuse_confirmed_effects",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_post_checkout_interruption_resumes_without_lost_saved_work",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_recovery_reference_keeps_tracked_and_new_saved_bytes",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_replay_preserves_history_and_normal_verify_handoff",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_same_identity_cannot_change_target_mode_to_maximum",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_uncommitted_task_work_refuses_before_any_rewind[new]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_uncommitted_task_work_refuses_before_any_rewind[staged]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_safety.py::test_uncommitted_task_work_refuses_before_any_rewind[tracked]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "history": {
+    "collected": 6,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[ambiguous_visit-history_unavailable-False]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[contradictory_receipt-history_unavailable-False]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[result-history_unavailable-False]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[test_definition-tests_missing-True]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_incomplete_history_never_guesses_an_accepted_gate[verified_event-history_unavailable-False]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_reworked_visit_uses_exact_accepted_result_identity",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "durability-boundaries": {
+    "collected": 7,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_each_confirmed_boundary_resumes_once[assessment]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_each_confirmed_boundary_resumes_once[before_checkout]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_each_confirmed_boundary_resumes_once[receipt]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_each_confirmed_boundary_resumes_once[transition]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_unsafe_material_refuses_without_anchor_or_file_loss[ignored_collision]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_unsafe_material_refuses_without_anchor_or_file_loss[prohibited_configuration]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_unsafe_material_refuses_without_anchor_or_file_loss[untracked_collision]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "durability-effects": {
+    "collected": 3,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_durable_audit_identifies_initiator_sources_effects_and_first_stop",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_launched_check_with_unknown_terminal_outcome_never_blindly_reruns",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_durability.py::test_saved_stop_is_exact_but_new_intent_rechecks_changed_grounds",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "history-route": {
+    "collected": 3,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_changed_route_stops_before_unsupported_historical_mapping",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_maximum_replay_respects_separate_final_authority[False-progression_stopped-task_acceptance_required-code_review]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_history.py::test_maximum_replay_respects_separate_final_authority[True-user_acceptance_required-acceptance_required-publish]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "noop-repeat": {
+    "collected": 3,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_after_new_intent_keeps_original_result_and_actual_state",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_retry_after_runtime_reinstantiation_has_no_effect",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_survives_public_task_restart_and_changed_work_commit",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "noop-conflicts": {
+    "collected": 4,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_changed_intent_rejects_before_current_route[mode-False]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_changed_intent_rejects_before_current_route[mode-True]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_changed_intent_rejects_before_current_route[target-False]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_changed_intent_rejects_before_current_route[target-True]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "noop-admission": {
+    "collected": 4,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_cannot_bypass_current_admission[cancelled]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_cannot_bypass_current_admission[completed]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_cannot_bypass_current_admission[foreign]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_identity.py::test_saved_noop_cannot_bypass_current_admission[pending]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  },
+  "noop-concurrency": {
+    "collected": 3,
+    "passed": 0,
+    "failed": [
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_concurrency.py::test_concurrent_noop_identity_has_one_terminal_result[identical]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_concurrency.py::test_concurrent_noop_identity_has_one_terminal_result[mode]",
+        "phase": "call",
+        "intentional": true
+      },
+      {
+        "nodeid": "tests/runtime_services/test_restart_auto_noop_concurrency.py::test_concurrent_noop_identity_has_one_terminal_result[target]",
+        "phase": "call",
+        "intentional": true
+      }
+    ]
+  }
+}

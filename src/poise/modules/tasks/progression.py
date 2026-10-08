@@ -11,16 +11,16 @@ from .domain import Task, TaskStatus
 class ProgressionStep:
     kind: str
     current_stage: str
-    target_stage: str
+    target_stage: str | None
     next_stage: str | None = None
     from_role: str | None = None
     to_role: str | None = None
 
 
-def progression_step(task: Task, target_stage: str, crossed_role_boundary: bool) -> ProgressionStep:
+def progression_step(task: Task, target_stage: str | None, crossed_role_boundary: bool) -> ProgressionStep:
     current = task.stage.stage_id
     try:
-        reachable = task.route.can_reach(current, target_stage)
+        reachable = target_stage is None or task.route.can_reach(current, target_stage)
     except DomainError as exc:
         raise DomainError("Progression target is not reachable by ordinary transitions") from exc
     if not reachable:
@@ -34,7 +34,9 @@ def progression_step(task: Task, target_stage: str, crossed_role_boundary: bool)
     if task.progress.outcome is None:
         raise DomainError("Verified progression requires an exact stage outcome")
     following = task.route.node(current).target(task.progress.outcome)
-    if following is None or not task.route.can_reach(following, target_stage):
+    if following is None and target_stage is None:
+        return ProgressionStep('task_acceptance_required', current, target_stage)
+    if following is None or (target_stage is not None and not task.route.can_reach(following, target_stage)):
         raise DomainError("Progression target is not reachable by ordinary transitions")
     current_role = task.route.node(current).role
     following_role = task.route.node(following).role

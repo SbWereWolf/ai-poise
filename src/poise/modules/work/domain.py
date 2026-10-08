@@ -21,6 +21,7 @@ BUSINESS_INCOMPLETE_STATUSES = frozenset({
     'evidence_requirements_failed',
     'observations_stale',
     'progression_work_required',
+    'progression_stopped',
     'role_handoff_required',
     'user_acceptance_required',
 })
@@ -63,6 +64,11 @@ def parse_request(value, config):
     if op == 'recover_ownership' and isinstance(value['input'], dict) and 'mode' in value['input']:
         from ..ownership.domain import CRASH_RECOVERY_FIELDS
         shapes[op] = set(CRASH_RECOVERY_FIELDS)
+    if op == 'advance' and isinstance(value['input'], dict):
+        shapes[op] = {'request_id', 'task_id'} | ({'target_stage'} if 'target_stage' in value['input'] else set())
+        for field in shapes[op]:
+            if not isinstance(value['input'].get(field), str) or not value['input'][field].strip():
+                raise DomainError(f'advance {field} must be a nonempty string')
     if op in ('bootstrap','advance') and isinstance(value['input'],dict) and 'force_duplicate_start' in value['input']:
         if type(value['input']['force_duplicate_start']) is not bool:
             raise DomainError('force_duplicate_start must be boolean')

@@ -185,7 +185,7 @@ def assert_recovery(case, response):
 
 def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True,
              alternating_roles=False, revise=False, finish=False, publish=False,
-             rework=False, route_revision=False):
+             rework=False, route_revision=False, sprint=False):
     configure(project)
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
@@ -243,7 +243,26 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
             "restart_revision_policy": {"reviewer": [], "user": ["process"]},
         }
     client = WorkTools(WorkPoise(project["config_path"], "replay-owner"))
-    context = bootstrap(client, deepcopy(project["task"]))
+    if sprint:
+        from sprints.helpers import draft, policy, publish as publish_sprint
+        project["cfg"]["sprint"] = policy()
+        write_json(project["config_path"], project["cfg"])
+        client = WorkTools(WorkPoise(project["config_path"], "replay-owner"))
+        member = deepcopy(project["task"])
+        member["sprint_id"] = "S"
+        successor = deepcopy(member)
+        successor["id"] = "T2"
+        successor["goal"] = "Проверить результат предыдущей задачи спринта."
+        bind_task_requirements(successor, project["requirements_registry"])
+        planned = draft(client, [member, successor], [
+            {"predecessor": "T1", "successor": "T2", "kind": "completion"},
+        ])
+        assert planned["errors"] == []
+        published = publish_sprint(client, planned["revision"])
+        assert published["eligible"] == ["T1"]
+        context = bootstrap(client, {"id": "T1"})
+    else:
+        context = bootstrap(client, deepcopy(project["task"]))
     root = Path(context["worktree"])
     (root / "tests").mkdir()
     subject_test = Path(__file__).parent / "fixtures" / "restart_auto_subject_test.py"
@@ -326,6 +345,16 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
             "SELECT submission_id,data FROM task_results WHERE task_id=? ORDER BY submission_id",
             ("T1",),
         )]
+    sprint_before_restart = None
+    if sprint:
+        with client.runtime.store.transaction() as database:
+            sprint_before_restart = {
+                "members": [tuple(row) for row in database.execute(
+                    "SELECT task_id,sprint_id FROM sprint_members ORDER BY task_id")],
+                "dependencies": [tuple(row) for row in database.execute(
+                    "SELECT sprint_id,predecessor,successor,kind FROM sprint_dependencies")],
+            }
+        sprint_before_restart["peer"] = deepcopy(client.runtime.task_queries.record("T2"))
     authorization = ({"role": "user", "decision": "Revise the fixture route."}
                      if route_revision else "User authorized recovery of this unfinished Task.")
     born = restart(client, "T1", current["version"], authorization=authorization)
@@ -365,5 +394,5 @@ def prepared(project, *, file_proof=None, proof_name="accepted.bin", checks=True
         "saved": saved, "proof": proof, "project": project, "fail_file": fail_file,
         "historical_results": historical_results,
         "visits": visits, "branch": git(root, "symbolic-ref", "--short", "HEAD"),
-        "checkouts": checkouts,
+        "checkouts": checkouts, "sprint_before_restart": sprint_before_restart,
     }

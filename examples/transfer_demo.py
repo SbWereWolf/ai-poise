@@ -17,6 +17,8 @@ def run(directory, recovery_node, recovery_tool):
     directory.mkdir(parents=True)
     source=create(directory/'source')
     config=json.loads((source/'project.json').read_text())
+    # Demo methods declare LANG explicitly; only these inputs are inherited.
+    config['environment_names'] = ['PATH', 'HOME']
     recovery = config['runtime_services']['transfer']['recovery']
     recovery['tool_argv'] = [str(recovery_node), str(recovery_tool)]
     recovery['mapping'] = {'version': 'demo-materials-1', 'materials': [

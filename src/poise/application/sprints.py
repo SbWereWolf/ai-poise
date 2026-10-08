@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import replace
 from ..modules.sprints.domain import SprintPolicy, SprintPlan, Sprint, task_identity
-from ..modules.tasks.definition import build_task, path_identifier, validate_creation
+from ..modules.tasks.definition import path_identifier, validate_creation
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
@@ -24,16 +24,30 @@ def _creation_definition(body):
     return result
 
 
+def require_sprint_execution_in(uow, task_id):
+    """Sprint-owned admission shared by Task and handoff application commands."""
+    snapshot = uow.tasks.membership_snapshot(task_id)
+    sid = snapshot['sprint_id']
+    if sid is None:
+        return
+    record = uow.sprints.get(sid)
+    if record is None:
+        raise DomainError('Task is not a published Sprint member')
+    Sprint.restore(record['aggregate']).require_execution(task_id)
+
+
 class SprintCommands:
     def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
                  automatic_checks,decomposition_policy,execution_hash,
-                 prepare_creation,creation_base):
+                 prepare_creation,creation_base,prepare_newborn_ready,promote_newborn_ready_in):
         self.uow=unit_of_work;self.project=project;self.actor=actor
         self.policy=SprintPolicy.parse(policy);self.processes=deepcopy(processes)
         self.task_id_policy=task_id_policy
         self.automatic_checks=deepcopy(automatic_checks);self.execution_hash=execution_hash
         self.decomposition_policy=deepcopy(decomposition_policy)
         self.prepare_creation=prepare_creation;self.creation_base=creation_base
+        self.prepare_newborn_ready=prepare_newborn_ready
+        self.promote_newborn_ready_in=promote_newborn_ready_in
 
     def _errors(self,record,facts=None):
         s=Sprint.restore(record['aggregate']);errors=s.plan.content_errors(s.policy)+s.plan.graph_errors(s.policy)
@@ -132,6 +146,8 @@ class SprintCommands:
         newborn=[]
         for task_id in task_ids:
             if uow.tasks.is_newborn(task_id):
+                if uow.tasks.load_newborn(task_id).restart_history:
+                    raise DomainError('Started member cannot be removed through draft membership conversion')
                 newborn.append(task_id)
                 continue
             snapshot=uow.tasks.membership_snapshot(task_id)
@@ -260,6 +276,7 @@ class SprintCommands:
     def _action(packet):
         shapes={'draft':{'action','sprint_id','request_id','expected_revision','template','changes'},
                 'publish':{'action','sprint_id','request_id','expected_revision'},
+                'unpublish':{'action','sprint_id','request_id','expected_revision','reason','authorization'},
                 'materialize_tasks':{'action','sprint_id','request_id','expected_revision'},
                 'extract_tasks':{'action','sprint_id','request_id','expected_revision','task_ids'},
                 'dependencies':{'action','sprint_id','request_id','expected_revision','items','reason'},
@@ -310,6 +327,11 @@ class SprintCommands:
             processes=deepcopy(record['processes'])
             automatic_checks=deepcopy(record['automatic_checks'])
             snapshot=fingerprint(record)
+            facts=u.sprints.facts(sid)
+            if sprint.reopened:
+                sprint.require_released_members(facts)
+            errors=sprint.republication_errors()
+            if errors:raise DomainError('; '.join(errors))
         base=self.creation_base()
         prepared=[]
         for intent in intents:
@@ -317,7 +339,8 @@ class SprintCommands:
                 with self.uow() as u:
                     member_snapshot=u.tasks.membership_snapshot(intent)
                 if member_snapshot['status']!='newborn':
-                    self._available_membership(member_snapshot,sprint.plan.data['id'])
+                    if not sprint.reopened:
+                        self._available_membership(member_snapshot,sprint.plan.data['id'])
                     prepared.append({
                         'creation':None,'newborn':None,'existing':member_snapshot,
                     })
@@ -326,15 +349,17 @@ class SprintCommands:
                     newborn,body=u.tasks.newborn_creation(intent)
                 if newborn.claimed_by not in (None,self.actor):
                     raise DomainError('Newborn Sprint member is owned by another session')
-                creation=self.prepare_creation(
-                    body,newborn.process,automatic_checks,base,
-                    record['task_decomposition'],
+                candidate=self.prepare_newborn_ready(
+                    intent,self.actor,automatic_checks,record['task_decomposition'],
+                    record['execution_hash'],packet['request_id']+':'+intent,lambda: base,
                 )
+                creation=candidate['creation']
                 if not newborn.ready:
                     raise DomainError('Newborn Sprint member is not type-ready')
                 prepared.append({
                     'creation':creation,
                     'newborn':newborn,
+                    'candidate':candidate,
                 })
                 continue
             body=intent['task'] if isinstance(intent,dict) and set(intent)=={'request_id','task'} else intent
@@ -342,7 +367,7 @@ class SprintCommands:
                 intent,processes[body['goal_type']],automatic_checks,base,
                 record['task_decomposition'],
             ),'newborn':None})
-        return {'record':snapshot,'prepared':prepared}
+        return {'record':snapshot,'prepared':prepared,'facts':facts}
 
     def apply(self,packet,preflight=None):
         action=self._action(packet)
@@ -386,7 +411,16 @@ class SprintCommands:
                         u,sid,packet['changes'],record['processes'],record['execution_hash']
                     )
                     s=Sprint.restore(record['aggregate']);plan=s.plan.apply(changes,s.policy)
-                    self._validate_dependency_membership(plan);s=s.revise(plan)
+                    self._validate_dependency_membership(plan)
+                    if s.reopened:
+                        old_edges={(e['predecessor'],e['successor'],e['kind']) for e in s.plan.data['dependencies']}
+                        new_edges={(e['predecessor'],e['successor'],e['kind']) for e in plan.data['dependencies']}
+                        affected={b for a,b,k in old_edges.symmetric_difference(new_edges)}
+                        member_states={tid:u.tasks.membership_snapshot(tid)['status'] for tid in affected}
+                        if any(status not in ('newborn','available') for status in member_states.values()):
+                            raise DomainError('Changed prerequisites of started members require authorized restart')
+                    unchanged={(e['predecessor'],e['successor'],e['kind']) for e in s.plan.data['dependencies']} & {(e['predecessor'],e['successor'],e['kind']) for e in plan.data['dependencies']}
+                    s=replace(s.revise(plan),waivers=tuple(w for w in s.waivers if any((w['predecessor'],w['successor'])==(a,b) for a,b,k in unchanged)))
                     record={**record,'actor':self.actor,'aggregate':s.to_dict()}
                 for task_id,snapshot in adoptions.items():
                     u.tasks.change_sprint_membership(
@@ -402,13 +436,22 @@ class SprintCommands:
             else:
                 if record is None:raise DomainError('Sprint does not exist')
                 s=Sprint.restore(record['aggregate']);prior=s.revision
-                if action=='publish':
+                if action=='unpublish':
+                    if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
+                        raise VersionConflict('Unpublish revision changed')
+                    s=s.unpublish(u.sprints.facts(sid),packet['reason'],packet['authorization'])
+                elif action=='publish':
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Publish revision changed')
                     errors=self._errors(record,u.sprints.facts(sid))
                     if errors:raise DomainError('; '.join(errors))
                     if publication is None or fingerprint(record)!=publication['record']:
                         raise VersionConflict('Sprint changed after creation preflight')
+                    if s.reopened:
+                        facts=u.sprints.facts(sid)
+                        s.require_released_members(facts)
+                        if facts!=publication['facts']:
+                            raise VersionConflict('Sprint members changed after publication preflight')
                     s=s.publish()
                     reservations=(frozenset() if all(isinstance(item,str) for item in s.plan.data['tasks'])
                                   else creation_batch_reservations(s.plan.data['tasks'],(s.plan.data['id'],)))
@@ -418,7 +461,8 @@ class SprintCommands:
                         if isinstance(intent,str):
                             if item.get('existing') is not None:
                                 current=u.tasks.membership_snapshot(intent)
-                                self._available_membership(current,sid)
+                                if not s.reopened:
+                                    self._available_membership(current,sid)
                                 if current!=item['existing']:
                                     raise VersionConflict('Adopted Sprint member changed after publication preflight')
                                 continue
@@ -426,17 +470,7 @@ class SprintCommands:
                             if (not newborn.ready or prepared.source_intent!=contract
                                     or newborn!=item['newborn']):
                                 raise VersionConflict('Newborn Sprint member changed after creation preflight')
-                            metadata=validate_creation(
-                                prepared.intent, newborn.process, record['automatic_checks'],
-                                record['task_decomposition'],
-                            )
-                            metadata.update(sprint_id=sid,goal=contract['goal'],config_hash=record['execution_hash'])
-                            if newborn.creation_request is not None:
-                                metadata['creation_request']=deepcopy(newborn.creation_request)
-                            u.tasks.promote_newborn(build_task(metadata,None),metadata,newborn.version)
-                            prepared.requirements_gate.publish_created(
-                                u,newborn.task_id,prepared.requirements_context
-                            )
+                            self.promote_newborn_ready_in(u,item['candidate'],self.actor)
                             if newborn.creation_request is not None:
                                 allocations.append({
                                     'request_id':newborn.creation_request['request_id'],
@@ -515,7 +549,9 @@ class SprintCommands:
                     s=s.cancel(ids,packet['reason']) if whole else s.record_task_cancellation(ids,packet['reason'])
                 record={**record,'actor':self.actor,'aggregate':s.to_dict()}
                 u.sprints.save(record,prior)
-                if action=='publish':u.sprints.publish_members(record)
+                if action=='publish':
+                    if s.reopened:u.sprints.replace_dependencies(record)
+                    u.sprints.publish_members(record)
                 elif action=='dependencies':u.sprints.replace_dependencies(record)
                 elif action=='extract_tasks':
                     for task_id in packet['task_ids']:

@@ -1,0 +1,8 @@
+{
+  "action": "unpublish",
+  "sprint_id": "S",
+  "request_id": "reopen-S",
+  "expected_revision": 2,
+  "reason": "Revise the real prerequisite graph without replacing Tasks.",
+  "authorization": "User authorized reopening this Sprint."
+}

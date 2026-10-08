@@ -357,6 +357,7 @@ class Poise:
         data = self.task_queries.record(task_id)
         if data is None:
             raise PoiseError("Unknown progression Task")
+        self.task_commands.execution_preflight(task_id)
         self.task_commands.reviewer_preflight(task_id, self.session)
         self._require_report_identity(data)
         entry_tree = self._current_tree(data)
@@ -1003,6 +1004,8 @@ class Poise:
                     self.handoff_tools.resume(selected)
                 self.ownership.acquire_task(selected['id'])
                 return self.task_queries.record(selected['id'])
+            if not is_terminal_task_status(selected['status']):
+                self.task_commands.execution_preflight(selected['id'])
             if selected['status']=='available':
                 blocked = self._require_entry(selected)
                 return blocked if blocked is not None else self.sprint_tools.start(task['id'],force_duplicate_start=force_duplicate_start)
@@ -1033,6 +1036,7 @@ class Poise:
                 selected_process = self.processes[contract['goal_type']]
             if existing is not None:
                 data = existing
+                self.task_commands.execution_preflight(data['id'])
                 self.task_commands.duplicate_preflight(data['id'],self.session,force_duplicate_start=force_duplicate_start)
                 self.task_commands.reviewer_preflight(data['id'], self.session, acquiring=True)
                 blocked = self._require_entry(data)
@@ -1099,6 +1103,7 @@ class Poise:
                     'task':None,'result_template':None,'runtime_root':str(self.runtime),
                     'next_work':'передать task object через work bootstrap; сводка — batch show'}
         data = self._task()
+        self.task_commands.execution_preflight(data['id'])
         self.task_commands.duplicate_preflight(data['id'],self.session,force_duplicate_start=force_duplicate_start)
         if decision is not None:
             if decision not in ('continue','rework'):

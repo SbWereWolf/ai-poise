@@ -1,0 +1,40 @@
+{
+  "schema": "poise-handoff-wip-1",
+  "directory": {"path": "src/materials", "mode": 488},
+  "split": {
+    "path": "src/materials/split.bin",
+    "staged_hex": "00696e646578ff0a",
+    "working_hex": "00776f726b696e67fe0a",
+    "mode": 416
+  },
+  "untracked": {
+    "path": "src/materials/untracked.bin",
+    "working_hex": "ff00756e747261636b65640a",
+    "mode": 384
+  },
+  "executable": {
+    "path": "src/materials/run.sh",
+    "text": "#!/bin/sh\nexit 0\n",
+    "mode": 489
+  },
+  "symlink": {"path": "src/materials/link", "target": "../double.py"},
+  "deleted": "src/double.py",
+  "external_link": "src/materials/external-link",
+  "outside_hex": "00707269766174652d6f757473696465ff0a",
+  "export_ignore": "src/materials/split.bin export-ignore\n",
+  "requests": {
+    "ready": {
+      "action": "ready",
+      "task_id": "A",
+      "request_id": "ready-for-preserved-materials",
+      "expected_revision": 0
+    },
+    "handoff": {
+      "request_id": "preserve-readied-draft",
+      "reason": "Preserve the readied restarted member without rewriting its materials.",
+      "result": null,
+      "commit_message": null,
+      "artifact_paths": []
+    }
+  }
+}

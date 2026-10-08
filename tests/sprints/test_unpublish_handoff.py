@@ -446,6 +446,7 @@ def test_symlink_leaf_race_never_archives_external_target(planned, tmp_path, mon
             assert any(word in str(error).lower() for word in ('unsafe', 'symlink', 'changed', 'snapshot'))
             refused = True
     assert reads, 'The physical directory race must reach the actual OS readlink boundary'
+    assert all(target == 'safe-local-target' for target in reads), reads
     assert observation(root) == before
     assert original(link) == 'safe-local-target'
     if refused:

@@ -76,7 +76,7 @@ class LocalHandoff:
         msg=args['commit_message']
         if dirty and recovery is None and wip_context is None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
             raise PoiseError('WIP requires explicit valid repository commit message')
-        if msg is not None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
+        if (not dirty or wip_context is not None) and msg is not None and (not isinstance(msg,str) or not re.fullmatch(h.cfg['git']['commit_pattern'],msg)):
             raise PoiseError('Invalid supplied handoff commit message')
         directory=descendant(h._roots(data)['task'],self.config['directory'])/digest([h.session,request_id])
         # Every selected runtime artifact is copied to task before cleanup; data in

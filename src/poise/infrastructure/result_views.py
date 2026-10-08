@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 from ..common import PoiseError, descendant, file_digest, encoded
-from ..modules.result_views.domain import OutputPolicy
+from ..modules.result_views.domain import OutputPolicy, primary_text
 from .goal_config import atomic_write
 
 
@@ -16,6 +16,12 @@ def _tail(path,limit):
     with Path(path).open('rb') as f:
         f.seek(0,os.SEEK_END);f.seek(max(0,f.tell()-limit))
         return f.read(limit)
+
+
+def primary_stream(path, chars):
+    """Ordinary display parser; complete raw files remain authoritative."""
+    return primary_text(_tail(path, chars * 4).decode('utf-8', errors='replace'),
+                        'tail', None, chars)
 
 
 def _verify_raw(receipt):
@@ -44,10 +50,7 @@ class OutputParser:
             # stderr first in the display; both tails are always bounded.
             tails=(_tail(receipt['stderr'],p['primary_chars']*4).decode('utf-8','replace')+'\n'+
                    _tail(receipt['stdout'],p['primary_chars']*4).decode('utf-8','replace'))
-            if p['parser']=='lines':
-                selected=[line for line in tails.splitlines() if re.search(p['selection_pattern'],line)]
-                tails='\n'.join(selected)
-            return tails[-p['primary_chars']:]
+            return primary_text(tails,p['parser'],p['selection_pattern'],p['primary_chars'])
         if mode!='materialize':raise PoiseError('Unknown explicit parser mode')
         directory.mkdir(parents=True,exist_ok=True)
         views={}
@@ -107,13 +110,35 @@ class ResultViews:
         item={'receipt_id':receipt_id,'component':'result_views','reason':reason}
         self.journal('incident.result_views',item);self.incidents.append(item)
 
+    def primary(self, receipt, directory):
+        """Read a configured agent view without a worker or receipt mutation."""
+        profile = self.policy.select(receipt['argv'])
+        return OutputParser(profile, self.config['chunk_bytes']).render('primary', receipt, directory)
+
+    def command_views(self, receipts):
+        """Agent-only records; rendering failure never changes command truth."""
+        views = []
+        for receipt in receipts:
+            if not isinstance(receipt, dict) or not {
+                'id', 'argv', 'stdout', 'stderr', 'stdout_digest', 'stderr_digest'
+            }.issubset(receipt):
+                continue  # Other JSON records are not file-backed command receipts.
+            view = {key: receipt[key] for key in ('id', 'method', 'actual_exit_code', 'passed')
+                    if key in receipt}
+            try:
+                view['primary'] = self.primary(receipt, Path(receipt['stdout']).parent)
+            except (PoiseError, OSError, ValueError) as exc:
+                view['presentation_error'] = str(exc)
+            views.append(view)
+        return views
+
     def capture(self,receipt,run_dir):
         c=self.config;directory=descendant(Path(run_dir),c['directory'])
         manifest=descendant(directory,c['manifest']);profile=self.policy.select(receipt['argv'])
         self.journal('parser.primary.start',{'receipt_id':receipt['id'],'profile':profile['id']})
         try:
             directory.mkdir(parents=True,exist_ok=True)
-            primary=OutputParser(profile,c['chunk_bytes']).render('primary',receipt,directory)
+            primary=self.primary(receipt,directory)
             job={'receipt':receipt,'profile':profile,'chunk_bytes':c['chunk_bytes'],'manifest':c['manifest'],'file_mode':c['file_mode']}
             jobpath=descendant(directory,c['job']);atomic_write(jobpath,(encoded(job)+'\n').encode(),c['file_mode'])
             atomic_write(manifest,(encoded({'status':'pending','receipt_id':receipt['id'],'profile':profile['id'],'representations':{}})+'\n').encode(),c['file_mode'])

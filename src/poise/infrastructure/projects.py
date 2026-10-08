@@ -16,6 +16,7 @@ from ..common import (
     exact_keys,
     digest,
     load_config,
+    validate_candidate_config,
     file_digest,
     prohibit_remote_git_publication,
 )
@@ -106,7 +107,7 @@ class FileProjectSetup:
         def git(*args):
             try:r=subprocess.run(['git','-C',str(repository),*args],capture_output=True,text=True,timeout=self.settings.raw['git_seconds'])
             except (OSError,subprocess.TimeoutExpired) as exc:raise PoiseError(f'Local Git probe failed: {exc}') from exc
-            if r.returncode:raise PoiseError(f'Local Git probe {args[0]} failed: {r.stderr[-cfg["limits"]["preview_chars"]:]}')
+            if r.returncode:raise PoiseError(f'Local Git probe {args[0]} failed: {r.stderr}')
             return r.stdout.strip()
         top=git('rev-parse','--show-toplevel')
         if Path(top).resolve()!=repository.resolve():raise PoiseError('Configured repository is not its worktree root')
@@ -212,7 +213,7 @@ class FileProjectSetup:
                     write(c['manifest'],cfg)
                     for goal,document in documents.items():write(cfg['processes'][goal],document)
                     # The runtime remains the authority on complete configuration.
-                    load_config(candidate/c['manifest'])
+                    validate_candidate_config(candidate/c['manifest'], target)
                     state=configured_root(target,cfg['paths']['state'])
                     if any(state.is_relative_to(p) or p.is_relative_to(state) for p in paths):
                         raise PoiseError('Mutable state overlaps published project files')

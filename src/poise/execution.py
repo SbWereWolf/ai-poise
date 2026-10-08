@@ -497,7 +497,5 @@ def method_passed(method: dict, result: dict) -> bool:
 
 
 def preview(path: Path, chars: int) -> str:
-    with path.open('rb') as stream:
-        stream.seek(0, os.SEEK_END)
-        stream.seek(max(0, stream.tell()-chars*4))
-        return stream.read().decode('utf-8', errors='replace')[-chars:]
+    from .infrastructure.result_views import primary_stream
+    return primary_stream(path, chars)

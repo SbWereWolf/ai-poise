@@ -1,0 +1,81 @@
+{
+  "collected": 15,
+  "failed": [
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_ignored_internal_physical_alias_is_rejected_as_identity",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_internal_git_failure_is_explicit_and_preserves_pair[missing-executable]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_internal_git_failure_is_explicit_and_preserves_pair[nonzero-command]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_live_internal_admission_creates_only_configured_pair[absent]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_live_internal_admission_creates_only_configured_pair[existing]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_live_internal_admission_creates_only_configured_pair[mixed]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_setup_existing_internal_pair_outside_absent_destination[absolute-files]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_setup_existing_internal_pair_outside_absent_destination[absolute-state]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_setup_relative_final_only_ignore_accepts_absent_pair",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_update_absolute_internal_pair_preserves_staged_process[absent]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_update_absolute_internal_pair_preserves_staged_process[existing]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_update_absolute_internal_pair_preserves_staged_process[mixed]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_update_and_live_relative_existing_or_missing_pair[absent]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_update_and_live_relative_existing_or_missing_pair[existing]",
+      "phase": "call"
+    },
+    {
+      "blanket_internal_denial": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_update_and_live_relative_existing_or_missing_pair[mixed]",
+      "phase": "call"
+    }
+  ],
+  "passed": 0
+}

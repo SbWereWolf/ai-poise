@@ -7,6 +7,7 @@ from ..infrastructure.goal_config import strict_json,atomic_write,PublicationPen
 from ..infrastructure.catalogue import FileCatalogue
 from ..application.catalogue import CatalogueCommands
 from ..composition import goal_config_tools
+from ..modules.result_views.domain import bounded_envelope
 
 
 def execute(path,stream,output):
@@ -42,8 +43,5 @@ def execute(path,stream,output):
     except OSError as exc:
         output.write(json.dumps({'status':'response_storage_error','message':str(exc)},ensure_ascii=False)+'\n')
         return cfg['exit_codes']['pending']
-    view={**result,'response_path':str(response)}
-    if len(json.dumps(view,ensure_ascii=False))+1>cfg['output_chars']:
-        view={'status':result['status'],'response_path':str(response)}
-    output.write(json.dumps(view,ensure_ascii=False)+'\n')
+    output.write(bounded_envelope(result,response,cfg['output_chars'],{}, {}, []))
     return cfg['exit_codes'][category]

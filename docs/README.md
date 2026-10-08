@@ -35,6 +35,7 @@
 - [Конфигурация типов целей](configuration/goal-config.md)
 - [Каталог процессов](configuration/process-catalogue.md)
 - [Настройка проекта](configuration/project-setup.md)
+- [Восстановление локальной конфигурации](configuration/local-assets.md)
 - [Runtime hooks](configuration/runtime-hooks.md)
 - [Runtime-сервисы](configuration/runtime-services.md)
 - [Источники runtime](configuration/runtime-sources.md)

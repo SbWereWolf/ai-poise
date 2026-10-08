@@ -9,7 +9,7 @@ import shutil
 import sqlite3
 import tempfile
 
-from ..common import configured_root, descendant, digest, load_config
+from ..common import configured_root, descendant, digest, load_config, validate_candidate_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
@@ -194,7 +194,7 @@ class FileProjectConfigUpdate:
                 path.write_bytes(encoded(processes[goal], self.settings.raw["json_indent"]))
             manifest = candidate_root / self.settings.raw["manifest"]
             manifest.write_bytes(encoded(config, self.settings.raw["json_indent"]))
-            load_config(manifest)
+            validate_candidate_config(manifest, root)
 
     def _relocation_state(self, config_path, config, move):
         if not isinstance(move, dict) or set(move) != {"expected_source", "destination", "source_disposition"}:

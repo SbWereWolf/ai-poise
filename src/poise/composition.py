@@ -58,3 +58,9 @@ def task_process_migration_tools(config_path):
     from .infrastructure.clock import SystemClock
     from .infrastructure.task_process_migration import SqliteTaskProcessMigration
     return TaskProcessMigrationCommands(SqliteTaskProcessMigration(config_path, SystemClock()))
+
+
+def local_assets_tools():
+    from .application.local_assets import LocalAssetsRestore
+    from .infrastructure.local_assets import FileLocalAssets
+    return LocalAssetsRestore(FileLocalAssets())

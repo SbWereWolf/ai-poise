@@ -147,6 +147,21 @@ class IntegrationRun:
             history=({"status": "prepared", "phase": "prepared"},), drift_retries=0,
         )
 
+    @property
+    def requires_destination_admission(self):
+        """Published recovery and terminal replay do not prepare a new candidate."""
+        if self.phase == "integrated" and self.status == "integrated":
+            return False
+        if self.phase == "cleanup_pending" and self.status == "cleanup_pending" \
+                and self.publication is not None:
+            return False
+        if self.phase in {
+            "prepared", "updating", "candidate_ready", "checks_failed",
+            "candidate_failed", "awaiting_resolution", "publishing", "publication_failed",
+        }:
+            return True
+        raise DomainError("Saved result integration phase is invalid")
+
     @classmethod
     def restore(cls, value):
         if (not isinstance(value, dict) or value.get("kind") != "result_integration"
@@ -154,7 +169,8 @@ class IntegrationRun:
             raise DomainError("Saved result integration state is invalid")
         intent = IntegrationIntent.parse({**value["intent"], "resolutions": []})
         return cls(
-            intent=intent, status=value["status"], phase=value["phase"],
+            intent=intent, status=value["status"],
+            phase=_text(value["phase"], "Saved result integration phase"),
             version=value["version"], accepted_commit=value["accepted_commit"],
             task_branch=value["task_branch"], task_worktree=value["task_worktree"],
             temporary_backup_directory=value["temporary_backup_directory"],

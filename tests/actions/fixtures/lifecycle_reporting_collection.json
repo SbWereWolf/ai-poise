@@ -1,0 +1,8 @@
+{
+  "collection": [
+    {"nodeid": "bad", "outcome": "failed", "diagnostic": "IMPORT_ERROR"}
+  ],
+  "reports": [
+    {"nodeid": "s", "phase": "call", "outcome": "skipped", "diagnostic": "('source.py', 7, 'UNEXPECTED_SKIP')"}
+  ]
+}

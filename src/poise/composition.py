@@ -33,10 +33,22 @@ def goal_config_tools(settings_path):
 
 
 def project_tools(settings_path):
+    from .infrastructure.projects import ProjectSettings
+    return compose_project_tools(ProjectSettings(settings_path))
+
+
+def compose_project_tools(settings):
+    from pathlib import Path
     from .application.projects import ProjectCommands
-    from .infrastructure.projects import ProjectSettings, FileProjectSetup
+    from .infrastructure.projects import FileProjectSetup
     from .infrastructure.project_availability import ReadOnlyProjectAvailability
-    return ProjectCommands(FileProjectSetup(ProjectSettings(settings_path)), ReadOnlyProjectAvailability())
+    from .infrastructure.project_context import FileProjectContext
+    from .infrastructure.project_preflight import FileProjectPreflight
+    setup = FileProjectSetup(settings)
+    availability = ReadOnlyProjectAvailability()
+    context = FileProjectContext(Path(__file__).resolve().parents[1])
+    return ProjectCommands(setup, availability,
+                           FileProjectPreflight(settings, setup, availability, context))
 
 
 def project_config_tools(settings_path):

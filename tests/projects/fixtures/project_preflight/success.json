@@ -1,0 +1,43 @@
+{
+  "schema": "project-preflight-result-1",
+  "status": "checked",
+  "ready": true,
+  "reason": null,
+  "context": {
+    "installation_source": "$source",
+    "config_path": "$config",
+    "requested_project_id": "demo",
+    "project_id": "demo",
+    "requested_task_id": null,
+    "state": "$state",
+    "task_database": "$task_db",
+    "task_lock": "$task_lock",
+    "requirements_database": "$requirements_db",
+    "requirements_lock": "$requirements_lock",
+    "repository": "$repository",
+    "base_ref": "main"
+  },
+  "checks": [
+    {
+      "name": "configuration",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "name": "git",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "name": "commit_policy",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "name": "task_lookup",
+      "status": "not_checked",
+      "reason": null
+    }
+  ],
+  "recovery": []
+}

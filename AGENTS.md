@@ -52,8 +52,11 @@ present self-review as independent review.
 Turn every accepted agreement into product documentation. Maintain the [known-bugs
 register](docs/operations/known-bugs.md#ведение-реестра): remove a resolved active entry in the same verified fix; keep
 history in Git/evidence, and never call an accepted risk fixed. This does not require creating a Task for an explicitly
-authorized small direct correction. Treat preview only as display: use full output for machine parsing and decisions via
-existing saved files or read-only tools; follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
+authorized small direct correction. Only agents receive summarized tool output. Any tool response consumed by code
+of another tool preserves complete stdout, stderr and structured fields regardless of display limits. Agent
+presentation uses one common owner and configured parser; do not add internal per-tool clipping. Treat preview only
+as display: use full output for machine parsing and decisions via existing saved files or read-only tools; never
+rerun a mutation just to obtain its output. Follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
 decisions enforceable development rules and keep responsibility boundaries documented. Do not leave authoritative
 decisions only in conversation history.
 For changed documentation or rule targets, follow [local links and exact

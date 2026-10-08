@@ -1,0 +1,5 @@
+[
+  {"nodeid": "a", "phase": "call", "outcome": "failed", "diagnostic": "EXPECTED"},
+  {"nodeid": "a", "phase": "setup", "outcome": "passed"},
+  {"nodeid": "a", "phase": "teardown", "outcome": "failed", "diagnostic": "UNEXPECTED"}
+]

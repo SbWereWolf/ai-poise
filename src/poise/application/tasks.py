@@ -750,6 +750,7 @@ class TaskCommands:
             effective_checks = automatic_checks
             effective_decomposition = decomposition_policy
             current_registry = None
+            previous_registry = None
             registry_change = None
             if executed_restart:
                 histories = newborn.restart_history
@@ -759,8 +760,9 @@ class TaskCommands:
                                    for field in item.get('registry_edits', []))
                 authority = histories[-1].get('planning_revision')
                 from ..modules.tasks.domain import Task
+                previous_registry = uow.tasks.restarted_registry(task_id)
                 current_registry, registry_change = Task.prepare_restarted_registry(
-                    uow.tasks.restarted_registry(task_id), contract, newborn.process, edited,
+                    previous_registry, contract, newborn.process, edited,
                     request_id, None if authority is None else authority['allowed_changes'],
                 )
             restart_base = None
@@ -822,7 +824,8 @@ class TaskCommands:
                 deepcopy(newborn.stage_contract_history)
             )
         return {'snapshot': snapshot, 'creation': prepared, 'metadata': metadata,
-                'registry': current_registry, 'registry_change': registry_change,
+                'registry': current_registry, 'previous_registry': previous_registry,
+                'registry_change': registry_change,
                 'executed_restart': executed_restart, 'restart_base': restart_base,
                 'frozen_context_unchanged': frozen_context_unchanged,
                 'resolved_revision': resolved_revision, 'config_hash': effective_hash,
@@ -848,7 +851,11 @@ class TaskCommands:
         if candidate['executed_restart'] and not candidate['frozen_context_unchanged']:
             self.requirements_gate.require_current_registry(candidate['creation'].requirements_context)
         task = build_task(candidate['metadata'], None, current_registry=candidate['registry'])
-        task = task.bind_restarted_registry_audit(candidate['registry_change'], actor)
+        if candidate['registry_change'] is not None:
+            task = task.bind_restarted_registry_audit(
+                candidate['registry_change'], actor,
+                candidate['previous_registry'].executable_obligations
+            )
         if candidate['executed_restart']:
             task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
         if newborn.restart_history and candidate['restart_base'] is not None:

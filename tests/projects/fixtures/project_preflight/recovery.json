@@ -1,0 +1,42 @@
+[
+  {
+    "action": "retry_check",
+    "interface": "poise project check",
+    "settings_path": "$settings",
+    "config_path": "$config",
+    "supported_fields": [],
+    "limitations": [
+      "Укажите обязательные параметры явно; проверка не изменяет конфигурацию и данные."
+    ]
+  },
+  {
+    "action": "list_projects",
+    "interface": "poise project list",
+    "settings_path": "$settings",
+    "config_path": null,
+    "supported_fields": [],
+    "limitations": [
+      "Список проектов не выбирает проект и не изменяет его состояние."
+    ]
+  },
+  {
+    "action": "select_work_config",
+    "interface": "poise work",
+    "settings_path": "$settings",
+    "config_path": null,
+    "supported_fields": [],
+    "limitations": [
+      "Выбор конфигурации не переносит данные и не заменяет владение задачей."
+    ]
+  },
+  {
+    "action": "select_requirements_config",
+    "interface": "poise requirements",
+    "settings_path": "$settings",
+    "config_path": null,
+    "supported_fields": [],
+    "limitations": [
+      "Смена конфигурации не перемещает базу Requirements и её lock-файл."
+    ]
+  }
+]

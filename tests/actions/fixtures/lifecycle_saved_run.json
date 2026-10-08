@@ -1,0 +1,25 @@
+{
+  "plan": {
+    "kind": "git_merge",
+    "base_commit": "1111111111111111111111111111111111111111",
+    "sources": [
+      {
+        "commit": "2222222222222222222222222222222222222222",
+        "checkpoint_message": "Preserve an independently arranged old action"
+      }
+    ]
+  },
+  "cursor": 1,
+  "status": "complete",
+  "steps": [
+    {
+      "index": 0,
+      "before": {"head": "1111111111111111111111111111111111111111"},
+      "result": {"head": "2222222222222222222222222222222222222222"}
+    }
+  ],
+  "before": null,
+  "current": null,
+  "version": 2,
+  "attempts": 1
+}

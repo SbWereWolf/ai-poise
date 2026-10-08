@@ -1,0 +1,24 @@
+{
+  "paths.state": [
+    "state",
+    "task_database",
+    "task_lock",
+    "requirements_database",
+    "requirements_lock"
+  ],
+  "paths.database": [
+    "task_database"
+  ],
+  "paths.lock": [
+    "task_lock"
+  ],
+  "paths.requirements_database": [
+    "requirements_database"
+  ],
+  "paths.requirements_lock": [
+    "requirements_lock"
+  ],
+  "git.repository": [
+    "repository"
+  ]
+}

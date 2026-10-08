@@ -1,0 +1,6 @@
+[
+  {
+    "nodeid": "tests/actions/test_task_lifecycle.py::test_completed_action_rejects_changed_delivered_result_after_reload[restarted]",
+    "diagnostic": "Failed: LIFECYCLE_NEW_PLAN_REJECTED_BY_HISTORY"
+  }
+]

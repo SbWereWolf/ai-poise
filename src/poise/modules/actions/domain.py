@@ -7,6 +7,7 @@ import re
 from ..foundation.errors import DomainError
 from ..verification.domain import validate_method
 from ..workflow.domain import exact, text
+from ..tasks.lifecycle import TaskLifecycle
 
 
 def packed(value):
@@ -79,6 +80,22 @@ class PlanSpec:
 
 
 @dataclass(frozen=True)
+class ActionBinding:
+    task_id: str
+    lifecycle: TaskLifecycle
+    stage: str
+    iteration: int
+
+    def __post_init__(self):
+        text(self.task_id, 'Task ID')
+        text(self.stage, 'action stage')
+        if not isinstance(self.lifecycle, TaskLifecycle):
+            raise DomainError('An explicit Task lifecycle is required')
+        if type(self.iteration) is not int or self.iteration <= 0:
+            raise DomainError('Action iteration must be a positive integer')
+
+
+@dataclass(frozen=True)
 class ActionRun:
     plan: PlanSpec
     cursor: int
@@ -88,6 +105,7 @@ class ActionRun:
     current: str | None
     version: int
     attempts: int
+    binding: ActionBinding | None = None
 
     def __post_init__(self):
         if self.status not in ('prepared','running','awaiting_resolution','failed','blocked','complete'):
@@ -103,6 +121,13 @@ class ActionRun:
 
     @classmethod
     def new(cls,plan):return cls(plan,0,'prepared',(),None,None,0,0)
+
+    def bind(self, binding: ActionBinding):
+        if not isinstance(binding, ActionBinding):
+            raise DomainError('An explicit action binding is required')
+        if self.binding is not None and self.binding != binding:
+            raise DomainError('Action lifecycle binding changed')
+        return replace(self, binding=binding)
 
     @property
     def waiting_for_probe(self):return self.status=='running'

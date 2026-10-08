@@ -13,10 +13,11 @@ class PlanCommands:
             task=uow.tasks.load(task_id);task._owned(actor)
             if task.stage.stage_id!=stage or task.state.iteration!=iteration or task.state.status!='active':
                 raise DomainError('External action does not belong to current active iteration')
+            binding=uow.actions.binding(task_id,stage,iteration)
             saved=uow.actions.load(task_id,stage,iteration)
             if saved is None:
-                run=ActionRun.new(plan);uow.actions.create(task_id,stage,iteration,run.to_dict());return run
-            run=ActionRun.restore(saved,self.max_steps)
+                run=ActionRun.new(plan).bind(binding);uow.actions.create(task_id,stage,iteration,run.to_dict());return run
+            run=ActionRun.restore(saved,self.max_steps).bind(binding)
             if run.plan.digest!=plan.digest:
                 raise DomainError('Started plan is immutable; request explicit rework instead')
             return run
@@ -26,6 +27,11 @@ class PlanCommands:
             task=uow.tasks.load(task_id);task._owned(actor)
             if task.stage.stage_id!=stage or task.state.iteration!=iteration or task.state.status!='active':
                 raise DomainError('Action iteration changed')
+            binding=uow.actions.binding(task_id,stage,iteration)
+            if old.binding is None or old.binding!=binding or new.binding!=old.binding:
+                raise DomainError('Action lifecycle binding changed')
+            if new.plan.digest!=old.plan.digest:
+                raise DomainError('Started plan is immutable; request explicit rework instead')
             uow.actions.save(task_id,stage,iteration,new.to_dict(),old.version)
         return new
 
@@ -53,15 +59,16 @@ class PlanCommands:
                     or report.get('commit') != candidate or report.get('verified_tree') != tree
                     or execution['entry_tree'] != tree or execution['pending'] is not None):
                 raise DomainError('Local publication requires the exact accepted inspection')
+            binding = uow.actions.binding(task_id, stage, iteration)
             saved = uow.actions.load(task_id, stage, iteration)
             if saved is not None:
-                run = ActionRun.restore(saved, self.max_steps)
+                run = ActionRun.restore(saved, self.max_steps).bind(binding)
                 if run.plan.digest != plan.digest:
                     raise DomainError('Started publication intent is immutable')
                 if run.status not in ('complete', 'blocked'):
                     raise DomainError('Unresolved publication cannot become a local receipt')
                 return run
-            run = ActionRun.new(plan).start(0, {'target': target, 'candidate': candidate, 'tree': tree})
+            run = ActionRun.new(plan).bind(binding).start(0, {'target': target, 'candidate': candidate, 'tree': tree})
             receipt = {'effect': 'local_record_only', 'remote_publication': False,
                        'target_updated': False, 'candidate': candidate, 'tree': tree,
                        'target_ref': intent.target_ref, 'observed_target': target,

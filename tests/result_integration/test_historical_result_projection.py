@@ -133,3 +133,35 @@ def test_missing_batch_identity_requires_fresh_checks_before_publication(
     assert done['checks'][1]['passed'] is True
     assert done['history'][:len(history)] == history
     assert done['target_after'] == git(project['app'], 'rev-parse', 'HEAD')
+
+
+@pytest.mark.parametrize('shape', ['absent_details', 'absent_check_ids', 'modern'])
+def test_retained_query_requires_batch_identity_for_current_manifest_references(
+    project, tmp_path, monkeypatch, shape,
+):
+    from verification.retention_helpers import verify_input, invoke_required, assert_bundle
+
+    tools, context, verified, _, marker = verify_input(project, tmp_path)
+    assert invoke_required(tools, 'accept', {})['status'] == 'completed'
+    done = invoke_required(tools, 'integrate', integration_input(project, verified['commit']))
+    assert_bundle(done, context, done['target_after'])
+    history = done['history'] if shape == 'modern' else seed_historical_input(project, shape)
+    before = execution(project)
+
+    def forbidden_checks(*args, **kwargs):
+        pytest.fail('Retention query must not execute checks')
+
+    monkeypatch.setattr(RuntimeResultIntegration, '_run_checks', forbidden_checks)
+    result = tools.invoke(request('show', {'queries': [{
+        'id': 'retained-history', 'kind': 'integration',
+        'task_id': 'T1', 'request_id': 'integrate-1',
+    }]}))['results'][0]['value']
+    assert result['history'] == history
+    assert result['checks'] == done['checks']
+    if shape == 'modern':
+        assert result['acceptance_manifests'] == done['acceptance_manifests']
+        assert_bundle(result, context, done['target_after'])
+    else:
+        assert 'acceptance_manifests' not in result
+    assert execution(project) == before
+    assert marker.read_text() == 'run\nrun\n'

@@ -92,14 +92,17 @@ state/runtime/config-путей. Рабочие конфиги не помеща
 
 `delivery_agreed` означает сохранённое намерение; `delivery_pending` — выполняемую
 поставку; `delivery_partial` — зафиксированное разрешение удаления после всех
-подтверждений. `delivery_blocked` содержит `reason` и описание `recovery`.
+подтверждений. При существующем договоре `delivery_blocked` содержит `reason`
+и описание `recovery`. Без договора отдельный ответ `delivery_blocked` содержит
+`reason: agreement_required`, но не содержит `recovery`: недостающий договор
+задаётся через `delivery/agree`, после чего продолжают `delivery/settle`.
 `delivery_complete` означает проверенное фактическое отсутствие Task-root.
 Исключение удаления не объявляет успех: durable-состояние сохраняет возможность
 продолжить частичную уборку. Системный сбой не превращается в фиктивный PASS.
 
 | Причина | Продолжение через владельца |
 |---|---|
-| `agreement_required` | Согласовать действительный договор до завершения |
+| `agreement_required` | `recovery` отсутствует; задать действительный договор через `delivery/agree` до завершения |
 | `task_not_terminal` | Завершить либо санкционированно отменить Task |
 | `integration_required`, `resource_cleanup_pending` | Завершить разрешённую интеграцию либо cleanup с явной судьбой коммитов |
 | `checks_pending`, `external_operation_pending` | Разрешить исходную незавершённую внешнюю операцию |

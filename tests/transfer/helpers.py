@@ -15,9 +15,15 @@ def settings():
             'max_total_bytes':128*1024*1024,'chunk_bytes':65536,'file_mode':0o600}
 
 
-def enabled(project):
-    project['cfg']['runtime_services']['transfer']=settings()
-    write_json(project['config_path'],project['cfg'])
+def enabled(project, recovery_tool):
+    from .compact_helpers import configure
+    recovery = configure(project, recovery_tool)
+    for name in ['note.txt', 'stable.txt']:
+        recovery['mapping']['materials'].append({
+            'id': name, 'role': 'task-material',
+            'source': 'artifacts/' + name, 'destination': 'artifacts/' + name, 'include': True,
+        })
+    write_json(project['config_path'], project['cfg'])
     return project
 
 
@@ -32,7 +38,22 @@ def destination(project,root):
     for name,rel in cfg['processes'].items():
         original=project['root']/rel
         write_json(home/rel,json.loads(original.read_text()))
-    path=write_json(home/'project.json',cfg)
+    path = home / 'project.json'
+    recovery = cfg['runtime_services']['transfer']['recovery']
+    recovery['systems']['project']['repository'] = str(repo)
+    for owner, spec in recovery['systems'].items():
+        copied = []
+        for index, original in enumerate(spec['configs']):
+            if owner == 'poise' and index == 0:
+                copied.append(str(path))
+            else:
+                current = home / Path(original).name
+                current.write_bytes(Path(original).read_bytes())
+                copied.append(str(current))
+        spec['configs'] = copied
+    write_json(path, cfg)
+    from conftest import seed_fixture_requirements
+    seed_fixture_requirements(home, cfg)
     return {'root':home,'app':repo,'cfg':cfg,'config_path':path,'task':deepcopy(project['task'])}
 
 

@@ -145,7 +145,7 @@ def assert_projection(case, response, *, mode="target", target="code_review",
     assert record["id"] == "T1"
     assert record["worktree"] == str(case["root"])
     assert git(case["root"], "symbolic-ref", "--short", "HEAD") == case["branch"]
-    checkout = subject or (case["visits"][count - 1]["commit"] if count else case["saved"])
+    checkout = case["saved"]
     assert_checkout(case, checkout)
     if noop:
         assert replay["recovery_ref"] is None

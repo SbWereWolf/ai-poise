@@ -5,6 +5,8 @@ that refusal; evidence must distinguish reached failures from blocked scenarios.
 """
 from copy import deepcopy
 import json
+import io
+import sqlite3
 from pathlib import Path
 import sys
 import tarfile
@@ -20,7 +22,7 @@ from poise.modules.transfers.domain import TransferPolicy, TransferRequest, vali
 
 from .compact_helpers import configure, flow, prepared, registered_note, save, target
 from .helpers import export, handoff_args, pick, restore
-from .test_paths import prepared as legacy_prepared
+from .compact_helpers import legacy_prepared
 
 
 def test_guard_request_selection_and_import_identity_remain_explicit():
@@ -50,12 +52,55 @@ def test_guard_foreign_ownership_cannot_be_invented_as_released():
 def archive_contents(saved):
     """Independent reader; never creates the product's archive or manifest."""
     with tarfile.open(saved['package_path'], 'r:gz') as archive:
-        files = [item for item in archive.getmembers() if item.isfile()]
+        members = archive.getmembers()
+        assert all(item.isfile() or item.isdir() for item in members)
+        assert all(not Path(item.name).is_absolute() and '..' not in Path(item.name).parts
+                   for item in members)
+        files = [item for item in members if item.isfile()]
         names = [item.name.removeprefix('./') for item in files]
         assert len(names) == len(set(names))
         entries = {name: archive.extractfile(item).read()
                    for name, item in zip(names, files, strict=True)}
     return entries, json.loads(entries['manifest.json'])
+
+
+def assert_compact_inventory(saved, expected_files):
+    """Membership comes from the scenario contract, never the manifest."""
+    parents = {str(parent) for name in expected_files for parent in Path(name).parents
+               if str(parent) != '.'}
+    with tarfile.open(saved['package_path'], 'r:gz') as archive:
+        members = archive.getmembers()
+        names = [member.name.removeprefix('./').rstrip('/') for member in members]
+        assert len(names) == len(set(names))
+        assert {name for name, member in zip(names, members) if member.isfile()} == expected_files
+        for name, member in zip(names, members):
+            assert member.isfile() or (member.isdir() and name in parents | {'.', ''})
+
+
+@pytest.mark.parametrize('kind', ['source-file', 'extra-directory', 'symlink', 'hardlink'])
+def test_guard_inventory_oracle_rejects_undeclared_members(tmp_path, kind):
+    path = tmp_path / 'sensitivity.tar.gz'
+    with tarfile.open(path, 'w:gz') as archive:
+        note = tarfile.TarInfo('note')
+        note.size = 5
+        archive.addfile(note, io.BytesIO(b'known'))
+    assert_compact_inventory({'package_path': str(path)}, {'note'})
+    with tarfile.open(path, 'w:gz') as archive:
+        note = tarfile.TarInfo('note')
+        note.size = 5
+        archive.addfile(note, io.BytesIO(b'known'))
+        extra = tarfile.TarInfo('proofs/extra-record')
+        if kind == 'source-file':
+            content = Path(__file__).read_bytes()
+            extra.size = len(content)
+            archive.addfile(extra, io.BytesIO(content))
+        else:
+            extra.type = {'extra-directory': tarfile.DIRTYPE,
+                          'symlink': tarfile.SYMTYPE, 'hardlink': tarfile.LNKTYPE}[kind]
+            extra.linkname = '/outside'
+            archive.addfile(extra)
+    with pytest.raises(AssertionError):
+        assert_compact_inventory({'package_path': str(path)}, {'note'})
 
 
 def test_missing_recovery_contract_cannot_silently_export_source_history(project):
@@ -143,7 +188,20 @@ def test_compact_archive_uses_roles_and_omits_source_history_and_reproducibles(
     entries, manifest = archive_contents(saved)
     assert manifest['format'] == 'poise-recovery-1'
     assert manifest['mapping']['version'] == 'fixture-v1'
-    assert set(entries) == {'manifest.json'} | {item['path'] for item in manifest['files']}
+    assert_compact_inventory(saved, {
+        'manifest.json', 'snapshot.sqlite', 'diffs/T1.patch',
+        'materials/T1/notes/cache',
+    })
+    assert entries['diffs/T1.patch'] == b''
+    snapshot = Path(saved['package_path']).parent / 'inventory-inspection.sqlite'
+    snapshot.write_bytes(entries['snapshot.sqlite'])
+    with sqlite3.connect(snapshot) as database:
+        assert database.execute(
+            'SELECT id,status,stage_index,iteration,claimed_by FROM tasks').fetchall() == [
+                ('T1', 'active', 0, 1, None)]
+        assert database.execute('SELECT count(*) FROM sessions').fetchone()[0] == 0
+        assert database.execute('SELECT count(*) FROM runtime_bindings').fetchone()[0] == 0
+        assert not database.execute('PRAGMA foreign_key_check').fetchall()
     assert {item['path'] for item in manifest['files'] if item['role'] == 'task-material'} == {
         'materials/T1/notes/cache',
     }
@@ -171,7 +229,8 @@ def test_dirty_code_roundtrip_carries_text_binary_additions_and_deletions(
     (baseline / 'deleted.txt').write_bytes(b'Before deletion\n')
     git(project['app'], 'add', '.')
     git(project['app'], 'commit', '-m', 'Tracked WIP inputs')
-    git(project['app'], 'push', 'backup', 'main')
+    # Fetch into the disposable source mirror; publication is never needed.
+    git(project['remote'], 'fetch', str(project['app']), 'main:main')
     _, tools, context, payload = prepared(project, recovery_tool)
     tree = Path(context['worktree'])
     # This fixture Task owns tests/**; code WIP uses its allowed test surface.
@@ -422,6 +481,8 @@ def test_occupied_destination_and_foreign_claim_are_preserved(
     receiver.invoke(request('bootstrap', {
         'task': other, 'decision': None, 'feedback': None, 'rework_stage': None,
     }))
+    from .test_compact_denials import selected_rows
+    persisted_before = selected_rows(receiver.runtime)
     original = receiver.runtime.task_queries.record('OTHER')
     claim = receiver.runtime.ownership.snapshot(receiver.runtime.session)
     deployed = restore(receiver, saved['package_path'], saved['package_digest'])
@@ -430,6 +491,12 @@ def test_occupied_destination_and_foreign_claim_are_preserved(
     assert receiver.runtime.ownership.snapshot(receiver.runtime.session) == claim
     # No second Task claim may be acquired as an import side effect.
     assert receiver.runtime.task_queries.record('T1')['claimed_by'] is None
+    persisted_after = selected_rows(receiver.runtime)
+    for key in ('results', 'events'):
+        assert [row for row in persisted_after[key] if row[0] == 'OTHER'] == [
+            row for row in persisted_before[key] if row[0] == 'OTHER']
+    assert [row for row in persisted_after['evidence'] if row[1] == 'OTHER'] == persisted_before['evidence']
+    assert [row for row in persisted_after['tasks'] if row[0] == 'OTHER'] == persisted_before['tasks']
 
 
 def test_unknown_check_outcome_is_not_repeated_or_converted_to_a_release(

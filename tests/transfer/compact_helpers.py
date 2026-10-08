@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 
 from batch.helpers import bootstrap, request, result, verify
-from conftest import WorkPoise, add_test, git, seed_fixture_requirements, write_json
+from conftest import WorkPoise, add_test, git, write_json
 from poise.application.work import WorkTools
 
 from .helpers import destination, export, handoff_args, settings
@@ -61,6 +61,16 @@ def configure(project, recovery_tool):
     return transfer['recovery']
 
 
+def legacy_prepared(project):
+    project['cfg']['runtime_services']['transfer'] = settings()
+    write_json(project['config_path'], project['cfg'])
+    runtime = WorkPoise(project['config_path'], 'source')
+    tools = WorkTools(runtime)
+    context = bootstrap(tools, project)
+    add_test(context['worktree'])
+    return runtime, tools, context, result(context, 'Preserved legacy denial input')
+
+
 def prepared(project, recovery_tool, *, recovery_changes=None):
     recovery = configure(project, recovery_tool)
     if recovery_changes is not None:
@@ -92,7 +102,6 @@ def target(project, path, *, mapping=None, components=None):
     if components is not None:
         recovery['component_steps'] = deepcopy(components)
     write_json(dst['config_path'], dst['cfg'])
-    seed_fixture_requirements(dst['root'], dst['cfg'])
     return dst, WorkTools(WorkPoise(dst['config_path'], 'receiver'))
 
 

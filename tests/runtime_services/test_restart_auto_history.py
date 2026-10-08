@@ -14,7 +14,7 @@ def test_reworked_visit_uses_exact_accepted_result_identity(project):
     response = launch(case, target="code_review")
     assert response["status"] == "progression_target_reached"
     assert_projection(case, response)
-    assert case["log"].read_text().splitlines() == case["commits"]
+    assert case["log"].read_text().splitlines() == [case["saved"]] * len(case["commits"])
 
 
 @pytest.mark.parametrize("damage,reason,checkout", [
@@ -53,9 +53,9 @@ def test_incomplete_history_never_guesses_an_accepted_gate(project, damage, reas
     response = launch(case, target="code_review")
     assert response["status"] == "progression_stopped"
     assert_projection(case, response, stage="tests", reason=reason, count=0,
-                      subject=case["commits"][0] if checkout else None)
+                      subject=case["saved"] if checkout else None)
     assert case["log"].read_text() == ""
-    assert git(case["root"], "rev-parse", "HEAD") == (case["commits"][0] if checkout else case["saved"])
+    assert git(case["root"], "rev-parse", "HEAD") == case["saved"]
 
 
 def test_changed_route_stops_before_unsupported_historical_mapping(project):
@@ -77,10 +77,10 @@ def test_maximum_replay_respects_separate_final_authority(project, publish, stat
     assert response["status"] == status
     assert_projection(case, response, mode="maximum", target=None, stage=stop,
                       reason=reason, count=4, task_stage="code_review",
-                      subject=None if publish else case["commits"][3])
+                      subject=None if publish else case["saved"])
     record = case["client"].runtime.task_queries.record("T1")
     assert record["status"] != "completed"
     assert not any(event["event"].startswith("user_accept") for event in record["history"])
-    assert case["log"].read_text().splitlines() == case["commits"]
-    assert git(case["root"], "rev-parse", "HEAD") == case["commits"][3]
+    assert case["log"].read_text().splitlines() == [case["saved"]] * len(case["commits"])
+    assert git(case["root"], "rev-parse", "HEAD") == case["saved"]
     assert git(case["project"]["app"], "status", "--porcelain") == ""

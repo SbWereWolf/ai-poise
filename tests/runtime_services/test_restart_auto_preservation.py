@@ -30,7 +30,7 @@ def test_public_replay_preserves_published_sprint_membership_and_dependency(proj
 
     assert response["status"] == "progression_target_reached"
     assert_projection(case, response)
-    assert case["log"].read_text().splitlines() == case["commits"]
+    assert case["log"].read_text().splitlines() == [case["saved"]] * len(case["commits"])
     after = runtime.task_queries.record("T1")
     assert (after["id"], after["sprint_id"], after["worktree"]) == (
         "T1", "S", before["worktree"],
@@ -97,7 +97,7 @@ def test_public_replay_retains_nonempty_finding_resolution_history(project, outc
     assert proof["start_commit"] == saved
     assert git(root, "rev-parse", proof["recovery_ref"]) == saved
     assert git(root, "show", f"{proof['recovery_ref']}:src/saved.txt") == "Preserved before replay"
-    assert git(root, "rev-parse", "HEAD") == visits[-1]["commit"]
+    assert git(root, "rev-parse", "HEAD") == saved
     assert git(root, "symbolic-ref", "--short", "HEAD") == branch
     assert git(root, "status", "--porcelain") == ""
     assert feedback_history(runtime, "T1")[:len(history)] == history

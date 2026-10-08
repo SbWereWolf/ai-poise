@@ -3,6 +3,7 @@
 No migration, remote store import or automatic backup delivery is implied.
 """
 from copy import deepcopy
+from contextlib import contextmanager
 import hashlib
 import io
 import json
@@ -223,8 +224,9 @@ class LocalHandoff:
         return path
 
     @staticmethod
-    def _read_working_file(worktree, relative):
-        """Open each component without following a symlink, including races."""
+    @contextmanager
+    def _working_parent(worktree, relative):
+        """Anchor leaf operations to directories opened without symlink traversal."""
         directory = os.open(worktree, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         try:
             for component in relative.parts[:-1]:
@@ -232,13 +234,17 @@ class LocalHandoff:
                                 dir_fd=directory)
                 os.close(directory)
                 directory = child
-            descriptor = os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
-            with os.fdopen(descriptor, 'rb') as stream:
-                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-                    raise PoiseError(f'WIP file type changed: {relative}')
-                return stream.read()
+            yield directory
         finally:
             os.close(directory)
+
+    @staticmethod
+    def _read_working_file(directory, relative):
+        descriptor = os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        with os.fdopen(descriptor, 'rb') as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise PoiseError(f'WIP file type changed: {relative}')
+            return stream.read()
 
     def _index_material(self, worktree, temporary):
         h = self.h
@@ -276,8 +282,8 @@ class LocalHandoff:
         payloads = {}
         for name in sorted(names):
             relative = self._snapshot_path(name)
-            # lstat each ancestor before inspecting the leaf: never follow a
-            # directory symlink into unrelated/private filesystem material.
+            # Record ancestor modes; leaf metadata and reads are anchored to
+            # no-follow directory descriptors below, not these observations.
             for parent in reversed(relative.parents):
                 if str(parent) == '.':
                     continue
@@ -290,20 +296,20 @@ class LocalHandoff:
                     raise PoiseError(f'Unsafe symlink/special ancestor {parent}; claims and WIP retained')
                 files[str(parent)] = {'path': str(parent), 'kind': 'directory',
                                       'mode': stat.S_IMODE(mode), 'payload': None}
-            path = worktree / relative
             try:
-                mode = path.lstat().st_mode
+                with self._working_parent(worktree, relative) as directory:
+                    mode = os.stat(relative.name, dir_fd=directory, follow_symlinks=False).st_mode
+                    if stat.S_ISLNK(mode):
+                        content = os.fsencode(os.readlink(relative.name, dir_fd=directory))
+                        kind = 'symlink'
+                    elif stat.S_ISREG(mode):
+                        content = self._read_working_file(directory, relative)
+                        kind = 'file'
+                    else:
+                        raise PoiseError(f'Unsupported WIP snapshot file {name}; claims retained')
             except FileNotFoundError:
                 files[name] = {'path': name, 'kind': 'absent', 'mode': None, 'payload': None}
                 continue
-            if stat.S_ISLNK(mode):
-                content = os.fsencode(os.readlink(path))
-                kind = 'symlink'
-            elif stat.S_ISREG(mode):
-                content = self._read_working_file(worktree, relative)
-                kind = 'file'
-            else:
-                raise PoiseError(f'Unsupported WIP snapshot file {name}; claims retained')
             checksum = hashlib.sha256(content).hexdigest()
             payload = 'payloads/' + checksum
             payloads[payload] = content

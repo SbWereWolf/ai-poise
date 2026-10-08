@@ -282,10 +282,11 @@ def test_invalid_required_storage_parameter_exposes_no_fallback(case, key, value
     assert code == 23
     assert actual['schema'] == 'project-preflight-result-1'
     assert actual['status'] == 'rejected' and actual['ready'] is False
-    assert actual['reason'] == 'Requirements storage: explicit nonempty file path required'
+    expected_reason = f'paths.{key}: требуется непустой строковый путь без NUL'
+    assert actual['reason'] == expected_reason
     assert actual['context']['requirements_database' if key.endswith('database') else 'requirements_lock'] is None
     assert actual['checks'] == fixture('checks-configuration-refused.json', {
-        'cause': 'Requirements storage: explicit nonempty file path required'})
+        'cause': expected_reason})
     assert actual['recovery'] == fixture('recovery.json', case[3])
 
 

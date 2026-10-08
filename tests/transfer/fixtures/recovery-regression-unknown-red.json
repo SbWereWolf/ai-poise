@@ -1,0 +1,25 @@
+{
+  "collected": [
+    "tests/transfer/test_recovery_regressions.py::test_coordinator_crash_before_tool_state_never_repeats_effect"
+  ],
+  "collection": [],
+  "exit_code": 1,
+  "reports": [
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_coordinator_crash_before_tool_state_never_repeats_effect",
+      "phase": "call",
+      "outcome": "failed",
+      "diagnostic": "Failed: Interrupted restore repeated its uncertain external effect"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_coordinator_crash_before_tool_state_never_repeats_effect",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_coordinator_crash_before_tool_state_never_repeats_effect",
+      "phase": "teardown",
+      "outcome": "passed"
+    }
+  ]
+}

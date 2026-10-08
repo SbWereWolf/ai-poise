@@ -1,0 +1,8 @@
+{
+  "source_version": "fixture-v1",
+  "target_version": "fixture-v2",
+  "reason": "Explicit current placement of mapped configuration material",
+  "destinations": {
+    "note": "documents/current-note"
+  }
+}

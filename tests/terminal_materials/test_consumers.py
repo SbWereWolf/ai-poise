@@ -381,6 +381,8 @@ def _preparation_files(preparing):
 
 def _interrupt_preparation_removal(patch, matches, fired, removed, message):
     """Interrupt one actual unlink inside the selected real rmtree traversal."""
+    import errno
+
     original_rmtree, original_unlink = shutil.rmtree, os.unlink
     def interrupted_removal(path, *args, **kwargs):
         if matches(Path(path)) and not fired:
@@ -390,10 +392,40 @@ def _interrupt_preparation_removal(patch, matches, fired, removed, message):
                     if not fired:
                         removed.append(str(name))
                         fired.append(True)
-                        raise OSError(message)
+                        raise OSError(errno.EIO, message)
                     return result
                 unlink_fault.setattr(os, "unlink", interrupted_unlink)
                 return original_rmtree(path, *args, **kwargs)
         return original_rmtree(path, *args, **kwargs)
     interrupted_removal.avoids_symlink_attacks = original_rmtree.avoids_symlink_attacks
     patch.setattr(shutil, "rmtree", interrupted_removal)
+
+
+def test_export_cleanup_fault_fixture_preserves_signal_and_remaining_files(tmp_path, monkeypatch):
+    """Current GREEN guard: real Python rmtree/unlink, no delivery API needed."""
+    import errno
+
+    preparing = tmp_path / "preparing"
+    preparing.mkdir()
+    names = {"first.txt", "second.txt", "third.txt"}
+    for name in names:
+        (preparing / name).write_bytes(b"owned staging file\n")
+    foreign = tmp_path / "foreign.txt"
+    foreign.write_bytes(b"foreign staging file\n")
+    fired, removed = [], []
+    monkeypatch.setenv("LANG", "C.UTF-8")
+    with monkeypatch.context() as patch:
+        _interrupt_preparation_removal(patch, lambda path: path == preparing,
+                                       fired, removed, "INJECTED-REPLAY-CLEANUP-FAULT")
+        with pytest.raises(OSError, match="INJECTED-REPLAY-CLEANUP-FAULT") as observed:
+            shutil.rmtree(preparing)
+        assert observed.value.errno == errno.EIO
+        assert fired == [True] and len(removed) == 1
+        remaining = _preparation_files(preparing)
+        assert preparing.is_dir() and set(remaining) == names - {Path(removed[0]).name}
+        assert len(remaining) == 2 and all(data == b"owned staging file\n" for data in remaining.values())
+        assert foreign.read_bytes() == b"foreign staging file\n"
+    assert os.environ["LANG"] == "C.UTF-8"
+    shutil.rmtree(preparing)
+    assert not os.path.lexists(preparing)
+    assert foreign.read_bytes() == b"foreign staging file\n"

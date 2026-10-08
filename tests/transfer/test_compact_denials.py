@@ -3,7 +3,6 @@ from copy import deepcopy
 import hashlib
 import io
 import json
-import os
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -18,7 +17,7 @@ from poise.application.work import WorkTools
 from poise.common import PoiseError, digest, file_digest
 
 from .compact_helpers import prepared, registered_note, save, target
-from .helpers import restore, pick
+from .helpers import cli_environment, restore, pick
 from .test_compact_recovery import archive_contents
 
 
@@ -120,7 +119,9 @@ def test_unsafe_placement_preserves_outside_bytes_and_state(project, recovery_to
     before = selected_rows(receiver.runtime)
     if damage == 'traversal':
         write_json(dst['config_path'], dst['cfg'])
-    with pytest.raises(PoiseError, match='path|escape|symlink|unsafe|relative'):
+    refusal = (r'Путь выходит из root: notes/cache' if damage == 'symlink'
+               else 'path|escape|symlink|unsafe|relative')
+    with pytest.raises(PoiseError, match=refusal):
         fresh = WorkTools(WorkPoise(dst['config_path'], 'receiver'))
         restore(fresh, saved['package_path'], saved['package_digest'])
     assert (outside / 'cache').read_bytes() == b'Foreign bytes\n'
@@ -258,7 +259,11 @@ def test_current_verification_admission_rejects_damaged_mandatory_inputs(project
     else:
         damaged.write_bytes(b'Corrupt mandatory current input\n')
     before = selected_rows(receiver.runtime)
-    with pytest.raises(PoiseError, match='artifact|evidence|receipt|digest|missing|changed|disappeared'):
+    refusal = {
+        'missing-artifact': 'Артефакт не существует:',
+        'corrupt-artifact': 'Артефакт изменён после регистрации:',
+    }.get(damage, 'artifact|evidence|receipt|digest|missing|changed|disappeared')
+    with pytest.raises(PoiseError, match=refusal):
         if 'artifact' in damage:
             verify(receiver, result(context, 'Cannot admit damaged material'))
         else:
@@ -281,11 +286,13 @@ def test_fresh_failed_current_check_cannot_reuse_historical_pass(project, recove
     assert fresh['status'] != 'verified'
     assert any(not receipt['passed'] for receipt in fresh['checks'])
     assert {r['id'] for r in fresh['checks']}.isdisjoint(r['id'] for r in old['checks'])
-    with pytest.raises(PoiseError, match='verif|check|active|stage'):
-        receiver.invoke(request('advance', {'task_id': 'T1', 'request_id': 'denied-old-pass', 'target_stage': 'test_review'}))
+    before = selected_rows(receiver.runtime)
+    stopped = receiver.invoke(request('advance', {'task_id': 'T1', 'request_id': 'denied-old-pass', 'target_stage': 'test_review'}))
+    assert stopped['status'] == 'progression_work_required'
+    assert selected_rows(receiver.runtime) == before
     actual = receiver.runtime.task_queries.record('T1')
     assert actual['stage_index'] == 0
-    assert actual['status'] != 'verified'
+    assert actual['status'] == 'active'
 
 
 def test_existing_same_task_collision_preserves_selected_database_fields(project, recovery_tool, tmp_path):
@@ -358,9 +365,7 @@ def test_real_cli_consumes_compact_transfer_and_reports_valid_deployment(project
     _, tools, _, payload = prepared(project, recovery_tool)
     saved = save(tools, payload)
     dst, receiver = target(project, tmp_path / 'destination')
-    source = Path(__file__).resolve().parents[2] / 'src'
-    environment = {**os.environ, 'PYTHONPATH': str(source), 'POISE_CONFIG': str(dst['config_path']),
-                   'POISE_CALLER_BINDING': str(dst['root'] / 'fixture-cli.caller.json')}
+    environment = cli_environment(dst, 'fixture-cli.caller.json')
     packet = request('transfer', {'action': 'import', 'request_id': 'cli-compact-import',
         'package_path': saved['package_path'], 'package_digest': saved['package_digest']})
     process = subprocess.run([sys.executable, '-B', '-m', 'poise', 'work'],

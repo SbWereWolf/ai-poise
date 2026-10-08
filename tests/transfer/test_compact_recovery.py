@@ -183,6 +183,10 @@ def test_compact_archive_uses_roles_and_omits_source_history_and_reproducibles(
     for name, data in [('important', b'OLD BACKUP'), ('transcript', b'OLD OUTPUT'),
                        ('installed', b'DEPENDENCY'), ('generated', b'GENERATED')]:
         (root / name).write_bytes(data)
+    tree = Path(context['worktree'])
+    git(tree, 'add', '.')
+    git(tree, 'commit', '-m', 'Arrange clean disposable inventory fixture')
+    source_head = git(tree, 'rev-parse', 'HEAD')
     before = note.read_bytes()
     saved = save(tools, payload)
     entries, manifest = archive_contents(saved)
@@ -215,7 +219,8 @@ def test_compact_archive_uses_roles_and_omits_source_history_and_reproducibles(
     assert not any(Path(name).parts[0] in {'source', '.git', 'bundles'}
                    for name in entries)
     assert not {b'OLD BACKUP', b'OLD OUTPUT', b'DEPENDENCY', b'GENERATED'} & set(entries.values())
-    assert manifest['workspaces']['T1']['commit'] == git(Path(context['worktree']), 'rev-parse', 'HEAD')
+    assert manifest['workspaces']['T1']['commit'] == source_head
+    assert git(tree, 'rev-parse', 'HEAD') == source_head
     assert runtime.current_task() is None
 
 

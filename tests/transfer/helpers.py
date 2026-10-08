@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 import json
+import os
 import subprocess
 from conftest import write_json
 from batch.helpers import request
@@ -75,3 +76,13 @@ def pick(tools,tid):
 def handoff_args(payload=None):
     return {'request_id':'checkpoint-1','reason':'continue at another store',
             'result':payload,'commit_message':'WIP: portable task','artifact_paths':[]}
+
+
+def cli_environment(project, binding_name):
+    """Preserve native identity; bind only a genuinely non-native CLI fixture."""
+    environment = {**os.environ,
+        'PYTHONPATH': str(Path(__file__).resolve().parents[2] / 'src'),
+        'POISE_CONFIG': str(project['config_path'])}
+    if not (environment.get('CODEX_SESSION_ID') or environment.get('CODEX_THREAD_ID')):
+        environment['POISE_CALLER_BINDING'] = str(project['root'] / binding_name)
+    return environment

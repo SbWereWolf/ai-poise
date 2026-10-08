@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from .helpers import enabled
+from .helpers import cli_environment, enabled
 from batch.helpers import request
 from conftest import git
 
@@ -12,8 +12,7 @@ def test_transfer_cli_rejects_unknown_operation_without_worktree(project,recover
     enabled(project,recovery_tool)
     from conftest import WorkPoise
     WorkPoise(project['config_path'], 'validated-cli-config')
-    env={**os.environ,'PYTHONPATH':str(Path(__file__).resolve().parents[2]/'src'),
-         'POISE_CONFIG':str(project['config_path']),'POISE_CALLER_BINDING':str(project['root']/'transfer-cli.caller.json')}
+    env = cli_environment(project, 'transfer-cli.caller.json')
     p=subprocess.run([sys.executable,'-m','poise','work'],
          input=json.dumps(request('transfer',{'action':'unknown'})),text=True,capture_output=True,env=env)
     assert p.returncode==2 and json.loads(p.stdout)['status']=='rejected'
@@ -26,10 +25,7 @@ def test_transfer_cli_compact_export_through_real_entry_point(project,recovery_t
     from .test_compact_recovery import archive_contents
     runtime, tools, context, payload = prepared(project,recovery_tool)
     tools.invoke(request('handoff', handoff_args(payload)))
-    environment = {**os.environ,
-        'PYTHONPATH': str(Path(__file__).resolve().parents[2] / 'src'),
-        'POISE_CONFIG': str(project['config_path']),
-        'POISE_CALLER_BINDING': str(project['root'] / 'compact-cli.caller.json')}
+    environment = cli_environment(project, 'compact-cli.caller.json')
     packet = request('transfer', {'action':'export','request_id':'cli-export',
         'task_ids':['T1'],'sprint_id':None,'handoff':None})
     process = subprocess.run([sys.executable,'-B','-m','poise','work'],

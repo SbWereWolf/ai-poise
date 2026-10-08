@@ -6,6 +6,7 @@ from ..common import PoiseError,descendant
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..infrastructure.task_paths import sprint_root, task_root
+from ..modules.result_views.domain import bounded_envelope, response_required
 
 
 def _task_root(h, task):
@@ -49,23 +50,15 @@ def execute(runtime,stream,output):
 def write_result(h,result,output):
     current=h.report_task(result)
     # Task reports survive cleanup. A small taskless finalization needs no file.
-    text=json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n'
     response=None
-    if current is not None or isinstance(result.get('sprint'),str) or len(text)>h.cfg['limits']['output_chars']:
+    if current is not None or isinstance(result.get('sprint'),str) or response_required(result,h.cfg['limits']['output_chars']):
         root = (_task_root(h, current) if current is not None else
                 (sprint_root(h.state, h.paths, h._identifier(result['sprint']))
                  if isinstance(result.get('sprint'), str) else h.runtime))
         response=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
         atomic_write(response,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
-        view={**result,'response_path':str(response)}
-    else:view=result
-    text=json.dumps(view,ensure_ascii=False,separators=(',',':'))+'\n'
-    if len(text)>h.cfg['limits']['output_chars']:
-        view={'status':result['status'],'response_path':str(response),'details':'full_result','session':h.session}
-        for key in ('task','stage','iteration','next_work'):
-            if key in result:view[key]=result[key]
-        if 'results' in result:view['result_count']=len(result['results'])
-        text=json.dumps(view,ensure_ascii=False,separators=(',',':'))+'\n'
-        if len(text)>h.cfg['limits']['output_chars']:
-            text=json.dumps({'status':result['status'],'response_path':str(response)},ensure_ascii=False,separators=(',',':'))+'\n'
-    output.write(text)
+    metadata={'details':'full_result','session':h.session}
+    metadata.update({key:result[key] for key in ('task','stage','iteration','next_work') if key in result})
+    if 'results' in result:metadata['result_count']=len(result['results'])
+    command_views=h.result_views.command_views(result.get('checks',[]))
+    output.write(bounded_envelope(result,response,h.cfg['limits']['output_chars'],metadata,{},command_views))

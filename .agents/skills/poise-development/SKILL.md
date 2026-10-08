@@ -209,8 +209,11 @@ and [publication](../../../docs/workflows/requirements-registry.md#публик�
 Commit all owned WIP in the Task worktree before automatic replay. Replay uses
 the same worktree and branch, preserves a durable recovery ref before reset,
 and rechecks accepted stages at their exact accepted commits. Passing historical
-tests and unchanged registered proof files suffice; restart alone does not
-invalidate them. Mechanical replay is role-neutral; new substantive work retains
+tests and unchanged registered proof files suffice when current proof obligations
+remain compatible. Restart or requirement wording alone does not invalidate proof.
+Never substitute old methods, expectations, schedules or evidence plans for an
+explicitly changed current contract. Revalidate ignored collisions and preservation
+before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
 independent review. Omit the target for maximum progress; an explicit target stops
 on entry before its checks. Never rerun an unknown command outcome. A completed
 request replays its saved result; use a new identity for new progression.

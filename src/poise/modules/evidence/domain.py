@@ -375,6 +375,23 @@ class EvidenceBook:
                 raise DomainError('Осмотр требует точную актуальную revision аргумента')
         return tuple(missing)
 
+    def assess_replay(self, stage, iteration, tree, key, candidate):
+        """Recheck accepted commands without authoring/reinterpreting old arguments."""
+        batch = self.submission_batch(stage, iteration, candidate['candidate_digest'], tree, key)
+        receipts = [] if batch is None else batch['receipts']
+        covered = {method for receipt in receipts for method in receipt['obligations']}
+        missing = [f'command:{method}' for method in candidate['method_ids'] if method not in covered]
+        if not completed_receipts(receipts):
+            missing.append('commands_incomplete')
+        for receipt in receipts:
+            if (not receipt['passed'] or not receipt['interpretable'] or receipt['timed_out']
+                    or receipt.get('source_unchanged') is not True or receipt['commit'] != candidate['commit']):
+                missing.append(f'command_unusable:{receipt["id"]}')
+        accepted = candidate['accepted_assessment']
+        if (accepted is None or not accepted['ready'] or accepted['tree'] != tree):
+            missing.append('accepted_evidence_unavailable')
+        return EvidenceAssessment(not missing, False, candidate['outcome'], tuple(missing), self)
+
     def assess(self, plan, stage, iteration, tree, key, work):
         missing=list(self.precheck(plan,stage,iteration,tree,key,work))
         cfg=plan.stage(stage); batch=self.batch(stage,iteration,tree,key)

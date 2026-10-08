@@ -307,6 +307,7 @@ class Task:
     action_assessment: str | None
     stage_contracts: TaskStageContracts | None = None
     duplicate_reuse: str | None = None
+    replay_candidate: str | None = None
 
     def __post_init__(self) -> None:
         identifier(self.state.task_id)
@@ -619,6 +620,8 @@ class Task:
         self._require_ordinary_stage()
         self._require_stage_contracts()
         self._owned(actor)
+        if self.replay_candidate is not None:
+            raise DomainError("Historical proof is not a newly authored submission")
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
         self.evidence_plan.validate_work(self.stage.stage_id, evidence_work)
@@ -730,10 +733,50 @@ class Task:
 
     @property
     def check_candidate_digest(self) -> str | None:
+        if self.replay_candidate is not None:
+            return hashlib.sha256(self.replay_candidate.encode()).hexdigest()
         if self.duplicate_reuse is None:
             return self.state.submission_digest
         return hashlib.sha256(json.dumps(json.loads(self.duplicate_reuse)["candidate"],
             sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+    def prepare_replay_visit(self, actor: str, candidate: dict) -> Change:
+        self._owned(actor)
+        if candidate['stage'] != self.stage.stage_id:
+            raise DomainError('Historical candidate is for another stage')
+        value = json.dumps(candidate, sort_keys=True, ensure_ascii=False)
+        if self.replay_candidate is not None:
+            if self.replay_candidate != value:
+                raise DomainError('Historical candidate changed')
+            return self._unchanged()
+        if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
+            raise DomainError('Historical replay requires the current active owner')
+        change = self._change('replay_prepared', str(candidate['visit_id']), None)
+        return replace(change, task=replace(change.task, replay_candidate=value,
+            evidence_input=json.dumps(candidate['evidence_work'], sort_keys=True, ensure_ascii=False),
+            evidence_assessment=None, progress=replace(self.progress,
+                stage_work=json.dumps(candidate['stage_work'], sort_keys=True, ensure_ascii=False),
+                outcome=candidate['outcome'])))
+
+    def stop_replay_visit(self, actor: str) -> Change:
+        self._owned(actor)
+        if self.replay_candidate is None or self.state.status != TaskStatus.ACTIVE:
+            return self._unchanged()
+        change = self._change('replay_stopped', None, None)
+        return replace(change, task=replace(change.task, replay_candidate=None,
+            evidence_input=None, evidence_assessment=None,
+            progress=replace(self.progress, stage_work=None, outcome=None)))
+
+    def confirm_replay_visit(self, actor: str, tree: str, execution_key: str) -> Change:
+        self._owned(actor)
+        if self.replay_candidate is None or self.state.status != TaskStatus.ACTIVE:
+            raise DomainError('No active historical proof candidate')
+        assessment = None if self.evidence_assessment is None else json.loads(self.evidence_assessment)
+        if (assessment is None or not assessment['ready'] or assessment['tree'] != tree
+                or assessment['execution_key'] != execution_key
+                or assessment['submission_digest'] != self.check_candidate_digest):
+            raise DomainError('Historical gate requires its exact assessed evidence')
+        return self._change('replay_verified', None, None, status=TaskStatus.VERIFIED)
 
     def prepare_duplicate_reuse(self, actor: str, candidate: dict) -> Change:
         """Reserve verification-only work without entering a different route stage."""
@@ -870,7 +913,7 @@ class Task:
                         stage_index=self.route.index(target), iteration=dict(progress.visits)[target],
                         status=TaskStatus.ACTIVE, claimed_by=actor, submission_digest=None)
         # Replace progress and position together: __post_init__ checks their equality.
-        updated = replace(self, state=state, progress=progress, evidence_input=None, evidence_assessment=None, action_assessment=None)
+        updated = replace(self, state=state, progress=progress, evidence_input=None, evidence_assessment=None, action_assessment=None, replay_candidate=None)
         return Change(updated, None, (TaskEvent(event, self.stage.stage_id, self.state.iteration, reason),))
 
     def _ensure_pending_resolutions_inspected(self) -> None:
@@ -1047,6 +1090,16 @@ class Task:
 
     def record_observations(self, actor, tree, execution_key, receipts):
         self._owned(actor)
+        if self.replay_candidate is not None:
+            if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
+                raise DomainError('Replay observations require the active owner')
+            book = self.evidence_book.record_submission_batch(
+                self.stage.stage_id, self.state.iteration, tree, execution_key,
+                self.check_candidate_digest, receipts)
+            if book == self.evidence_book:
+                return self._unchanged()
+            change = self._change('observations_recorded', None, None)
+            return replace(change, task=replace(change.task, evidence_book=book))
         if self.duplicate_reuse is not None:
             if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
                 raise DomainError("Reuse observations require the active owner")
@@ -1079,16 +1132,22 @@ class Task:
         self._owned(actor)
         if self.state.status != TaskStatus.ACTIVE or self.evidence_input is None:
             raise DomainError("Нет текущего результата для оценки evidence")
-        assessment = self.evidence_book.assess(self.evidence_plan,self.stage.stage_id,self.state.iteration,
-                                              tree,execution_key,json.loads(self.evidence_input))
+        if self.replay_candidate is None:
+            assessment = self.evidence_book.assess(self.evidence_plan, self.stage.stage_id,
+                self.state.iteration, tree, execution_key, json.loads(self.evidence_input))
+        else:
+            candidate = json.loads(self.replay_candidate)
+            assessment = self.evidence_book.assess_replay(self.stage.stage_id, self.state.iteration,
+                tree, execution_key, {**candidate, 'candidate_digest': self.check_candidate_digest})
         value = json.dumps({**assessment.to_dict(),'tree':tree,'execution_key':execution_key,
-                            'submission_digest':self.state.submission_digest},sort_keys=True,ensure_ascii=False)
+                            'submission_digest':self.check_candidate_digest},sort_keys=True,ensure_ascii=False)
         if value == self.evidence_assessment and assessment.book == self.evidence_book:
             return self._unchanged(), assessment
         change = self._change('evidence_assessed',None,None)
         updated = replace(change.task,evidence_book=assessment.book,evidence_assessment=value)
-        handling = updated._handling()
-        updated = replace(updated,progress=replace(updated.progress,outcome=handling.outcome))
+        if self.replay_candidate is None:
+            handling = updated._handling()
+            updated = replace(updated,progress=replace(updated.progress,outcome=handling.outcome))
         return replace(change,task=updated), assessment
 
     def record_action_result(self, actor, tree, receipt):
@@ -1124,6 +1183,8 @@ class Task:
             "progress": self.progress.to_dict(),
             "feedback": self.feedback.to_dict(),
             "action_assessment": self.action_assessment,
+            **({"replay_candidate": json.loads(self.replay_candidate)}
+               if self.replay_candidate is not None else {}),
             "registry": self.check_registry.to_state(),
             **({"duplicate_reuse": json.loads(self.duplicate_reuse)}
                if self.duplicate_reuse is not None else {}),

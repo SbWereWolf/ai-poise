@@ -18,6 +18,7 @@ from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError, VersionConflict
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.tasks.definition import build_task, validate_creation
+from ..modules.tasks.replay import ReplayIntent, ReplayResult
 from .check_attempts import CheckAttempts, is_check_attempt
 
 
@@ -1076,15 +1077,104 @@ class TaskCommands:
         uow.execution.patch(task.state.task_id, updates)
         return change.task.state
 
+    def progression_request(self, task_id, actor, request_id, target_stage, observe_commit):
+        """Admit the actual owner before resolving immutable request identity."""
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise DomainError('Progression request_id is required')
+        identity = _action_digest('advance', {'task_id': task_id, 'target_stage': target_stage})
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            ownership = uow.ownership.preflight(actor, task_id)
+            if (task.state.claimed_by != actor or
+                    (uow.ownership.worktree_required(task_id) and ownership.worktree_owner != actor) or
+                    task.state.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED)):
+                raise DomainError('Progression requires current nonterminal Task/workspace ownership')
+            execution, _ = uow.execution.load(task_id)
+            owned_attempt = (is_check_attempt(execution['pending']) and task.replay_candidate is not None
+                             and json.loads(task.replay_candidate)['request_id'] == request_id)
+            if execution['pending'] is not None and not owned_attempt:
+                raise DomainError('Progression cannot continue with a pending unknown external outcome')
+            saved = uow.tasks.progression_request(task_id, request_id, identity)
+            if saved is not None:
+                return saved
+            if target_stage == task.stage.stage_id:
+                projection = ReplayResult(ReplayIntent(task_id, request_id, target_stage),
+                    observe_commit(), None, None, target_stage, 'target_reached', ())
+                result = {'status': 'progression_target_reached', 'replay': projection.to_dict()}
+                return {'result': uow.tasks.remember_progression_noop(
+                    task_id, actor, request_id, identity, result), 'intent': None}
+            return None
+
+    def replay_context(self, task_id, request_id):
+        with self.unit_of_work() as uow:
+            return {'sources': uow.tasks.accepted_replay_sources(task_id),
+                    'cursor': uow.tasks.replay_progress(task_id, request_id)}
+
+    def start_replay(self, task_id, actor, request_id, target_stage, cursor):
+        identity = _action_digest('advance', {'task_id': task_id, 'target_stage': target_stage})
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            if task.state.claimed_by != actor:
+                raise DomainError('Replay requires current ownership')
+            if target_stage is not None and not task.route.can_reach(task.stage.stage_id, target_stage):
+                raise DomainError('Progression target is not reachable')
+            uow.tasks.begin_progression(task_id, actor, request_id, identity, target_stage)
+            uow.tasks.remember_replay_progress(task_id, actor, request_id, cursor)
+
+    def save_replay_progress(self, task_id, actor, request_id, cursor):
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            if task.state.claimed_by != actor:
+                raise DomainError('Replay requires current ownership')
+            uow.tasks.remember_replay_progress(task_id, actor, request_id, cursor)
+
+    def finish_replay(self, task_id, actor, request_id, target_stage, result):
+        identity = _action_digest('advance', {'task_id': task_id, 'target_stage': target_stage})
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            if task.state.claimed_by != actor:
+                raise DomainError('Replay requires current ownership')
+            if result['status'] == 'progression_target_reached':
+                uow.tasks.finish_progression(task_id, actor, request_id, result['replay']['stopped_at'])
+            execution, _ = uow.execution.load(task_id)
+            if execution['pending'] is None and result['status'] != 'progression_target_reached':
+                change = task.stop_replay_visit(actor)
+                uow.tasks.save(change, task.state.version)
+            return uow.tasks.remember_replay_result(task_id, actor, request_id, identity, result)
+
+    def prepare_replay_visit(self, task_id, actor, request_id, source):
+        candidate = {'request_id': request_id, 'stage': source['stage'],
+                     'visit_id': source['visit_id'], 'source_digest': source['digest'],
+                     'commit': source['commit'], 'tree': source['tree'],
+                     'outcome': source['report']['stage_outcome'],
+                     'stage_work': source['envelope']['stage_work'],
+                     'evidence_work': source['envelope']['evidence_work'],
+                     'evidence_plan': source['report']['evidence']['plan'],
+                     'accepted_assessment': source['report']['evidence']['assessment'],
+                     'method_ids': [m['id'] for m in source['methods']]}
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            change = task.prepare_replay_visit(actor, candidate)
+            uow.tasks.save(change, task.state.version)
+            return change.task.check_candidate_digest
+
+    def confirm_replay_visit(self, task_id, actor, tree, execution_key):
+        with self.unit_of_work() as uow:
+            task = uow.tasks.load(task_id)
+            if task.state.status == TaskStatus.VERIFIED and task.replay_candidate is not None:
+                return
+            change = task.confirm_replay_visit(actor, tree, execution_key)
+            uow.tasks.save(change, task.state.version)
+
     def advance_progression(
         self,
         task_id: str,
         actor: str,
         request_id: str,
-        target_stage: str,
+        target_stage: str | None,
         entry_tree: str,
         artifacts: tuple[ArtifactFact, ...],
-        *, force_duplicate_start=False,
+        *, force_duplicate_start=False, replay_request=None,
     ) -> dict:
         from ..modules.tasks.progression import progression_step
         from .duplicate_tasks import require_duplicate_start_in, require_duplicate_transition_in
@@ -1104,6 +1194,38 @@ class TaskCommands:
                 raise DomainError(
                     "Progression cannot continue with a pending unknown external outcome"
                 )
+            if replay_request is not None:
+                cursor = uow.tasks.replay_progress(task_id, replay_request)
+                if cursor is None or task.replay_candidate is None:
+                    raise DomainError('Historical transition requires a prepared replay identity')
+                candidate = json.loads(task.replay_candidate)
+                if candidate['request_id'] != replay_request or task.state.status != TaskStatus.VERIFIED:
+                    raise DomainError('Historical transition requires its verified candidate')
+                source = cursor['sources'][task.stage.stage_id]
+                if candidate['commit'] != source['commit'] or entry_tree != source['tree']:
+                    raise DomainError('Historical transition source drift')
+                following = task.route.node(task.stage.stage_id).target(task.progress.outcome)
+                if following is not None and task.route.node(following).handler.value != 'publish':
+                    gate = task.assess_stage_content(following, 'pre', artifacts)
+                    if not gate.passed:
+                        return {'kind': 'entry_blocked', 'gate': gate.to_dict(), 'cursor': cursor}
+                cursor['passed'].append({'stage': source['stage'], 'visit_id': source['visit_id'],
+                                         'commit': source['commit']})
+                if following is None:
+                    kind = 'task_acceptance_required'
+                elif task.route.node(following).handler.value == 'publish':
+                    kind = 'acceptance_required'
+                else:
+                    change = task.progress_stage(actor, following)
+                    require_duplicate_transition_in(uow, task, change, actor,
+                        force_duplicate_start=force_duplicate_start)
+                    uow.tasks.save(change, task.state.version)
+                    uow.execution.patch(task_id, {'entry_tree': entry_tree, 'attempts': 0,
+                                                 'publication': None, 'pending': None})
+                    kind = 'advance'
+                cursor['phase'] = 'preserved'
+                uow.tasks.remember_replay_progress(task_id, actor, replay_request, cursor)
+                return {'kind': kind, 'following': following, 'cursor': cursor}
             handoff = uow.handoffs.latest_recovery_candidate(task_id)
             ownership_suffix = (
                 ()
@@ -1171,7 +1293,7 @@ class TaskCommands:
                 "pending": None,
             })
             state = change.task.state
-            if state.stage_index == task.route.index(target_stage):
+            if target_stage is not None and state.stage_index == task.route.index(target_stage):
                 uow.tasks.finish_progression(task_id, actor, request_id, target_stage)
                 progression = {**progression, "status": "reached"}
                 return {"kind": "target_reached", "progression": progression}

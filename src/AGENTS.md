@@ -256,3 +256,16 @@ on entry before its checks. Never rerun an unknown command outcome. A completed
 request replays its saved result; use a new identity for new progression.
 Follow the [canonical replay
 contract](../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+
+## Terminal material delivery ownership
+
+TaskDeliveryCommands owns explicit delivery intent and its minimal journal; RuntimeTaskDelivery observes configured
+permanent outputs, required consumers and confined Task-root removal. Task lifecycle, integration, resource cleanup,
+transfer and binary publication retain their existing owners. ArtifactMaterialResolver selects permanent physical
+bytes without changing logical registrations. Follow the
+[canonical boundaries](../docs/workflows/terminal-materials.md#владельцы-механики).
+
+Do not treat Task-root as durable output or retain a hidden raw-proof archive. Continue partial retirement with current
+permanent observations, not deleted-source reads or repeated publication. Completed history never creates fresh proof.
+Deliberate ordinary root replacement is allowed; device/inode is audit only, while actual owner/path/type/link checks
+remain. Do not introduce adversarial root pinning, quarantine or independent cleanup implementations.

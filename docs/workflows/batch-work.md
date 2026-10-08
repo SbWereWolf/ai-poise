@@ -2333,3 +2333,18 @@ immutable-артефакта сохраните
 реальное решение пользователя и подтверждение остановки писателей. Сброс, аудит
 и запрет повторного захвата отозванной сессией атомарны; Task и WIP сохраняются.
 Полный [контракт аварийного восстановления](crash-ownership-recovery.md).
+
+## Поставка результата и удаление Task-root
+
+`operation: delivery` принимает `action: agree` с `request_id`, `task_id`,
+`expected_version`, `authorization`, `declaration`, либо `action: settle` с
+`request_id`, `task_id`. `show` поддерживает query `task_delivery` с явным `task_id`.
+Точная форма, виды outputs, blocked/recovery и границы terminal replay описаны в
+[договоре поставки](terminal-materials.md#публичный-договор-поставки).
+
+После `accept`, `cancel`, `cleanup`, `integrate` согласованный settlement может
+вернуть отдельное поле `delivery`. Для `cleanup`/`integrate` незавершённая поставка
+возвращает `cleanup_blocked`; это не отменяет уже выполненный ресурсный эффект.
+Сохранённая бизнес-квитанция и общая metadata `interaction` — разные части ответа:
+точный replay сохраняет бизнес-результат, а общую metadata проверяют отдельно.
+Отсутствие Task-root после штатного retirement не создаёт его заново ради replay.

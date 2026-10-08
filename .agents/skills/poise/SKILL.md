@@ -620,3 +620,21 @@ on entry before its checks. Never rerun an unknown command outcome. A completed
 request replays its saved result; use a new identity for new progression.
 Follow the [canonical replay
 contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+
+## Permanent delivery and terminal material retirement
+
+Use [delivery/agree and delivery/settle](../../../docs/workflows/terminal-materials.md#публичный-договор-поставки)
+with explicit permanent outputs or authorized no_result before terminal handling. Task-root is disposable working
+storage, including raw evidence, temporary artifacts and checkpoints. Runtime settlement after terminal operations
+retires it only after confirmed outputs, integration/resource closure and all required consumers; missing agreements
+are never inferred. Close blockers through their owners and retry the original operation. Read delivery state through
+show/task_delivery without a claim. Do not manually delete managed material or create a hidden archive.
+
+An unfinished retirement re-observes all permanent confirmations without rereading removed sources, republishing or
+repairing external bytes. A completed replay is historical: no fresh checks, claims or root resurrection. Reuse of a
+retired artifact requires its unique agreed permanent bytes through the existing resolver. Prepared export and exact
+completed-export cleanup continue from their original request/package, not a newly captured source.
+
+Deliberate ordinary-directory replacement at the configured Task path is allowed; saved device/inode is initial audit,
+not admission. Keep actual owner/path/type/link/foreign-material checks. Follow the
+[operator scope](../../../docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).

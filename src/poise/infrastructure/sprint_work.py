@@ -11,7 +11,9 @@ class SprintWork:
             runtime.cfg['sprint'],runtime.cfg.get('task_ids'),runtime.processes,
             runtime.cfg['automatic_checks'],runtime.cfg['task_decomposition'],
             runtime.config_hash,
-            runtime.task_commands.prepare_creation,runtime._creation_base)
+            runtime.task_commands.prepare_creation,runtime._creation_base,
+            runtime.task_commands.prepare_newborn_ready,
+            runtime.task_commands.promote_newborn_ready_in)
 
     def known(self,sprint_id):return self.commands.known(sprint_id)
 
@@ -27,6 +29,8 @@ class SprintWork:
                                'cleanup_result':self.h.cleanup_tools.terminal_result(run)}
             preflight={**snapshot,'tasks':prepared}
         result=self.commands.apply(packet,preflight)
+        if packet['action']=='unpublish':
+            return result
         # Receipt proves application exactly once; current context may have advanced.
         overview=self.overview(result['sprint'])
         return {**overview,**({'allocations':result['allocations']} if 'allocations' in result else {}),

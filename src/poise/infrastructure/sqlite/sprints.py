@@ -75,8 +75,9 @@ class SqliteSprintRepository:
         current={task_identity(t) for t in record['aggregate']['plan']['tasks']}
         if not current:return {}
         placeholders=','.join('?' for _ in current)
-        rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
-            "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available "
+        rows=self.db.execute('SELECT t.id,t.status,t.claimed_by,t.version,t.stage_index,t.iteration,t.metadata,e.data AS execution, '
+            "EXISTS(SELECT 1 FROM handoffs h WHERE h.task_id=t.id AND h.state='released') AS handoff_available, "
+            "(SELECT id FROM sessions WHERE task_id=t.id) AS worktree_owner "
             'FROM tasks t LEFT JOIN task_execution e ON e.task_id=t.id '
             f'WHERE t.id IN ({placeholders}) ORDER BY t.id',tuple(sorted(current))).fetchall()
         result={}
@@ -88,21 +89,26 @@ class SqliteSprintRepository:
                 newborn = meta['newborn']
                 draft = newborn['draft']
                 result[r['id']] = {
-                    'status':'newborn','goal':draft.get('goal',''),
+                    'status':'newborn','version':r['version'],'goal':draft.get('goal',''),
                     'goal_type':draft.get('goal_type'),'stage':'newborn','iteration':1,
                     'claimed_by':r['claimed_by'],'handoff_available':False,
-                    'result_commit':None,'worktree':None,'pending':None,
+                    'result_commit':None,'worktree':None if exe is None else exe['worktree'],
+                    'pending':None if exe is None else exe['pending'],
+                    'publication':None if exe is None else exe['publication'],
+                    'worktree_owner':r['worktree_owner'],
                     'ready':newborn['ready'],
                     '_newborn_draft':draft,
                     '_newborn_process':meta.get('process'),
                 }
                 continue
             report=None if exe is None else exe['last_report']
-            result[r['id']]={'status':r['status'],'goal':meta['goal'],'goal_type':meta['contract']['goal_type'],
+            result[r['id']]={'status':r['status'],'version':r['version'],'goal':meta['goal'],'goal_type':meta['contract']['goal_type'],
                 'stage':meta['process']['stages'][r['stage_index']]['id'],'iteration':r['iteration'],
                 'claimed_by':r['claimed_by'],'handoff_available':bool(r['handoff_available']),'result_commit':None if report is None else report['commit'],
                 'worktree':None if exe is None else exe['worktree'],
-                'pending':None if exe is None else exe['pending']}
+                'pending':None if exe is None else exe['pending'],
+                'publication':None if exe is None else exe['publication'],
+                'worktree_owner':r['worktree_owner']}
         return result
 
     def add_draft_member(self, sprint_id, task_id):

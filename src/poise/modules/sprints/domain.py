@@ -136,6 +136,26 @@ class SprintPlan:
             errors.append('Sprint exceeds configured limits')
         return errors
 
+    def connectivity_errors(self):
+        """A reopened publication must contain one real dependency graph."""
+        ids = {task_identity(item) for item in self.data['tasks']}
+        if len(ids) < 2:
+            return []
+        adjacent = {item: set() for item in ids}
+        for edge in self.data['dependencies']:
+            a, b = edge['predecessor'], edge['successor']
+            if a in ids and b in ids:
+                adjacent[a].add(b)
+                adjacent[b].add(a)
+        visited = set()
+        pending = [next(iter(ids))]
+        while pending:
+            item = pending.pop()
+            if item not in visited:
+                visited.add(item)
+                pending.extend(adjacent[item] - visited)
+        return [] if visited == ids else ['Sprint dependency graph must be connected']
+
     def content_errors(self, policy):
         errors=[]
         if not self.data['goal'].strip():errors.append('Sprint goal is required')
@@ -180,9 +200,59 @@ class Sprint:
         if plan.data['id']!=self.plan.data['id']:raise DomainError('Cannot change sprint identity')
         return replace(self,plan=plan,revision=self.revision+1)
 
+    @property
+    def reopened(self):
+        return any(item['kind'] == 'unpublish' for item in self.decisions)
+
+    def require_execution(self, task_id):
+        if self.state != 'published':
+            raise DomainError('Sprint is a draft or cancelled; publish it before executing members')
+        if task_id not in {task_identity(item) for item in self.plan.data['tasks']}:
+            raise DomainError('Task is not a published Sprint member')
+
+    def require_released_members(self, facts):
+        ids = {task_identity(item) for item in self.plan.data['tasks']}
+        if set(facts) != ids:
+            raise DomainError('Sprint member facts are missing or inconsistent')
+        required = {'status', 'version', 'claimed_by', 'worktree_owner', 'pending', 'publication'}
+        for task_id, fact in facts.items():
+            if not isinstance(fact, dict) or not required.issubset(fact):
+                raise DomainError(f'Sprint member facts are missing: {task_id}')
+            if fact['status'] not in ('newborn', 'available', 'active', 'verified',
+                                      'accepted', 'completed', 'cancelled'):
+                raise DomainError(f'Unknown member state: {task_id}')
+            if fact['claimed_by'] is not None or fact['worktree_owner'] is not None:
+                raise DomainError(f'Sprint member is owned: {task_id}; release its claims first')
+            pending = fact['pending']
+            if (fact['status'] == 'cancelled' and isinstance(pending, dict)
+                    and pending.get('kind') == 'task_cleanup'):
+                from ..task_cleanup.domain import CleanupRun
+                cleanup = CleanupRun.restore(pending)
+                if (cleanup.intent.task_id == task_id
+                        and cleanup.status in ('disposition_required', 'cleanup_complete')):
+                    pending = None
+            if pending is not None or fact['publication'] is not None:
+                raise DomainError(f'Member has an unresolved pending external publication: {task_id}')
+
+    def unpublish(self, facts, reason, authorization):
+        if self.state != 'published':
+            raise DomainError('Only a published Sprint may be returned to draft')
+        if not isinstance(reason, str) or not reason.strip():
+            raise DomainError('Unpublish reason is required')
+        if not isinstance(authorization, str) or not authorization.strip():
+            raise DomainError('Unpublish authorization is required')
+        self.require_released_members(facts)
+        return replace(self, state='draft', revision=self.revision + 1,
+                       decisions=self.decisions + ({'kind': 'unpublish',
+                           'reason': reason, 'authorization': authorization},))
+
+    def republication_errors(self):
+        return self.plan.connectivity_errors() if self.reopened else []
+
     def publish(self):
         if self.state!='draft':raise DomainError('Sprint is not a draft')
         errors=self.plan.content_errors(self.policy)+self.plan.graph_errors(self.policy)
+        errors += self.republication_errors()
         if errors:raise DomainError('; '.join(errors))
         return replace(self,state='published',revision=self.revision+1)
 

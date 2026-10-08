@@ -64,6 +64,8 @@ class HandoffCommands:
                     release_task_in(uow,actor,before.task_id)
                 uow.tasks.acquire_newborn(task_id,actor)
             else:
+                from .sprints import require_sprint_execution_in
+                require_sprint_execution_in(uow, task_id)
                 task=uow.tasks.load(task_id)
                 from .duplicate_tasks import require_duplicate_start_in
                 require_duplicate_start_in(uow,task_id,actor,force_duplicate_start=force_duplicate_start)

@@ -206,6 +206,11 @@ class TaskCommands:
         self.repository_tree = repository_tree
         self.requirements_gate = requirements_gate
 
+    def execution_preflight(self, task_id):
+        from .sprints import require_sprint_execution_in
+        with self.unit_of_work() as uow:
+            require_sprint_execution_in(uow, task_id)
+
     def reviewer_preflight(self, task_id: str, actor: str, *, acquiring: bool = False) -> dict | None:
         """Check configured role separation before filesystem preparation and again on writes."""
         with self.unit_of_work() as uow:
@@ -726,27 +731,20 @@ class TaskCommands:
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
 
-    def ready_newborn(self, task_id, actor, expected_revision, automatic_checks,
-                      decomposition_policy, config_hash, request_id, creation_base):
-        if type(expected_revision) is not int:
-            raise DomainError('Newborn ready requires expected_revision')
-        identity = _action_digest("ready", {
-            "task_id": task_id, "expected_revision": expected_revision,
-        })
+    def prepare_newborn_ready(self, task_id, actor, automatic_checks,
+                              decomposition_policy, config_hash, request_id, creation_base):
+        """Prepare one Task-owned candidate for ready and Sprint republication."""
         with self.unit_of_work() as uow:
-            replay = uow.tasks.action_receipt(task_id, request_id, identity)
-            if replay is not None:
-                return replay
             newborn = uow.tasks.load_newborn(task_id)
-            if newborn.version != expected_revision:
-                raise VersionConflict('Newborn Task revision changed')
-            if newborn.claimed_by != actor:
-                raise DomainError('Newborn ready requires current ownership')
+            if newborn.claimed_by not in (None, actor):
+                raise DomainError('Newborn Sprint member is owned by another session')
             if newborn.process is None:
                 raise DomainError('Select goal_type before ready')
             contract = {'id':task_id, 'sprint_id':newborn.sprint_id, **deepcopy(newborn.draft)}
             snapshot = newborn
             context = uow.tasks.restart_context(task_id)
+            sprint_snapshot = None if newborn.sprint_id is None else uow.sprints.get(newborn.sprint_id)
+            execution_snapshot = uow.execution.load(task_id) if uow.execution.exists(task_id) else None
             executed_restart = any(item.get('from_status') != 'newborn' for item in newborn.restart_history)
             effective_hash = context['config_hash'] if executed_restart else config_hash
             effective_checks = automatic_checks
@@ -770,7 +768,7 @@ class TaskCommands:
                 restart_base = uow.execution.load(task_id)[0]['base']
             if newborn.sprint_id is not None and executed_restart:
                 sprint = uow.sprints.get(newborn.sprint_id)
-                if sprint is None or sprint['aggregate']['state'] != 'published':
+                if sprint is None or sprint['aggregate']['state'] not in ('draft', 'published'):
                     raise DomainError('Restarted Sprint Task requires its published Sprint')
                 effective_checks = sprint['automatic_checks']
                 effective_decomposition = sprint['task_decomposition']
@@ -800,62 +798,110 @@ class TaskCommands:
                 effective_decomposition,
                 current_registry=current_registry,
             )
+        metadata = validate_creation(
+            prepared.intent, newborn.process, effective_checks,
+            effective_decomposition,
+            current_registry=current_registry,
+        )
+        metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
+        if newborn.creation_request is not None:
+            metadata['creation_request'] = deepcopy(newborn.creation_request)
+        if newborn.restart_history:
+            metadata['restart_history'] = list(deepcopy(newborn.restart_history))
+            if executed_restart:
+                metadata['restart_history'][-1]['before_requirements_snapshot'] = deepcopy(
+                    context['requirements_snapshot']
+                )
+                metadata['restart_history'][-1]['before_requirements_agreement'] = deepcopy(
+                    context['requirements_agreement']
+                )
+            if resolved_revision is not None:
+                metadata['restart_history'][-1]['resolved_revision'] = resolved_revision
+        if newborn.stage_contract_history:
+            metadata['stage_contract_history'] = list(
+                deepcopy(newborn.stage_contract_history)
+            )
+        return {'snapshot': snapshot, 'creation': prepared, 'metadata': metadata,
+                'registry': current_registry, 'registry_change': registry_change,
+                'executed_restart': executed_restart, 'restart_base': restart_base,
+                'frozen_context_unchanged': frozen_context_unchanged,
+                'resolved_revision': resolved_revision, 'config_hash': effective_hash,
+                'sprint_snapshot': sprint_snapshot, 'execution_snapshot': execution_snapshot}
+
+    @staticmethod
+    def require_prepared_newborn_in(uow, candidate):
+        newborn = candidate['snapshot']
+        if uow.tasks.load_newborn(newborn.task_id) != newborn:
+            raise VersionConflict('Newborn Task changed after creation preflight')
+        if (newborn.sprint_id is not None
+                and uow.sprints.get(newborn.sprint_id) != candidate['sprint_snapshot']):
+            raise VersionConflict('Sprint changed after newborn creation preflight')
+        execution = uow.execution.load(newborn.task_id) if uow.execution.exists(newborn.task_id) else None
+        if execution != candidate['execution_snapshot']:
+            raise VersionConflict('Newborn execution changed after creation preflight')
+
+    def promote_newborn_ready_in(self, uow, candidate, actor):
+        """Promote the exact prepared candidate; preserve restart owners and proof."""
+        newborn = candidate['snapshot']
+        task_id = newborn.task_id
+        self.require_prepared_newborn_in(uow, candidate)
+        if candidate['executed_restart'] and not candidate['frozen_context_unchanged']:
+            self.requirements_gate.require_current_registry(candidate['creation'].requirements_context)
+        task = build_task(candidate['metadata'], None, current_registry=candidate['registry'])
+        task = task.bind_restarted_registry_audit(candidate['registry_change'], actor)
+        if candidate['executed_restart']:
+            task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
+        if newborn.restart_history and candidate['restart_base'] is not None:
+            from .ownership import release_dependent_worktree_in
+            release_dependent_worktree_in(uow, actor, task_id)
+        uow.tasks.promote_newborn(task, candidate['metadata'], newborn.version)
+        self.requirements_gate.publish_created(uow, task_id, candidate['creation'].requirements_context)
+
+    def ready_newborn(self, task_id, actor, expected_revision, automatic_checks,
+                      decomposition_policy, config_hash, request_id, creation_base):
+        if type(expected_revision) is not int:
+            raise DomainError('Newborn ready requires expected_revision')
+        identity = _action_digest('ready', {
+            'task_id': task_id, 'expected_revision': expected_revision,
+        })
         with self.unit_of_work() as uow:
             replay = uow.tasks.action_receipt(task_id, request_id, identity)
             if replay is not None:
                 return replay
             newborn = uow.tasks.load_newborn(task_id)
-            if newborn != snapshot:
-                raise VersionConflict('Newborn Task changed after creation preflight')
-            if executed_restart and not frozen_context_unchanged:
-                self.requirements_gate.require_current_registry(prepared.requirements_context)
-            metadata = validate_creation(
-                prepared.intent, newborn.process, effective_checks,
-                effective_decomposition,
-                current_registry=current_registry,
-            )
-            metadata.update(sprint_id=newborn.sprint_id, goal=contract['goal'], config_hash=effective_hash)
-            if newborn.creation_request is not None:
-                metadata['creation_request'] = deepcopy(newborn.creation_request)
-            if newborn.restart_history:
-                metadata['restart_history'] = list(deepcopy(newborn.restart_history))
-                if executed_restart:
-                    metadata['restart_history'][-1]['before_requirements_snapshot'] = deepcopy(
-                        context['requirements_snapshot']
-                    )
-                    metadata['restart_history'][-1]['before_requirements_agreement'] = deepcopy(
-                        context['requirements_agreement']
-                    )
-                if resolved_revision is not None:
-                    metadata['restart_history'][-1]['resolved_revision'] = resolved_revision
-            if newborn.stage_contract_history:
-                metadata['stage_contract_history'] = list(
-                    deepcopy(newborn.stage_contract_history)
-                )
-            if newborn.sprint_id is not None and not executed_restart:
+            if newborn.version != expected_revision:
+                raise VersionConflict('Newborn Task revision changed')
+            if newborn.claimed_by != actor:
+                raise DomainError('Newborn ready requires current ownership')
+        candidate = self.prepare_newborn_ready(task_id, actor, automatic_checks,
+            decomposition_policy, config_hash, request_id, creation_base)
+        if candidate['snapshot'] != newborn:
+            raise VersionConflict('Newborn Task changed after creation preflight')
+        with self.unit_of_work() as uow:
+            replay = uow.tasks.action_receipt(task_id, request_id, identity)
+            if replay is not None:
+                return replay
+            self.require_prepared_newborn_in(uow, candidate)
+            defer = False
+            if newborn.sprint_id is not None:
+                sprint = uow.sprints.get(newborn.sprint_id)
+                if sprint is None:
+                    raise DomainError('Newborn Sprint member has no Sprint')
+                defer = sprint['aggregate']['state'] == 'draft'
+            if defer:
                 ready = newborn.mark_ready()
-                if resolved_revision is not None:
-                    ready = replace(ready, restart_history=tuple(metadata['restart_history']))
-                uow.tasks.save_newborn(ready, newborn.version, effective_hash, 'newborn_ready')
+                if candidate['resolved_revision'] is not None:
+                    ready = replace(ready, restart_history=tuple(candidate['metadata']['restart_history']))
+                uow.tasks.save_newborn(ready, newborn.version, candidate['config_hash'], 'newborn_ready')
                 result = ready.describe()
-                uow.tasks.remember_action(task_id, actor, request_id, identity, result)
-                return result
-            task = build_task(metadata, None, current_registry=current_registry)
-            task = task.bind_restarted_registry_audit(registry_change, actor)
-            if executed_restart:
-                task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
-            if newborn.restart_history and restart_base is not None:
-                from ..application.ownership import release_dependent_worktree_in
-                release_dependent_worktree_in(uow, actor, task_id)
-            uow.tasks.promote_newborn(task, metadata, newborn.version)
-            self.requirements_gate.publish_created(
-                uow, task_id, prepared.requirements_context
-            )
-            result = {
-                'status':'available','task':task_id,'revision':newborn.version + 1,
-                'sprint':newborn.sprint_id,'claimed_by':None,'goal_type':contract['goal_type'],
-                'route_entry':newborn.process['route']['entry'],'ready':True,
-            }
+            else:
+                self.promote_newborn_ready_in(uow, candidate, actor)
+                result = {
+                    'status':'available', 'task':task_id, 'revision':newborn.version + 1,
+                    'sprint':newborn.sprint_id, 'claimed_by':None,
+                    'goal_type':newborn.draft['goal_type'],
+                    'route_entry':newborn.process['route']['entry'], 'ready':True,
+                }
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
 
@@ -872,6 +918,8 @@ class TaskCommands:
     def start(self, task_id, actor, execution, *, force_duplicate_start=False,
               restart_entry_tree: Callable[[dict], str] | None = None):
         with self.unit_of_work() as uow:
+            from .sprints import require_sprint_execution_in
+            require_sprint_execution_in(uow, task_id)
             task=uow.tasks.load(task_id)
             from .duplicate_tasks import require_duplicate_start_in
             duplicate = require_duplicate_start_in(uow, task_id, actor,
@@ -1096,6 +1144,8 @@ class TaskCommands:
             "target_stage": target_stage,
         })
         with self.unit_of_work() as uow:
+            from .sprints import require_sprint_execution_in
+            require_sprint_execution_in(uow, task_id)
             task = uow.tasks.load(task_id)
             if task.state.claimed_by != actor:
                 raise DomainError("Progression Task is owned by another session")

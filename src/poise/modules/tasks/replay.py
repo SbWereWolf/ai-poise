@@ -4,6 +4,18 @@ from dataclasses import dataclass
 from ..foundation.errors import DomainError
 
 
+def proof_contract_compatible(contract, source):
+    """Accepted proof cannot replace explicitly revised verification obligations."""
+    stage = source['stage']
+    historical = {method['id']: method for method in source['methods']}
+    current = {method['id']: method for method in contract['methods']}
+    if not set(contract['checks'][stage]) <= historical.keys():
+        return False
+    if contract['evidence_plan'][stage] != source['report']['evidence']['plan']:
+        return False
+    return all(current.get(method_id) == method for method_id, method in historical.items())
+
+
 @dataclass(frozen=True)
 class ReplayIntent:
     task_id: str

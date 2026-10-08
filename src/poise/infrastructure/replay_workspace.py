@@ -42,15 +42,18 @@ class GitReplayWorkspace:
         changed = self.git(self.root, 'diff', '--name-only', self.data['base'], 'HEAD').splitlines()
         if any(not any(matches_allowed_path(path, pattern) for pattern in allowed) for path in changed):
             raise PoiseError('Preservation commit contains forbidden out-of-scope configuration or files')
+        self.require_no_ignored_collisions([
+            source['commit'] for source in sources.values()
+            if source.get('commit') is not None and self.contains(source['commit'])])
+        return self.head()
+
+    def require_no_ignored_collisions(self, commits):
         ignored = set(self.git(self.root, 'ls-files', '--others', '--ignored', '--exclude-standard').splitlines())
-        for source in sources.values():
-            if source.get('commit') is None or not self.contains(source['commit']):
-                continue
-            paths = set(self.git(self.root, 'ls-tree', '-r', '--name-only', source['commit']).splitlines())
+        for commit in commits:
+            paths = set(self.git(self.root, 'ls-tree', '-r', '--name-only', commit).splitlines())
             if any(left == right or left.startswith(right + '/') or right.startswith(left + '/')
                    for left in ignored for right in paths):
                 raise PoiseError('Ignored files collide with accepted checkout; preserve them first')
-        return self.head()
 
     def contains(self, commit):
         try:
@@ -73,6 +76,7 @@ class GitReplayWorkspace:
         if head not in (previous, commit):
             raise PoiseError('Replay checkout drift; preserve work before recovery')
         if head != commit:
+            self.require_no_ignored_collisions([commit])
             self.git(self.root, 'reset', '--hard', commit)
         if (self.head() != commit or self.git(self.root, 'write-tree') != tree
                 or self.git(self.root, 'diff', '--name-only')

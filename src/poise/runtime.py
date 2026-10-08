@@ -470,12 +470,13 @@ class Poise:
     def _run_replay_checks(self, task_id, source, candidate_digest):
         data = self.task_queries.record(task_id)
         worktree = Path(data['worktree'])
-        historical = deepcopy(data)
+        selection = deepcopy(data)
         stage_id = source['stage']
-        historical['contract']['methods'] = source['methods']
-        historical['contract']['checks'][stage_id] = [m['id'] for m in source['methods']]
-        historical['contract']['evidence_plan'][stage_id] = source['report']['evidence']['plan']
-        checks = self._select_checks(historical, [])
+        # Keep current definitions and evidence authoritative. Recheck previously
+        # accepted supplemental commands without dropping any current obligation.
+        selection['contract']['checks'][stage_id] = list(dict.fromkeys(
+            data['contract']['checks'][stage_id] + [m['id'] for m in source['methods']]))
+        checks = self._select_checks(selection, [])
         invocations, key = self._verification_execution(data, source['tree'], checks, worktree)
         batch = self.task_commands.submission_observation_batch(task_id, candidate_digest, source['tree'], key)
         if batch is not None:

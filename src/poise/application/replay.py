@@ -2,7 +2,7 @@
 import hashlib
 
 from ..modules.foundation.errors import DomainError
-from ..modules.tasks.replay import AcceptedVisit, ReplayIntent, ReplayResult
+from ..modules.tasks.replay import AcceptedVisit, ReplayIntent, ReplayResult, proof_contract_compatible
 from ..modules.tasks.ports import ReplayWorkspace
 
 
@@ -72,6 +72,7 @@ class ReplayCoordinator:
                 self.commands.save_replay_progress(task_id, actor, request_id, cursor)
             if cursor['checkout_commit'] != source['commit']:
                 raise DomainError('Saved replay visit does not match current Task stage')
+            self.workspace.ensure_recovery_ref(cursor['recovery_ref'], cursor['start_commit'])
             self.workspace.checkout_accepted(source['commit'], source['tree'], cursor['previous_commit'])
             cursor['subject_commit'] = source['commit']
             if cursor['phase'] == 'checkout':
@@ -81,6 +82,8 @@ class ReplayCoordinator:
                 return stop('progression_target_reached', 'target_reached', stage, source['commit'])
             if source.get('methods_missing'):
                 return stop('progression_stopped', 'tests_missing', stage, source['commit'])
+            if not proof_contract_compatible(data['contract'], source):
+                return stop('progression_stopped', 'proof_contract_changed', stage, source['commit'])
             file_failure = self.check_files(source)
             if file_failure is not None:
                 return stop('progression_stopped', file_failure, stage, source['commit'])

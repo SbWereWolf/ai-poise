@@ -407,6 +407,59 @@ def test_context_edit_between_prepare_and_release_retains_claims(planned, monkey
     assert record['state'] == 'preparing'
 
 
+def test_symlink_leaf_race_never_archives_external_target(planned, tmp_path, monkeypatch):
+    _, planner, owner, root, _, _ = arrange(planned)
+    directory = root / 'racing-links'
+    directory.mkdir()
+    link = directory / 'leaf'
+    link.symlink_to('safe-local-target')
+    outside = tmp_path / 'private-external-directory'
+    outside.mkdir()
+    (outside / 'leaf').symlink_to('private-external-link-target')
+    baseline, payloads = owner.runtime.handoff_tools._observe_wip(root, 'A')
+    entry = next(item for item in baseline['files'] if item['path'] == 'racing-links/leaf')
+    assert payloads[entry['payload']] == b'safe-local-target'
+    before = observation(root)
+    original = os.readlink
+    reads = []
+
+    def race(path, *args, **kwargs):
+        if Path(path) == link or (Path(path) == Path('leaf') and kwargs.get('dir_fd') is not None):
+            saved = root / 'racing-links-away'
+            directory.rename(saved)
+            directory.symlink_to(outside, target_is_directory=True)
+            try:
+                result = original(path, *args, **kwargs)
+                reads.append(result)
+                return result
+            finally:
+                directory.unlink()
+                saved.rename(directory)
+        return original(path, *args, **kwargs)
+
+    refused = False
+    with monkeypatch.context() as patch:
+        patch.setattr(os, 'readlink', race)
+        try:
+            receipt = preserve(owner)
+        except PoiseError as error:
+            assert any(word in str(error).lower() for word in ('unsafe', 'symlink', 'changed', 'snapshot'))
+            refused = True
+    assert reads, 'The physical directory race must reach the actual OS readlink boundary'
+    assert observation(root) == before
+    assert original(link) == 'safe-local-target'
+    if refused:
+        assert planner.runtime.task_queries.record('A')['claimed_by'] == 'restart-owner'
+        assert owner.runtime.ownership.snapshot('restart-owner').task_id == 'A'
+        assert owner.runtime.ownership.snapshot('restart-owner').worktree_task_id == 'A'
+    else:
+        manifest, payloads = snapshot(receipt)
+        entry = next(item for item in manifest['files'] if item['path'] == 'racing-links/leaf')
+        assert payloads[entry['payload']] == b'safe-local-target'
+        assert owner.runtime.current_task() is None
+        assert planner.runtime.task_queries.record('A')['claimed_by'] is None
+
+
 def test_symlink_ancestor_refuses_traversal_and_retains_claims(planned):
     project, planner, owner, root, _, _ = arrange(planned)
     directory = root / DATA['directory']['path']

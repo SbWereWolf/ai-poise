@@ -118,7 +118,8 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Only cloud development requires a portable checkpoint before completed-task boundaries or risky transitions,
+**Applicability: when working in the cloud.**
+Require a portable checkpoint before completed-task boundaries or risky transitions,
 restoration verification, Gmail archive/text delivery, and full attachment readback. Local development requires
 none of those actions for Task completion, integration, or Sprint continuation. Create local checkpoints or
 archives, verify their restoration, or send them only when the user explicitly requests those actions separately.

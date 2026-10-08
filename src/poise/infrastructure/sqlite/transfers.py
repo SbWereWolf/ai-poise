@@ -118,7 +118,15 @@ class SqliteTransferRepository:
             if db.execute('PRAGMA quick_check').fetchone()[0]!='ok' or db.execute('PRAGMA foreign_key_check').fetchone():
                 raise PoiseError('Snapshot database integrity error')
             result={table:[dict(r) for r in db.execute(f'SELECT * FROM {table} ORDER BY rowid')] for table in ALL_TABLES}
-            for row in result['tasks']:SqliteTaskRepository(db).load(row['id'])
+            from ...modules.requirements_registry.service import TaskRequirementsGate
+            owner = SqliteTaskRepository(db)
+            for row in result['tasks']:
+                owner.load(row['id'])
+                context = owner.restart_context(row['id'])
+                snapshot, agreement = context['requirements_snapshot'], context['requirements_agreement']
+                body = {**context['contract'], 'requirements_snapshot': snapshot,
+                        'requirements_agreement': agreement}
+                TaskRequirementsGate.enabled(lambda: None).prepare_restarted_contract(body, snapshot, agreement)
             validate_saved_work(result['tasks'],{r['task_id'] for r in result['handoffs'] if r['state']=='released'})
             return result
 
@@ -189,12 +197,19 @@ class SqliteTransferContext:
             return None
         receipt = json.loads(row['data'])
         opened = self.db.execute(
-            "SELECT 1 FROM journal WHERE task_id=? AND event='transfer.verification_opened' "
+            "SELECT data FROM journal WHERE task_id=? AND event='transfer.verification_opened' "
             "AND json_extract(data,'$.package_digest')=?", (task_id, receipt['package_digest'])).fetchone()
         return {**receipt['delivery'], 'package_digest': receipt['package_digest'],
-                'verification_opened': opened is not None}
+                'verification_opened': opened is not None,
+                'verification_origin': None if opened is None else json.loads(opened['data'])}
 
     def open_verification(self, task_id, actor, package_digest):
+        origin = self.db.execute(
+            'SELECT stage_index,iteration,current_submission_id,version FROM tasks WHERE id=?',
+            (task_id,)).fetchone()
+        value = {'package_digest': package_digest, 'stage_index': origin['stage_index'],
+                 'iteration': origin['iteration'], 'submission_id': origin['current_submission_id'],
+                 'version': origin['version']}
         self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
                         (datetime.now(timezone.utc).isoformat(), actor, task_id,
-                         'transfer.verification_opened', encoded({'package_digest': package_digest})))
+                         'transfer.verification_opened', encoded(value)))

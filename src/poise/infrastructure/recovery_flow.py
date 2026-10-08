@@ -37,6 +37,9 @@ class WorkspaceRecoveryFlow:
     def run(self, flow, variables, manifest, session):
         prepared = materialize(flow, variables)
         manifest.parent.mkdir(parents=True, exist_ok=True)
+        if (session / 'state.json').exists() and (
+                not manifest.is_file() or json.loads(manifest.read_text()) != prepared):
+            raise PoiseError('Saved recovery flow differs from configured request')
         manifest.write_text(json.dumps(prepared, ensure_ascii=False, indent=2) + '\n')
         # An existing running session is evidence of uncertain effects, not retry permission.
         if (session / 'state.json').exists():
@@ -49,6 +52,8 @@ class WorkspaceRecoveryFlow:
             return {'status': 'failed', 'steps': [], 'reason': str(exc)}
         result = self.inspect_terminal(prepared, session)
         result['tool_exit_code'] = completed.returncode
+        if result['status'] == 'complete' and completed.returncode != 0:
+            result.update(status='failed', reason='tool_exit_nonzero')
         return result
 
     @staticmethod
@@ -57,7 +62,15 @@ class WorkspaceRecoveryFlow:
             state = json.loads((session / 'state.json').read_text())
         except (OSError, ValueError):
             return {'status': 'unknown', 'steps': [], 'reason': 'missing_terminal_flow_receipt'}
-        results = [{**r, 'exit_code': r.get('exitCode')} for r in state['results']]
+        raw_results = state.get('results')
+        if not isinstance(raw_results, list) or any(not isinstance(r, dict) for r in raw_results):
+            return {'status': 'unknown', 'steps': [], 'reason': 'invalid_terminal_flow_receipt'}
+        results = [{**r, 'exit_code': r.get('exitCode')} for r in raw_results]
+        expected_ids = [step['id'] for step in flow['steps']]
+        actual_ids = [r.get('id') for r in results]
+        if (len(expected_ids) != len(set(expected_ids))
+                or actual_ids != expected_ids[:len(actual_ids)]):
+            return {'status': 'unknown', 'steps': results, 'reason': 'flow_step_identity_differs'}
         if state.get('inflight') is not None:
             return {'status': 'unknown', 'steps': results, 'reason': 'unknown_external_outcome'}
         if state.get('pending'):

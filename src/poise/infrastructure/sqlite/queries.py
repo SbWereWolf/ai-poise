@@ -64,10 +64,19 @@ class TaskQueries:
                 if delivery is None or not delivery['verification_opened']:
                     return None
                 current = self.record_in(db, task_id)
-                stage = current['process']['stages'][current['stage_index']]['id']
-                row = db.execute('SELECT seq,data FROM submissions WHERE task_id=? AND stage=? AND iteration=? '
-                                 'ORDER BY seq DESC LIMIT 1', (task_id, stage, current['iteration'])).fetchone()
-                if row is None: return None
+                origin = delivery['verification_origin']
+                if (current['stage_index'], current['iteration']) != (origin['stage_index'], origin['iteration']):
+                    return None
+                changed = db.execute(
+                    "SELECT 1 FROM task_events WHERE task_id=? AND version>? "
+                    "AND json_extract(data,'$.event') IN ('submitted','user_rework','restarted_newborn','user_accept_and_continue')",
+                    (task_id, origin['version'])).fetchone()
+                if changed is not None or origin['submission_id'] is None:
+                    return None
+                row = db.execute('SELECT seq,data FROM submissions WHERE task_id=? AND seq=?',
+                                 (task_id, origin['submission_id'])).fetchone()
+                if row is None:
+                    return None
             envelope=json.loads(row['data'])
             envelope['sections']={r['section_id']:r['content'] for r in db.execute(
                 "SELECT section_id,content FROM section_layers WHERE task_id=? AND submission_id=?",(task_id,row['seq']))}

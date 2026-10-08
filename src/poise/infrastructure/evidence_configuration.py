@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from ..common import PoiseError, file_digest
+from .recovery_paths import recovery_absolute
 
 
 class EvidenceConfigurationCapture:
@@ -15,12 +16,20 @@ class EvidenceConfigurationCapture:
             commit = self.git(Path(spec['repository']), 'rev-parse', 'HEAD')
             configs = []
             for name in spec['configs']:
-                path = Path(name)
+                path = recovery_absolute(name)
                 if path.is_symlink() or not path.is_file():
                     raise PoiseError(f'Missing regular check config: {path}')
                 configs.append({'path': name, 'digest': file_digest(path)})
             result[owner] = {'commit': commit, 'configs': configs}
         return result
+
+    def observe_after(self, expected):
+        """Postflight failures cannot erase a command's recorded termination."""
+        try:
+            actual = self.preflight()
+        except (PoiseError, OSError) as exc:
+            return False, {'error': str(exc)}
+        return actual == expected, {'systems': actual}
 
     def capture(self, directory, expected):
         if self.preflight() != expected:

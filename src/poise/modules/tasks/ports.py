@@ -111,8 +111,13 @@ class ArtifactLinkRepository(Protocol):
     def link_task(self, task_id: str, artifacts: list[dict]) -> None: ...
 
 
+class TransferContextRepository(Protocol):
+    def delivery_for_task(self, task_id: str) -> dict | None: ...
+    def open_verification(self, task_id: str, actor: str, package_digest: str) -> None: ...
+
+
 class TaskUnitOfWork(Protocol):
-    transfers: object
+    transfers: TransferContextRepository
     handoffs: "HandoffRepository"
     sprints: "SprintRepository"
     tasks: TaskRepository

@@ -12,11 +12,23 @@ from demo import create, save, SOURCE
 from work_client import WorkClient
 
 
-def run(directory):
+def run(directory, recovery_node, recovery_tool):
     if directory.exists():raise ValueError('Choose a new demonstration directory')
     directory.mkdir(parents=True)
     source=create(directory/'source')
     config=json.loads((source/'project.json').read_text())
+    recovery = config['runtime_services']['transfer']['recovery']
+    recovery['tool_argv'] = [str(recovery_node), str(recovery_tool)]
+    recovery['mapping'] = {'version': 'demo-materials-1', 'materials': [
+        {'id': 'task-artifacts', 'role': 'task-material', 'source': 'artifacts',
+         'destination': 'artifacts', 'include': True}]}
+    project_config = source / 'application-config.json'
+    save(project_config, {'test_runner': 'unittest'})
+    recovery['systems'] = {
+        'poise': {'repository': str(SOURCE), 'configs': [str(source / 'project.json')]},
+        'project': {'repository': config['git']['repository'], 'configs': [str(project_config)]}}
+    recovery['repositories'] = {'task': config['git']['repository']}
+    save(source / 'project.json', config)
     target=directory/'destination';target.mkdir()
     repository=target/'application'
     remote=config['git']['repository']
@@ -26,10 +38,18 @@ def run(directory):
     for rel in config['processes'].values():
         path=target_home/rel;path.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/rel,path)
     target_config=deepcopy(config);target_config['git']['repository']=str(repository)
+    target_recovery = target_config['runtime_services']['transfer']['recovery']
+    target_recovery['systems']['poise']['configs'] = [str(target_home / 'project.json')]
+    target_recovery['systems']['project'] = {
+        'repository': str(repository), 'configs': [str(target_home / 'application-config.json')]}
+    shutil.copyfile(project_config, target_home / 'application-config.json')
     save(target_home/'project.json',target_config)
     def client(home,session):
-        return WorkClient({**os.environ,'PYTHONPATH':str(SOURCE/'src'),
-             'POISE_CONFIG':str(home/'project.json'),'POISE_CALLER_BINDING':str(home/(session+'.caller.json'))},30)
+        environment = {**os.environ, 'PYTHONPATH': str(SOURCE / 'src'),
+                       'POISE_CONFIG': str(home / 'project.json')}
+        if not (environment.get('CODEX_SESSION_ID') or environment.get('CODEX_THREAD_ID')):
+            environment['POISE_CALLER_BINDING'] = str(home / (session + '.caller.json'))
+        return WorkClient(environment, 30)
     a=client(source,'source-agent');b=client(target_home,'receiving-agent')
     task=json.loads((source/'task.json').read_text())
     current=a.invoke('bootstrap',{'task':task,'decision':None,'feedback':None,'rework_stage':None})
@@ -94,4 +114,8 @@ def run(directory):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--directory',type=Path,required=True)
-    print(json.dumps(run(parser.parse_args().directory.resolve()),ensure_ascii=False,indent=2))
+    parser.add_argument('--recovery-node', type=Path, required=True)
+    parser.add_argument('--recovery-tool', type=Path, required=True)
+    args = parser.parse_args()
+    print(json.dumps(run(args.directory.resolve(), args.recovery_node.resolve(strict=True),
+                         args.recovery_tool.resolve(strict=True)), ensure_ascii=False, indent=2))

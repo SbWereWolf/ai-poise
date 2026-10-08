@@ -7,14 +7,15 @@ import shutil
 import sys
 import tarfile
 
-from ..common import PoiseError, descendant, digest, encoded, file_digest, worktree_root
-from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan
+from ..common import PoiseError, digest, encoded, file_digest, worktree_root
+from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest
 from .sqlite.transfers import SqliteTransferRepository, completed_external_execution, snapshot_fingerprint
 from .sqlite.transfer_records import relocate_path
 from .sqlite.database import SCHEMA_VERSION
 from .goal_config import atomic_write
 from .locking import exclusive_lock
 from .task_paths import sprint_root, task_root
+from .recovery_paths import recovery_path as descendant, recovery_absolute
 from .recovery_flow import WorkspaceRecoveryFlow
 from .recovery_delivery import RecoveryDelivery
 
@@ -109,7 +110,7 @@ class RuntimeTransfers:
 
         def add(source, relative, role, **metadata):
             nonlocal total
-            source = Path(source)
+            source = recovery_absolute(source)
             if source.is_symlink() or not source.is_file():
                 raise PoiseError('Transfer requires regular files, not symlinks')
             size = source.stat().st_size
@@ -175,6 +176,7 @@ class RuntimeTransfers:
                 workspaces[tid] = None; continue
             tree = Path(exe['worktree'])
             if not tree.exists() and completed_external_execution(exe['pending']):
+                owners['worktree'][tid] = None
                 workspaces[tid] = None; continue
             self._external(paths.values(), [tree])
             if h._git(tree, 'symbolic-ref', '--short', 'HEAD') != exe['branch']:
@@ -229,6 +231,7 @@ class RuntimeTransfers:
                     'files': files, 'database': c['database'], 'state_fingerprint': snapshot_fingerprint(tables),
                     'mapping': self.recovery['mapping'], 'proofs': proofs,
                     'omitted_artifacts': [r['id'] for r in tables['artifacts'] if r['path'] not in packaged_paths]}
+        validate_package_manifest(manifest, c, tables)
         atomic_write(descendant(stage, c['manifest']), (encoded(manifest) + '\n').encode(), c['file_mode'])
         self.repo.remember(h.session, args['request_id'], identity, {'phase': 'creating'})
         outcome = self.flow.run(self.recovery['create_flow'],
@@ -254,6 +257,7 @@ class RuntimeTransfers:
     def _inspect(self, path):
         """Read bounded tar metadata/manifest; extraction belongs to the tool."""
         c = self.policy
+        path = recovery_absolute(path)
         try:
             with tarfile.open(path, 'r:gz') as archive:
                 files, names, total = {}, set(), 0
@@ -279,6 +283,7 @@ class RuntimeTransfers:
                             'state_fingerprint', 'mapping', 'proofs', 'omitted_artifacts'}
                 if not isinstance(manifest, dict) or set(manifest) != required:
                     raise PoiseError('Incomplete transfer manifest')
+                validate_package_manifest(manifest, c)
                 if manifest['format'] != TRANSFER_FORMAT or manifest['schema_version'] != SCHEMA_VERSION:
                     raise PoiseError('Incompatible transfer schema; no migration')
                 if manifest['project'] != self.h.cfg['project'] or manifest['execution_policy'] != execution_policy(self.h.cfg):
@@ -347,7 +352,7 @@ class RuntimeTransfers:
         h, c = self.h, self.policy
         identity = digest(args)
         old = self.repo.request(h.session, args['request_id'], identity)
-        path = Path(args['package_path'])
+        path = recovery_absolute(args['package_path'])
         if path.is_symlink() or not path.is_file() or file_digest(path) != args['package_digest']:
             raise PoiseError('Package digest/integrity mismatch')
         if old is not None and old['phase'] in ('complete', 'unknown', 'failed'):
@@ -368,6 +373,7 @@ class RuntimeTransfers:
         tables = self.repo.read_snapshot(preflight)
         if snapshot_fingerprint(tables) != manifest['state_fingerprint']:
             raise PoiseError('Snapshot record fingerprint mismatch')
+        validate_package_manifest(manifest, c, tables)
         self.repo.ensure_absent(tables)
         binding = self._binding(manifest, tables, args['package_digest'])
         roots = [binding['locations'][value] for scope in ('task', 'sprint')
@@ -381,7 +387,11 @@ class RuntimeTransfers:
                 # Check declared paths first, so an escaping link is diagnosed
                 # without touching the outside object.
                 for destination in placements.values(): descendant(p, destination)
-                raise PoiseError('Destination owner directory already exists; no overwrite')
+                receipt = {'status': 'failed', 'success': False, 'replayed': False,
+                           'reason': 'destination_occupied', 'path': str(p), 'steps': []}
+                self.repo.remember(h.session, args['request_id'], identity,
+                                   {'phase': 'failed', 'receipt': receipt})
+                return receipt
         for item in manifest['files']:
             if 'placement' not in item:
                 continue
@@ -431,18 +441,33 @@ class RuntimeTransfers:
                                 directory / 'restore-flow.json', paths['restore_session'])
         reason = outcome['reason']
         steps = list(outcome['steps'])
+        phase_outcomes = {}
         for phase in ('place', 'components', 'validate'):
             phase_path = directory / (phase + '-receipt.json')
             if phase_path.is_file():
                 result = json.loads(phase_path.read_text())
+                if result.get('descriptor_digest') != digest(descriptor) or result.get('phase') != phase:
+                    raise PoiseError('Delivery phase receipt differs from prepared request')
+                phase_outcomes[phase] = result
                 steps.extend(result.get('steps', []))
                 if result['status'] == 'unknown': outcome['status'] = 'unknown'
                 if result['status'] != 'complete': reason = result.get('reason', reason)
+        if outcome['status'] == 'complete' and (
+                set(phase_outcomes) != {'place', 'components', 'validate'}
+                or any(r['status'] != 'complete' for r in phase_outcomes.values())):
+            outcome['status'] = 'failed'
+            reason = 'missing_required_delivery_phase'
         if outcome['status'] == 'complete':
             # A customized pipeline cannot skip publication invariants.
             delivery = RecoveryDelivery(descriptor)
-            delivery.validate()
-            tables = delivery.snapshot()
+            try:
+                delivery.validate()
+                tables = delivery.snapshot()
+            except (PoiseError, OSError, ValueError) as error:
+                outcome['status'] = 'failed'
+                reason = 'final_validation_failed'
+                steps.append({'phase': 'final_validation', 'status': 'failed',
+                              'diagnostic': str(error)})
         receipt = {'status': 'imported' if outcome['status'] == 'complete' else outcome['status'],
                    'success': outcome['status'] == 'complete', 'steps': steps, 'reason': reason,
                    'task_ids': manifest['task_ids'], 'sprint_ids': manifest['sprint_ids'],

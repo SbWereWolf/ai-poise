@@ -4,10 +4,12 @@ import os
 from pathlib import Path
 import shutil
 
-from ..common import PoiseError, descendant, digest, file_digest
+from ..common import PoiseError, digest, file_digest
+from ..modules.transfers.domain import validate_package_manifest
 from .git_snapshot import snapshot_tree
 from .git_transport import run_git_receipt
 from .goal_config import atomic_write
+from .recovery_paths import recovery_path as descendant, recovery_absolute
 from .recovery_flow import WorkspaceRecoveryFlow
 from .sqlite.transfers import SqliteTransferRepository, snapshot_fingerprint
 
@@ -33,6 +35,7 @@ class RecoveryDelivery:
     def snapshot(self):
         path = descendant(self.stage, self.policy['database'])
         tables = SqliteTransferRepository.read_snapshot(path)
+        validate_package_manifest(self.manifest, self.policy, tables)
         if snapshot_fingerprint(tables) != self.manifest['state_fingerprint']:
             raise PoiseError('Snapshot record fingerprint mismatch')
         if ([r['id'] for r in tables['tasks']] != self.manifest['task_ids']
@@ -52,7 +55,7 @@ class RecoveryDelivery:
         for item in self.manifest['files']:
             if 'placement' not in item:
                 continue
-            target = Path(self.binding['locations'][item['placement']])
+            target = recovery_absolute(self.binding['locations'][item['placement']])
             source = descendant(self.stage, item['path'])
             if target.exists():
                 if target.is_symlink() or not target.is_file() or file_digest(target) != item['digest']:
@@ -112,7 +115,7 @@ class RecoveryDelivery:
         self.inventory(); self.snapshot()
         for item in self.manifest['files']:
             if 'placement' in item:
-                path = Path(self.binding['locations'][item['placement']])
+                path = recovery_absolute(self.binding['locations'][item['placement']])
                 if path.is_symlink() or not path.is_file() or file_digest(path) != item['digest']:
                     raise PoiseError('Placed Task material missing or changed')
         for tid, spec in self.manifest['workspaces'].items():

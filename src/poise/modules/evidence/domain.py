@@ -388,7 +388,8 @@ class EvidenceBook:
                     or receipt.get('source_unchanged') is not True or receipt['commit'] != candidate['commit']):
                 missing.append(f'command_unusable:{receipt["id"]}')
         accepted = candidate['accepted_assessment']
-        if (accepted is None or not accepted['ready'] or accepted['tree'] != tree):
+        if (accepted is None or not accepted['ready'] or accepted['tree'] != candidate.get('source_tree')
+                or accepted['submission_digest'] != candidate['source_digest']):
             missing.append('accepted_evidence_unavailable')
         return EvidenceAssessment(not missing, False, candidate['outcome'], tuple(missing), self)
 

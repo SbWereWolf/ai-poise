@@ -2,6 +2,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
 import re
+import json
 from ..foundation.errors import DomainError
 from ..artifact_factory.domain import exact, relative
 from ..tasks.definition import path_identifier
@@ -155,3 +156,160 @@ def validate_saved_work(records, released_ids):
             raise DomainError(f"Task {record['id']} lacks an explicit released handoff")
         if record['status'] not in ('available','active','verified','accepted','completed','cancelled'):
             raise DomainError('Unsupported saved Task state')
+
+
+def validate_package_manifest(manifest, policy, tables=None):
+    """One pure package contract for archive preflight and extracted delivery."""
+    fields = {'format', 'schema_version', 'project', 'execution_policy', 'source_config_hash',
+              'task_ids', 'sprint_ids', 'owners', 'workspaces', 'files', 'database',
+              'state_fingerprint', 'mapping', 'proofs', 'omitted_artifacts'}
+    exact(manifest, fields, 'transfer manifest')
+    for key in ('task_ids', 'sprint_ids', 'omitted_artifacts'):
+        values = manifest[key]
+        if not isinstance(values, list) or any(not isinstance(x, str) or not x for x in values) or len(values) != len(set(values)):
+            raise DomainError('Unique explicit manifest ' + key + ' required')
+    tasks, sprints = set(manifest['task_ids']), set(manifest['sprint_ids'])
+    if not tasks or len(tasks) > policy['max_tasks']:
+        raise DomainError('Explicit bounded manifest Task inventory required')
+    for owner in tasks | sprints:
+        path_identifier(owner)
+    exact(manifest['owners'], {'task', 'sprint', 'worktree'}, 'manifest owners')
+    for kind, expected in [('task', tasks), ('sprint', sprints), ('worktree', tasks)]:
+        values = manifest['owners'][kind]
+        if not isinstance(values, dict) or set(values) != expected:
+            raise DomainError('Manifest owner inventory differs: ' + kind)
+        for value in values.values():
+            if value is None and kind == 'worktree':
+                continue
+            if not isinstance(value, str) or not value.startswith('/') or '..' in value.split('/'):
+                raise DomainError('Explicit absolute manifest owner root required')
+    if not isinstance(manifest['workspaces'], dict) or set(manifest['workspaces']) != tasks:
+        raise DomainError('Manifest workspace inventory differs')
+    exact(manifest['mapping'], {'version', 'materials'}, 'manifest mapping')
+    if not isinstance(manifest['mapping']['version'], str) or not manifest['mapping']['version']:
+        raise DomainError('Manifest mapping version required')
+    materials = {}
+    for item in manifest['mapping']['materials']:
+        exact(item, {'id', 'role', 'source', 'destination', 'include'}, 'manifest material')
+        path_identifier(item['id']); relative(item['source'])
+        if item['id'] in materials or type(item['include']) is not bool or not isinstance(item['role'], str) or not item['role']:
+            raise DomainError('Unique explicitly classified manifest material required')
+        if item['include']:
+            relative(item['destination'])
+        elif item['destination'] is not None:
+            raise DomainError('Excluded manifest destination must be null')
+        materials[item['id']] = item
+    files = {}
+    for item in manifest['files']:
+        if not isinstance(item, dict) or not {'path', 'role', 'size', 'digest'} <= set(item):
+            raise DomainError('Incomplete manifest file')
+        relative(item['path'])
+        if item['path'] in files or type(item['size']) is not int or item['size'] < 0 or not re.fullmatch('[0-9a-f]{64}', item['digest']):
+            raise DomainError('Unique manifest file with exact size/digest required')
+        files[item['path']] = item
+        if 'material_id' in item:
+            exact(item, {'path', 'role', 'size', 'digest', 'task_id', 'material_id', 'suffix', 'placement'}, 'material file')
+            material = materials.get(item['material_id'])
+            if material is None or not material['include'] or item['role'] != material['role'] or item['task_id'] not in tasks:
+                raise DomainError('File lacks selected included material owner')
+            suffix = item['suffix']
+            if suffix:
+                relative(suffix)
+            destination = material['destination'] + ('/' + suffix if suffix else '')
+            expected = 'materials/' + item['task_id'] + '/' + destination
+            source = (manifest['owners']['task'][item['task_id']].rstrip('/') + '/'
+                      + material['source'] + ('/' + suffix if suffix else ''))
+            if item['path'] != expected or item['placement'] != source:
+                raise DomainError('Material file disagrees with explicit mapping')
+        elif item['role'] == 'configuration':
+            exact(item, {'path', 'role', 'size', 'digest', 'task_id', 'placement', 'configuration_destination'}, 'configuration file')
+            if item['task_id'] not in tasks:
+                raise DomainError('Configuration lacks selected Task owner')
+            relative(item['configuration_destination'])
+        else:
+            exact(item, {'path', 'role', 'size', 'digest'}, 'protocol file')
+            if item['role'] not in ('task-state', 'code-diff'):
+                raise DomainError('Unclassified package file')
+    protocol = {manifest['database']: 'task-state'}
+    for tid, spec in manifest['workspaces'].items():
+        if spec is None:
+            if manifest['owners']['worktree'][tid] is not None:
+                raise DomainError('Workspace missing its declared code facts')
+            continue
+        exact(spec, {'commit', 'tree', 'base', 'branch', 'diff'}, 'workspace')
+        for key in ('commit', 'tree', 'base'):
+            if not isinstance(spec[key], str) or not re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', spec[key]):
+                raise DomainError('Exact Git workspace object identity required')
+        if not isinstance(spec['branch'], str) or not spec['branch'] or spec['diff'] != 'diffs/' + tid + '.patch':
+            raise DomainError('Exact workspace branch/diff association required')
+        protocol[spec['diff']] = 'code-diff'
+    if {p: f['role'] for p, f in files.items() if f['role'] in ('task-state', 'code-diff') and 'material_id' not in f} != protocol:
+        raise DomainError('Protocol snapshot/diff inventory differs')
+    proof_ids, config_paths = set(), set()
+    for proof in manifest['proofs']:
+        exact(proof, {'receipt_id', 'task_id', 'systems'}, 'proof')
+        if proof['receipt_id'] in proof_ids or proof['task_id'] not in tasks:
+            raise DomainError('Unique selected proof owner required')
+        proof_ids.add(proof['receipt_id'])
+        exact(proof['systems'], {'poise', 'project'}, 'proof systems')
+        for system in proof['systems'].values():
+            exact(system, {'commit', 'configs'}, 'proof system')
+            if not isinstance(system['commit'], str) or not re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', system['commit']) or not system['configs']:
+                raise DomainError('Complete proof configuration required')
+            for config in system['configs']:
+                exact(config, {'path', 'digest', 'captured_path', 'archive_path'}, 'proof config')
+                item = files.get(config['archive_path'])
+                if (item is None or item['role'] != 'configuration' or item.get('task_id') != proof['task_id']
+                        or item['digest'] != config['digest'] or item.get('placement') != config['captured_path']
+                        or config['archive_path'] in config_paths):
+                    raise DomainError('Proof configuration inventory differs')
+                config_paths.add(config['archive_path'])
+    if {p for p, f in files.items() if f['role'] == 'configuration' and 'material_id' not in f} != config_paths:
+        raise DomainError('Undeclared proof configuration file')
+    if tables is None:
+        return
+    if {r['id'] for r in tables['tasks']} != tasks or {r['id'] for r in tables['sprints']} != sprints:
+        raise DomainError('Snapshot selected owner inventory differs')
+    evidence = {r['id']: r for r in tables['evidence']}
+    if set(evidence) != proof_ids:
+        raise DomainError('Snapshot proof inventory differs')
+    for proof in manifest['proofs']:
+        row = evidence[proof['receipt_id']]
+        saved = json.loads(row['data'])
+        actual = {owner: {'commit': system['commit'], 'configs': [
+            {key: config[key] for key in ('path', 'digest', 'captured_path')} for config in system['configs']]}
+            for owner, system in proof['systems'].items()}
+        if row['task_id'] != proof['task_id'] or actual != saved.get('systems'):
+            raise DomainError('Proof differs from captured snapshot provenance')
+    # Internal handoff transport is regenerable owner-typed state, not inferred
+    # from a directory name. Authored preserved_artifacts are not exempt.
+    generated_handoff_files = set()
+    for row in tables['handoffs']:
+        saved_handoff = json.loads(row['data'])
+        receipt = saved_handoff['receipt']
+        if receipt is not None:
+            for key in ('receipt_path', 'bundle_path'):
+                if receipt.get(key) is not None:
+                    generated_handoff_files.add(receipt[key])
+            if 'wip_snapshot' in receipt:
+                generated_handoff_files.add(receipt['wip_snapshot']['path'])
+    placements = {f['placement']: f for f in files.values() if 'placement' in f}
+    omitted = set(manifest['omitted_artifacts'])
+    artifacts = {r['id']: r for r in tables['artifacts']}
+    if not omitted <= artifacts.keys():
+        raise DomainError('Omitted artifact lacks immutable snapshot identity')
+    for aid, artifact in artifacts.items():
+        item = placements.get(artifact['path'])
+        if item is not None:
+            if aid in omitted or item['digest'] != artifact['digest'] or item.get('task_id') != artifact['owner']:
+                raise DomainError('Registered included artifact differs')
+            continue
+        root = manifest['owners'][artifact['scope']][artifact['owner']].rstrip('/')
+        if not artifact['path'].startswith(root + '/'):
+            raise DomainError('Artifact outside selected owner')
+        path = artifact['path'][len(root) + 1:]
+        relative(path)
+        excluded = any(not m['include'] and (path == m['source'] or path.startswith(m['source'] + '/'))
+                       for m in materials.values())
+        if aid not in omitted or not (excluded or artifact['path'] in generated_handoff_files):
+            raise DomainError('Missing required artifact; omission needs explicit material classification: ' + artifact['path'])

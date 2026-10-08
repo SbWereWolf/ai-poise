@@ -1486,6 +1486,9 @@ class Poise:
                 raise PoiseError('Different work packet after delivery requires rework')
             if tree != data['last_report']['verified_tree']:
                 raise PoiseError('Код изменён после доклада: сначала rework')
+            self.validate_verification_artifacts([], data)
+            if not self._delivered_receipts_intact(data):
+                raise PoiseError('Current verification receipt missing or changed')
             self._cleanup_runtime()
             return {**data['last_report'],'replayed':True}
         if data['status'] != 'active':
@@ -1774,9 +1777,6 @@ class Poise:
                 for config, original in zip(configs, expected_systems[owner]['configs'], strict=True):
                     if {key: config.get(key) for key in ('path', 'digest')} != original:
                         return False
-                    captured = Path(config['captured_path'])
-                    if captured.is_symlink() or not captured.is_file() or file_digest(captured) != config['digest']:
-                        return False
             method=invocation['method']
             expected={
                 'argv': method['argv'],
@@ -1793,25 +1793,55 @@ class Poise:
             }
             if any(r.get(field) != value for field,value in expected.items()):
                 return False
-            for name in ('stdout','stderr'):
-                path_value = r[name]
-                digest_value = r[name + '_digest']
-                if not isinstance(path_value, str) or not path_value:
+            if not self._receipt_files_intact(r, method):
+                return False
+        return True
+
+    @staticmethod
+    def _receipt_files_intact(receipt, method):
+        systems = receipt.get('systems')
+        if not isinstance(systems, dict) or set(systems) != {'poise', 'project'}:
+            return False
+        for system in systems.values():
+            if not isinstance(system, dict) or not system.get('commit') or not system.get('configs'):
+                return False
+            for config in system['configs']:
+                if not isinstance(config, dict) or not {'path', 'digest', 'captured_path'} <= set(config):
                     return False
-                if not isinstance(digest_value, str) or not digest_value:
+                path = Path(config['captured_path'])
+                if path.is_symlink() or not path.is_file() or file_digest(path) != config['digest']:
                     return False
-                path=Path(path_value)
-                if not path.is_file() or file_digest(path)!=digest_value:
-                    return False
-            maintenance=r.get('timeout_maintenance')
-            if maintenance is not None:
-                if not isinstance(maintenance,dict) or set(maintenance)!={'path','digest'}:
-                    return False
-                maintenance_path=Path(maintenance['path'])
-                if not maintenance_path.is_file() or file_digest(maintenance_path)!=maintenance['digest']:
-                    return False
-            intact, _ = inspect_declared_output_receipts(method.get('outputs', []), r.get('outputs'))
-            if not intact:
+        for name in ('stdout', 'stderr'):
+            path_value, digest_value = receipt.get(name), receipt.get(name + '_digest')
+            if not isinstance(path_value, str) or not path_value or not isinstance(digest_value, str) or not digest_value:
+                return False
+            path = Path(path_value)
+            if path.is_symlink() or not path.is_file() or file_digest(path) != digest_value:
+                return False
+        maintenance = receipt.get('timeout_maintenance')
+        if maintenance is not None:
+            if not isinstance(maintenance, dict) or set(maintenance) != {'path', 'digest'}:
+                return False
+            path = Path(maintenance['path'])
+            if path.is_symlink() or not path.is_file() or file_digest(path) != maintenance['digest']:
+                return False
+        intact, _ = inspect_declared_output_receipts(method.get('outputs', []), receipt.get('outputs'))
+        return intact
+
+    def _delivered_receipts_intact(self, data):
+        """Replaying a report validates its original facts without recapturing live configs."""
+        report = data['last_report']
+        receipts = report['checks']
+        if not completed_receipts(receipts):
+            return False
+        recorded = {r['id']: r for r in self.evidence_commands.list_for(data['id'])}
+        methods = {m['id']: m for m in data['contract']['methods']}
+        for receipt in receipts:
+            method = methods.get(receipt['method'])
+            if (method is None or recorded.get(receipt['id']) != receipt
+                    or receipt['commit'] != report['verification_commit']
+                    or receipt['tree'] != report['verified_tree']
+                    or not self._receipt_files_intact(receipt, method)):
                 return False
         return True
 
@@ -1892,8 +1922,10 @@ class Poise:
                                all(contains(Path(result['stdout']),t) for t in rule['stdout_contains']) and
                                all(contains(Path(result['stderr']),t) for t in rule['stderr_contains'])
                                for rule in method['observation_rules']))
-            source_unchanged = source_unchanged and config_capture.preflight() == invocation['systems']
+            configurations_unchanged, configurations_after = config_capture.observe_after(invocation['systems'])
+            source_unchanged = source_unchanged and configurations_unchanged
             receipt={**result,'commit':invocation['commit'], 'systems':systems,
+                     'configurations_after': configurations_after,
                      'observed_commit_after':observed_commit,'source_unchanged':source_unchanged,
                      'attempt_id':attempt['attempt_id'],
                      'submission_digest':attempt['submission_digest'], 'execution_key':attempt['execution_key'],

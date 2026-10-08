@@ -1201,6 +1201,7 @@ class TaskCommands:
         candidate = {'request_id': request_id, 'stage': source['stage'],
                      'visit_id': source['visit_id'], 'source_digest': source['digest'],
                      'commit': commit, 'tree': tree,
+                     'source_commit': source['commit'], 'source_tree': source['tree'],
                      'outcome': source['report']['stage_outcome'],
                      'stage_work': source['envelope']['stage_work'],
                      'evidence_work': source['envelope']['evidence_work'],

@@ -12,7 +12,7 @@ from conftest import WorkPoise, git
 from poise.modules.foundation.errors import PoiseError
 from .helpers import advance, call, inspect, result, setup, start, verify
 from .lifecycle_helpers import (
-    assert_preserved, command_plan, git_state, prepare, restart_current,
+    assert_preserved, command_plan, git_state, prepare, refusal_snapshot, restart_current,
     rows, runtime, transfer,
 )
 
@@ -96,24 +96,88 @@ def test_repeated_and_newborn_restarts_create_distinct_current_runs(project, tmp
     assert marker.read_text() == "one\ntwo\nthree\n"
 
 
-def test_current_exact_plan_stays_immutable_after_restart_and_reload(project, tmp_path):
+def assert_running_plan_change_refused(project, tmp_path, monkeypatch, *, restarted):
     client, context = runtime(project)
     marker = tmp_path / "effects.txt"
-    verify(client, prepare(context, command_plan(marker, "one")))
-    client, context = restart_current(client, context)
+    if restarted:
+        verify(client, prepare(context, command_plan(marker, "one")))
+    history = rows(client, context["task"])
+    if restarted:
+        client, context = restart_current(client, context)
     current = command_plan(marker, "two")
-    verify_current(client, context, current)
-    before = rows(client, context["task"])
-    before_git = git_state(context)
+    original = client.plan_actions._method
+    effects = []
+
+    def lose_response(data, method):
+        receipt = original(data, method)
+        if method["id"] == "APPLY-COUNTER":
+            effects.append(receipt)
+            raise RuntimeError("lost immutable-plan action response")
+        return receipt
+
+    monkeypatch.setattr(client.plan_actions, "_method", lose_response)
+    with pytest.raises(RuntimeError, match="^lost immutable-plan action response$"):
+        verify_current(client, context, current)
+    assert len(effects) == 1 and effects[0]["passed"]
+    prefix = "one\n" if restarted else ""
+    assert marker.read_text() == prefix + "two\n"
     reloaded = WorkPoise(project["config_path"], client.session)
     current_context = start(reloaded, {"id": context["task"]})
+    assert current_context["status"] == "active"
+    assert current_context["result_template"] is not None
     assert current_context["action"]["plan"] == current
+    assert current_context["action"]["status"] == "running"
+    assert current_context["action"]["cursor"] == 0
+    assert current_context["action"]["attempts"] == 1
+    before = refusal_snapshot(reloaded, current_context, marker)
     changed = command_plan(marker, "forbidden")
-    with pytest.raises(PoiseError, match="immutable"):
+    with pytest.raises(PoiseError, match="^Started plan is immutable; explicit rework is required$"):
         verify(reloaded, prepare(current_context, changed))
-    assert rows(reloaded, context["task"]) == before
-    assert git_state(context) == before_git
-    assert marker.read_text() == "one\ntwo\n"
+    assert refusal_snapshot(reloaded, current_context, marker) == before
+    recovered = verify(reloaded, prepare(context, current))
+    assert recovered["status"] == "verified"
+    assert recovered["action"]["status"] == "complete"
+    assert recovered["action"]["plan"] == current
+    assert recovered["action"]["attempts"] == 1
+    assert recovered["action"]["steps"][0]["result"]["effect"] == "recovered_by_probe"
+    assert marker.read_text() == prefix + "two\n"
+    assert_preserved(history, rows(reloaded, context["task"]))
+    assert len(rows(reloaded, context["task"])["runs"]) == (2 if restarted else 1)
+
+
+def test_current_exact_plan_stays_immutable_after_restart_and_reload(project, tmp_path, monkeypatch):
+    assert_running_plan_change_refused(project, tmp_path, monkeypatch, restarted=True)
+
+
+def test_initial_running_plan_stays_immutable_after_reload(project, tmp_path, monkeypatch):
+    assert_running_plan_change_refused(project, tmp_path, monkeypatch, restarted=False)
+
+
+@pytest.mark.parametrize("restarted", [True, False], ids=["restarted", "initial"])
+def test_completed_action_rejects_changed_delivered_result_after_reload(project, tmp_path, restarted):
+    client, active = runtime(project)
+    marker = tmp_path / "effects.txt"
+    if restarted:
+        verify(client, prepare(active, command_plan(marker, "one")))
+        client, active = restart_current(client, active)
+    current = command_plan(marker, "two")
+    delivered_packet = prepare(active, current)
+    completed = verify_current(client, active, current)
+    assert completed["status"] == "verified" and completed["action"]["status"] == "complete"
+    reloaded = WorkPoise(project["config_path"], client.session)
+    completed_context = start(reloaded, {"id": active["task"]})
+    assert completed_context["status"] == "verified"
+    assert completed_context["result_template"] is None
+    assert completed_context["action"]["plan"] == current
+    changed = deepcopy(delivered_packet)
+    changed["stage_work"]["plan"] = command_plan(marker, "forbidden")
+    before = refusal_snapshot(reloaded, completed_context, marker)
+    with pytest.raises(PoiseError, match="^Different result after delivery requires rework$"):
+        verify(reloaded, changed)
+    assert refusal_snapshot(reloaded, completed_context, marker) == before
+    assert verify(reloaded, delivered_packet)["replayed"] is True
+    assert refusal_snapshot(reloaded, completed_context, marker) == before
+    assert marker.read_text() == ("one\ntwo\n" if restarted else "two\n")
 
 
 def test_current_run_survives_handoff_reacquisition_and_exact_replay(project, tmp_path):

@@ -337,7 +337,8 @@ def _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_r
         # The same original request is resumed by a fresh original-actor runtime.
         owner = WorkTools(WorkPoise(project["config_path"], "material-owner"))
     replay = export(owner, ids=["T1"], request_id=request_id, handoff=None)
-    assert replay == {**receipt, "replayed": True}
+    assert isinstance(replay.get("interaction"), dict)
+    assert {key: value for key, value in replay.items() if key != "interaction"} == {**receipt, "replayed": True}
     assert not os.path.lexists(preparing), "003: exact completed replay stranded original preparation"
     no_new_material_archive(owner, provenance, markers)
     assert package.read_bytes() == package_bytes and package.stat().st_ino == package_inode
@@ -353,7 +354,8 @@ def _completed_export_recovery(project, monkeypatch, phase, retire_first, fail_r
     terminal = owner.runtime.task_queries.record("T1")
     replay_again = export(WorkTools(WorkPoise(project["config_path"], "material-owner")),
                           ids=["T1"], request_id=request_id, handoff=None)
-    assert replay_again == {**receipt, "replayed": True}
+    assert isinstance(replay_again.get("interaction"), dict)
+    assert {key: value for key, value in replay_again.items() if key != "interaction"} == {**receipt, "replayed": True}
     assert not os.path.lexists(preparing)
     no_new_material_archive(owner, provenance, markers)
     absent(root)

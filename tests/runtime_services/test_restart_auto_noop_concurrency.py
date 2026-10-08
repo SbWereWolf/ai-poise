@@ -94,10 +94,10 @@ def test_concurrent_noop_identity_has_one_terminal_result(project, monkeypatch, 
         thread.join()
         assert not thread.is_alive()
     assert "noop-winner" not in errors, errors
-    assert ("blocked_by_kernel", True) in observed
-    assert committed.is_set()
     assert_noop_response(responses["noop-winner"], case["saved"])
     assert ("pending", "progression.noop") in observed
+    assert ("blocked_by_kernel", True) in observed
+    assert committed.is_set()
     if contender == "identical":
         assert "noop-contender" not in errors, errors
         assert_noop_response(responses["noop-contender"], case["saved"])

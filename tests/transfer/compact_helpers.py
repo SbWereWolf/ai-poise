@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 
 from batch.helpers import bootstrap, request, result, verify
-from conftest import WorkPoise, add_test, git, write_json
+from conftest import WorkPoise, add_test, write_json
 from poise.application.work import WorkTools
 
 from .helpers import destination, export, handoff_args, settings
@@ -14,48 +14,10 @@ from .helpers import destination, export, handoff_args, settings
 FIXTURES = Path(__file__).parent / 'fixtures'
 
 
-def tiny_repository(path):
-    path.mkdir()
-    git(path, 'init', '-b', 'main')
-    git(path, 'config', 'user.name', 'Recovery fixture')
-    git(path, 'config', 'user.email', 'recovery@example.invalid')
-    (path / 'version').write_text('installed current system\n')
-    git(path, 'add', '.')
-    git(path, 'commit', '-m', 'Installed system fixture')
-
-
-def policy(project, recovery_tool):
-    """Bind test-owned schema inputs; expectations never use this function."""
-    root = project['root']
-    system = root / 'installed-poise'
-    tiny_repository(system)
-    configs = json.loads((FIXTURES / 'compact-system-configs.json').read_text())
-    paths = {name: write_json(root / (name + '.json'), value)
-             for name, value in configs.items()}
-    replacements = {
-        '@NODE@': recovery_tool[0], '@WORKSPACE_RECOVER@': recovery_tool[1],
-        '@POISE_REPOSITORY@': str(system),
-        '@POISE_CONFIG@': str(project['config_path']),
-        '@POISE_OVERLAY@': str(paths['poise_overlay']),
-        '@PROJECT_REPOSITORY@': str(project['app']),
-        '@PROJECT_CONFIG@': str(paths['project_config']),
-        '@PROJECT_OVERLAY@': str(paths['project_overlay']),
-    }
-    def bind(value):
-        if isinstance(value, dict):
-            return {key: bind(item) for key, item in value.items()}
-        if isinstance(value, list):
-            return [bind(item) for item in value]
-        return replacements.get(value, value) if isinstance(value, str) else value
-    raw = json.loads((FIXTURES / 'compact-recovery-policy.json').read_text())
-    return bind(raw)
-
-
 def configure(project, recovery_tool):
-    transfer = settings()
-    del transfer['bundles_directory']
-    transfer['archive'] = 'work.tar.gz'
-    transfer['recovery'] = policy(project, recovery_tool)
+    from recovery_helpers import recovery_settings
+    transfer = recovery_settings(project['root'], project['app'],
+                                 project['config_path'], recovery_tool)
     project['cfg']['runtime_services']['transfer'] = transfer
     write_json(project['config_path'], project['cfg'])
     return transfer['recovery']

@@ -1,0 +1,13 @@
+{
+  "directory": "transfers",
+  "archive": "work.tar.gz",
+  "manifest": "manifest.json",
+  "database": "snapshot.sqlite",
+  "files_directory": "files",
+  "max_tasks": 1000,
+  "max_files": 10000,
+  "max_file_bytes": 33554432,
+  "max_total_bytes": 134217728,
+  "chunk_bytes": 65536,
+  "file_mode": 384
+}

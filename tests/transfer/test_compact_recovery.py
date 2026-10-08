@@ -545,7 +545,7 @@ def test_create_and_deploy_invoke_the_real_configured_tool(
 def test_unavailable_source_commit_fails_without_guessing_or_touching_other_code(
     project, recovery_tool, tmp_path,
 ):
-    from .compact_helpers import tiny_repository
+    from recovery_helpers import tiny_repository
     _, tools, _, payload = prepared(project, recovery_tool)
     saved = save(tools, payload)
     dst, _ = target(project, tmp_path / 'destination')

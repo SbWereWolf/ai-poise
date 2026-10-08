@@ -216,7 +216,14 @@ def project(tmp_path, monkeypatch):
             {'path': 'docs/**', 'responsibility': 'documentation'},
         ],
     }
-    cfg_path = write_json(poise_root / 'project.json', cfg)
+    # Every ordinary check receives explicit, disposable system/config identities.
+    # Actual transfer tests replace the tripwire with their explicit external tool.
+    from recovery_helpers import prepare_recovery_files, recovery_settings
+    cfg_path = poise_root / 'project.json'
+    prepare_recovery_files(poise_root)
+    cfg['runtime_services']['transfer'] = recovery_settings(
+        poise_root, app, cfg_path, [sys.executable, str(poise_root / 'unexpected_flow.py')])
+    write_json(cfg_path, cfg)
     requirements_registry = seed_fixture_requirements(poise_root, cfg)
     argv = [sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-v']
     red_argv = [

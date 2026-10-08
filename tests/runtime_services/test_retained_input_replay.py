@@ -10,7 +10,8 @@ import pytest
 from batch.helpers import request
 from poise.common import PoiseError
 from runtime_services.test_task_restart import restart
-from verification.retention_helpers import verify_input
+from verification.retention_helpers import assert_bundle, assert_preserved, verify_input
+from verification.retention_regression_helpers import git_snapshot, node_snapshot
 
 
 def resume_accepted(tools, *, change=None):
@@ -54,12 +55,14 @@ def test_retained_input_replay_consumes_permanent_bytes_after_restart(project, t
     retained = owner / 'artifacts/inputs/accepted.whl'
     old_manifest = Path(accepted['acceptance_manifests'][0]['path'])
     old_manifest_bytes = old_manifest.read_bytes()
+    trusted = assert_bundle(accepted, context, accepted['commit'])
     original.unlink()
     resumed = resume_accepted(tools)
     assert resumed['stage'] == 'implementation'
 
     response = repeat(tools)
 
+    assert_preserved(trusted, context)
     assert response['status'] == 'progression_stopped'
     assert response['replay']['reason'] == 'task_acceptance_required'
     assert len(response['replay']['passed']) == 1
@@ -133,7 +136,8 @@ def test_changed_retained_obligation_cannot_inherit_historical_pass(project, tmp
 
 
 def test_malformed_current_retained_declaration_is_not_admitted(project, tmp_path):
-    tools, _, _, original, marker = verify_input(project, tmp_path)
+    tools, context, accepted, original, marker = verify_input(project, tmp_path)
+    trusted = assert_bundle(accepted, context, accepted['commit'])
     original.unlink()
     current = tools.runtime.task_queries.record('T1')
     born = restart(tools, 'T1', current['version'])
@@ -144,7 +148,12 @@ def test_malformed_current_retained_declaration_is_not_admitted(project, tmp_pat
         'expected_revision': born['revision'],
         'patch': {'methods': methods}, 'remove': [],
     }))
+    worktree = Path(context['worktree'])
+    (worktree / 'untracked-preservation.txt').write_bytes(b'preserve untracked bytes\n')
     before = deepcopy(tools.runtime.task_queries.record('T1'))
+    code = git_snapshot(worktree)
+    historical = deepcopy(tools.runtime.evidence_commands.list_for('T1'))
+    marker_bytes = marker.read_bytes()
 
     with pytest.raises(PoiseError, match='digest|SHA|sha|хеш|контроль'):
         tools.invoke(request('task', {
@@ -153,6 +162,11 @@ def test_malformed_current_retained_declaration_is_not_admitted(project, tmp_pat
         }))
 
     assert tools.runtime.task_queries.record('T1') == before
+    assert git_snapshot(worktree) == code
+    assert_preserved(trusted, context)
+    assert tools.runtime.evidence_commands.list_for('T1') == historical
+    assert marker.read_bytes() == marker_bytes
+    assert not original.exists()
     assert marker.read_text().splitlines() == ['run']
 
 
@@ -160,6 +174,7 @@ def test_malformed_current_retained_declaration_is_not_admitted(project, tmp_pat
 @pytest.mark.parametrize('damage', ['missing', 'bytes'])
 def test_damaged_retained_bundle_refuses_repeat(project, tmp_path, target, damage):
     tools, context, accepted, original, marker = verify_input(project, tmp_path)
+    trusted = assert_bundle(accepted, context, accepted['commit'])
     original.unlink()
     resume_accepted(tools)
     receipt = accepted['checks'][0]
@@ -175,10 +190,16 @@ def test_damaged_retained_bundle_refuses_repeat(project, tmp_path, target, damag
         path.unlink()
     else:
         path.write_bytes(b'changed accepted bytes')
+    assert path in trusted
+    del trusted[path]
+    damaged = node_snapshot(path)
     historical = deepcopy(tools.runtime.evidence_commands.list_for('T1'))
 
     response = repeat(tools)
 
+    assert_preserved(trusted, context)
+    assert node_snapshot(path) == damaged
+    assert not original.exists()
     assert response['status'] == 'progression_stopped'
     assert response['replay']['reason'] == (
         'evidence_missing' if damage == 'missing' else 'evidence_changed'

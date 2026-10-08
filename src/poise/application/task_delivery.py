@@ -75,7 +75,7 @@ class TaskDeliveryCommands:
                 reason = self.effects.validate_sources(state)
                 if reason:
                     return self._blocked(state, reason)
-            self.effects.ensure_resources(record, state)
+                self.effects.ensure_resources(record, state)
             record = self.effects.admission(task_id, self.actor)
             reason = self.effects.blocker(record, state)
             if reason:
@@ -99,6 +99,15 @@ class TaskDeliveryCommands:
                 artifacts = self.effects.retiring_artifacts(state)
                 state = self._save(state.evolve(status='delivery_partial', retirement_started=True,
                                                 retired_artifacts=artifacts))
+            # An unfinished retirement needs current permanent confirmations,
+            # even when its original sources have already been unlinked.
+            reason = self.effects.blocker(self.effects.admission(task_id, self.actor), state)
+            if reason:
+                return self._blocked(state, reason)
+            for receipt in state.data['confirmed']:
+                reason = self.effects.observe_output(receipt)
+                if reason:
+                    return self._blocked(state, reason)
             self.effects.remove_owned_root(state)
             return self._save(state.evolve(status='delivery_complete', reason=None)).result()
 

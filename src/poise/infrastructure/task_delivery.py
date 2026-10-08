@@ -140,8 +140,7 @@ class RuntimeTaskDelivery:
 
     def validate_sources(self, state):
         root = Path(state.data['root'])
-        if self.root_identity(root) != state.data['root_identity']:
-            raise PoiseError('Task root owner identity changed')
+        self.root_identity(root)
         for output in state.data['agreement']['declaration']['outputs']:
             if output['kind'] == 'git':
                 continue
@@ -152,53 +151,74 @@ class RuntimeTaskDelivery:
                 return 'source_integrity_failed'
         return None
 
-    def confirm_output(self, output):
+    def _configuration_reason(self, output):
+        if output['kind'] == 'ignored_configuration':
+            target = Path(output['destination'])
+            repository = Path(self.h.cfg['git']['repository'])
+            if not target.is_relative_to(repository):
+                return 'destination_unavailable'
+            name = str(target.relative_to(repository))
+            try:
+                self.h._git(repository, 'check-ignore', '--', name)
+                if self.h._git(repository, 'ls-files', '--', name):
+                    return 'destination_unavailable'
+            except PoiseError:
+                return 'destination_unavailable'
+        return None
+
+    def observe_output(self, output):
+        """Observe an agreed permanent result without its retired source."""
         kind = output['kind']
         if kind == 'git':
             try:
                 self.h._git(Path(output['repository']), 'merge-base', '--is-ancestor', output['commit'], output['target_ref'])
             except PoiseError:
-                return None, 'integration_required'
-            return dict(output), None
-        source, target = Path(output['source']), Path(output['destination'])
-        if kind == 'ignored_configuration':
-            repository = Path(self.h.cfg['git']['repository'])
-            if not target.is_relative_to(repository):
-                return None, 'destination_unavailable'
-            name = str(target.relative_to(repository))
-            try:
-                self.h._git(repository, 'check-ignore', '--', name)
-                if self.h._git(repository, 'ls-files', '--', name):
-                    return None, 'destination_unavailable'
-            except PoiseError:
-                return None, 'destination_unavailable'
+                return 'integration_required'
+            return None
+        reason = self._configuration_reason(output)
+        if reason:
+            return reason
+        target = Path(output['destination'])
         if kind == 'customer':
             ack = output['acknowledgement']
             if not os.path.lexists(ack['path']):
-                return None, 'customer_acknowledgement_required'
+                return 'customer_acknowledgement_required'
             try:
                 BinaryFilePublisher.without_links(Path(ack['path']), 'Acknowledgement')
                 received = json.loads(Path(ack['path']).read_text(encoding='utf-8'))
                 if received != {'receiver': ack['receiver'], 'digest': output['digest'], 'received_path': str(target)}:
-                    return None, 'customer_acknowledgement_invalid'
+                    return 'customer_acknowledgement_invalid'
                 if BinaryFilePublisher.read(target, 'Received file') != output['digest']:
-                    return None, 'customer_acknowledgement_invalid'
+                    return 'customer_acknowledgement_invalid'
             except (OSError, UnicodeError, ValueError, PoiseError):
-                return None, 'customer_acknowledgement_invalid'
+                return 'customer_acknowledgement_invalid'
         else:
             try:
-                BinaryFilePublisher.without_links(target, 'Delivery destination')
-                if target.exists() and not target.is_file():
+                if BinaryFilePublisher.read(target, 'Delivery destination') != output['digest']:
+                    return 'destination_conflict'
+            except (OSError, PoiseError):
+                return 'destination_unavailable'
+        return None
+
+    def confirm_output(self, output):
+        if output['kind'] in ('file', 'ignored_configuration'):
+            reason = self._configuration_reason(output)
+            if reason:
+                return None, reason
+            target = Path(output['destination'])
+            if not os.path.lexists(target):
+                try:
+                    BinaryFilePublisher.publish(Path(output['source']), target, output['digest'],
+                                                self.h.cfg['batch']['file_mode'])
+                except NotADirectoryError:
                     return None, 'destination_unavailable'
-                if target.exists() and BinaryFilePublisher.read(target, 'Delivery destination') != output['digest']:
-                    return None, 'destination_conflict'
-                BinaryFilePublisher.publish(source, target, output['digest'], self.h.cfg['batch']['file_mode'])
-            except NotADirectoryError:
-                return None, 'destination_unavailable'
-            except PoiseError as exc:
-                if 'parent is not a directory' in str(exc):
-                    return None, 'destination_unavailable'
-                raise
+                except PoiseError as exc:
+                    if 'parent is not a directory' in str(exc):
+                        return None, 'destination_unavailable'
+                    raise
+        reason = self.observe_output(output)
+        if reason:
+            return None, reason
         return {k: v for k, v in output.items() if k != 'source'}, None
 
     def retiring_artifacts(self, state):
@@ -211,10 +231,7 @@ class RuntimeTaskDelivery:
         self.h.result_views.finish()
         BinaryFilePublisher.without_links(root.parent, 'Task root parent')
         if os.path.lexists(root):
-            if self.root_identity(root) != state.data['root_identity']:
-                raise PoiseError('Task root owner identity changed')
-            if not shutil.rmtree.avoids_symlink_attacks:
-                raise PoiseError('Confined Task removal unavailable')
+            self.root_identity(root)
             def removal_error(function, path, error):
                 # shutil may attach a filename to an errno-less OSError and
                 # obscure its original message. Preserve the actual failure.

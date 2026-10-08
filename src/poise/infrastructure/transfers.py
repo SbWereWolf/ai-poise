@@ -53,10 +53,7 @@ class RuntimeTransfers:
         h=self.h;c=self.policy;identity=digest(args)
         old=self.repo.request(h.session,args['request_id'],identity)
         if old is not None and old['phase']=='complete':
-            receipt=old['receipt'];p=Path(receipt['package_path'])
-            if not p.is_file() or file_digest(p)!=receipt['package_digest']:
-                raise PoiseError('Saved transfer package missing or changed; no false successful replay')
-            return {**receipt,'replayed':True}
+            return self._finish_export(args, old['receipt'], replayed=True)
         selected=args['task_ids']
         if old is None and args['handoff'] is not None:
             current=h.current_task()
@@ -276,10 +273,26 @@ class RuntimeTransfers:
                    'next_work': 'Copy this package; import with explicit destination project configuration'}
         self.repo.remember_export(h.session, args['request_id'], identity,
                                   {'phase': 'complete', 'receipt': receipt}, expected_phase='prepared')
-        h.store.event(h.session, None, 'transfer.exported', receipt)
-        shutil.rmtree(stage)
-        h._cleanup_runtime()
-        return receipt
+        return self._finish_export(args, receipt, replayed=False)
+
+    def _finish_export(self, args, receipt, *, replayed):
+        """Finish only this completed request's remaining preparation cleanup."""
+        package = Path(receipt['package_path'])
+        if not package.is_file() or file_digest(package) != receipt['package_digest']:
+            raise PoiseError('Saved transfer package missing or changed; no false successful replay')
+        if not replayed:
+            self.h.store.event(self.h.session, None, 'transfer.exported', receipt)
+        stage = self._request_dir(args) / 'preparing'
+        BinaryFilePublisher.without_links(stage, 'Export staging')
+        if os.path.lexists(stage):
+            if not stage.is_dir():
+                raise PoiseError('Export staging is not a directory')
+            shutil.rmtree(stage)
+            BinaryFilePublisher.sync_parent(stage)
+        if os.path.lexists(stage):
+            raise PoiseError('Export preparation removal incomplete')
+        self.h._cleanup_runtime()
+        return {**receipt, 'replayed': replayed}
 
     def restore(self,args):
         with self._locked(args):return self._restore(args)

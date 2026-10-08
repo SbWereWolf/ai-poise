@@ -1,5 +1,6 @@
 from typing import Protocol
 from .domain import ProjectBlueprint
+from .preflight import ProjectPreflightRequest, ConfigurationObservation
 
 
 class ProjectSetupPort(Protocol):
@@ -11,7 +12,17 @@ class ProjectSetupPort(Protocol):
 class ProjectAvailabilityPort(Protocol):
     """Read a configured project's Task/Sprint snapshot without runtime setup."""
     def startable(self, project: dict) -> list[dict]: ...
+    def require_task(self, config_path: str, configuration: dict, task_id: str) -> None: ...
 
 
 class ProjectConfigUpdatePort(Protocol):
     def apply(self,request:dict)->dict: ...
+
+
+class ProjectPreflightPort(Protocol):
+    """Observe explicitly selected owners without allocating mutable runtime state."""
+    settings_path: str
+    def request_context(self, raw: object) -> dict: ...
+    def observe_configuration(self, request: ProjectPreflightRequest) -> ConfigurationObservation: ...
+    def probe_git(self, configuration: dict) -> dict: ...
+    def require_task(self, config_path: str, configuration: dict, task_id: str) -> None: ...

@@ -1,0 +1,12 @@
+{
+  "operation": "bootstrap",
+  "input": {
+    "task": {
+      "id": "EXISTS-HERE"
+    },
+    "decision": null,
+    "feedback": null,
+    "rework_stage": null
+  },
+  "messages": []
+}

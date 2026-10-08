@@ -1,0 +1,18 @@
+[
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[native-zero]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[positive]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[increasing]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[iteration-two]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[suffix]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[prefix]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[json]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[unicode]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[spaces]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[encoding]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[nul]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_literal_run_and_event_identity_on_create_load_and_save[quotes]","diagnostic":"Failed: LIFECYCLE_KEY_CREATE_PROTOCOL_MISMATCH"},
+  {"nodeid":"tests/actions/test_lifecycle_key_protocol.py::test_increasing_literal_scopes_never_select_or_rewrite_prior_keys","diagnostic":"Failed: LIFECYCLE_KEY_HISTORY_SELECTED"},
+  {"nodeid":"tests/actions/test_lifecycle_transfer.py::test_public_package_preserves_action_history_current_context_and_replay[restarted]","diagnostic":"Failed: LIFECYCLE_TRANSFER_SELECTED_PRIOR_ACTION"},
+  {"nodeid":"tests/actions/test_lifecycle_transfer.py::test_package_refuses_retained_prepared_action_when_current_is_complete","diagnostic":"Failed: LIFECYCLE_TRANSFER_SELECTED_RETAINED_PREPARED"},
+  {"nodeid":"tests/actions/test_lifecycle_child_publication.py::test_reviewed_child_batch_uses_current_scope_and_preserves_atomicity[restarted]","diagnostic":"Failed: LIFECYCLE_CHILD_PUBLICATION_SELECTED_HISTORY"}
+]

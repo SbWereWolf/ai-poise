@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ..modules.actions.domain import CommitMessagePolicy
 
 import hashlib
 import json
@@ -283,7 +284,7 @@ class RuntimeResultIntegration:
             raise PoiseError("Expected target commit changed before integration")
 
     def _validate_message(self, intent):
-        if re.fullmatch(self.h.cfg["git"]["commit_pattern"], intent.commit_message) is None:
+        if not CommitMessagePolicy(self.h.cfg["git"]["commit_pattern"]).matches(intent.commit_message):
             raise PoiseError("Integration commit message violates the configured pattern")
 
     def prepare_source(self, intent):

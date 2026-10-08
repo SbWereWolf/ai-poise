@@ -181,13 +181,80 @@ def test_interrupted_request_rejects_changed_executable_without_second_effect(
     assert receiver.runtime.task_queries.record('T1') is None
 
 
+def assert_restored_code(tree, commit, base_tree, expected):
+    """Inspect actual Git/files, independently of package metadata and diff bytes."""
+    assert git(tree, 'rev-parse', 'HEAD') == commit
+    assert git(tree, 'rev-parse', 'HEAD^{tree}') == base_tree
+    assert git(tree, 'symbolic-ref', 'HEAD') == 'refs/heads/tasks/T1'
+    assert git(tree, 'rev-parse', 'refs/heads/tasks/T1') == commit
+    inventory = git(tree, 'ls-files', '--cached', '--others', '--exclude-standard')
+    assert sorted(inventory.splitlines()) == sorted(expected)
+    for name, content in expected.items():
+        assert (tree / name).is_file(), name
+        assert (tree / name).read_bytes() == content.encode(), name
+    assert git(tree, 'diff', '--name-only', 'HEAD') == 'tests/tracked.txt'
+    assert sorted(git(tree, 'ls-files', '--others', '--exclude-standard').splitlines()) == [
+        'tests/test_double.py', 'tests/untracked.txt']
+
+
+@pytest.mark.parametrize('damage', [
+    'missing-tracked', 'wrong-tracked', 'missing-untracked', 'wrong-untracked',
+    'extra-file', 'wrong-ref', 'wrong-commit',
+])
+def test_restored_code_oracle_rejects_lost_or_wrong_worktree(project, tmp_path, damage):
+    """Assertion sensitivity only; this does not claim a product restore occurred."""
+    expected = json.loads((FIXTURES / 'reexport-source-code.json').read_text())
+    baseline = project['app'] / 'tests'
+    baseline.mkdir()
+    (baseline / 'tracked.txt').write_text('Before text change\n')
+    git(project['app'], 'add', '.')
+    git(project['app'], 'commit', '-m', 'Independent code oracle baseline')
+    tree = tmp_path / 'oracle-worktree'
+    git(project['app'], 'clone', '--no-hardlinks', str(project['app']), str(tree))
+    git(tree, 'checkout', '-b', 'tasks/T1')
+    commit = git(tree, 'rev-parse', 'HEAD')
+    base_tree = git(tree, 'rev-parse', 'HEAD^{tree}')
+    for name, content in expected.items():
+        (tree / name).parent.mkdir(parents=True, exist_ok=True)
+        (tree / name).write_text(content)
+    assert_restored_code(tree, commit, base_tree, expected)
+    if damage.startswith(('missing-', 'wrong-')) and damage.endswith(('tracked', 'untracked')):
+        path = tree / 'tests' / ('untracked.txt' if damage.endswith('-untracked') else 'tracked.txt')
+        if damage.startswith('missing-'):
+            path.unlink()
+        else:
+            path.write_bytes(b'Incorrect restored bytes\n')
+    elif damage == 'extra-file':
+        (tree / 'unexpected.txt').write_bytes(b'Undeclared source\n')
+    elif damage == 'wrong-ref':
+        git(tree, 'branch', '-m', 'wrong-ref')
+    else:
+        git(tree, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+            'commit', '--allow-empty', '-m', 'Wrong restored commit')
+    with pytest.raises(AssertionError):
+        assert_restored_code(tree, commit, base_tree, expected)
+
+
 def test_recovered_task_can_be_exported_and_restored_again_without_original_source(
     project, recovery_tool, tmp_path, monkeypatch,
 ):
     stage_counter = tmp_path / 'forbidden-stage-command'
     instrument_stage_commands(project, stage_counter)
+    expected_code = json.loads((FIXTURES / 'reexport-source-code.json').read_text())
+    baseline = project['app'] / 'tests'
+    baseline.mkdir()
+    (baseline / 'tracked.txt').write_bytes(b'Before text change\n')
+    git(project['app'], 'add', '.')
+    git(project['app'], 'commit', '-m', 'Tracked two-hop code input')
+    git(project['remote'], 'fetch', str(project['app']), 'main:main')
     runtime, tools, context, payload = prepared(project, recovery_tool)
     install_stage_observer(context)
+    source_worktree = Path(context['worktree'])
+    (source_worktree / 'tests/tracked.txt').write_bytes(b'Unsaved text change\n')
+    (source_worktree / 'tests/untracked.txt').write_bytes(b'Unsaved addition\n')
+    source_commit = git(source_worktree, 'rev-parse', 'HEAD')
+    source_tree = git(source_worktree, 'rev-parse', 'HEAD^{tree}')
+    assert_restored_code(source_worktree, source_commit, source_tree, expected_code)
     original_note = registered_note(tools)
     saved = save(tools, payload)
     first, _ = target(project, tmp_path / 'first')
@@ -198,6 +265,8 @@ def test_recovered_task_can_be_exported_and_restored_again_without_original_sour
     receiver = WorkTools(WorkPoise(first['config_path'], 'receiver'))
     deployed = restore(receiver, saved['package_path'], saved['package_digest'])
     assert deployed['success'] is True
+    first_worktree = Path(receiver.runtime.task_queries.record('T1')['worktree'])
+    assert_restored_code(first_worktree, source_commit, source_tree, expected_code)
     current_root = Path(deployed['delivery']['binding']['locations'][context['task_root']])
     assert (current_root / 'notes/cache').read_bytes() == b'Necessary task material\n'
     assert not (current_root / 'artifacts/cache').exists()
@@ -232,11 +301,14 @@ def test_recovered_task_can_be_exported_and_restored_again_without_original_sour
     assert (final_root / 'notes/cache').read_bytes() == b'Necessary task material\n'
     assert not (final_root / 'artifacts/cache').exists()
     current = last.runtime.task_queries.record('T1')
+    assert_restored_code(Path(current['worktree']), source_commit, source_tree, expected_code)
     assert (current['stage_index'], current['iteration'], current['status']) == (0, 1, 'active')
     assert effects == []
     assert not stage_counter.exists()
     assert selected_rows(receiver.runtime) == before
     assert (hidden / original_note.relative_to(project['root'])).read_bytes() == source_bytes
+    assert_restored_code(hidden / source_worktree.relative_to(project['root']),
+                         source_commit, source_tree, expected_code)
     # Source preservation uses the untouched Git owner, not an exported hash.
     assert git(project['app'], 'rev-parse', 'tasks/T1') == source_head
     with receiver.runtime.store.transaction() as database:

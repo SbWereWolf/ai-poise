@@ -184,19 +184,33 @@ class SqliteTransferRepository:
         with self.database.transaction() as db:
             return SqliteTransferContext(db).delivery_for_task(task_id)
 
+    def delivery_for_sprint(self, sprint_id):
+        with self.database.transaction() as db:
+            return SqliteTransferContext(db).delivery_for_sprint(sprint_id)
+
 
 class SqliteTransferContext:
     """Imported availability and one-time fresh verification, owned by delivery."""
     def __init__(self, connection):
         self.db = connection
 
-    def delivery_for_task(self, task_id):
+    def _receipt_for_owner(self, scope, owner_id):
+        owner_ids = {'task': 'task_ids', 'sprint': 'sprint_ids'}[scope]
         row = self.db.execute(
-            "SELECT i.data FROM transfer_imports i JOIN json_each(i.data,'$.task_ids') t "
-            "ON t.value=?", (task_id,)).fetchone()
-        if row is None:
+            f"SELECT i.data FROM transfer_imports i JOIN json_each(i.data,'$.{owner_ids}') o "
+            "ON o.value=?", (owner_id,)).fetchone()
+        return None if row is None else json.loads(row['data'])
+
+    def delivery_for_sprint(self, sprint_id):
+        receipt = self._receipt_for_owner('sprint', sprint_id)
+        if receipt is None:
             return None
-        receipt = json.loads(row['data'])
+        return {**receipt['delivery'], 'package_digest': receipt['package_digest']}
+
+    def delivery_for_task(self, task_id):
+        receipt = self._receipt_for_owner('task', task_id)
+        if receipt is None:
+            return None
         opened = self.db.execute(
             "SELECT data FROM journal WHERE task_id=? AND event='transfer.verification_opened' "
             "AND json_extract(data,'$.package_digest')=?", (task_id, receipt['package_digest'])).fetchone()

@@ -166,6 +166,7 @@ class RuntimeTransfers:
         locations = {row['task_id']: json.loads(row['data'])
                      for row in tables['transfer_locations']}
         deliveries = {tid: self.repo.delivery_for_task(tid) for tid in task_ids}
+        sprint_deliveries = {sid: self.repo.delivery_for_sprint(sid) for sid in sprint_ids}
         eligible = eligible_omissions({'mapping': self.recovery['mapping'], 'owners': owners}, tables)
         # Validate the entire registered source set, including deliberately
         # omitted history. Omission is not permission to export corrupt state.
@@ -175,7 +176,7 @@ class RuntimeTransfers:
             root = Path(owners[artifact['scope']][artifact['owner']])
             path = descendant(root, Path(artifact['path']).relative_to(root).as_posix())
             if not path.is_file():
-                delivery = deliveries.get(artifact['owner']) if artifact['scope'] == 'task' else None
+                delivery = (deliveries if artifact['scope'] == 'task' else sprint_deliveries).get(artifact['owner'])
                 if delivery is not None and 'omitted_artifact_records' not in delivery:
                     raise PoiseError('Missing imported artifact omission provenance')
                 records = [] if delivery is None else delivery['omitted_artifact_records']

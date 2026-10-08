@@ -2,24 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
-import locale
 import os
 from pathlib import Path
 import re
 import shutil
 import stat
-import subprocess
-import sys
 import uuid
 
-from ..common import descendant, digest, file_digest, prohibit_git_push
-from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, preview, run_command
+from ..common import descendant, digest, file_digest
+from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 from .locking import exclusive_lock
 from .task_cleanup import RuntimeTaskResourceCleanup
 from .task_paths import task_root
+from .git_transport import run_git_receipt
 
 
 class RuntimeResultIntegration:
@@ -38,23 +36,8 @@ class RuntimeResultIntegration:
         return ref.removeprefix("refs/heads/")
 
     def _run(self, cwd, *args, env=None):
-        prohibit_git_push(["git", *args])
-        try:
-            result = subprocess.run(
-                ["git", "-C", str(cwd), *args], capture_output=True,
-                timeout=self.h.cfg["limits"]["git_seconds"],
-                env=os.environ if env is None else env,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise PoiseError(f"Git {args[0]} did not complete: {exc}") from exc
-        # Match subprocess text encoding without translating path CR/CRLF.
-        encoding = "utf-8" if sys.flags.utf8_mode else locale.getencoding()
-        return {
-            "argv": ["git", "-C", str(cwd), *args],
-            "actual_exit_code": result.returncode,
-            "stdout": result.stdout.decode(encoding, errors="strict"),
-            "stderr": result.stderr.decode(encoding, errors="strict"),
-        }
+        return run_git_receipt(cwd, args, self.h.cfg['limits']['git_seconds'],
+                               os.environ if env is None else env)
 
     def _git(self, cwd, *args, env=None):
         receipt = self._run(cwd, *args, env=env)
@@ -598,9 +581,13 @@ class RuntimeResultIntegration:
                 "outputs": outputs,
                 "stdout_digest": file_digest(Path(result["stdout"])),
                 "stderr_digest": file_digest(Path(result["stderr"])),
-                "preview": preview(Path(result["stderr"]),
-                                   self.h.cfg["limits"]["preview_chars"]),
             }
+            try:
+                receipt['preview'] = self.h.result_views.primary(receipt, run_dir)
+            except (PoiseError, OSError, ValueError) as exc:
+                receipt['preview'] = ''
+                receipt['preview_errors'] = {**receipt.get('preview_errors', {}),
+                                            'primary': str(exc)}
             if receipt['passed']:
                 self.h.retention.create(record, method, receipt, head, verified_tree)
             receipts.append(receipt)

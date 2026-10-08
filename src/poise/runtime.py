@@ -20,7 +20,7 @@ from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, preview, timeout_profile
+from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
 from .infrastructure.duplicate_admission import duplicate_admission
 from .common import worktree_root
@@ -664,14 +664,20 @@ class Poise:
     def _git(self, cwd: Path, *args: str, env: dict | None = None) -> str:
         prohibit_git_push(['git', *args])
         execution_env = dict(os.environ) if env is None else env
+        if '-z' in args:
+            from .infrastructure.git_transport import run_git_receipt
+            receipt = run_git_receipt(cwd, args, self.cfg['limits']['git_seconds'], execution_env)
+            if receipt['actual_exit_code']:
+                raise PoiseError(f"Git {args[0]}: {receipt['stderr']}")
+            return receipt['stdout']
         try:
             r = subprocess.run(['git', '-C', str(cwd), *args], env=execution_env,
                                capture_output=True, text=True, timeout=self.cfg['limits']['git_seconds'])
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f'Git не завершил операцию {args[0]}: {exc}') from exc
         if r.returncode:
-            raise PoiseError(f"Git {args[0]}: {r.stderr[-self.cfg['limits']['preview_chars']:]}")
-        return r.stdout.strip() if '-z' not in args else r.stdout
+            raise PoiseError(f"Git {args[0]}: {r.stderr}")
+        return r.stdout.strip()
 
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
@@ -1794,8 +1800,7 @@ class Poise:
                      'timeout_maintenance':{
                          'path':str(timeout_snapshot_path),
                          'digest':file_digest(timeout_snapshot_path),
-                     },
-                     'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
+                     }}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]
             if passed:
@@ -1805,6 +1810,7 @@ class Poise:
                     self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
                     raise
             presentation=self.result_views.capture(receipt,run_dir)
+            receipt['preview']=presentation['primary']
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
             receipts.append(receipt)

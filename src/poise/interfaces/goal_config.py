@@ -6,6 +6,7 @@ from ..infrastructure.goal_config import EditorSettings, strict_json, atomic_wri
 from ..common import descendant
 from ..modules.foundation.errors import PoiseError
 from ..modules.goal_config.domain import BatchValidationError
+from ..modules.result_views.domain import bounded_envelope
 
 
 def execute(settings_path, stream, output):
@@ -41,30 +42,13 @@ def execute(settings_path, stream, output):
     except OSError as exc:
         output.write(json.dumps({'status':'response_storage_error','business_status':result['status'],'message':str(exc)},ensure_ascii=False)+'\n')
         return settings.raw['exit_codes']['pending']
-    view={**result,'response_path':str(response)}
-    def render(value):
-        return json.dumps(value,ensure_ascii=False)+'\n'
-    cap=settings.raw['output_chars']
-    if len(render(view))>cap:
-        if 'issues' in view:
-            view['issues']=[]
-            for issue in result['issues']:
-                candidate={**view,'issues':view['issues']+[issue]}
-                if len(render(candidate))>cap: break
-                view=candidate
-        else:
-            fields=(
-                'status','goal_type','revision','managed_revision','live_revision','aligned',
-                'replayed','changed','change_count','config_path',
-            )
-            view={key:result[key] for key in fields if key in result}
-            view['response_path']=str(response)
-        if len(render(view))>cap:
-            view={'status':result['status'],'response_path':str(response)}
-        if len(render(view))>cap:
-            # Tool output budget cannot hold even the receipt pointer. Business result
-            # remains persisted; this is an explicit output-configuration error.
-            output.write('')
-            return settings.raw['exit_codes']['pending']
-    output.write(render(view))
+    fields=('goal_type','revision','managed_revision','live_revision','aligned',
+            'replayed','changed','change_count','config_path','error_count')
+    metadata={key:result[key] for key in fields if key in result}
+    try:
+        text=bounded_envelope(result,response,settings.raw['output_chars'],metadata,
+                              {'issues':result.get('issues',[])},[])
+    except PoiseError:
+        return settings.raw['exit_codes']['pending']
+    output.write(text)
     return settings.raw['exit_codes'][category]

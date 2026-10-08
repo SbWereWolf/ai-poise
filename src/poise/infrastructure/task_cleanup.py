@@ -5,12 +5,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import subprocess
 
 from ..artifacts import inspect_paths
-from ..common import prohibit_git_push
 from ..modules.foundation.errors import PoiseError
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, TaskOwnedResource
+from .git_transport import run_git_receipt
 
 
 class CleanupEffectError(PoiseError):
@@ -24,22 +23,14 @@ class RuntimeTaskResourceCleanup:
         self.h = runtime
 
     def _run(self, cwd, *args, env=None):
-        prohibit_git_push(["git", *args])
-        try:
-            result = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True,
-                                    text=True, timeout=self.h.cfg["limits"]["git_seconds"],
-                                    env=os.environ if env is None else env)
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise PoiseError(f"Git {args[0]} did not complete: {exc}") from exc
-        return {"argv": ["git", "-C", str(cwd), *args], "actual_exit_code": result.returncode,
-                "stdout": result.stdout[-self.h.cfg["limits"]["preview_chars"]:],
-                "stderr": result.stderr[-self.h.cfg["limits"]["preview_chars"]:]}
+        return run_git_receipt(cwd, args, self.h.cfg['limits']['git_seconds'],
+                               os.environ if env is None else env)
 
     def _git(self, cwd, *args):
         receipt = self._run(cwd, *args)
         if receipt["actual_exit_code"]:
             raise CleanupEffectError(f"Git {args[0]}: {receipt['stderr']}", receipt)
-        return receipt["stdout"].strip()
+        return receipt['stdout'] if '-z' in args else receipt['stdout'].removesuffix('\n')
 
     def resource_root(self, task_id: str, kind: str | None = None) -> Path:
         root = (self.h.runtime.parent / "task-cleanup" / task_id).resolve()

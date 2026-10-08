@@ -107,7 +107,7 @@ class FileProjectSetup:
         def git(*args):
             try:r=subprocess.run(['git','-C',str(repository),*args],capture_output=True,text=True,timeout=self.settings.raw['git_seconds'])
             except (OSError,subprocess.TimeoutExpired) as exc:raise PoiseError(f'Local Git probe failed: {exc}') from exc
-            if r.returncode:raise PoiseError(f'Local Git probe {args[0]} failed: {r.stderr[-cfg["limits"]["preview_chars"]:]}')
+            if r.returncode:raise PoiseError(f'Local Git probe {args[0]} failed: {r.stderr}')
             return r.stdout.strip()
         top=git('rev-parse','--show-toplevel')
         if Path(top).resolve()!=repository.resolve():raise PoiseError('Configured repository is not its worktree root')

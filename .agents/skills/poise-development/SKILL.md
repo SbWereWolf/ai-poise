@@ -203,3 +203,16 @@ through RequirementsCommands, and Task/Sprint publication through TaskRequiremen
 Do not add implicit storage paths or rewrite historical Task context. See
 [storage ownership](../../../docs/workflows/requirements-registry.md#владение-и-явные-пути)
 and [publication](../../../docs/workflows/requirements-registry.md#публикация-и-исторический-снимок).
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice; restart alone does not
+invalidate them. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

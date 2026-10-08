@@ -236,8 +236,8 @@ limit. Continue stages of your own role; at a role boundary follow the handoff p
 act as your own independent reviewer. Stop for a real blocker, a new required decision, or separately controlled
 acceptance/publication/integration.
 
-When a requested stage is beyond the current stage, use the public `advance` operation with a stable `request_id`, the
-exact Task ID and exact `target_stage`. Replay that exact request after completing and verifying each current-role
+Use public `advance` with a stable `request_id` and exact Task ID. Supply an exact
+`target_stage` to stop on entry, or omit it for maximum progression. For ordinary new work, Replay that exact request after completing and verifying each current-role
 stage, after a lawful correction or restart, and after the receiving session bootstraps a public handoff. Treat
 `progression_work_required`, `role_handoff_required` and `user_acceptance_required` as pauses, not success. At a role
 boundary, include the active progression identity in the direct handoff message. Never change its target under the same
@@ -582,3 +582,16 @@ terminal inspection snapshot. The result is read_only_verified where applicable;
 it does not reclaim the task, restore its worktree or repeat acceptance.
 Use the returned persisted results for read-only history, not the released
 current-session binding.
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice; restart alone does not
+invalidate them. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

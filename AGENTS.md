@@ -187,8 +187,8 @@ Keep this English projection and its Russian source consistent in the same chang
   message; the recipient acquires before working. No per-review user command is required. Follow [direct role
   handoff](docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим); messaging never replaces
   ownership or independent review.
-- Use the public `advance` operation with one stable request identity when work must reach an explicit later stage.
-  Replay it after each verified current-role stage, lawful correction or restart. It stops for real work, entry gates,
+- Use public `advance` with one stable request identity; omit the target for maximum progression or name a stage to stop on entry.
+  For ordinary new work, replay it after each verified current-role stage or lawful correction. It stops for real work, entry gates,
   role boundaries and separately controlled publish acceptance; after public handoff, the receiving session acquires the
   Task and replays the exact target. It never performs stage work, messaging, user acceptance, publication or
   integration.
@@ -585,3 +585,16 @@ preserve TDD and independent review, foreign WIP and data integrity. Do not inve
 native receipts or Task completion. A narrow manual data repair needs proven exact
 scope, preserved original data, no competing writer, and verified postconditions.
 Never use a bypass to fabricate external outcomes, evidence, or foreign ownership.
+
+## Accepted-stage replay after restart
+
+Commit all owned WIP in the Task worktree before automatic replay. Replay uses
+the same worktree and branch, preserves a durable recovery ref before reset,
+and rechecks accepted stages at their exact accepted commits. Passing historical
+tests and unchanged registered proof files suffice; restart alone does not
+invalidate them. Mechanical replay is role-neutral; new substantive work retains
+independent review. Omit the target for maximum progress; an explicit target stops
+on entry before its checks. Never rerun an unknown command outcome. A completed
+request replays its saved result; use a new identity for new progression.
+Follow the [canonical replay
+contract](docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).

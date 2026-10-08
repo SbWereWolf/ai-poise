@@ -107,7 +107,9 @@ class RecoveryDelivery:
         if not steps:
             return {'status': 'complete', 'steps': []}
         flow = {'schema': 'workspace-recover/flow/v3', 'workspace': str(self.directory), 'steps': steps}
-        return WorkspaceRecoveryFlow(self.policy['recovery']['tool_argv']).run(
+        return WorkspaceRecoveryFlow(
+            self.policy['recovery']['tool_argv'], self.policy['file_mode'],
+            self.d['lock_seconds'], self.d['lock_poll_seconds']).run(
             flow, self.d['variables'], self.directory / 'components-flow.json',
             self.directory / 'components-session')
 

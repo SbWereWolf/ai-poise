@@ -9,7 +9,8 @@ from ...modules.transfers.domain import validate_saved_work
 from .database import SCHEMA,SCHEMA_VERSION
 from .tasks import SqliteTaskRepository
 from .sprints import SqliteSprintRepository
-from .transfer_records import ALL_TABLES,ACCOUNTING_TABLES,insert,relocate_path
+from .transfer_records import ALL_TABLES,ACCOUNTING_TABLES,insert
+from ...modules.transfers.placement import relocate_path
 
 
 def snapshot_fingerprint(tables):

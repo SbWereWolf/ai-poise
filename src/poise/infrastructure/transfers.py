@@ -8,9 +8,9 @@ import sys
 import tarfile
 
 from ..common import PoiseError, digest, encoded, file_digest, worktree_root
-from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest
+from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest, eligible_omissions
 from .sqlite.transfers import SqliteTransferRepository, completed_external_execution, snapshot_fingerprint
-from .sqlite.transfer_records import relocate_path
+from ..modules.transfers.placement import relocate_path, material_source
 from .sqlite.database import SCHEMA_VERSION
 from .goal_config import atomic_write
 from .locking import exclusive_lock
@@ -38,7 +38,9 @@ class RuntimeTransfers:
         self.recovery = self.policy['recovery']
         self.root = descendant(poise.state, self.policy['directory'])
         self.repo = SqliteTransferRepository(poise.store.database)
-        self.flow = WorkspaceRecoveryFlow(self.recovery['tool_argv'])
+        self.flow = WorkspaceRecoveryFlow(self.recovery['tool_argv'], self.policy['file_mode'],
+                                          poise.cfg['limits']['lock_seconds'],
+                                          poise.cfg['limits']['lock_poll_seconds'])
 
     def _request_dir(self, args):
         return self.root / digest([self.h.session, args['action'], args['request_id']])
@@ -67,6 +69,35 @@ class RuntimeTransfers:
             for target in paths:
                 if target.resolve().is_relative_to(root):
                     raise PoiseError('Recovery output must be outside Task roots and included sources')
+
+    def _proof_outputs(self, receipt, delivery, locations):
+        """Validate current bytes; only authenticated imported proof may lack old output."""
+        historical = False
+        if delivery is not None:
+            for proof in delivery['manifest']['proofs']:
+                if proof['receipt_id'] == receipt['id']:
+                    systems = {owner: {'commit': spec['commit'], 'configs': [
+                        {key: cfg[key] for key in ('path', 'digest', 'captured_path')}
+                        for cfg in spec['configs']]} for owner, spec in proof['systems'].items()}
+                    historical = systems == receipt['systems']
+                    break
+        if not {'stdout', 'stdout_digest', 'stderr', 'stderr_digest', 'outputs'} <= receipt.keys():
+            raise PoiseError('Incomplete proof receipt output provenance')
+        if not isinstance(receipt['outputs'], list):
+            raise PoiseError('Invalid proof receipt output inventory')
+        outputs = [{'path': receipt[name], 'digest': receipt[name + '_digest']}
+                   for name in ('stdout', 'stderr')]
+        outputs.extend(output for output in receipt['outputs'] if output['status'] == 'captured')
+        if receipt.get('timeout_maintenance') is not None:
+            outputs.append(receipt['timeout_maintenance'])
+        for output in outputs:
+            path = recovery_absolute(relocate_path(output['path'], locations))
+            if not path.is_file():
+                if historical:
+                    continue
+                raise PoiseError('Missing current proof receipt output')
+            if file_digest(path) != output['digest']:
+                raise PoiseError('Changed proof receipt output digest')
 
     def _export(self, args):
         h, c = self.h, self.policy
@@ -132,6 +163,10 @@ class RuntimeTransfers:
             files.append({'path': relative, 'size': size, 'digest': sha, 'role': role, **metadata})
             observed.append((source, size, sha)); packaged_paths.add(str(source))
 
+        locations = {row['task_id']: json.loads(row['data'])
+                     for row in tables['transfer_locations']}
+        deliveries = {tid: self.repo.delivery_for_task(tid) for tid in task_ids}
+        eligible = eligible_omissions({'mapping': self.recovery['mapping'], 'owners': owners}, tables)
         # Validate the entire registered source set, including deliberately
         # omitted history. Omission is not permission to export corrupt state.
         for artifact in tables['artifacts']:
@@ -139,7 +174,15 @@ class RuntimeTransfers:
                 raise PoiseError('Artifact belongs to an unselected owner')
             root = Path(owners[artifact['scope']][artifact['owner']])
             path = descendant(root, Path(artifact['path']).relative_to(root).as_posix())
-            if not path.is_file() or file_digest(path) != artifact['digest']:
+            if not path.is_file():
+                delivery = deliveries.get(artifact['owner']) if artifact['scope'] == 'task' else None
+                if delivery is not None and 'omitted_artifact_records' not in delivery:
+                    raise PoiseError('Missing imported artifact omission provenance')
+                records = [] if delivery is None else delivery['omitted_artifact_records']
+                expected = {key: artifact[key] for key in ('id', 'scope', 'owner', 'path', 'digest')}
+                if artifact['id'] not in eligible or expected not in records:
+                    raise PoiseError('Registered artifact changed or disappeared before export')
+            elif file_digest(path) != artifact['digest']:
                 raise PoiseError('Registered artifact changed or disappeared before export')
         snapshot = descendant(stage, c['database'])
         snapshot.parent.mkdir(parents=True, exist_ok=True)
@@ -150,7 +193,8 @@ class RuntimeTransfers:
             for material in self.recovery['mapping']['materials']:
                 if not material['include']:
                     continue
-                source = descendant(root, material['source'])
+                current_source = material_source(str(root), material, locations.get(tid, {}))
+                source = descendant(root, Path(current_source).relative_to(root).as_posix())
                 self._external(paths.values(), [source])
                 if not source.exists():
                     continue
@@ -204,12 +248,15 @@ class RuntimeTransfers:
             systems = receipt.get('systems')
             if not isinstance(systems, dict) or set(systems) != {'poise', 'project'}:
                 raise PoiseError('Historical proof requires both complete configuration sets')
+            self._proof_outputs(receipt, deliveries[row['task_id']],
+                                locations.get(row['task_id'], {}))
             proof = {'receipt_id': receipt['id'], 'task_id': row['task_id'], 'systems': deepcopy(systems)}
             for owner, system in proof['systems'].items():
                 if not system.get('commit') or not system.get('configs'):
                     raise PoiseError('Incomplete historical proof configuration')
                 for index, config in enumerate(system['configs']):
-                    source = Path(config['captured_path'])
+                    source = recovery_absolute(relocate_path(
+                        config['captured_path'], locations.get(row['task_id'], {})))
                     if not source.is_file() or file_digest(source) != config['digest']:
                         raise PoiseError('Missing or changed historical proof config')
                     relative = (PurePosixPath('proofs') / row['task_id'] / receipt['id'] / owner /
@@ -398,11 +445,11 @@ class RuntimeTransfers:
             tid = item['task_id']
             if tid not in manifest['owners']['task']:
                 raise PoiseError('Material has no selected Task owner')
-            if item['role'] == 'configuration':
-                destination = PurePosixPath(item['configuration_destination'])
-            elif item['material_id'] in placements:
+            if 'material_id' in item and item['material_id'] in placements:
                 destination = PurePosixPath(placements[item['material_id']])
                 if item['suffix']: destination /= item['suffix']
+            elif 'material_id' not in item and item['role'] == 'configuration':
+                destination = PurePosixPath(item['configuration_destination'])
             else:
                 raise PoiseError('Material has no selected mapping owner')
             root = Path(binding['locations'][manifest['owners']['task'][tid]])
@@ -478,5 +525,10 @@ class RuntimeTransfers:
             self.repo.remember(h.session, args['request_id'], identity,
                                {'phase': outcome['status'], 'receipt': receipt})
             return receipt
+        omitted = set(manifest['omitted_artifacts'])
+        receipt['delivery']['omitted_artifact_records'] = [
+            {**{key: row[key] for key in ('id', 'scope', 'owner', 'digest')},
+             'path': relocate_path(row['path'], binding['locations'])}
+            for row in tables['artifacts'] if row['id'] in omitted]
         self.repo.install(tables, binding, h.session, args['request_id'], identity, receipt)
         return receipt

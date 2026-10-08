@@ -9,7 +9,7 @@ class TaskQueries:
         self.database = database
 
     def resolve_path(self, task_id, path):
-        from .transfer_records import relocate_path
+        from ...modules.transfers.placement import relocate_path
         with self.database.transaction() as db:
             row=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()
             return path if row is None else relocate_path(path,json.loads(row['data']))
@@ -82,7 +82,7 @@ class TaskQueries:
                 "SELECT section_id,content FROM section_layers WHERE task_id=? AND submission_id=?",(task_id,row['seq']))}
             rowmap=db.execute('SELECT data FROM transfer_locations WHERE task_id=?',(task_id,)).fetchone()
             if rowmap is not None:
-                from .transfer_records import relocate_path
+                from ...modules.transfers.placement import relocate_path
                 envelope['artifact_paths']=[relocate_path(p,json.loads(rowmap['data'])) for p in envelope['artifact_paths']]
             return envelope
 

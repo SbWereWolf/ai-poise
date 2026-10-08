@@ -18,7 +18,12 @@ def artifact_placement(records, delivery):
         if record['scope'] != 'task' or record['owner'] != tid:
             raise PoiseError('Delivered artifact owner/scope differs from mapping')
         source_root = Path(manifest['owners']['task'][tid])
-        relative = Path(item['placement']).relative_to(source_root).as_posix()
+        if 'material_id' in item:
+            material = next(m for m in manifest['mapping']['materials']
+                            if m['id'] == item['material_id'])
+            relative = (Path(material['source']) / item['suffix']).as_posix()
+        else:
+            relative = Path(item['placement']).relative_to(source_root).as_posix()
         record['id'] = artifact_identity('task', tid, relative)
         record['relative_path'] = relative
     return records

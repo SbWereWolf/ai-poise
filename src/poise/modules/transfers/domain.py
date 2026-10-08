@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import re
 import json
+from .placement import material_source, relocate_path
 from ..foundation.errors import DomainError
 from ..artifact_factory.domain import exact, relative
 from ..tasks.definition import path_identifier
@@ -199,6 +200,8 @@ def validate_package_manifest(manifest, policy, tables=None):
         elif item['destination'] is not None:
             raise DomainError('Excluded manifest destination must be null')
         materials[item['id']] = item
+    locations = {} if tables is None else {row['task_id']: json.loads(row['data'])
+                                            for row in tables['transfer_locations']}
     files = {}
     for item in manifest['files']:
         if not isinstance(item, dict) or not {'path', 'role', 'size', 'digest'} <= set(item):
@@ -217,10 +220,16 @@ def validate_package_manifest(manifest, policy, tables=None):
                 relative(suffix)
             destination = material['destination'] + ('/' + suffix if suffix else '')
             expected = 'materials/' + item['task_id'] + '/' + destination
-            source = (manifest['owners']['task'][item['task_id']].rstrip('/') + '/'
-                      + material['source'] + ('/' + suffix if suffix else ''))
-            if item['path'] != expected or item['placement'] != source:
+            root = manifest['owners']['task'][item['task_id']]
+            prefix = root.rstrip('/') + '/'
+            if (not isinstance(item['placement'], str) or not item['placement'].startswith(prefix)
+                    or item['path'] != expected):
                 raise DomainError('Material file disagrees with explicit mapping')
+            relative(item['placement'][len(prefix):])
+            if tables is not None:
+                source = material_source(root, material, locations.get(item['task_id'], {}))
+                if source + ('/' + suffix if suffix else '') != item['placement']:
+                    raise DomainError('Material file disagrees with explicit mapping')
         elif item['role'] == 'configuration':
             exact(item, {'path', 'role', 'size', 'digest', 'task_id', 'placement', 'configuration_destination'}, 'configuration file')
             if item['task_id'] not in tasks:
@@ -260,7 +269,9 @@ def validate_package_manifest(manifest, policy, tables=None):
                 exact(config, {'path', 'digest', 'captured_path', 'archive_path'}, 'proof config')
                 item = files.get(config['archive_path'])
                 if (item is None or item['role'] != 'configuration' or item.get('task_id') != proof['task_id']
-                        or item['digest'] != config['digest'] or item.get('placement') != config['captured_path']
+                        or item['digest'] != config['digest']
+                        or (tables is not None and item.get('placement') != relocate_path(
+                            config['captured_path'], locations.get(proof['task_id'], {})))
                         or config['archive_path'] in config_paths):
                     raise DomainError('Proof configuration inventory differs')
                 config_paths.add(config['archive_path'])
@@ -281,18 +292,7 @@ def validate_package_manifest(manifest, policy, tables=None):
             for owner, system in proof['systems'].items()}
         if row['task_id'] != proof['task_id'] or actual != saved.get('systems'):
             raise DomainError('Proof differs from captured snapshot provenance')
-    # Internal handoff transport is regenerable owner-typed state, not inferred
-    # from a directory name. Authored preserved_artifacts are not exempt.
-    generated_handoff_files = set()
-    for row in tables['handoffs']:
-        saved_handoff = json.loads(row['data'])
-        receipt = saved_handoff['receipt']
-        if receipt is not None:
-            for key in ('receipt_path', 'bundle_path'):
-                if receipt.get(key) is not None:
-                    generated_handoff_files.add(receipt[key])
-            if 'wip_snapshot' in receipt:
-                generated_handoff_files.add(receipt['wip_snapshot']['path'])
+    eligible = eligible_omissions(manifest, tables)
     placements = {f['placement']: f for f in files.values() if 'placement' in f}
     omitted = set(manifest['omitted_artifacts'])
     artifacts = {r['id']: r for r in tables['artifacts']}
@@ -309,7 +309,36 @@ def validate_package_manifest(manifest, policy, tables=None):
             raise DomainError('Artifact outside selected owner')
         path = artifact['path'][len(root) + 1:]
         relative(path)
-        excluded = any(not m['include'] and (path == m['source'] or path.startswith(m['source'] + '/'))
-                       for m in materials.values())
-        if aid not in omitted or not (excluded or artifact['path'] in generated_handoff_files):
+        if aid not in omitted or aid not in eligible:
             raise DomainError('Missing required artifact; omission needs explicit material classification: ' + artifact['path'])
+
+
+def eligible_omissions(manifest, tables):
+    """Only explicit exclusions and owner-typed regenerable handoff transport."""
+    # Internal handoff transport is regenerable owner-typed state, not inferred
+    # from a directory name. Authored preserved_artifacts are not exempt.
+    generated_handoff_files = set()
+    for row in tables['handoffs']:
+        saved_handoff = json.loads(row['data'])
+        receipt = saved_handoff['receipt']
+        if receipt is not None:
+            for key in ('receipt_path', 'bundle_path'):
+                if receipt.get(key) is not None:
+                    generated_handoff_files.add(receipt[key])
+            if 'wip_snapshot' in receipt:
+                generated_handoff_files.add(receipt['wip_snapshot']['path'])
+    eligible = set()
+    for artifact in tables['artifacts']:
+        if (artifact['scope'] not in ('task', 'sprint')
+                or artifact['owner'] not in manifest['owners'][artifact['scope']]):
+            raise DomainError('Artifact belongs to an unselected owner')
+        root = manifest['owners'][artifact['scope']][artifact['owner']].rstrip('/')
+        if not artifact['path'].startswith(root + '/'):
+            raise DomainError('Artifact outside selected owner')
+        path = artifact['path'][len(root) + 1:]
+        relative(path)
+        excluded = any(not m['include'] and (path == m['source'] or path.startswith(m['source'] + '/'))
+                       for m in manifest['mapping']['materials'])
+        if excluded or artifact['path'] in generated_handoff_files:
+            eligible.add(artifact['id'])
+    return eligible

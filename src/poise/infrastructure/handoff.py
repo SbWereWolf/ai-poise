@@ -10,6 +10,7 @@ import shutil
 from pathlib import Path
 from ..common import PoiseError,descendant,digest,file_digest,encoded
 from ..application.handoff import HandoffCommands
+from ..application.check_attempts import is_check_attempt, validate_preserved_attempt_in, require_quiescence
 from .goal_config import atomic_write
 
 
@@ -34,7 +35,16 @@ class LocalHandoff:
         if newborn and args['result'] is not None:
             raise PoiseError('Newborn handoff requires null result; edit the draft instead of submitting a stage result')
         worktree=h._verification_workspace(data)
-        if data['pending'] is not None:raise PoiseError('Determine pending execution outcome before handoff')
+        recovery = args.get('uncertain_check_recovery')
+        if recovery is not None:
+            if (not is_check_attempt(data['pending'])
+                    or recovery['attempt_id'] != data['pending']['attempt_id']):
+                raise PoiseError('Uncertain recovery attempt identity does not match current pending check')
+            with h.store.unit_of_work() as uow:
+                validate_preserved_attempt_in(uow, uow.tasks.load(data['id']), h.session, data['pending'])
+            h._validate_check_restart(data['pending'])
+        elif data['pending'] is not None:
+            raise PoiseError('Determine pending execution outcome before handoff')
         action=None if newborn else h.plan_actions.snapshot(data)
         if action is not None and action['status'] not in ('complete',):
             raise PoiseError('Finish or explicitly resolve the external plan before handoff')
@@ -49,7 +59,7 @@ class LocalHandoff:
         if not isinstance(args['artifact_paths'],list):raise PoiseError('artifact_paths list required')
         records=h.validate_artifact_paths(args['artifact_paths'],data)
         payload=args['result']
-        if payload is None and not verified and not newborn:
+        if payload is None and not verified and not newborn and recovery is None:
             payload=h.task_queries.current_submission(data['id'])
         if payload is not None:
             if verified:raise PoiseError('Verified handoff does not accept a replacement result')
@@ -58,7 +68,7 @@ class LocalHandoff:
         head=data['base'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         dirty=False if worktree_free else h._git(worktree,'rev-parse','HEAD^{tree}')!=tree
         msg=args['commit_message']
-        if dirty and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
+        if dirty and recovery is None and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
             raise PoiseError('WIP requires explicit valid repository commit message')
         if not dirty and msg is not None and not CommitMessagePolicy(h.cfg['git']['commit_pattern']).matches(msg):
             raise PoiseError('Invalid supplied handoff commit message')
@@ -86,13 +96,20 @@ class LocalHandoff:
         plan={'reason':args['reason'],'tree':tree,'head_at_start':head,'directory':str(directory),
               'verified':verified,'commit_message':msg,'preserved_artifacts':list(dict.fromkeys(preserved)),
               'artifact_mapping':mapping}
+        if recovery is not None:
+            plan['uncertain_check_recovery'] = {'intent': deepcopy(recovery), 'attempt': deepcopy(data['pending'])}
+            if not worktree_free:
+                plan['worktree_state'] = {
+                    'index': h._git(worktree, 'write-tree'),
+                    'status': h._git(worktree, 'status', '--porcelain=v1'),
+                }
         if prior is None:
             prior=self.commands.prepare(h.session,request_id,key,data['id'],data['_version'],plan)
         else:
             plan=prior['plan']
             if tree!=plan['tree'] or data['_version']!=prior['version']:
                 raise PoiseError('Preserved inputs changed during unfinished handoff')
-        if not worktree_free and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']:
+        if recovery is None and not worktree_free and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']:
             h._git(worktree,'add','--all')
             if h._git(worktree,'write-tree')!=plan['tree']:raise PoiseError('WIP index no longer matches captured state')
             actor={k:h.cfg['git'][v] for k,v in [('GIT_AUTHOR_NAME','author_name'),('GIT_COMMITTER_NAME','author_name'),
@@ -100,7 +117,9 @@ class LocalHandoff:
             h._git(worktree,'commit','-m',plan['commit_message'],env={**os.environ,**actor})
         sha=plan['head_at_start'] if worktree_free else h._git(worktree,'rev-parse','HEAD')
         if (not worktree_free and
-                (h._tree(worktree)!=plan['tree'] or h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree'])):
+                (h._tree(worktree)!=plan['tree'] or
+                 (recovery is None and h._git(worktree,'rev-parse','HEAD^{tree}')!=plan['tree']) or
+                 (recovery is not None and sha != plan['head_at_start']))):
             h.store.event(h.session,data['id'],'incident.handoff_tree_changed',{'expected_tree':plan['tree'],'commit':sha})
             raise PoiseError('Commit hook changed WIP tree; claim retained')
         directory=Path(plan['directory']);bundle=descendant(directory,self.config['bundle'])
@@ -128,6 +147,8 @@ class LocalHandoff:
         if not worktree_free:owned.append(str(bundle))
         h.register_artifact_paths(owned,data)
         h.result_views.finish()
+        if recovery is not None and not worktree_free:
+            self._validate_recovery_worktree(worktree, plan)
         self.commands.release(h.session,request_id,receipt)
         h.store.event(h.session,data['id'],'handoff.released',{'receipt':str(receipt_path),'commit':sha,'verified':verified})
         h._cleanup_runtime()
@@ -138,6 +159,13 @@ class LocalHandoff:
         h=self.h;record=self.commands.latest(data['id'])
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
+        recovery = record['plan'].get('uncertain_check_recovery')
+        if recovery is not None:
+            if data['pending'] != recovery['attempt']:
+                raise PoiseError('Preserved uncertain recovery attempt changed before resume')
+            require_quiescence(data['pending'])
+            if data['worktree'] is not None:
+                self._validate_recovery_worktree(Path(data['worktree']), record['plan'])
         if data['worktree'] is None:
             if (receipt['worktree'] is not None or receipt['tree']!=data['entry_tree']
                     or receipt['commit']!=data['base'] or receipt['bundle_path'] is not None
@@ -151,6 +179,14 @@ class LocalHandoff:
             if not Path(receipt['bundle_path']).is_file() or file_digest(Path(receipt['bundle_path']))!=receipt['bundle_digest']:
                 raise PoiseError('Preserved source bundle missing or changed')
         return record
+
+    def _validate_recovery_worktree(self, worktree, plan):
+        h = self.h
+        if (h._git(worktree, 'rev-parse', 'HEAD') != plan['head_at_start']
+                or h._tree(worktree) != plan['tree']
+                or h._git(worktree, 'write-tree') != plan['worktree_state']['index']
+                or h._git(worktree, 'status', '--porcelain=v1') != plan['worktree_state']['status']):
+            raise PoiseError('Uncertain recovery worktree HEAD/index/WIP changed')
 
     def resume(self,data, *, force_duplicate_start=False):
         h = self.h

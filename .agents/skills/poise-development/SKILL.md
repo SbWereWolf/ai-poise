@@ -9,6 +9,11 @@ Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current proce
 
 ## Design boundaries
 
+Keep every tool response complete for internal composition: stdout, stderr and structured data cannot depend on
+agent display budgets. Shorten only at agent delivery through the common configured presentation owner; preserve
+raw receipts and execution truth. Follow [full output](../../../docs/workflows/runner.md#полный-вывод-и-preview)
+for the canonical contract and supported routes.
+
 Evaluate every proposed tooling change against the product's harness rule first: can the agent state the semantic intent declaratively while Poise owns the mechanical sequence and implementation details? Prefer designs that remove bookkeeping, internal storage knowledge and manual recovery choreography without taking away substantive engineering choices. Templates and routers accelerate planning; they are not hidden business constraints. A valid Task design that differs from its starter template should be represented by the resolved Task contract, not rejected because of template provenance.
 
 Use the current [storage ownership/version matrix](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии) and [explicit portable-path mapping](../../../docs/architecture/storage-lifecycle.md#явные-пути-и-переносимая-поставка). Keep Task and canonical Requirements ownership separate; optional telemetry must not determine authoritative success. Do not infer arbitrary migration support from the limited v12 ownership upgrade.

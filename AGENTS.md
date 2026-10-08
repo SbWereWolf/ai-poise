@@ -52,8 +52,11 @@ present self-review as independent review.
 Turn every accepted agreement into product documentation. Maintain the [known-bugs
 register](docs/operations/known-bugs.md#ведение-реестра): remove a resolved active entry in the same verified fix; keep
 history in Git/evidence, and never call an accepted risk fixed. This does not require creating a Task for an explicitly
-authorized small direct correction. Treat preview only as display: use full output for machine parsing and decisions via
-existing saved files or read-only tools; follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
+authorized small direct correction. Only agents receive summarized tool output. Any tool response consumed by code
+of another tool preserves complete stdout, stderr and structured fields regardless of display limits. Agent
+presentation uses one common owner and configured parser; do not add internal per-tool clipping. Treat preview only
+as display: use full output for machine parsing and decisions via existing saved files or read-only tools; never
+rerun a mutation just to obtain its output. Follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
 decisions enforceable development rules and keep responsibility boundaries documented. Do not leave authoritative
 decisions only in conversation history.
 For changed documentation or rule targets, follow [local links and exact
@@ -562,3 +565,26 @@ Before recording Tasks or relocating installation state, read
 [operator selection and state relocation](docs/configuration/wsl-local-delivery.md#выбор-операторской-установки-и-перенос-состояния).
 Use the selected operator installation; do not cancel a Task to repair its contract
 or delete a hook registry to compensate for an unsupported relocation.
+
+
+## Harness failure and manual bypass
+
+Follow [harness failure and manual bypass](docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+whenever Poise prevents normal progress. Classify evidence as agent/task-planner
+misuse, defective configuration, code defect, or damaged manually edited working
+data; distinguish unresolved causes. Assess one-off, possible recurring, or permanent
+failure. Prefer a proportionate manual repair for trivial low-risk incidents over
+unnecessary code. Always correct defective configuration; verify the original
+problem is removed, roll back unsuccessful changes, record rejected solutions,
+and avoid cycles of configuration workarounds.
+
+Record every incident and every manual correction separately in Sprint working
+documents, or Task working materials for a standalone Task. Include cause, evidence,
+method, alternatives, verification, and remaining limits. Prepare a repair Task
+draft for recurring failures; label an offline draft honestly while the API is
+unavailable. Maintain active causes and reusable recovery methods in known bugs.
+Continue authorized honest subject work manually when the harness obstructs it;
+preserve TDD and independent review, foreign WIP and data integrity. Do not invent
+native receipts or Task completion. A narrow manual data repair needs proven exact
+scope, preserved original data, no competing writer, and verified postconditions.
+Never use a bypass to fabricate external outcomes, evidence, or foreign ownership.

@@ -1,0 +1,12 @@
+{
+  "collected": 1,
+  "failed": [
+    {
+      "blanket_internal_denial": false,
+      "malformed_admission": true,
+      "nodeid": "tests/requirements_registry/test_storage_admission.py::test_malformed_git_output_cannot_admit_or_publish_storage",
+      "phase": "call"
+    }
+  ],
+  "passed": 0
+}

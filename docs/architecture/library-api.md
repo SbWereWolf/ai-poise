@@ -2,6 +2,24 @@
 
 Обновлено: **2026-10-08**. Исходный срез **POISE-DDD-04B** и последующие API.
 
+## Локальные assets — 2026-10-04
+
+`RestoreRequest.parse`, `AssetDeclaration.parse` и `AssetSpec.parse` в
+`poise.modules.local_assets.domain` владеют формой, текстовыми инвариантами,
+ролями, коллизиями и идентичностью. Чистый `validate_utf8_text` используется
+общим `text` и отдельной проверкой optional repair; ошибки не выводят
+непригодное текстовое значение.
+
+`LocalAssetsRestore` координирует полную предварительную проверку и публикацию
+через `LocalAssetsPort`/`LocalAssetsStorage`. `FileLocalAssets` реализует
+nofollow наблюдения, реальный выбранный Git root и create-only публикацию.
+Окружение только Git subprocess исключает `GIT_`; окружение вызывающего процесса
+сохраняется. `local_assets_tools()` связывает этих владельцев, а
+`interfaces.local_assets.execute` обрабатывает строгий JSON transport публичной
+команды `poise local-assets`. Task lifecycle и repair ей не принадлежат.
+Точные входы, отказы и границы эффектов описаны в
+[каноническом контракте](../configuration/local-assets.md).
+
 ## Доменные библиотеки
 - `Task`: create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel. Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.
 - `SectionBook`, `ContentPolicy`: стандартные/дополнительные секции, трассировка, pre/post gates. Контракты DDD-02 сохранены.
@@ -250,6 +268,13 @@ binding внутри текущего worktree. Результат запуск�
 `provenance_digest` и `expectation_digest`; replay identity учитывает эти значения. Старые
 сохранённые определения читаются без обратной миграции, но новые и расширяющие методы обязаны
 передавать контракт явно.
+
+Composition root предоставляет тот же `resolve_source_under_test` интеграционному
+владельцу через `Runtime.source_under_test_resolver`. `RuntimeResultIntegration`
+использует его при подготовке фактического запуска и при проверке пригодности
+сохранённой партии перед публикацией. Контроллер сохраняет собственные исходники;
+путь кандидата передаётся явно только проверяемой операции. Второго resolver или
+неявной подстановки установленного пакета нет.
 
 
 ## POISE-PILOT-02: граница вспомогательных инструментов — 2026-09-07T15:04:48+05:00

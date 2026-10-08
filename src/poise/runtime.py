@@ -13,14 +13,14 @@ from .common import PoiseError, descendant, configured_root, configured_storage_
 from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
-from .application.check_attempts import is_check_attempt, receipt_matches
+from .application.check_attempts import is_check_attempt, receipt_matches, require_identity, require_quiescence
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
 from .modules.evidence.domain import completed_receipts
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
-from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, preview, timeout_profile
+from .execution import RegisteredCheckRunner, RunnerTimeoutPolicy, capture_declared_outputs, inspect_declared_output_receipts, run_command, contains, method_passed, timeout_profile
 from .infrastructure.task_paths import sprint_root, task_root
 from .infrastructure.duplicate_admission import duplicate_admission
 from .common import worktree_root
@@ -188,6 +188,7 @@ class Poise:
         self.transfer_tools=TransferCommands(RuntimeTransfers(self),self.cfg['runtime_services']['transfer'])
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
+        self.source_under_test_resolver = resolve_source_under_test
         self.integration_tools=ResultIntegrationCommands(RuntimeResultIntegration(self))
         from .application.task_cleanup import TaskResourceCleanup
         from .infrastructure.task_cleanup import RuntimeTaskResourceCleanup
@@ -294,6 +295,7 @@ class Poise:
         raise PoiseError('Unknown Task action')
 
     def _validate_check_restart(self, attempt):
+        require_quiescence(attempt)
         active = set(self.check_runner.active_ids())
         if any(run['run_id'] in active for run in attempt['runs']):
             raise PoiseError('Check still running; stop it before an authorised task/restart')
@@ -659,14 +661,20 @@ class Poise:
     def _git(self, cwd: Path, *args: str, env: dict | None = None) -> str:
         prohibit_git_push(['git', *args])
         execution_env = dict(os.environ) if env is None else env
+        if '-z' in args:
+            from .infrastructure.git_transport import run_git_receipt
+            receipt = run_git_receipt(cwd, args, self.cfg['limits']['git_seconds'], execution_env)
+            if receipt['actual_exit_code']:
+                raise PoiseError(f"Git {args[0]}: {receipt['stderr']}")
+            return receipt['stdout']
         try:
             r = subprocess.run(['git', '-C', str(cwd), *args], env=execution_env,
                                capture_output=True, text=True, timeout=self.cfg['limits']['git_seconds'])
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f'Git не завершил операцию {args[0]}: {exc}') from exc
         if r.returncode:
-            raise PoiseError(f"Git {args[0]}: {r.stderr[-self.cfg['limits']['preview_chars']:]}")
-        return r.stdout.strip() if '-z' not in args else r.stdout
+            raise PoiseError(f"Git {args[0]}: {r.stderr}")
+        return r.stdout.strip()
 
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""
@@ -1404,6 +1412,10 @@ class Poise:
                         'stage': stage['id'], 'architecture': architecture, 'checks': [], 'replayed': False}
         # Reject pre-existing path/identity failures before a submission can mutate
         # the current registry, content layers, evidence or Task history.
+        if pending_attempt:
+            selected = self._select_checks(data, changed)
+            invocations, _ = self._verification_execution(data, tree, selected, worktree)
+            require_identity(data['pending'], self._attempt_identity(tree, invocations))
         self.validate_verification_artifacts(payload['artifact_paths'], data)
         if pending_checks or pending_attempt:
             submitted_digest = self.runner.matching_submission_digest(
@@ -1492,12 +1504,17 @@ class Poise:
         if intact:
             receipts = batch['receipts']
             attempt = data['attempts']
+            self.runner.record_observations(
+                data['id'], self.session, tree, execution_key, receipts
+            )
+            data = self._task()
         else:
             if not pending_attempt:
                 self.runner.begin_check_attempt(
                     data['id'], self.session, tree, execution_key,
                     [m['id'] for m in checks], self.cfg['limits']['verify_attempts'],
-                    data['_version'], current_submission_digest
+                    data['_version'], current_submission_digest,
+                    self._attempt_identity(tree, invocations)
                 )
                 data = self._task()
             attempt = data['attempts']
@@ -1601,6 +1618,16 @@ class Poise:
             'invocations': invocations,
         })
         return invocations, execution_key
+
+    @staticmethod
+    def _attempt_identity(tree, invocations):
+        return {
+            'source': digest({'tree': tree, 'sources': [
+                {'commit': item['commit'], 'provenance': item['source_provenance']}
+                for item in invocations]}),
+            'definition': digest([item['method'] for item in invocations]),
+            'environment': digest([item['environment'] for item in invocations]),
+        }
 
     def _intact_receipts(self, task_id, receipts, invocations, tree):
         if (
@@ -1725,6 +1752,8 @@ class Poise:
                 progress_gap_seconds=timeout_selection['progress_gap_seconds'],
                 poll_seconds=timeout_selection['poll_seconds'],
             )
+            attempt = self.runner.record_check_termination(
+                data['id'], self.session, attempt, run_id, result)
             observed_commit = self._git(self._verification_workspace(data), 'rev-parse', 'HEAD')
             source_unchanged = (observed_commit == invocation['commit']
                                 and self._tree(self._verification_workspace(data)) == tree)
@@ -1751,11 +1780,11 @@ class Poise:
                      'timeout_maintenance':{
                          'path':str(timeout_snapshot_path),
                          'digest':file_digest(timeout_snapshot_path),
-                     },
-                     'preview':preview(Path(result['stderr']),self.cfg['limits']['preview_chars'])}
+                     }}
             for field in ('expectation_digest','provenance_digest','source_provenance'):
                 receipt[field]=invocation[field]
             presentation=self.result_views.capture(receipt,run_dir)
+            receipt['preview']=presentation['primary']
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
             receipts.append(receipt)

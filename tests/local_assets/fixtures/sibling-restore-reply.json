@@ -1,0 +1,15 @@
+{
+  "status": "restored",
+  "project": "ERP",
+  "target_root": null,
+  "assets": [
+    {
+      "path": "agent/policy",
+      "status": "created"
+    },
+    {
+      "path": "agent/policy-backup",
+      "status": "created"
+    }
+  ]
+}

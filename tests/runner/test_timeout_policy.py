@@ -86,6 +86,72 @@ def test_output_activity_resets_progress_gap(tmp_path):
     assert Path(result['stdout']).read_text() == '0\n1\n2\n3\n4\n'
 
 
+def test_declared_nonstreaming_budget_allows_success_after_silent_interval(tmp_path):
+    configured = RunnerTimeoutPolicy.parse({
+        'initial_seconds': 0.8,
+        'history_multiplier': 1.1,
+        'progress_gap_seconds': 0.1,
+        'poll_seconds': 0.01,
+        'diagnostic_override_max_seconds': 2,
+    })
+    workload = {
+        'progress_mode': 'non_streaming',
+        'inner_budget_seconds': 0.3,
+        'teardown_seconds': 0.1,
+    }
+    selected = configured.select([], workload_contract=workload)
+    assert selected['basis'] == 'initial'
+    assert selected['seconds'] == 0.8
+    assert selected['progress_gap_seconds'] == pytest.approx(0.4)
+    assert selected['history_count'] == 0
+    assert selected['progress_gap_seconds'] >= 0.4
+    assert selected['progress_gap_seconds'] > configured.data['progress_gap_seconds']
+
+    result = RegisteredCheckRunner().run(
+        'buffered',
+        [sys.executable, '-S', '-c',
+         'import time; time.sleep(0.25); print("buffered-complete")'],
+        tmp_path, dict(os.environ), selected['seconds'],
+        tmp_path / 'buffered.stdout', tmp_path / 'buffered.stderr',
+        progress_gap_seconds=selected['progress_gap_seconds'],
+        poll_seconds=selected['poll_seconds'],
+    )
+    assert result['actual_exit_code'] == 0
+    assert result['timed_out'] is False
+    assert result['capture_complete'] is True
+    assert result['duration_seconds'] >= 0.25
+    assert Path(result['stdout']).read_text() == 'buffered-complete\n'
+    assert Path(result['stderr']).read_bytes() == b''
+
+
+def test_nonstreaming_budget_rejects_insufficient_outer_deadline():
+    raw = {
+        'initial_seconds': 0.8,
+        'history_multiplier': 1.1,
+        'progress_gap_seconds': 0.5,
+        'poll_seconds': 0.01,
+        'diagnostic_override_max_seconds': 2,
+    }
+    raw['initial_seconds'] = 0.2
+    configured = RunnerTimeoutPolicy.parse(raw)
+    with pytest.raises(PoiseError, match='budget|non.streaming|progress'):
+        configured.select([], workload_contract={
+            'progress_mode': 'non_streaming',
+            'inner_budget_seconds': 0.3,
+            'teardown_seconds': 0.1,
+        })
+
+
+@pytest.mark.parametrize('broken', [
+    {'progress_mode': 'unknown', 'inner_budget_seconds': 0.3, 'teardown_seconds': 0.1},
+    {'progress_mode': 'non_streaming', 'inner_budget_seconds': 0, 'teardown_seconds': 0.1},
+    {'progress_mode': 'non_streaming', 'inner_budget_seconds': 0.3, 'teardown_seconds': -1},
+])
+def test_nonstreaming_profile_rejects_invalid_declared_workload(broken):
+    with pytest.raises(PoiseError, match='workload|budget|progress'):
+        policy().select([], workload_contract=broken)
+
+
 def test_sqlite_timeout_history_uses_only_successful_matching_receipts():
     import sqlite3
     from poise.infrastructure.sqlite.evidence import SqliteEvidenceRepository

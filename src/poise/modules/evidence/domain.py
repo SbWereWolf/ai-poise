@@ -36,6 +36,7 @@ def completed_receipts(receipts):
     """Whether persisted command receipts have complete, usable control metadata."""
     required = {
         'actual_exit_code',
+        'capture_complete',
         'guard',
         'id',
         'interpretable',
@@ -69,9 +70,9 @@ def completed_receipts(receipts):
         ):
             return False
         if (
-            receipt['timed_out'] is not False
+            receipt['capture_complete'] is not True
             or type(receipt['actual_exit_code']) is not int
-            or receipt['actual_exit_code'] < 0
+            or (receipt['passed'] and (receipt['timed_out'] or receipt['actual_exit_code'] < 0))
         ):
             return False
     return True

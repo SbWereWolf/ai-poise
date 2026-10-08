@@ -1,0 +1,14 @@
+{
+  "kind": "result_integration",
+  "intent": null,
+  "status": "blocked",
+  "version": 2,
+  "target_before": null,
+  "target_after": null,
+  "conflicts": [],
+  "resolutions": [],
+  "merge": {"preflight": {"head": null}},
+  "failure": {"reason": "merge_failed_without_conflicts"},
+  "cleanup": {"worktree": "pending", "branch": "pending"},
+  "history": [{"status": "prepared"}]
+}

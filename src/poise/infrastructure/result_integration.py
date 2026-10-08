@@ -2,22 +2,23 @@ from __future__ import annotations
 from ..modules.actions.domain import CommitMessagePolicy
 
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
 import shutil
 import stat
-import subprocess
 import uuid
 
-from ..common import descendant, digest, file_digest, prohibit_git_push
-from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, preview, run_command
+from ..common import descendant, digest, file_digest
+from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.result_integration.domain import IntegrationRun
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 from .locking import exclusive_lock
 from .task_cleanup import RuntimeTaskResourceCleanup
 from .task_paths import task_root
+from .git_transport import run_git_receipt
 
 
 class RuntimeResultIntegration:
@@ -36,27 +37,14 @@ class RuntimeResultIntegration:
         return ref.removeprefix("refs/heads/")
 
     def _run(self, cwd, *args, env=None):
-        prohibit_git_push(["git", *args])
-        try:
-            result = subprocess.run(
-                ["git", "-C", str(cwd), *args], capture_output=True, text=True,
-                timeout=self.h.cfg["limits"]["git_seconds"],
-                env=os.environ if env is None else env,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise PoiseError(f"Git {args[0]} did not complete: {exc}") from exc
-        return {
-            "argv": ["git", "-C", str(cwd), *args],
-            "actual_exit_code": result.returncode,
-            "stdout": result.stdout[-self.h.cfg["limits"]["preview_chars"]:],
-            "stderr": result.stderr[-self.h.cfg["limits"]["preview_chars"]:],
-        }
+        return run_git_receipt(cwd, args, self.h.cfg['limits']['git_seconds'],
+                               os.environ if env is None else env)
 
     def _git(self, cwd, *args, env=None):
         receipt = self._run(cwd, *args, env=env)
         if receipt["actual_exit_code"] != 0:
             raise PoiseError(f"Git {args[0]}: {receipt['stderr']}")
-        return receipt["stdout"] if "-z" in args else receipt["stdout"].strip()
+        return receipt["stdout"] if "-z" in args else receipt["stdout"].removesuffix("\n")
 
     def _optional_ref(self, cwd, ref):
         receipt = self._run(cwd, "rev-parse", "--verify", "--quiet", ref)
@@ -75,28 +63,136 @@ class RuntimeResultIntegration:
             / "result-integration" / task_id / identity
         )
 
-    def _load(self, task_id, requested_intent):
+    def _read_state(self, task_id):
+        """Decode through the existing domain owner without persisting recovery."""
         record = self.h.task_queries.record(task_id)
         if record is None:
             raise PoiseError("Integration task does not exist")
         pending = record["pending"]
         if pending is None:
-            return record, None
+            return record, None, None
+        if not isinstance(pending, dict):
+            raise PoiseError("Saved result integration state is invalid")
         if isinstance(pending.get("intent"), dict) and "commit_message" not in pending["intent"]:
             raise PoiseError(
                 "Saved integration request lacks explicit commit_message; history is retained "
                 "and automatic continuation cannot recover a message never recorded"
             )
-        if pending.get("schema") == "existing-task-worktree-1":
-            return record, IntegrationRun.restore(pending)
-        run = IntegrationRun.recover_legacy(
-            pending, record["branch"], record["worktree"],
-            self._temporary_backup_directory(task_id, pending["intent"]["request_id"]),
-        )
-        if requested_intent is not None and not self._same_intent(run, requested_intent):
+        try:
+            if pending.get("schema") == "existing-task-worktree-1":
+                return record, IntegrationRun.restore(pending), None
+            run = IntegrationRun.recover_legacy(
+                pending, record["branch"], record["worktree"],
+                self._temporary_backup_directory(task_id, pending["intent"]["request_id"]),
+            )
+            return record, run, pending["version"]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PoiseError("Saved result integration state is invalid") from exc
+
+    def _load(self, task_id, requested_intent):
+        record, run, legacy_version = self._read_state(task_id)
+        if run is not None and requested_intent is not None \
+                and not self._same_intent(run, requested_intent):
             raise PoiseError("Task integration intent is immutable")
-        self._save(task_id, run, pending["version"])
+        if legacy_version is not None:
+            self._save(task_id, run, legacy_version)
         return record, run
+
+    def _destination_refusal(self, reason, facts):
+        diagnostic = {
+            **facts, "reason": reason,
+            "correction": (
+                "Владелец конфигурации должен исправить привязку репозитория; "
+                "оператор должен восстановить объявленную целевую ветку в нужном "
+                "checkout, сохранив рабочие изменения. Автоматического переключения "
+                "веток и синхронизации в существующую Task другого хранилища нет."
+            ),
+        }
+        raise PoiseError(
+            "Назначение интеграции не соответствует договору: "
+            + json.dumps(diagnostic, ensure_ascii=False, sort_keys=True)
+        )
+
+    def _observe_destination(self, root, facts, prefix):
+        environment = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
+        try:
+            resolved = Path(root).resolve(strict=True)
+            facts[prefix + "_root"] = self._git(
+                resolved, "rev-parse", "--show-toplevel", env=environment,
+            )
+            facts[prefix + "_common_directory"] = self._git(
+                resolved, "rev-parse", "--path-format=absolute", "--git-common-dir",
+                env=environment,
+            )
+            branch = self._run(resolved, "symbolic-ref", "--quiet", "HEAD", env=environment)
+            if branch["actual_exit_code"] not in (0, 1):
+                raise PoiseError("Git could not observe the checked-out branch")
+            facts[prefix + "_branch"] = (
+                branch["stdout"].strip() if branch["actual_exit_code"] == 0 else "detached"
+            )
+            return resolved
+        except (OSError, TypeError, ValueError, PoiseError) as exc:
+            facts["observation_error"] = str(exc)
+            self._destination_refusal(prefix + "_unavailable", facts)
+
+    def _validate_destination(self, record):
+        facts = {
+            "configured_repository": self.h.cfg["git"]["repository"],
+            "configured_target_ref": self._target_ref(),
+            "registered_task_worktree": record["worktree"],
+            "registered_task_branch": record["branch"],
+        }
+        repository = self._observe_destination(facts["configured_repository"], facts, "observed")
+        source = self._observe_destination(facts["registered_task_worktree"], facts, "source")
+        if Path(facts["observed_root"]).resolve() != repository:
+            self._destination_refusal("publication_checkout_root_mismatch", facts)
+        if Path(facts["source_root"]).resolve() != source or source == repository:
+            self._destination_refusal("task_checkout_root_mismatch", facts)
+        if Path(facts["observed_common_directory"]).resolve() \
+                != Path(facts["source_common_directory"]).resolve():
+            self._destination_refusal("repository_mismatch", facts)
+        if facts["observed_branch"] != facts["configured_target_ref"]:
+            self._destination_refusal("target_not_checked_out", facts)
+        source_ref = "refs/heads/" + self._short_branch(record["branch"])
+        if facts["source_branch"] != source_ref:
+            self._destination_refusal("task_branch_mismatch", facts)
+        environment = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
+        try:
+            self._git(repository, "rev-parse", "--verify", self._target_ref(), env=environment)
+            listed = self._git(repository, "worktree", "list", "--porcelain", "-z", env=environment)
+        except PoiseError as exc:
+            facts["observation_error"] = str(exc)
+            self._destination_refusal("destination_registration_unavailable", facts)
+        entries, entry = [], {}
+        for field in listed.split("\0"):
+            if not field:
+                if entry:
+                    entries.append(entry)
+                    entry = {}
+                continue
+            key, _, value = field.partition(" ")
+            entry[key] = value
+        if entry:
+            entries.append(entry)
+        if not any(
+            Path(item["worktree"]).resolve() == source and item.get("branch") == source_ref
+            for item in entries if "worktree" in item
+        ):
+            self._destination_refusal("task_worktree_not_registered", facts)
+        return repository
+
+    def _admit(self, intent):
+        record, run, legacy_version = self._read_state(intent.task_id)
+        if run is not None and not self._same_intent(run, intent) \
+                and not self._completed_replay(run, intent):
+            raise PoiseError("Task integration intent is immutable")
+        if run is None or run.requires_destination_admission:
+            repository = self._validate_destination(record)
+        else:
+            repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
+        if legacy_version is not None:
+            self._save(intent.task_id, run, legacy_version)
+        return record, run, repository
 
     def _save(self, task_id, run, expected_version):
         with self.h.store.unit_of_work() as uow:
@@ -179,13 +275,10 @@ class RuntimeResultIntegration:
 
     def prepare_source(self, intent):
         self._validate_message(intent)
-        repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        record, run = self._load(intent.task_id, intent)
+        record, run, repository = self._admit(intent)
         if run is None:
             self._validate_new(record, intent, repository)
             return record
-        if not self._same_intent(run, intent) and not self._completed_replay(run, intent):
-            raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated" or run.phase == "cleanup_pending":
             return None
         self._validate_source(record, intent, repository, run)
@@ -325,12 +418,15 @@ class RuntimeResultIntegration:
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
             stdout = descendant(run_dir, self.h.paths["stdout"])
             stderr = descendant(run_dir, self.h.paths["stderr"])
+            invocation = self._check_invocation(method, worktree, run_dir)
             expected = {
                 "method": method["id"],
                 "integration_head": head,
                 "verified_tree": tree,
                 "argv": method["argv"],
-                "cwd": str((worktree / method["cwd"]).resolve()),
+                "cwd": str(invocation["cwd"]),
+                "source_provenance": invocation["source_provenance"],
+                "provenance_digest": invocation["provenance_digest"],
                 "expected_exit_code": method["expected_exit_code"],
                 "definition_digest": digest(method),
                 "contract_digest": contract_digest,
@@ -394,6 +490,28 @@ class RuntimeResultIntegration:
         self._save(run.intent.task_id, retried, run.version)
         return retried
 
+    def _check_invocation(self, method, worktree, run_dir):
+        """Prepare current command context without executing or writing its outputs."""
+        cwd = (worktree / method["cwd"]).resolve()
+        if not cwd.is_relative_to(worktree) or not cwd.is_dir():
+            raise PoiseError("Integration check cwd must stay inside the task worktree")
+        environment = {}
+        for name in self.h.cfg["environment_names"]:
+            if name not in os.environ:
+                raise PoiseError(f"Required environment variable is missing: {name}")
+            environment[name] = os.environ[name]
+        environment.update(method["environment"])
+        environment["POISE_RUN_OUTPUT_DIR"] = str(run_dir / "declared-outputs")
+        provenance = self.h.source_under_test_resolver(
+            method, worktree=worktree, cwd=cwd, environment=environment,
+        )
+        return {
+            "cwd": cwd,
+            "environment": environment,
+            "source_provenance": provenance,
+            "provenance_digest": digest(provenance),
+        }
+
     def _run_checks(self, record, run):
         worktree, head = self._checked_workspace(run)
         verified_tree = self._git(worktree, "rev-parse", "HEAD^{tree}")
@@ -406,22 +524,13 @@ class RuntimeResultIntegration:
         )
         for method in self._select_checks(record):
             self._checked_workspace(run)
-            cwd = (worktree / method["cwd"]).resolve()
-            if not cwd.is_relative_to(worktree) or not cwd.is_dir():
-                raise PoiseError("Integration check cwd must stay inside the task worktree")
-            environment = {}
-            for name in self.h.cfg["environment_names"]:
-                if name not in os.environ:
-                    raise PoiseError(f"Required environment variable is missing: {name}")
-                environment[name] = os.environ[name]
-            environment.update(method["environment"])
             check_id = str(uuid.uuid4())
             run_dir = descendant(owner_root, self.h.paths["runs"]) / check_id
+            invocation = self._check_invocation(method, worktree, run_dir)
             declared_output_dir = run_dir / "declared-outputs"
             declared_output_dir.mkdir(parents=True, exist_ok=True)
-            environment["POISE_RUN_OUTPUT_DIR"] = str(declared_output_dir)
             result = run_command(
-                method["argv"], cwd, environment, None,
+                method["argv"], invocation["cwd"], invocation["environment"], None,
                 descendant(run_dir, self.h.paths["stdout"]),
                 descendant(run_dir, self.h.paths["stderr"]),
             )
@@ -429,20 +538,27 @@ class RuntimeResultIntegration:
             outputs, outputs_complete = capture_declared_outputs(
                 method.get("outputs", []), declared_output_dir, run_dir / "outputs",
             )
-            receipts.append({
+            receipt = {
                 **result, "id": check_id, "method": method["id"],
                 "definition_digest": digest(method),
                 "contract_digest": self._contract_digest(record),
                 "integration_head": head, "verified_tree": verified_tree,
-                "argv": method["argv"], "cwd": str(cwd),
+                "argv": method["argv"], "cwd": str(invocation["cwd"]),
+                "source_provenance": invocation["source_provenance"],
+                "provenance_digest": invocation["provenance_digest"],
                 "expected_exit_code": method["expected_exit_code"],
                 "passed": method_passed(method, result) and outputs_complete,
                 "outputs": outputs,
                 "stdout_digest": file_digest(Path(result["stdout"])),
                 "stderr_digest": file_digest(Path(result["stderr"])),
-                "preview": preview(Path(result["stderr"]),
-                                   self.h.cfg["limits"]["preview_chars"]),
-            })
+            }
+            try:
+                receipt['preview'] = self.h.result_views.primary(receipt, run_dir)
+            except (PoiseError, OSError, ValueError) as exc:
+                receipt['preview'] = ''
+                receipt['preview_errors'] = {**receipt.get('preview_errors', {}),
+                                            'primary': str(exc)}
+            receipts.append(receipt)
         checked = run.checks_recorded(receipts)
         self._save(run.intent.task_id, checked, run.version)
         return checked
@@ -888,14 +1004,11 @@ class RuntimeResultIntegration:
 
     def apply(self, intent):
         self._validate_message(intent)
-        repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        record, run = self._load(intent.task_id, intent)
+        record, run, repository = self._admit(intent)
         if run is None:
             self._validate_new(record, intent, repository)
             run = self._new_run(record, intent)
             self._save(intent.task_id, run, -1)
-        elif not self._same_intent(run, intent) and not self._completed_replay(run, intent):
-            raise PoiseError("Task integration intent is immutable")
         if run.status == "integrated":
             self._reconcile_terminal_ownership(run, repository)
             return run.result(replayed=True)
@@ -912,6 +1025,7 @@ class RuntimeResultIntegration:
             self._save(intent.task_id, continued, run.version)
             run = continued
         while True:
+            checks_ran = False
             if run.phase == "prepared":
                 observed = self._git(repository, "rev-parse", self._target_ref())
                 previous = run.version
@@ -924,6 +1038,7 @@ class RuntimeResultIntegration:
             if run.phase == "candidate_ready":
                 record = self.h.task_queries.record(intent.task_id)
                 run = self._run_checks(record, run)
+                checks_ran = True
                 if run.phase == "checks_failed":
                     return run.result()
             if run.phase in ("publishing", "publication_failed"):
@@ -938,6 +1053,12 @@ class RuntimeResultIntegration:
                     )
                     return run.result()
                 if not complete_proof:
+                    if checks_ran:
+                        run = self._publication_failed(
+                            run, "candidate_proof_invalid",
+                            {"integration_head": run.integration_head},
+                        )
+                        return run.result()
                     rechecking = run.recheck_publication()
                     self._save(intent.task_id, rechecking, run.version)
                     run = rechecking

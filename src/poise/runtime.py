@@ -755,14 +755,18 @@ class Poise:
     def _git(self, cwd: Path, *args: str, env: dict | None = None) -> str:
         prohibit_git_push(['git', *args])
         execution_env = dict(os.environ) if env is None else env
+        machine_paths = '-z' in args
         try:
             r = subprocess.run(['git', '-C', str(cwd), *args], env=execution_env,
-                               capture_output=True, text=True, timeout=self.cfg['limits']['git_seconds'])
+                               capture_output=True, text=not machine_paths,
+                               timeout=self.cfg['limits']['git_seconds'])
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise PoiseError(f'Git не завершил операцию {args[0]}: {exc}') from exc
+        stdout = os.fsdecode(r.stdout) if machine_paths else r.stdout
+        stderr = os.fsdecode(r.stderr) if machine_paths else r.stderr
         if r.returncode:
-            raise PoiseError(f"Git {args[0]}: {r.stderr[-self.cfg['limits']['preview_chars']:]}")
-        return r.stdout.strip() if '-z' not in args else r.stdout
+            raise PoiseError(f"Git {args[0]}: {stderr[-self.cfg['limits']['preview_chars']:]}")
+        return stdout if machine_paths else stdout.strip()
 
     def _tree(self, worktree: Path) -> str:
         """Временный индекс включает HEAD, staged, unstaged, untracked; реальный индекс не меняется."""

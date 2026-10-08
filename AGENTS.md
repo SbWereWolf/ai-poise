@@ -59,6 +59,13 @@ as display: use full output for machine parsing and decisions via existing saved
 rerun a mutation just to obtain its output. Follow [full output](docs/workflows/runner.md#полный-вывод-и-preview). Make DDD
 decisions enforceable development rules and keep responsibility boundaries documented. Do not leave authoritative
 decisions only in conversation history.
+Record every accepted global decision in its canonical documentation and a concise applicable rule linking to the
+exact section; co-deliver the Russian source and English projection. Follow
+[global decision recording](docs/governance/development-rules.md#фиксация-глобальных-решений).
+Reconcile a stale completion status with an actually completed, independently reviewed, accepted and integrated
+result through its public owner or an authorized audited manual correction. Preserve historical stages and native
+receipts; distinguish manual reconciliation from native lifecycle completion. Follow
+[harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 For changed documentation or rule targets, follow [local links and exact
 headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to
 changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.

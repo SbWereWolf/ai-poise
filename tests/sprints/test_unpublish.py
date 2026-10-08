@@ -547,7 +547,7 @@ def test_draft_refuses_actual_verified_stage_advance_then_republish_allows_it(pr
     with pytest.raises(PoiseError, match='draft|published|чернов|опублик'):
         advance_member(worker)
     assert (unchanged(planner), git_state(Path(context['worktree']))) == before
-    worker.runtime.ownership.release_task('A')
+    handoff(worker, 'after-draft-advance-refusal')
     publish(planner, opened['revision'], 'republish-advance')
     assert bootstrap(worker, 'A')['status'] == 'verified'
     advanced = advance_member(worker)
@@ -586,6 +586,12 @@ def test_fixture_guard_two_stages_permit_real_progression(project):
     worker = client(project, 'executor')
     context = bootstrap(worker, 'A')
     assert verify(worker, context)['status'] == 'verified'
+    handoff(worker, 'before-stage-advance')
+    worker.runtime.ownership.acquire_task('A')
+    handoff(worker, 'after-draft-advance-refusal')
+    resumed = bootstrap(worker, 'A')
+    assert resumed['status'] == 'verified'
+    assert resumed['worktree'] == context['worktree']
     advanced = advance_member(worker)
     assert advanced['stage'] == 'next'
     assert planner.runtime.task_queries.record('A')['stage_index'] == 1

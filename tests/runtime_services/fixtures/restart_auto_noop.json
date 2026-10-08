@@ -1,0 +1,67 @@
+{
+  "result": {
+    "status": "progression_target_reached",
+    "replay": {
+      "mode": "target",
+      "target_stage": "tests",
+      "recovery_ref": null,
+      "start_commit": "1111111111111111111111111111111111111111",
+      "subject_commit": null,
+      "stopped_at": "tests",
+      "reason": "target_reached",
+      "passed": []
+    }
+  },
+  "before": {
+    "task": {
+      "id": "T1",
+      "version": 7
+    },
+    "head": "1111111111111111111111111111111111111111",
+    "owned": {
+      "task_events": [
+        [
+          1,
+          "unchanged event"
+        ]
+      ],
+      "submissions": [],
+      "task_results": [],
+      "evidence": [],
+      "journal": [
+        [
+          1,
+          "2026-09-07T00:00:00+00:00",
+          "replay-owner",
+          "T1",
+          "historical",
+          "unchanged prior bytes"
+        ]
+      ]
+    }
+  },
+  "row": [
+    2,
+    "2026-09-07T00:00:01+00:00",
+    "replay-owner",
+    "T1",
+    "progression.noop",
+    {
+      "request_id": "N",
+      "digest": "57d9c96fd7b781681d70803b3320a8ed2a33ba14bf3f85f1438757a87babdadc",
+      "result": {
+        "status": "progression_target_reached",
+        "replay": {
+          "mode": "target",
+          "target_stage": "tests",
+          "recovery_ref": null,
+          "start_commit": "1111111111111111111111111111111111111111",
+          "subject_commit": null,
+          "stopped_at": "tests",
+          "reason": "target_reached",
+          "passed": []
+        }
+      }
+    }
+  ]
+}

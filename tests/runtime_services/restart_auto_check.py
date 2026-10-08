@@ -15,6 +15,8 @@ SELECTION = [
     "tests/runtime_services/test_restart_auto_safety.py",
     "tests/runtime_services/test_restart_auto_history.py",
     "tests/runtime_services/test_restart_auto_durability.py",
+    "tests/runtime_services/test_restart_auto_noop_identity.py",
+    "tests/runtime_services/test_restart_auto_noop_concurrency.py",
 ]
 
 GROUPS = {
@@ -26,6 +28,10 @@ GROUPS = {
     "history-route": [SELECTION[3], "-k", "changed_route or maximum_replay"],
     "durability-boundaries": [SELECTION[4], "-k", "each_confirmed_boundary or unsafe_material"],
     "durability-effects": [SELECTION[4], "-k", "not (each_confirmed_boundary or unsafe_material)"],
+    "noop-repeat": [SELECTION[5], "-k", "not (changed_intent or current_admission)"],
+    "noop-conflicts": [SELECTION[5], "-k", "changed_intent"],
+    "noop-admission": [SELECTION[5], "-k", "current_admission"],
+    "noop-concurrency": [SELECTION[6]],
 }
 
 

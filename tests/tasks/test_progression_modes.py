@@ -4,6 +4,7 @@ import pytest
 
 from conftest import WorkPoise, git
 from poise.application.work import WorkTools
+from runtime_services.restart_auto_noop_support import assert_single_noop, noop_snapshot
 from runtime_services.restart_auto_support import (
     assert_projection, assert_recovery, launch, prepared, snapshot,
 )
@@ -50,7 +51,7 @@ def test_explicit_target_stops_before_its_checks(project, target, index):
 
 def test_already_current_target_is_a_complete_no_op(project):
     case = prepared(project)
-    before = snapshot(case)
+    before = noop_snapshot(case)
     response = launch(case, target="tests")
     assert response["status"] == "progression_target_reached"
     replay = response["replay"]
@@ -62,8 +63,8 @@ def test_already_current_target_is_a_complete_no_op(project):
     assert replay["stopped_at"] == "tests"
     assert replay["reason"] == "target_reached"
     assert replay["passed"] == []
-    after = snapshot(case)
-    assert after == before
+    after = noop_snapshot(case)
+    assert_single_noop(before, after, commit=case["saved"], request_id="replay")
     assert_projection(case, response, target="tests", stage="tests", count=0, noop=True)
 
 

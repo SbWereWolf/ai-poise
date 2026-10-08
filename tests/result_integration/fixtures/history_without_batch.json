@@ -1,0 +1,13 @@
+{
+  "absent_details": {
+    "status": "running",
+    "phase": "publishing",
+    "event": "checks_passed"
+  },
+  "absent_check_ids": {
+    "status": "running",
+    "phase": "publishing",
+    "event": "checks_passed",
+    "details": {}
+  }
+}

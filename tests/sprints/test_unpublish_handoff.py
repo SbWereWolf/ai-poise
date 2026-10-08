@@ -38,6 +38,19 @@ def index_path(root):
     return path if path.is_absolute() else root / path
 
 
+def staged_inventory(root):
+    entries = {}
+    for record in git_bytes(root, 'ls-files', '--stage', '-z').split(b'\0'):
+        if not record:
+            continue
+        metadata, path = record.split(b'\t', 1)
+        mode, oid, stage = metadata.split()
+        assert stage == b'0'
+        name = os.fsdecode(path)
+        entries[name] = (mode, oid, git_bytes(root, 'show', ':' + name))
+    return entries
+
+
 def observation(root):
     """Independent raw Git and filesystem oracles; no production serializer."""
     names = set()
@@ -62,6 +75,7 @@ def observation(root):
         'refs': git_bytes(root, 'show-ref'),
         'status': git_bytes(root, 'status', '--porcelain=v1'),
         'stage': git_bytes(root, 'ls-files', '--stage', '-z'),
+        'staged_inventory': staged_inventory(root),
         'index': index_path(root).read_bytes(),
         'index_mode': stat.S_IMODE(index_path(root).stat().st_mode),
         'files': files,
@@ -172,9 +186,9 @@ def test_bundle_and_snapshot_reconstruct_staging_split_and_files_independently(p
     # Only the bundle and snapshot remain available at their declared paths.
     root.rename(root.with_name(root.name + '-unavailable'))
     restored = tmp_path / 'isolated-restoration'
-    subprocess.run(['git', 'clone', '-b', 'HEAD', receipt['bundle_path'], str(restored)],
+    subprocess.run(['git', 'clone', receipt['bundle_path'], str(restored)],
                    check=True, capture_output=True)
-    git_text(restored, 'checkout', '-b', before['branch'].decode().strip())
+    git_text(restored, 'checkout', '-b', before['branch'].decode().strip(), receipt['commit'])
     # Import staged blob bytes from the delivered archive only, independently
     # of the production validator and of the original worktree/object store.
     with tarfile.open(fileobj=io.BytesIO(payload[manifest['staged_tree']['path']])) as staged:
@@ -209,7 +223,7 @@ def test_bundle_and_snapshot_reconstruct_staging_split_and_files_independently(p
     index_path(restored).write_bytes(payload[manifest['index']['path']])
     index_path(restored).chmod(manifest['index']['mode'])
     recovered = observation(restored)
-    for key in ('head', 'branch', 'stage', 'index', 'index_mode', 'files', 'directories'):
+    for key in ('head', 'branch', 'stage', 'staged_inventory', 'index', 'index_mode', 'files', 'directories'):
         assert recovered[key] == before[key], key
     assert git_bytes(restored, 'show', ':' + DATA['split']['path']) == bytes.fromhex(DATA['split']['staged_hex'])
     assert (restored / DATA['split']['path']).read_bytes() == bytes.fromhex(DATA['split']['working_hex'])
@@ -234,7 +248,7 @@ def test_real_resume_and_exact_replay_preserve_new_owner(planned):
     assert planner.runtime.task_queries.record('A')['claimed_by'] == 'receiver'
 
 
-@pytest.mark.parametrize('drift', ['index', 'bytes', 'mode', 'snapshot-missing', 'snapshot-corrupt', 'head'])
+@pytest.mark.parametrize('drift', ['index', 'bytes', 'mode', 'snapshot-missing', 'snapshot-corrupt', 'branch', 'head'])
 def test_resume_rejects_material_drift_before_acquiring(planned, drift):
     project, planner, owner, root, _, _ = arrange(planned)
     receipt = preserve(owner)
@@ -245,8 +259,16 @@ def test_resume_rejects_material_drift_before_acquiring(planned, drift):
         (root / DATA['split']['path']).write_bytes(b'drifted working bytes\n')
     elif drift == 'mode':
         (root / DATA['split']['path']).chmod(0o600)
-    elif drift == 'head':
+    elif drift == 'branch':
         git_text(root, 'checkout', '--detach', 'HEAD')
+    elif drift == 'head':
+        branch = git_bytes(root, 'symbolic-ref', 'HEAD')
+        old = git_text(root, 'rev-parse', 'HEAD')
+        commit = git_text(root, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test',
+                          'commit-tree', 'HEAD^{tree}', '-p', old, '-m', 'Independent HEAD drift')
+        git_text(root, 'update-ref', 'HEAD', commit, old)
+        assert git_bytes(root, 'symbolic-ref', 'HEAD') == branch
+        assert git_text(root, 'rev-parse', 'HEAD') != old
     else:
         # Inject failed/corrupt reads at the existing I/O boundary below;
         # registered immutable snapshot files themselves are never overwritten.
@@ -390,6 +412,13 @@ def test_snapshot_consumer_rejects_inner_archive_with_recomputed_hashes(planned,
     receipt = preserve(owner)
     manifest, payload = snapshot(receipt)
     staged_path = manifest['staged_tree']['path']
+    # The same unregistered input path must be accepted before corruption.
+    # A validator that rejects all unregistered archives cannot pass this test.
+    candidate = tmp_path / 'candidate-snapshot.tar'
+    candidate.write_bytes(Path(receipt['wip_snapshot']['path']).read_bytes())
+    descriptor = {**receipt['wip_snapshot'], 'path': str(candidate),
+                  'digest': hashlib.sha256(candidate.read_bytes()).hexdigest()}
+    owner.runtime.handoff_tools._validate_wip_snapshot(root, descriptor)
     output = io.BytesIO()
     with tarfile.open(fileobj=io.BytesIO(payload[staged_path])) as source:
         with tarfile.open(fileobj=output, mode='w') as destination:
@@ -411,7 +440,6 @@ def test_snapshot_consumer_rejects_inner_archive_with_recomputed_hashes(planned,
     manifest['staged_tree']['sha256'] = hashlib.sha256(payload[staged_path]).hexdigest()
     payload['manifest.json'] = json.dumps(manifest).encode()
     # This unregistered corruption fixture is never used as a native receipt.
-    candidate = tmp_path / 'invalid-snapshot.tar'
     with tarfile.open(candidate, mode='w') as archive:
         for name, content in payload.items():
             member = tarfile.TarInfo(name)
@@ -436,6 +464,35 @@ def test_fixture_guard_export_ignore_omits_independent_index_blob(planned, tmp_p
     with tarfile.open(archive_path) as archive:
         assert DATA['split']['path'] not in archive.getnames()
     assert git_bytes(root, 'show', ':' + DATA['split']['path']) == bytes.fromhex(DATA['split']['staged_hex'])
+
+
+def test_fixture_guard_recovery_detects_omitted_nonprimary_staged_blob(planned, tmp_path):
+    _, _, _, root, _, _ = arrange(planned)
+    expected = staged_inventory(root)
+    missing = 'src/staged-wip.txt'
+    assert missing in expected and missing != DATA['split']['path']
+    bundle = tmp_path / 'head-only.bundle'
+    git_text(root, 'bundle', 'create', str(bundle), 'HEAD')
+    restored = tmp_path / 'oracle-sensitivity'
+    subprocess.run(['git', 'clone', str(bundle), str(restored)], check=True, capture_output=True)
+    git_text(restored, 'checkout', '-b', git_text(root, 'symbolic-ref', '--short', 'HEAD'),
+             git_text(root, 'rev-parse', 'HEAD'))
+    for number, (name, (_, oid, content)) in enumerate(expected.items()):
+        if name == missing:
+            continue
+        blob = tmp_path / f'oracle-blob-{number}'
+        blob.write_bytes(content)
+        assert git_bytes(restored, 'hash-object', '-w', '--no-filters', '--', str(blob)).strip() == oid
+    index_path(restored).write_bytes(index_path(root).read_bytes())
+    # All path/mode/OID metadata can agree while a staged-only blob is absent.
+    assert git_bytes(restored, 'ls-files', '--stage', '-z') == git_bytes(root, 'ls-files', '--stage', '-z')
+    with pytest.raises(subprocess.CalledProcessError) as failure:
+        staged_inventory(restored)
+    assert failure.value.cmd[-1] == ':' + missing
+    blob = tmp_path / 'previously-omitted-blob'
+    blob.write_bytes(expected[missing][2])
+    git_text(restored, 'hash-object', '-w', '--no-filters', '--', str(blob))
+    assert staged_inventory(restored) == expected
 
 
 def test_fixture_guard_qualifying_material_has_distinct_real_states(planned):

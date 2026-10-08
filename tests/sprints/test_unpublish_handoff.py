@@ -142,6 +142,26 @@ def assert_snapshot(manifest, payload, before):
     assert manifest['branch'] == before['branch'].decode().strip()
     assert payload[manifest['index']['path']] == before['index']
     assert manifest['index']['mode'] == before['index_mode']
+    staged_bytes = payload[manifest['staged_tree']['path']]
+    assert hashlib.sha256(staged_bytes).hexdigest() == manifest['staged_tree']['sha256']
+    with tarfile.open(fileobj=io.BytesIO(staged_bytes)) as archive:
+        members = archive.getmembers()
+        assert len({entry.name for entry in members}) == len(members)
+        leaves = {entry.name: entry for entry in members if not entry.isdir()}
+        assert set(leaves) == set(before['staged_inventory'])
+        ancestors = {str(parent) for name in leaves for parent in Path(name).parents
+                     if str(parent) != '.'}
+        assert all(entry.name.rstrip('/') in ancestors for entry in members if entry.isdir())
+        for name, (mode, _, content) in before['staged_inventory'].items():
+            member = leaves[name]
+            if mode == b'120000':
+                assert member.issym()
+                actual = os.fsencode(member.linkname)
+            else:
+                assert mode in (b'100644', b'100755') and member.isfile()
+                assert bool(member.mode & 0o111) == (mode == b'100755')
+                actual = archive.extractfile(member).read()
+            assert actual == content, name
     entries = {entry['path']: entry for entry in manifest['files']}
     assert len(entries) == len(manifest['files'])
     assert set(entries) == set(before['files']) | set(before['directories'])
@@ -447,8 +467,12 @@ def test_snapshot_consumer_rejects_inner_archive_with_recomputed_hashes(planned,
             archive.addfile(member, io.BytesIO(content))
     descriptor = {**receipt['wip_snapshot'], 'path': str(candidate),
                   'digest': hashlib.sha256(candidate.read_bytes()).hexdigest()}
-    with pytest.raises(PoiseError, match='(?i)staged|archive|blob|duplicate|missing|архив'):
+    reasons = {'missing': '(?i)missing|incomplete|omitted|неполн|отсутств',
+               'duplicate': '(?i)duplicate|repeated|повтор|дублик',
+               'wrong-blob': '(?i)blob|object|content.*mismatch|содержим|объект'}
+    with pytest.raises(PoiseError, match=reasons[corruption]) as failure:
         owner.runtime.handoff_tools._validate_wip_snapshot(root, descriptor)
+    assert DATA['split']['path'] in str(failure.value)
 
 
 def test_fixture_guard_export_ignore_omits_independent_index_blob(planned, tmp_path):

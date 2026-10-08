@@ -299,7 +299,10 @@ def test_local_publication_after_restart_uses_current_inspected_candidate(projec
     assert verify(client, first)["action"]["status"] == "complete"
     history = rows(client, context["task"])
     client, context = restart_current(client, context)
-    verify_current(client, context, plan)
+    assert git(context["worktree"], "status", "--porcelain") == ""
+    current_plan = deepcopy(plan)
+    current_plan["base_commit"] = git(context["worktree"], "rev-parse", "HEAD")
+    verify_current(client, context, current_plan)
     inspected = inspect(client, advance(client))
     publishing = advance(client)
     current = result(publishing, {"target_ref": "refs/heads/main", "expected_commit": base,

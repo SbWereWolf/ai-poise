@@ -1,0 +1,14 @@
+{
+  "id": "SOURCE_RESULT",
+  "cwd": ".",
+  "environment": {},
+  "source_under_test": {
+    "kind": "repository",
+    "bindings": [
+      {"kind": "environment", "name": "PYTHONPATH", "path": "src"}
+    ]
+  },
+  "expected_exit_code": 0,
+  "stdout_contains": ["candidate-source"],
+  "stderr_contains": []
+}

@@ -119,6 +119,13 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     return load_config_document(path, read_json(path), legacy_process_requirements)
 
 
+def _require_config_path(value, field, *, nonblank):
+    """Attribute malformed input before its existing placement owner resolves it."""
+    if (not isinstance(value, str) or not value or '\0' in value
+            or (nonblank and not value.strip())):
+        raise PoiseError(f'{field}: требуется непустой строковый путь без NUL')
+
+
 def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
     """Validate one observed manifest through the canonical configuration contract."""
     root = path.resolve().parent
@@ -130,7 +137,8 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
         from .modules.tasks.planning import validate_planning
         settings = cfg['task_planning']
         exact_keys(settings, {'catalogue', 'restart_revision_policy'}, 'task_planning')
-        if not isinstance(settings['catalogue'], str) or not settings['catalogue'].strip():
+        if (not isinstance(settings['catalogue'], str) or not settings['catalogue'].strip()
+                or '\0' in settings['catalogue']):
             raise PoiseError('task_planning.catalogue requires an explicit path')
         validate_planning({'schema': 'task-planning-1', 'template': None,
                            'restart_revision_policy': settings['restart_revision_policy']})
@@ -159,10 +167,11 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
                   'git_index','runs','stdout','stderr','response'}
     requirements_paths = {'requirements_database', 'requirements_lock'}
     exact_keys(cfg['paths'], task_paths | requirements_paths, 'paths')
-    for key in ('database', 'lock'):
-        value = cfg['paths'][key]
-        if not isinstance(value, str) or not value.strip() or '\0' in value:
-            raise PoiseError(f'paths.{key}: требуется явный непустой путь без NUL')
+    for key in sorted(task_paths | requirements_paths):
+        _require_config_path(
+            cfg['paths'][key], f'paths.{key}',
+            nonblank=key in {'state', 'database', 'lock', 'requirements_database', 'requirements_lock'},
+        )
     exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
     for key, value in cfg['limits'].items():
@@ -178,6 +187,7 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
     for key in ('repository','base_ref','remote','branch_template','commit_pattern','author_name','author_email'):
         if not isinstance(cfg['git'][key],str) or not cfg['git'][key].strip():
             raise PoiseError(f'git.{key}: требуется непустая строка')
+    _require_config_path(cfg['git']['repository'], 'git.repository', nonblank=True)
     if not Path(cfg['git']['repository']).is_absolute():
         raise PoiseError('git.repository: требуется абсолютный путь')
     if type(cfg['git']['push_required']) is not bool:
@@ -261,7 +271,9 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
     OutputPolicy.parse(cfg['runtime_services']['output'])
     transfer=cfg['runtime_services']['handoff']
     exact_keys(transfer,{'directory','receipt','bundle','preserved_directory','file_mode'},'handoff config')
-    for key in ('directory','receipt','bundle','preserved_directory'):descendant(state,transfer[key])
+    for key in ('directory', 'receipt', 'bundle', 'preserved_directory'):
+        _require_config_path(transfer[key], f'runtime_services.handoff.{key}', nonblank=False)
+        descendant(state, transfer[key])
     if len({transfer['receipt'],transfer['bundle'],transfer['preserved_directory']})!=3:
         raise PoiseError('Handoff filenames must be distinct')
     if type(transfer['file_mode']) is not int or not 0<=transfer['file_mode']<=0o777:
@@ -277,6 +289,7 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
     validate_config(cfg['batch'])
     processes = {}
     for kind, rel in cfg['processes'].items():
+        _require_config_path(rel, f'processes.{kind}', nonblank=False)
         process_path=descendant(root, rel)
         if state.is_relative_to(process_path) or process_path.is_relative_to(state):
             raise PoiseError('Mutable state root overlaps a process configuration')

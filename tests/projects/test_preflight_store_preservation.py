@@ -113,7 +113,7 @@ def test_configuration_denial_preserves_existing_claim_pending_history_and_artif
     values['requirements_lock'] = str(project['app'] / 'forbidden.lock')
     code, actual = invoke(case, request(case))
     assert code == 23 and actual['ready'] is False
-    assert actual['reason'] == 'Requirements storage must be outside the served codebase'
+    assert actual['reason'] == 'Requirements storage: Git не игнорирует путь в codebase: forbidden.lock'
     with sqlite3.connect(f"file:{values['task_db']}?mode=ro", uri=True) as db:
         assert db.execute('SELECT claimed_by FROM tasks WHERE id=?', ('EXISTS-HERE',)).fetchone() == ('foreign-owner',)
         assert 'preserve-exactly' in db.execute('SELECT data FROM task_execution WHERE task_id=?', ('EXISTS-HERE',)).fetchone()[0]

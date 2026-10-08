@@ -172,7 +172,7 @@ def test_requirements_inside_target_refuse_without_allocating_anything(case, key
     cfg['paths'][key] = path
     write_json(project['config_path'], cfg)
     values['requirements_db' if key == 'requirements_database' else 'requirements_lock'] = path
-    reason = 'Requirements storage must be outside the served codebase'
+    reason = 'Requirements storage: Git не игнорирует путь в codebase: private.sqlite'
     wanted = expected(case, status='rejected', ready=False, reason=reason, statuses=[
         ('configuration', 'rejected', reason), ('git', 'not_checked', None),
         ('commit_policy', 'not_checked', None), ('task_lookup', 'not_checked', None),

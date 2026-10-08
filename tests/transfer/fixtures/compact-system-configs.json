@@ -1,0 +1,5 @@
+{
+  "poise_overlay": {"fixture_owner": "poise", "profile": "initial", "order": ["base", "overlay"]},
+  "project_config": {"fixture_owner": "project", "feature": "initial", "order": ["base", "overlay"]},
+  "project_overlay": {"fixture_owner": "project", "feature": "overlay", "fixture_value": 73}
+}

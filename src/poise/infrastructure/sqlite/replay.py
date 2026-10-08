@@ -3,6 +3,8 @@ from copy import deepcopy
 import hashlib
 import json
 
+from ...modules.verification.domain import method_expectation_digest
+
 
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
@@ -61,13 +63,7 @@ def accepted_sources(db, task_id):
                 for method in definitions:
                     if method['id'] != method_id:
                         continue
-                    expectation = digest({
-                        'expected_exit_code': method['expected_exit_code'],
-                        'stdout_contains': method['stdout_contains'],
-                        'stderr_contains': method['stderr_contains'],
-                        'red_failure': method.get('verification_plan', {}).get('red_failure'),
-                        'outputs': method.get('outputs', []),
-                    })
+                    expectation = method_expectation_digest(method)
                     if expectation == receipt['expectation_digest'] and method['argv'] == receipt['argv']:
                         matches[digest(method)] = method
                 if len(matches) != 1:

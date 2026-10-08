@@ -7,6 +7,21 @@ from ..foundation.paths import matches_allowed_path
 from ..foundation.validation import validate_exact_keys
 
 
+def method_expectation_digest(method: dict) -> str:
+    """Identify exact verification expectations, including declared retained inputs."""
+    expectation = {
+        'expected_exit_code': method['expected_exit_code'],
+        'stdout_contains': method['stdout_contains'],
+        'stderr_contains': method['stderr_contains'],
+        'red_failure': method.get('verification_plan', {}).get('red_failure'),
+        'outputs': method.get('outputs', []),
+        **({'artifact_inputs': method['artifact_inputs']} if 'artifact_inputs' in method else {}),
+    }
+    return hashlib.sha256(json.dumps(
+        expectation, sort_keys=True, ensure_ascii=False, separators=(',', ':')
+    ).encode('utf-8')).hexdigest()
+
+
 def exact_keys(value: dict, keys: set[str], where: str) -> None:
     validate_exact_keys(value, keys, where, DomainError)
 

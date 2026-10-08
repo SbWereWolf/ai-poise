@@ -17,6 +17,7 @@ from .application.check_attempts import is_check_attempt, receipt_matches, requi
 from .application.evidence import EvidenceCommands
 from .modules.content_requirements.domain import ArtifactFact
 from .modules.evidence.domain import completed_receipts
+from .modules.verification.domain import method_expectation_digest
 from .modules.foundation.paths import matches_allowed_path
 from .modules.tasks.domain import is_terminal_task_status
 from .artifacts import inspect_paths, check_counts
@@ -1712,14 +1713,7 @@ class Poise:
             )
             invocation['source_provenance']=provenance
             invocation['provenance_digest']=digest(provenance)
-            invocation['expectation_digest']=digest({
-                'expected_exit_code': method['expected_exit_code'],
-                'stdout_contains': method['stdout_contains'],
-                'stderr_contains': method['stderr_contains'],
-                'red_failure': method.get('verification_plan', {}).get('red_failure'),
-                'outputs': method.get('outputs', []),
-                **({'artifact_inputs': method['artifact_inputs']} if 'artifact_inputs' in method else {}),
-            })
+            invocation['expectation_digest']=method_expectation_digest(method)
             invocations.append(invocation)
         return invocations
 

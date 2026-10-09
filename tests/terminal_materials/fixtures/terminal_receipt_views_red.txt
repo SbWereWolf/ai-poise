@@ -1,0 +1,71 @@
+FFFFFFFFF
+=================================== FAILURES ===================================
+_ test_stage_receipts_report_terminal_materials_on_first_and_repeat[retained-completed] _
+tests/terminal_materials/test_terminal_receipt_views.py:91: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+_ test_stage_receipts_report_terminal_materials_on_first_and_repeat[retained-cancelled] _
+tests/terminal_materials/test_terminal_receipt_views.py:91: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+_ test_stage_receipts_report_terminal_materials_on_first_and_repeat[removed-completed] _
+tests/terminal_materials/test_terminal_receipt_views.py:91: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+_ test_stage_receipts_report_terminal_materials_on_first_and_repeat[removed-cancelled] _
+tests/terminal_materials/test_terminal_receipt_views.py:91: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+___ test_integration_first_display_and_exact_replay_keep_history_and_notice ____
+tests/terminal_materials/test_terminal_receipt_views.py:112: in test_integration_first_display_and_exact_replay_keep_history_and_notice
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+_________ test_receipt_owner_resolves_stage_and_integration_provenance _________
+tests/terminal_materials/test_terminal_receipt_views.py:127: in test_receipt_owner_resolves_stage_and_integration_provenance
+    assert tools.runtime.task_queries.receipt_task(integration['id']) == 'T1', (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Integration receipt provenance must resolve through the result owner
+__ test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query __
+tests/terminal_materials/test_terminal_receipt_views.py:147: in test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+___ test_receipt_state_read_failure_is_explicit_in_saved_and_short_response ____
+tests/terminal_materials/test_terminal_receipt_views.py:165: in test_receipt_state_read_failure_is_explicit_in_saved_and_short_response
+    assert 'Receipt state unavailable' in json.dumps(value), (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Receipt state lookup failure must be displayed explicitly
+_____ test_bounded_terminal_notice_survives_omission_of_all_command_views ______
+tests/terminal_materials/test_terminal_receipt_views.py:183: in test_bounded_terminal_notice_survives_omission_of_all_command_views
+    notice(brief)
+tests/terminal_materials/test_terminal_receipt_views.py:44: in notice
+    assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
+           ^^^^^^^^^^^^^^^^^
+E   AssertionError: Terminal presentation must report destroyed service logs
+=========================== short test summary info ============================
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_stage_receipts_report_terminal_materials_on_first_and_repeat[retained-completed]
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_stage_receipts_report_terminal_materials_on_first_and_repeat[retained-cancelled]
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_stage_receipts_report_terminal_materials_on_first_and_repeat[removed-completed]
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_stage_receipts_report_terminal_materials_on_first_and_repeat[removed-cancelled]
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_integration_first_display_and_exact_replay_keep_history_and_notice
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_receipt_owner_resolves_stage_and_integration_provenance
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_receipt_state_read_failure_is_explicit_in_saved_and_short_response
+FAILED tests/terminal_materials/test_terminal_receipt_views.py::test_bounded_terminal_notice_survives_omission_of_all_command_views

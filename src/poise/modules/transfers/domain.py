@@ -5,6 +5,7 @@ import re
 import json
 from .placement import material_source, relocate_path
 from ..foundation.errors import DomainError
+from ..foundation.validation import validate_exact_keys
 from ..artifact_factory.domain import exact, relative
 from ..tasks.definition import path_identifier
 
@@ -23,7 +24,7 @@ class TransferPolicy:
         if isinstance(raw, dict) and 'recovery' in raw:
             fields.add('recovery')
             RecoveryPolicy.parse(raw['recovery'])
-        exact(raw, fields, 'transfer config')
+        validate_exact_keys(raw, fields, 'transfer config', DomainError)
         for key in paths:
             try:
                 relative(raw[key])

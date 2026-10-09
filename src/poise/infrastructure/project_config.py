@@ -9,10 +9,11 @@ import shutil
 import sqlite3
 import tempfile
 
-from ..common import configured_root, descendant, digest, load_config, validate_candidate_config
+from ..common import configured_root, descendant, digest, load_config, load_config_document, validate_candidate_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
+from ..modules.task_cleanup.domain import CleanupRun
 from .goal_config import atomic_write, read_document
 from .locking import exclusive_lock
 from .projects import confined, ProjectSettings, FileProjectSetup
@@ -62,7 +63,21 @@ class FileProjectConfigUpdate:
     def _receipt(self, root, relative):
         return descendant(root, relative)
 
-    def _source(self, config_path, updates):
+    @staticmethod
+    def _retire_transfer_setting(config):
+        candidate = deepcopy(config)
+        services = candidate.get('runtime_services')
+        transfer = services.get('transfer') if isinstance(services, dict) else None
+        if isinstance(transfer, dict):
+            transfer.pop('bundles_directory', None)
+        return candidate
+
+    def _source(self, config_path, updates, *, recovery=False):
+        if recovery:
+            config = read_document(config_path)
+            root, _, processes = load_config_document(
+                config_path, self._retire_transfer_setting(config))
+            return root, config, processes
         try:
             return load_config(config_path)
         except BatchValidationError as failure:
@@ -147,6 +162,43 @@ class FileProjectConfigUpdate:
                         or execution is not None and any(execution[key] is not None
                             for key in ('worktree', 'branch', 'pending', 'publication'))):
                     raise PoiseError('Resolve active execution or allocated worktree before root correction')
+
+    def _require_transfer_recovery_quiescence(self, root, config):
+        state = configured_root(root, config['paths']['state'])
+        database = descendant(state, config['paths']['database'])
+        if not database.is_file():
+            return
+        try:
+            with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as connection:
+                rows = connection.execute(
+                    'SELECT t.id,t.status,t.claimed_by,e.data FROM tasks t '
+                    'LEFT JOIN task_execution e ON e.task_id=t.id')
+                for task_id, status, claimant, raw in rows:
+                    if claimant is not None or status not in ('newborn', 'available', 'completed', 'cancelled'):
+                        raise PoiseError(f'Task {task_id}: active execution or ownership blocks recovery')
+                    execution = None if raw is None else json.loads(raw)
+                    if execution is None:
+                        continue
+                    if not isinstance(execution, dict):
+                        raise PoiseError(f'Task {task_id}: unreadable pending execution blocks recovery')
+                    if status not in ('completed', 'cancelled'):
+                        if any(execution.get(key) is not None for key in ('worktree', 'branch', 'pending', 'publication')):
+                            raise PoiseError(f'Task {task_id}: active execution blocks recovery')
+                        continue
+                    pending = execution.get('pending')
+                    if pending is None:
+                        continue
+                    if isinstance(pending, dict) and pending.get('kind') == 'task_cleanup':
+                        # Sole-key retirement does not change any cleanup input.
+                        # The existing material lock holds its effects paused.
+                        CleanupRun.restore(pending)
+                        continue
+                    if (isinstance(pending, dict) and pending.get('kind') == 'result_integration'
+                            and pending.get('status') == 'integrated' and pending.get('phase') == 'integrated'):
+                        continue
+                    raise PoiseError(f'Task {task_id}: pending external operation blocks recovery')
+        except (sqlite3.Error, ValueError) as exc:
+            raise PoiseError(f'Cannot inspect pending project work: {exc}') from exc
 
     def _manifest(self, config, edits, *, workspace=False):
         candidate = deepcopy(config)
@@ -251,9 +303,10 @@ class FileProjectConfigUpdate:
     def apply(self, request):
         settings = self.settings
         workspace = request['schema'] == 'project-worktree-root-1'
+        recovery = request['schema'] == 'project-transfer-config-recovery-1'
         config_path = self._config_path(request["config_path"])
         root, live_config, live_processes = self._source(
-            config_path, request["process_updates"]
+            config_path, request["process_updates"], recovery=recovery
         )
         receipt_path = self._receipt(settings.root, request["receipt_path"])
         pending_path = receipt_path.with_name(receipt_path.name + ".pending")
@@ -268,6 +321,10 @@ class FileProjectConfigUpdate:
                     saved = read_document(receipt_path)
                     if saved.get("request_digest") != request_digest:
                         raise VersionConflict("Different request uses the same request receipt")
+                    if recovery:
+                        _, observed, processes = self._source(config_path, [], recovery=True)
+                        if digest({'config': observed, 'processes': processes}) != saved['result']['revision']:
+                            raise VersionConflict('Unmanaged project change after completed recovery')
                     return {**saved["result"], "replayed": True}
                 replayed = False
                 if pending_path.is_file():
@@ -276,10 +333,10 @@ class FileProjectConfigUpdate:
                         raise VersionConflict("Different request uses the pending request receipt")
                     replayed = True
                 root, live_config, live_processes = self._source(
-                    config_path, request["process_updates"]
+                    config_path, request["process_updates"], recovery=recovery
                 )
                 current_revision = digest({"config": live_config, "processes": live_processes})
-                if not workspace and request["expected_revision"] not in self._known_revisions(root):
+                if not workspace and not recovery and request["expected_revision"] not in self._known_revisions(root):
                     raise VersionConflict("External project revision is not known")
                 if not replayed and current_revision != request["expected_revision"]:
                     raise VersionConflict("Live project differs from the expected known revision")
@@ -292,12 +349,32 @@ class FileProjectConfigUpdate:
                             "State relocation staging already exists; refusing unverified deletion"
                         )
                 state = configured_root(root, live_config["paths"]["state"])
+                if recovery:
+                    locks.enter_context(exclusive_lock(
+                        descendant(state, live_config['batch']['artifact_lock']),
+                        live_config['limits']['lock_seconds'], live_config['limits']['lock_poll_seconds']))
                 state_lock = descendant(state, live_config["paths"]["lock"])
                 locks.enter_context(exclusive_lock(
                     state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
                 ))
                 candidate_config = self._manifest(live_config, request["manifest_edits"], workspace=workspace)
                 candidate_processes = self._processes(live_processes, request["process_updates"])
+                recovery_audit = None
+                if recovery:
+                    self._require_transfer_recovery_quiescence(root, live_config)
+                    candidate_config = self._retire_transfer_setting(live_config)
+                    if not replayed and candidate_config == live_config:
+                        raise PoiseError('Retired transfer bundles_directory setting is absent')
+                    recovery_audit = {
+                        'before_config': live_config, 'before_processes': live_processes,
+                        'after_config': candidate_config, 'after_processes': candidate_processes,
+                        'reason': request['reason'], 'authorization': request['authorization']}
+                    if replayed:
+                        recovery_audit = pending.get('recovery')
+                        if (not isinstance(recovery_audit, dict)
+                                or digest({'config': recovery_audit.get('before_config'),
+                                           'processes': recovery_audit.get('before_processes')}) != request['expected_revision']):
+                            raise VersionConflict('Pending recovery lacks original revision and snapshots')
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
                 if workspace:
@@ -324,7 +401,8 @@ class FileProjectConfigUpdate:
                 if not replayed:
                     atomic_write(pending_path, encoded({"schema": "project-config-pending-1",
                         "request_id": request["request_id"], "request_digest": request_digest,
-                        "before": before, "after": after}, settings.raw["json_indent"]),
+                        "before": before, "after": after,
+                        **({'recovery': recovery_audit} if recovery else {})}, settings.raw["json_indent"]),
                         settings.raw["file_mode"])
                 for goal, process in candidate_processes.items():
                     if process != live_processes[goal]:
@@ -348,7 +426,7 @@ class FileProjectConfigUpdate:
                     result["state_relocation"] = relocation
                 atomic_write(receipt_path, encoded({"schema": "project-config-receipt-1",
                     "request_id": request["request_id"], "request_digest": request_digest,
-                    "result": result}, settings.raw["json_indent"]), settings.raw["file_mode"])
+                    "result": result, **({'recovery': recovery_audit} if recovery else {})}, settings.raw["json_indent"]), settings.raw["file_mode"])
                 pending_path.unlink(missing_ok=True)
                 return result
         except OSError as exc:

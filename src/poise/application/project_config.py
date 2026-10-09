@@ -6,11 +6,12 @@ from ..modules.foundation.errors import DomainError
 
 def validate_request(request, max_changes):
     workspace = isinstance(request, dict) and request.get('schema') == 'project-worktree-root-1'
+    recovery = isinstance(request, dict) and request.get('schema') == 'project-transfer-config-recovery-1'
     exact_keys(request, {
         "schema", "request_id", "config_path", "expected_revision", "manifest_edits",
         "process_updates", "state_relocation", "probe_repository", "receipt_path",
-    } | ({'reason', 'authorization'} if workspace else set()), "project config update")
-    if request["schema"] not in ("project-config-update-1", "project-worktree-root-1"):
+    } | ({'reason', 'authorization'} if workspace or recovery else set()), "project config update")
+    if request["schema"] not in ("project-config-update-1", "project-worktree-root-1", "project-transfer-config-recovery-1"):
         raise DomainError("Unsupported project config update schema; no migration")
     for key in ("request_id", "config_path", "expected_revision", "receipt_path"):
         if not isinstance(request[key], str) or not request[key].strip():
@@ -22,6 +23,13 @@ def validate_request(request, max_changes):
         raise DomainError("state_relocation must be an object or null")
     if type(request["probe_repository"]) is not bool:
         raise DomainError("Explicit probe_repository required")
+    if recovery:
+        if any(not isinstance(request[key], str) or not request[key].strip()
+               for key in ('reason', 'authorization')):
+            raise DomainError('Transfer config recovery requires reason and authorization')
+        if (request['manifest_edits'] or request['process_updates']
+                or request['state_relocation'] is not None or request['probe_repository']):
+            raise DomainError('Transfer config recovery changes only the retired transfer setting')
     if workspace:
         if any(not isinstance(request[key], str) or not request[key].strip()
                for key in ('reason', 'authorization')):

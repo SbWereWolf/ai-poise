@@ -191,6 +191,11 @@ class TaskQueries:
                 "version":row["version"],"_version":row["version"],"_execution_version":row["execution_version"],
                 "history":history,"progression":progression}
 
+    def receipt_task(self, receipt_id):
+        with self.database.transaction() as db:
+            row=db.execute('SELECT task_id FROM evidence WHERE id=?',(receipt_id,)).fetchone()
+            return None if row is None else row[0]
+
     def terminal_snapshot(self, task_id: str) -> dict:
         """One immutable ledger view for every terminal Task, not an execution restore."""
         from ...modules.tasks.domain import TaskStatus, is_terminal_task_status
@@ -210,7 +215,8 @@ class TaskQueries:
                         'sections': rows('SELECT submission_id,section_id,content,content_state FROM section_layers WHERE task_id=? ORDER BY submission_id,section_id'),
                         'trace_points': rows('SELECT submission_id,route_id,point_id,data FROM trace_point_layers WHERE task_id=? ORDER BY submission_id,route_id,point_id')},
                     'evidence': {
-                        'records': objects('SELECT data FROM evidence WHERE task_id=? ORDER BY id'),
+                        'records': [{**json.loads(r['data']), 'stage': r['stage'], 'iteration': r['iteration']}
+                                    for r in db.execute('SELECT data,stage,iteration FROM evidence WHERE task_id=? ORDER BY id', (task_id,))],
                         'proof': objects('SELECT data FROM task_proofs WHERE task_id=?'),
                         'proof_layers': rows('SELECT version,data FROM task_proof_layers WHERE task_id=? ORDER BY version')},
                     'history': objects('SELECT data FROM task_events WHERE task_id=? ORDER BY seq'),

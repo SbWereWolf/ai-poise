@@ -11,7 +11,8 @@ from tasks.test_duplicate_creation import prepared, duplicate
 from sprints.helpers import publish, verify, task, draft
 
 
-def family_result(project, *, integrate=True, blocked=False, source_id="P", start_target=False, command='print("checked")'):
+def family_result(project, *, integrate=True, blocked=False, source_id="P", start_target=False,
+                  command='print("checked")', before_accept=None):
     planner, client = prepared(project, command=command)
     duplicate(client)
     planner.bootstrap({'id': 'D'})
@@ -32,6 +33,8 @@ def family_result(project, *, integrate=True, blocked=False, source_id="P", star
     (Path(ctx['worktree']) / 'src/double.py').write_text('def double(n):\n    return n * 2\n')
     report = verify(WorkTools(parent), ctx)
     assert report['status'] == 'verified'
+    if before_accept is not None:
+        before_accept(WorkTools(parent), ctx, report)
     assert WorkTools(parent).invoke(request('accept', {}))['status'] == 'completed'
     if integrate:
         git(project['app'], 'merge', '--ff-only', report['commit'])

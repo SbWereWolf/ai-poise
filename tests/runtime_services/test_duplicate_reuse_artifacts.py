@@ -14,7 +14,7 @@ from poise.modules.foundation.errors import PoiseError
 
 
 def artifact_family(project, *, scope='task', content_rule=False, optional=False, binary=False, extra=False,
-                    command='print("checked")'):
+                    command='print("checked")', before_accept=None):
     setup(project)
     h = WorkPoise(project['config_path'], 'planner')
     contract = task(project, 'P', command=command)
@@ -59,6 +59,8 @@ def artifact_family(project, *, scope='task', content_rule=False, optional=False
         files.append(text_artifact(scope, 'second.txt', 'another accepted result\n'))
     report = WorkTools(producer).invoke(request('verify', {'result': payload, 'artifacts': files}))
     assert report['status'] == 'verified'
+    if before_accept is not None:
+        before_accept(WorkTools(producer), context, report)
     assert WorkTools(producer).invoke(request('accept', {}))['status'] == 'completed'
     git(project['app'], 'merge', '--ff-only', report['commit'])
     return WorkPoise(project['config_path'], 'consumer'), report

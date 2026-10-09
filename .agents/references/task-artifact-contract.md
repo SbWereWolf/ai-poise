@@ -29,3 +29,12 @@ recovery. Foreign runtime-session artifacts are not transferable permanent resul
 Failed local verification or an unusable source deliverable is not a permanent block. Preserve WIP and use the existing
 authorized restart to repair or regenerate the local result, then verify and accept normally. Do not edit the accepted
 source or erase failed evidence. A saved pre-delivery candidate requests restart; completed replay remains historical.
+
+## Terminal material retirement
+
+The Task folder is working storage. Agree every permanent output, including an artifact or proof file needed after
+terminal handling, through the [delivery owner](../../docs/workflows/terminal-materials.md#публичный-договор-поставки).
+After terminal status, confirmed delivery and closure of required consumers/resources, retire the entire owned root;
+there is no hidden raw-evidence archive. Minimal DB history and logical artifact identities remain. Physical reuse
+of a retired registered file requires its unique agreed permanent input with matching source identity and digest;
+never reconstruct bytes from a receipt or silently restore the root. Historical evidence is not fresh verification.

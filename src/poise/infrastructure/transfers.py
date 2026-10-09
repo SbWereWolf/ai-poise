@@ -7,13 +7,14 @@ import shutil
 import sys
 import tarfile
 
-from ..common import PoiseError, digest, encoded, file_digest, worktree_root
-from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest, eligible_omissions
+from ..common import PoiseError, digest, encoded, file_digest, read_json, worktree_root
+from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest, eligible_omissions, ExportPreparation
 from .sqlite.transfers import SqliteTransferRepository, completed_external_execution, snapshot_fingerprint
 from ..modules.transfers.placement import relocate_path, material_source
 from .sqlite.database import SCHEMA_VERSION
 from .goal_config import atomic_write
 from .locking import exclusive_lock
+from .file_publication import BinaryFilePublisher
 from .task_paths import sprint_root, task_root
 from .recovery_paths import recovery_path as descendant, recovery_absolute
 from .recovery_flow import WorkspaceRecoveryFlow
@@ -105,15 +106,14 @@ class RuntimeTransfers:
         old = self.repo.request(h.session, args['request_id'], identity)
         if old is not None:
             if old['phase'] == 'complete':
-                receipt = old['receipt']; path = Path(receipt['package_path'])
-                if not path.is_file() or file_digest(path) != receipt['package_digest']:
-                    raise PoiseError('Saved transfer package missing or changed')
-                return {**receipt, 'replayed': True}
+                return self._finish_export(args, old['receipt'], replayed=True)
             if old['phase'] == 'unknown':
                 return {**old['receipt'], 'replayed': True}
-            raise PoiseError('Prior package preparation needs an explicit recovery decision')
-        selected = args['task_ids']
-        if args['handoff'] is not None:
+            if old['phase'] not in ('preparing', 'prepared'):
+                raise PoiseError('Prior package preparation needs an explicit recovery decision')
+        selected = (old['task_ids'] if old is not None and args['sprint_id'] is None
+                    else args['task_ids'])
+        if old is None and args['handoff'] is not None:
             current = h.current_task()
             if current is None:
                 raise PoiseError('No current task for combined transfer/handoff')
@@ -124,10 +124,27 @@ class RuntimeTransfers:
             if selected is None and args['sprint_id'] is None:
                 selected = [current['id']]
             h.handoff_tools.preserve(args['handoff'], portable=True)
+        if old is not None and old['phase'] == 'prepared':
+            prepared = ExportPreparation.parse(old)
+        else:
+            with h.delivery_effects.locked():
+                prepared = self._prepare_export(args, selected, old)
+        return self._publish_prepared(args, prepared)
+
+    def _prepare_export(self, args, selected, old):
+        h, c, identity = self.h, self.policy, digest(args)
         h.result_views.finish()
         tables = self.repo.capture(selected, args['sprint_id'], h.cfg['project'], c['max_tasks'])
         task_ids = [r['id'] for r in tables['tasks']]
         sprint_ids = [r['id'] for r in tables['sprints']]
+        preparation = ExportPreparation.parse({'phase': 'preparing', 'task_ids': task_ids,
+            'sprint_ids': sprint_ids, 'fingerprint': snapshot_fingerprint(tables)})
+        if old is not None and ExportPreparation.parse(old).data != preparation.data:
+            raise PoiseError('Original export inputs changed before preparation completed')
+        for task_id in task_ids:
+            h.delivery_tools.material_admission(task_id, 'export')
+        if old is None:
+            self.repo.remember_export(h.session, args['request_id'], identity, preparation.data, expected_phase=None)
         directory, paths = self._paths(args)
         owners = {'task': {r['id']: str(task_root(h.state, h.paths, r['id'], _sprint_id(r)))
                            for r in tables['tasks']},
@@ -135,6 +152,9 @@ class RuntimeTransfers:
                   'worktree': {}}
         self._external(paths.values(), [*owners['task'].values(), *owners['sprint'].values()])
         stage = paths['staging']
+        BinaryFilePublisher.without_links(stage, 'Export staging')
+        if stage.exists():
+            shutil.rmtree(stage)
         stage.mkdir(parents=True, exist_ok=False)
         files, observed, packaged_paths = [], [], set()
         total = 0
@@ -156,6 +176,7 @@ class RuntimeTransfers:
                 with source.open('rb') as incoming, target.open('wb') as outgoing:
                     while chunk := incoming.read(c['chunk_bytes']):
                         outgoing.write(chunk)
+                    outgoing.flush(); os.fsync(outgoing.fileno())
                 os.chmod(target, c['file_mode'])
             sha = file_digest(target)
             if source.stat().st_size != size or file_digest(source) != sha:
@@ -280,8 +301,27 @@ class RuntimeTransfers:
                     'mapping': self.recovery['mapping'], 'proofs': proofs,
                     'omitted_artifacts': [r['id'] for r in tables['artifacts'] if r['path'] not in packaged_paths]}
         validate_package_manifest(manifest, c, tables)
-        atomic_write(descendant(stage, c['manifest']), (encoded(manifest) + '\n').encode(), c['file_mode'])
-        self.repo.remember(h.session, args['request_id'], identity, {'phase': 'creating'})
+        manifest_path = descendant(stage, c['manifest'])
+        atomic_write(manifest_path, (encoded(manifest) + '\n').encode(), c['file_mode'])
+        prepared = preparation.seal(str(manifest_path), file_digest(manifest_path))
+        self._validate_prepared(args, prepared)
+        for item in [manifest_path, *(descendant(stage, f['path']) for f in files)]:
+            fd = os.open(item, os.O_RDONLY | os.O_NOFOLLOW)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            BinaryFilePublisher.sync_parent(item)
+        BinaryFilePublisher.sync_parent(stage)
+        self.repo.remember_export(h.session, args['request_id'], identity,
+                                  prepared.data, expected_phase='preparing')
+        return prepared
+
+    def _publish_prepared(self, args, prepared):
+        h, c, identity = self.h, self.policy, digest(args)
+        manifest = self._validate_prepared(args, prepared)
+        directory, paths = self._paths(args)
+        stage = paths['staging']
         outcome = self.flow.run(self.recovery['create_flow'],
                                 {'workspace': str(directory), 'staging': str(stage), 'package': str(paths['package'])},
                                 directory / 'create-flow.json', paths['create_session'])
@@ -294,13 +334,63 @@ class RuntimeTransfers:
         if not paths['package'].is_file():
             raise PoiseError('Configured creation flow did not produce the package')
         self._inspect(paths['package'])
+        self._validate_prepared(args, prepared)
         receipt = {'status': 'exported', 'success': True, 'package_path': str(paths['package']),
-                   'package_digest': file_digest(paths['package']), 'task_ids': task_ids, 'sprint_ids': sprint_ids,
+                   'package_digest': file_digest(paths['package']),
+                   'task_ids': prepared.data['task_ids'], 'sprint_ids': prepared.data['sprint_ids'],
                    'replayed': False, 'steps': outcome['steps'], 'delivery': 'local_package_only'}
-        self.repo.remember(h.session, args['request_id'], identity, {'phase': 'complete', 'receipt': receipt})
-        h.store.event(h.session, None, 'transfer.exported', receipt)
-        shutil.rmtree(stage); h._cleanup_runtime()
-        return receipt
+        self.repo.remember_export(h.session, args['request_id'], identity,
+                                  {'phase': 'complete', 'receipt': receipt}, expected_phase='prepared')
+        return self._finish_export(args, receipt, replayed=False)
+
+    def _validate_prepared(self, args, prepared):
+        data, c = prepared.data, self.policy
+        _, paths = self._paths(args)
+        stage = paths['staging']
+        manifest_path = descendant(stage, c['manifest'])
+        if data['phase'] != 'prepared' or data['manifest']['path'] != str(manifest_path):
+            raise PoiseError('Prepared export staging owner changed')
+        if BinaryFilePublisher.read(manifest_path, 'Prepared export manifest') != data['manifest']['digest']:
+            raise PoiseError('Prepared export manifest integrity mismatch')
+        manifest = read_json(manifest_path)
+        validate_package_manifest(manifest, c)
+        inventory = {item['path']: item for item in manifest['files']}
+        if (manifest['task_ids'], manifest['sprint_ids'], manifest['state_fingerprint']) != (
+                data['task_ids'], data['sprint_ids'], data['fingerprint']):
+            raise PoiseError('Prepared export selection changed')
+        for name, item in inventory.items():
+            path = descendant(stage, name)
+            if BinaryFilePublisher.read(path, 'Prepared export file') != item['digest'] or path.stat().st_size != item['size']:
+                raise PoiseError('Prepared export file integrity mismatch')
+        tables = self.repo.read_snapshot(descendant(stage, c['database']))
+        if snapshot_fingerprint(tables) != data['fingerprint']:
+            raise PoiseError('Prepared export snapshot integrity mismatch')
+        if sorted(row['id'] for row in tables['tasks']) != sorted(data['task_ids']):
+            raise PoiseError('Prepared export snapshot owner changed')
+        validate_package_manifest(manifest, c, tables)
+        return manifest
+
+
+    def _finish_export(self, args, receipt, *, replayed):
+        """Finish only this completed request's remaining preparation cleanup."""
+        package = Path(receipt['package_path'])
+        if not package.is_file() or file_digest(package) != receipt['package_digest']:
+            raise PoiseError('Saved transfer package missing or changed; no false successful replay')
+        if not replayed:
+            self.h.store.event(self.h.session, None, 'transfer.exported', receipt)
+        _, paths = self._paths(args)
+        stage = paths['staging']
+        BinaryFilePublisher.without_links(stage, 'Export staging')
+        if os.path.lexists(stage):
+            if not stage.is_dir():
+                raise PoiseError('Export staging is not a directory')
+            shutil.rmtree(stage)
+            BinaryFilePublisher.sync_parent(stage)
+        if os.path.lexists(stage):
+            raise PoiseError('Export preparation removal incomplete')
+        self.h._cleanup_runtime()
+        return {**receipt, 'replayed': replayed}
+
 
     def _inspect(self, path):
         """Read bounded tar metadata/manifest; extraction belongs to the tool."""

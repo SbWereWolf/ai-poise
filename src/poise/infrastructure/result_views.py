@@ -115,7 +115,7 @@ class ResultViews:
         profile = self.policy.select(receipt['argv'])
         return OutputParser(profile, self.config['chunk_bytes']).render('primary', receipt, directory)
 
-    def command_views(self, receipts):
+    def command_views(self, receipts, *, retired_ids=()):
         """Agent-only records; rendering failure never changes command truth."""
         views = []
         for receipt in receipts:
@@ -125,6 +125,10 @@ class ResultViews:
                 continue  # Other JSON records are not file-backed command receipts.
             view = {key: receipt[key] for key in ('id', 'method', 'actual_exit_code', 'passed')
                     if key in receipt}
+            if receipt['id'] in retired_ids:
+                view.update(availability='retired',primary='Stored historical result; working output retired')
+                views.append(view)
+                continue
             try:
                 view['primary'] = self.primary(receipt, Path(receipt['stdout']).parent)
             except (PoiseError, OSError, ValueError) as exc:

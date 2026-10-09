@@ -34,8 +34,14 @@ class LocalHandoff:
             if prior['digest']!=key:raise PoiseError('Handoff request reused with different content')
             if prior['state'] in ('released','resumed'):
                 return {**prior['receipt'],'replayed':True}
+        with h.delivery_effects.locked():
+            return self._preserve_material(args, request_id, key, prior)
+
+    def _preserve_material(self, args, request_id, key, prior):
+        h = self.h
         data=h.current_task()
         if data is None:raise PoiseError('No current task to hand off')
+        h.delivery_tools.material_admission(data['id'], 'handoff')
         data=h._task();worktree_free=data['worktree'] is None
         newborn=data['status']=='newborn'
         if newborn and args['result'] is not None:

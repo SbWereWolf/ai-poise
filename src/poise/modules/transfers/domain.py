@@ -342,3 +342,42 @@ def eligible_omissions(manifest, tables):
         if excluded or artifact['path'] in generated_handoff_files:
             eligible.add(artifact['id'])
     return eligible
+
+
+@dataclass(frozen=True)
+class ExportPreparation:
+    """An admitted snapshot belongs to one request, not its later live Task."""
+    data: dict
+
+    @classmethod
+    def parse(cls, value):
+        if not isinstance(value, dict) or value.get('phase') not in ('preparing', 'prepared'):
+            raise DomainError('Invalid export preparation phase')
+        fields = {'phase', 'task_ids', 'sprint_ids', 'fingerprint'}
+        if value['phase'] == 'prepared':
+            fields.add('manifest')
+        exact(value, fields, 'export preparation')
+        for key in ('task_ids', 'sprint_ids'):
+            ids = value[key]
+            if not isinstance(ids, list) or len(ids) != len(set(ids)):
+                raise DomainError('Invalid export preparation owners')
+            for owner in ids:
+                path_identifier(owner)
+        if not value['task_ids']:
+            raise DomainError('Export preparation needs Task owners')
+        if not isinstance(value['fingerprint'], str) or not re.fullmatch('[0-9a-f]{64}', value['fingerprint']):
+            raise DomainError('Exact export snapshot fingerprint required')
+        if value['phase'] == 'prepared':
+            manifest = value['manifest']
+            exact(manifest, {'path', 'digest'}, 'prepared export manifest')
+            if not isinstance(manifest['path'], str) or not manifest['path'].startswith('/'):
+                raise DomainError('Absolute prepared manifest path required')
+            if not isinstance(manifest['digest'], str) or not re.fullmatch('[0-9a-f]{64}', manifest['digest']):
+                raise DomainError('Exact prepared manifest digest required')
+        return cls(deepcopy(value))
+
+    def seal(self, path, digest):
+        if self.data['phase'] != 'preparing':
+            raise DomainError('Only an unsealed export can be prepared')
+        return self.parse({**self.data, 'phase': 'prepared',
+                           'manifest': {'path': path, 'digest': digest}})

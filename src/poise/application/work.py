@@ -33,7 +33,8 @@ class WorkTools:
             events[-1].identity if events else None,
         )
         try:
-            if op=='task':out=h.task_action(args)
+            if op=='delivery':out=h.delivery_tools.apply(args)
+            elif op=='task':out=h.task_action(args)
             elif op=='sprint':out=h.sprint_tools.apply(args)
             elif op=='transfer':out=h.transfer_tools.apply(args)
             elif op=='bootstrap':
@@ -68,6 +69,8 @@ class WorkTools:
                 out={'status':'artifacts_created','artifact_paths':paths,
                      'artifacts':[{'id':r['id'],'path':r['path'],'scope':r['scope']} for r in records]}
             else:raise PoiseError('Unreachable work operation')
+            if op in ('cleanup','integrate','accept','cancel') and isinstance(out.get('task'),str):
+                out=h.delivery_after(out,op)
         except Exception:
             after = None if ownership_recovery else h.current_task()
             self.interactions.record(events,h.session,after if after is not None and not is_terminal_task_status(after['status']) else bound_before)
@@ -119,7 +122,8 @@ class WorkTools:
         h=self.runtime;items=[]
         for query in queries:
             kind=query['kind']
-            if kind=='accounting':
+            if kind=='task_delivery':value=h.delivery_tools.query(query['task_id'])
+            elif kind=='accounting':
                 value=h.accounting.report({k:v for k,v in query.items() if k not in ('id','kind')})
                 value={**value,'telemetry':h.accounting.telemetry_summary(h.telemetry.summary())}
             elif kind=='tool_result':value=h.show_output(query['receipt_id'],query['representation'],query['range'])

@@ -40,8 +40,14 @@ class TaskResourceCleanup:
             raise PoiseError("Unknown cleanup request identity")
         return run.result(replayed=run.complete)
 
-    def apply(self, args: dict) -> dict:
-        intent = CleanupIntent.parse(args)
+    def apply(self, args: dict, *, internal=False) -> dict:
+        if internal:
+            return self._apply(args, internal=True)
+        with self.adapter.material_scope():
+            return self._apply(args, internal=False)
+
+    def _apply(self, args, *, internal):
+        intent = CleanupIntent.parse(args, internal=internal)
         value = self.adapter.load(intent.task_id)
         if value is None:
             run = self.prepare_terminal(intent.task_id, intent.request_id, intent.authorization)
@@ -100,6 +106,12 @@ class TaskResourceCleanup:
         if run.blocker is not None:
             run = run.retry_blocked()
             self.adapter.save(intent.task_id, self.pending(run))
+
+        reason = self.adapter.material_gate(intent.task_id)
+        if reason and run.resources:
+            run = run.cleanup_blocked(run.resources[0], {'reason': reason})
+            self.adapter.save(intent.task_id, self.pending(run))
+            return run.result()
 
         try:
             self.adapter.validate(intent.task_id, run)

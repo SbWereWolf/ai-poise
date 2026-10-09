@@ -1139,6 +1139,11 @@ class TaskCommands:
         identity = _action_digest('advance', {'task_id': task_id, 'target_stage': target_stage})
         with self.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
+            if task.state.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+                saved = uow.tasks.progression_request(task_id, request_id, identity)
+                if saved is not None and saved['result'] is not None:
+                    return {**saved, 'result': {**saved['result'], 'replayed': True}}
+                raise DomainError('Terminal Task has no completed progression receipt for this request')
             ownership = uow.ownership.preflight(actor, task_id)
             if (task.state.claimed_by != actor or
                     (uow.ownership.worktree_required(task_id) and ownership.worktree_owner != actor) or

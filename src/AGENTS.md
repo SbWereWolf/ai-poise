@@ -369,3 +369,10 @@ Deliberate ordinary root replacement is allowed; device/inode is audit only, whi
 owner/path/type/link checks
 remain. Do not introduce adversarial root pinning, quarantine or independent cleanup
 implementations.
+
+For a completed integration, use the existing delivery owner's authoritative retirement
+state to read historical checks without live retained inputs or proof files. Missing files
+alone grant no exemption. Keep live/nonterminal validation and partial-retirement settlement
+with their existing owners. Follow the
+[historical replay
+contract](../docs/workflows/terminal-materials.md#чтение-и-повторное-использование-после-удаления).

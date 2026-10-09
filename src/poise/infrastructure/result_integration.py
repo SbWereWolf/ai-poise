@@ -181,6 +181,10 @@ class RuntimeResultIntegration:
             self._destination_refusal("task_worktree_not_registered", facts)
         return repository
 
+    def _retired_history(self, record, run):
+        return (run is not None and run.complete
+                and self.h.delivery_tools.unavailable(record["id"]))
+
     def _admit(self, intent):
         record, run, legacy_version = self._read_state(intent.task_id)
         if run is not None and not self._same_intent(run, intent) \
@@ -190,7 +194,8 @@ class RuntimeResultIntegration:
             repository = self._validate_destination(record)
         else:
             repository = Path(self.h.cfg["git"]["repository"]).resolve(strict=True)
-        self.h.retention.validate_bundle(record, record["last_report"])
+        if not self._retired_history(record, run):
+            self.h.retention.validate_bundle(record, record["last_report"])
         if legacy_version is not None:
             if run.status != "integrated" and run.phase != "cleanup_pending":
                 self._preflight_checks(record)
@@ -1141,6 +1146,8 @@ class RuntimeResultIntegration:
 
     def _result(self, record, run, replayed=False):
         result = run.result(replayed=replayed)
+        if self._retired_history(record, run):
+            return result
         passed_batch = self._passed_batch_ids(run)
         if passed_batch is None:
             return result

@@ -1,0 +1,10 @@
+{
+  "status": "read_only",
+  "task": "T1",
+  "summary": "Historical check passed",
+  "history": {
+    "method": "SAMPLE",
+    "actual_exit_code": 0,
+    "passed": true
+  }
+}

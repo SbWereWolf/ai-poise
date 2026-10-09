@@ -63,7 +63,8 @@ def test_missing_historical_diagnostic_commit_does_not_block_current_recheck(pro
     assert response["replay"]["passed"][0]["commit"] == source
 
 
-def test_mixed_gate_rechecks_current_tests_and_preserves_file(project):
+def test_mixed_gate_rechecks_historical_tests_and_preserves_file(project):
+    # Keep the registered test ID; historical methods now run on current code.
     case = prepared(project, file_proof=b"accepted mixed proof")
     response = launch(case, target="code_review")
     assert response["stage"] == "code_review"

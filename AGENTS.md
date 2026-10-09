@@ -60,6 +60,20 @@ Do not introduce symbolic-link checks by default. Such checks require an explici
 request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
 Follow [explicit agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
 
+Present historical receipts of terminal Tasks with the message
+"Служебные материалы задачи удалены. Служебные журналы уничтожены" based on the owning Task's state,
+including when log files remain. Resolve ownership through stage evidence or the saved integration
+result;
+show state/owner lookup errors explicitly. Preserve receipt identity, method, exit code, pass
+outcome and Task
+in both the saved full response and brief view. Keep a fitting full response whole; preserve
+mandatory history
+when shortening and report an explicit error if its minimum exceeds the budget. Physical delivery
+and retirement
+remain with their existing owner. Follow [terminal
+history](docs/workflows/terminal-materials.md#чтение-и-повторное-использование-после-удаления)
+and [full output](docs/workflows/runner.md#полный-вывод-и-preview).
+
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
 present self-review as independent review.

@@ -284,3 +284,67 @@ def test_recovery_observes_existing_material_lock_before_publication(project):
             update_tools(settings).apply(recovery_request(path, config, processes))
     assert path.read_bytes() == before
     assert not (project['root'] / 'operations/project-update-1.json').exists()
+
+
+def test_recovery_preserves_released_newborn_retained_workspace(project):
+    settings, path, _ = installed_project(project)
+    tools = work_tools(path, 'restart-fixture-owner')
+    tools.invoke({'operation': 'bootstrap', 'input': {
+        'task': project['task'], 'decision': None, 'feedback': None,
+        'rework_stage': None}, 'messages': []})
+    retained = project['root'] / 'retained-worktree'
+    retained.mkdir()
+    source = retained / 'unfinished.txt'
+    source.write_text('Preserved uncommitted developer work\n')
+    # Isolate the persisted, released restart shape; do not manufacture ready.
+    with tools.runtime.store.database.transaction() as db:
+        execution = json.loads(db.execute('SELECT data FROM task_execution WHERE task_id=?', ('T1',)).fetchone()[0])
+        execution.update(worktree=str(retained), branch='tasks/T1', pending=None, publication=None)
+        db.execute('UPDATE task_execution SET data=? WHERE task_id=?', (json.dumps(execution), 'T1'))
+        db.execute('UPDATE tasks SET status=?,claimed_by=NULL WHERE id=?', ('newborn', 'T1'))
+    before_database = tools.runtime.store.database.path.read_bytes()
+    before_source = source.read_bytes()
+    config, processes = obsolete_config(path)
+    assert update_tools(settings).apply(recovery_request(path, config, processes))['status'] == 'updated'
+    assert tools.runtime.store.database.path.read_bytes() == before_database
+    assert source.read_bytes() == before_source
+
+
+@pytest.mark.parametrize('tamper', ['authorization', 'reason', 'after_config', 'after_processes', 'before_config'])
+@pytest.mark.parametrize('phase', ['pending', 'completed'])
+def test_recovery_rejects_inconsistent_audit(project, monkeypatch, tamper, phase):
+    import poise.infrastructure.project_config as owner
+    settings, path, _ = installed_project(project)
+    config, processes = obsolete_config(path)
+    packet = recovery_request(path, config, processes)
+    receipt = project['root'] / packet['receipt_path']
+    pending = receipt.with_name(receipt.name + '.pending')
+    original = owner.atomic_write
+    def interrupted(target, content, mode):
+        if target == receipt:
+            raise OSError('Interrupted before final receipt')
+        return original(target, content, mode)
+    if phase == 'pending':
+        with monkeypatch.context() as patch:
+            patch.setattr(owner, 'atomic_write', interrupted)
+            with pytest.raises(PoiseError, match='interrupted'):
+                update_tools(settings).apply(packet)
+    else:
+        update_tools(settings).apply(packet)
+    audit_path = pending if phase == 'pending' else receipt
+    saved = json.loads(audit_path.read_text())
+    if tamper in ('authorization', 'reason'):
+        saved['recovery'][tamper] = 'Not the original request'
+    elif tamper in ('before_config', 'after_config'):
+        saved['recovery'][tamper]['git']['remote'] = 'false-audit-remote'
+    else:
+        saved['recovery'][tamper]['development']['stages'][0]['instruction'] = 'False audit process'
+    write_json(audit_path, saved)
+    before_manifest = path.read_bytes()
+    before_audit = audit_path.read_bytes()
+    with pytest.raises(PoiseError, match='audit|snapshots|revision'):
+        update_tools(settings).apply(packet)
+    assert path.read_bytes() == before_manifest
+    assert audit_path.read_bytes() == before_audit
+    if phase == 'pending':
+        assert not receipt.exists()

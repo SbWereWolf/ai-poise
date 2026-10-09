@@ -5,11 +5,12 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded,digest
-from ...modules.transfers.domain import validate_saved_work
+from ...modules.transfers.domain import validate_saved_work, ExportPreparation
 from .database import SCHEMA,SCHEMA_VERSION
 from .tasks import SqliteTaskRepository
 from .sprints import SqliteSprintRepository
-from .transfer_records import ALL_TABLES,ACCOUNTING_TABLES,insert,relocate_path
+from .transfer_records import ALL_TABLES,ACCOUNTING_TABLES,insert
+from ...modules.transfers.placement import relocate_path
 
 
 def snapshot_fingerprint(tables):
@@ -31,6 +32,34 @@ def completed_external_execution(pending):
 
 class SqliteTransferRepository:
     def __init__(self,database):self.database=database
+
+    def pending_consumers(self, task_id):
+        return self._consumers(task_id, ('preparing', 'prepared'))
+
+    def preparing_consumers(self, task_id):
+        return self._consumers(task_id, ('preparing',))
+
+    def _consumers(self, task_id, phases):
+        with self.database.transaction() as db:
+            rows = db.execute("SELECT data FROM transfer_requests WHERE json_extract(data,'$.phase') IN (" +
+                              ','.join('?' for _ in phases) + ")", phases)
+            # Import preparation has a different contract and is not an export consumer.
+            return any('task_ids' in data and task_id in ExportPreparation.parse(data).data['task_ids']
+                       for data in (json.loads(row[0]) for row in rows))
+
+    def remember_export(self, actor, rid, identity, data, expected_phase):
+        if data['phase'] != 'complete':
+            ExportPreparation.parse(data)
+        with self.database.transaction() as db:
+            prior = db.execute('SELECT digest,data FROM transfer_requests WHERE actor=? AND request_id=?',
+                               (actor, rid)).fetchone()
+            if prior is not None and prior['digest'] != identity:
+                raise PoiseError('Transfer request identity conflict')
+            phase = None if prior is None else json.loads(prior['data'])['phase']
+            if phase != expected_phase:
+                raise PoiseError('Export preparation phase changed concurrently')
+            db.execute('INSERT INTO transfer_requests VALUES(?,?,?,?) ON CONFLICT(actor,request_id) DO UPDATE SET data=excluded.data',
+                       (actor, rid, identity, encoded(data)))
 
     def request(self,actor,rid,identity):
         with self.database.transaction() as db:
@@ -118,7 +147,15 @@ class SqliteTransferRepository:
             if db.execute('PRAGMA quick_check').fetchone()[0]!='ok' or db.execute('PRAGMA foreign_key_check').fetchone():
                 raise PoiseError('Snapshot database integrity error')
             result={table:[dict(r) for r in db.execute(f'SELECT * FROM {table} ORDER BY rowid')] for table in ALL_TABLES}
-            for row in result['tasks']:SqliteTaskRepository(db).load(row['id'])
+            from ...modules.requirements_registry.service import TaskRequirementsGate
+            owner = SqliteTaskRepository(db)
+            for row in result['tasks']:
+                owner.load(row['id'])
+                context = owner.restart_context(row['id'])
+                snapshot, agreement = context['requirements_snapshot'], context['requirements_agreement']
+                body = {**context['contract'], 'requirements_snapshot': snapshot,
+                        'requirements_agreement': agreement}
+                TaskRequirementsGate.enabled(lambda: None).prepare_restarted_contract(body, snapshot, agreement)
             validate_saved_work(result['tasks'],{r['task_id'] for r in result['handoffs'] if r['state']=='released'})
             return result
 
@@ -170,3 +207,52 @@ class SqliteTransferRepository:
         with self.database.transaction() as db:
             row=db.execute('SELECT data FROM transfer_imports WHERE package_digest=?',(sha,)).fetchone()
             return None if row is None else json.loads(row['data'])
+
+    def delivery_for_task(self, task_id):
+        with self.database.transaction() as db:
+            return SqliteTransferContext(db).delivery_for_task(task_id)
+
+    def delivery_for_sprint(self, sprint_id):
+        with self.database.transaction() as db:
+            return SqliteTransferContext(db).delivery_for_sprint(sprint_id)
+
+
+class SqliteTransferContext:
+    """Imported availability and one-time fresh verification, owned by delivery."""
+    def __init__(self, connection):
+        self.db = connection
+
+    def _receipt_for_owner(self, scope, owner_id):
+        owner_ids = {'task': 'task_ids', 'sprint': 'sprint_ids'}[scope]
+        row = self.db.execute(
+            f"SELECT i.data FROM transfer_imports i JOIN json_each(i.data,'$.{owner_ids}') o "
+            "ON o.value=?", (owner_id,)).fetchone()
+        return None if row is None else json.loads(row['data'])
+
+    def delivery_for_sprint(self, sprint_id):
+        receipt = self._receipt_for_owner('sprint', sprint_id)
+        if receipt is None:
+            return None
+        return {**receipt['delivery'], 'package_digest': receipt['package_digest']}
+
+    def delivery_for_task(self, task_id):
+        receipt = self._receipt_for_owner('task', task_id)
+        if receipt is None:
+            return None
+        opened = self.db.execute(
+            "SELECT data FROM journal WHERE task_id=? AND event='transfer.verification_opened' "
+            "AND json_extract(data,'$.package_digest')=?", (task_id, receipt['package_digest'])).fetchone()
+        return {**receipt['delivery'], 'package_digest': receipt['package_digest'],
+                'verification_opened': opened is not None,
+                'verification_origin': None if opened is None else json.loads(opened['data'])}
+
+    def open_verification(self, task_id, actor, package_digest):
+        origin = self.db.execute(
+            'SELECT stage_index,iteration,current_submission_id,version FROM tasks WHERE id=?',
+            (task_id,)).fetchone()
+        value = {'package_digest': package_digest, 'stage_index': origin['stage_index'],
+                 'iteration': origin['iteration'], 'submission_id': origin['current_submission_id'],
+                 'version': origin['version']}
+        self.db.execute('INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)',
+                        (datetime.now(timezone.utc).isoformat(), actor, task_id,
+                         'transfer.verification_opened', encoded(value)))

@@ -112,6 +112,13 @@ class HandoffCommands:
                 require_reviewer_identity_in(uow, task, actor, acquiring=True)
                 if task.state.version!=record['version']+1:raise PoiseError('Task changed after preserved handoff')
                 uow.tasks.save(task.resume_handoff(actor),task.state.version)
+                delivery = uow.transfers.delivery_for_task(task_id)
+                if delivery is not None and not delivery['verification_opened']:
+                    uow.transfers.open_verification(task_id, actor, delivery['package_digest'])
+                    resumed = uow.tasks.load(task_id)
+                    uow.tasks.save(resumed.open_delivery_verification(actor), resumed.state.version)
+                    uow.execution.patch(task_id, {'last_report': None, 'publication': None})
+                    uow.work_packets.invalidate(task_id)
             if uow.ownership.worktree_required(task_id):
                 target=uow.ownership.preflight(actor,task_id)
                 if target.worktree_owner not in (None,request_actor,actor):

@@ -1,0 +1,59 @@
+{
+  "collected": [
+    "tests/transfer/test_recovery_regressions.py::test_recovered_task_can_be_exported_and_restored_again_without_original_source",
+    "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[changed]",
+    "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[missing]"
+  ],
+  "collection": [],
+  "exit_code": 1,
+  "reports": [
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_recovered_task_can_be_exported_and_restored_again_without_original_source",
+      "phase": "call",
+      "outcome": "failed",
+      "diagnostic": "Failed: Recovered task cannot export authenticated omitted history"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_recovered_task_can_be_exported_and_restored_again_without_original_source",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_recovered_task_can_be_exported_and_restored_again_without_original_source",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[changed]",
+      "phase": "call",
+      "outcome": "failed",
+      "diagnostic": "Failed: Recovered task cannot export authenticated omitted history"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[changed]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[changed]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[missing]",
+      "phase": "call",
+      "outcome": "failed",
+      "diagnostic": "Failed: Recovered task cannot export authenticated omitted history"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[missing]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_required_material_is_not_excused_by_an_imported_historical_omission[missing]",
+      "phase": "teardown",
+      "outcome": "passed"
+    }
+  ]
+}

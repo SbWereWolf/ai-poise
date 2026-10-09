@@ -12,6 +12,8 @@ from ..modules.result_views.domain import bounded_envelope, response_required
 def _task_root(h, task):
     saved = h.task_queries.record(task['id'])
     sprint_id = task.get('sprint_id') if saved is None else saved['sprint_id']
+    if h.delivery_tools.unavailable(task['id']):
+        return h.runtime
     return task_root(h.state, h.paths, h._identifier(task['id']), sprint_id)
 
 
@@ -60,5 +62,7 @@ def write_result(h,result,output):
     metadata={'details':'full_result','session':h.session}
     metadata.update({key:result[key] for key in ('task','stage','iteration','next_work') if key in result})
     if 'results' in result:metadata['result_count']=len(result['results'])
-    command_views=h.result_views.command_views(result.get('checks',[]))
+    checks = result.get('checks', [])
+    retired_ids = {r['id'] for r in checks if isinstance(r, dict) and 'id' in r and h.retired_receipt(r)}
+    command_views=h.result_views.command_views(checks, retired_ids=retired_ids)
     output.write(bounded_envelope(result,response,h.cfg['limits']['output_chars'],metadata,{},command_views))

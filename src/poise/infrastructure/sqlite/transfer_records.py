@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 from ...common import PoiseError, encoded
+from ...modules.transfers.placement import relocate_path
 
 TASK_TABLES = ('tasks','submissions','section_layers','trace_point_layers','workflow_layers',
                'task_results','task_events','task_methods','content_contracts','task_workflows',
@@ -69,14 +70,6 @@ def restore_sprints(db, tables, binding):
             insert(db,table,row)
 
 
-def relocate_path(value,locations):
-    if not isinstance(value,str):return value
-    for old,new in sorted(locations.items(),key=lambda x:len(x[0]),reverse=True):
-        if value==old:return new
-        if value.startswith(old+'/'):return new+value[len(old):]
-    return value
-
-
 def relocate_receipt(value,locations):
     """Only mechanical path fields. Never rewrite section text, argv or an argument."""
     if value is None:return None
@@ -84,7 +77,7 @@ def relocate_receipt(value,locations):
     if not isinstance(value,dict):return value
     result={}
     for key,item in value.items():
-        if key in ('path','worktree','directory','manifest','stdout','stderr','bundle_path','receipt_path'):
+        if key in ('path','worktree','directory','manifest','stdout','stderr','bundle_path','receipt_path','captured_path'):
             result[key]=relocate_path(item,locations)
         elif key in ('artifact_paths','preserved_artifacts'):
             result[key]=[relocate_path(x,locations) for x in item]

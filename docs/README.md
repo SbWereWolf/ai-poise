@@ -44,6 +44,7 @@
 ## Рабочие процессы
 
 - [Действия](workflows/actions.md)
+- [Поставка результата и удаление Task-материалов](workflows/terminal-materials.md)
 - [Пакетная работа](workflows/batch-work.md)
 - [Требования к содержимому](workflows/content-requirements.md)
 - [Доказательства](workflows/evidence.md)

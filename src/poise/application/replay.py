@@ -28,7 +28,10 @@ class ReplayCoordinator:
                 raise DomainError('Progression target is not reachable')
             start = self.workspace.inspect_preservation(context['sources'])
             key = hashlib.sha256((task_id + '\0' + request_id).encode()).hexdigest()
-            cursor = {'start_commit': start, 'recovery_ref': f'refs/poise/replay/{key}',
+            current_commit, current_tree = self.workspace.current_identity()
+            if current_commit != start:
+                raise DomainError('Replay checkpoint changed during preparation')
+            cursor = {'start_commit': start, 'current_tree': current_tree, 'recovery_ref': f'refs/poise/replay/{key}',
                       'subject_commit': None, 'sources': context['sources'],
                       'passed': [], 'phase': 'preserve'}
             self.commands.start_replay(task_id, actor, request_id, target_stage, cursor)
@@ -63,45 +66,38 @@ class ReplayCoordinator:
                 return stop('progression_stopped', 'route_unavailable', stage, None)
             if following != source['workflow']['next_stage']:
                 return stop('progression_stopped', 'route_unavailable', stage, None)
-            if not self.workspace.contains(source['commit']):
-                return stop('progression_stopped', 'source_unavailable', stage, None)
-            if cursor['phase'] == 'preserved':
-                cursor['previous_commit'] = cursor['subject_commit'] or cursor['start_commit']
-                cursor['checkout_commit'] = source['commit']
-                cursor['phase'] = 'checkout'
-                self.commands.save_replay_progress(task_id, actor, request_id, cursor)
-            if cursor['checkout_commit'] != source['commit']:
-                raise DomainError('Saved replay visit does not match current Task stage')
             self.workspace.ensure_recovery_ref(cursor['recovery_ref'], cursor['start_commit'])
-            self.workspace.checkout_accepted(source['commit'], source['tree'], cursor['previous_commit'])
-            cursor['subject_commit'] = source['commit']
-            if cursor['phase'] == 'checkout':
+            self.workspace.require_current(cursor['start_commit'], cursor['current_tree'])
+            cursor['subject_commit'] = cursor['start_commit']
+            if cursor['phase'] == 'preserved':
                 cursor['phase'] = 'checking'
                 self.commands.save_replay_progress(task_id, actor, request_id, cursor)
             if stage == target_stage:
-                return stop('progression_target_reached', 'target_reached', stage, source['commit'])
+                return stop('progression_target_reached', 'target_reached', stage, cursor['start_commit'])
             if source.get('methods_missing'):
-                return stop('progression_stopped', 'tests_missing', stage, source['commit'])
+                return stop('progression_stopped', 'tests_missing', stage, cursor['start_commit'])
             if not proof_contract_compatible(data['contract'], source):
-                return stop('progression_stopped', 'proof_contract_changed', stage, source['commit'])
+                return stop('progression_stopped', 'proof_contract_changed', stage, cursor['start_commit'])
             file_failure = self.check_files(source)
             if file_failure is not None:
-                return stop('progression_stopped', file_failure, stage, source['commit'])
-            candidate = self.commands.prepare_replay_visit(task_id, actor, request_id, source)
-            checked = self.execute_checks(task_id, source, candidate)
+                return stop('progression_stopped', file_failure, stage, cursor['start_commit'])
+            candidate = self.commands.prepare_replay_visit(task_id, actor, request_id, source,
+                cursor['start_commit'], cursor['current_tree'])
+            checked = self.execute_checks(task_id, {**source, 'current_tree': cursor['current_tree']}, candidate)
             if checked['reason'] is not None:
-                return stop('progression_stopped', checked['reason'], stage, source['commit'])
+                return stop('progression_stopped', checked['reason'], stage, cursor['start_commit'])
             file_failure = self.check_files(source)
             if file_failure is not None:
-                return stop('progression_stopped', file_failure, stage, source['commit'])
-            self.commands.confirm_replay_visit(task_id, actor, source['tree'], checked['execution_key'])
+                return stop('progression_stopped', file_failure, stage, cursor['start_commit'])
+            self.workspace.require_current(cursor['start_commit'], cursor['current_tree'])
+            self.commands.confirm_replay_visit(task_id, actor, cursor['current_tree'], checked['execution_key'])
             moved = self.commands.advance_progression(
-                task_id, actor, request_id, target_stage, source['tree'], self.artifact_facts(data),
+                task_id, actor, request_id, target_stage, cursor['current_tree'], self.artifact_facts(data),
                 force_duplicate_start=force_duplicate_start, replay_request=request_id)
             cursor = moved['cursor']
             if moved['kind'] == 'task_acceptance_required':
-                return stop('progression_stopped', 'task_acceptance_required', stage, source['commit'])
+                return stop('progression_stopped', 'task_acceptance_required', stage, cursor['start_commit'])
             if moved['kind'] == 'acceptance_required':
                 return stop('user_acceptance_required', 'acceptance_required', moved['following'], None)
             if moved['kind'] == 'entry_blocked':
-                return stop('progression_stopped', 'entry_blocked', stage, source['commit'])
+                return stop('progression_stopped', 'entry_blocked', stage, cursor['start_commit'])

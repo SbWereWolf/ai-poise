@@ -1,0 +1,72 @@
+{
+  "collected": [
+    "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-config]",
+    "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-receipt]",
+    "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-config]",
+    "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-receipt]"
+  ],
+  "collection": [],
+  "exit_code": 0,
+  "reports": [
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-config]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-config]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-config]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-receipt]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-receipt]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[changed-receipt]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-config]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-config]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-config]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-receipt]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-receipt]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_new_current_proof_is_not_excused_by_imported_omissions[missing-receipt]",
+      "phase": "teardown",
+      "outcome": "passed"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "collected": [
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[extra-file]",
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-tracked]",
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-untracked]",
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-commit]",
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-ref]",
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-tracked]",
+    "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-untracked]"
+  ],
+  "collection": [],
+  "exit_code": 0,
+  "reports": [
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[extra-file]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[extra-file]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[extra-file]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-tracked]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-tracked]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-tracked]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-untracked]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-untracked]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[missing-untracked]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-commit]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-commit]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-commit]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-ref]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-ref]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-ref]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-tracked]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-tracked]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-tracked]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-untracked]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-untracked]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_restored_code_oracle_rejects_lost_or_wrong_worktree[wrong-untracked]",
+      "phase": "teardown",
+      "outcome": "passed"
+    }
+  ]
+}

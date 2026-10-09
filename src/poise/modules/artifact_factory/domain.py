@@ -206,3 +206,31 @@ class ArtifactDraftIntent:
                 raise DomainError('Artifact draft IDs must be unique nonempty strings')
         return cls(action,raw['request_id'],raw['task_id'],raw['expected_version'],
                    tuple(drafts),tuple(artifacts),tuple(artifact_ids),raw['reason'],authorization)
+
+
+@dataclass(frozen=True)
+class RegisteredArtifactMaterial:
+    """Physical input authority keeps the original registered identity intact."""
+    artifact_id: str
+    scope: str
+    owner: str
+    logical_path: str
+    digest: str
+    physical_path: str
+    delivery_id: str | None
+
+    @classmethod
+    def active(cls, record):
+        return cls(record['id'], record['scope'], record['owner'], record['path'],
+                   record['digest'], record['path'], None)
+
+    @classmethod
+    def delivered(cls, record, destination, delivery_id):
+        if not isinstance(delivery_id, str) or not delivery_id:
+            raise DomainError('Permanent artifact material requires explicit delivery authority')
+        return cls(record['id'], record['scope'], record['owner'], record['path'],
+                   record['digest'], destination, delivery_id)
+
+    def matches(self, record):
+        return (self.artifact_id, self.scope, self.owner, self.logical_path, self.digest) == (
+            record['id'], record['scope'], record['owner'], record['path'], record['digest'])

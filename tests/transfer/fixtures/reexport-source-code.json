@@ -1,0 +1,7 @@
+{
+  "AGENTS.md": "Test command: python -m unittest discover -s tests -v\n",
+  "src/double.py": "def double(n):\n    return n + 1\n",
+  "tests/tracked.txt": "Unsaved text change\n",
+  "tests/untracked.txt": "Unsaved addition\n",
+  "tests/test_double.py": "import unittest\nfrom src.double import double\nclass Regression(unittest.TestCase):\n    def test_double(self):\n        self.assertEqual(double(2), 4)\n\n# Test-owned observation appended to the actual configured stage subject.\nimport os\nfrom pathlib import Path\nif 'RECOVERY_STAGE_COUNTER' in os.environ:\n    with Path(os.environ['RECOVERY_STAGE_COUNTER']).open('a') as stream:\n        stream.write('stage-command\\n')\n"
+}

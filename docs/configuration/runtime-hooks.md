@@ -114,8 +114,10 @@ Launcher возвращает `disposition_required`, `cleanup_blocked`, `cleanu
 довести до clean fast-forward checkpoint той же task-ветки и продолжить новым request ID либо
 вернуть к исходному commit вне cleanup и повторить прежний пакет. Принятый checkpoint
 фиксируется в persisted cleanup history событием `worktree_checkpointed` со старым и новым
-commit и `request_id`. Основной checkout, чужие ресурсы, durable artifacts и operator backups не
-очищаются.
+commit и `request_id`. Основной checkout, чужие ресурсы, отдельно поставленные постоянные результаты и operator backups
+не очищаются. Файлы внутри Task-root, включая зарегистрированные артефакты, подчиняются
+[договору поставки и удаления](../workflows/terminal-materials.md#договор-и-граница-хранения).
+Resource cleanup не заменяет этот договор; незавершённый consumer удерживает материалы.
 
 Сохранённые ownership identity, commit/digest и версия проверяются перед каждым эффектом.
 Поэтому конкурентное изменение ветки, файла или cleanup-state даёт actionable blocker/отказ,

@@ -1,3 +1,4 @@
+from .transfers import SqliteTransferContext
 from .handoff import SqliteHandoffRepository
 from .actions import SqliteActionRepository
 from .sprints import SqliteSprintRepository
@@ -7,6 +8,7 @@ from .ownership import SqliteOwnershipRepository
 from .accounting import SqliteAccountingCycles
 from .work_packets import SqliteWorkPacketRepository
 from .artifacts import SqliteArtifactRepository
+from .task_delivery import SqliteTaskDeliveryRepository
 
 
 class SqliteUnitOfWork:
@@ -18,6 +20,7 @@ class SqliteUnitOfWork:
     def __enter__(self):
         self._transaction = self.database.transaction()
         connection = self._transaction.__enter__()
+        self.transfers = SqliteTransferContext(connection)
         self.handoffs = SqliteHandoffRepository(connection)
         self.sprints = SqliteSprintRepository(connection)
         self.tasks = SqliteTaskRepository(connection)
@@ -28,6 +31,7 @@ class SqliteUnitOfWork:
         self.accounting_cycles = SqliteAccountingCycles(connection)
         self.work_packets = SqliteWorkPacketRepository(connection)
         self.artifacts = SqliteArtifactRepository(connection)
+        self.task_delivery = SqliteTaskDeliveryRepository(connection)
         return self
 
     def __exit__(self, exc_type, exc, traceback):

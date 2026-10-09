@@ -62,7 +62,7 @@ def test_replay_preserves_the_admitted_proof_contract(project, revision):
     assert client.runtime.task_queries.record("T1")["contract"] == admitted
     if revision == "unchanged":
         assert response["status"] == "progression_target_reached"
-        assert case["log"].read_text().splitlines() == case["commits"]
+        assert case["log"].read_text().splitlines() == [case["saved"]] * len(case["commits"])
     else:
         assert response["status"] == "progression_stopped"
         assert response["replay"]["reason"] == "proof_contract_changed"
@@ -72,45 +72,28 @@ def test_replay_preserves_the_admitted_proof_contract(project, revision):
 
 
 @pytest.mark.parametrize("collision", [True, False])
-def test_resumed_checkout_preserves_new_ignored_work(project, monkeypatch, collision):
+def test_current_source_recheck_preserves_unrelated_ignored_work(project, monkeypatch, collision):
     case = prepared(project)
     root = case["root"]
-    git(root, "rm", "tests/test_double.py")
-    git(root, "commit", "-m", "Preserve deleted test before replay")
-    start = git(root, "rev-parse", "HEAD")
     common = Path(git(root, "rev-parse", "--path-format=absolute", "--git-common-dir"))
-    (common / "info/exclude").write_text("tests/test_double.py\n")
+    (common / "info/exclude").write_text("tests/ignored-note\n")
+    foreign = root / "tests/ignored-note"
+    if collision:
+        foreign.write_bytes(b"Independent ignored work\n")
     runtime = case["client"].runtime
     original = runtime._git
-    interrupted = []
-
-    def pause(cwd, *args, **kwargs):
-        if Path(cwd) == root and args[:2] == ("reset", "--hard") and not interrupted:
-            interrupted.append(True)
-            raise PoiseError("test-owned interruption before reset")
+    destructive = []
+    def observe(cwd, *args, **kwargs):
+        if Path(cwd) == root and args and args[0] in ("reset", "checkout", "switch"):
+            destructive.append(args)
         return original(cwd, *args, **kwargs)
-
-    packet = request("advance", {
-        "request_id": "resume-proof", "task_id": "T1", "target_stage": "code_review",
-    })
-    monkeypatch.setattr(runtime, "_git", pause)
-    with pytest.raises(PoiseError, match="test-owned interruption"):
-        case["client"].invoke(packet)
-    monkeypatch.setattr(runtime, "_git", original)
-    assert interrupted == [True]
-    assert git(root, "rev-parse", "HEAD") == start
-    recovery = git(root, "for-each-ref", "--format=%(refname)", "refs/poise/replay/")
-    assert git(root, "rev-parse", recovery) == start
-    foreign = root / "tests/test_double.py"
+    monkeypatch.setattr(runtime, "_git", observe)
+    response = launch(case, target="code_review")
+    assert response["status"] == "progression_target_reached"
+    assert destructive == []
+    assert git(root, "rev-parse", "HEAD") == case["saved"]
+    assert case["log"].read_text().splitlines() == [case["saved"]] * 3
     if collision:
-        foreign.write_bytes(b"independent ignored work created after interruption\n")
-        before = snapshot(case)
-        with pytest.raises(PoiseError, match="Ignored files collide"):
-            case["client"].invoke(packet)
-        assert snapshot(case) == before
-        assert foreign.read_bytes() == b"independent ignored work created after interruption\n"
+        assert foreign.read_bytes() == b"Independent ignored work\n"
     else:
-        response = case["client"].invoke(packet)
-        assert response["status"] == "progression_target_reached"
-        assert case["log"].read_text().splitlines() == case["commits"]
-    assert git(root, "rev-parse", recovery) == start
+        assert not foreign.exists()

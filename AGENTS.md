@@ -119,8 +119,9 @@ Report AI poise incidents even when recovery succeeded; ordinary test failures a
 poise defects.
 
 **Applicability: when working in the cloud.**
-Require a portable checkpoint before completed-task boundaries or risky transitions,
-restoration verification, Gmail archive/text delivery, and full attachment readback. Local development requires
+Require a portable checkpoint before terminal handling or risky transitions,
+restoration verification, Gmail archive/text delivery, and full attachment readback. Agree the permanent archive
+separately before retiring Task-root; local temporary checkpoints inside it are removed with other working material. Local development requires
 none of those actions for Task completion, integration, or Sprint continuation. Create local checkpoints or
 archives, verify their restoration, or send them only when the user explicitly requests those actions separately.
 Saving commits and check evidence does not require an archive. On resume, inspect already attached files before
@@ -359,17 +360,22 @@ Keep this English projection and its Russian source consistent in the same chang
   <task-branch>` in the main checkout. Never update the target ref directly or force-update it. If fast-forward is
   blocked, prove that main `HEAD`, binding, index, tracked/untracked content, types, modes, and operation state are
   unchanged.
-- At every terminal task outcome, the responsible agent completes handling by cleaning the exact task-owned worktree,
-  local branch, temporary files, and temporary backups. Preserve the main checkout, foreign resources, durable task
-  history and artifacts, operator backups, and recovery data for unfinished operations.
+- Before terminal handling, agree the permanent delivery of every result (or explicit no_result). After terminal status,
+  confirmed delivery and closure of required consumers/resources, the owning runtime removes the complete Task folder,
+  including raw evidence, temporary artifacts and checkpoints, without a hidden archive. Preserve minimal DB history,
+  delivered results, shared Sprint material, foreign resources and operator backups. Follow
+  [terminal material delivery](docs/workflows/terminal-materials.md#договор-и-граница-хранения). Deliberate replacement
+  with an ordinary directory at the configured Task path is allowed; saved device/inode is audit only. Preserve actual
+  owner/path/type/link boundaries; do not add root-substitution hardening. Follow the
+  [operator contract](docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).
 - The commit disposition requires a separate explicit decision. Cleanup itself authorizes neither publication to
   the configured target branch nor destruction of unique commits and does not prescribe merge or discard. Clean
   accepted successful work
   only after its separately authorized integration completes. On cancellation, record a separate commit-disposition
   decision before removing a resource would destroy unique commits.
-- These rules establish a manual agent obligation. This documentation task neither implements cleanup automation nor
-  claims that it does; the pre-existing public result-integration capability is governed separately by the canonical
-  Russian documentation.
+- Use public delivery/agree and delivery/settle rather than manually deleting managed Task material. Terminal status,
+  verified checks, delivery completion, resource cleanup and integration are distinct observations. Existing Tasks
+  without an agreement are not silently assigned one or retired. Preserve their actual blocked/incomplete status.
 - Never use the main checkout or foreign WIP for preparation or conflict resolution, and never `stash`, `reset`,
   `restore`, `checkout`, `clean`, stage, commit, or delete their state. The sole publication effect is the serialized
   `git merge --ff-only`; a dirty or unfinished checkout may block it without being modified. After confirmed
@@ -606,16 +612,17 @@ Never use a bypass to fabricate external outcomes, evidence, or foreign ownershi
 
 ## Accepted-stage replay after restart
 
-Commit all owned WIP in the Task worktree before automatic replay. Replay uses
-the same worktree and branch, preserves a durable recovery ref before reset,
-and rechecks accepted stages at their exact accepted commits. Passing historical
-tests and unchanged registered proof files suffice when current proof obligations
-remain compatible. Restart or requirement wording alone does not invalidate proof.
-Never substitute old methods, expectations, schedules or evidence plans for an
-explicitly changed current contract. Revalidate ignored collisions and preservation
-before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
-independent review. Omit the target for maximum progress; an explicit target stops
-on entry before its checks. Never rerun an unknown command outcome. A completed
-request replays its saved result; use a new identity for new progression.
-Follow the [canonical replay
-contract](docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+Commit owned WIP in the Task worktree. Replay preserves its current commit/tree and recovery ref;
+check reached stages there without historical checkout or reuse of an old PASS as fresh proof.
+Keep current proof-contract compatibility and mandatory file integrity; exact completed request
+replay returns its saved result. Unknown external outcomes never authorize another execution.
+New work retains independent review. Follow the [canonical replay contract](docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+
+## Compact Task recovery
+
+Classify materials explicitly in the versioned mapping; record a compatible placement decision
+when versions differ. Restore current Task state and components through the declared pipeline;
+restore validates readiness, while authorized work checks the current stage on current systems.
+Preserve both full proof configuration sets and system commit IDs as provenance, without rollback.
+Authenticated historical omissions never excuse missing current material. Follow [recovery](docs/governance/development-rules.md#переносимое-состояние-задачи)
+and [proof configurations](docs/workflows/evidence.md#конфигурационные-наборы-и-повторные-проверки).

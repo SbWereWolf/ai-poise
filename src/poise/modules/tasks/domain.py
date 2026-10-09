@@ -421,6 +421,16 @@ class Task:
             raise DomainError("Only unowned preserved work can be resumed")
         return self._change("handoff_resumed",None,None,claimed_by=actor)
 
+    def open_delivery_verification(self, actor: str) -> Change:
+        """Open fresh proof at the preserved position after explicit acquisition."""
+        self._owned(actor)
+        change = self._change("delivery_verification_opened", None, None,
+                              status=TaskStatus.ACTIVE, submission_digest=None)
+        return replace(change, task=replace(change.task,
+            progress=replace(self.progress, outcome=None, stage_work=None),
+            evidence_input=None, evidence_assessment=None, action_assessment=None,
+            replay_candidate=None))
+
     def acquire_ownership(self, actor: str) -> Change:
         self._require_stage_contracts()
         identifier(actor)

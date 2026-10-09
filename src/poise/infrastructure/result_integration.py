@@ -874,8 +874,17 @@ class RuntimeResultIntegration:
         return completed, True
 
     def _cleanup(self, run, repository):
+        with self.h.delivery_effects.locked():
+            return self._cleanup_material_scope(run, repository)
+
+    def _cleanup_material_scope(self, run, repository):
         if run.phase != "cleanup_pending":
             return run
+        reason = self.h.delivery_tools.resource_gate(run.intent.task_id)
+        if reason:
+            blocked = run.cleanup_blocked('task_worktree', {'reason': reason})
+            self._save(run.intent.task_id, blocked, run.version)
+            return blocked
         current_target = self._git(repository, "rev-parse", self._target_ref())
         if not self._contains(repository, run.target_after, current_target):
             raise PoiseError("Current target does not contain the published integration head")

@@ -29,6 +29,7 @@ class WorkRuntime(Protocol):
     telemetry: Any
     transfer_tools:Any
     cleanup_tools:Any
+    delivery_tools:Any
     integration_tools:Any
     sprint_tools:SprintWorkPort
     task_queries:TaskOverviewPort
@@ -37,6 +38,7 @@ class WorkRuntime(Protocol):
     interactions:InteractionPort
     work_resources:WorkResourcesPort
 
+    def delivery_after(self, result: dict, operation: str) -> dict: ...
     def handoff(self,args:dict)->dict: ...
     def recover_empty_rework(self,task_id:str,reason:str)->dict: ...
     def recover_empty_advance(self,task_id:str,reason:str)->dict: ...

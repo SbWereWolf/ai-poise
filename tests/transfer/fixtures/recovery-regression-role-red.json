@@ -1,0 +1,74 @@
+{
+  "collected": [
+    "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-configuration]",
+    "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-task-material]",
+    "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-configuration]",
+    "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-task-material]"
+  ],
+  "collection": [],
+  "exit_code": 1,
+  "reports": [
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-configuration]",
+      "phase": "call",
+      "outcome": "failed",
+      "diagnostic": "Failed: Mapped configuration material dispatched as proof companion"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-configuration]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-configuration]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-task-material]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-task-material]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[False-task-material]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-configuration]",
+      "phase": "call",
+      "outcome": "failed",
+      "diagnostic": "Failed: Mapped configuration material dispatched as proof companion"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-configuration]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-configuration]",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-task-material]",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-task-material]",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_declared_configuration_role_is_material_not_proof[True-task-material]",
+      "phase": "teardown",
+      "outcome": "passed"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "format": "poise-recovery-1",
+  "tool_argv": [
+    "@NODE@",
+    "@WORKSPACE_RECOVER@"
+  ],
+  "mapping": {
+    "version": "fixture-v1",
+    "materials": [
+      {
+        "id": "note",
+        "role": "task-material",
+        "source": "artifacts/cache",
+        "destination": "notes/cache",
+        "include": true
+      },
+      {
+        "id": "old-copy",
+        "role": "backup",
+        "source": "important",
+        "destination": null,
+        "include": false
+      },
+      {
+        "id": "old-output",
+        "role": "historical-output",
+        "source": "transcript",
+        "destination": null,
+        "include": false
+      },
+      {
+        "id": "generated",
+        "role": "reproducible",
+        "source": "generated",
+        "destination": null,
+        "include": false
+      },
+      {
+        "id": "dependency",
+        "role": "dependency",
+        "source": "installed",
+        "destination": null,
+        "include": false
+      }
+    ]
+  },
+  "systems": {
+    "poise": {
+      "repository": "@POISE_REPOSITORY@",
+      "configs": [
+        "@POISE_CONFIG@",
+        "@POISE_OVERLAY@"
+      ]
+    },
+    "project": {
+      "repository": "@PROJECT_REPOSITORY@",
+      "configs": [
+        "@PROJECT_CONFIG@",
+        "@PROJECT_OVERLAY@"
+      ]
+    }
+  },
+  "repositories": {
+    "task": "@PROJECT_REPOSITORY@"
+  },
+  "paths": {
+    "staging": "prepared",
+    "create_session": "create-session",
+    "restore_session": "restore-session"
+  },
+  "placement_decisions": [],
+  "create_flow": {
+    "schema": "workspace-recover/flow/v3",
+    "workspace": "${variables.workspace}",
+    "steps": [
+      {
+        "id": "archive",
+        "op": "archive",
+        "from": "${variables.staging}",
+        "to": "${variables.package}",
+        "onError": "stop"
+      }
+    ]
+  },
+  "restore_flow": {
+    "schema": "workspace-recover/flow/v3",
+    "workspace": "${variables.workspace}",
+    "steps": [
+      {
+        "id": "extract",
+        "op": "extract",
+        "from": "${variables.package}",
+        "to": "${variables.staging}",
+        "existingTarget": "merge",
+        "onError": "stop"
+      },
+      {
+        "id": "place",
+        "op": "command",
+        "argv": "${variables.place_argv}",
+        "onError": "stop"
+      },
+      {
+        "id": "components",
+        "op": "command",
+        "argv": "${variables.components_argv}",
+        "onError": "stop"
+      },
+      {
+        "id": "validate",
+        "op": "verification",
+        "argv": "${variables.validate_argv}",
+        "onError": "stop"
+      }
+    ]
+  },
+  "component_steps": []
+}

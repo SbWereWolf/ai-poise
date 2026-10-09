@@ -244,15 +244,28 @@ missing legacy roles or rewrite stored Task snapshots as an implicit upgrade.
 ## Accepted-stage replay after restart
 
 Commit all owned WIP in the Task worktree before automatic replay. Replay uses
-the same worktree and branch, preserves a durable recovery ref before reset,
-and rechecks accepted stages at their exact accepted commits. Passing historical
-tests and unchanged registered proof files suffice when current proof obligations
-remain compatible. Restart or requirement wording alone does not invalidate proof.
-Never substitute old methods, expectations, schedules or evidence plans for an
-explicitly changed current contract. Revalidate ignored collisions and preservation
-before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
+the same worktree and branch and preserves a durable recovery ref at start_commit.
+It runs current required checks on start_commit/current_tree without resetting to
+historical commits. Historical visits and commits are provenance, not fresh PASS.
+Validate compatibility with the current method, expectations, schedule and evidence
+plan; never substitute historical conditions for a changed current contract.
+Required current materials remain mandatory. Authenticated historical omissions
+are allowed only by the explicit compact-transfer contract. Mechanical replay is role-neutral; new substantive work retains
 independent review. Omit the target for maximum progress; an explicit target stops
 on entry before its checks. Never rerun an unknown command outcome. A completed
 request replays its saved result; use a new identity for new progression.
 Follow the [canonical replay
 contract](../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+
+## Terminal material delivery ownership
+
+TaskDeliveryCommands owns explicit delivery intent and its minimal journal; RuntimeTaskDelivery observes configured
+permanent outputs, required consumers and confined Task-root removal. Task lifecycle, integration, resource cleanup,
+transfer and binary publication retain their existing owners. ArtifactMaterialResolver selects permanent physical
+bytes without changing logical registrations. Follow the
+[canonical boundaries](../docs/workflows/terminal-materials.md#владельцы-механики).
+
+Do not treat Task-root as durable output or retain a hidden raw-proof archive. Continue partial retirement with current
+permanent observations, not deleted-source reads or repeated publication. Completed history never creates fresh proof.
+Deliberate ordinary root replacement is allowed; device/inode is audit only, while actual owner/path/type/link checks
+remain. Do not introduce adversarial root pinning, quarantine or independent cleanup implementations.

@@ -29,8 +29,8 @@ def fresh_runtime(case):
 def advance_m(case):
     response = launch(case, target="implementation", request_id="M")
     assert_projection(case, response, target="implementation", stage="implementation",
-                      count=2, subject=case["commits"][2])
-    assert case["log"].read_text().splitlines() == case["commits"][:2]
+                      count=2, subject=case["saved"])
+    assert case["log"].read_text().splitlines() == [case["saved"]] * 2
 
 
 def test_saved_noop_retry_after_runtime_reinstantiation_has_no_effect(project):
@@ -52,7 +52,7 @@ def test_saved_noop_after_new_intent_keeps_original_result_and_actual_state(proj
     assert_noop_response(response, case["saved"])
     assert response["stage"] == "implementation"
     assert noop_snapshot(case) == before
-    assert git(case["root"], "rev-parse", "HEAD") == case["commits"][2]
+    assert git(case["root"], "rev-parse", "HEAD") == case["saved"]
 
 
 @pytest.mark.parametrize("after_m", [False, True])

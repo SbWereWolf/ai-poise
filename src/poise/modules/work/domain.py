@@ -13,6 +13,11 @@ STAGE_CONTRACT_OPERATIONS = frozenset({
 BUSINESS_INCOMPLETE_STATUSES = frozenset({
     'duplicate_start_blocked',
     'action_blocked',
+    'delivery_blocked',
+    'delivery_pending',
+    'delivery_partial',
+    'cleanup_blocked',
+    'cancel_blocked',
     'action_failed',
     'broken',
     'capabilities_unavailable',
@@ -57,7 +62,7 @@ def parse_request(value, config):
             'revise_stage_contract':{
                 'request_id','task_id','expected_version','stage_id','contract','reason','authorization'
             },
-            'task':None,'sprint':None,'transfer':None}
+            'task':None,'sprint':None,'transfer':None,'delivery':None}
     op=value['operation']
     if not isinstance(op,str) or op not in shapes:
         raise DomainError('Unknown work operation')
@@ -81,7 +86,7 @@ def parse_request(value, config):
         if value['input']['result'] is not None:
             raise DomainError('Uncertain check recovery requires null result')
         shapes[op] = shapes[op] | {'uncertain_check_recovery'}
-    if op not in ('task','sprint','transfer','integrate','artifact_drafts'):exact(value['input'],shapes[op],f'{op} input')
+    if op not in ('task','sprint','transfer','integrate','artifact_drafts','delivery'):exact(value['input'],shapes[op],f'{op} input')
     elif not isinstance(value['input'],dict):raise DomainError('sprint input must be an object')
     if not isinstance(value['messages'],list) or len(value['messages'])>config['max_items']:
         raise DomainError('messages requires a bounded list')
@@ -128,7 +133,7 @@ def parse_request(value, config):
             if not isinstance(query,dict) or not isinstance(query.get('id'),str) or not query['id'] or query['id'] in ids:
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
-            shapes_q={'ownership_recovery':{'id','kind','task_ids'},'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
+            shapes_q={'task_delivery':{'id','kind','task_id'},'ownership_recovery':{'id','kind','task_ids'},'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')

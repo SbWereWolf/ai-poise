@@ -62,6 +62,15 @@ class SqliteTaskRepository:
     def __init__(self, connection):
         self.db = connection
 
+    def pending_artifact_consumers(self, source_id):
+        rows = self.db.execute("SELECT t.id,w.data FROM tasks t JOIN task_workflows w ON w.task_id=t.id WHERE t.id!=? AND t.status NOT IN ('completed','cancelled') AND json_extract(w.data,'$.duplicate_reuse') IS NOT NULL", (source_id,))
+        for row in rows:
+            proof = json.loads(row['data'])['duplicate_reuse']
+            candidate = proof['candidate']
+            if candidate['source_task_id'] == source_id and candidate['artifact_source']['records'] and not proof['verified']:
+                return True
+        return False
+
     def read_duplicate_family(self, task_id):
         from .duplicate_tasks import read_duplicate_family
         # Library use outside an existing UoW still gets one read snapshot.
@@ -262,7 +271,7 @@ class SqliteTaskRepository:
                 continue
             if data.get("digest") != digest:
                 raise PoiseError("Request ID already used with another Task action intent")
-            return deepcopy(data["result"])
+            return {**deepcopy(data["result"]), "replayed": True}
         return None
 
     def stage_contract_receipt(self, task_id: str, request_id: str, intent: dict):
@@ -396,6 +405,14 @@ class SqliteTaskRepository:
         return deepcopy(result)
 
     def progression_request(self, task_id, request_id, digest):
+        current = self.db.execute('SELECT status,version FROM tasks WHERE id=?', (task_id,)).fetchone()
+        if current is not None and current['status'] in ('completed', 'cancelled'):
+            terminal = self.db.execute('SELECT data FROM task_events WHERE task_id=? AND version=?',
+                                       (task_id, current['version'])).fetchone()
+            expected = ('user_cancel',) if current['status'] == 'cancelled' else (
+                'user_accept', 'duplicate_reuse_accepted')
+            if terminal is None or json.loads(terminal['data']).get('event') not in expected:
+                raise PoiseError('Terminal progression requires its native Task transition audit')
         rows = self.db.execute(
             "SELECT event,data FROM journal WHERE task_id=? "
             "AND event IN ('progression.started','progression.noop','progression.result') "

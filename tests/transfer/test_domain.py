@@ -4,18 +4,25 @@ from poise.common import PoiseError
 from .helpers import settings
 
 
-def test_explicit_transfer_config_validates_all_paths_and_limits():
+def test_explicit_transfer_config_validates_all_paths_and_limits(project,recovery_tool):
     from poise.modules.transfers.domain import TransferPolicy
-    p=TransferPolicy.parse(settings())
+    from .compact_helpers import configure
+    configure(project, recovery_tool)
+    configured = project['cfg']['runtime_services']['transfer']
+    p=TransferPolicy.parse(configured)
     assert p.data['max_tasks']==1000
-    for key in settings():
-        raw=settings();del raw[key]
+    for key in configured:
+        raw=deepcopy(configured);del raw[key]
         with pytest.raises(PoiseError):TransferPolicy.parse(raw)
 
 
-def test_reserved_filenames_cannot_overlap():
+def test_reserved_filenames_cannot_overlap(project,recovery_tool):
     from poise.modules.transfers.domain import TransferPolicy
-    raw=settings();raw['manifest']=raw['database']
+    from .compact_helpers import configure
+    configure(project, recovery_tool)
+    raw=deepcopy(project['cfg']['runtime_services']['transfer'])
+    TransferPolicy.parse(raw)
+    raw['manifest']=raw['database']
     with pytest.raises(PoiseError):TransferPolicy.parse(raw)
 
 

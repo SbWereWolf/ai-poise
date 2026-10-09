@@ -1,0 +1,40 @@
+{
+  "collected": [
+    "tests/transfer/test_recovery_regressions.py::test_interrupted_request_rejects_changed_executable_without_second_effect",
+    "tests/transfer/test_recovery_regressions.py::test_known_spawn_failure_replays_without_effect_or_task_publication"
+  ],
+  "collection": [],
+  "exit_code": 0,
+  "reports": [
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_interrupted_request_rejects_changed_executable_without_second_effect",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_interrupted_request_rejects_changed_executable_without_second_effect",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_interrupted_request_rejects_changed_executable_without_second_effect",
+      "phase": "teardown",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_known_spawn_failure_replays_without_effect_or_task_publication",
+      "phase": "call",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_known_spawn_failure_replays_without_effect_or_task_publication",
+      "phase": "setup",
+      "outcome": "passed"
+    },
+    {
+      "nodeid": "tests/transfer/test_recovery_regressions.py::test_known_spawn_failure_replays_without_effect_or_task_publication",
+      "phase": "teardown",
+      "outcome": "passed"
+    }
+  ]
+}

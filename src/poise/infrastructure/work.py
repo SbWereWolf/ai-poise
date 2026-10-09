@@ -79,6 +79,11 @@ class WorkResources:
         return True
 
     def artifact_drafts(self, request):
+        with self.runtime.delivery_effects.locked():
+            self.runtime.delivery_tools.material_admission(request['task_id'], 'draft')
+            return self._artifact_drafts(request)
+
+    def _artifact_drafts(self, request):
         h=self.runtime
         intent=ArtifactDraftIntent.parse(request,h.cfg['batch']['max_items'])
         request_digest=h.packet_digest(request)

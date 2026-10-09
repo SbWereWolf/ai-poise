@@ -130,11 +130,28 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
 
 
 ## DDD-07B: перенос сохранённой работы
-Обновлено: **2026-09-07T00:25:38+05:00**.
 
-`WorkTools.invoke` принимает `operation=transfer` и один export/import-пакет. `TransferCommands.apply` валидирует явный `TransferRequest` и вызывает `TransferPort.export/restore`. `RuntimeTransfers` выполняет контролируемую композицию existing handoff, scoped SQLite snapshot, file/Git package и импорта.
+Обновлено: **2026-10-09**. `WorkTools.invoke` передаёт `operation=transfer` через
+`TransferCommands`/`TransferRequest` в `RuntimeTransfers`. Существующий локальный
+handoff сохраняет владение/WIP; экспорт компактной копии не переносит его bundle.
 
-`SqliteTransferRepository.capture` выбирает standalone batch или полный published sprint. `TaskRepository.restore_snapshot` и `SprintRepository.restore_snapshot` допускают только отсутствующих владельцев. `TaskQueries.resolve_path` и projection чтения разрешают подтверждённые relocations, не заменяя исходный текст. Формат команд и примеры: [transfer.md](../workflows/transfer.md).
+`TransferPolicy`/`RecoveryPolicy` владеют явным контрактом конфигурации;
+`placement_plan` — решением версии, `material_source`/`relocate_path` — чистыми
+привязками. `SqliteTransferRepository.capture/install` сохраняет scoped snapshot
+и публикует только отсутствующих владельцев. `SqliteTransferContext` получает
+импортную доставку отдельно по Task/Sprint; только Task-контекст обогащается
+`verification_opened`/`verification_origin`. Авторитет пропуска не угадывается по
+членству Task или совпавшему ID из другого scope.
+
+`WorkspaceRecoveryFlow` материализует явный flow, сохраняет запуск до эффекта и
+terminal-факты после ожидания. `RecoveryDelivery` размещает файлы/код, готовит
+компоненты и проверяет состояние. Неизвестный исход не порождает новый запуск;
+SQL-публикация не объявляет filesystem/Git атомарными. `TaskQueries` разрешает
+подтверждённые пути, сохраняя текст и происхождение. Текущий этап открывается через
+существующего владельца handoff/Task; импорт этапные проверки не выполняет.
+
+[Формат/API/конфигурация](../workflows/transfer.md#конфигурация) ·
+[Ошибки и исходы](../workflows/transfer.md#согласованность-и-ошибки).
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
 `HookCommands.install` принимает целый definition; `HookRepository` сохраняет candidate/receipt и только свои groups. `HookDefinition` проверяет явность native-контракта. `CapabilityChecks.run` валидирует пакет ProbeSpec и получает независимые результаты через ProbeExecutor. `LocalProbeExecutor`/`StdioProbe` — внешние адаптеры.

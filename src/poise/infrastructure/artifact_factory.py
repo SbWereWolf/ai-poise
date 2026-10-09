@@ -6,10 +6,11 @@ import hashlib
 import stat
 import tempfile
 import io
-from ..modules.artifact_factory.domain import ArtifactPlan, FileArtifactSource, relative
+from ..modules.artifact_factory.domain import ArtifactPlan, FileArtifactSource, RegisteredArtifactMaterial, relative
 from ..artifacts import artifact_identity
 from ..common import PoiseError
 from .locking import exclusive_lock
+from .file_publication import BinaryFilePublisher
 
 
 @dataclass(frozen=True)
@@ -119,49 +120,8 @@ class FileArtifactFactory:
             return completed
 
 
-    @staticmethod
-    def _without_links(path, label):
-        if not path.is_absolute():
-            raise PoiseError(f'{label} must be absolute')
-        cursor = Path(path.anchor)
-        for part in path.parts[1:]:
-            cursor /= part
-            if cursor.is_symlink():
-                raise PoiseError(f'{label} contains a symlink: {cursor}')
-            if cursor.exists() and cursor != path and not cursor.is_dir():
-                raise PoiseError(f'{label} parent is not a directory: {cursor}')
-
-    @staticmethod
-    def _signature(info):
-        return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
-
-    @classmethod
-    def _read_registered(cls, path, label, output=None, *, max_bytes=None):
-        """Read binary material without following links or blocking on a FIFO."""
-        cls._without_links(path, label)
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        with os.fdopen(fd, 'rb') as source:
-            before = os.fstat(source.fileno())
-            if not stat.S_ISREG(before.st_mode):
-                raise PoiseError(f'{label} is not a regular file: {path}')
-            if max_bytes is not None and before.st_size > max_bytes:
-                raise PoiseError(f'{label} exceeds max_artifact_bytes: {path}')
-            digest = hashlib.sha256()
-            remaining = before.st_size
-            while remaining:
-                chunk = source.read(min(remaining, 1024 * 1024))
-                if not chunk:
-                    raise PoiseError(f'{label} changed while reading: {path}')
-                digest.update(chunk)
-                if output is not None:
-                    output.write(chunk)
-                remaining -= len(chunk)
-            after = os.fstat(source.fileno())
-            cls._without_links(path, label)
-            if (cls._signature(before) != cls._signature(after)
-                    or cls._signature(path.lstat()) != cls._signature(before)):
-                raise PoiseError(f'{label} changed while reading: {path}')
-        return digest.hexdigest()
+    _without_links = staticmethod(BinaryFilePublisher.without_links)
+    _read_registered = staticmethod(BinaryFilePublisher.read)
 
     def _recovery_destination(self, scope, name):
         # Registry-relative names include handoffs/, artifacts/, etc.; unlike
@@ -179,7 +139,7 @@ class FileArtifactFactory:
             raise PoiseError('Artifact destination scope/owner identity changed')
         return target
 
-    def _registered_plan(self, records, source_roots, owners):
+    def _registered_plan(self, records, source_roots, owners, materials=None):
         scopes = {row['scope'] for row in records}
         if set(source_roots) != scopes:
             raise PoiseError('Explicit source owner roots must match selected artifact scopes')
@@ -199,6 +159,15 @@ class FileArtifactFactory:
             if artifact_identity(scope, row['owner'], name) != row['id']:
                 raise PoiseError('Registered relative path/owner identity does not match source root')
             self._without_links(old_root, 'Artifact source owner root')
+            if materials is not None:
+                if set(materials)!=set(r['id'] for r in records):
+                    raise PoiseError('Explicit material identities do not match artifact set')
+                material = materials[row['id']]
+                if not isinstance(material, RegisteredArtifactMaterial) or not material.matches(row):
+                    raise PoiseError('Explicit physical material changed registered identity')
+                source = Path(material.physical_path)
+                if not source.is_absolute():
+                    raise PoiseError('Explicit physical material path must be absolute')
             target = self._recovery_destination(scope, name)
             if self._read_registered(source, 'Artifact source file') != row['digest']:
                 raise PoiseError(f'Artifact source digest mismatch: {source}')
@@ -208,9 +177,13 @@ class FileArtifactFactory:
         return planned
 
     def plan_registered_copy(self, records, source_roots, owners, destination_owners):
+        return self.plan_material_copy(records, source_roots, owners, destination_owners,
+            materials={r['id']: RegisteredArtifactMaterial.active(r) for r in records})
+
+    def plan_material_copy(self, records, source_roots, owners, destination_owners, *, materials):
         """Observe the complete delivery without publishing or changing ownership."""
         try:
-            plan = self._registered_plan(records, source_roots, owners)
+            plan = self._registered_plan(records, source_roots, owners, materials)
             return [self._copy_record(row, source, name, target, destination_owners)
                     for row, source, name, target in plan]
         except OSError as exc:
@@ -223,22 +196,26 @@ class FileArtifactFactory:
             raise PoiseError('Artifact copy has no destination owner')
         return {**row, 'id': artifact_identity(scope, owners[scope], name),
                 'owner': owners[scope], 'path': str(target), 'relative_path': name,
-                'source_id': row['id'], 'source_path': str(source)}
+                'source_id': row['id'], 'source_path': row['path']}
 
     def copy_registered(self, records, source_roots, owners, destination_owners):
+        return self.copy_materials(records, source_roots, owners, destination_owners,
+            materials={r['id']: RegisteredArtifactMaterial.active(r) for r in records})
+
+    def copy_materials(self, records, source_roots, owners, destination_owners, *, materials):
         """Deliver new owner-specific references; never rebind source references."""
-        return self._publish_registered(records, source_roots, owners, destination_owners)
+        return self._publish_registered(records, source_roots, owners, destination_owners, materials=materials)
 
     def recover_registered(self, records, source_roots, owners):
         """Restore the same identities; registry rebind belongs to the caller."""
         return self._publish_registered(records, source_roots, owners)
 
-    def _publish_registered(self, records, source_roots, owners, destination_owners=None):
+    def _publish_registered(self, records, source_roots, owners, destination_owners=None, *, materials=None):
         """One non-overwriting binary publication path for recovery and delivery."""
         completed = []
         try:
             with exclusive_lock(self.lock, self.wait, self.poll):
-                planned = self._registered_plan(records, source_roots, owners)
+                planned = self._registered_plan(records, source_roots, owners, materials)
                 if destination_owners is not None:
                     # Validate all owner mappings before the first file effect.
                     for row, source, name, target in planned:
@@ -246,34 +223,7 @@ class FileArtifactFactory:
                 # The complete batch was checked before the first publication.
                 for row, source, name, target in planned:
                     self._recovery_destination(row['scope'], name)
-                    if target.exists():
-                        if self._read_registered(target, 'Artifact destination') != row['digest']:
-                            raise PoiseError(f'Artifact destination conflict: {target}')
-                    else:
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        self._recovery_destination(row['scope'], name)
-                        fd, temporary = tempfile.mkstemp(dir=target.parent)
-                        try:
-                            with os.fdopen(fd, 'wb') as output:
-                                os.fchmod(output.fileno(), self.config['file_mode'])
-                                digest = self._read_registered(source, 'Artifact source file', output)
-                                if digest != row['digest']:
-                                    raise PoiseError(f'Artifact source digest changed: {source}')
-                                output.flush()
-                                os.fsync(output.fileno())
-                            self._recovery_destination(row['scope'], name)
-                            try:
-                                os.link(temporary, target)
-                            except FileExistsError:
-                                if self._read_registered(target, 'Artifact destination') != row['digest']:
-                                    raise PoiseError(f'Artifact destination conflict: {target}')
-                            directory = os.open(target.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-                            try:
-                                os.fsync(directory)
-                            finally:
-                                os.close(directory)
-                        finally:
-                            Path(temporary).unlink(missing_ok=True)
+                    BinaryFilePublisher.publish(source, target, row['digest'], self.config['file_mode'])
                     completed.append(
                         {**row, 'path': str(target), 'source_path': str(source), 'relative_path': name}
                         if destination_owners is None else

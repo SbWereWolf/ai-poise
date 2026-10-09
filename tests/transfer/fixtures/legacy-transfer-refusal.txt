@@ -1,0 +1,1 @@
+transfer config: required fields ['archive', 'bundles_directory', 'chunk_bytes', 'database', 'directory', 'file_mode', 'files_directory', 'manifest', 'max_file_bytes', 'max_files', 'max_tasks', 'max_total_bytes']

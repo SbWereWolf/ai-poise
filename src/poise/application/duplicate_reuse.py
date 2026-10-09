@@ -90,61 +90,63 @@ class DuplicateReuseCommands:
         intent = {'task_id': task_id, 'source_task_id': source_task_id,
                   'request_id': request_id, 'expected_version': expected_version}
         intent_digest = fingerprint(intent)
-        with self.uow() as uow:
-            task = uow.tasks.load(task_id)
-            saved = None if task.duplicate_reuse is None else json.loads(task.duplicate_reuse)
-            if saved is None:
-                if task.state.version != expected_version:
-                    raise VersionConflict('Reuse Task version changed')
-            elif saved['candidate']['intent_digest'] != intent_digest:
-                raise DomainError('Reuse request conflicts with the saved candidate; restart explicitly')
-            execution = uow.execution.load(task_id)[0] if uow.execution.exists(task_id) else None
-            if execution is not None and execution['pending'] is not None:
-                pending = execution['pending']
-                if saved is None or not isinstance(pending, dict) or pending.get('kind') not in ('worktree_setup', 'check_attempt'):
-                    raise DomainError('Reuse cannot bypass a pending external outcome')
-            if (execution is not None and isinstance(execution['pending'], dict)
-                    and execution['pending'].get('kind') == 'check_attempt'
-                    and execution['pending'].get('actor') != actor):
-                raise DomainError('Pending reuse checks belong to another session; resolve their outcome first')
-            if saved is not None and saved['verified'] and task.state.status == 'completed':
-                # Exact terminal replay returns history, not a fresh verification.
-                # Neither worktree cleanup nor later Sprint cancellation invalidates it.
-                report = None if execution is None else execution['last_report']
-                if (not isinstance(report, dict) or report.get('status') != 'completed'
-                        or report.get('completion_kind') != 'duplicate_reuse'
-                        or report.get('intent_digest') != intent_digest
-                        or report.get('execution_key') != saved['execution_key']):
-                    raise DomainError('Completed reuse has no matching accepted receipt')
-                return {**deepcopy(report), 'replayed': True}
-            task, context, commit, contract_digest, methods, artifact_source = reuse_inputs_in(uow, task_id, source_task_id)
-            version = task.state.version
-        handoff = (self.workspace.handoff_preflight(task_id)
-                   if task.state.claimed_by is None and execution is not None else None)
-        delivery = self.workspace.plan_artifacts(task_id, context, artifact_source)
-        observed, reservation = self.workspace.prepare(task_id, context, commit, execution, saved)
-        candidate = ({**observed, 'intent_digest': intent_digest, 'request': intent, 'request_id': request_id,
-                      'source_task_id': source_task_id, 'source_commit': commit,
-                      'contract_digest': contract_digest, 'method_ids': [m['id'] for m in methods],
-                      'artifact_source': artifact_source, 'artifact_delivery': delivery,
-                      'artifact_stage': artifact_source['stage']}
-                     if saved is None else saved['candidate'])
-        if (candidate['contract_digest'] != contract_digest or candidate['source_commit'] != commit
-                or candidate.get('artifact_source') != artifact_source
-                or candidate.get('artifact_delivery') != delivery):
-            raise DomainError('Reuse source, contract or delivery changed; restart explicitly')
-        with self.uow() as uow:
-            current, _, current_commit, current_digest, _, current_source = reuse_inputs_in(uow, task_id, source_task_id)
-            if (current.state.version != version or (current_commit, current_digest) != (commit, contract_digest)
-                    or current_source != artifact_source):
-                raise VersionConflict('Reuse inputs changed before reservation')
-            change = (current.prepare_duplicate_reuse(actor, candidate) if handoff is None
-                      else HandoffCommands.resume_reuse_in(uow, current, actor, candidate, handoff))
-            reserve_reuse_in(uow, current, change, actor)
-            if execution is None:
-                uow.execution.create(task_id, reservation)
-            elif saved is None:
-                uow.execution.patch(task_id, {'last_report': None, 'publication': None})
+        with self.workspace.material_scope():
+            with self.uow() as uow:
+                task = uow.tasks.load(task_id)
+                saved = None if task.duplicate_reuse is None else json.loads(task.duplicate_reuse)
+                if saved is None:
+                    if task.state.version != expected_version:
+                        raise VersionConflict('Reuse Task version changed')
+                elif saved['candidate']['intent_digest'] != intent_digest:
+                    raise DomainError('Reuse request conflicts with the saved candidate; restart explicitly')
+                execution = uow.execution.load(task_id)[0] if uow.execution.exists(task_id) else None
+                if saved is not None and saved['verified'] and task.state.status == 'completed':
+                    # Exact terminal replay returns history, not a fresh verification.
+                    # Neither worktree cleanup nor later Sprint cancellation invalidates it.
+                    report = None if execution is None else execution['last_report']
+                    if (not isinstance(report, dict) or report.get('status') != 'completed'
+                            or report.get('completion_kind') != 'duplicate_reuse'
+                            or report.get('intent_digest') != intent_digest
+                            or report.get('execution_key') != saved['execution_key']):
+                        raise DomainError('Completed reuse has no matching accepted receipt')
+                    return {**deepcopy(report), 'replayed': True}
+                if execution is not None and execution['pending'] is not None:
+                    pending = execution['pending']
+                    if saved is None or not isinstance(pending, dict) or pending.get('kind') not in ('worktree_setup', 'check_attempt'):
+                        raise DomainError('Reuse cannot bypass a pending external outcome')
+                if (execution is not None and isinstance(execution['pending'], dict)
+                        and execution['pending'].get('kind') == 'check_attempt'
+                        and execution['pending'].get('actor') != actor):
+                    raise DomainError('Pending reuse checks belong to another session; resolve their outcome first')
+                task, context, commit, contract_digest, methods, artifact_source = reuse_inputs_in(uow, task_id, source_task_id)
+                version = task.state.version
+            self.workspace.admit_material(task_id, source_task_id)
+            handoff = (self.workspace.handoff_preflight(task_id)
+                       if task.state.claimed_by is None and execution is not None else None)
+            delivery = self.workspace.plan_artifacts(task_id, context, artifact_source)
+            observed, reservation = self.workspace.prepare(task_id, context, commit, execution, saved)
+            candidate = ({**observed, 'intent_digest': intent_digest, 'request': intent, 'request_id': request_id,
+                          'source_task_id': source_task_id, 'source_commit': commit,
+                          'contract_digest': contract_digest, 'method_ids': [m['id'] for m in methods],
+                          'artifact_source': artifact_source, 'artifact_delivery': delivery,
+                          'artifact_stage': artifact_source['stage']}
+                         if saved is None else saved['candidate'])
+            if (candidate['contract_digest'] != contract_digest or candidate['source_commit'] != commit
+                    or candidate.get('artifact_source') != artifact_source
+                    or candidate.get('artifact_delivery') != delivery):
+                raise DomainError('Reuse source, contract or delivery changed; restart explicitly')
+            with self.uow() as uow:
+                current, _, current_commit, current_digest, _, current_source = reuse_inputs_in(uow, task_id, source_task_id)
+                if (current.state.version != version or (current_commit, current_digest) != (commit, contract_digest)
+                        or current_source != artifact_source):
+                    raise VersionConflict('Reuse inputs changed before reservation')
+                change = (current.prepare_duplicate_reuse(actor, candidate) if handoff is None
+                          else HandoffCommands.resume_reuse_in(uow, current, actor, candidate, handoff))
+                reserve_reuse_in(uow, current, change, actor)
+                if execution is None:
+                    uow.execution.create(task_id, reservation)
+                elif saved is None:
+                    uow.execution.patch(task_id, {'last_report': None, 'publication': None})
         self.workspace.reconcile(task_id)
         self.workspace.deliver_artifacts(task_id)
         if saved is not None and saved['verified']:

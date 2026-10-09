@@ -43,10 +43,15 @@ class GitReplayWorkspace:
                                         self.data['base'], 'HEAD').split('\0'))
         if any(not any(matches_allowed_path(path, pattern) for pattern in allowed) for path in changed):
             raise PoiseError('Preservation commit contains forbidden out-of-scope configuration or files')
-        self.require_no_ignored_collisions([
-            source['commit'] for source in sources.values()
-            if source.get('commit') is not None and self.contains(source['commit'])])
         return self.head()
+
+    def current_identity(self):
+        self.require_clean()
+        return self.head(), self.git(self.root, 'rev-parse', 'HEAD^{tree}')
+
+    def require_current(self, commit, tree):
+        if self.current_identity() != (commit, tree):
+            raise PoiseError('Current replay checkpoint changed; preserve work before continuing')
 
     def require_no_ignored_collisions(self, commits):
         ignored = set(filter(None, self.git(self.root, 'ls-files', '--others', '--ignored',

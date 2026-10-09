@@ -22,6 +22,12 @@ class RuntimeTaskResourceCleanup:
     def __init__(self, runtime):
         self.h = runtime
 
+    def material_scope(self):
+        return self.h.delivery_effects.locked()
+
+    def material_gate(self, task_id):
+        return self.h.delivery_tools.resource_gate(task_id)
+
     def _run(self, cwd, *args, env=None):
         return run_git_receipt(cwd, args, self.h.cfg['limits']['git_seconds'],
                                os.environ if env is None else env)
@@ -115,7 +121,7 @@ class RuntimeTaskResourceCleanup:
     def load(self, task_id):
         record = self.h.task_queries.record(task_id)
         if record is None: raise PoiseError("Task does not exist")
-        if record["status"] != "cancelled":
+        if record["status"] != "cancelled" and not (record["status"] == "completed" and record.get("duplicate_reuse") is not None):
             raise PoiseError("Cleanup requires a terminal cancelled Task")
         return record["pending"]
 
@@ -136,7 +142,7 @@ class RuntimeTaskResourceCleanup:
     def initialize(self, task_id, pending):
         with self.h.store.unit_of_work() as uow:
             task = uow.tasks.load(task_id)
-            if task.state.status.value != "cancelled":
+            if task.state.status.value != "cancelled" and not (task.state.status.value == "completed" and task.duplicate_reuse is not None):
                 raise PoiseError("Cleanup initialization requires a terminal cancelled Task")
             data, version = uow.execution.load(task_id)
             if data["pending"] is not None:

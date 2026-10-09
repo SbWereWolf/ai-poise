@@ -1,0 +1,1 @@
+{"collected":1,"failed":[{"cause":true,"nodeid":"tests/terminal_materials/test_delivery.py::test_active_or_unagreed_terminal_task_cannot_be_retired","phase":"call"}],"passed":0}

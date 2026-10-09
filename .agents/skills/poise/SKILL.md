@@ -104,6 +104,12 @@ legacy embedded definitions while preserving partial edits, history, graph alias
 and source Task traceability. Do not introduce a broad migration or replace direct complete
 Task creation.
 
+Apply the [accepted-goal rule](../../../docs/governance/development-rules.md#task-goal-preservation):
+review may clarify an inadequate goal until an independent reviewer confirms the first
+substantive result. After that confirmation, agents must keep the goal unchanged even
+when a lawful restart returns the Task to newborn. The API's newborn edit capability
+does not enforce this historical agent rule.
+
 Read task_decomposition from the selected project's project-specific routing. Declare every process phase before an
 ordinary or integration Task is made ready. Each phase names its
 skills and areas; the phase set must exactly match the selected process snapshot. Meta and general skills do not split a
@@ -293,7 +299,9 @@ limits](../../../docs/workflows/batch-work.md#сохранённый-запро�
 Before the first product write, distinguish a real Task from an explicitly authorized direct correction without one.
 The public `integrate` operation requires a completed Task and saved final commit; it cannot accept a taskless candidate
 retroactively. A reviewed taskless correction with explicit user authority may use the separate manual local delivery
-route, preserving exact commit/check identity, target and foreign WIP. Checkpoint creation and verification are cloud-only obligations; local work requires them only on a separate explicit user request. Follow the canonical
+route, preserving exact commit/check identity, target and foreign WIP.
+**Checkpoint applicability: when working in the cloud.** Creation and verification remain required in that environment;
+local work requires them only on a separate explicit user request. Follow the canonical
 [route decision](../../../docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка) and
 [pre-ready procedure](../../../docs/workflows/pilot-task-preflight.md#выбор-маршрута-до-первой-записи). Never manufacture
 Task stages, acceptance or receipts for earlier taskless work.

@@ -31,8 +31,14 @@ were inventoried. Design exact future test methods and provenance at their ownin
 
 Separate Sprint graph planning, bounded Task formulation and detailed execution
 design. Do not implement a prototype merely to approve a Task formulation or demand
-future test names at creation. Preserve the accepted goal's meaning. Paired starters
-give each substantive executor result independent review; the reviewer checks
+future test names at creation. Before the first substantive Task result is confirmed
+by an independent reviewer, an inadequate goal may be clarified during review through
+an authorized restart. After that confirmation, do not change the same Task's goal,
+even if restart returns it to newborn and the API permits the edit. Ready, start,
+baseline observations, plans and unconfirmed results do not by themselves establish
+this boundary. Follow the
+[canonical goal rule](docs/governance/development-rules.md#task-goal-preservation).
+Paired starters give each substantive executor result independent review; the reviewer checks
 stage separation and sufficient allowed_paths. Follow the canonical
 [paired-stage contract](docs/workflows/paired-task-stages.md#постановка-планирование-спринта-и-исполнение)
 and its explicit [runtime limitations](docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
@@ -112,7 +118,8 @@ Count observed user messages without inventing missing messages or token usage. 
 Report AI poise incidents even when recovery succeeded; ordinary test failures are work results, not automatically AI
 poise defects.
 
-Only cloud development requires a portable checkpoint before completed-task boundaries or risky transitions,
+**Applicability: when working in the cloud.**
+Require a portable checkpoint before completed-task boundaries or risky transitions,
 restoration verification, Gmail archive/text delivery, and full attachment readback. Local development requires
 none of those actions for Task completion, integration, or Sprint continuation. Create local checkpoints or
 archives, verify their restoration, or send them only when the user explicitly requests those actions separately.

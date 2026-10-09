@@ -38,6 +38,7 @@ class AgentBoundaryTests(unittest.TestCase):
             cfg={'limits': {'output_chars': 2000, 'preview_chars': 24},
                  'batch': {'file_mode': 0o600}, 'runtime_services': {'output': self.policy}},
             runtime=self.root, paths={'runs': 'runs', 'response': 'response.json'},
+            retired_receipt=lambda receipt: False,
             report_task=lambda result: None, session='agent-boundary-test', result_views=self.views)
 
     def command_receipt(self, known=True):

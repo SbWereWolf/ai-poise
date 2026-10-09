@@ -35,9 +35,9 @@ class LocalHandoff:
             if prior['state'] in ('released','resumed'):
                 return {**prior['receipt'],'replayed':True}
         with h.delivery_effects.locked():
-            return self._preserve_material(args, request_id, key, prior)
+            return self._preserve_material(args, request_id, key, prior, portable=portable)
 
-    def _preserve_material(self, args, request_id, key, prior):
+    def _preserve_material(self, args, request_id, key, prior, *, portable):
         h = self.h
         data=h.current_task()
         if data is None:raise PoiseError('No current task to hand off')

@@ -405,6 +405,14 @@ class SqliteTaskRepository:
         return deepcopy(result)
 
     def progression_request(self, task_id, request_id, digest):
+        current = self.db.execute('SELECT status,version FROM tasks WHERE id=?', (task_id,)).fetchone()
+        if current is not None and current['status'] in ('completed', 'cancelled'):
+            terminal = self.db.execute('SELECT data FROM task_events WHERE task_id=? AND version=?',
+                                       (task_id, current['version'])).fetchone()
+            expected = ('user_cancel',) if current['status'] == 'cancelled' else (
+                'user_accept', 'duplicate_reuse_accepted')
+            if terminal is None or json.loads(terminal['data']).get('event') not in expected:
+                raise PoiseError('Terminal progression requires its native Task transition audit')
         rows = self.db.execute(
             "SELECT event,data FROM journal WHERE task_id=? "
             "AND event IN ('progression.started','progression.noop','progression.result') "

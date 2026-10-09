@@ -1,0 +1,145 @@
+[
+  {
+    "name": "consistent_copies",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "accepted": true
+  },
+  {
+    "name": "identity_only_reference",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1"
+      }
+    ],
+    "accepted": true
+  },
+  {
+    "name": "contradictory_command_view",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 0,
+        "passed": true
+      }
+    ],
+    "accepted": false
+  },
+  {
+    "name": "contradictory_raw_check",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 0,
+        "passed": true
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "accepted": false
+  },
+  {
+    "name": "partial_wrong_passed",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1",
+        "passed": true
+      }
+    ],
+    "accepted": false
+  },
+  {
+    "name": "partial_wrong_exit",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1",
+        "actual_exit_code": 0
+      }
+    ],
+    "accepted": false
+  },
+  {
+    "name": "wrong_method_copy",
+    "checks": [
+      {
+        "id": "R1",
+        "method": "CHECK",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "command_views": [
+      {
+        "id": "R1",
+        "method": "OTHER",
+        "actual_exit_code": 7,
+        "passed": false
+      }
+    ],
+    "accepted": false
+  },
+  {
+    "name": "identity_without_outcome",
+    "checks": [
+      {
+        "id": "R1"
+      }
+    ],
+    "command_views": [],
+    "accepted": false
+  }
+]

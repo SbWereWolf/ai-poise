@@ -58,6 +58,11 @@ def historical_outcome(value, receipt_id, method, exit_code, passed):
                and row.get('actual_exit_code') == exit_code
                and row.get('passed') is passed for row in records), (
         'Historical receipt identity and outcome must remain visible')
+    outcomes = [row for row in records if 'actual_exit_code' in row or 'passed' in row]
+    assert all(('method' not in row or row['method'] == method)
+               and ('actual_exit_code' not in row or row['actual_exit_code'] == exit_code)
+               and ('passed' not in row or row['passed'] is passed)
+               for row in outcomes), 'Historical receipt copies must preserve one consistent outcome'
 
 
 def notice(value):

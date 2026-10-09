@@ -1,60 +1,60 @@
 FFFFFFFFFF
 =================================== FAILURES ===================================
 _ test_stage_receipts_report_terminal_materials_on_first_and_repeat[retained-completed] _
-tests/terminal_materials/test_terminal_receipt_views.py:114: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+tests/terminal_materials/test_terminal_receipt_views.py:119: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
     historical_outcome(brief, receipt['id'], 'CHECK', 0, True)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method
 E   AssertionError: Historical receipt identity and outcome must remain visible
 _ test_stage_receipts_report_terminal_materials_on_first_and_repeat[retained-cancelled] _
-tests/terminal_materials/test_terminal_receipt_views.py:114: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+tests/terminal_materials/test_terminal_receipt_views.py:119: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
     historical_outcome(brief, receipt['id'], 'CHECK', 0, True)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method
 E   AssertionError: Historical receipt identity and outcome must remain visible
 _ test_stage_receipts_report_terminal_materials_on_first_and_repeat[removed-completed] _
-tests/terminal_materials/test_terminal_receipt_views.py:114: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+tests/terminal_materials/test_terminal_receipt_views.py:119: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
     historical_outcome(brief, receipt['id'], 'CHECK', 0, True)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method
 E   AssertionError: Historical receipt identity and outcome must remain visible
 _ test_stage_receipts_report_terminal_materials_on_first_and_repeat[removed-cancelled] _
-tests/terminal_materials/test_terminal_receipt_views.py:114: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
+tests/terminal_materials/test_terminal_receipt_views.py:119: in test_stage_receipts_report_terminal_materials_on_first_and_repeat
     historical_outcome(brief, receipt['id'], 'CHECK', 0, True)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method
 E   AssertionError: Historical receipt identity and outcome must remain visible
 ___ test_integration_first_display_and_exact_replay_keep_history_and_notice ____
-tests/terminal_materials/test_terminal_receipt_views.py:137: in test_integration_first_display_and_exact_replay_keep_history_and_notice
+tests/terminal_materials/test_terminal_receipt_views.py:142: in test_integration_first_display_and_exact_replay_keep_history_and_notice
     notice(brief)
-tests/terminal_materials/test_terminal_receipt_views.py:65: in notice
+tests/terminal_materials/test_terminal_receipt_views.py:70: in notice
     assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
            ^^^^^^^^^^^^^^^^^
 E   AssertionError: Terminal presentation must report destroyed service logs
 _________ test_receipt_owner_resolves_stage_and_integration_provenance _________
-tests/terminal_materials/test_terminal_receipt_views.py:159: in test_receipt_owner_resolves_stage_and_integration_provenance
+tests/terminal_materials/test_terminal_receipt_views.py:164: in test_receipt_owner_resolves_stage_and_integration_provenance
     assert tools.runtime.task_queries.receipt_task(receipt_id) == identifier, (
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 E   AssertionError: Receipt provenance must identify its actual Task
 __ test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query __
-tests/terminal_materials/test_terminal_receipt_views.py:179: in test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query
+tests/terminal_materials/test_terminal_receipt_views.py:184: in test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query
     historical_outcome(brief, original['id'], 'RECEIPT_PROBE', 7, False)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method
 E   AssertionError: Historical receipt identity and outcome must remain visible
 ___ test_receipt_state_read_failure_is_explicit_in_saved_and_short_response ____
-tests/terminal_materials/test_terminal_receipt_views.py:198: in test_receipt_state_read_failure_is_explicit_in_saved_and_short_response
+tests/terminal_materials/test_terminal_receipt_views.py:203: in test_receipt_state_read_failure_is_explicit_in_saved_and_short_response
     assert 'Receipt state unavailable' in json.dumps(value), (
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 E   AssertionError: Receipt state lookup failure must be displayed explicitly
 _____ test_bounded_terminal_notice_survives_omission_of_all_command_views ______
-tests/terminal_materials/test_terminal_receipt_views.py:217: in test_bounded_terminal_notice_survives_omission_of_all_command_views
+tests/terminal_materials/test_terminal_receipt_views.py:222: in test_bounded_terminal_notice_survives_omission_of_all_command_views
     historical_outcome(brief, done['checks'][0]['id'], 'RECEIPT_PROBE', 0, True)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method
 E   AssertionError: Historical receipt identity and outcome must remain visible
 _ test_failed_ordinary_stage_receipt_keeps_failure_on_first_and_repeated_display _
-tests/terminal_materials/test_terminal_receipt_views.py:251: in test_failed_ordinary_stage_receipt_keeps_failure_on_first_and_repeated_display
+tests/terminal_materials/test_terminal_receipt_views.py:256: in test_failed_ordinary_stage_receipt_keeps_failure_on_first_and_repeated_display
     historical_outcome(value, receipt['id'], 'CHECK', 7, False)
 tests/terminal_materials/test_terminal_receipt_views.py:57: in historical_outcome
     assert any(row.get('method') == method

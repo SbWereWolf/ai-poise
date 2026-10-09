@@ -1762,9 +1762,15 @@ class Poise:
             invocations.append(invocation)
         return invocations
 
+    def _check_configuration_systems(self):
+        transfer = self.cfg['runtime_services']['transfer']
+        if 'recovery' not in transfer:
+            return {}
+        return transfer['recovery']['systems']
+
     def _verification_execution(self, data, tree, checks, worktree):
         from .infrastructure.evidence_configuration import EvidenceConfigurationCapture
-        systems = EvidenceConfigurationCapture(self.cfg['runtime_services']['transfer']['recovery']['systems'], self._git).preflight() if checks else None
+        systems = EvidenceConfigurationCapture(self._check_configuration_systems(), self._git).preflight() if checks else None
         invocations = self._invocations(checks, worktree)
         commit = self._git(worktree, 'rev-parse', 'HEAD')
         for invocation in invocations:
@@ -1816,7 +1822,9 @@ class Poise:
                 return False
             systems = r.get('systems')
             expected_systems = invocation.get('systems')
-            if not isinstance(systems, dict) or set(systems) != {'poise', 'project'} or expected_systems is None:
+            if (not isinstance(systems, dict) or not isinstance(expected_systems, dict)
+                    or set(systems) != set(expected_systems)
+                    or set(systems) not in (set(), {'poise', 'project'})):
                 return False
             for owner, system in systems.items():
                 if system.get('commit') != expected_systems[owner]['commit']:
@@ -1854,7 +1862,7 @@ class Poise:
     @staticmethod
     def _receipt_files_intact(receipt, method):
         systems = receipt.get('systems')
-        if not isinstance(systems, dict) or set(systems) != {'poise', 'project'}:
+        if not isinstance(systems, dict) or set(systems) not in (set(), {'poise', 'project'}):
             return False
         for system in systems.values():
             if not isinstance(system, dict) or not system.get('commit') or not system.get('configs'):
@@ -1953,7 +1961,7 @@ class Poise:
                 encoding='utf-8',
             )
             from .infrastructure.evidence_configuration import EvidenceConfigurationCapture
-            config_capture = EvidenceConfigurationCapture(self.cfg['runtime_services']['transfer']['recovery']['systems'], self._git)
+            config_capture = EvidenceConfigurationCapture(self._check_configuration_systems(), self._git)
             systems = config_capture.capture(run_dir, invocation['systems'])
             attempt = self.runner.start_check_run(data['id'], self.session, attempt, run_id)
             result=self.check_runner.run(

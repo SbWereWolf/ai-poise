@@ -58,6 +58,9 @@ class SqliteTaskProcessMigration:
 
     def migrate(self, request: MigrationRequest) -> dict:
         root, config, processes = load_config(self.config_path)
+        from ..modules.goal_config.domain import GoalTypeDefinition
+        processes = {kind: GoalTypeDefinition.from_configuration(document).data
+                     for kind, document in processes.items()}
         try:
             state = configured_root(root, config["paths"]["state"])
             database = descendant(state, config["paths"]["database"])

@@ -91,7 +91,7 @@ class GoalConfigCommands:
                 if source_revision!=request["expected_revision"]:
                     raise VersionConflict(f"Устаревшая revision; текущая {source_revision}")
                 source=current
-            candidate=GoalTypeDefinition.build(request["goal_type"],source,changes)
+            candidate=GoalTypeDefinition.build_configuration(request["goal_type"],source,changes)
             return edit.publish(request,request_digest,source_revision,candidate.data,request["template"])
 
     def status(self, request: dict) -> dict:

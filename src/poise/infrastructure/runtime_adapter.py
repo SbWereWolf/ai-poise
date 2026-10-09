@@ -11,12 +11,13 @@ from copy import deepcopy
 from ..common import PoiseError,exact_keys,load_config
 from ..modules.runtime_adapter.domain import RuntimeIdentity,validate_inventory
 from ..modules.session_establishment.domain import CallerIdentity
+from ..modules.foundation.validation import configuration_fields
 from ..application.work import WorkTools
 from .session_establishment import establish_poise
 
 
 def validate_settings(cfg):
-    exact_keys(cfg,{'schema','project_config','adapter_id','transcript_roots','max_scan_bytes',
+    configuration_fields(cfg,{'schema','project_config','adapter_id','transcript_roots','max_scan_bytes',
                     'max_line_bytes','max_events','required_capabilities'},'runtime adapter settings')
     if cfg['schema']!='runtime-adapter-1':raise PoiseError('Unsupported runtime adapter settings')
     for key in ('project_config','adapter_id'):

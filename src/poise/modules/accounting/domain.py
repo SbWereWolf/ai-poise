@@ -7,6 +7,7 @@ import hashlib
 import json
 from .clock import validate_source_observation
 from ..foundation.errors import DomainError
+from ..foundation.validation import configuration_fields
 
 COUNTERS = ('input_tokens','output_tokens','total_tokens','cached_input_tokens','reasoning_tokens')
 
@@ -50,8 +51,8 @@ class MetricPolicy:
 
     @classmethod
     def parse(cls,value):
-        exact(value,{'timezone','week_start','max_events','max_files','max_blob_bytes','time_mode','causes','sources','path_categories','tokenizer','storage'},'accounting config')
-        storage=value['storage'];exact(storage,{'database','lock'},'accounting.storage')
+        value = deepcopy(configuration_fields(value,{'timezone','week_start','max_events','max_files','max_blob_bytes','time_mode','causes','sources','path_categories','tokenizer','storage'},'accounting config', DomainError))
+        storage=value['storage']=configuration_fields(value['storage'],{'database','lock'},'accounting.storage', DomainError)
         for key in ('database','lock'):
             if (not isinstance(storage[key], str) or not storage[key].strip()
                     or '\0' in storage[key]):
@@ -68,12 +69,12 @@ class MetricPolicy:
         for label,patterns in value['path_categories'].items():
             if not isinstance(label,str) or not label:raise DomainError('Category ID required')
             names(patterns,'path patterns')
-        t=value['tokenizer'];exact(t,{'kind','identity','command'},'measurement tokenizer')
+        t=value['tokenizer']=configuration_fields(value['tokenizer'],{'kind','identity','command'},'measurement tokenizer', DomainError)
         if not isinstance(t['identity'],str) or not t['identity']:raise DomainError('Measurement identity required')
         if t['kind']=='unavailable':
             if t['command'] is not None:raise DomainError('Unavailable tokenizer requires explicit null command')
         elif t['kind']=='command':
-            c=t['command'];exact(c,{'argv','cwd','environment','timeout_seconds','max_output_bytes'},'tokenizer command')
+            c=t['command']=configuration_fields(t['command'],{'argv','cwd','environment','timeout_seconds','max_output_bytes'},'tokenizer command', DomainError)
             if not isinstance(c['argv'],list) or not c['argv'] or any(not isinstance(x,str) for x in c['argv']):raise DomainError('Tokenizer argv required')
             if not isinstance(c['cwd'],str) or not c['cwd'] or not isinstance(c['environment'],dict) or any(not isinstance(k,str) or not isinstance(v,str) for k,v in c['environment'].items()):raise DomainError('Tokenizer cwd/environment required')
             for k in ('timeout_seconds','max_output_bytes'):

@@ -7,6 +7,7 @@ from ..verification.domain import exact_keys
 from ..tasks.definition import path_identifier
 from ..tasks.allocation import creation_alias
 from ..foundation.errors import DomainError
+from ..foundation.validation import configuration_fields
 
 
 def task_identity(value):
@@ -21,7 +22,7 @@ class SprintPolicy:
 
     @classmethod
     def parse(cls, raw):
-        exact_keys(raw,{'max_tasks','max_dependencies','acceptable_terminal_states','templates','section_rules'},'sprint policy')
+        raw = deepcopy(configuration_fields(raw,{'max_tasks','max_dependencies','acceptable_terminal_states','templates','section_rules'},'sprint policy', DomainError))
         for key in ('max_tasks','max_dependencies'):
             if type(raw[key]) is not int or raw[key]<=0:raise DomainError(f'{key}: explicit positive limit required')
         states=raw['acceptable_terminal_states']
@@ -29,14 +30,14 @@ class SprintPolicy:
             raise DomainError('Explicit acceptable terminal states required')
         if not isinstance(raw['section_rules'],list):raise DomainError('Explicit section_rules required')
         rules=[]
+        raw['section_rules'] = [configuration_fields(item,{'name','template','normalization','required'},'sprint section', DomainError) for item in raw['section_rules']]
         for item in raw['section_rules']:
-            exact_keys(item,{'name','template','normalization','required'},'sprint section')
             rules.append(SectionRule(**item))
         SectionBook(tuple(rules))
         if not isinstance(raw['templates'],dict) or not raw['templates']:raise DomainError('Explicit sprint templates required')
         for key,t in raw['templates'].items():
             path_identifier(key)
-            exact_keys(t,{'version','goal','requirements','definition_of_done','sections','tasks','dependencies'},'sprint template')
+            t = raw['templates'][key] = configuration_fields(t,{'version','goal','requirements','definition_of_done','sections','tasks','dependencies'},'sprint template', DomainError)
             if not isinstance(t['version'],str) or not t['version']:raise DomainError('Template version required')
             if not isinstance(t['goal'],str) or not isinstance(t['requirements'],list) or not isinstance(t['definition_of_done'],list):
                 raise DomainError('Invalid template purpose')

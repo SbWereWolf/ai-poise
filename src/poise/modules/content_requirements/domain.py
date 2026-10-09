@@ -5,6 +5,21 @@ import fnmatch
 import json
 from ..content.domain import ContentState, SectionRule, SectionValue
 from ..foundation.errors import DomainError
+from ..foundation.validation import configuration_fields
+
+
+SECTION_FIELDS = {'id', 'template', 'normalization', 'write_stages'}
+TRACE_ROUTE_FIELDS = {'id', 'requirements', 'points'}
+TRACE_POINT_FIELDS = {'id', 'kind', 'fields', 'write_stages'}
+
+
+def requirement_variants(raw, require_artifact_source):
+    artifact = {'scope', 'pattern', 'minimum', 'maximum', 'source'}
+    if not require_artifact_source and 'source' not in raw:
+        artifact = artifact - {'source'}
+    return {'section': {'section', 'states'},
+            'trace': {'route', 'point', 'field_equals'},
+            'artifact': artifact, 'coverage': {'points'}}
 
 
 def _json(value: object) -> str:
@@ -209,6 +224,33 @@ class ContentPolicy:
     routes: tuple[TraceRoute, ...]
     requirements: tuple[Requirement, ...]
 
+    @staticmethod
+    def configuration_layer(raw):
+        layer = configuration_fields(raw, {'sections', 'routes', 'requirements'}, 'content_contract', DomainError)
+        if any(not isinstance(items, list) for items in layer.values()):
+            raise DomainError('content_contract: группы должны быть списками')
+        layer['sections'] = [configuration_fields(item, SECTION_FIELDS, 'section definition', DomainError) for item in layer['sections']]
+        layer['routes'] = [configuration_fields(item, TRACE_ROUTE_FIELDS, 'trace route', DomainError) for item in layer['routes']]
+        for route in layer['routes']:
+            if not isinstance(route['points'], list):
+                raise DomainError('trace points: требуется список')
+            route['points'] = [configuration_fields(item, TRACE_POINT_FIELDS, 'trace point', DomainError) for item in route['points']]
+        requirements = []
+        for item in layer['requirements']:
+            if not isinstance(item, dict) or item.get('kind') not in requirement_variants(item, False):
+                raise DomainError('Неизвестный вид требования содержимого')
+            fields = {'id', 'kind', 'stages', 'phase'} | requirement_variants(item, False)[item['kind']]
+            item = configuration_fields(item, fields, 'content requirement', DomainError)
+            if item['kind'] == 'artifact' and 'source' in item:
+                source = item['source']
+                shapes = {'preexisting': {'kind'}, 'stage_output': {'kind', 'producer_stage'},
+                          'declared_arrival': {'kind', 'arrival_stage'}}
+                if isinstance(source, dict) and source.get('kind') in shapes:
+                    item['source'] = configuration_fields(source, shapes[source['kind']], 'artifact source', DomainError)
+            requirements.append(item)
+        layer['requirements'] = requirements
+        return layer
+
     @classmethod
     def from_layers(cls, goal: dict, task: dict, stages: tuple[str, ...],
                     requirement_ids: tuple[str, ...], method_ids: tuple[str, ...],
@@ -250,7 +292,7 @@ class ContentPolicy:
                 if not isinstance(layer[key], list):
                     raise DomainError(f"{origin}.{key}: требуется список")
             for raw in layer["sections"]:
-                _object(raw, {"id", "template", "normalization", "write_stages"}, "section definition")
+                _object(raw, SECTION_FIELDS, "section definition")
                 name = _name(raw["id"], "section id")
                 if name in section_ids:
                     raise DomainError(f"Повтор/замена определения секции {name}")
@@ -258,7 +300,7 @@ class ContentPolicy:
                 sections.append(ExtraSection(SectionRule(name, raw["template"], raw["normalization"], False),
                     _names(raw["write_stages"], "section write stages", stages, True)))
             for raw in layer["routes"]:
-                _object(raw, {"id", "requirements", "points"}, "trace route")
+                _object(raw, TRACE_ROUTE_FIELDS, "trace route")
                 rid = _name(raw["id"], "route id")
                 if rid in route_ids:
                     raise DomainError(f"Повтор/замена маршрута {rid}")
@@ -268,7 +310,7 @@ class ContentPolicy:
                     raise DomainError("Маршрут должен перечислять точки")
                 points, point_ids = [], set()
                 for p in raw["points"]:
-                    _object(p, {"id", "kind", "fields", "write_stages"}, "trace point")
+                    _object(p, TRACE_POINT_FIELDS, "trace point")
                     pid = _name(p["id"], "point id")
                     if pid in point_ids or p["kind"] not in ("text", "method", "record"):
                         raise DomainError("Повтор точки или неизвестный вид точки")
@@ -288,13 +330,7 @@ class ContentPolicy:
                 if not isinstance(raw, dict) or "kind" not in raw:
                     raise DomainError("Не определён вид требования содержимого")
                 kind = raw["kind"]
-                artifact_fields = {"scope", "pattern", "minimum", "maximum", "source"}
-                if not require_artifact_source and "source" not in raw:
-                    artifact_fields = artifact_fields - {"source"}
-                variants = {"section": {"section", "states"},
-                            "trace": {"route", "point", "field_equals"},
-                            "artifact": artifact_fields,
-                            "coverage": {"points"}}
+                variants = requirement_variants(raw, require_artifact_source)
                 if kind not in variants:
                     raise DomainError("Неизвестный вид требования содержимого")
                 _object(raw, {"id", "kind", "stages", "phase"} | variants[kind], "content requirement")

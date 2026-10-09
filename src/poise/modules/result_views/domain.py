@@ -96,8 +96,9 @@ class OutputPolicy:
 
     @classmethod
     def parse(cls,value):
-        exact(value,{'known','unknown','directory','manifest','job','worker_stdout','worker_stderr',
-                     'chunk_bytes','worker_timeout_seconds','file_mode'},'output policy')
+        from ..foundation.validation import configuration_fields
+        value = deepcopy(configuration_fields(value,{'known','unknown','directory','manifest','job','worker_stdout','worker_stderr',
+                     'chunk_bytes','worker_timeout_seconds','file_mode'},'output policy', DomainError))
         for k in ('directory','manifest','job','worker_stdout','worker_stderr'):relative(value[k])
         names=[value[k] for k in ('manifest','job','worker_stdout','worker_stderr')]
         if len(names)!=len(set(names)):raise DomainError('Output control filenames must be distinct')
@@ -107,8 +108,13 @@ class OutputPolicy:
             raise DomainError('Explicit file mode required')
         if not isinstance(value['known'],list):raise DomainError('known profiles must be a list')
         ids=[]
+        def profile_options(profile):
+            profile = configuration_fields(profile,{'id','argv_tokens','parser','selection_pattern','primary_chars','extended_bytes','selected_bytes','files'},'output profile', DomainError)
+            profile['files'] = configuration_fields(profile['files'],{'extended','full','selected'},'view files', DomainError)
+            return profile
+        value['known'] = [profile_options(profile) for profile in value['known']]
+        value['unknown'] = profile_options(value['unknown'])
         for profile in [*value['known'],value['unknown']]:
-            exact(profile,{'id','argv_tokens','parser','selection_pattern','primary_chars','extended_bytes','selected_bytes','files'},'output profile')
             if not isinstance(profile['id'],str) or not profile['id']:raise DomainError('Profile ID required')
             ids.append(profile['id'])
             tokens=profile['argv_tokens']

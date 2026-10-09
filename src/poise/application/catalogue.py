@@ -30,7 +30,7 @@ class CatalogueCommands:
                 raise DomainError('Select the exact registered independent process template')
             source=(self.repository.process_template(selection) if item['mode']=='create'
                     else self.repository.configured_process(goal))
-            GoalTypeDefinition.build(goal,source,item['changes'])
+            GoalTypeDefinition.build_configuration(goal,source,item['changes'])
             prepared.append(request)
         # Each file has its own durable receipt. The batch is NOT a filesystem transaction.
         results=[]
@@ -57,7 +57,7 @@ class CatalogueCommands:
         })
         process = (deepcopy(processes[goal_type]) if goal_type in processes
                    else self.repository.process_template(self.repository.process_selection(goal_type)))
-        return draft, process
+        return draft, GoalTypeDefinition.from_configuration(process).data
 
     def tasks(self,items,processes,automatic_checks,decomposition_policy):
         self._batch(items);tasks=[];ids=set()
@@ -66,7 +66,7 @@ class CatalogueCommands:
             blueprint=self.repository.task_blueprint(item['template'])
             if blueprint.goal_type not in processes:raise DomainError('Goal is not in the selected project')
             contract=blueprint.instantiate(
-                item['parameters'],processes[blueprint.goal_type],automatic_checks,
+                item['parameters'],GoalTypeDefinition.from_configuration(processes[blueprint.goal_type]).data,automatic_checks,
                 decomposition_policy,
             )
             if contract['id'] in ids:raise DomainError('Duplicate task identity in batch')

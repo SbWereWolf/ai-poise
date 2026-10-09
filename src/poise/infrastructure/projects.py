@@ -22,6 +22,7 @@ from ..common import (
 )
 from ..modules.projects.domain import ProjectBlueprint
 from ..modules.foundation.errors import PoiseError,VersionConflict
+from ..modules.foundation.validation import configuration_fields
 from .goal_config import read_document,atomic_write
 from .locking import exclusive_lock
 
@@ -51,7 +52,7 @@ def publish_registry(settings,document):
 class ProjectSettings:
     def __init__(self,path):
         self.path=Path(path).resolve();self.raw=read_document(self.path);c=self.raw
-        exact_keys(c,{'schema','root','templates','manifest','receipt','registry','lock','file_mode','directory_mode',
+        configuration_fields(c,{'schema','root','templates','manifest','receipt','registry','lock','file_mode','directory_mode',
             'json_indent','lock_seconds','lock_poll_seconds','git_seconds','max_input_bytes','max_edits',
             'max_survey_steps','output_chars','exit_codes'},'project setup settings')
         if c['schema']!='project-setup-settings-1':raise PoiseError('Unsupported setup settings schema')
@@ -74,12 +75,12 @@ class ProjectSettings:
         self.registry=confined(self.root,c['registry'])
         self.lock=confined(self.root,c['lock'])
         if self.registry==self.lock:raise PoiseError('Project registry and setup lock must be distinct')
-        exact_keys(c['exit_codes'],{'success','rejected','aborted'},'setup exit codes')
-        if any(type(v) is not int or not 0<=v<=255 for v in c['exit_codes'].values()) or len(set(c['exit_codes'].values()))!=3:
+        codes = configuration_fields(c['exit_codes'],{'success','rejected','aborted'},'setup exit codes')
+        if any(type(v) is not int or not 0<=v<=255 for v in codes.values()) or len(set(codes.values()))!=3:
             raise PoiseError('Distinct explicit exit codes required')
         if not isinstance(c['templates'],dict) or not c['templates']:raise PoiseError('Explicit template registry required')
         for item in c['templates'].values():
-            exact_keys(item,{'path','version','digest'},'template registry')
+            item = configuration_fields(item,{'path','version','digest'},'template registry')
             if any(not isinstance(v,str) or not v for v in item.values()):raise PoiseError('Incomplete registry entry')
             confined(self.root,item['path'])
 
@@ -117,7 +118,7 @@ class FileProjectSetup:
 
     def _registry(self):
         document=read_document(self.settings.registry)
-        exact_keys(document,{'schema','projects'},'configured project registry')
+        configuration_fields(document,{'schema','projects'},'configured project registry')
         if document['schema']!='configured-project-registry-1':
             raise PoiseError('Unsupported configured project registry schema')
         projects=document['projects']
@@ -125,7 +126,7 @@ class FileProjectSetup:
         for project,entry in projects.items():
             if not isinstance(project,str) or not project.strip():
                 raise PoiseError('Configured project registry requires non-empty project identities')
-            exact_keys(entry,{'config_path'},f'configured project registry entry {project}')
+            configuration_fields(entry,{'config_path'},f'configured project registry entry {project}')
             if not isinstance(entry['config_path'],str) or not entry['config_path'].strip():
                 raise PoiseError(f'Configured project registry entry {project} requires config_path')
             confined(self.settings.root,entry['config_path'])

@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 from .modules.foundation.errors import PoiseError
-from .modules.foundation.validation import validate_exact_keys
+from .modules.foundation.validation import validate_exact_keys, configuration_fields
 
 
 GIT_PUSH_PROHIBITION = (
@@ -144,33 +144,33 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     keys = {'schema','project','paths','limits','git','processes','environment_names',
             'automatic_checks','batch','sprint','runtime_services','accounting',
             'task_decomposition'}
-    exact_keys(cfg, keys | ({'task_ids', 'development_routing', 'source_reader', 'telemetry_delivery', 'task_planning'} & cfg.keys()), 'project config')
+    configuration_fields(cfg, keys, 'project config')
     if 'task_planning' in cfg:
         from .modules.tasks.planning import validate_planning
         settings = cfg['task_planning']
-        exact_keys(settings, {'catalogue', 'restart_revision_policy'}, 'task_planning')
+        configuration_fields(settings, {'catalogue', 'restart_revision_policy'}, 'task_planning')
         if (not isinstance(settings['catalogue'], str) or not settings['catalogue'].strip()
                 or '\0' in settings['catalogue']):
             raise PoiseError('task_planning.catalogue requires an explicit path')
         validate_planning({'schema': 'task-planning-1', 'template': None,
-                           'restart_revision_policy': settings['restart_revision_policy']})
+                           'restart_revision_policy': configuration_fields(
+                               settings['restart_revision_policy'], {'reviewer', 'user'},
+                               'task_planning.restart_revision_policy')})
     if 'telemetry_delivery' in cfg:
         from .modules.accounting.delivery import TelemetryDeliveryPolicy
         delivery = cfg['telemetry_delivery']
-        exact_keys(delivery, {'directory', 'policy'}, 'telemetry_delivery')
+        configuration_fields(delivery, {'directory', 'policy'}, 'telemetry_delivery')
         if not isinstance(delivery['directory'], str) or not delivery['directory'].strip() or '\0' in delivery['directory']:
             raise PoiseError('telemetry_delivery.directory: explicit path required')
         TelemetryDeliveryPolicy.parse(delivery['policy'])
     if 'source_reader' in cfg:
-        exact_keys(cfg['source_reader'], {'policy', 'receipt_file'}, 'source_reader')
-        for name, value in cfg['source_reader'].items():
+        for name, value in configuration_fields(cfg['source_reader'], {'policy', 'receipt_file'}, 'source_reader').items():
             if not isinstance(value, str) or not value.strip() or '\0' in value:
                 raise PoiseError(f'source_reader.{name}: explicit path required')
         descendant(root, cfg['source_reader']['receipt_file'])
     if 'development_routing' in cfg:
-        exact_keys(cfg['development_routing'], {'catalog','selection','policy','packages'},
-                   'development_routing')
-        for name, value in cfg['development_routing'].items():
+        for name, value in configuration_fields(cfg['development_routing'], {'catalog','selection','policy','packages'},
+                   'development_routing').items():
             if not isinstance(value, str) or not value.strip() or '\0' in value:
                 raise PoiseError(f'development_routing.{name}: explicit filesystem path required')
     if cfg['schema'] != 'ddd-accounting-12':
@@ -178,21 +178,21 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     task_paths = {'state','database','lock','runtime','standalone_tasks','sprints','worktrees',
                   'git_index','runs','stdout','stderr','response'}
     requirements_paths = {'requirements_database', 'requirements_lock'}
-    exact_keys(cfg['paths'], task_paths | requirements_paths, 'paths')
+    configuration_fields(cfg['paths'], task_paths | requirements_paths, 'paths')
     for key in sorted(task_paths | requirements_paths):
         _require_config_path(
             cfg['paths'][key], f'paths.{key}',
             nonblank=key in {'state', 'database', 'lock', 'requirements_database', 'requirements_lock'},
         )
-    exact_keys(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
+    limits = configuration_fields(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
-    for key, value in cfg['limits'].items():
+    for key, value in limits.items():
         if not isinstance(value, (int,float)) or isinstance(value,bool) or value <= 0 or not math.isfinite(value):
             raise PoiseError(f'limits.{key}: требуется конечное положительное число')
     for key in ('verify_attempts','output_chars','preview_chars'):
         if not isinstance(cfg['limits'][key], int):
             raise PoiseError(f'limits.{key}: требуется целое число')
-    exact_keys(cfg['git'], {'repository','base_ref','remote','branch_template','commit_pattern',
+    configuration_fields(cfg['git'], {'repository','base_ref','remote','branch_template','commit_pattern',
                            'author_name','author_email','push_required'}, 'git')
     if not isinstance(cfg['project'],str) or not cfg['project'].strip():
         raise PoiseError('project: требуется явный непустой идентификатор')
@@ -276,9 +276,9 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
                 aliased=False
             if aliased:
                 raise PoiseError('accounting.storage физически совпадает с другим хранилищем')
-    exact_keys(cfg['runtime_services'],{'output','handoff','transfer','check_runner'},'runtime_services')
+    configuration_fields(cfg['runtime_services'],{'output','handoff','transfer','check_runner'},'runtime_services')
     check_runner=cfg['runtime_services']['check_runner']
-    exact_keys(check_runner,{'initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'},'check_runner config')
+    configuration_fields(check_runner,{'initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'},'check_runner config')
     for key in ('initial_seconds','history_multiplier','progress_gap_seconds','poll_seconds','diagnostic_override_max_seconds'):
         value=check_runner[key]
         if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value) or value<=0:
@@ -295,7 +295,7 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     from .modules.result_views.domain import OutputPolicy
     OutputPolicy.parse(cfg['runtime_services']['output'])
     transfer=cfg['runtime_services']['handoff']
-    exact_keys(transfer,{'directory','receipt','bundle','preserved_directory','file_mode'},'handoff config')
+    configuration_fields(transfer,{'directory','receipt','bundle','preserved_directory','file_mode'},'handoff config')
     for key in ('directory', 'receipt', 'bundle', 'preserved_directory'):
         _require_config_path(transfer[key], f'runtime_services.handoff.{key}', nonblank=False)
         descendant(state, transfer[key])
@@ -323,10 +323,10 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
         if (legacy_process_requirements is not None
                 and set(process) == PROCESS_FIELDS - {'worktree_required'}):
             process['worktree_required'] = legacy_process_requirements[kind]
-        process = GoalTypeDefinition.parse(process).data
-        if process['goal_type'] != kind:
+        effective_process = GoalTypeDefinition.from_configuration(process).data
+        if effective_process['goal_type'] != kind:
             raise PoiseError(f'Неоднозначный process {kind}')
         processes[kind] = process
     for entry in cfg['automatic_checks']:
-        exact_keys(entry, {'paths','by_stage'}, 'automatic checks')
+        configuration_fields(entry, {'paths','by_stage'}, 'automatic checks')
     return root, cfg, processes

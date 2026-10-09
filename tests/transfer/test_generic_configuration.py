@@ -68,8 +68,12 @@ def current_runtime(project):
         pytest.fail('Generic explicit recovery configuration is not implemented')
 
 
-def test_work_and_verification_without_recovery(project):
-    del project['cfg']['runtime_services']['transfer']['recovery']
+@pytest.mark.parametrize('recovery', ['absent', None, {}, {'future_option': True}, {'systems': None}, {'systems': {'future_option': True}}])
+def test_work_and_verification_without_recovery(project, recovery):
+    if recovery == 'absent':
+        del project['cfg']['runtime_services']['transfer']['recovery']
+    else:
+        project['cfg']['runtime_services']['transfer']['recovery'] = recovery
     write_json(project['config_path'], project['cfg'])
     tools = WorkTools(WorkPoise(project['config_path'], 'without-recovery'))
     context = bootstrap(tools, project)
@@ -106,6 +110,11 @@ def test_transfer_without_recovery_refuses_before_effects(project, action):
 
 
 def test_generic_checks_capture_current_systems_without_delivery(project):
+    project['cfg']['runtime_services']['transfer']['recovery']['systems']['future_option'] = None
+    for spec in project['cfg']['runtime_services']['transfer']['recovery']['systems'].values():
+        if isinstance(spec, dict):
+            spec['future_option'] = False
+    write_json(project['config_path'], project['cfg'])
     tools = WorkTools(current_runtime(project))
     context = bootstrap(tools, project)
     add_test(context['worktree'])
@@ -125,15 +134,18 @@ def test_generic_checks_capture_current_systems_without_delivery(project):
 
 
 @pytest.mark.parametrize('owner', ['poise', 'project'])
-def test_generic_missing_system_input_cannot_create_state_or_run_delivery(project, owner):
+def test_generic_missing_system_input_refuses_transfer_before_delivery(project, owner):
     current_runtime(project)  # Positive loader control precedes the negative mutation.
     original = deepcopy(project['cfg'])
     del project['cfg']['runtime_services']['transfer']['recovery']['systems'][owner]
     write_json(project['config_path'], project['cfg'])
     state = project['root'] / 'state'
     before = {path.relative_to(state): path.read_bytes() for path in state.rglob('*') if path.is_file()}
+    runtime = WorkPoise(project['config_path'], 'missing-system')
+    before = {path.relative_to(state): path.read_bytes() for path in state.rglob('*') if path.is_file()}
     with pytest.raises(PoiseError, match='systems|' + owner):
-        WorkPoise(project['config_path'], 'missing-system')
+        runtime.transfer_tools.apply({'action': 'export', 'request_id': 'missing-system',
+            'task_ids': ['T1'], 'sprint_id': None, 'handoff': None})
     assert {path.relative_to(state): path.read_bytes() for path in state.rglob('*') if path.is_file()} == before
     assert not (project['root'] / 'unexpected-flow.txt').exists()
     assert project['cfg']['git'] == original['git']

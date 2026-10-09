@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import math
 from ..foundation.errors import PoiseError
-from ..foundation.validation import validate_exact_keys
+from ..foundation.validation import configuration_fields
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ class TelemetryDeliveryPolicy:
 
     @classmethod
     def parse(cls, value):
-        validate_exact_keys(value, set(cls.__annotations__), 'telemetry delivery policy', PoiseError)
+        value = configuration_fields(value, set(cls.__annotations__), 'telemetry delivery policy', PoiseError)
         for key in ('max_entries', 'max_bytes', 'max_event_bytes', 'max_attempts', 'batch_items'):
             if type(value[key]) is not int or value[key] <= 0:
                 raise PoiseError(f'{key}: positive integer required')

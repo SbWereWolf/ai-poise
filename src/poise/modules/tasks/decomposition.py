@@ -165,22 +165,23 @@ class FocusedDecomposition:
 
     @staticmethod
     def validate_policy(policy):
+        from ..foundation.validation import configuration_fields
         catalog_responsibilities = None
         if isinstance(policy, dict) and "catalog" in policy:
-            exact_keys(policy, {"catalog", "skill_ids", "areas"}, "task_decomposition")
+            configuration_fields(policy, {"catalog", "skill_ids", "areas"}, "task_decomposition", DomainError)
             catalog = SkillCatalog.parse(policy["catalog"])
             definitions = catalog.decomposition_skills(policy["skill_ids"])
             # An omitted selectable skill must not turn its known area into a
             # non-narrow area and silently evade the responsibility check.
             catalog_responsibilities = {s.responsibility for s in catalog.skills if s.skill_class == "working"}
         else:
-            exact_keys(policy, {"skills", "areas"}, "task_decomposition")
+            configuration_fields(policy, {"skills", "areas"}, "task_decomposition", DomainError)
             definitions = policy["skills"]
         if not isinstance(definitions, list) or not definitions:
             raise DomainError("task_decomposition.skills must be a non-empty list")
         skills = {}
         for item in definitions:
-            exact_keys(item, {"id", "class", "responsibility"}, "task_decomposition skill")
+            configuration_fields(item, {"id", "class", "responsibility"}, "task_decomposition skill", DomainError)
             skill_id, skill_class, responsibility = item["id"], item["class"], item["responsibility"]
             if not isinstance(skill_id, str) or not skill_id.strip() or skill_id in skills:
                 raise DomainError("task_decomposition skill ids must be unique strings")
@@ -196,7 +197,7 @@ class FocusedDecomposition:
             raise DomainError("task_decomposition.areas must be a non-empty list")
         areas = {}
         for item in policy["areas"]:
-            exact_keys(item, {"path", "responsibility"}, "task_decomposition area")
+            configuration_fields(item, {"path", "responsibility"}, "task_decomposition area", DomainError)
             path, responsibility = item["path"], item["responsibility"]
             if (not _valid_pattern(path) or path in areas
                     or not isinstance(responsibility, str) or not responsibility.strip()):

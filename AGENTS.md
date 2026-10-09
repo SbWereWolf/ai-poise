@@ -262,6 +262,11 @@ Keep this English projection and its Russian source consistent in the same chang
   cannot affect product behaviour or output. Do not add hidden defaults, fallbacks, legacy aliases, dual reads/writes or
   compatibility adapters unless explicitly required. Accepted replacements remove the superseded path within scope;
   missing required inputs fail explicitly.
+  Ignore unknown configuration options without deleting their raw values or excluding
+  them from editor revisions. Keep required known options and API/Task/receipt schemas
+  strict. Task status or ownership is not a configuration-edit veto; retain resource
+  locks and optimistic publication checks. See
+  [configuration options](docs/configuration/project-setup.md#удаление-устаревшего-параметра-transfer).
 - Read skill classes and responsibility boundaries from project-specific routing. Every process phase declares its
   skills and areas before Task readiness. Ordinary Tasks cannot combine peer narrow responsibilities; integration Tasks
   require explicit integration fields. Across all phases, every area routed to a policy-owned narrow responsibility must

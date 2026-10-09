@@ -2,6 +2,16 @@
 from .errors import PoiseError
 
 
+def configuration_fields(value, keys, where, error_type=PoiseError):
+    """Select supported configuration options, without weakening packet schemas."""
+    if not isinstance(value, dict):
+        raise error_type(f'{where}: ожидается объект')
+    missing = set(keys) - value.keys()
+    if missing:
+        raise error_type(f'{where}: отсутствуют обязательные поля {sorted(missing)}')
+    return {key: value[key] for key in keys}
+
+
 def validate_exact_keys(
     value: object,
     keys: set[str],

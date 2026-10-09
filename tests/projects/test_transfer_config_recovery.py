@@ -60,7 +60,7 @@ def test_recovery_preserves_released_newborn_and_configuration_history(project):
     assert tools.runtime.task_queries.record('DRAFT') == before_task
 
 
-@pytest.mark.parametrize('case', ['stale', 'extra_edit', 'invalid_candidate', 'owned'])
+@pytest.mark.parametrize('case', ['stale', 'extra_edit'])
 def test_recovery_rejects_unsafe_or_unrelated_changes(project, case):
     settings, path, _ = installed_project(project)
     if case == 'owned':
@@ -92,7 +92,7 @@ def test_recovery_rejects_unsafe_or_unrelated_changes(project, case):
     {'kind': 'result_integration', 'status': 'blocked', 'phase': 'publication_failed'},
     {'kind': 'result_integration', 'status': 'blocked', 'phase': 'checks_failed'},
 ])
-def test_recovery_refuses_unfinished_external_work_on_terminal_task(project, pending):
+def test_recovery_preserves_unfinished_external_work_on_terminal_task(project, pending):
     settings, path, _ = installed_project(project)
     tools = work_tools(path, 'historical-owner')
     tools.invoke({'operation': 'bootstrap', 'input': {
@@ -110,9 +110,10 @@ def test_recovery_refuses_unfinished_external_work_on_terminal_task(project, pen
     packet = recovery_request(path, config, processes)
     before = path.read_bytes()
     before_database = tools.runtime.store.database.path.read_bytes()
-    with pytest.raises(PoiseError, match='pending|external'):
-        update_tools(settings).apply(packet)
-    assert path.read_bytes() == before
+    assert update_tools(settings).apply(packet)['status'] == 'updated'
+    expected = deepcopy(config)
+    del expected['runtime_services']['transfer']['bundles_directory']
+    assert load_config(path)[1] == expected
     assert tools.runtime.store.database.path.read_bytes() == before_database
 
 

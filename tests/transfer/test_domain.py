@@ -24,12 +24,13 @@ def test_transfer_policy_allows_absent_recovery(project):
 
 
 @pytest.mark.parametrize('recovery', [None, {}])
-def test_present_recovery_must_be_complete(project, recovery):
-    from poise.modules.transfers.domain import TransferPolicy
+def test_present_recovery_is_validated_at_backup_boundary(project, recovery):
+    from poise.modules.transfers.domain import TransferPolicy, RecoveryPolicy
     raw = deepcopy(project['cfg']['runtime_services']['transfer'])
     raw['recovery'] = recovery
+    assert TransferPolicy.parse(raw).data['recovery'] == recovery
     with pytest.raises(PoiseError):
-        TransferPolicy.parse(raw)
+        RecoveryPolicy.parse(recovery)
 
 
 def test_reserved_filenames_cannot_overlap(project,recovery_tool):

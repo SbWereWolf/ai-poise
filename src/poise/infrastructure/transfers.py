@@ -8,7 +8,7 @@ import sys
 import tarfile
 
 from ..common import PoiseError, digest, encoded, file_digest, read_json, worktree_root
-from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest, eligible_omissions, ExportPreparation
+from ..modules.transfers.domain import TRANSFER_FORMAT, placement_plan, validate_package_manifest, eligible_omissions, ExportPreparation, RecoveryPolicy, TransferPolicy
 from .sqlite.transfers import SqliteTransferRepository, completed_external_execution, snapshot_fingerprint
 from ..modules.transfers.placement import relocate_path, material_source
 from .sqlite.database import SCHEMA_VERSION
@@ -35,14 +35,15 @@ def execution_policy(cfg):
 class RuntimeTransfers:
     def __init__(self, poise):
         self.h = poise
-        self.policy = poise.cfg['runtime_services']['transfer']
+        self.policy = TransferPolicy.parse(poise.cfg['runtime_services']['transfer']).data
         self.root = descendant(poise.state, self.policy['directory'])
         self.repo = SqliteTransferRepository(poise.store.database)
 
     def _require_recovery(self):
         if 'recovery' not in self.policy:
             raise PoiseError('transfer.recovery required for export/import')
-        self.recovery = self.policy['recovery']
+        self.recovery = RecoveryPolicy.parse(self.policy['recovery']).data
+        self.policy = {**self.policy, 'recovery': self.recovery}
         self.flow = WorkspaceRecoveryFlow(self.recovery['tool_argv'], self.policy['file_mode'],
                                           self.h.cfg['limits']['lock_seconds'],
                                           self.h.cfg['limits']['lock_poll_seconds'])

@@ -207,20 +207,20 @@ def read_range(text, requested, initial_lines):
 
 def validate_config(config):
     from string import Template
-    exact(config,{'max_input_bytes','max_items','max_artifact_bytes','file_mode','artifact_lock',
-                  'artifact_directories','templates','message_source','message_reasons','initial_read_lines'},'batch config')
+    from ..foundation.validation import configuration_fields
+    configuration_fields(config,{'max_input_bytes','max_items','max_artifact_bytes','file_mode','artifact_lock',
+                  'artifact_directories','templates','message_source','message_reasons','initial_read_lines'},'batch config', DomainError)
     for key in ('max_input_bytes','max_items','max_artifact_bytes','initial_read_lines'):
         if type(config[key]) is not int or config[key]<=0:
             raise DomainError(f'batch.{key} must be an explicit positive integer')
     if type(config['file_mode']) is not int or not 0<=config['file_mode']<=0o777:
         raise DomainError('batch.file_mode is required')
     relative(config['artifact_lock'])
-    exact(config['artifact_directories'],{'runtime','task','sprint'},'artifact_directories')
-    for value in config['artifact_directories'].values():relative(value)
+    for value in configuration_fields(config['artifact_directories'],{'runtime','task','sprint'},'artifact_directories', DomainError).values():relative(value)
     if not isinstance(config['templates'],dict):raise DomainError('templates must be an explicit dictionary')
     for name,item in config['templates'].items():
         if not isinstance(name,str) or not name:raise DomainError('template ID is required')
-        exact(item,{'version','text','parameters'},'template')
+        configuration_fields(item,{'version','text','parameters'},'template', DomainError)
         if not isinstance(item['version'],str) or not item['version'] or not isinstance(item['text'],str):
             raise DomainError('template version/text are required')
         if not isinstance(item['parameters'],list) or any(not isinstance(x,str) or not x for x in item['parameters']):
@@ -228,7 +228,7 @@ def validate_config(config):
         tpl=Template(item['text'])
         if not tpl.is_valid() or set(tpl.get_identifiers())!=set(item['parameters']) or len(set(item['parameters']))!=len(item['parameters']):
             raise DomainError('Template placeholders must equal the explicit parameter set')
-    exact(config['message_source'],{'id','mode'},'message_source')
+    configuration_fields(config['message_source'],{'id','mode'},'message_source', DomainError)
     if not isinstance(config['message_source']['id'],str) or not config['message_source']['id']:
         raise DomainError('message source ID required')
     if config['message_source']['mode'] not in ('agent_reported','runtime_event'):

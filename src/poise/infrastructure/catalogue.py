@@ -2,6 +2,7 @@
 from pathlib import Path
 from ..common import descendant,exact_keys
 from ..modules.foundation.errors import PoiseError,VersionConflict
+from ..modules.foundation.validation import configuration_fields
 from ..modules.goal_config.domain import fingerprint
 from ..modules.catalogue.domain import TaskBlueprint
 from .goal_config import EditorSettings,FileTemplates,read_document
@@ -10,14 +11,14 @@ from .goal_config import EditorSettings,FileTemplates,read_document
 class FileCatalogue:
     def __init__(self,path):
         self.path=Path(path).resolve();self.raw=read_document(self.path)
-        exact_keys(self.raw,{'schema','editor','task_templates','max_items'},'catalogue settings')
+        configuration_fields(self.raw,{'schema','editor','task_templates','max_items'},'catalogue settings')
         if self.raw['schema']!='process-catalogue-1':raise PoiseError('Unsupported catalogue schema')
         self.editor=EditorSettings((self.path.parent/self.raw['editor']).resolve())
         self.root=self.editor.root
         if type(self.raw['max_items']) is not int or self.raw['max_items']<=0:raise PoiseError('Explicit max_items required')
         if not isinstance(self.raw['task_templates'],dict):raise PoiseError('Explicit task templates required')
         for ident,entry in self.raw['task_templates'].items():
-            exact_keys(entry,{'path','version','digest','goal_type'},'task template entry')
+            entry = configuration_fields(entry,{'path','version','digest','goal_type'},'task template entry')
             if any(not isinstance(v,str) or not v for v in entry.values()):raise PoiseError('Incomplete template selection')
             descendant(self.root,entry['path'])
 

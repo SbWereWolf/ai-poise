@@ -12,6 +12,7 @@ from ..modules.hook_transport.domain import HookDefinition,parse_native_event,me
 from ..modules.capabilities.domain import positive,nonempty
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
+from ..modules.foundation.validation import configuration_fields
 from ..application.capabilities import CapabilityChecks
 from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
@@ -34,7 +35,7 @@ class HookSettings:
 
     def _validate(self):
         s=self.raw
-        exact_keys(s,{'schema','root','project_config','python','source_root','hooks_file','definitions',
+        configuration_fields(s,{'schema','root','project_config','python','source_root','hooks_file','definitions',
             'state','lock','database','bindings','launcher','binding_file','observations','response_file',
             'cwd_roots','file_mode','executable_mode','lock_seconds','lock_poll_seconds','max_input_bytes',
             'output_chars','max_probes','exit_codes','probe_files'},'hook settings')
@@ -47,9 +48,9 @@ class HookSettings:
         self.database=descendant(self.state,s['database'])
         self.bindings=descendant(self.state,s['bindings'])
         self.observations=descendant(self.state,s['observations'])
-        exact_keys(s['probe_files'],{'stdout','stderr','receipt'},'probe_files')
-        if len(set(s['probe_files'].values()))!=3:raise PoiseError('Probe files must be distinct')
-        for name in s['probe_files'].values():descendant(self.state,name)
+        files = configuration_fields(s['probe_files'],{'stdout','stderr','receipt'},'probe_files')
+        if len(set(files.values()))!=3:raise PoiseError('Probe files must be distinct')
+        for name in files.values():descendant(self.state,name)
         for key in ('launcher','binding_file','response_file'):descendant(self.state,s[key])
         if s['launcher']==s['binding_file']:raise PoiseError('Binding and launcher filenames must differ')
         if self.state.is_relative_to(self.definitions) or self.definitions.is_relative_to(self.state):
@@ -67,8 +68,8 @@ class HookSettings:
         if not isinstance(s['cwd_roots'],list) or not s['cwd_roots']:raise PoiseError('Explicit cwd roots required')
         for p in s['cwd_roots']:
             if not isinstance(p,str) or not Path(p).is_absolute():raise PoiseError('cwd_roots require absolute paths')
-        exact_keys(s['exit_codes'],{'success','incomplete','rejected'},'exit_codes')
-        if len(set(s['exit_codes'].values()))!=3 or any(type(v) is not int or not 0<=v<=255 for v in s['exit_codes'].values()):
+        codes = configuration_fields(s['exit_codes'],{'success','incomplete','rejected'},'exit_codes')
+        if len(set(codes.values()))!=3 or any(type(v) is not int or not 0<=v<=255 for v in codes.values()):
             raise PoiseError('Explicit distinct CLI exit codes required')
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')

@@ -7,6 +7,7 @@ import hashlib
 import json
 
 from ..foundation.errors import DomainError
+from ..foundation.validation import configuration_fields
 
 
 def _exact(value, keys, where):
@@ -42,9 +43,9 @@ class TaskIdPolicy:
 
     @classmethod
     def parse(cls, value):
-        _exact(value, {"namespace", "width", "progression"}, "policy")
-        _exact(value["namespace"], {"minimum", "maximum"}, "namespace")
-        _exact(value["progression"], {"first", "step"}, "progression")
+        configuration_fields(value, {"namespace", "width", "progression"}, "task_ids policy", DomainError)
+        configuration_fields(value["namespace"], {"minimum", "maximum"}, "task_ids namespace", DomainError)
+        configuration_fields(value["progression"], {"first", "step"}, "task_ids progression", DomainError)
         minimum = _integer(value["namespace"]["minimum"], "namespace.minimum")
         maximum = _integer(value["namespace"]["maximum"], "namespace.maximum")
         width = _integer(value["width"], "width", positive=True)

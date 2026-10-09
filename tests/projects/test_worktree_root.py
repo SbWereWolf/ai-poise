@@ -118,15 +118,14 @@ def test_root_update_reconciles_exact_live_recovered_revision(project):
     assert load_config(config)[1]["git"]["author_name"] == "Recovered operator"
 
 
-def test_root_update_rejects_allocated_worktree(project):
+def test_root_update_preserves_allocated_worktree(project):
     settings, config, created = installed_project(project)
     client = work_tools(config, "executor")
     context = client.invoke(request("bootstrap", {"task": project["task"],
         "decision": None, "feedback": None, "rework_stage": None}))
-    before = config.read_bytes()
-    with pytest.raises(PoiseError, match="allocated worktree"):
-        update_tools(settings).apply(root_request(config, created["revision"], project["app"] / ".worktrees"))
-    assert config.read_bytes() == before
+    before = client.runtime.task_queries.record('T1')
+    assert update_tools(settings).apply(root_request(config, created["revision"], project["app"] / ".worktrees"))['status'] == 'updated'
+    assert client.runtime.task_queries.record('T1') == before
     assert Path(context["worktree"]).is_dir()
 
 

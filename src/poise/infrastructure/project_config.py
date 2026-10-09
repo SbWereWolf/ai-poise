@@ -6,14 +6,12 @@ import json
 import os
 from pathlib import Path
 import shutil
-import sqlite3
 import tempfile
 
-from ..common import configured_root, descendant, digest, load_config, load_config_document, validate_candidate_config
+from ..common import configured_root, configured_storage_path, descendant, digest, load_config, load_config_document, validate_candidate_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
-from ..modules.task_cleanup.domain import CleanupRun
 from .goal_config import atomic_write, read_document
 from .locking import exclusive_lock
 from .projects import confined, ProjectSettings, FileProjectSetup
@@ -154,74 +152,6 @@ class FileProjectConfigUpdate:
                 continue
         return known
 
-    def _active_work(self, root, config):
-        state = configured_root(root, config["paths"]["state"])
-        database = descendant(state, config["paths"]["database"])
-        if not database.is_file():
-            return False
-        try:
-            with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as connection:
-                row = connection.execute(
-                    "SELECT 1 FROM tasks "
-                    "WHERE status NOT IN ('completed','cancelled') LIMIT 1"
-                ).fetchone()
-            return row is not None
-        except sqlite3.Error as exc:
-            raise PoiseError(f"Cannot inspect active project work: {exc}") from exc
-
-    def _require_unallocated_worktrees(self, root, config):
-        state = configured_root(root, config['paths']['state'])
-        database = descendant(state, config['paths']['database'])
-        if not database.is_file():
-            return
-        with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as connection:
-            rows = connection.execute(
-                'SELECT t.status, e.data FROM tasks t '
-                'LEFT JOIN task_execution e ON e.task_id=t.id')
-            for status, raw in rows:
-                execution = None if raw is None else json.loads(raw)
-                if (status not in ('newborn', 'available', 'completed', 'cancelled')
-                        or execution is not None and any(execution[key] is not None
-                            for key in ('worktree', 'branch', 'pending', 'publication'))):
-                    raise PoiseError('Resolve active execution or allocated worktree before root correction')
-
-    def _require_transfer_recovery_quiescence(self, root, config):
-        state = configured_root(root, config['paths']['state'])
-        database = descendant(state, config['paths']['database'])
-        if not database.is_file():
-            return
-        try:
-            with sqlite3.connect(f'file:{database}?mode=ro', uri=True) as connection:
-                rows = connection.execute(
-                    'SELECT t.id,t.status,t.claimed_by,e.data FROM tasks t '
-                    'LEFT JOIN task_execution e ON e.task_id=t.id')
-                for task_id, status, claimant, raw in rows:
-                    if claimant is not None or status not in ('newborn', 'available', 'completed', 'cancelled'):
-                        raise PoiseError(f'Task {task_id}: active execution or ownership blocks recovery')
-                    execution = None if raw is None else json.loads(raw)
-                    if execution is None:
-                        continue
-                    if not isinstance(execution, dict):
-                        raise PoiseError(f'Task {task_id}: unreadable pending execution blocks recovery')
-                    if status not in ('completed', 'cancelled'):
-                        if any(execution.get(key) is not None for key in ('pending', 'publication')):
-                            raise PoiseError(f'Task {task_id}: active execution blocks recovery')
-                        continue
-                    pending = execution.get('pending')
-                    if pending is None:
-                        continue
-                    if isinstance(pending, dict) and pending.get('kind') == 'task_cleanup':
-                        # Sole-key retirement does not change any cleanup input.
-                        # The existing material lock holds its effects paused.
-                        CleanupRun.restore(pending)
-                        continue
-                    if (isinstance(pending, dict) and pending.get('kind') == 'result_integration'
-                            and pending.get('status') == 'integrated' and pending.get('phase') == 'integrated'):
-                        continue
-                    raise PoiseError(f'Task {task_id}: pending external operation blocks recovery')
-        except (sqlite3.Error, ValueError) as exc:
-            raise PoiseError(f'Cannot inspect pending project work: {exc}') from exc
-
     def _manifest(self, config, edits, *, workspace=False):
         candidate = deepcopy(config)
         changed = set()
@@ -252,7 +182,7 @@ class FileProjectConfigUpdate:
             if goal in seen or goal not in candidate:
                 raise PoiseError("Unknown or duplicate process update")
             current = candidate[goal]
-            built = GoalTypeDefinition.build(goal, current, item["changes"]).data
+            built = GoalTypeDefinition.build_configuration(goal, current, item["changes"]).data
             if digest(current) != item["expected_revision"] and built != current:
                 raise VersionConflict("Process revision is stale")
             candidate[goal] = built
@@ -375,7 +305,7 @@ class FileProjectConfigUpdate:
                             "State relocation staging already exists; refusing unverified deletion"
                         )
                 state = configured_root(root, live_config["paths"]["state"])
-                if recovery:
+                if recovery or request['state_relocation'] is not None:
                     locks.enter_context(exclusive_lock(
                         descendant(state, live_config['batch']['artifact_lock']),
                         live_config['limits']['lock_seconds'], live_config['limits']['lock_poll_seconds']))
@@ -383,11 +313,18 @@ class FileProjectConfigUpdate:
                 locks.enter_context(exclusive_lock(
                     state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
                 ))
+                if request['state_relocation'] is not None:
+                    # Task status is not a writer barrier: freeze the actual
+                    # Requirements and asynchronous telemetry stores while copying.
+                    for value in (live_config['paths']['requirements_lock'],
+                                  live_config['accounting']['storage']['lock']):
+                        locks.enter_context(exclusive_lock(
+                            configured_storage_path(state, value), settings.raw['lock_seconds'],
+                            settings.raw['lock_poll_seconds']))
                 candidate_config = self._manifest(live_config, request["manifest_edits"], workspace=workspace)
                 candidate_processes = self._processes(live_processes, request["process_updates"])
                 recovery_audit = None
                 if recovery:
-                    self._require_transfer_recovery_quiescence(root, live_config)
                     candidate_config = self._retire_transfer_setting(live_config)
                     if not replayed and candidate_config == live_config:
                         raise PoiseError('Retired transfer bundles_directory setting is absent')
@@ -399,10 +336,6 @@ class FileProjectConfigUpdate:
                         recovery_audit = self._validate_recovery_audit(request, pending)
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
-                if workspace:
-                    self._require_unallocated_worktrees(root, live_config)
-                elif (request["manifest_edits"] or request["state_relocation"] is not None) and self._active_work(root, live_config):
-                    raise PoiseError("Manifest or state relocation requires quiescent project; active work exists")
                 before = self._component_digests(live_config, live_processes)
                 after = self._component_digests(candidate_config, candidate_processes)
                 if replayed:

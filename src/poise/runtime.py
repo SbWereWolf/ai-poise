@@ -75,12 +75,16 @@ class Poise:
         self.root, self.cfg, self.processes = load_config(
             self.config_path, legacy_process_requirements
         )
+        from .modules.goal_config.domain import GoalTypeDefinition
+        self.processes = {kind: GoalTypeDefinition.from_configuration(document).data
+                          for kind, document in self.processes.items()}
         self.development_routing = None
         if 'development_routing' in self.cfg:
             from .infrastructure.development_routing import load_development_routing
             self.development_routing = load_development_routing(**{
                 name: (self.root / value).resolve()
-                for name, value in self.cfg['development_routing'].items()
+                for name, value in ((key, self.cfg['development_routing'][key])
+                                    for key in ('catalog', 'selection', 'policy', 'packages'))
             })
         self.session = self._identifier(session)
         self.state = configured_root(self.root, self.cfg['paths']['state'])
@@ -277,8 +281,11 @@ class Poise:
         if settings is None:
             raise PoiseError('Goal-to-template materialization requires task_planning configuration')
         repository = FileCatalogue((self.root / settings['catalogue']).resolve())
+        from .modules.foundation.validation import configuration_fields
+        revision_policy = configuration_fields(settings['restart_revision_policy'],
+                                               {'reviewer', 'user'}, 'task_planning.restart_revision_policy')
         return CatalogueCommands(repository, None, repository.raw['max_items']).materialize_draft(
-            goal_type, task_id, sprint_id, self.processes, settings['restart_revision_policy'])
+            goal_type, task_id, sprint_id, self.processes, revision_policy)
 
     def task_action(self, args):
         action = args['action']
@@ -1768,10 +1775,9 @@ class Poise:
         return invocations
 
     def _check_configuration_systems(self):
+        from .modules.transfers.domain import RecoveryPolicy
         transfer = self.cfg['runtime_services']['transfer']
-        if 'recovery' not in transfer:
-            return {}
-        return transfer['recovery']['systems']
+        return RecoveryPolicy.configuration_systems(transfer.get('recovery'))
 
     def _verification_execution(self, data, tree, checks, worktree):
         from .infrastructure.evidence_configuration import EvidenceConfigurationCapture

@@ -5,7 +5,7 @@ import re
 import json
 from .placement import material_source, relocate_path
 from ..foundation.errors import DomainError
-from ..foundation.validation import validate_exact_keys
+from ..foundation.validation import configuration_fields
 from ..artifact_factory.domain import exact, relative
 from ..tasks.definition import path_identifier
 
@@ -23,8 +23,7 @@ class TransferPolicy:
         fields = paths | limits | {'file_mode'}
         if isinstance(raw, dict) and 'recovery' in raw:
             fields.add('recovery')
-            RecoveryPolicy.parse(raw['recovery'])
-        validate_exact_keys(raw, fields, 'transfer config', DomainError)
+        raw = configuration_fields(raw, fields, 'transfer config', DomainError)
         for key in paths:
             try:
                 relative(raw[key])
@@ -46,24 +45,43 @@ class TransferPolicy:
 class RecoveryPolicy:
     data: dict
 
+    @staticmethod
+    def configuration_systems(raw):
+        """Optional check companions; the full backup contract is checked on transfer."""
+        if not isinstance(raw, dict):
+            return {}
+        try:
+            systems = configuration_fields(raw.get('systems'), {'poise', 'project'}, 'recovery.systems', DomainError)
+            result = {}
+            for owner, spec in systems.items():
+                spec = configuration_fields(spec, {'repository', 'configs'}, 'systems.' + owner, DomainError)
+                if (not isinstance(spec['repository'], str) or not spec['repository'].startswith('/')
+                        or not isinstance(spec['configs'], list) or not spec['configs']
+                        or any(not isinstance(path, str) or not path.startswith('/') for path in spec['configs'])):
+                    return {}
+                result[owner] = deepcopy(spec)
+            return result
+        except DomainError:
+            return {}
+
     @classmethod
     def parse(cls, raw):
         fields = {'format', 'tool_argv', 'mapping', 'systems', 'repositories', 'paths',
                   'placement_decisions', 'create_flow', 'restore_flow', 'component_steps'}
-        exact(raw, fields, 'recovery required fields')
+        raw = deepcopy(configuration_fields(raw, fields, 'recovery required fields', DomainError))
         if raw['format'] != TRANSFER_FORMAT:
             raise DomainError('Unsupported recovery format')
         argv = raw['tool_argv']
         if not isinstance(argv, list) or not argv or any(not isinstance(x, str) or not x for x in argv):
             raise DomainError('recovery.tool_argv required')
-        exact(raw['mapping'], {'version', 'materials'}, 'recovery.mapping')
+        raw['mapping'] = configuration_fields(raw['mapping'], {'version', 'materials'}, 'recovery.mapping', DomainError)
         if not isinstance(raw['mapping']['version'], str) or not raw['mapping']['version']:
             raise DomainError('mapping.version required')
         if not isinstance(raw['mapping']['materials'], list):
             raise DomainError('mapping.materials required')
         seen = set()
+        raw['mapping']['materials'] = [configuration_fields(item, {'id', 'role', 'source', 'destination', 'include'}, 'mapping material', DomainError) for item in raw['mapping']['materials']]
         for item in raw['mapping']['materials']:
-            exact(item, {'id', 'role', 'source', 'destination', 'include'}, 'mapping material')
             path_identifier(item['id'])
             if item['id'] in seen or not isinstance(item['role'], str) or not item['role']:
                 raise DomainError('Unique material id and explicit role required')
@@ -74,18 +92,18 @@ class RecoveryPolicy:
                 relative(item['destination'])
             elif item['destination'] is not None:
                 raise DomainError('Excluded material destination must be null')
-        exact(raw['systems'], {'poise', 'project'}, 'recovery.systems')
+        raw['systems'] = configuration_fields(raw['systems'], {'poise', 'project'}, 'recovery.systems', DomainError)
         for owner, spec in raw['systems'].items():
-            exact(spec, {'repository', 'configs'}, 'systems.' + owner)
+            spec = raw['systems'][owner] = configuration_fields(spec, {'repository', 'configs'}, 'systems.' + owner, DomainError)
             if not isinstance(spec['repository'], str) or not spec['repository'].startswith('/'):
                 raise DomainError('systems.' + owner + '.repository must be absolute')
             if not isinstance(spec['configs'], list) or not spec['configs'] or any(
                     not isinstance(x, str) or not x.startswith('/') for x in spec['configs']):
                 raise DomainError('systems.' + owner + '.configs required')
-        exact(raw['repositories'], {'task'}, 'recovery.repositories')
+        raw['repositories'] = configuration_fields(raw['repositories'], {'task'}, 'recovery.repositories', DomainError)
         if not isinstance(raw['repositories']['task'], str) or not raw['repositories']['task'].startswith('/'):
             raise DomainError('recovery.repositories.task must be absolute')
-        exact(raw['paths'], {'staging', 'create_session', 'restore_session'}, 'recovery.paths')
+        raw['paths'] = configuration_fields(raw['paths'], {'staging', 'create_session', 'restore_session'}, 'recovery.paths', DomainError)
         for value in raw['paths'].values(): relative(value)
         for key in ('placement_decisions', 'component_steps'):
             if not isinstance(raw[key], list): raise DomainError('recovery.' + key + ' required')

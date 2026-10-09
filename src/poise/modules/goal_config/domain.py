@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 from ..foundation.errors import DomainError
+from ..foundation.validation import configuration_fields
 from ..workflow.domain import RouteDefinition
 from ..content.domain import SectionRule
 from ..content_requirements.domain import ContentPolicy
@@ -142,6 +143,48 @@ class GoalTypeDefinition:
     def parse(cls, data):
         validate_process(data)
         return cls(canonical(data))
+
+    @classmethod
+    def from_configuration(cls, raw):
+        """Ignore config extensions before producing a strict Task process."""
+        data = deepcopy(configuration_fields(raw, PROCESS_FIELDS, 'process', DomainError))
+        data['route'] = configuration_fields(data['route'], ROUTE_FIELDS, 'route', DomainError)
+        data['benefit'] = configuration_fields(data['benefit'], {'git_categories', 'sections'}, 'benefit', DomainError)
+        data['content_contract'] = ContentPolicy.configuration_layer(data['content_contract'])
+        if not isinstance(data['stages'], list):
+            raise DomainError('stages: требуется список')
+        data['stages'] = [configuration_fields(stage, STAGE_FIELDS, 'stage', DomainError) for stage in data['stages']]
+        for stage in data['stages']:
+            if not isinstance(stage['artifact_requirements'], list):
+                raise DomainError('artifact_requirements: требуется список')
+            stage['artifact_requirements'] = [configuration_fields(rule, {'scope', 'pattern', 'minimum', 'maximum'}, 'artifact requirement', DomainError) for rule in stage['artifact_requirements']]
+        return cls.parse(data)
+
+    @classmethod
+    def build_configuration(cls, goal_type, source, changes):
+        """Apply semantic edits while retaining unrelated raw config extensions."""
+        supported = cls.from_configuration(source).data
+        changed = cls.build(goal_type, supported, changes).data
+        def retain(raw, before, after):
+            if isinstance(raw, dict) and isinstance(before, dict) and isinstance(after, dict):
+                result = deepcopy(after)
+                for key, value in raw.items():
+                    if key not in before and key not in result:
+                        result[key] = deepcopy(value)
+                    elif key in before and key in result:
+                        result[key] = retain(value, before[key], result[key])
+                return result
+            if isinstance(raw, list) and isinstance(before, list) and isinstance(after, list):
+                if all(isinstance(item, dict) and 'id' in item for item in [*raw, *before, *after]):
+                    original = {item['id']: item for item in raw}
+                    known = {item['id']: item for item in before}
+                    return [retain(original[item['id']], known[item['id']], item)
+                            if item['id'] in original and item['id'] in known else deepcopy(item)
+                            for item in after]
+                if before == after:
+                    return deepcopy(raw)
+            return deepcopy(after)
+        return cls(canonical(retain(source, supported, changed)))
 
     @classmethod
     def build(cls, goal_type, source, changes):

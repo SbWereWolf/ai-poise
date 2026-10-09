@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from ..common import descendant, exact_keys
 from ..modules.foundation.errors import PoiseError, VersionConflict
+from ..modules.foundation.validation import configuration_fields
 from ..modules.goal_config.domain import GoalTypeDefinition, fingerprint, canonical
 from .locking import exclusive_lock
 
@@ -74,7 +75,7 @@ class EditorSettings:
         self.path=Path(path).resolve()
         self.raw=read_document(self.path)
         c=self.raw
-        exact_keys(c,{"schema","root","database","lock","responses","file_mode","json_indent",
+        configuration_fields(c,{"schema","root","database","lock","responses","file_mode","json_indent",
                       "lock_seconds","lock_poll_seconds","max_changes","max_input_bytes","output_chars",
                       "exit_codes","processes","templates"},"goal editor settings")
         if c["schema"]!="goal-config-editor-1":
@@ -94,8 +95,8 @@ class EditorSettings:
             raise PoiseError("json_indent: нужен явный неотрицательный integer")
         if type(c["file_mode"]) is not int or not 0<=c["file_mode"]<=0o777:
             raise PoiseError("file_mode: нужны обычные POSIX permission bits")
-        exact_keys(c["exit_codes"],{"success","rejected","pending"},"exit_codes")
-        if any(type(v) is not int or not 0<=v<=255 for v in c["exit_codes"].values()) or len(set(c["exit_codes"].values()))!=3:
+        codes = configuration_fields(c["exit_codes"],{"success","rejected","pending"},"exit_codes")
+        if any(type(v) is not int or not 0<=v<=255 for v in codes.values()) or len(set(codes.values()))!=3:
             raise PoiseError("exit_codes: нужны три различных явных кода")
         if not isinstance(c["processes"],dict) or not c["processes"] or not isinstance(c["templates"],dict):
             raise PoiseError("processes/templates должны быть явными mappings")
@@ -108,7 +109,7 @@ class EditorSettings:
                 raise PoiseError("Редактируемый конфиг не должен быть symlink")
             paths.append(target)
         for key, value in c["templates"].items():
-            exact_keys(value,{"path","version","digest"},f"template {key}")
+            value = configuration_fields(value,{"path","version","digest"},f"template {key}")
             if not all(isinstance(value[k],str) and value[k] for k in value):
                 raise PoiseError("Шаблон требует path/version/digest")
             template=descendant(self.root,value["path"])
@@ -146,7 +147,8 @@ class FileTemplates:
         data=read_document(descendant(self.settings.root,expected["path"]))
         if fingerprint(data)!=expected["digest"]:
             raise VersionConflict("Содержимое шаблона изменилось; digest не совпадает")
-        return GoalTypeDefinition.parse(data).data
+        GoalTypeDefinition.from_configuration(data)
+        return data
 
 
 class FileGoalConfigRepository:
@@ -198,7 +200,8 @@ class FileConfigEdit:
         data=read_document(self.target)
         if data.get("goal_type")!=self.goal:
             raise PoiseError("Идентичность pack не совпадает с registry")
-        return GoalTypeDefinition.parse(data).data
+        GoalTypeDefinition.from_configuration(data)
+        return data
 
     def replay(self,request_id,request_digest):
         row=self.db.execute("SELECT * FROM config_operations WHERE request_id=?",(request_id,)).fetchone()

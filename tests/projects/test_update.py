@@ -265,7 +265,7 @@ def test_active_task_keeps_process_snapshot_and_new_task_uses_updated_process(pr
     assert fresh["instruction"] == changed_instruction
 
 
-def test_manifest_change_is_rejected_while_task_work_is_active(project):
+def test_manifest_change_is_allowed_while_task_work_is_active(project):
     settings, config_path, created = installed_project(project)
     work_tools(config_path, "active-owner").invoke({
         "operation": "bootstrap",
@@ -278,10 +278,8 @@ def test_manifest_change_is_rejected_while_task_work_is_active(project):
         manifest_edits=[{"path": ["git", "remote"], "value": "changed"}],
     )
 
-    with pytest.raises(PoiseError, match="active|актив"):
-        update_tools(settings).apply(request)
-
-    assert json.loads(config_path.read_text())["git"]["remote"] == "backup"
+    assert update_tools(settings).apply(request)['status'] == 'updated'
+    assert json.loads(config_path.read_text())["git"]["remote"] == "changed"
 
 
 def test_quiescent_manifest_update_validates_full_candidate_and_probes_on_request(project):
@@ -392,7 +390,7 @@ def test_state_relocation_retain_mode_preserves_verified_source_and_destination(
     assert Path(json.loads(config_path.read_text())["paths"]["state"]) == destination
 
 
-def test_state_relocation_rejects_occupied_destination_and_active_work(project):
+def test_state_relocation_rejects_occupied_destination_but_not_active_work(project):
     settings, config_path, created = installed_project(project)
     destination = project["root"].parent / "occupied-state"
     destination.mkdir()
@@ -416,9 +414,8 @@ def test_state_relocation_rejects_occupied_destination_and_active_work(project):
         state_relocation=relocation(config_path, empty_destination),
     )
     active_request["receipt_path"] = "operations/active-relocation.json"
-    with pytest.raises(PoiseError, match="active|quiescent|актив"):
-        update_tools(settings).apply(active_request)
-    assert not empty_destination.exists()
+    assert update_tools(settings).apply(active_request)['status'] == 'updated'
+    assert empty_destination.is_dir()
 
 
 def test_state_relocation_rejects_unowned_staging_without_deleting_it(project):

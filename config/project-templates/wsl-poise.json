@@ -1,6 +1,6 @@
 {
   "schema": "project-blueprint-1",
-  "version": "7",
+  "version": "8",
   "config": {
     "schema": "ddd-accounting-12",
     "project": "REPLACE_WITH_PROJECT_ID",
@@ -220,18 +220,97 @@
         "file_mode": 384
       },
       "transfer": {
-        "directory": ".runtime/poise/transfers",
-        "archive": "work.zip",
+        "directory": "transfers",
+        "archive": "work.tar.gz",
         "manifest": "manifest.json",
         "database": "snapshot.sqlite",
         "files_directory": "files",
-        "bundles_directory": "bundles",
         "max_tasks": 1000,
         "max_files": 10000,
         "max_file_bytes": 33554432,
         "max_total_bytes": 134217728,
         "chunk_bytes": 65536,
-        "file_mode": 384
+        "file_mode": 384,
+        "recovery": {
+          "format": "poise-recovery-1",
+          "tool_argv": [
+            "/example/bin/node",
+            "/example/workspace-recover/bin/workspace-recover.mjs"
+          ],
+          "mapping": {
+            "version": "task-materials-1",
+            "materials": []
+          },
+          "systems": {
+            "poise": {
+              "repository": "/example/poise",
+              "configs": [
+                "/example/poise/project.json"
+              ]
+            },
+            "project": {
+              "repository": "/example/project",
+              "configs": [
+                "/example/project/project.json"
+              ]
+            }
+          },
+          "repositories": {
+            "task": "/example/project"
+          },
+          "paths": {
+            "staging": "prepared",
+            "create_session": "create-session",
+            "restore_session": "restore-session"
+          },
+          "placement_decisions": [],
+          "create_flow": {
+            "schema": "workspace-recover/flow/v3",
+            "workspace": "${variables.workspace}",
+            "steps": [
+              {
+                "id": "archive",
+                "op": "archive",
+                "from": "${variables.staging}",
+                "to": "${variables.package}",
+                "onError": "stop"
+              }
+            ]
+          },
+          "restore_flow": {
+            "schema": "workspace-recover/flow/v3",
+            "workspace": "${variables.workspace}",
+            "steps": [
+              {
+                "id": "extract",
+                "op": "extract",
+                "from": "${variables.package}",
+                "to": "${variables.staging}",
+                "existingTarget": "merge",
+                "onError": "stop"
+              },
+              {
+                "id": "place",
+                "op": "command",
+                "argv": "${variables.place_argv}",
+                "onError": "stop"
+              },
+              {
+                "id": "components",
+                "op": "command",
+                "argv": "${variables.components_argv}",
+                "onError": "stop"
+              },
+              {
+                "id": "validate",
+                "op": "verification",
+                "argv": "${variables.validate_argv}",
+                "onError": "stop"
+              }
+            ]
+          },
+          "component_steps": []
+        }
       }
     },
     "accounting": {

@@ -211,16 +211,17 @@ and [publication](../../../docs/workflows/requirements-registry.md#публик�
 
 ## Accepted-stage replay after restart
 
-Commit all owned WIP in the Task worktree before automatic replay. Replay uses
-the same worktree and branch, preserves a durable recovery ref before reset,
-and rechecks accepted stages at their exact accepted commits. Passing historical
-tests and unchanged registered proof files suffice when current proof obligations
-remain compatible. Restart or requirement wording alone does not invalidate proof.
-Never substitute old methods, expectations, schedules or evidence plans for an
-explicitly changed current contract. Revalidate ignored collisions and preservation
-before every destructive checkout, including resume. Mechanical replay is role-neutral; new substantive work retains
-independent review. Omit the target for maximum progress; an explicit target stops
-on entry before its checks. Never rerun an unknown command outcome. A completed
-request replays its saved result; use a new identity for new progression.
-Follow the [canonical replay
-contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+Commit owned WIP in the Task worktree. Replay preserves its current commit/tree and recovery ref;
+check reached stages there without historical checkout or reuse of an old PASS as fresh proof.
+Keep current proof-contract compatibility and mandatory file integrity; exact completed request
+replay returns its saved result. Unknown external outcomes never authorize another execution.
+New work retains independent review. Follow the [canonical replay contract](../../../docs/workflows/batch-work.md#автоматическая-промотка-после-перезапуска).
+
+## Compact Task recovery
+
+Classify materials explicitly in the versioned mapping; record a compatible placement decision
+when versions differ. Restore current Task state and components through the declared pipeline;
+restore validates readiness, while authorized work checks the current stage on current systems.
+Preserve both full proof configuration sets and system commit IDs as provenance, without rollback.
+Authenticated historical omissions never excuse missing current material. Follow [recovery](../../../docs/governance/development-rules.md#переносимое-состояние-задачи)
+and [proof configurations](../../../docs/workflows/evidence.md#конфигурационные-наборы-и-повторные-проверки).

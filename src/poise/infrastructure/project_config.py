@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 import tempfile
 
-from ..common import configured_root, configured_storage_path, descendant, digest, load_config, load_config_document, validate_candidate_config
+from ..common import configured_root, configured_storage_path, descendant, digest, load_config, validate_candidate_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
@@ -61,43 +61,7 @@ class FileProjectConfigUpdate:
     def _receipt(self, root, relative):
         return descendant(root, relative)
 
-    @staticmethod
-    def _retire_transfer_setting(config):
-        candidate = deepcopy(config)
-        services = candidate.get('runtime_services')
-        transfer = services.get('transfer') if isinstance(services, dict) else None
-        if isinstance(transfer, dict):
-            transfer.pop('bundles_directory', None)
-        return candidate
-
-    @staticmethod
-    def _component_digests(config, processes):
-        return {'config': digest(config),
-                'processes': {goal: digest(value) for goal, value in processes.items()}}
-
-    def _validate_recovery_audit(self, request, pending):
-        audit = pending.get('recovery')
-        fields = {'before_config', 'before_processes', 'after_config', 'after_processes',
-                  'reason', 'authorization'}
-        if (not isinstance(audit, dict) or set(audit) != fields
-                or any(not isinstance(audit[key], dict) for key in fields - {'reason', 'authorization'})):
-            raise VersionConflict('Pending recovery audit lacks exact snapshots')
-        candidate = self._retire_transfer_setting(audit['before_config'])
-        if (audit['reason'] != request['reason'] or audit['authorization'] != request['authorization']
-                or candidate == audit['before_config'] or candidate != audit['after_config']
-                or audit['before_processes'] != audit['after_processes']
-                or digest({'config': audit['before_config'], 'processes': audit['before_processes']}) != request['expected_revision']
-                or self._component_digests(audit['before_config'], audit['before_processes']) != pending.get('before')
-                or self._component_digests(audit['after_config'], audit['after_processes']) != pending.get('after')):
-            raise VersionConflict('Pending recovery audit differs from original request and snapshots')
-        return audit
-
-    def _source(self, config_path, updates, *, recovery=False):
-        if recovery:
-            config = read_document(config_path)
-            root, _, processes = load_config_document(
-                config_path, self._retire_transfer_setting(config))
-            return root, config, processes
+    def _source(self, config_path, updates):
         try:
             return load_config(config_path)
         except BatchValidationError as failure:
@@ -255,10 +219,9 @@ class FileProjectConfigUpdate:
     def apply(self, request):
         settings = self.settings
         workspace = request['schema'] == 'project-worktree-root-1'
-        recovery = request['schema'] == 'project-transfer-config-recovery-1'
         config_path = self._config_path(request["config_path"])
         root, live_config, live_processes = self._source(
-            config_path, request["process_updates"], recovery=recovery
+            config_path, request["process_updates"]
         )
         receipt_path = self._receipt(settings.root, request["receipt_path"])
         pending_path = receipt_path.with_name(receipt_path.name + ".pending")
@@ -273,14 +236,6 @@ class FileProjectConfigUpdate:
                     saved = read_document(receipt_path)
                     if saved.get("request_digest") != request_digest:
                         raise VersionConflict("Different request uses the same request receipt")
-                    if recovery:
-                        audit = self._validate_recovery_audit(request, saved)
-                        if (digest({'config': audit['after_config'], 'processes': audit['after_processes']}) != saved['result']['revision']
-                                or saved['result']['prior_revision'] != request['expected_revision']):
-                            raise VersionConflict('Completed recovery audit differs from result revision')
-                        _, observed, processes = self._source(config_path, [], recovery=True)
-                        if digest({'config': observed, 'processes': processes}) != saved['result']['revision']:
-                            raise VersionConflict('Unmanaged project change after completed recovery')
                     return {**saved["result"], "replayed": True}
                 replayed = False
                 if pending_path.is_file():
@@ -289,10 +244,10 @@ class FileProjectConfigUpdate:
                         raise VersionConflict("Different request uses the pending request receipt")
                     replayed = True
                 root, live_config, live_processes = self._source(
-                    config_path, request["process_updates"], recovery=recovery
+                    config_path, request["process_updates"]
                 )
                 current_revision = digest({"config": live_config, "processes": live_processes})
-                if not workspace and not recovery and request["expected_revision"] not in self._known_revisions(root):
+                if not workspace and request["expected_revision"] not in self._known_revisions(root):
                     raise VersionConflict("External project revision is not known")
                 if not replayed and current_revision != request["expected_revision"]:
                     raise VersionConflict("Live project differs from the expected known revision")
@@ -305,7 +260,7 @@ class FileProjectConfigUpdate:
                             "State relocation staging already exists; refusing unverified deletion"
                         )
                 state = configured_root(root, live_config["paths"]["state"])
-                if recovery or request['state_relocation'] is not None:
+                if request['state_relocation'] is not None:
                     locks.enter_context(exclusive_lock(
                         descendant(state, live_config['batch']['artifact_lock']),
                         live_config['limits']['lock_seconds'], live_config['limits']['lock_poll_seconds']))
@@ -323,25 +278,18 @@ class FileProjectConfigUpdate:
                             settings.raw['lock_poll_seconds']))
                 candidate_config = self._manifest(live_config, request["manifest_edits"], workspace=workspace)
                 candidate_processes = self._processes(live_processes, request["process_updates"])
-                recovery_audit = None
-                if recovery:
-                    candidate_config = self._retire_transfer_setting(live_config)
-                    if not replayed and candidate_config == live_config:
-                        raise PoiseError('Retired transfer bundles_directory setting is absent')
-                    recovery_audit = {
-                        'before_config': live_config, 'before_processes': live_processes,
-                        'after_config': candidate_config, 'after_processes': candidate_processes,
-                        'reason': request['reason'], 'authorization': request['authorization']}
-                    if replayed:
-                        recovery_audit = self._validate_recovery_audit(request, pending)
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
-                before = self._component_digests(live_config, live_processes)
-                after = self._component_digests(candidate_config, candidate_processes)
+                component_digests = lambda config, processes: {
+                    "config": digest(config),
+                    "processes": {goal: digest(value) for goal, value in processes.items()},
+                }
+                before = component_digests(live_config, live_processes)
+                after = component_digests(candidate_config, candidate_processes)
                 if replayed:
                     if pending.get("before") is None or pending.get("after") is None:
                         raise VersionConflict("Pending publication lacks recovery digests")
-                    live = self._component_digests(live_config, live_processes)
+                    live = component_digests(live_config, live_processes)
                     if live["config"] not in {pending["before"]["config"], pending["after"]["config"]}:
                         raise VersionConflict("Unmanaged manifest change during recovery")
                     for goal, value in live["processes"].items():
@@ -352,8 +300,7 @@ class FileProjectConfigUpdate:
                 if not replayed:
                     atomic_write(pending_path, encoded({"schema": "project-config-pending-1",
                         "request_id": request["request_id"], "request_digest": request_digest,
-                        "before": before, "after": after,
-                        **({'recovery': recovery_audit} if recovery else {})}, settings.raw["json_indent"]),
+                        "before": before, "after": after}, settings.raw["json_indent"]),
                         settings.raw["file_mode"])
                 for goal, process in candidate_processes.items():
                     if process != live_processes[goal]:
@@ -377,10 +324,7 @@ class FileProjectConfigUpdate:
                     result["state_relocation"] = relocation
                 atomic_write(receipt_path, encoded({"schema": "project-config-receipt-1",
                     "request_id": request["request_id"], "request_digest": request_digest,
-                    "result": result, **({'recovery': recovery_audit,
-                        'before': self._component_digests(recovery_audit['before_config'], recovery_audit['before_processes']),
-                        'after': self._component_digests(recovery_audit['after_config'], recovery_audit['after_processes'])}
-                        if recovery else {})}, settings.raw["json_indent"]), settings.raw["file_mode"])
+                    "result": result}, settings.raw["json_indent"]), settings.raw["file_mode"])
                 pending_path.unlink(missing_ok=True)
                 return result
         except OSError as exc:

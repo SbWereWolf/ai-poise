@@ -83,6 +83,15 @@ def read_process(config_path):
     return processes["development"]
 
 
+def test_project_update_rejects_retired_recovery_schema():
+    from poise.application.project_config import validate_request
+
+    packet = update_request("/unused/project.json", "unused-revision")
+    packet["schema"] = "project-transfer-config-recovery-1"
+    with pytest.raises(PoiseError, match="^Unsupported project config update schema; no migration$"):
+        validate_request(packet, 1000)
+
+
 def test_process_update_publishes_complete_candidate_and_durable_receipt(project):
     settings, config_path, created = installed_project(project)
     request = update_request(

@@ -169,7 +169,7 @@ class FocusedDecomposition:
         catalog_responsibilities = None
         if isinstance(policy, dict) and "catalog" in policy:
             configuration_fields(policy, {"catalog", "skill_ids", "areas"}, "task_decomposition", DomainError)
-            catalog = SkillCatalog.parse(policy["catalog"])
+            catalog = SkillCatalog.from_configuration(policy["catalog"])
             definitions = catalog.decomposition_skills(policy["skill_ids"])
             # An omitted selectable skill must not turn its known area into a
             # non-narrow area and silently evade the responsibility check.

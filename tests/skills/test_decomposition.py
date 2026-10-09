@@ -74,11 +74,30 @@ def test_catalog_is_consumed_without_redeclaring_skill_classes():
     assert diagnostics(ordinary()) == []
 
 
-@pytest.mark.parametrize("edit", ["override", "unknown", "empty", "missing"])
+@pytest.mark.parametrize('nested', [False, True])
+def test_embedded_catalog_ignores_unknown_options_and_preserves_raw_policy(nested):
+    p = policy()
+    target = p['catalog']['skills'][0] if nested else p['catalog']
+    target['future_option'] = {'arbitrary': [None, False]}
+    before = deepcopy(p)
+    routed = FocusedDecomposition.validate_policy(p)
+    assert routed['skills']['backend'] == ('narrow', 'backend')
+    assert routed['skills']['testing'] == ('general', None)
+    assert p == before
+
+
+def test_unused_inline_skills_cannot_override_selected_catalog():
+    p = policy()
+    p['skills'] = [{'id': 'backend', 'class': 'general', 'responsibility': None}]
+    routed = FocusedDecomposition.validate_policy(p)
+    assert routed['skills']['backend'] == ('narrow', 'backend')
+    assert sorted(routed['skills']) == ['backend', 'backend-format', 'frontend', 'testing', 'workflow']
+
+
+@pytest.mark.parametrize("edit", ["unknown", "empty", "missing"])
 def test_catalog_selection_is_explicit_and_cannot_be_overridden(edit):
     p = policy()
-    if edit == "override": p["skills"] = inline_policy()["skills"]
-    elif edit == "unknown": p["skill_ids"].append("missing")
+    if edit == "unknown": p["skill_ids"].append("missing")
     elif edit == "empty": p["skill_ids"] = []
     else: del p["skill_ids"]
     with pytest.raises(DomainError):

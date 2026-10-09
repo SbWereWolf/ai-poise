@@ -23,6 +23,17 @@ def request(r, tmp_path, path='one.txt', start=1, end=2, **extra):
                 reread=False,reason='')], **extra)
 
 
+def test_unknown_policy_option_is_inert_but_read_packet_remains_strict(tmp_path):
+    (tmp_path / 'one.txt').write_text('one\ntwo\n')
+    r = reader(tmp_path, future_option={'arbitrary': [None, False]})
+    packet = request(r, tmp_path)
+    assert r.read(packet)['items'][0]['text'] == 'one\ntwo\n'
+    before = (tmp_path / 'state.json').read_bytes()
+    with pytest.raises(PoiseError):
+        r.read({**packet, 'future_option': True})
+    assert (tmp_path / 'state.json').read_bytes() == before
+
+
 def test_exact_range_acknowledgement_and_repeat(tmp_path):
     (tmp_path/'one.txt').write_text('one\ntwo\nthree\n')
     r=reader(tmp_path); q=request(r,tmp_path)

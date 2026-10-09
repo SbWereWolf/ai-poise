@@ -3,16 +3,33 @@ from copy import deepcopy
 
 from ..foundation.errors import DomainError
 from ..foundation.paths import matches_allowed_path
+from ..foundation.validation import configuration_fields
 from .selection import exact, path_pattern, strings
 
+_FIELDS = {'schema', 'known_paths', 'handler_facts', 'checks'}
+_CHECK_FIELDS = {'id', 'paths_any', 'packages'}
+_GATE_FIELDS = {'policy', 'handlers'}
 
 class RoutingPolicy:
     def __init__(self, document):
         self.document = deepcopy(document)
 
     @classmethod
+    def from_configuration(cls, raw, selection, package_ids):
+        keys = _FIELDS | ({'authoring_boundary_gate'} if isinstance(raw, dict)
+                          and 'authoring_boundary_gate' in raw else set())
+        document = configuration_fields(raw, keys, 'development routing', DomainError)
+        if isinstance(document['checks'], list):
+            document['checks'] = [configuration_fields(value, _CHECK_FIELDS,
+                                  'check selection', DomainError) for value in document['checks']]
+        if 'authoring_boundary_gate' in document:
+            document['authoring_boundary_gate'] = configuration_fields(
+                document['authoring_boundary_gate'], _GATE_FIELDS, 'authoring boundary gate', DomainError)
+        return cls.parse(document, selection, package_ids)
+
+    @classmethod
     def parse(cls, raw, selection, package_ids):
-        keys = {'schema', 'known_paths', 'handler_facts', 'checks'}
+        keys = set(_FIELDS)
         if isinstance(raw, dict) and 'authoring_boundary_gate' in raw:
             keys.add('authoring_boundary_gate')
         exact(raw, keys, 'development routing')
@@ -33,7 +50,7 @@ class RoutingPolicy:
             raise DomainError('Explicit check-selection declarations required')
         ids = set()
         for check in raw['checks']:
-            exact(check, {'id', 'paths_any', 'packages'}, 'check selection')
+            exact(check, _CHECK_FIELDS, 'check selection')
             strings([check['id']], 'check selection ID')
             if check['id'] in ids:
                 raise DomainError('Duplicate check selection ID')
@@ -46,7 +63,7 @@ class RoutingPolicy:
                 raise DomainError('Unknown registered AI-poise package')
         if 'authoring_boundary_gate' in raw:
             gate = raw['authoring_boundary_gate']
-            exact(gate, {'policy', 'handlers'}, 'authoring boundary gate')
+            exact(gate, _GATE_FIELDS, 'authoring boundary gate')
             strings([gate['policy']], 'architecture policy path', True)
             if '\0' in gate['policy']:
                 raise DomainError('Invalid architecture policy path')

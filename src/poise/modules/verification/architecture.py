@@ -6,7 +6,11 @@ import re
 
 from ..foundation.errors import DomainError
 from ..foundation.paths import matches_allowed_path
-from ..foundation.validation import validate_exact_keys
+from ..foundation.validation import configuration_fields, validate_exact_keys
+
+_RULE_FIELDS = {'id', 'paths', 'forbidden_imports', 'forbidden_calls', 'protected_subscripts',
+                'protected_attributes', 'forbidden_sql_tables'}
+_PROTECTED_FIELDS = {'variables', 'fields'}
 
 
 def _strings(values, label):
@@ -20,6 +24,19 @@ class ArchitecturePolicy:
         self.rules = deepcopy(rules)
 
     @classmethod
+    def from_configuration(cls, raw):
+        document = configuration_fields(raw, {'schema', 'rules'}, 'AI-poise architecture', DomainError)
+        if isinstance(document['rules'], list):
+            rules = []
+            for value in document['rules']:
+                rule = configuration_fields(value, _RULE_FIELDS, 'architecture rule', DomainError)
+                rule['protected_subscripts'] = configuration_fields(rule['protected_subscripts'],
+                                               _PROTECTED_FIELDS, 'protected subscripts', DomainError)
+                rules.append(rule)
+            document['rules'] = rules
+        return cls.parse(document)
+
+    @classmethod
     def parse(cls, raw):
         validate_exact_keys(raw, {'schema', 'rules'}, 'AI-poise architecture', DomainError)
         if raw['schema'] != 'ai-poise-architecture-boundaries-1' or not isinstance(raw['rules'], list):
@@ -27,8 +44,7 @@ class ArchitecturePolicy:
         if not raw['rules'] or len(raw['rules']) > 1024:
             raise DomainError('Explicit bounded architecture rules required')
         ids = set()
-        keys = {'id', 'paths', 'forbidden_imports', 'forbidden_calls', 'protected_subscripts',
-                'protected_attributes', 'forbidden_sql_tables'}
+        keys = _RULE_FIELDS
         for rule in raw['rules']:
             validate_exact_keys(rule, keys, 'architecture rule', DomainError)
             _strings([rule['id']], 'rule identity')
@@ -41,7 +57,7 @@ class ArchitecturePolicy:
                     or '\\' in p or '\0' in p for p in rule['paths']):
                 raise DomainError('Architecture policy paths must belong to src/poise')
             protected = rule['protected_subscripts']
-            validate_exact_keys(protected, {'variables', 'fields'}, 'protected subscripts', DomainError)
+            validate_exact_keys(protected, _PROTECTED_FIELDS, 'protected subscripts', DomainError)
             _strings(protected['variables'], 'protected variables')
             _strings(protected['fields'], 'protected fields')
         return cls(raw['rules'])

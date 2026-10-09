@@ -111,13 +111,13 @@ class RoutingFiles:
 def load_development_routing(*, catalog, selection, policy, packages):
     paths = dict(catalog=catalog, selection=selection, policy=policy, packages=packages)
     contents = {name: _read(path) for name, path in paths.items()}
-    metadata = SkillCatalog.parse(_document(contents['catalog']))
-    conditions = SkillSelection.parse(_document(contents['selection']), metadata)
+    metadata = SkillCatalog.from_configuration(_document(contents['catalog']))
+    conditions = SkillSelection.from_configuration(_document(contents['selection']), metadata)
     # Reuse the package owner and reject drift during composition.
     package_catalog = AiPoiseTestPackages.load(Path(packages))
     if _read(packages) != contents['packages']:
         raise PoiseError('Package configuration changed during routing load')
-    rules = RoutingPolicy.parse(_document(contents['policy']), conditions, package_catalog.package_ids)
+    rules = RoutingPolicy.from_configuration(_document(contents['policy']), conditions, package_catalog.package_ids)
     hashes = {name: hashlib.sha256(data).hexdigest() for name, data in contents.items()}
     boundaries = None
     if 'authoring_boundary_gate' in rules.document:

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import math
 
 from ..foundation.errors import PoiseError
+from ..foundation.validation import configuration_fields
 
 
 def exact(value, fields, label):
@@ -36,7 +37,7 @@ class ReadLimits:
     @classmethod
     def parse(cls, raw):
         fields = set(cls.__dataclass_fields__)
-        exact(raw, fields | {'schema'}, 'source reader policy')
+        raw = configuration_fields(raw, fields | {'schema'}, 'source reader policy')
         if raw['schema'] != 'source-reader-1':
             raise PoiseError('Unsupported source reader schema')
         for name in fields - {'lock_wait_seconds', 'lock_poll_seconds'}:

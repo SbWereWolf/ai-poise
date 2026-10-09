@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
-from ..foundation.validation import validate_exact_keys
+from ..foundation.validation import configuration_fields, validate_exact_keys
 from ..foundation.errors import DomainError
 
 
@@ -49,6 +49,14 @@ class SkillMetadata:
 @dataclass(frozen=True)
 class SkillCatalog:
     skills: tuple[SkillMetadata, ...]
+
+    @classmethod
+    def from_configuration(cls, document: object) -> SkillCatalog:
+        raw = configuration_fields(document, {"schema", "skills"}, "skill catalog", DomainError)
+        if isinstance(raw["skills"], list):
+            raw["skills"] = [configuration_fields(item, _FIELDS, "skill metadata", DomainError)
+                             for item in raw["skills"]]
+        return cls.parse(raw)
 
     @classmethod
     def parse(cls, document: object) -> SkillCatalog:

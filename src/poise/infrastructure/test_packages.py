@@ -5,6 +5,7 @@ from pathlib import Path, PurePosixPath
 import tomllib
 
 from ..common import PoiseError
+from ..modules.foundation.validation import configuration_fields
 
 
 _MEMBER_KINDS = ("source", "tests", "fixtures")
@@ -45,18 +46,14 @@ class AiPoiseTestPackages:
             raw = json.loads(catalog_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise PoiseError(f"Cannot read AI-poise test-package catalogue: {exc}") from exc
-        if not isinstance(raw, dict) or set(raw) != {"schema", "packages"}:
-            raise PoiseError("AI-poise test-package catalogue has an invalid top-level shape")
+        raw = configuration_fields(raw, {"schema", "packages"}, "AI-poise test-package catalogue")
         if raw["schema"] != "ai-poise-test-packages-2" or not isinstance(raw["packages"], list):
             raise PoiseError("Unsupported AI-poise test-package schema")
         packages = []
         ids = set()
         for index, item in enumerate(raw["packages"]):
             where = f"packages[{index}]"
-            if not isinstance(item, dict) or set(item) != {
-                "id", "owner", "integration_boundaries", "members"
-            }:
-                raise PoiseError(f"{where}: invalid package declaration")
+            item = configuration_fields(item, {"id", "owner", "integration_boundaries", "members"}, where)
             package_id = item["id"]
             owner = item["owner"]
             boundaries = item["integration_boundaries"]
@@ -69,8 +66,7 @@ class AiPoiseTestPackages:
                     or any(not isinstance(value, str) or not value for value in boundaries)
                     or len(boundaries) != len(set(boundaries))):
                 raise PoiseError(f"{where}.integration_boundaries: expected unique ids")
-            if not isinstance(members, dict) or set(members) != set(_MEMBER_KINDS):
-                raise PoiseError(f"{where}.members: expected {_MEMBER_KINDS}")
+            members = configuration_fields(members, set(_MEMBER_KINDS), f"{where}.members")
             patterns = {}
             for kind in _MEMBER_KINDS:
                 values = members[kind]

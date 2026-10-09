@@ -27,7 +27,7 @@ class AiPoiseArchitectureChecks:
     def load(cls, policy_path: Path):
         try:
             data = _bytes(Path(policy_path))
-            return cls(ArchitecturePolicy.parse(json.loads(data)), hashlib.sha256(data).hexdigest())
+            return cls(ArchitecturePolicy.from_configuration(json.loads(data)), hashlib.sha256(data).hexdigest())
         except (OSError, ValueError, UnicodeError) as exc:
             raise PoiseError(f'Cannot load AI-poise architecture policy: {exc}') from exc
 

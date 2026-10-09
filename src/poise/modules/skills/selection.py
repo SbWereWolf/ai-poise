@@ -2,7 +2,12 @@
 from copy import deepcopy
 
 from ..foundation.errors import DomainError
-from ..foundation.validation import validate_exact_keys
+from ..foundation.validation import configuration_fields, validate_exact_keys
+
+_FIELDS = {'schema', 'subject', 'facts', 'rules', 'excluded'}
+_RULE_FIELDS = {'id', 'priority', 'when', 'skills'}
+_CONDITION_FIELDS = {'stages', 'paths_any', 'facts_all'}
+_EXCLUSION_FIELDS = {'id', 'reason'}
 
 
 def exact(value, keys, label):
@@ -26,8 +31,24 @@ class SkillSelection:
         self._document = deepcopy(document)
 
     @classmethod
+    def from_configuration(cls, raw, catalog):
+        document = configuration_fields(raw, _FIELDS, 'skill selection', DomainError)
+        if isinstance(document['rules'], list):
+            rules = []
+            for value in document['rules']:
+                rule = configuration_fields(value, _RULE_FIELDS, 'selection rule', DomainError)
+                rule['when'] = configuration_fields(rule['when'], _CONDITION_FIELDS,
+                                                    'selection condition', DomainError)
+                rules.append(rule)
+            document['rules'] = rules
+        if isinstance(document['excluded'], list):
+            document['excluded'] = [configuration_fields(value, _EXCLUSION_FIELDS,
+                                   'skill exclusion', DomainError) for value in document['excluded']]
+        return cls.parse(document, catalog)
+
+    @classmethod
     def parse(cls, raw, catalog):
-        exact(raw, {'schema', 'subject', 'facts', 'rules', 'excluded'}, 'skill selection')
+        exact(raw, _FIELDS, 'skill selection')
         if raw['schema'] != 'ai-poise-skill-selection-1' or raw['subject'] != 'ai-poise':
             raise DomainError('Selection metadata is only for AI-poise development')
         strings(raw['facts'], 'selection facts')
@@ -35,13 +56,13 @@ class SkillSelection:
             raise DomainError('Explicit selection rules and exclusions required')
         ids, selected, excluded = set(), set(), set()
         for rule in raw['rules']:
-            exact(rule, {'id', 'priority', 'when', 'skills'}, 'selection rule')
+            exact(rule, _RULE_FIELDS, 'selection rule')
             strings([rule['id']], 'rule id', True)
             if rule['id'] in ids: raise DomainError('Duplicate selection rule')
             ids.add(rule['id'])
             if type(rule['priority']) is not int or rule['priority'] < 0:
                 raise DomainError('Selection priority must be a non-negative integer')
-            exact(rule['when'], {'stages', 'paths_any', 'facts_all'}, 'selection condition')
+            exact(rule['when'], _CONDITION_FIELDS, 'selection condition')
             for key, values in rule['when'].items(): strings(values, key)
             if set(rule['when']['facts_all']) - set(raw['facts']):
                 raise DomainError('Unknown selection fact')
@@ -50,7 +71,7 @@ class SkillSelection:
             catalog.select(rule['skills'])
             selected.update(rule['skills'])
         for item in raw['excluded']:
-            exact(item, {'id', 'reason'}, 'skill exclusion')
+            exact(item, _EXCLUSION_FIELDS, 'skill exclusion')
             strings([item['id'], item['reason']], 'skill exclusion')
             catalog.select([item['id']])
             if item['id'] in excluded: raise DomainError('Duplicate skill exclusion')

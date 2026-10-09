@@ -12,7 +12,7 @@ def load_skill_catalog(path: Path, root: Path) -> SkillCatalog:
         document = strict_json(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, ValueError) as exc:
         raise PoiseError(f"Cannot read skill catalog {path}: {exc}") from exc
-    catalog = SkillCatalog.parse(document)
+    catalog = SkillCatalog.from_configuration(document)
     if not root.is_dir():
         raise PoiseError(f"Skill installation root is not a directory: {root}")
     for skill in catalog.skills:

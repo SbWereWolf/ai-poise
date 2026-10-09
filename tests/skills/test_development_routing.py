@@ -46,6 +46,102 @@ def configured(tmp_path):
 def service(paths): return load_development_routing(**{k:Path(v) for k,v in paths.items()})
 
 
+@pytest.mark.parametrize('nested', [False, True])
+def test_standalone_catalog_loader_ignores_options_without_rewriting_file(configured, nested):
+    from poise.infrastructure.skill_catalog import load_skill_catalog
+    paths, _, checkout = configured
+    path = Path(paths['catalog'])
+    assert [skill.id for skill in load_skill_catalog(path, checkout).skills] == ['poise', 'review', 'tdd']
+    raw = json.loads(path.read_text())
+    target = raw['skills'][0] if nested else raw
+    target['future_option'] = {'arbitrary': [None, False]}
+    write(path, raw)
+    before = path.read_bytes()
+    assert [skill.id for skill in load_skill_catalog(path, checkout).skills] == ['poise', 'review', 'tdd']
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize('surface,location', [
+    ('catalog', ()), ('catalog', ('skills', 0)),
+    ('selection', ()), ('selection', ('rules', 0)),
+    ('selection', ('rules', 0, 'when')), ('selection', ('excluded', 0)),
+    ('policy', ()), ('policy', ('checks', 0)),
+    ('policy', ('authoring_boundary_gate',)),
+    ('packages', ()), ('packages', ('packages', 0)),
+    ('packages', ('packages', 0, 'members')),
+    ('architecture', ()), ('architecture', ('rules', 0)),
+    ('architecture', ('rules', 0, 'protected_subscripts')),
+])
+def test_configuration_extensions_are_inert_and_raw_hashes_are_preserved(configured, surface, location):
+    import hashlib
+    paths, req, checkout = configured
+    architecture = enable_boundary_gate(paths)
+    if surface == 'selection' and location == ('excluded', 0):
+        raw = json.loads(Path(paths['selection']).read_text())
+        raw['rules'] = raw['rules'][:2]
+        raw['excluded'] = [{'id': 'review', 'reason': 'Not used by this installation'}]
+        write(Path(paths['selection']), raw)
+    control = service(paths).route(req)
+    path = architecture if surface == 'architecture' else Path(paths[surface])
+    raw = json.loads(path.read_text())
+    target = raw
+    for key in location:
+        target = target[key]
+    target['future_option'] = {'arbitrary': [None, False]}
+    write(path, raw)
+    before = path.read_bytes()
+    router = service(paths)
+    result = router.route(req)
+    for key in ('status', 'skills', 'checks', 'matched_selection_rules', 'missing_inputs'):
+        assert result[key] == control[key]
+    assert result['status'] == 'ready'
+    assert result['configuration_digests'][surface] == hashlib.sha256(before).hexdigest()
+    assert result['configuration_digests'][surface] != control['configuration_digests'][surface]
+    assert result['route_digest'] != control['route_digest']
+    assert path.read_bytes() == before
+    with pytest.raises(PoiseError):
+        router.route({**req, 'future_option': True})
+    target_path = 'src/poise/modules/demo/domain.py'
+    write(checkout / target_path, 'import os\n')
+    checked = router.check_authoring_boundaries(str(checkout), 'produce', [target_path], [])
+    assert checked['status'] == 'failed'
+    assert checked['diagnostics'] == [{'file': target_path, 'line': 1, 'rule': 'domain-no-io',
+                                      'kind': 'import', 'symbol': 'os'}]
+
+
+@pytest.mark.parametrize('surface', ['catalog', 'selection', 'policy', 'packages', 'architecture'])
+def test_required_configuration_fields_are_still_required(configured, surface):
+    paths, _, _ = configured
+    architecture = enable_boundary_gate(paths)
+    path = architecture if surface == 'architecture' else Path(paths[surface])
+    raw = json.loads(path.read_text())
+    del raw['schema']
+    raw['future_option'] = True
+    write(path, raw)
+    with pytest.raises(PoiseError):
+        service(paths)
+
+
+@pytest.mark.parametrize('surface', ['catalog', 'selection', 'policy', 'architecture'])
+def test_strict_domain_parsers_do_not_accept_configuration_extensions(configured, surface):
+    from poise.modules.skills.catalog import SkillCatalog
+    from poise.modules.skills.selection import SkillSelection
+    from poise.modules.skills.routing import RoutingPolicy
+    from poise.modules.verification.architecture import ArchitecturePolicy
+    paths, _, _ = configured
+    architecture = enable_boundary_gate(paths)
+    catalog = SkillCatalog.parse(json.loads(Path(paths['catalog']).read_text()))
+    selection = SkillSelection.parse(json.loads(Path(paths['selection']).read_text()), catalog)
+    path = architecture if surface == 'architecture' else Path(paths[surface])
+    raw = json.loads(path.read_text())
+    parsers = {'catalog': SkillCatalog.parse, 'selection': lambda v: SkillSelection.parse(v, catalog),
+               'policy': lambda v: RoutingPolicy.parse(v, selection, ('targeted',)),
+               'architecture': ArchitecturePolicy.parse}
+    parsers[surface](raw)
+    with pytest.raises(PoiseError):
+        parsers[surface]({**raw, 'future_option': True})
+
+
 def test_deterministic_route_selects_rules_skills_and_preserves_required_checks(configured):
     paths,req,checkout=configured;router=service(paths)
     result=router.route(req)

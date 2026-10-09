@@ -9,11 +9,13 @@ import pytest
 
 from batch.helpers import request
 from conftest import WorkPoise, git
+from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.interfaces.work import execute, write_result
 from result_integration.helpers import (
     integration_input, prepare_completed_task, source_change,
 )
+from sprints.helpers import setup, task
 from .helpers import agree, declaration, file_output, finish
 from .test_retired_evidence import checked
 
@@ -39,6 +41,25 @@ def task_ids(value):
     return []
 
 
+def historical_outcome(value, receipt_id, method, exit_code, passed):
+    """Accept existing receipt records at any public JSON container depth."""
+    records = []
+    def collect(item):
+        if isinstance(item, dict):
+            if item.get('id') == receipt_id:
+                records.append(item)
+            for child in item.values():
+                collect(child)
+        elif isinstance(item, list):
+            for child in item:
+                collect(child)
+    collect(value)
+    assert any(row.get('method') == method
+               and row.get('actual_exit_code') == exit_code
+               and row.get('passed') is passed for row in records), (
+        'Historical receipt identity and outcome must remain visible')
+
+
 def notice(value):
     text = json.dumps(value, ensure_ascii=False)
     assert DESTROYED in text, 'Terminal presentation must report destroyed service logs'
@@ -46,8 +67,8 @@ def notice(value):
         'Terminal presentation must report deleted service materials')
 
 
-def integration_arrangement(project, failed=False):
-    counter = project['root'] / 'receipt-executions.txt'
+def integration_arrangement(project, failed=False, identifier='T1'):
+    counter = project['root'] / (identifier + '-receipt-executions.txt')
     method = {
         'id': 'RECEIPT_PROBE',
         'argv': [sys.executable, '-B', '-c',
@@ -56,13 +77,15 @@ def integration_arrangement(project, failed=False):
         'source_under_test': {'kind': 'repository', 'bindings': [{'kind': 'cwd', 'path': '.'}]},
         'expected_exit_code': 0, 'stdout_contains': ['receipt probe'], 'stderr_contains': [],
     }
+    change = source_change if identifier == 'T1' else lambda tree: (
+        tree / 'src/feature.py').write_text('VALUE = 2\n')
     tools, worktree, commit = prepare_completed_task(
-        project, source_change, methods=[method], checks=['RECEIPT_PROBE'])
+        project, change, task_id=identifier, methods=[method], checks=['RECEIPT_PROBE'])
     if failed:
         (project['app'] / 'reject-integration').write_text('fixture rejection\n')
         git(project['app'], 'add', 'reject-integration')
         git(project['app'], 'commit', '-m', 'Arrange a failing integration probe')
-    packet = request('integrate', integration_input(project, commit))
+    packet = request('integrate', integration_input(project, commit, task_id=identifier))
     return tools, worktree, counter, packet
 
 
@@ -88,6 +111,7 @@ def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, s
         record = next(row for row in full['evidence']['records'] if row['id'] == receipt['id'])
         assert record['method'] == 'CHECK'
         assert record['actual_exit_code'] == 0 and record['passed'] is True
+        historical_outcome(brief, receipt['id'], 'CHECK', 0, True)
         notice(brief)
         assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
         notice(full)
@@ -109,23 +133,31 @@ def test_integration_first_display_and_exact_replay_keep_history_and_notice(proj
         receipt = full['checks'][0]
         assert receipt['method'] == 'RECEIPT_PROBE'
         assert receipt['actual_exit_code'] == 0 and receipt['passed'] is True
+        historical_outcome(brief, receipt['id'], 'RECEIPT_PROBE', 0, True)
         notice(brief)
         assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
         notice(full)
 
 
 def test_receipt_owner_resolves_stage_and_integration_provenance(project):
-    tools, worktree, counter, packet = integration_arrangement(project)
-    stage_receipts = tools.runtime.evidence_commands.list_for('T1')
-    assert len(stage_receipts) == 1
-    done = tools.invoke(packet)
-    assert done['status'] == 'integrated' and len(done['checks']) == 1
-    stage = stage_receipts[0]
-    integration = done['checks'][0]
-    assert stage['id'] != integration['id']
-    assert tools.runtime.task_queries.receipt_task(stage['id']) == 'T1'
-    assert tools.runtime.task_queries.receipt_task(integration['id']) == 'T1', (
-        'Integration receipt provenance must resolve through the result owner')
+    owners = []
+    for identifier in ('T1', 'T2'):
+        tools, worktree, counter, packet = integration_arrangement(project, identifier=identifier)
+        stage_receipts = tools.runtime.evidence_commands.list_for(identifier)
+        assert len(stage_receipts) == 1
+        done = tools.invoke(packet)
+        assert done['status'] == 'integrated' and len(done['checks']) == 1
+        assert done['task'] == identifier
+        owners.append((stage_receipts[0], done['checks'][0], identifier))
+    first_stage, first_integration, _ = owners[0]
+    second_stage, second_integration, _ = owners[1]
+    assert len({first_stage['id'], first_integration['id'],
+                second_stage['id'], second_integration['id']}) == 4
+    expected = [(first_stage['id'], 'T1'), (second_stage['id'], 'T2'),
+                (first_integration['id'], 'T1'), (second_integration['id'], 'T2')]
+    for receipt_id, identifier in expected:
+        assert tools.runtime.task_queries.receipt_task(receipt_id) == identifier, (
+            'Receipt provenance must identify its actual Task')
 
 
 def test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query(project):
@@ -144,6 +176,7 @@ def test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query(p
         assert code == 0
         stored = full['results'][0]['value']
         assert stored['task'] == 'T1' and stored['checks'][0] == original
+        historical_outcome(brief, original['id'], 'RECEIPT_PROBE', 7, False)
         notice(brief)
         assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
         notice(full)
@@ -172,7 +205,8 @@ def test_bounded_terminal_notice_survives_omission_of_all_command_views(project)
     runtime = WorkPoise(project['config_path'], 'bounded-terminal-reader')
     predicted = runtime.runtime / runtime.paths['runs'] / ('0' * 36) / runtime.paths['response']
     minimal = {'status': 'read_only', 'response_path': str(predicted)}
-    budget = len(json.dumps(minimal, ensure_ascii=False, separators=(',', ':')) + '\n') + 100
+    # Space for notice, Task and one minimal historical outcome, independently of container names.
+    budget = len(json.dumps(minimal, ensure_ascii=False, separators=(',', ':')) + '\n') + 350
     runtime.cfg['limits']['output_chars'] = budget
     query = request('show', {'queries': [{
         'id': 'historical', 'kind': 'integration', 'task_id': 'T1', 'request_id': 'integrate-1'}]})
@@ -180,6 +214,40 @@ def test_bounded_terminal_notice_survives_omission_of_all_command_views(project)
     assert code == 0 and len(raw) <= budget
     assert brief.get('command_views', []) == []
     assert full['results'][0]['value']['checks'] == done['checks']
+    historical_outcome(brief, done['checks'][0]['id'], 'RECEIPT_PROBE', 0, True)
     notice(brief)
     assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
     notice(full)
+
+
+def test_failed_ordinary_stage_receipt_keeps_failure_on_first_and_repeated_display(project):
+    setup(project)
+    tools = WorkTools(WorkPoise(project['config_path'], 'failed-stage-owner'))
+    contract = task(project, 'FAILED', command="print('failed ordinary proof');raise SystemExit(7)")
+    contract['sprint_id'] = None
+    context = tools.invoke(request('bootstrap', {
+        'task': contract, 'decision': None, 'feedback': None, 'rework_stage': None}))
+    worktree = Path(context['worktree'])
+    (worktree / 'src/delivered.py').write_text('VALUE = 7\n')
+    result = deepcopy(context['result_template'])
+    result['sections']['report'] = 'A real failed ordinary check is retained.'
+    result['commit_message'] = 'Observe an ordinary verification failure'
+    failed = tools.invoke(request('verify', {'result': result, 'artifacts': []}))
+    assert failed['status'] == 'checks_failed'
+    receipts = tools.runtime.evidence_commands.list_for('FAILED')
+    assert len(receipts) == 1
+    receipt = receipts[0]
+    assert receipt['method'] == 'CHECK'
+    assert receipt['actual_exit_code'] == 7 and receipt['passed'] is False
+    cancelled = tools.invoke(request('cancel', {'reason': 'Retain a failed check as terminal history.'}))
+    assert cancelled['status'] == 'cancelled'
+    reader = WorkPoise(project['config_path'], 'failed-stage-reader')
+    packet = request('bootstrap', {
+        'task': {'id': 'FAILED'}, 'decision': None, 'feedback': None, 'rework_stage': None})
+    observations = [display(reader, packet), display(reader, packet)]
+    for code, raw, brief, full in observations:
+        assert code == 0 and full['task'] == 'FAILED' and full['status'] == 'cancelled'
+        for value in (brief, full):
+            historical_outcome(value, receipt['id'], 'CHECK', 7, False)
+            assert 'FAILED' in task_ids(value)
+            notice(value)

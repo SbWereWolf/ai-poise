@@ -8,7 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 from ..common import PoiseError, descendant, file_digest, encoded
-from ..modules.result_views.domain import OutputPolicy, primary_text
+from ..modules.result_views.domain import (
+    OutputPolicy, primary_text, command_receipts, terminal_materials_notice,
+)
 from .goal_config import atomic_write
 
 
@@ -126,7 +128,7 @@ class ResultViews:
             view = {key: receipt[key] for key in ('id', 'method', 'actual_exit_code', 'passed')
                     if key in receipt}
             if receipt['id'] in retired_ids:
-                view.update(availability='retired',primary='Stored historical result; working output retired')
+                view.update(availability='retired', primary=terminal_materials_notice())
                 views.append(view)
                 continue
             try:
@@ -135,6 +137,34 @@ class ResultViews:
                 view['presentation_error'] = str(exc)
             views.append(view)
         return views
+
+    def present_result(self, result, retired_receipt, receipt_task):
+        """Prepare shared saved/brief history through explicit state dependencies."""
+        receipts = command_receipts(result)
+        retired_ids, history, errors = set(), {}, []
+        for receipt in receipts:
+            try:
+                if not retired_receipt(receipt):
+                    continue
+                task = receipt_task(receipt['id'])
+                if task is None:
+                    raise PoiseError('Historical receipt owner unavailable')
+                history.setdefault(task, []).append({
+                    key: receipt[key] for key in ('id', 'method', 'actual_exit_code', 'passed')
+                    if key in receipt
+                })
+                retired_ids.add(receipt['id'])
+            except Exception as exc:
+                errors.append({'id': receipt['id'], 'presentation_error': str(exc)})
+        required = {}
+        if history:
+            required.update(notice=terminal_materials_notice(), historical_receipts=[
+                {'task': task, 'checks': checks} for task, checks in history.items()
+            ])
+        if errors:
+            required['presentation_errors'] = errors
+        return ({**result, **required}, required,
+                self.command_views(receipts, retired_ids=retired_ids))
 
     def capture(self,receipt,run_dir):
         c=self.config;directory=descendant(Path(run_dir),c['directory'])

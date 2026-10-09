@@ -194,7 +194,20 @@ class TaskQueries:
     def receipt_task(self, receipt_id):
         with self.database.transaction() as db:
             row=db.execute('SELECT task_id FROM evidence WHERE id=?',(receipt_id,)).fetchone()
-            return None if row is None else row[0]
+            if row is not None:
+                return row[0]
+            row = db.execute(
+                "SELECT e.data FROM task_execution e "
+                "JOIN json_each(e.data, '$.pending.checks') c "
+                "WHERE json_extract(e.data, '$.pending.kind')=? "
+                "AND json_extract(c.value, '$.id')=?",
+                ('result_integration', receipt_id),
+            ).fetchone()
+            if row is None:
+                return None
+            from ...modules.result_integration.domain import IntegrationRun
+            run = IntegrationRun.restore(json.loads(row[0])['pending'])
+            return run.intent.task_id
 
     def terminal_snapshot(self, task_id: str) -> dict:
         """One immutable ledger view for every terminal Task, not an execution restore."""

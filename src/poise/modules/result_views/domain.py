@@ -32,7 +32,29 @@ def primary_text(text, parser, selection_pattern, chars):
     return text[-chars:]
 
 
-def bounded_envelope(result, response_path, budget, metadata, collections, command_views):
+def command_receipts(result):
+    """Collect distinct captured commands from a public historical result."""
+    receipts = {}
+    def collect(value):
+        if isinstance(value, dict):
+            if {'id', 'argv', 'stdout', 'stderr', 'stdout_digest', 'stderr_digest'}.issubset(value):
+                receipts.setdefault(value['id'], value)
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+    collect(result)
+    return list(receipts.values())
+
+
+def terminal_materials_notice():
+    """The agreed public message for terminal historical receipts."""
+    return 'Служебные материалы задачи удалены. Служебные журналы уничтожены'
+
+
+def bounded_envelope(result, response_path, budget, metadata, collections, command_views,
+                     required_fields=None):
     """Represent a complete saved result; never mutate or clip machine data."""
     _positive(budget, 'output budget')
     view = dict(result)
@@ -47,12 +69,14 @@ def bounded_envelope(result, response_path, budget, metadata, collections, comma
         return text
     if response_path is None:
         raise DomainError('Output budget requires a persisted full result')
-    minimal = {'status': result['status'], 'response_path': str(response_path)}
+    minimal = {'status': result['status'], 'response_path': str(response_path),
+               **({} if required_fields is None else required_fields)}
     view = {**metadata, **minimal}
     if len(_envelope_text(view)) > budget:
         view = minimal
     if len(_envelope_text(view)) > budget:
-        raise DomainError('Output budget cannot fit the persisted result address')
+        raise DomainError('Output budget cannot fit the required historical result' if required_fields
+                          else 'Output budget cannot fit the persisted result address')
     for field, items in [*collections.items(), ('command_views', command_views)]:
         if not items:
             continue

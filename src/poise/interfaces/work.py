@@ -7,12 +7,14 @@ from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..infrastructure.task_paths import sprint_root, task_root
 from ..modules.result_views.domain import bounded_envelope, response_required
+from ..modules.tasks.domain import is_terminal_task_status
 
 
 def _task_root(h, task):
     saved = h.task_queries.record(task['id'])
     sprint_id = task.get('sprint_id') if saved is None else saved['sprint_id']
-    if h.delivery_tools.unavailable(task['id']):
+    if ((saved is not None and is_terminal_task_status(saved['status']))
+            or h.delivery_tools.unavailable(task['id'])):
         return h.runtime
     return task_root(h.state, h.paths, h._identifier(task['id']), sprint_id)
 
@@ -51,18 +53,19 @@ def execute(runtime,stream,output):
 
 def write_result(h,result,output):
     current=h.report_task(result)
+    presented, required, command_views = h.result_views.present_result(
+        result, h.retired_receipt, lambda receipt_id: h.task_queries.receipt_task(receipt_id),
+    )
     # Task reports survive cleanup. A small taskless finalization needs no file.
     response=None
-    if current is not None or isinstance(result.get('sprint'),str) or response_required(result,h.cfg['limits']['output_chars']):
+    if current is not None or isinstance(result.get('sprint'),str) or response_required(presented,h.cfg['limits']['output_chars']):
         root = (_task_root(h, current) if current is not None else
                 (sprint_root(h.state, h.paths, h._identifier(result['sprint']))
                  if isinstance(result.get('sprint'), str) else h.runtime))
         response=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
-        atomic_write(response,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
+        atomic_write(response,(json.dumps(presented,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
     metadata={'details':'full_result','session':h.session}
     metadata.update({key:result[key] for key in ('task','stage','iteration','next_work') if key in result})
     if 'results' in result:metadata['result_count']=len(result['results'])
-    checks = result.get('checks', [])
-    retired_ids = {r['id'] for r in checks if isinstance(r, dict) and 'id' in r and h.retired_receipt(r)}
-    command_views=h.result_views.command_views(checks, retired_ids=retired_ids)
-    output.write(bounded_envelope(result,response,h.cfg['limits']['output_chars'],metadata,{},command_views))
+    output.write(bounded_envelope(presented,response,h.cfg['limits']['output_chars'],
+                                  metadata,{},command_views, required_fields=required))

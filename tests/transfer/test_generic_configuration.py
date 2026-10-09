@@ -68,6 +68,43 @@ def current_runtime(project):
         pytest.fail('Generic explicit recovery configuration is not implemented')
 
 
+def test_work_and_verification_without_recovery(project):
+    del project['cfg']['runtime_services']['transfer']['recovery']
+    write_json(project['config_path'], project['cfg'])
+    tools = WorkTools(WorkPoise(project['config_path'], 'without-recovery'))
+    context = bootstrap(tools, project)
+    add_test(context['worktree'])
+    payload = result(context)
+    report = verify(tools, payload)
+    assert report['status'] == 'verified'
+    assert report['checks']
+    assert all(receipt['systems'] == {} for receipt in report['checks'])
+    replay = verify(tools, payload)
+    assert replay['replayed'] is True
+    assert replay['status'] == 'verified'
+    assert replay['checks'] == report['checks']
+    assert not (project['root'] / 'unexpected-flow.txt').exists()
+    assert not (project['root'] / 'state' / 'transfers').exists()
+
+
+@pytest.mark.parametrize('action', ['export', 'import'])
+def test_transfer_without_recovery_refuses_before_effects(project, action):
+    del project['cfg']['runtime_services']['transfer']['recovery']
+    write_json(project['config_path'], project['cfg'])
+    runtime = WorkPoise(project['config_path'], 'without-transfer-policy')
+    with pytest.raises(PoiseError, match='transfer.recovery required'):
+        runtime.transfer_tools.apply({
+            'action': action, 'request_id': 'missing-recovery',
+            **({'task_ids': ['T1'], 'sprint_id': None, 'handoff': None}
+               if action == 'export' else
+               {'package_path': str(project['root'] / 'absent.tar.gz'),
+                'package_digest': 'a' * 64}),
+        })
+    assert runtime.current_task() is None
+    assert not (project['root'] / 'unexpected-flow.txt').exists()
+    assert not (project['root'] / 'state' / 'transfers').exists()
+
+
 def test_generic_checks_capture_current_systems_without_delivery(project):
     tools = WorkTools(current_runtime(project))
     context = bootstrap(tools, project)

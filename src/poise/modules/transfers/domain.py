@@ -18,11 +18,12 @@ class TransferPolicy:
     @classmethod
     def parse(cls, raw):
         paths = {'directory', 'archive', 'manifest', 'database', 'files_directory'}
-        if not isinstance(raw, dict) or 'recovery' not in raw:
-            raise DomainError('transfer.recovery required')
         limits = {'max_tasks', 'max_files', 'max_file_bytes', 'max_total_bytes', 'chunk_bytes'}
-        exact(raw, paths | limits | {'file_mode', 'recovery'}, 'transfer config')
-        RecoveryPolicy.parse(raw['recovery'])
+        fields = paths | limits | {'file_mode'}
+        if isinstance(raw, dict) and 'recovery' in raw:
+            fields.add('recovery')
+            RecoveryPolicy.parse(raw['recovery'])
+        exact(raw, fields, 'transfer config')
         for key in paths:
             try:
                 relative(raw[key])

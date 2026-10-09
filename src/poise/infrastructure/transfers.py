@@ -36,12 +36,16 @@ class RuntimeTransfers:
     def __init__(self, poise):
         self.h = poise
         self.policy = poise.cfg['runtime_services']['transfer']
-        self.recovery = self.policy['recovery']
         self.root = descendant(poise.state, self.policy['directory'])
         self.repo = SqliteTransferRepository(poise.store.database)
+
+    def _require_recovery(self):
+        if 'recovery' not in self.policy:
+            raise PoiseError('transfer.recovery required for export/import')
+        self.recovery = self.policy['recovery']
         self.flow = WorkspaceRecoveryFlow(self.recovery['tool_argv'], self.policy['file_mode'],
-                                          poise.cfg['limits']['lock_seconds'],
-                                          poise.cfg['limits']['lock_poll_seconds'])
+                                          self.h.cfg['limits']['lock_seconds'],
+                                          self.h.cfg['limits']['lock_poll_seconds'])
 
     def _request_dir(self, args):
         return self.root / digest([self.h.session, args['action'], args['request_id']])
@@ -51,6 +55,7 @@ class RuntimeTransfers:
                               self.h.cfg['limits']['lock_seconds'], self.h.cfg['limits']['lock_poll_seconds'])
 
     def export(self, args):
+        self._require_recovery()
         with self._locked(args):
             return self._export(args)
 
@@ -460,6 +465,7 @@ class RuntimeTransfers:
             raise PoiseError('Invalid transfer package: ' + str(exc)) from exc
 
     def restore(self, args):
+        self._require_recovery()
         with self._locked(args):
             return self._restore(args)
 

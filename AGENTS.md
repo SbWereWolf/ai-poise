@@ -51,6 +51,15 @@ in their own content, and implementation choices in execution planning. Apply th
 [product formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту)
 when creating and independently reviewing a Task.
 
+Requirements describe the requested behavior through its conditions, action and observable result.
+Do not describe what behavior must not be or list excluded actions in requirements; put separately agreed prohibitions
+in Task constraints. Keep requirements within the authorized capability and use stable concepts rather than product
+names or concrete status identifiers. Follow the [positive formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
+
+Do not introduce symbolic-link checks by default. Such checks require an explicit user decision. Without a direct
+request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
+Follow [explicit agreement](docs/governance/development-rules.md#явное-согласование-проверок-символических-ссылок).
+
 Use test-driven development for executable behaviour changes: design the checks and write the tests before implementing
 the behaviour. Review the tests, implement the change, run the checks, and inspect the code and subsequent fixes. Do not
 present self-review as independent review.

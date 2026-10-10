@@ -106,8 +106,9 @@ class ProjectPreflightReport:
             routes.append((
                 'supported_config_update', 'poise project-config', config_path,
                 ['git.repository', 'git.base_ref'],
-                'Изменение требует актуальной ревизии и покоя проекта; поля paths имеют отдельного '
-                'владельца, данные автоматически не перемещаются.'))
+                'Изменение требует актуальной ревизии и ресурсных блокировок; незавершённые задачи '
+                'не запрещают правку. Поля paths имеют отдельного владельца, данные автоматически '
+                'не перемещаются.'))
         return [{'action': action, 'interface': interface,
                  'settings_path': self.settings_path, 'config_path': path,
                  'supported_fields': fields, 'limitations': [limitation]}

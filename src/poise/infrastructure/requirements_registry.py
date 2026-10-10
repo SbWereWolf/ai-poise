@@ -127,12 +127,16 @@ class RequirementsStore:
             revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
             if revision != request["expected_revision"]:
                 raise VersionConflict("Requirements revision changed")
-            registry = self._registry(connection).apply(request["operations"], max_items)
-            connection.execute("DELETE FROM requirement_links")
-            connection.execute("DELETE FROM requirements")
-            for requirement in registry.to_dict()["requirements"].values():
+            current = self._registry(connection)
+            registry = current.apply(request["operations"], max_items)
+            before = current.to_dict()
+            after = registry.to_dict()
+            for requirement in after["requirements"].values():
+                if before["requirements"].get(requirement["id"]) == requirement:
+                    continue
                 connection.execute(
-                    "INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?)",
+                    "INSERT INTO requirements(id,level,status,text) VALUES(?,?,?,?) "
+                    "ON CONFLICT(id) DO UPDATE SET status=excluded.status,text=excluded.text",
                     (
                         requirement["id"],
                         requirement["level"],
@@ -140,7 +144,12 @@ class RequirementsStore:
                         requirement["text"],
                     ),
                 )
-            for link in registry.to_dict()["links"]:
+            existing_links = {
+                (link["system"], link["application"]) for link in before["links"]
+            }
+            for link in after["links"]:
+                if (link["system"], link["application"]) in existing_links:
+                    continue
                 connection.execute(
                     "INSERT INTO requirement_links(system_id,application_id) VALUES(?,?)",
                     (link["system"], link["application"]),

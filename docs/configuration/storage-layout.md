@@ -68,6 +68,8 @@ Hook Registry и реестр чтений решают разные задач�
 | Task Store проекта `poise-op` | `O/app/projects/poise-op/state/database/tasks.sqlite` | `O/poise.sh` выбирает `O/app/projects/poise-op/config/project.json`; его `paths.state` и `paths.database`. |
 | Requirements Store проекта `poise-op` | `/home/sbwerewolf/workdata/poise-project-data/poise-op/requirements.sqlite` | `paths.requirements_database` того же manifest. |
 | Телеметрия проекта `poise-op` | `O/app/projects/poise-op/state/database/telemetry.sqlite` | `accounting.storage.database` того же manifest. |
+| Hook Registry проекта `poise-op` | `O/app/projects/poise-op/state/database/hooks.sqlite` | `O/app/.codex/hooks.json` вызывает `poise hook` с `O/app/projects/poise-op/config/hooks-settings.json`; `root`, `state`, `database`. Постоянный проектный реестр; сохраняется до проверенного переноса истории и переключения потребителей. |
+| Привязки хуков проекта `poise-op` | `O/app/projects/poise-op/state/.runtime/hook-bindings/` | `bindings` в тех же настройках; сеансовые привязки и сгенерированные launchers. Срок жизни определяется владельцем хуков; перенос и завершение не должны удалять ещё действующие привязки. |
 | Task Store ERP | `E/var/poise/state.sqlite` | `E/task-management/settings.json` выбирает `O/profile/erp/project.json`; его `paths.state` и `paths.database`. |
 | Requirements Store ERP | `O/state-erp/requirements.sqlite` | `paths.requirements_database` выбранного ERP manifest. |
 | Телеметрия ERP | `E/var/poise/telemetry/events.sqlite` | `accounting.storage.database` ERP manifest. |

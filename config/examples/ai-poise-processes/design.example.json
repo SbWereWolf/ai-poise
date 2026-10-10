@@ -201,7 +201,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "framing",
-      "instruction": "Зафиксировать исходную архитектуру и критерии выбора. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Зафиксировать исходную архитектуру и критерии выбора. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -238,7 +238,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "alternatives",
-      "instruction": "Сравнить допустимые решения. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Сравнить допустимые решения. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -269,7 +269,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "decision",
-      "instruction": "Выбрать решение и обосновать отказ от других. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Выбрать решение и обосновать отказ от других. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -304,7 +304,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "detailed_design",
-      "instruction": "Описать конкретные contracts и failure modes. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Описать конкретные contracts и failure modes. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -339,7 +339,7 @@
       "handler": "check",
       "role": "executor",
       "id": "design_verification",
-      "instruction": "Проверить design против требований. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить design против требований. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -370,7 +370,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "design_inspection",
-      "instruction": "Осмотреть consistency, неопределённости и лишнюю сложность. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Осмотреть consistency, неопределённости и лишнюю сложность. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -402,7 +402,7 @@
       "handler": "revise",
       "role": "executor",
       "id": "remediation",
-      "instruction": "Исправить design findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Исправить design findings. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -435,7 +435,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "remediation_inspection",
-      "instruction": "Проверить design corrections read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить design corrections read-only. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

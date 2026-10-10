@@ -73,7 +73,7 @@
       "handler": "produce",
       "role": "reviewer",
       "id": "planning",
-      "instruction": "Определить scope, критерии и единицы осмотра. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Определить scope, критерии и единицы осмотра. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -101,7 +101,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "inspection",
-      "instruction": "Read-only изучить target и оформить доказанные findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Read-only изучить target и оформить доказанные findings. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -132,7 +132,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "self_inspection",
-      "instruction": "Проверить качество собственного review. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить качество собственного review. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

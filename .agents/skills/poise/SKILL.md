@@ -74,6 +74,15 @@ manual recovery authorized by this canonical rule.
 
 ## Start or resume work
 
+Before creating or configuring a Poise project, read the canonical
+[resource placement and setup procedure](../../../docs/configuration/storage-layout.md).
+Use its current-consumer inventory, configuration examples and migration acceptance
+criteria. Distinguish supported settings from planned placement changes. Keep
+installation-wide workflow-stages/workflow-schemas editors separate from project
+stores, and session resources disposable. Migrate needed data and verify every
+consumer before retiring old paths; never preserve terminal leftovers in an archive
+without a remaining operational purpose. The linked documentation owns the policy.
+
 Tool views are for agent display. Use complete saved responses or native read-only tools for machine parsing and
 decisions; never repeat a mutation just to retrieve output. Internal tool composition receives full stdout, stderr
 and structured fields, without agent-budget clipping. Follow [full output](../../../docs/workflows/runner.md#полный-вывод-и-preview).

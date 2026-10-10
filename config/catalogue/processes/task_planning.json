@@ -179,7 +179,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "framing",
-      "instruction": "Определить конечную цель планируемой task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Определить конечную цель планируемой task. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -215,7 +215,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "classification",
-      "instruction": "Выбрать один target goal_type по основному результату. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Выбрать один target goal_type по основному результату. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -247,7 +247,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "requirements",
-      "instruction": "Уточнить требования в draft target task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Уточнить требования в draft target task. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -279,7 +279,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "acceptance_design",
-      "instruction": "Спроектировать DoD и deliverables будущей task. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Спроектировать DoD и deliverables будущей task. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -313,7 +313,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "work_planning",
-      "instruction": "Заполнить process-specific planning inputs. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Заполнить process-specific planning inputs. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -347,7 +347,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "verification_planning",
-      "instruction": "Зафиксировать способы доказательства будущей задачи. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Зафиксировать способы доказательства будущей задачи. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -381,7 +381,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "task_inspection",
-      "instruction": "Read-only проверить draft contract. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Read-only проверить draft contract. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -412,7 +412,7 @@
       "handler": "revise",
       "role": "executor",
       "id": "remediation",
-      "instruction": "Исправить draft по findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Исправить draft по findings. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -444,7 +444,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "remediation_inspection",
-      "instruction": "Осмотреть исправленный contract. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Осмотреть исправленный contract. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -475,7 +475,7 @@
       "handler": "publish",
       "role": "executor",
       "id": "publication",
-      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop. Publish only after explicit user authorization. Read the reviewed planned_task section; do not submit a replacement draft. Submit stage_work with kind=tasks, section=planned_task, and the explicit user authorization. The draft must already be retained and reviewed; do not resubmit a replacement draft in publication.",
+      "instruction": "Механически опубликовать принятый результат по явному разрешению пользователя; не отдельный содержательный этап. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration. Publish only after explicit user authorization. Read the reviewed planned_task section; do not submit a replacement draft. Submit stage_work with kind=tasks, section=planned_task, and the explicit user authorization. The draft must already be retained and reviewed; do not resubmit a replacement draft in publication.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [],

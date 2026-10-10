@@ -213,7 +213,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "framing",
-      "instruction": "Определить симптом и необходимые факты среды. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Определить симптом и необходимые факты среды. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -243,7 +243,7 @@
       "handler": "observe",
       "role": "executor",
       "id": "reproduction",
-      "instruction": "Проверить исходный симптом. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить исходный симптом. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -271,7 +271,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "hypothesis_planning",
-      "instruction": "Составить проверяемые альтернативные причины. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Составить проверяемые альтернативные причины. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -303,7 +303,7 @@
       "handler": "observe",
       "role": "executor",
       "id": "experiments",
-      "instruction": "Выполнить диагностические experiments. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Выполнить диагностические experiments. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -331,7 +331,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "root_cause_analysis",
-      "instruction": "Обосновать причину и отвергнутые альтернативы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Обосновать причину и отвергнутые альтернативы. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -365,7 +365,7 @@
       "handler": "check",
       "role": "executor",
       "id": "confirmation",
-      "instruction": "Проверить причинность контролируемым изменением. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить причинность контролируемым изменением. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -395,7 +395,7 @@
       "handler": "inspect",
       "role": "executor",
       "id": "self_inspection",
-      "instruction": "Проверить диагноз и рекомендацию. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить диагноз и рекомендацию. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

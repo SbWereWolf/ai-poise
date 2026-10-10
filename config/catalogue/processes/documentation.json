@@ -200,7 +200,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "framing",
-      "instruction": "Определить аудиторию и источники истины. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Определить аудиторию и источники истины. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -236,7 +236,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "outline",
-      "instruction": "Спроектировать структуру по content requirements. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Спроектировать структуру по content requirements. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -268,7 +268,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "drafting",
-      "instruction": "Написать documentation deliverable. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Написать documentation deliverable. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -300,7 +300,7 @@
       "handler": "check",
       "role": "executor",
       "id": "validation",
-      "instruction": "Проверить примеры/ссылки и источники. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить примеры/ссылки и источники. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -330,7 +330,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "inspection",
-      "instruction": "Read-only вычитать по audience и completeness. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Read-only вычитать по audience и completeness. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -363,7 +363,7 @@
       "handler": "revise",
       "role": "executor",
       "id": "remediation",
-      "instruction": "Исправить документацию по findings. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Исправить документацию по findings. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -393,7 +393,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "remediation_inspection",
-      "instruction": "Повторно вычитать corrections. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Повторно вычитать corrections. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

@@ -206,7 +206,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "framing",
-      "instruction": "Сформулировать вопросы и метод до сбора огромного массива. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Сформулировать вопросы и метод до сбора огромного массива. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -236,7 +236,7 @@
       "handler": "observe",
       "role": "executor",
       "id": "evidence_collection",
-      "instruction": "Обработать данные инструментами, извлечь факты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Обработать данные инструментами, извлечь факты. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -262,7 +262,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "reasoning",
-      "instruction": "Сформировать проверяемые выводы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Сформировать проверяемые выводы. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -294,7 +294,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "challenge",
-      "instruction": "Проверить альтернативы и опровергающие данные. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить альтернативы и опровергающие данные. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -326,7 +326,7 @@
       "handler": "inspect",
       "role": "executor",
       "id": "self_inspection",
-      "instruction": "Осмотреть достоверность собственного анализа. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Осмотреть достоверность собственного анализа. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

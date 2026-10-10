@@ -144,7 +144,15 @@ def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(pro
     executor = WorkTools(Poise(project["config_path"], "executor"))
     first = bootstrap(executor, project["task"])
     add_test(first["worktree"])
-    assert verify(executor, result(first))["status"] == "verified"
+    verified = verify(executor, result(first))
+    assert verified["status"] == "verified"
+    assert verified["next_work"] == (
+        "продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя"
+    )
+    assert executor.runtime.current_task()["stage_index"] == 0
+    replay = verify(executor, None)
+    assert replay["replayed"] is True
+    assert replay["next_work"] == verified["next_work"]
 
     implementation = advance(executor)
 

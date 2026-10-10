@@ -2057,7 +2057,7 @@ class Poise:
                   'feedback':workflow['feedback'], 'status':'verified','task':data['id'],'stage':stage['id'],'iteration':data['iteration'],
                   'attempt':publication['attempt'],'commit':sha,'verification_commit':sha,'verified_tree':tree,'checks':publication['checks'],
                   'artifacts':[{'id':r['id'],'path':r['path']} for r in permanent],
-                  'replayed':False,'next_work':'доложить пользователю; следующий этап не начинать'}
+                  'replayed':False,'next_work':'продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя'}
         manifests = self.retention.references(publication['checks'])
         if manifests:
             report['acceptance_manifests'] = manifests

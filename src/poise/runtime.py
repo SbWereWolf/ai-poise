@@ -947,7 +947,7 @@ class Poise:
                 'progression': data.get('progression'),
                 'agents_files': [] if data['worktree'] is None else
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
-                'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
+                'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя'}
 
         if duplicate_gate is not None:
             context['duplicate_gate'] = duplicate_gate

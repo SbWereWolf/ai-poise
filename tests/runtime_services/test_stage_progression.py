@@ -139,6 +139,32 @@ def state_snapshot(runtime, actors=("owner", "contender")):
     }
 
 
+@pytest.mark.parametrize("select_by_id", [False, True])
+def test_verified_bootstrap_continues_authorized_work(project, select_by_id):
+    configure_progression(project)
+    executor = WorkTools(Poise(project["config_path"], "executor"))
+    first = bootstrap(executor, project["task"])
+    assert first["next_work"] == "заполнить результат этапа и вызвать verify"
+    add_test(first["worktree"])
+    verified = verify(executor, result(first))
+    assert verified["status"] == "verified"
+    version = executor.runtime.current_task()["version"]
+
+    resumed = bootstrap(executor, {"id": "T1"} if select_by_id else None)
+
+    assert resumed["status"] == "verified"
+    assert resumed["stage"] == "tests"
+    assert resumed["version"] == version
+    assert resumed["result_template"] is None
+    assert resumed["next_work"] == (
+        "продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя"
+    )
+    replay = verify(executor, None)
+    assert replay["replayed"] is True
+    assert replay["next_work"] == resumed["next_work"] == verified["next_work"]
+    assert executor.runtime.current_task()["stage_index"] == 0
+
+
 def test_advances_same_role_then_requires_real_handoff_before_reviewer_stage(project):
     configure_progression(project)
     executor = WorkTools(Poise(project["config_path"], "executor"))

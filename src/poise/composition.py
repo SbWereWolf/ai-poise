@@ -6,23 +6,30 @@ def task_tools(store, repository_tree, requirements_gate):
     return TaskCommands(store.unit_of_work, repository_tree, requirements_gate), store.queries
 
 
-def requirements_tools(config_path):
-    from .application.requirements_registry import RequirementsCommands
-    from .common import configured_root, configured_storage_path, descendant, load_config
-    from .infrastructure.requirements_registry import RequirementsStore
+def requirements_storage(config_path):
+    from .common import configured_root, configured_storage_path, load_config
     root, config, _ = load_config(config_path)
     paths = config['paths']
     state = configured_root(root, paths['state'])
     limits = config['limits']
-    return RequirementsCommands(
-        RequirementsStore(
-            configured_storage_path(state, paths['requirements_database']),
-            configured_storage_path(state, paths['requirements_lock']),
-            limits['lock_seconds'],
-            limits['lock_poll_seconds'],
-        ),
-        config['batch']['max_items'],
+    return (
+        configured_storage_path(state, paths['requirements_database']),
+        configured_storage_path(state, paths['requirements_lock']),
+        limits['lock_seconds'], limits['lock_poll_seconds'],
     ), config
+
+
+def requirements_tools(config_path):
+    from .application.requirements_registry import RequirementsCommands
+    from .infrastructure.requirements_registry import RequirementsStore
+    storage, config = requirements_storage(config_path)
+    return RequirementsCommands(RequirementsStore(*storage), config['batch']['max_items']), config
+
+
+def migrate_requirements(config_path):
+    from .infrastructure.requirements_registry import RequirementsStore
+    storage, _ = requirements_storage(config_path)
+    return RequirementsStore.migrate(*storage)
 
 
 def goal_config_tools(settings_path):

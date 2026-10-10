@@ -1,0 +1,6 @@
+CREATE TABLE domain_areas(
+  id TEXT NOT NULL COLLATE BINARY,
+  business_name TEXT NOT NULL COLLATE BINARY,
+  definition TEXT NOT NULL COLLATE BINARY,
+  PRIMARY KEY(id), UNIQUE(business_name)
+);

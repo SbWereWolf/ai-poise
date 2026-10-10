@@ -1,6 +1,6 @@
 # Жизненный цикл хранилищ
 
-Актуализировано 18 сентября 2026 года по реализации AI-poise. Это описание текущего контракта, не разрешение на перенос данных или новую миграцию. Датированные архитектурные эскизы и старые протоколы проверок остаются историей.
+Актуализировано 11 октября 2026 года по реализации AI-poise. Это описание текущего контракта, не разрешение на перенос данных или новую миграцию. Датированные архитектурные эскизы и старые протоколы проверок остаются историей.
 
 ## Владельцы и версии
 
@@ -9,14 +9,14 @@
 | Хранилище и владелец | Текущая schema | Явное расположение | Создание и допустимое изменение версии |
 |---|---|---|---|
 | Task DB: Task/Sprint, execution, Evidence, Ownership и authoritative accounting через общую Unit of Work | 13 | `paths.database` и `paths.lock` внутри настроенного `paths.state` | Пустая schema 0 создаётся; известная 12 проходит только описанный ниже ownership upgrade. Остальные несовместимые версии отклоняются. |
-| Requirements DB: канонические System/Application требования и связи | 1 | `paths.requirements_database` и `paths.requirements_lock`; относительные значения — от `paths.state`, абсолютные — точно | Пустая schema 0 создаётся; непустая неизвестная либо версия не 1 отклоняется. Общей автоматической миграции нет. |
+| Requirements DB: канонические System/Application требования, области, имена и связи | 2 | `paths.requirements_database` и `paths.requirements_lock`; относительные значения — от `paths.state`, абсолютные — точно | Пустая schema 0 создаётся в версии 2; schema 1 обновляется только явной операцией `migrate`. Обычное открытие несовместимой версии отклоняется. |
 | Optional telemetry: необязательные измерения, отдельно от authoritative Task accounting | Общая SQLite schema 13 при ленивой инициализации | `accounting.storage.database` и `accounting.storage.lock`, отдельно от Task и Requirements | Используется общий `Database`, но его создание отложено до работы worker. Необязательная телеметрия не должна блокировать основной результат. |
 | HookRegistry: установки, bindings, операции и hook events | 1 | `database` и `lock` настроек hook transport | Пустая schema 0 создаётся; несовместимая версия отклоняется. Эти записи не заменяют Task ownership. |
 | Goal/config editor: операции редактирования и heads конфигураций | 1 | `database` и `lock` настроек редактора относительно его root | Пустая schema 0 создаётся; несовместимая версия отклоняется. Состояние редактора не является вторым владельцем Task. |
 
 Реализация: [Task Database](../../src/poise/infrastructure/sqlite/database.py), [RequirementsStore](../../src/poise/infrastructure/requirements_registry.py), [TelemetryDatabase](../../src/poise/infrastructure/telemetry.py), [HookRegistry](../../src/poise/infrastructure/sqlite/hook_transport.py), [GoalConfigRepository](../../src/poise/infrastructure/goal_config.py). Project-config сохраняет собственные pending/operation receipts в файлах; это не ещё одна каноническая Task DB.
 
-Task и RequirementsStore используют одну ограниченную write boundary: собственный flock хранилища → `BEGIN IMMEDIATE` до чтения revision/request state → однократное тело → `COMMIT`. Повторяются только SQL-границы `BEGIN IMMEDIATE`/`COMMIT` при `SQLITE_BUSY`, не тело операции. `lock_seconds` — отдельный бюджет каждого ожидания flock, BEGIN и COMMIT, не общий timeout запроса. При исчерпании COMMIT-бюджета выполняется rollback. Requirements DB остаётся отдельной schema 1 со своими явно настроенными путями; revision и request digest сохраняются. См. [точную политику записи](sqlite-write-boundary-design.md).
+Task и RequirementsStore используют одну ограниченную write boundary: собственный flock хранилища → `BEGIN IMMEDIATE` до чтения revision/request state → однократное тело → `COMMIT`. Повторяются только SQL-границы `BEGIN IMMEDIATE`/`COMMIT` при `SQLITE_BUSY`, не тело операции. `lock_seconds` — отдельный бюджет каждого ожидания flock, BEGIN и COMMIT, не общий timeout запроса. При исчерпании COMMIT-бюджета выполняется rollback. Requirements DB остаётся отдельной schema 2 со своими явно настроенными путями; revision и request digest сохраняются. См. [точную политику записи](sqlite-write-boundary-design.md) и [явную миграцию Requirements](../workflows/requirements-registry.md#предметные-области-и-миграция-схемы).
 
 Task DB хранит собственные Task requirements и согласованный исторический снимок System → Application → Task. Это не копия изменяемого канонического Requirements Registry. Правила полноты, статусов и согласования — в [реестре требований](../workflows/requirements-registry.md#публикация-и-исторический-снимок).
 

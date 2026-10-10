@@ -88,7 +88,7 @@ def test_requirements_initializer_waits_before_schema_read(tmp_path, monkeypatch
     assert observed == ['BEGIN IMMEDIATE']
     assert owner.revision() == 0
     with closing(sqlite3.connect(path)) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 1
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 2
         assert db.execute('PRAGMA integrity_check').fetchone()[0] == 'ok'
 
 
@@ -150,7 +150,7 @@ def test_requirements_domain_and_fk_failure_leave_one_atomic_state(tmp_path, mon
     assert state(owner.database) == before
 
 
-@pytest.mark.parametrize('version', [0, 2])
+@pytest.mark.parametrize('version', [0, 3])
 def test_requirements_reject_unknown_database_without_migration(tmp_path, version):
     path = tmp_path / 'requirements.sqlite'
     with closing(sqlite3.connect(path)) as db:

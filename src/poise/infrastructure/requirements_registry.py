@@ -9,6 +9,7 @@ from pathlib import Path
 import sqlite3
 
 from .sqlite.transaction import write_transaction
+from .requirements_migrations import schema_2, validate_schema
 from ..modules.foundation.errors import DomainError, PoiseError, VersionConflict
 from ..modules.requirements_registry.domain import RequirementsRegistry
 
@@ -18,7 +19,7 @@ def _encoded(value):
 
 
 class RequirementsStore:
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
 
     def __init__(self, database, lock, lock_seconds, poll_seconds):
         self.database = Path(database)
@@ -51,9 +52,34 @@ class RequirementsStore:
                     "CREATE TABLE requirement_requests("
                     "request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, response TEXT NOT NULL)"
                 )
-                connection.execute(f"PRAGMA user_version={self.SCHEMA_VERSION}")
+                schema_2(connection)
+            elif version == 1:
+                raise PoiseError(
+                    'Requirements DB schema 1 requires explicit migration. Send '
+                    '{"operation":"migrate","input":{}} to python -m poise requirements '
+                    '--config <selected-project-config> using the same project manifest; '
+                    'automatic migration is forbidden.'
+                )
             elif version != self.SCHEMA_VERSION:
                 raise PoiseError("Requirements DB schema is incompatible; migration is not performed")
+
+    @staticmethod
+    def migrate(database, lock, lock_seconds, poll_seconds):
+        database, lock = Path(database), Path(lock)
+        if not database.is_file():
+            raise PoiseError("Requirements migration requires an existing database")
+        try:
+            with write_transaction(database, lock, lock_seconds, poll_seconds) as connection:
+                version = connection.execute("PRAGMA user_version").fetchone()[0]
+                if version not in (1, 2):
+                    raise PoiseError(f"Requirements DB schema {version} cannot migrate to 2")
+                validate_schema(connection, version)
+                if version == 1:
+                    schema_2(connection)
+                return {"status": "migrated", "from_version": version,
+                        "to_version": 2, "changed": version == 1}
+        except (sqlite3.Error, ValueError) as exc:
+            raise PoiseError(f"Requirements migration failed: {exc}") from exc
 
     @contextmanager
     def _transaction(self):

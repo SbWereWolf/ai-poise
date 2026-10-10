@@ -1,0 +1,9 @@
+[
+  {
+    "file": "src/poise/modules/demo/domain.py",
+    "line": 1,
+    "rule": "domain-no-io",
+    "kind": "import",
+    "symbol": "os"
+  }
+]

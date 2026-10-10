@@ -105,8 +105,8 @@ def test_configuration_extensions_are_inert_and_raw_hashes_are_preserved(configu
     write(checkout / target_path, 'import os\n')
     checked = router.check_authoring_boundaries(str(checkout), 'produce', [target_path], [])
     assert checked['status'] == 'failed'
-    assert checked['diagnostics'] == [{'file': target_path, 'line': 1, 'rule': 'domain-no-io',
-                                      'kind': 'import', 'symbol': 'os'}]
+    expected_path = Path(__file__).parent / 'fixtures/configuration-architecture-diagnostics.json'
+    assert checked['diagnostics'] == json.loads(expected_path.read_text(encoding='utf-8'))
 
 
 @pytest.mark.parametrize('surface', ['catalog', 'selection', 'policy', 'packages', 'architecture'])

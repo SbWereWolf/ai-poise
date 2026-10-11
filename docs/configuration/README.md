@@ -13,6 +13,7 @@
 - [runtime-services.md](runtime-services.md)
 - [runtime-sources.md](runtime-sources.md)
 - [skill-catalog.md](skill-catalog.md)
+- [storage-layout.md](storage-layout.md)
 - [test-package-cache.md](test-package-cache.md)
 - [test-packages.md](test-packages.md)
 - [wsl-local-delivery.md](wsl-local-delivery.md)

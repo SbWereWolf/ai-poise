@@ -27,6 +27,18 @@ class SqliteArtifactRepository:
             return
         self.append_draft_event(task_id, actor, 'artifact.materials_bound', value)
 
+    def internal_material_ids(self, task_id):
+        """Bound evidence remains registered without becoming a delivered result."""
+        bound = set()
+        for row in self.db.execute(
+                "SELECT data FROM journal WHERE task_id=? AND event='artifact.materials_bound'",
+                (task_id,)):
+            bound.update(item['artifact_id'] for item in json.loads(row['data'])['bindings'])
+        delivered = set()
+        for row in self.db.execute('SELECT data FROM task_results WHERE task_id=?', (task_id,)):
+            delivered.update(item['id'] for item in json.loads(row['data'])['artifacts'])
+        return bound - delivered
+
     def link_task(self, task_id, artifacts):
         for item in artifacts:
             self._register(item)

@@ -313,15 +313,19 @@ class FileProjectConfigUpdate:
                             "State relocation staging already exists; refusing unverified deletion"
                         )
                 state = configured_root(root, live_config["paths"]["state"])
-                if request['state_relocation'] is not None:
+                moving = request['state_relocation'] is not None
+                if moving:
+                    state = Path(request['state_relocation']['expected_source']).resolve()
+                if moving and state.exists():
                     locks.enter_context(exclusive_lock(
                         descendant(state, live_config['batch']['artifact_lock']),
                         live_config['limits']['lock_seconds'], live_config['limits']['lock_poll_seconds']))
                 state_lock = descendant(state, live_config["paths"]["lock"])
-                locks.enter_context(exclusive_lock(
-                    state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
-                ))
-                if request['state_relocation'] is not None:
+                if not moving or state.exists():
+                    locks.enter_context(exclusive_lock(
+                        state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
+                    ))
+                if moving and state.exists():
                     # Task status is not a writer barrier: freeze the actual
                     # Requirements and asynchronous telemetry stores while copying.
                     for value in (live_config['paths']['requirements_lock'],

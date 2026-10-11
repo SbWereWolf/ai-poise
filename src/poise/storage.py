@@ -55,6 +55,10 @@ class Store:
         with self.transaction() as db:
             return SqliteArtifactRepository(db).records(task_id)
 
+    def internal_material_ids(self, task_id: str) -> set[str]:
+        with self.transaction() as db:
+            return SqliteArtifactRepository(db).internal_material_ids(task_id)
+
     def artifact_drafts(self, task_id: str) -> dict[str,dict]:
         with self.transaction() as db:
             return SqliteArtifactRepository(db).drafts(task_id)

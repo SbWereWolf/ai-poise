@@ -8,6 +8,20 @@ from ..artifacts import inspect_paths
 from ..modules.evidence.materials import receipt_materials
 from .diagnostic_io import readonly_database
 from .sqlite.artifacts import SqliteArtifactRepository
+from .sqlite.tasks import SqliteExecutionRepository
+
+
+def saved_receipts(db, task_id):
+    """Read each native receipt from its existing evidence or integration owner."""
+    receipts = [json.loads(row['data']) for row in db.execute(
+        'SELECT data FROM evidence WHERE task_id=? ORDER BY rowid', (task_id,))]
+    execution = SqliteExecutionRepository(db)
+    if execution.exists(task_id):
+        state, _ = execution.load(task_id)
+        pending = state['pending']
+        if pending is not None and pending.get('kind') == 'result_integration':
+            receipts.extend(pending['checks'])
+    return receipts
 
 
 def bind_receipt_materials(db, task_id, receipt, roots, owners, actor):
@@ -36,25 +50,26 @@ class SavedMaterialReader:
         self.database = database
 
     def _context(self, db, receipt):
-        row = db.execute('SELECT task_id,data FROM evidence WHERE id=?', (receipt['id'],)).fetchone()
-        if row is None or json.loads(row['data']) != receipt:
-            raise PoiseError('Saved receipt identity or immutable provenance differs')
-        binding = db.execute("SELECT data FROM journal WHERE task_id=? AND event='artifact.materials_bound' "
-                             "AND json_extract(data,'$.receipt_id')=? ORDER BY seq DESC LIMIT 1",
-                             (row['task_id'], receipt['id'])).fetchone()
-        if binding is None:
+        bindings = db.execute("SELECT task_id,data FROM journal WHERE event='artifact.materials_bound' "
+                              "AND json_extract(data,'$.receipt_id')=?", (receipt['id'],)).fetchall()
+        if len(bindings) != 1:
             raise PoiseError('Saved receipt has no explicit material association')
+        binding = bindings[0]
+        task_id = binding['task_id']
+        canonical = [item for item in saved_receipts(db, task_id) if item['id'] == receipt['id']]
+        if len(canonical) != 1 or canonical[0] != receipt:
+            raise PoiseError('Saved receipt identity or immutable provenance differs')
         value = json.loads(binding['data'])
         if value['schema'] != 'artifact-material-bindings-1':
             raise PoiseError('Unsupported saved material association')
-        records = {record['id']: record for record in SqliteArtifactRepository(db).records(row['task_id'])}
-        task = db.execute('SELECT metadata FROM tasks WHERE id=?', (row['task_id'],)).fetchone()
+        records = {record['id']: record for record in SqliteArtifactRepository(db).records(task_id)}
+        task = db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
         sprint = json.loads(task['metadata'])['sprint_id']
         bindings = {}
         for item in value['bindings']:
             record = records.get(item['artifact_id'])
             if (record is None or record['scope'] not in ('task', 'sprint') or
-                    record['owner'] != (row['task_id'] if record['scope'] == 'task' else sprint)):
+                    record['owner'] != (task_id if record['scope'] == 'task' else sprint)):
                 raise PoiseError('Saved material registry owner/scope differs')
             if item['selector'] in bindings:
                 raise PoiseError('Conflicting saved material selectors')
@@ -89,8 +104,7 @@ class SavedMaterialReader:
     def reference(self, task_id, path, checksum):
         """Resolve an exact logical reference in this Task's canonical receipts."""
         with readonly_database(self.database) as db:
-            receipts = [json.loads(row['data']) for row in db.execute(
-                'SELECT data FROM evidence WHERE task_id=? ORDER BY rowid', (task_id,))]
+            receipts = saved_receipts(db, task_id)
         for receipt in receipts:
             for selector, spec in receipt_materials(receipt).items():
                 if spec['path'] == str(path) and spec['digest'] == checksum:

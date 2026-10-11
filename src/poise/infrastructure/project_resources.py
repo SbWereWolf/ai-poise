@@ -31,7 +31,7 @@ class ProjectRuntimeFence:
     def _validate(self):
         root, config, _ = load_config(self.config_path)
         require_project_association(self.settings, self.config_path, config, config['runtime_resources'])
-        if configured_root(root, config['paths']['state']) != self.state:
+        if self.hook_settings is None and configured_root(root, config['paths']['state']) != self.state:
             raise PoiseError('Cached runtime configuration state placement changed')
         if self.settings.lock.is_relative_to(self.state):
             raise PoiseError('Project writer fence must remain outside mutable state')

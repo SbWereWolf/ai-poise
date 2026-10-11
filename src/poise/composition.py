@@ -23,7 +23,9 @@ def requirements_tools(config_path):
     from .application.requirements_registry import RequirementsCommands
     from .infrastructure.requirements_registry import RequirementsStore
     storage, config = requirements_storage(config_path)
-    return RequirementsCommands(RequirementsStore(*storage), config['batch']['max_items']), config
+    from .infrastructure.project_resources import ProjectRuntimeFence
+    fence = ProjectRuntimeFence(config_path)
+    return RequirementsCommands(RequirementsStore(*storage, project_fence=fence), config['batch']['max_items']), config
 
 
 def migrate_requirements(config_path):

@@ -16,8 +16,9 @@ from .sqlite.database import Database
 class TelemetryDatabase:
     """Lazy optional store: composition never waits for its writer lock."""
 
-    def __init__(self,path:Path,lock:Path,wait:float,poll:float):
+    def __init__(self,path:Path,lock:Path,wait:float,poll:float,project_fence=None):
         self.path,self.lock,self.wait,self.poll=path,lock,wait,poll
+        self.project_fence=project_fence
         self._database=None
         self._initialization=Lock()
 
@@ -25,7 +26,7 @@ class TelemetryDatabase:
         if self._database is None:
             with self._initialization:
                 if self._database is None:
-                    self._database=Database(self.path,self.lock,self.wait,self.poll)
+                    self._database=Database(self.path,self.lock,self.wait,self.poll,self.project_fence)
         return self._database
 
     @contextmanager

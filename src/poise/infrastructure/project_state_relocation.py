@@ -11,7 +11,7 @@ from .goal_config import read_document
 from .locking import exclusive_lock
 from .project_resources import require_project_association, observe_hook_association
 from .projects import ProjectSettings
-from .saved_materials import SavedMaterialReader, bind_receipt_materials
+from .saved_materials import SavedMaterialReader, bind_receipt_materials, saved_receipts
 from .sqlite.artifacts import SqliteArtifactRepository
 from .sqlite.transaction import write_transaction
 from .task_paths import task_root, sprint_root
@@ -143,8 +143,7 @@ class FileProjectStateRelocation:
                 if metadata['sprint_id'] is not None:
                     roots['sprint'] = sprint_root(self.source, self.live['paths'], metadata['sprint_id'])
                     owners['sprint'] = metadata['sprint_id']
-                for row in db.execute('SELECT data FROM evidence WHERE task_id=?', (task_id,)).fetchall():
-                    receipt = json.loads(row['data'])
+                for receipt in saved_receipts(db, task_id):
                     bound = db.execute("SELECT 1 FROM journal WHERE task_id=? AND event='artifact.materials_bound' "
                                        "AND json_extract(data,'$.receipt_id')=? LIMIT 1", (task_id, receipt['id'])).fetchone()
                     if bound is None:
@@ -199,8 +198,7 @@ class FileProjectStateRelocation:
                 delivery = SqliteTaskDeliveryRepository(db).read(task['id'])
                 if delivery is not None and delivery.data['retirement_started']:
                     continue
-                for row in db.execute('SELECT data FROM evidence WHERE task_id=?', (task['id'],)):
-                    receipt = json.loads(row['data'])
+                for receipt in saved_receipts(db, task['id']):
                     reader.physical_receipt(receipt)
                     if receipt.get('acceptance_manifest'):
                         manifest = json.loads(reader.resolve(receipt, 'acceptance_manifest',

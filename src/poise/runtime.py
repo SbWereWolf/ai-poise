@@ -123,6 +123,7 @@ class Poise:
             configured_storage_path(self.state, self.paths['requirements_lock']),
             limits['lock_seconds'],
             limits['lock_poll_seconds'],
+            self.project_fence,
         )
         self.requirements_commands = RequirementsCommands(
             self.requirements_store,
@@ -165,6 +166,7 @@ class Poise:
             descendant(self.state,telemetry_storage['lock']),
             limits['lock_seconds'],
             limits['lock_poll_seconds'],
+            self.project_fence,
         )
         self.accounting=AccountingCommands(RuntimeAccounting(self,telemetry_database))
         from .application.telemetry import OptionalTelemetry
@@ -175,7 +177,8 @@ class Poise:
             from .infrastructure.telemetry_spool import TelemetrySpool
             delivery=self.cfg['telemetry_delivery']
             self.telemetry_delivery=TelemetrySpool(
-                self.state / delivery['directory'], delivery['policy'], process_telemetry)
+                self.state / delivery['directory'], delivery['policy'], process_telemetry,
+                project_fence=self.project_fence)
             process_telemetry=self.telemetry_delivery
         self.telemetry=OptionalTelemetry(
             clock,
@@ -905,10 +908,11 @@ class Poise:
                  'task': task_root(self.state, self.paths, task['id'], task['sprint_id'])}
         if task['sprint_id'] is not None:
             roots['sprint'] = sprint_root(self.state, self.paths, task['sprint_id'])
-        for path in roots.values():
-            if path.is_symlink():
-                raise PoiseError('Корень владельца артефактов не может быть symlink')
-            path.mkdir(parents=True, exist_ok=True)
+        with self.project_fence.locked():
+            for path in roots.values():
+                if path.is_symlink():
+                    raise PoiseError('Корень владельца артефактов не может быть symlink')
+                path.mkdir(parents=True, exist_ok=True)
         return roots
 
     def _context(self, data: dict, prepare: bool, *, force_duplicate_start=False) -> dict:
@@ -1368,6 +1372,7 @@ class Poise:
         if 'sprint' in roots: owners['sprint'] = data['sprint_id']
         records = self._inspect_artifacts(data, submitted, roots, owners)
         previous = self.store.artifact_records(data['id'])
+        internal_materials = self.store.internal_material_ids(data['id'])
         delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
         if delivery is not None:
             omitted = set(delivery['manifest']['omitted_artifacts'])
@@ -1397,7 +1402,8 @@ class Poise:
                 if draft['digest'] != old['digest']:
                     raise PoiseError('Editable artifact draft registry digest is inconsistent')
                 current['_draft_previous_digest']=old['digest']
-            merged[(old['scope'],old['path'])] = current
+            if old['id'] not in internal_materials or current['path'] in submitted_paths:
+                merged[(old['scope'],old['path'])] = current
         return list(merged.values())
 
     def _artifact_facts(self, records: list[dict]) -> tuple[ArtifactFact, ...]:
@@ -1854,8 +1860,11 @@ class Poise:
                         return False
             method=invocation['method']
             if 'artifact_inputs' in method and r.get('passed') is True:
+                task = self.task_queries.record(task_id)
+                retained_method = next(item for item in task['contract']['methods']
+                                       if item['id'] == method['id'])
                 self.retention.validate_receipt(
-                    self.task_queries.record(task_id), r, invocation['commit'], method,
+                    task, r, invocation['commit'], retained_method,
                 )
             expected={
                 'argv': method['argv'],
@@ -2027,7 +2036,9 @@ class Poise:
                 receipt[field]=invocation[field]
             if passed:
                 try:
-                    self.retention.create(data, method, receipt, invocation['commit'], tree)
+                    retained_method = next(item for item in data['contract']['methods']
+                                           if item['id'] == method['id'])
+                    self.retention.create(data, retained_method, receipt, invocation['commit'], tree)
                 except Exception:
                     self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
                     raise

@@ -25,6 +25,8 @@ class RuntimeAcceptanceRetention:
     def _check(self, task, path, expected):
         path = Path(path)
         root = self.h._roots(task)['task']
+        if not path.is_relative_to(root):
+            path = self.h.saved_materials.reference(task['id'], path, expected)
         if (not path.is_absolute() or not path.is_relative_to(root)
                 or not path.resolve().is_relative_to(root.resolve())):
             raise PoiseError(f'Retained proof outside Task owner: {path}')
@@ -100,10 +102,13 @@ class RuntimeAcceptanceRetention:
 
     def read(self, task, reference):
         self._check(task, reference['path'], reference['digest'])
+        path = Path(reference['path'])
+        if not path.is_relative_to(self.h._roots(task)['task']):
+            path = self.h.saved_materials.reference(task['id'], path, reference['digest'])
         try:
             material = io.BytesIO()
             actual = FileArtifactFactory._read_registered(
-                Path(reference['path']), 'Acceptance manifest', material,
+                path, 'Acceptance manifest', material,
                 max_bytes=self.h.cfg['batch']['max_artifact_bytes'],
             )
             if actual != reference['digest']:
@@ -114,3 +119,20 @@ class RuntimeAcceptanceRetention:
 
     def registered(self, task, submitted_paths):
         return self.h.validate_verification_artifacts(submitted_paths, task)
+
+    def logical_inputs(self, task, receipt, inputs):
+        if 'acceptance_manifest' not in receipt:
+            return inputs
+        reference = receipt['acceptance_manifest']
+        canonical = self.h.saved_materials.resolve(receipt, 'acceptance_manifest', reference['digest'])
+        manifest = json.loads(canonical.read_bytes())
+        paths = {item['id']: item['path'] for item in manifest['inputs']}
+        result = []
+        for item in inputs:
+            physical = self.h.saved_materials.resolve(receipt, 'input/' + item['id'], item['digest'])
+            if physical != Path(item['path']):
+                raise PoiseError('Acceptance input binding differs from current Task path')
+            if item['id'] not in paths:
+                raise PoiseError('Acceptance input logical identity missing')
+            result.append({**item, 'path': paths[item['id']]})
+        return result

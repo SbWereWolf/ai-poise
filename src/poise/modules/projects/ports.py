@@ -18,6 +18,7 @@ class ProjectAvailabilityPort(Protocol):
 
 class ProjectConfigUpdatePort(Protocol):
     def apply(self,request:dict)->dict: ...
+    def bootstrap_runtime_resources(self,request:dict)->dict: ...
 
 
 class ProjectPreflightPort(Protocol):

@@ -14,6 +14,19 @@ class SqliteArtifactRepository:
             'JOIN task_artifacts t ON a.id=t.artifact_id WHERE t.task_id=? ORDER BY a.id',
             (task_id,))]
 
+    def bind_materials(self, task_id, receipt_id, bindings, actor):
+        value = {'schema': 'artifact-material-bindings-1', 'receipt_id': receipt_id,
+                 'bindings': bindings}
+        row = self.db.execute("SELECT data FROM journal WHERE task_id=? "
+                              "AND event='artifact.materials_bound' "
+                              "AND json_extract(data,'$.receipt_id')=? ORDER BY seq DESC LIMIT 1",
+                              (task_id, receipt_id)).fetchone()
+        if row is not None:
+            if json.loads(row['data']) != value:
+                raise PoiseError('Saved receipt material association conflicts')
+            return
+        self.append_draft_event(task_id, actor, 'artifact.materials_bound', value)
+
     def link_task(self, task_id, artifacts):
         for item in artifacts:
             self._register(item)

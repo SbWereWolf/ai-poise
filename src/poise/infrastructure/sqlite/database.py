@@ -1,5 +1,6 @@
 from __future__ import annotations
 import math
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from ...modules.foundation.errors import PoiseError
 from .transaction import write_transaction
@@ -72,13 +73,12 @@ SCHEMA = (
 
 class Database:
     """Linux-only external lock + short SQL transaction with one owned v12 upgrade."""
-    def __init__(self, path: Path, lock: Path, wait: float, poll: float):
+    def __init__(self, path: Path, lock: Path, wait: float, poll: float, project_fence=None):
+        self.project_fence = project_fence
         for value in (wait, poll):
             if type(value) not in (int,float) or not math.isfinite(value) or value <= 0:
                 raise PoiseError("Требуются явные конечные положительные пределы lock")
         self.path, self.lock, self.wait, self.poll = path, lock, wait, poll
-        path.parent.mkdir(parents=True, exist_ok=True)
-        lock.parent.mkdir(parents=True, exist_ok=True)
         with self.transaction() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
             if version == 0:
@@ -97,5 +97,8 @@ class Database:
         from .ownership import upgrade_legacy_ownership
         upgrade_legacy_ownership(db)
 
+    @contextmanager
     def transaction(self):
-        return write_transaction(self.path, self.lock, self.wait, self.poll)
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with write_transaction(self.path, self.lock, self.wait, self.poll) as db:
+                yield db

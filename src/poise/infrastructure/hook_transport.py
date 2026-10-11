@@ -139,6 +139,57 @@ def _read_definition(settings,path):
 class FileHookRepository:
     def __init__(self,settings,registry):self.settings,self.registry=settings,registry
 
+    def relocate(self, target, installation, request_id):
+        """Publish this installation under an already held project/source lease."""
+        import hashlib
+        import shutil
+        proposed = HookSettings.proposed(target['settings_path'], target['settings'])
+        source = self.settings
+        if proposed.raw == source.raw and proposed.path == source.path:
+            return installation['receipt']
+        if proposed.project_config != source.project_config:
+            raise PoiseError('Hook relocation cannot change project association')
+        definition_path = Path(installation['receipt']['definition_path'])
+        definition = _read_definition(source, definition_path)
+        if definition.data['id'] != target['installation_id']:
+            raise PoiseError('Hook relocation installation identity differs')
+        if proposed.definitions != source.definitions or proposed.hooks_file != source.hooks_file:
+            raise PoiseError('Hook relocation requires explicit unchanged definition/native-file owners')
+        if not proposed.state.exists():
+            shutil.copytree(source.state, proposed.state)
+        if not proposed.database.is_file():
+            raise PoiseError('Hook relocation requires the copied existing registry')
+        repository = FileHookRepository(proposed, HookRegistry(proposed))
+        desired = repository._groups(definition, definition_path)
+        with repository.registry.transaction() as db:
+            row = db.execute('SELECT data FROM installations WHERE id=?', (target['installation_id'],)).fetchone()
+            if row is None:
+                raise PoiseError('Copied hook installation identity is missing')
+            current = json.loads(row['data'])
+            if current['groups'] not in (installation['groups'], desired):
+                raise PoiseError('Copied hook installation changed before relocation')
+            native = read_document(source.hooks_file)
+            if all(native.get('hooks', {}).get(event, []).count(group) == 1 for event, group in desired):
+                candidate = native
+            else:
+                if any(native.get('hooks', {}).get(event, []).count(group) != 1
+                       for event, group in installation['groups']):
+                    raise PoiseError('Native hook groups changed before relocation')
+                candidate = merge_hook_document(native, installation['groups'], desired)
+            body = (json.dumps(candidate, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode()
+            receipt = {**installation['receipt'], 'revision': hashlib.sha256(body).hexdigest()}
+            if proposed.path.exists():
+                if read_document(proposed.path) != proposed.raw:
+                    raise PoiseError('Hook relocation settings destination conflicts')
+            else:
+                atomic_write(proposed.path, (json.dumps(proposed.raw, ensure_ascii=False, indent=2) + '\n').encode(),
+                             proposed.raw['file_mode'])
+            if source.hooks_file.read_bytes() != body:
+                atomic_write(source.hooks_file, body, proposed.raw['file_mode'])
+            db.execute('UPDATE installations SET data=? WHERE id=?',
+                       (encoded({'groups': desired, 'receipt': receipt}), target['installation_id']))
+            return receipt
+
     def revision(self):
         p=self.settings.hooks_file
         return file_digest(p) if p.exists() else None
@@ -306,7 +357,10 @@ class FileHookRepository:
 class HookService:
     """Composition boundary. Native events observe/bind; WorkTools alone changes work."""
     def __init__(self,settings_path):
-        self.settings=HookSettings(settings_path);self.registry=HookRegistry(self.settings)
+        from .project_resources import ProjectRuntimeFence
+        self.settings=HookSettings(settings_path)
+        self.project_fence=ProjectRuntimeFence(self.settings.project_config,hook_settings=self.settings)
+        self.registry=HookRegistry(self.settings,self.project_fence)
         self.repository=FileHookRepository(self.settings,self.registry)
         self.commands=HookCommands(self.repository)
 
@@ -316,12 +370,20 @@ class HookService:
         return HookDiagnostics(HookObservationPort(self)).invoke(packet)
 
     def revision(self):return self.repository.revision()
-    def install(self,packet):return self.commands.install(packet)
-    def reconcile(self,packet):return self.commands.reconcile(packet)
+    def install(self,packet):
+        with self.project_fence.locked():
+            return self.commands.install(packet)
+    def reconcile(self,packet):
+        with self.project_fence.locked():
+            return self.commands.reconcile(packet)
 
     def definition(self,path):return _read_definition(self.settings,path)
 
     def _bind(self,definition_path,event):
+        with self.project_fence.locked():
+            return self._bind_locked(definition_path,event)
+
+    def _bind_locked(self,definition_path,event):
         self.settings.require_runtime()
         definition=self.definition(definition_path)
         native=parse_native_event(event,definition)
@@ -386,6 +448,10 @@ class HookService:
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
     def event(self,definition_path,event):
+        with self.project_fence.locked():
+            return self._event_locked(definition_path,event)
+
+    def _event_locked(self,definition_path,event):
         from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
         caller=CallerIdentity.native(binding['project'],binding['external_session'])

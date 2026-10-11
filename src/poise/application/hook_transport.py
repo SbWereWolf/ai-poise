@@ -9,6 +9,10 @@ from ..modules.foundation.errors import PoiseError
 class HookCommands:
     def __init__(self, repository: HookRepository):self.repository=repository
 
+    def relocate(self, target, installation, request_id):
+        exact(target, {'installation_id', 'settings_path', 'settings'}, 'hook relocation')
+        return self.repository.relocate(target, installation, request_id)
+
     def install(self,packet):
         exact(packet,{'request_id','expected_revision','definition'},'hook install packet')
         nonempty(packet['request_id'],'request_id')

@@ -5,6 +5,15 @@ from ..modules.foundation.errors import DomainError
 
 
 def validate_request(request, max_changes):
+    if isinstance(request, dict) and request.get('schema') == 'project-runtime-resources-bootstrap-1':
+        exact_keys(request, {'schema', 'request_id', 'config_path', 'expected_revision',
+                             'runtime_resources', 'receipt_path'}, 'runtime resources bootstrap')
+        for key in ('request_id', 'config_path', 'expected_revision', 'receipt_path'):
+            if not isinstance(request[key], str) or not request[key].strip():
+                raise DomainError(f'Explicit {key} required')
+        from ..modules.projects.resources import validate_resources
+        validate_resources(request['runtime_resources'])
+        return
     workspace = isinstance(request, dict) and request.get('schema') == 'project-worktree-root-1'
     exact_keys(request, {
         "schema", "request_id", "config_path", "expected_revision", "manifest_edits",
@@ -40,4 +49,6 @@ class ProjectConfigCommands:
 
     def apply(self, request):
         validate_request(request, self.max_changes)
+        if request['schema'] == 'project-runtime-resources-bootstrap-1':
+            return self.port.bootstrap_runtime_resources(request)
         return self.port.apply(request)

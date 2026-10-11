@@ -98,6 +98,10 @@ class RuntimeTransfers:
         if receipt.get('timeout_maintenance') is not None:
             outputs.append(receipt['timeout_maintenance'])
         for output in outputs:
+            if delivery is None and not locations:
+                self.h.saved_materials.reference(
+                    self.h.task_queries.receipt_task(receipt['id']), output['path'], output['digest'])
+                continue
             path = recovery_absolute(relocate_path(output['path'], locations))
             if not path.is_file():
                 if historical:

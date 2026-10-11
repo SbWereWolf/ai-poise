@@ -12,6 +12,17 @@ class TaskDeliveryCommands:
         with self.uow() as uow:
             return uow.task_delivery.read(task_id)
 
+    def require_material_records(self, task_id, records):
+        with self.uow() as uow:
+            uow.tasks.load(task_id)
+            registered = {item['id']: item for item in uow.artifacts.records(task_id)}
+            for record in records:
+                saved = registered.get(record['id'])
+                if (saved is None or record['scope'] not in ('task', 'sprint') or
+                        any(saved[key] != record[key] for key in ('owner', 'scope', 'digest')) or
+                        (record['scope'] == 'task' and record['owner'] != task_id)):
+                    raise PoiseError('Material registry owner/scope does not match selected Task')
+
     def query(self, task_id):
         state = self.state(task_id)
         return ({'task': task_id, 'status': 'delivery_unagreed', 'retired_artifacts': []}

@@ -1,16 +1,24 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded
 from .transaction import write_transaction
 
 
 class HookRegistry:
-    def __init__(self,settings):self.settings=settings
+    def __init__(self,settings,project_fence=None):
+        self.settings=settings
+        self.project_fence=project_fence
 
     @contextmanager
     def transaction(self):
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with self._transaction() as db:
+                yield db
+
+    @contextmanager
+    def _transaction(self):
         s=self.settings
         with write_transaction(s.database,s.lock,s.raw['lock_seconds'],s.raw['lock_poll_seconds']) as db:
             version=db.execute('PRAGMA user_version').fetchone()[0]

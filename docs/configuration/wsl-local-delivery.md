@@ -2,19 +2,28 @@
 
 Обновлено: **2026-09-18**.
 
-Для текущего локального проекта `ai-poise` действует [конкретная настройка](project-setup.md#локальный-проект-ai-poise): по поручению пользователя состояние находится внутри репозитория в исключённом из Git `projects/ai-poise/`. Описанная ниже исходная поставка `poise` не заменяет эту настройку.
+Для текущего локального проекта `ai-poise` действует [конкретная настройка](project-setup.md#локальный-проект-ai-poise):
+по поручению пользователя состояние находится внутри репозитория в исключённом из Git `projects/ai-poise/`. Описанная
+ниже исходная поставка `poise` не заменяет эту настройку.
 
 ## Архитектура локальной установки
 
-AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный project manifest, собственный каталог process configs, собственная Task DB, собственная Requirements DB и собственные task/sprint artifacts. Эти рабочие данные отделены от версионируемых файлов продукта; физическое размещение внутри checkout допустимо по правилам соответствующего хранилища.
+AI poise — отдельное приложение и точка входа в работу AI-агентов. Для каждого проекта AI poise используется собственный
+project manifest, собственный каталог process configs, собственная Task DB, собственная Requirements DB и собственные
+task/sprint artifacts. Операционные данные отделены от версионируемых файлов продукта; Requirements DB может
+версионироваться по решению пользователя. Физическое размещение внутри checkout допустимо по правилам соответствующего
+хранилища.
 
-Настройка создаёт проект, но не создаёт задачи и Sprint автоматически. Идентификаторы Task локальны для проекта и выделяются штатным allocator при публикации постановки.
+Настройка создаёт проект, но не создаёт задачи и Sprint автоматически. Идентификаторы Task локальны для проекта и
+выделяются штатным allocator при публикации постановки.
 
-13 process configs проекта создаются из reference templates AI poise и после публикации проекта являются самостоятельными конфигурациями проекта: изменение reference template не меняет их автоматически.
+13 process configs проекта создаются из reference templates AI poise и после публикации проекта являются
+самостоятельными конфигурациями проекта: изменение reference template не меняет их автоматически.
 
 ## Пути project-local storage
 
-Пути задаёт только project configuration. В WSL template `wsl-poise` поле `paths.state` — абсолютный project-data root вне Git checkout обслуживаемой кодовой базы. Остальные operational paths заданы относительно него:
+Пути задаёт только project configuration. В WSL template `wsl-poise` поле `paths.state` — абсолютный project-data root
+вне Git checkout обслуживаемой кодовой базы. Остальные operational paths заданы относительно него:
 
 ```text
 paths.database         = tasks.sqlite
@@ -31,7 +40,12 @@ Standalone Task хранит файлы в
 namespace. Поле `paths.standalone_tasks` обязательно. Удалённое `paths.tasks` не является
 alias и отклоняется при загрузке конфигурации.
 
-Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project configuration. Requirements DB и lock должны быть отдельны друг от друга и от Task DB и lock. Внешнее размещение в этом шаблоне — конкретный выбор; допустимость внутренних игнорируемых и неотслеживаемых путей определяет [правило размещения](../workflows/requirements-registry.md#владение-и-явные-пути). Код AI poise не должен иметь скрытого универсального пути Requirements DB.
+Поля `paths.requirements_database` и `paths.requirements_lock` обязательны и явно заданы в project configuration.
+Requirements DB и lock должны быть отдельны друг от друга и от Task DB и lock. Внешнее размещение в этом шаблоне —
+конкретный выбор; внутри репозитория БД также допустима, а её версионирование выбирает пользователь без разрешительного
+флага и Git-проверки размещения. Сохраняется [правило явных путей и отделения
+хранилищ](../workflows/requirements-registry.md#владение-и-явные-пути). Код AI poise не должен иметь скрытого
+универсального пути Requirements DB.
 
 ## Настройка проекта в WSL
 
@@ -47,7 +61,9 @@ python -m poise project-init \
   --probe-repository yes
 ```
 
-В анкете явно задаются repository исходников AI poise, base ref, неиспользуемое имя remote, Git author, обязательное `push_required=false`, абсолютный project-data root и наследуемые environment variables. `push_required=true` запрещён и отклоняется до Git-команды.
+В анкете явно задаются repository исходников AI poise, base ref, неиспользуемое имя remote, Git author, обязательное
+`push_required=false`, абсолютный project-data root и наследуемые environment variables. `push_required=true` запрещён и
+отклоняется до Git-команды.
 
 ## Реестры и постановка задач
 
@@ -85,13 +101,17 @@ python -m poise next --settings "$PWD/config/project-setup.json"
 
 ## Skills для агента
 
-Для обычной работы: [AI poise task workflow](../../.agents/skills/poise/SKILL.md#ai-poise-task-workflow). Для изменения AI poise: [AI poise development](../../.agents/skills/poise-development/SKILL.md#ai-poise-development).
+Для обычной работы: [AI poise task workflow](../../.agents/skills/poise/SKILL.md#ai-poise-task-workflow). Для изменения
+AI poise: [AI poise development](../../.agents/skills/poise-development/SKILL.md#ai-poise-development).
 
-Skill, который опирается на нормативную документацию, должен ссылаться на минимальный конкретный section, достаточный для данного operational rule.
+Skill, который опирается на нормативную документацию, должен ссылаться на минимальный конкретный section, достаточный
+для данного operational rule.
 
 ## Резервирование
 
-Task DB, Requirements DB и task/sprint artifacts не являются Git history обслуживаемого продукта. Незавершённая работа передаётся штатными `handoff`/`transfer`; БД не объединяются вручную.
+Task DB и task/sprint artifacts не являются Git history обслуживаемого продукта. Requirements DB может входить в Git
+history по решению пользователя. Незавершённая работа передаётся штатными `handoff`/`transfer`; БД не объединяются
+вручную.
 
 ## Выбор операторской установки и перенос состояния
 

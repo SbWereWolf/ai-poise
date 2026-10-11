@@ -269,7 +269,7 @@ class SprintCommands:
             'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('available','active','verified','accepted','completed','cancelled')},
             'errors':self._errors(record,facts) if s.state=='draft' else [],
             'next_work':'Исправить draft и опубликовать одним пакетом' if s.state=='draft' else
-                        'Выбрать одну доступную задачу; выполнить один этап и доложить',
+                        'Выбрать одну доступную задачу; продолжать поручение через advance с действующими ограничениями',
             'active_task':None}
 
     @staticmethod

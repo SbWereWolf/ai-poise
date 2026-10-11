@@ -815,14 +815,26 @@ class SqliteTaskRepository:
         self.db.execute("INSERT INTO task_proofs VALUES(?,?)", (s.task_id,encode(task.evidence_snapshot())))
         self._event(s.task_id,s.version,{"event":"created","stage":task.stage.stage_id,"iteration":s.iteration})
 
-    def load(self, task_id: str) -> Task:
+    def _load_state_row(self, task_id: str):
         from .ownership import require_unambiguous
         require_unambiguous(self.db, task_id)
         row = self.db.execute("SELECT t.id,t.status,t.stage_index,t.iteration,t.claimed_by,t.version,t.current_submission_id,t.metadata, s.digest AS submission_digest FROM tasks t LEFT JOIN submissions s ON s.seq=t.current_submission_id WHERE t.id=?", (task_id,)).fetchone()
         if row is None:
             raise PoiseError(f"Задача не найдена: {task_id}")
-        state = TaskState(row["id"],row["stage_index"],row["iteration"],TaskStatus.parse(row["status"]),
-                          row["claimed_by"],row["version"],row["submission_digest"])
+        return row
+
+    @staticmethod
+    def _restore_state(row) -> TaskState:
+        return TaskState(row["id"],row["stage_index"],row["iteration"],TaskStatus.parse(row["status"]),
+                         row["claimed_by"],row["version"],row["submission_digest"])
+
+    def load_state(self, task_id: str) -> TaskState:
+        """Read current guarded Task state without its execution contract."""
+        return self._restore_state(self._load_state_row(task_id))
+
+    def load(self, task_id: str) -> Task:
+        row = self._load_state_row(task_id)
+        state = self._restore_state(row)
         metadata = json.loads(row["metadata"])
         record = self.db.execute("SELECT data FROM content_contracts WHERE task_id=? ORDER BY version DESC LIMIT 1", (task_id,)).fetchone()
         if record is None:

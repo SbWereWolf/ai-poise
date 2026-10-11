@@ -3,25 +3,51 @@
 Начало: **2026-09-07T01:17:28+05:00**. Linux, один явно выбранный проект.
 
 ## Что поставлено
-Пакетная установка выбранной конфигурации Codex command hooks; session-scoped launcher к существующему WorkTools; непосредственное наблюдение UserPromptSubmit; проверки реальных команд и MCP stdio. Настройки hooks создаёт инструмент. Он не изменяет trust/permissions и не устанавливает Codex/IDE.
+Пакетная установка выбранной конфигурации Codex command hooks; session-scoped launcher к
+существующему WorkTools; непосредственное наблюдение UserPromptSubmit; проверки реальных команд и
+MCP stdio. Настройки hooks создаёт инструмент. Он не изменяет trust/permissions и не устанавливает
+Codex/IDE.
 
-Поддерживаются SessionStart, UserPromptSubmit, Stop и SessionEnd основного агента. SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не поддерживаются этим адаптером. Configured `agent_id` выбирает профиль hook, но не создаёт отдельного исполнителя. Файлы launcher учитывают проект, источник, внешнюю сессию и профиль; Task caller определяется реальной native session через общего SessionEstablisher. Переименование профиля не отделяет делегата от отправителя.
+Поддерживаются SessionStart, UserPromptSubmit, Stop и SessionEnd основного агента.
+SubagentStart/SubagentStop и скрытая телеметрия ChatGPT не поддерживаются этим адаптером. Configured
+`agent_id` выбирает профиль hook, но не создаёт отдельного исполнителя. Файлы launcher учитывают
+проект, источник, внешнюю сессию и профиль; Task caller определяется реальной native session через
+общего SessionEstablisher. Переименование профиля не отделяет делегата от отправителя.
 
 ## Интерфейсы
-- `poise runtime-setup --settings <new-file> --max-input-bytes <explicit-limit>`: stdin `{settings: <full settings>, installation: {request_id, expected_revision, definition}}`. Создаёт settings, все native hooks и выполняет probes одним запросом. При повторе те же настройки принимаются; другое содержимое существующего settings не перезаписывается. Начальный лимит задан аргументом, потому что settings ещё нет.
-- `poise runtime-config --settings <file>`: stdin `{operation: install, input: {request_id, expected_revision, definition}}` устанавливает весь definition и проверяет все probes одним вызовом. `operation: probe` принимает `definition_path` и `workspace` для явной повторной диагностики. Ошибка проверки доступности не отменяет факт создания настроек.
-- `poise hook --settings <file> --definition <immutable-definition>`: внешний протокол Codex, один native event на stdin; не агентский lifecycle API.
-- Сгенерированный `work.sh`: принимает обычный пакет WorkTools на stdin. Повторять task ID/session ID не требуется.
-- Старые `work`, `runtime` и `goal-config` остаются самостоятельными явными интерфейсами. Hook-события и JSONL нельзя одновременно использовать как источник одних и тех же сообщений.
+- `poise runtime-setup --settings <new-file> --max-input-bytes <explicit-limit>`: stdin `{settings:
+  <full settings>, installation: {request_id, expected_revision, definition}}`. Создаёт settings,
+  все native hooks и выполняет probes одним запросом. При повторе те же настройки принимаются;
+  другое содержимое существующего settings не перезаписывается. Начальный лимит задан аргументом,
+  потому что settings ещё нет.
+- `poise runtime-config --settings <file>`: stdin `{operation: install, input: {request_id,
+  expected_revision, definition}}` устанавливает весь definition и проверяет все probes одним
+  вызовом. `operation: probe` принимает `definition_path` и `workspace` для явной повторной
+  диагностики. Ошибка проверки доступности не отменяет факт создания настроек.
+- `poise hook --settings <file> --definition <immutable-definition>`: внешний протокол Codex, один
+  native event на stdin; не агентский lifecycle API.
+- Сгенерированный `work.sh`: принимает обычный пакет WorkTools на stdin. Повторять task ID/session
+  ID не требуется.
+- Старые `work`, `runtime` и `goal-config` остаются самостоятельными явными интерфейсами.
+  Hook-события и JSONL нельзя одновременно использовать как источник одних и тех же сообщений.
 
-Bootstrap-настройки устанавливают root, project_config, interpreter, source_root, native hooks file, storage paths, modes и лимиты. Это не настройки из AGENTS.md и не угадывание по cwd. `config/hook-templates` — явно выбираемые исходные шаблоны примера, не скрытый источник отсутствующих полей.
+Bootstrap-настройки устанавливают root, project_config, interpreter, source_root, native hooks file,
+storage paths, modes и лимиты. Это не настройки из AGENTS.md и не угадывание по cwd.
+`config/hook-templates` — явно выбираемые исходные шаблоны примера, не скрытый источник
+отсутствующих полей.
 
 ## Установка
-Сначала проверяются весь definition и настройки; обязательные поля не дополняются defaults. Существующие чужие группы hooks сохраняются. Заменяются только ранее установленные целые группы данного definition. Изменённая вручную owned-группа вызывает отказ, а не перезапись.
+Сначала проверяются весь definition и настройки; обязательные поля не дополняются defaults.
+Существующие чужие группы hooks сохраняются. Заменяются только ранее установленные целые группы
+данного definition. Изменённая вручную owned-группа вызывает отказ, а не перезапись.
 
-`expected_revision` — digest фактического native файла либо explicit null для нового файла. Повтор request_id с тем же намерением возвращает receipt; другое намерение под тем же ID отвергается. Незавершённая запись использует сохранённый кандидат и проверяет состояние before/after.
+`expected_revision` — digest фактического native файла либо explicit null для нового файла. Повтор
+request_id с тем же намерением возвращает receipt; другое намерение под тем же ID отвергается.
+Незавершённая запись использует сохранённый кандидат и проверяет состояние before/after.
 
-Сначала публикуется неизменяемый definition в config root, потом одним atomic replace обновляется hooks.json. Operational SQLite сохраняет pending/completed receipt. Одна SQL-транзакция НЕ делает файл частью SQLite; повтор сверяет фактический digest.
+Сначала публикуется неизменяемый definition в config root, потом одним atomic replace обновляется
+hooks.json. Operational SQLite сохраняет pending/completed receipt. Одна SQL-транзакция НЕ делает
+файл частью SQLite; повтор сверяет фактический digest.
 
 Управляемые native-команды и session launcher напрямую запускают явно настроенный Python с
 `-B`, поэтому загрузка installation source не создаёт и не обновляет bytecode в checkout.
@@ -42,7 +68,9 @@ native event восстанавливает также настроенные и
 обычным способом восстанавливает выбранное окружение, после чего повторяет нативное событие.
 Task DB и сохранённая binding для такой диагностики не редактируются.
 
-Новый/изменённый hook требует пользовательского review/trust в Codex. Инструмент возвращает `requires_user_review` и `live_codex: not_observed`; не включает `--dangerously-bypass-hook-trust`, не правит config.toml и не выдаёт генерацию файла за активацию в приложении.
+Новый/изменённый hook требует пользовательского review/trust в Codex. Инструмент возвращает
+`requires_user_review` и `live_codex: not_observed`; не включает `--dangerously-bypass-hook-trust`,
+не правит config.toml и не выдаёт генерацию файла за активацию в приложении.
 
 ## Native события и счётчик
 `SessionEstablisher` является единственным владельцем перехода от caller identity к внутренней
@@ -52,29 +80,60 @@ Task DB и сохранённая binding для такой диагностик
 неизменности managed hook-файла сохраняется, но отдельный anti-tamper протокол для generated
 caller binding не вводится.
 
-SessionStart создаёт/восстанавливает отдельную binding и launcher. UserPromptSubmit фиксирует source/session/turn_id без хранения prompt; все причины, включая неизвестные, считаются. Повтор этого turn_id не увеличивает число. Два разных turn_id с одинаковым текстом — два события. До выбора задачи факт остаётся известным проекту; текущий пользовательский ход связывается при выборе/работе через launcher. Старые неопределённые taskless ходы не приписываются новой задаче задним числом.
+SessionStart создаёт/восстанавливает отдельную binding и launcher. UserPromptSubmit фиксирует
+source/session/turn_id без хранения prompt; все причины, включая неизвестные, считаются. Повтор
+этого turn_id не увеличивает число. Два разных turn_id с одинаковым текстом — два события. До выбора
+задачи факт остаётся известным проекту; текущий пользовательский ход связывается при выборе/работе
+через launcher. Старые неопределённые taskless ходы не приписываются новой задаче задним числом.
 
-Stop сообщает текущую позицию. Он НЕ возвращает `decision: block`, НЕ создаёт synthetic user turn, НЕ принимает этап и НЕ запускает следующую работу. SessionEnd только записывает факт окончания; handoff остаётся явной операцией, поскольку внешний event не является надёжным удерживающим барьером.
+Stop сообщает текущую позицию. Он НЕ возвращает `decision: block`, НЕ создаёт synthetic user turn,
+НЕ принимает этап и НЕ запускает следующую работу. SessionEnd только записывает факт окончания;
+handoff остаётся явной операцией, поскольку внешний event не является надёжным удерживающим
+барьером.
 
-Hook-события синхронны там, где требуется готовая binding, согласованный счётчик или доклад. SessionEnd синхронен по внешнему протоколу. Никакой новой фоновой бизнес-мутации нет; асинхронные представления результатов DDD-07 продолжают работать через прежний механизм.
+Hook-события синхронны там, где требуется готовая binding, согласованный счётчик или доклад.
+SessionEnd синхронен по внешнему протоколу. Никакой новой фоновой бизнес-мутации нет; асинхронные
+представления результатов DDD-07 продолжают работать через прежний механизм.
 
-Счётчик отражает наблюдённые hook events, не биллинг OpenAI. Coverage остаётся partial: транспорт не доказывает, что платформа предоставила весь разговор. Прямой пакет messages через hooked-work запрещён, чтобы не создать второй источник того же хода.
+Счётчик отражает наблюдённые hook events, не биллинг OpenAI. Coverage остаётся partial: транспорт не
+доказывает, что платформа предоставила весь разговор. Прямой пакет messages через hooked-work
+запрещён, чтобы не создать второй источник того же хода.
 
 ## Проверки capabilities
-Все probes задаются одним массивом, сначала валидируется весь массив. Ошибка одного внешнего инструмента не прячет результаты остальных. Каждый probe имеет exact argv/cwd/environment, срок выполнения, ограничения вывода, признак required, tool_ref и исполнимую рекомендацию восстановления. Окружение не наследуется неявно; секреты не следует записывать в параметры/вывод.
+Все probes задаются одним массивом, сначала валидируется весь массив. Ошибка одного внешнего
+инструмента не прячет результаты остальных. Каждый probe имеет exact argv/cwd/environment, срок
+выполнения, ограничения вывода, признак required, tool_ref и исполнимую рекомендацию восстановления.
+Окружение не наследуется неявно; секреты не следует записывать в параметры/вывод.
 
-Command probe подтверждает ровно наблюдаемое: код выхода, признаки stdout/stderr, при необходимости точные JSON predicates. Версия не подставляется из expected config. Непонятный ответ, отсутствующий executable и timeout означают unavailable, не успешную capability и не автоматически AI poise Incident.
+Command probe подтверждает ровно наблюдаемое: код выхода, признаки stdout/stderr, при необходимости
+точные JSON predicates. Версия не подставляется из expected config. Непонятный ответ, отсутствующий
+executable и timeout означают unavailable, не успешную capability и не автоматически AI poise
+Incident.
 
-MCP stdio: initialize → exact negotiated protocol version → initialized → bounded tools/list → optional explicit read-only tools/call. Pagination и notifications ограничены общим временем, числом сообщений/страниц и байтами. Неподдерживаемая версия не запускает другой parser или transport. Запрашиваемые имена должны реально присутствовать в tools/list.
+MCP stdio: initialize → exact negotiated protocol version → initialized → bounded tools/list →
+optional explicit read-only tools/call. Pagination и notifications ограничены общим временем, числом
+сообщений/страниц и байтами. Неподдерживаемая версия не запускает другой parser или transport.
+Запрашиваемые имена должны реально присутствовать в tools/list.
 
-`mcp_tools_listed` не равен выполненной операции. `mcp_smoke_passed` подтверждает только конкретный read-only smoke. Например, наличие rename в каталоге не доказывает корректность самого rename. Для project_bound обязателен JSON predicate с точным текущим workspace; чужой открытый проект не считается подходящим. Используются explicit endpoints/команды, не сканирование портов.
+`mcp_tools_listed` не равен выполненной операции. `mcp_smoke_passed` подтверждает только конкретный
+read-only smoke. Например, наличие rename в каталоге не доказывает корректность самого rename. Для
+project_bound обязателен JSON predicate с точным текущим workspace; чужой открытый проект не
+считается подходящим. Используются explicit endpoints/команды, не сканирование портов.
 
-В этом срезе поддержан STDIO, включая явно настроенный прокси существующего сервера. Прямые HTTP Stream/SSE и OAuth не реализованы. Для JetBrains используются команды из Copy Stdio Config и явные имена exposed tools; подключение живой IDE требует пользовательской среды.
+В этом срезе поддержан STDIO, включая явно настроенный прокси существующего сервера. Прямые HTTP
+Stream/SSE и OAuth не реализованы. Для JetBrains используются команды из Copy Stdio Config и явные
+имена exposed tools; подключение живой IDE требует пользовательской среды.
 
 ## Рабочие границы
-Проверка включается в configured gate_operations, без дополнительного model tool call на каждую capability. При bootstrap сначала подготавливается реально выбранный worktree, затем проверяется привязка к нему; при недоступности возвращается blocked context, а не успешное разрешение писать код. При verify проверка выполняется до запуска task methods. Read-only show, cancel и handoff не блокируются отсутствием IDE.
+Проверка включается в configured gate_operations, без дополнительного model tool call на каждую
+capability. При bootstrap сначала подготавливается реально выбранный worktree, затем проверяется
+привязка к нему; при недоступности возвращается blocked context, а не успешное разрешение писать
+код. При verify проверка выполняется до запуска task methods. Read-only show, cancel и handoff не
+блокируются отсутствием IDE.
 
-Generated launcher связан с неизменяемым definition. Изменённые settings не подхватываются молча существующей binding; нужен явный новый запуск. Не переключать источник сообщений в конфиге уже работающей задачи без отдельного решения: project execution contract защищён предыдущими срезами.
+Generated launcher связан с неизменяемым definition. Изменённые settings не подхватываются молча
+существующей binding; нужен явный новый запуск. Не переключать источник сообщений в конфиге уже
+работающей задачи без отдельного решения: project execution contract защищён предыдущими срезами.
 
 ### Разрешение source root для native launcher
 
@@ -100,6 +159,40 @@ Task может быть продолжена после обновления к
 installation source выполняются независимо от этого правила.
 Для Sprint явная отмена представлена операциями `cancel_tasks` и `cancel`.
 
+### Привязка проекта и перенос установки
+
+Manifest связывает существующие установки с проектом через `runtime_resources.hooks`:
+каждая связь содержит `installation_id` и абсолютный `settings_path`. Связанный
+`runtime_resources.project_setup` выбирает владельца реестра проектов и общего writer fence.
+Наличие файла с похожим именем не доказывает authority. Проверяются зарегистрированная
+установка, её settings, immutable definition и фактические native groups.
+
+Первую связь публикует `project-config` через отдельный bootstrap из явно выбранных setup
+settings. Перенос опубликованной связи выполняет
+[владелец переноса состояния](project-setup.md#активные-задачи-и-перенос-state): он получает
+полный целевой объект hook settings и вызывает существующего владельца установки.
+Тот публикует свои целевые settings и native groups с прежним installation ID, сохраняя
+чужие группы. Сам перенос не добавляет второй параллельный native handler.
+Исходные и целевые settings должны выбирать те же `definitions` и `hooks_file`:
+одновременная смена этих владельцев этим маршрутом не поддерживается. Целевой Hook Registry
+должен быть копией существующего реестра с прежней installation identity, а не новой пустой БД.
+Если уже расходятся registered и live installation ID, сначала применяется
+[согласование identity](#согласование-installation-identity-после-переименования),
+а не ручная правка Hook Registry или дописывание ещё одного handler.
+
+Допуск переноса проверяет реальное состояние bindings в обоих существующих registries
+исходного и целевого размещения, включая возобновление прерванной публикации. Переносимая
+native установка требует `DEAD`: `LIVE` или `UNCERTAIN` дают отказ. Освободить Task
+недостаточно; отсутствие `SessionEnd` и cached flag также не доказывают остановку процесса.
+Завершение native сеанса выполняется его действительным владельцем. Подделка события,
+отзыв чужого claim или удаление lock-файла не заменяют этот допуск.
+
+После публикации проверяются целевые настройки и группы; перед удалением исходного state
+authority и liveness проверяются снова. Сохранённый installation source продолжает выбирать
+исполняемый код, Task worktree остаётся только рабочей областью результата. Проверка
+кандидата в отдельной среде не является переключением установленных hooks или подтверждением
+доставки native события на этой установке.
+
 ### Terminal cleanup через native launcher
 
 Standalone `operation: cancel`, Sprint actions `cancel_tasks` и `cancel` выполняют terminal-
@@ -114,7 +207,8 @@ Launcher возвращает `disposition_required`, `cleanup_blocked`, `cleanu
 довести до clean fast-forward checkpoint той же task-ветки и продолжить новым request ID либо
 вернуть к исходному commit вне cleanup и повторить прежний пакет. Принятый checkpoint
 фиксируется в persisted cleanup history событием `worktree_checkpointed` со старым и новым
-commit и `request_id`. Основной checkout, чужие ресурсы, отдельно поставленные постоянные результаты и operator backups
+commit и `request_id`. Основной checkout, чужие ресурсы, отдельно поставленные постоянные результаты
+и operator backups
 не очищаются. Файлы внутри Task-root, включая зарегистрированные артефакты, подчиняются
 [договору поставки и удаления](../workflows/terminal-materials.md#договор-и-граница-хранения).
 Resource cleanup не заменяет этот договор; незавершённый consumer удерживает материалы.
@@ -127,34 +221,69 @@ commit disposition приведены в
 [пакетном workflow](../workflows/batch-work.md#интеграция-принятого-результата).
 
 ## Данные
-Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном долговременном state root, не в удаляемом turn runtime.
+Task SQLite остаётся user_version=11. Новый отдельный operational hook registry имеет
+user_version=1: installations, operations, bindings, hook_events. Он не содержит Task/Sprint
+lifecycle и не экспортируется как рабочая история задачи. Сообщения сохраняет существующий
+InteractionStore. Определения находятся в config root, bindings/launcher/receipts — в настроенном
+долговременном state root, не в удаляемом turn runtime.
 
-Source JSON/полные протокольные ответы не отправляются в model context целиком. CLI возвращает ограниченный ответ с адресом подробностей при необходимости. Нативный hook возвращает только компактную binding/state информацию. Конкретные имена результатов probes задаются probe_files.
+Source JSON/полные протокольные ответы не отправляются в model context целиком. CLI возвращает
+ограниченный ответ с адресом подробностей при необходимости. Нативный hook возвращает только
+компактную binding/state информацию. Конкретные имена результатов probes задаются probe_files.
 
 ## Проверка на реальном хосте
-1. Выбрать установленный interpreter и доступный путь AI poise; определить project и отдельный message_source типа runtime_event.
-2. Установить пакет hooks инструментом и выполнить проверки. Не редактировать сгенерированные definitions/hooks вручную.
+1. Выбрать установленный interpreter и доступный путь AI poise; определить project и отдельный
+   message_source типа runtime_event.
+2. Установить пакет hooks инструментом и выполнить проверки. Не редактировать сгенерированные
+   definitions/hooks вручную.
 3. В Codex открыть `/hooks`, вычитать и разрешить конкретные новые handlers. Не обходить trust.
-4. Начать новую сессию из AI poise project; проверить появление session-scoped launcher и один UserPromptSubmit на видимый ход.
-5. Для IDE явно включить MCP, взять Stdio Config, указать требуемые tools и read-only smoke для нужного worktree; проверить available только после настоящего ответа.
+4. Начать новую сессию из AI poise project; проверить появление session-scoped launcher и один
+   UserPromptSubmit на видимый ход.
+5. Для IDE явно включить MCP, взять Stdio Config, указать требуемые tools и read-only smoke для
+   нужного worktree; проверить available только после настоящего ответа.
 
-Без доступного Codex и endpoint IDE эти пункты остаются NOT_RUN. Локальный native JSON replay и MCP fixture этого не заменяют.
+Без доступного Codex и endpoint IDE эти пункты остаются NOT_RUN. Локальный native JSON replay и MCP
+fixture этого не заменяют.
 
 ## Первоначальная настройка без ручного JSON-файла
-Полный явный `settings` и выбранный `definition` передаются как значения одного stdin-пакета `runtime-setup`. Агент не создаёт промежуточный request-файл. Шаблоны в `config/hook-templates` — исходные образцы для составления пакета; каждое значение, включая interpreter/source/project paths, выбирается явно. Содержимое базового project manifest уже должно быть настроено как в прочих runtime interfaces.
+Полный явный `settings` и выбранный `definition` передаются как значения одного stdin-пакета
+`runtime-setup`. Агент не создаёт промежуточный request-файл. Шаблоны в `config/hook-templates` —
+исходные образцы для составления пакета; каждое значение, включая interpreter/source/project paths,
+выбирается явно. Содержимое базового project manifest уже должно быть настроено как в прочих runtime
+interfaces.
 
-Невалидный settings/definition отклоняется до записи новых файлов. Если после создания settings произошёл внешний сбой установки, повтор того же пакета использует этот settings и продолжает сохранённую установку; успех всех файлов как одной SQL-транзакции не обещается. Изменение рабочего definition выполняется через `runtime-config`, не через ручную правку `.codex/hooks.json`.
+Невалидный settings/definition отклоняется до записи новых файлов. Если после создания settings
+произошёл внешний сбой установки, повтор того же пакета использует этот settings и продолжает
+сохранённую установку; успех всех файлов как одной SQL-транзакции не обещается. Изменение рабочего
+definition выполняется через `runtime-config`, не через ручную правку `.codex/hooks.json`.
 
-Taskless read-only bootstrap не блокируется отсутствующей IDE: возвращает сводку и честные результаты probes. Для подготовки активной задачи, verify и создания артефактов применяются явно заданные gates. Чтение, handoff и отмена не заперты за этими gates.
+Taskless read-only bootstrap не блокируется отсутствующей IDE: возвращает сводку и честные
+результаты probes. Для подготовки активной задачи, verify и создания артефактов применяются явно
+заданные gates. Чтение, handoff и отмена не заперты за этими gates.
 
 ## Прямая проверка на WSL
-1. В своём WSL убедиться, что выбранный CPython 3.13 и Git запускаются. Подготовить project manifest с явным `batch.message_source` текущего hook-источника (`mode=runtime_event`). Не включать одновременно JSONL importer для тех же сообщений.
-2. В одном пакете `runtime-setup` указать свои фактические пути и definition. Для JetBrains взять **реальную** команду из Copy Stdio Config IDE, сохранить точные argv/environment. В `required_tools` указывать только инструментальные имена реально используемого IDE; для проверки привязки задавать read-only call и JSON predicate с `${workspace}`. Не вставлять инструменты из тестового mcp_fixture.
-3. Запустить Codex из AI poise root и через его `/hooks` проверить и разрешить собственные команды. Инструмент не меняет trust/permissions и не устанавливает разрешение вместо пользователя.
-4. В новом основном разговоре проверить получение launcher, запустить из него пакет bootstrap и один этап. Действующее поручение исполнителю использовать для последовательных `executor`-этапов без отдельных команд «дальше»; переход к `reviewer`, acceptance, publication и integration разрешать отдельной явной инструкцией. Считать фактические UserPromptSubmit, а не количество WorkTools calls.
-5. После этого сохранить receipt реального probe и результат короткого маршрута. До такого прогона поддержка провайдера имеет статус `not_observed`, даже когда локальный протокольный стенд прошёл.
+1. В своём WSL убедиться, что выбранный CPython 3.13 и Git запускаются. Подготовить project manifest
+   с явным `batch.message_source` текущего hook-источника (`mode=runtime_event`). Не включать
+   одновременно JSONL importer для тех же сообщений.
+2. В одном пакете `runtime-setup` указать свои фактические пути и definition. Для JetBrains взять
+   **реальную** команду из Copy Stdio Config IDE, сохранить точные argv/environment. В
+   `required_tools` указывать только инструментальные имена реально используемого IDE; для проверки
+   привязки задавать read-only call и JSON predicate с `${workspace}`. Не вставлять инструменты из
+   тестового mcp_fixture.
+3. Запустить Codex из AI poise root и через его `/hooks` проверить и разрешить собственные команды.
+   Инструмент не меняет trust/permissions и не устанавливает разрешение вместо пользователя.
+4. В новом основном разговоре проверить получение launcher, запустить из него пакет bootstrap и один
+   этап. Действующее поручение исполнителю использовать для последовательных `executor`-этапов без
+   отдельных команд «дальше»; переход к `reviewer`, acceptance, publication и integration разрешать
+   отдельной явной инструкцией. Считать фактические UserPromptSubmit, а не количество WorkTools
+   calls.
+5. После этого сохранить receipt реального probe и результат короткого маршрута. До такого прогона
+   поддержка провайдера имеет статус `not_observed`, даже когда локальный протокольный стенд прошёл.
 
-Установка выбранных hooks не перехватывает все native инструменты Codex и не создаёт hooks в ChatGPT. Read-only smoke доказывает исполнение только конкретной команды/операции. Он не доказывает correctness rename/format без их отдельных испытаний. Live JetBrains endpoint, OAuth/HTTP/SSE и Gmail находятся вне текущего среза.
+Установка выбранных hooks не перехватывает все native инструменты Codex и не создаёт hooks в
+ChatGPT. Read-only smoke доказывает исполнение только конкретной команды/операции. Он не доказывает
+correctness rename/format без их отдельных испытаний. Live JetBrains endpoint, OAuth/HTTP/SSE и
+Gmail находятся вне текущего среза.
 
 
 ## Предварительная проверка настроенной среды
@@ -276,4 +405,5 @@ SessionStart и launcher, затем публичные handoff/bootstrap по
 того же OS-пользователя. Не выдумывать ID и не редактировать окружение ради обхода проверки:
 сохранить WIP через launcher настоящего владельца и продолжить в отдельной native session.
 При отсутствии такой сессии delegated Task mutation не выполняется; обычная работа текущего
-владельца остаётся доступной. Описание native payload: [Codex hooks](https://learn.chatgpt.com/docs/hooks).
+владельца остаётся доступной. Описание native payload: [Codex
+hooks](https://learn.chatgpt.com/docs/hooks).

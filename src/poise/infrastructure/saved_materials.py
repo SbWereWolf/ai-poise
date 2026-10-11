@@ -24,7 +24,8 @@ def saved_receipts(db, task_id):
     return receipts
 
 
-def bind_receipt_materials(db, task_id, receipt, roots, owners, actor):
+def material_specs(receipt):
+    """The binding owner selects exactly the receipt's complete material set."""
     specs = receipt_materials(receipt)
     manifest = specs.get('acceptance_manifest')
     if manifest is not None:
@@ -32,6 +33,11 @@ def bind_receipt_materials(db, task_id, receipt, roots, owners, actor):
             raise PoiseError('Acceptance manifest digest changed before material binding')
         for item in json.loads(Path(manifest['path']).read_bytes())['inputs']:
             specs['input/' + item['id']] = {'path': item['path'], 'digest': item['digest']}
+    return specs
+
+
+def bind_receipt_materials(db, task_id, receipt, roots, owners, actor):
+    specs = material_specs(receipt)
     records = inspect_paths([spec['path'] for spec in specs.values()], roots, owners)
     by_path = {record['path']: record for record in records}
     bindings = []

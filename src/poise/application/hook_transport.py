@@ -2,7 +2,7 @@
 from ..modules.hook_transport.domain import HookDefinition
 from ..modules.hook_transport.ports import HookRepository
 from ..modules.artifact_factory.domain import exact
-from ..modules.capabilities.domain import nonempty
+from ..modules.foundation.validation import nonempty
 from ..modules.foundation.errors import PoiseError
 
 

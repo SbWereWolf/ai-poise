@@ -290,6 +290,13 @@ class FileProjectConfigUpdate:
                     if saved.get("request_digest") != request_digest:
                         raise VersionConflict("Different request uses the same request receipt")
                     return {**saved["result"], "replayed": True}
+                # A completed receipt replays without re-admitting retired inputs.
+                # New and pending effects require complete settings validation
+                # before the publication intent or any relocated-store lease.
+                if request['state_relocation'] is not None:
+                    from .hook_transport import HookSettings
+                    for target in request['state_relocation']['hook_destinations']:
+                        HookSettings.proposed(target['settings_path'], target['settings'])
                 replayed = False
                 if pending_path.is_file():
                     pending = read_document(pending_path)

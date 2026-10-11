@@ -2,6 +2,7 @@
 from ..modules.projects.ports import ProjectConfigUpdatePort
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import DomainError
+from ..modules.foundation.validation import nonempty
 
 
 def validate_relocation(move):
@@ -10,8 +11,7 @@ def validate_relocation(move):
     if move['schema'] != 'project-state-relocation-1':
         raise DomainError('Unsupported state_relocation.schema')
     for key in ('expected_source', 'destination', 'source_disposition'):
-        if not isinstance(move[key], str) or not move[key].strip():
-            raise DomainError(f'state_relocation.{key}: nonempty string required')
+        nonempty(move[key], f'state_relocation.{key}')
     if move['source_disposition'] not in ('retain', 'delete_after_publish'):
         raise DomainError('state_relocation.source_disposition is unsupported')
     if not isinstance(move['hook_destinations'], list):
@@ -20,8 +20,7 @@ def validate_relocation(move):
         label = f'state_relocation.hook_destinations[{index}]'
         exact_keys(item, {'installation_id', 'settings_path', 'settings'}, label)
         for key in ('installation_id', 'settings_path'):
-            if not isinstance(item[key], str) or not item[key].strip():
-                raise DomainError(f'{label}.{key}: nonempty string required')
+            nonempty(item[key], f'{label}.{key}')
         if not isinstance(item['settings'], dict):
             raise DomainError(f'{label}.settings: object required')
 
@@ -31,8 +30,7 @@ def validate_request(request, max_changes):
         exact_keys(request, {'schema', 'request_id', 'config_path', 'expected_revision',
                              'runtime_resources', 'receipt_path'}, 'runtime resources bootstrap')
         for key in ('request_id', 'config_path', 'expected_revision', 'receipt_path'):
-            if not isinstance(request[key], str) or not request[key].strip():
-                raise DomainError(f'Explicit {key} required')
+            nonempty(request[key], key)
         from ..modules.projects.resources import validate_resources
         validate_resources(request['runtime_resources'])
         return
@@ -44,8 +42,7 @@ def validate_request(request, max_changes):
     if request["schema"] not in ("project-config-update-1", "project-worktree-root-1"):
         raise DomainError("Unsupported project config update schema; no migration")
     for key in ("request_id", "config_path", "expected_revision", "receipt_path"):
-        if not isinstance(request[key], str) or not request[key].strip():
-            raise DomainError(f"Explicit {key} required")
+        nonempty(request[key], key)
     for key in ("manifest_edits", "process_updates"):
         if not isinstance(request[key], list) or len(request[key]) > max_changes:
             raise DomainError(f"{key}: explicit bounded list required")

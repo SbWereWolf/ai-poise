@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import shutil
 
-from ..common import PoiseError, configured_root, descendant, digest, file_digest
+from ..common import PoiseError, configured_root, configured_storage_path, descendant, digest, file_digest
 from ..modules.artifact_factory.domain import ArtifactRecoveryIntent
 from .diagnostic_io import readonly_database
 from .goal_config import read_document
@@ -105,10 +105,17 @@ class FileProjectStateRelocation:
             raise PoiseError('No valid intent-owned hook installation remains during relocation')
 
     def _normalize_database(self, path, before, actual):
+        if path == self._telemetry_database(self.destination):
+            from .sqlite.accounting import SqliteAccounting
+            task_seal=self.seal[self._database(self.source).relative_to(self.source).as_posix()]['database']
+            sequence=max((row['seq'] for row in task_seal['tables']['journal']),default=0)
+            with readonly_database(self._database(self.destination)) as db:
+                sessions=SqliteArtifactRepository(db).recovery_sessions(sequence)
+            SqliteAccounting.normalize_relocation(before,actual,self.live['project'],sessions)
         if path == self._database(self.destination):
-            sequence = max((row['seq'] for row in before['tables']['journal']), default=0)
             with readonly_database(path) as db:
-                actual['tables']['artifacts'] = SqliteArtifactRepository(db).relocation_records(sequence)
+                SqliteArtifactRepository(db).normalize_relocation(
+                    before, actual, path, self.request['request_id'])
         from .hook_transport import HookSettings, FileHookRepository, _read_definition
         for hook in self.hooks:
             target = HookSettings.proposed(hook['target']['settings_path'], hook['target']['settings'])
@@ -130,10 +137,27 @@ class FileProjectStateRelocation:
         if self.source.exists():
             validate_source(self.source, self.seal)
         if self.destination.exists():
-            validate_destination(self.destination, self.seal, self._normalize_database)
+            validate_destination(self.destination, self.seal,
+                                 self._owned_databases(self.destination, target=True), self._normalize_database)
+
+    def _owned_databases(self, root, *, target):
+        from .hook_transport import HookSettings
+        result = {self._database(root)}
+        telemetry=self._telemetry_database(root)
+        if telemetry.is_relative_to(root):
+            result.add(telemetry)
+        for hook in self.hooks:
+            settings = (HookSettings.proposed(hook['target']['settings_path'], hook['target']['settings'])
+                        if target else HookSettings.proposed(hook['source_path'], hook['source_settings']))
+            if settings.database.is_relative_to(root):
+                result.add(settings.database)
+        return result
 
     def _database(self, root):
         return descendant(root, self.live['paths']['database'])
+
+    def _telemetry_database(self, root):
+        return configured_storage_path(root,self.live['accounting']['storage']['database'])
 
     def _admit_database(self, root):
         database = self._database(root)
@@ -190,7 +214,7 @@ class FileProjectStateRelocation:
                                    'record': record, 'target': target})
             for hook in self.hooks:
                 self._admit_hook(hook)
-            self.seal = file_snapshot(self.source)
+            self.seal = file_snapshot(self.source, self._owned_databases(self.source, target=False))
             self._save('admitted', tasks=self.tasks, hooks=self.hooks, seal=self.seal)
         else:
             self.hooks = pending['hooks']

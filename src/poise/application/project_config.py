@@ -4,6 +4,28 @@ from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import DomainError
 
 
+def validate_relocation(move):
+    exact_keys(move, {'schema', 'expected_source', 'destination', 'source_disposition',
+                      'hook_destinations'}, 'state_relocation')
+    if move['schema'] != 'project-state-relocation-1':
+        raise DomainError('Unsupported state_relocation.schema')
+    for key in ('expected_source', 'destination', 'source_disposition'):
+        if not isinstance(move[key], str) or not move[key].strip():
+            raise DomainError(f'state_relocation.{key}: nonempty string required')
+    if move['source_disposition'] not in ('retain', 'delete_after_publish'):
+        raise DomainError('state_relocation.source_disposition is unsupported')
+    if not isinstance(move['hook_destinations'], list):
+        raise DomainError('state_relocation.hook_destinations: list required')
+    for index, item in enumerate(move['hook_destinations']):
+        label = f'state_relocation.hook_destinations[{index}]'
+        exact_keys(item, {'installation_id', 'settings_path', 'settings'}, label)
+        for key in ('installation_id', 'settings_path'):
+            if not isinstance(item[key], str) or not item[key].strip():
+                raise DomainError(f'{label}.{key}: nonempty string required')
+        if not isinstance(item['settings'], dict):
+            raise DomainError(f'{label}.settings: object required')
+
+
 def validate_request(request, max_changes):
     if isinstance(request, dict) and request.get('schema') == 'project-runtime-resources-bootstrap-1':
         exact_keys(request, {'schema', 'request_id', 'config_path', 'expected_revision',
@@ -29,6 +51,8 @@ def validate_request(request, max_changes):
             raise DomainError(f"{key}: explicit bounded list required")
     if request["state_relocation"] is not None and not isinstance(request["state_relocation"], dict):
         raise DomainError("state_relocation must be an object or null")
+    if request['state_relocation'] is not None:
+        validate_relocation(request['state_relocation'])
     if type(request["probe_repository"]) is not bool:
         raise DomainError("Explicit probe_repository required")
     if workspace:

@@ -169,6 +169,29 @@ class SqliteArtifactRepository:
                 raise PoiseError('Shared artifact has an unreleased Task claim')
         return {'records': records, 'sprint_id': sprint, 'owners': owners}
 
+    def relocation_records(self, after_sequence):
+        """Undo only recorded, identity-preserving rebinds for admission comparison."""
+        records = {row['id']: dict(row) for row in self.db.execute('SELECT * FROM artifacts')}
+        for row in self.db.execute(
+                "SELECT data FROM journal WHERE seq>? AND event='artifacts.recovered' ORDER BY seq DESC",
+                (after_sequence,)):
+            event = json.loads(row['data'])
+            prior = event['prior_records']
+            published = event['result']['artifacts']
+            if len(prior) != len(published):
+                raise PoiseError('Artifact recovery history has inconsistent records')
+            for old, new in zip(prior, published, strict=True):
+                # Public recovery also carries transport source/relative paths;
+                # only the existing registry columns describe stored identity.
+                columns = ('id', 'owner', 'scope', 'path', 'digest')
+                old = {key: old[key] for key in columns}
+                new = {key: new[key] for key in columns}
+                if (any(old[key] != new[key] for key in ('id', 'owner', 'scope', 'digest'))
+                        or records.get(new['id']) != new):
+                    raise PoiseError('Artifact recovery history does not prove current placement')
+                records[old['id']] = old
+        return list(records.values())
+
     def rebind(self, intent, digest, records, publications, actor):
         if len(records) != len(publications):
             raise PoiseError('Artifact recovery publication set changed')

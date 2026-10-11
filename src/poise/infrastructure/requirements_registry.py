@@ -10,8 +10,14 @@ import sqlite3
 
 from .sqlite.transaction import write_transaction
 from .requirements_migrations import schema_2, validate_schema
-from ..modules.foundation.errors import DomainError, PoiseError, VersionConflict
+from ..modules.foundation.errors import (
+    DomainError, LockUnavailable, PoiseError, SQLiteBoundaryUnavailable, VersionConflict,
+)
 from ..modules.requirements_registry.domain import RequirementsRegistry
+from ..modules.requirements_registry.crud import (
+    RequirementsCrudError, require, validate_command, validate_query_batch,
+)
+from .requirements_crud import execute_operation, query_page
 
 
 def _encoded(value):
@@ -127,6 +133,72 @@ class RequirementsStore:
             return json.loads(source.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
             raise DomainError(f"Requirements bootstrap cannot be read: {exc}") from exc
+
+    def query(self, queries, max_items):
+        queries = validate_query_batch(queries, max_items)
+        context = (None, None)
+        try:
+            with self._transaction() as connection:
+                revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
+                registry = None
+                results = []
+                for index, item in enumerate(queries):
+                    if item["kind"] in ("entities", "relations"):
+                        context = (index, item["id"])
+                        value = query_page(connection, item, revision, max_items, context)
+                        context = (None, None)
+                    else:
+                        if registry is None:
+                            registry = self._registry(connection)
+                        # Only expected evaluator failures belong to this query item.
+                        # Registry restoration/storage failures are deliberately outside.
+                        try:
+                            value = registry.query(item, max_items)
+                        except RequirementsCrudError:
+                            raise
+                        except DomainError as exc:
+                            raise RequirementsCrudError("invalid_item", (index, item["id"])) from exc
+                    results.append({"id": item["id"], "value": value})
+            return {"revision": revision, "results": results}
+        except (LockUnavailable, SQLiteBoundaryUnavailable, sqlite3.Error, OSError) as exc:
+            raise RequirementsCrudError("store_error", context) from exc
+
+    def command(self, request, max_items):
+        request = validate_command(request, max_items)
+        digest = "command:" + hashlib.sha256(_encoded(request).encode("utf-8")).hexdigest()
+        context = (None, None)
+        try:
+            with self._transaction() as connection:
+                previous = connection.execute(
+                    "SELECT digest,response FROM requirement_requests WHERE request_id=?",
+                    (request["request_id"],),
+                ).fetchone()
+                if previous is not None:
+                    require(previous["digest"] == digest, "request_conflict")
+                    response = {**json.loads(previous["response"]), "replayed": True}
+                else:
+                    revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
+                    require(revision == request["expected_revision"], "revision_conflict")
+                    results = []
+                    for index, item in enumerate(request["operations"]):
+                        context = (index, item["id"])
+                        try:
+                            count = execute_operation(connection, item, context)
+                        except sqlite3.IntegrityError as exc:
+                            raise RequirementsCrudError("integrity_conflict", context) from exc
+                        results.append({"id": item["id"], "affected_rows": count})
+                        context = (None, None)
+                    revision += 1
+                    response = {"revision": revision, "replayed": False, "results": results}
+                    connection.execute("UPDATE requirements_meta SET revision=?", (revision,))
+                    connection.execute(
+                        "INSERT INTO requirement_requests(request_id,digest,response) VALUES(?,?,?)",
+                        (request["request_id"], digest, _encoded(response)),
+                    )
+            # Exit may fail after confirmed COMMIT; retain the receipt for exact replay.
+            return deepcopy(response)
+        except (LockUnavailable, SQLiteBoundaryUnavailable, sqlite3.Error, OSError) as exc:
+            raise RequirementsCrudError("store_error", context) from exc
 
     def apply(self, request, max_items):
         if not isinstance(request, dict) or set(request) != {

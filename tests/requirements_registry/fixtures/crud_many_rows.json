@@ -1,0 +1,104 @@
+{
+  "extra_rows": [
+    [
+      "E4",
+      "D2",
+      "Parcel",
+      "Parcel",
+      "Parcel aggregate."
+    ],
+    [
+      "E5",
+      "D2",
+      "Package",
+      "Package",
+      "Package aggregate."
+    ]
+  ],
+  "request": {
+    "operation": "command",
+    "input": {
+      "request_id": "many-rows",
+      "expected_revision": 7,
+      "operations": [
+        {
+          "id": "u",
+          "kind": "update",
+          "table": "domain_entities",
+          "filter": {},
+          "changes": {
+            "definition": "Changed."
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": "applied",
+    "revision": 8,
+    "replayed": false,
+    "results": [
+      {
+        "id": "u",
+        "affected_rows": 5
+      }
+    ]
+  },
+  "changes": [
+    {
+      "table": "domain_entities",
+      "kind": "update",
+      "row": [
+        "E1",
+        "D1",
+        "Order",
+        "Order",
+        "Changed."
+      ]
+    },
+    {
+      "table": "domain_entities",
+      "kind": "update",
+      "row": [
+        "E2",
+        "D1",
+        "Invoice",
+        "Invoice",
+        "Changed."
+      ]
+    },
+    {
+      "table": "domain_entities",
+      "kind": "update",
+      "row": [
+        "E3",
+        "D2",
+        "Item",
+        "Item",
+        "Changed."
+      ]
+    },
+    {
+      "table": "domain_entities",
+      "kind": "update",
+      "row": [
+        "E4",
+        "D2",
+        "Parcel",
+        "Parcel",
+        "Changed."
+      ]
+    },
+    {
+      "table": "domain_entities",
+      "kind": "update",
+      "row": [
+        "E5",
+        "D2",
+        "Package",
+        "Package",
+        "Changed."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "status": "rejected",
+  "reason": "Requirements revision changed.",
+  "error": {
+    "code": "revision_conflict",
+    "item_index": null,
+    "item_id": null
+  }
+}

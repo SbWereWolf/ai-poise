@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..modules.foundation.errors import DomainError
+from ..modules.requirements_registry.crud import is_crud_query_batch
 
 
 class RequirementsCommands:
@@ -15,7 +16,12 @@ class RequirementsCommands:
     def apply(self, request):
         return self.store.apply(request, self.max_items)
 
+    def command(self, request):
+        return self.store.command(request, self.max_items)
+
     def query(self, queries):
+        if is_crud_query_batch(queries):
+            return self.store.query(queries, self.max_items)
         if not isinstance(queries, list) or not queries or len(queries) > self.max_items:
             raise DomainError("Requirements queries must be bounded and nonempty")
         identifiers = [query.get("id") for query in queries if isinstance(query, dict)]
@@ -26,28 +32,7 @@ class RequirementsCommands:
         revision, registry = self.store.read()
         results = []
         for query in queries:
-            kind = query.get("kind")
-            if kind == "coverage":
-                if set(query) not in ({"id", "kind"}, {"id", "kind", "mode"}):
-                    raise DomainError("coverage query has unknown fields")
-                value = registry.coverage(query.get("mode"))
-            elif kind in ("gaps", "registry"):
-                if set(query) != {"id", "kind"}:
-                    raise DomainError(f"{kind} query has unknown fields")
-                value = registry.gaps() if kind == "gaps" else registry.to_dict()
-            elif kind == "plan_task":
-                if set(query) != {"id", "kind", "task_requirements"}:
-                    raise DomainError("plan_task query requires task_requirements")
-                requirements = query["task_requirements"]
-                if not isinstance(requirements, list) or len(requirements) > self.max_items:
-                    raise DomainError("Task Requirements plan exceeds max_items")
-                value = registry.plan_task(requirements)
-            elif kind == "chain":
-                if set(query) != {"id", "kind", "requirement_id"}:
-                    raise DomainError("chain query requires requirement_id")
-                value = registry.chain(query["requirement_id"])
-            else:
-                raise DomainError(f"unknown Requirements query: {kind}")
+            value = registry.query(query, self.max_items)
             results.append({"id": query["id"], "value": value})
         return {"revision": revision, "results": results}
 

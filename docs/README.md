@@ -1,5 +1,27 @@
 # Документация AI poise
 
+## Файлы раздела
+
+- [route-count-limit-migration.md](route-count-limit-migration.md)
+- [task-db-backups.md](task-db-backups.md)
+- [task-process-snapshot-migration.md](task-process-snapshot-migration.md)
+- [task-status-retirement.md](task-status-retirement.md)
+
+## Оглавления разделов
+
+- [architecture-design](architecture-design/README.md)
+- [architecture](architecture/README.md)
+- [configuration](configuration/README.md)
+- [deployment](deployment/README.md)
+- [governance](governance/README.md)
+- [migrations](migrations/README.md)
+- [operations](operations/README.md)
+- [operator](operator/README.md)
+- [spec-data](spec-data/README.md)
+- [workflows](workflows/README.md)
+
+- [Пакетный Requirements CRUD](workflows/requirements-registry.md#пакетный-crud) — сущности, связи,
+  страницы, записи и исполняемый пример.
 Этот каталог описывает текущее поведение AI poise. Источником требований служит раздел
 [«Управление требованиями»](governance/requirements.md), а фактические возможности нужно
 сверять со [статусом реализации](architecture/implementation-status.md) и исполняемыми
@@ -56,7 +78,8 @@
 
 ## Эксплуатация
 
-- [Известные баги и ограничения](operations/known-bugs.md) — актуальные неисправленные замечания; закрытые удаляются после проверки.
+- [Известные баги и ограничения](operations/known-bugs.md) — актуальные неисправленные замечания;
+  закрытые удаляются после проверки.
 - [Учёт ресурсов](operations/accounting.md)
 - [Метрика пользовательских сообщений](operations/user-message-metrics.md)
 
@@ -68,26 +91,46 @@
 
 - `docs/architecture-design/MANIFEST.json` → `docs/architecture/design/MANIFEST.json`
 - `docs/architecture-design/README.md` → `docs/architecture/design/README.md`
-- `docs/architecture-design/architecture_2026-09-06T16-04-53+05-00.md` → `docs/architecture/design/architecture_2026-09-06T16-04-53+05-00.md`
-- `docs/architecture-design/data/architecture-model.json` → `docs/architecture/design/data/architecture-model.json`
-- `docs/architecture-design/data/stage-library-map.json` → `docs/architecture/design/data/stage-library-map.json`
-- `docs/architecture-design/data/storage-catalog.json` → `docs/architecture/design/data/storage-catalog.json`
-- `docs/architecture-design/docs/01-domain-model.md` → `docs/architecture/design/docs/01-domain-model.md`
-- `docs/architecture-design/docs/02-libraries-and-api.md` → `docs/architecture/design/docs/02-libraries-and-api.md`
-- `docs/architecture-design/docs/03-data-storage.md` → `docs/architecture/design/docs/03-data-storage.md`
-- `docs/architecture-design/docs/04-runner-and-transactions.md` → `docs/architecture/design/docs/04-runner-and-transactions.md`
-- `docs/architecture-design/docs/05-realization-and-checks.md` → `docs/architecture/design/docs/05-realization-and-checks.md`
-- `docs/architecture-design/docs/06-ddd-invariant.md` → `docs/architecture/design/docs/06-ddd-invariant.md`
-- `docs/architecture-design/evidence/design-check.json` → `docs/architecture/design/evidence/design-check.json`
-- `docs/architecture-design/evidence/design-check.md` → `docs/architecture/design/evidence/design-check.md`
-- `docs/architecture-design/evidence/input-hashes-after.json` → `docs/architecture/design/evidence/input-hashes-after.json`
-- `docs/architecture-design/evidence/input-hashes-before.json` → `docs/architecture/design/evidence/input-hashes-before.json`
-- `docs/architecture-design/evidence/prototype-symbols.json` → `docs/architecture/design/evidence/prototype-symbols.json`
-- `docs/architecture-design/reference/feedback-map.json` → `docs/architecture/design/reference/feedback-map.json`
-- `docs/architecture-design/reference/path-only-artifact-decision.md` → `docs/architecture/design/reference/path-only-artifact-decision.md`
-- `docs/architecture-design/reference/previous-prototype-inspection.md` → `docs/architecture/design/reference/previous-prototype-inspection.md`
-- `docs/architecture-design/reference/runner-and-handler-contract.md` → `docs/architecture/design/reference/runner-and-handler-contract.md`
-- `docs/architecture-design/reference/stage-handler-map.json` → `docs/architecture/design/reference/stage-handler-map.json`
+- `docs/architecture-design/architecture_2026-09-06T16-04-53+05-00.md` →
+  `docs/architecture/design/architecture_2026-09-06T16-04-53+05-00.md`
+- `docs/architecture-design/data/architecture-model.json` →
+  `docs/architecture/design/data/architecture-model.json`
+- `docs/architecture-design/data/stage-library-map.json` →
+  `docs/architecture/design/data/stage-library-map.json`
+- `docs/architecture-design/data/storage-catalog.json` →
+  `docs/architecture/design/data/storage-catalog.json`
+- `docs/architecture-design/docs/01-domain-model.md` →
+  `docs/architecture/design/docs/01-domain-model.md`
+- `docs/architecture-design/docs/02-libraries-and-api.md` →
+  `docs/architecture/design/docs/02-libraries-and-api.md`
+- `docs/architecture-design/docs/03-data-storage.md` →
+  `docs/architecture/design/docs/03-data-storage.md`
+- `docs/architecture-design/docs/04-runner-and-transactions.md` →
+  `docs/architecture/design/docs/04-runner-and-transactions.md`
+- `docs/architecture-design/docs/05-realization-and-checks.md` →
+  `docs/architecture/design/docs/05-realization-and-checks.md`
+- `docs/architecture-design/docs/06-ddd-invariant.md` →
+  `docs/architecture/design/docs/06-ddd-invariant.md`
+- `docs/architecture-design/evidence/design-check.json` →
+  `docs/architecture/design/evidence/design-check.json`
+- `docs/architecture-design/evidence/design-check.md` →
+  `docs/architecture/design/evidence/design-check.md`
+- `docs/architecture-design/evidence/input-hashes-after.json` →
+  `docs/architecture/design/evidence/input-hashes-after.json`
+- `docs/architecture-design/evidence/input-hashes-before.json` →
+  `docs/architecture/design/evidence/input-hashes-before.json`
+- `docs/architecture-design/evidence/prototype-symbols.json` →
+  `docs/architecture/design/evidence/prototype-symbols.json`
+- `docs/architecture-design/reference/feedback-map.json` →
+  `docs/architecture/design/reference/feedback-map.json`
+- `docs/architecture-design/reference/path-only-artifact-decision.md` →
+  `docs/architecture/design/reference/path-only-artifact-decision.md`
+- `docs/architecture-design/reference/previous-prototype-inspection.md` →
+  `docs/architecture/design/reference/previous-prototype-inspection.md`
+- `docs/architecture-design/reference/runner-and-handler-contract.md` →
+  `docs/architecture/design/reference/runner-and-handler-contract.md`
+- `docs/architecture-design/reference/stage-handler-map.json` →
+  `docs/architecture/design/reference/stage-handler-map.json`
 - `docs/architecture-design/sources.md` → `docs/architecture/design/sources.md`
 - `docs/architecture-design/stage-library-map.md` → `docs/architecture/design/stage-library-map.md`
 - `docs/spec-data/README.md` → `docs/governance/spec-data/README.md`

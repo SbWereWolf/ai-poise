@@ -1,0 +1,2773 @@
+[
+  {
+    "id": "INPUT-operations-object",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": {}
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-operations-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": null
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-operations-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": "items"
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-operations-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": 1
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-item-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              []
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-item-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              []
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-item-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              null
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-item-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              null
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-item-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              1
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-item-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              1
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-item-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              "item"
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-item-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              "item"
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-nonlist",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": {
+              "kind": "entities"
+            }
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Requirements queries must be bounded and nonempty"
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-envelope-input-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": []
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Requirements packet input must be an object"
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-kind-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "bad",
+                "kind": [],
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 1,
+            "item_id": "bad"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-kind-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": [],
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-table-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": [],
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-kind-object",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "bad",
+                "kind": {},
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 1,
+            "item_id": "bad"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-kind-object",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": {},
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-table-object",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": {},
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-kind-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "bad",
+                "kind": null,
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 1,
+            "item_id": "bad"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-kind-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": null,
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-table-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": null,
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-kind-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "bad",
+                "kind": 1,
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 1,
+            "item_id": "bad"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-kind-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": 1,
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-table-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": 1,
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-query-kind-unknown",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "bad",
+                "kind": "unknown",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 1,
+            "item_id": "bad"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-command-kind-unknown",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "unknown",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-table-unknown",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "unknown",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-missing-page",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {}
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-null-page",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": null
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-list-page",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": []
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-number-page",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": 1
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-missing-after",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-filter-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": [],
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-filter-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": null,
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-filter-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": "id",
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-filter-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": 1,
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-filter-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-in-nonlist",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "in": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-eq-object",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": {
+                      "value": "E1"
+                    }
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": []
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-changes-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": []
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": null
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-changes-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": null
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": 1
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-changes-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": 1
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements"
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-changes-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-value-level-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": [],
+                  "status": "current",
+                  "text": "Valid."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-value-status-object",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": "system",
+                  "status": {},
+                  "text": "Valid."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-value-text-number",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": "system",
+                  "status": "current",
+                  "text": 1
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-row-value-text-bool",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": "system",
+                  "status": "current",
+                  "text": true
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-a-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": [],
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-a-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": null,
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-a-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": "endpoint",
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-a-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-b-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "b": [],
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-b-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "b": null,
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-b-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "b": "endpoint",
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-b-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-a-filter-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system"
+                },
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-a-filter-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": []
+                },
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-cursor-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": []
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-cursor-string",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": "cursor"
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-cursor-empty",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": {}
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-cursor-selection-list",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": {
+                    "revision": 7,
+                    "selection": [],
+                    "key": [
+                      "E1"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-cursor-key-null",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 4,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "entities",
+                      "table": "domain_entities",
+                      "filter": {}
+                    },
+                    "key": null
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-exact-M-queries",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "z",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "a",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "m",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "b",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "read_only",
+          "revision": 7,
+          "results": [
+            {
+              "id": "z",
+              "value": {
+                "rows": [
+                  {
+                    "id": "E1",
+                    "domain_id": "D1",
+                    "business_name": "Order",
+                    "code_name": "Order",
+                    "definition": "Order aggregate."
+                  }
+                ],
+                "next": null
+              }
+            },
+            {
+              "id": "a",
+              "value": {
+                "rows": [
+                  {
+                    "id": "E1",
+                    "domain_id": "D1",
+                    "business_name": "Order",
+                    "code_name": "Order",
+                    "definition": "Order aggregate."
+                  }
+                ],
+                "next": null
+              }
+            },
+            {
+              "id": "m",
+              "value": {
+                "rows": [
+                  {
+                    "id": "E1",
+                    "domain_id": "D1",
+                    "business_name": "Order",
+                    "code_name": "Order",
+                    "definition": "Order aggregate."
+                  }
+                ],
+                "next": null
+              }
+            },
+            {
+              "id": "b",
+              "value": {
+                "rows": [
+                  {
+                    "id": "E1",
+                    "domain_id": "D1",
+                    "business_name": "Order",
+                    "code_name": "Order",
+                    "definition": "Order aggregate."
+                  }
+                ],
+                "next": null
+              }
+            }
+          ]
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-exact-M-membership",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "in": [
+                      "E3",
+                      "E1",
+                      "E2",
+                      "missing"
+                    ]
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "read_only",
+          "revision": 7,
+          "results": [
+            {
+              "id": "q",
+              "value": {
+                "rows": [
+                  {
+                    "id": "E1",
+                    "domain_id": "D1",
+                    "business_name": "Order",
+                    "code_name": "Order",
+                    "definition": "Order aggregate."
+                  },
+                  {
+                    "id": "E2",
+                    "domain_id": "D1",
+                    "business_name": "Invoice",
+                    "code_name": "Invoice",
+                    "definition": "Invoice aggregate."
+                  },
+                  {
+                    "id": "E3",
+                    "domain_id": "D2",
+                    "business_name": "Item",
+                    "code_name": "Item",
+                    "definition": "Stock item."
+                  }
+                ],
+                "next": null
+              }
+            }
+          ]
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-exact-M-commands",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "z",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Free application."
+                }
+              },
+              {
+                "id": "a",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Free application."
+                }
+              },
+              {
+                "id": "m",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Free application."
+                }
+              },
+              {
+                "id": "b",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Free application."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "applied",
+          "revision": 8,
+          "replayed": false,
+          "results": [
+            {
+              "id": "z",
+              "affected_rows": 0
+            },
+            {
+              "id": "a",
+              "affected_rows": 0
+            },
+            {
+              "id": "m",
+              "affected_rows": 0
+            },
+            {
+              "id": "b",
+              "affected_rows": 0
+            }
+          ]
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "INPUT-obsolete-create",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": "system",
+                  "status": "obsolete",
+                  "text": "Retired requirement."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "applied",
+          "revision": 8,
+          "replayed": false,
+          "results": [
+            {
+              "id": "c",
+              "affected_rows": 1
+            }
+          ]
+        },
+        "changes": [
+          {
+            "table": "requirements",
+            "kind": "insert",
+            "row": [
+              "R9",
+              "system",
+              "obsolete",
+              "Retired requirement."
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "INPUT-obsolete-update",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "input-partition",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A1"
+                  }
+                },
+                "changes": {
+                  "status": "obsolete"
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "applied",
+          "revision": 8,
+          "replayed": false,
+          "results": [
+            {
+              "id": "u",
+              "affected_rows": 1
+            }
+          ]
+        },
+        "changes": [
+          {
+            "table": "requirements",
+            "kind": "update",
+            "row": [
+              "A1",
+              "application",
+              "obsolete",
+              "First application."
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -21,20 +21,38 @@ nofollow наблюдения, реальный выбранный Git root и c
 [каноническом контракте](../configuration/local-assets.md).
 
 ## Доменные библиотеки
-- `Task`: create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel. Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.
-- `SectionBook`, `ContentPolicy`: стандартные/дополнительные секции, трассировка, pre/post gates. Контракты DDD-02 сохранены.
-- `RouteDefinition`, `RouteProgress`, `FeedbackBook`: graph и внутренний цикл осмотра/исправления DDD-03.
+
+Requirements CRUD: чистая политика `modules.requirements_registry.crud` проверяет
+пакеты, строки и курсоры; `infrastructure.requirements_crud` выполняет параметризованный
+SQL в соединении RequirementsStore. Application координирует прежних владельцев,
+interfaces обслуживает CLI. [Wire-контракт и
+восстановление](../workflows/requirements-registry.md#пакетный-crud)
+принадлежат руководству реестра, а не второму описанию схемы API.
+
+- `Task`:
+  create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel.
+  Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.
+- `SectionBook`, `ContentPolicy`: стандартные/дополнительные секции, трассировка, pre/post gates.
+  Контракты DDD-02 сохранены.
+- `RouteDefinition`, `RouteProgress`, `FeedbackBook`: graph и внутренний цикл осмотра/исправления
+  DDD-03.
 - `CheckRegistry`: точные командные методы, явное расписание, версионируемая current
   projection, immutable history и явная executable-классификация/покрытие.
-- `EvidencePlan.parse(raw, handlers, checks)`: полный план каждой стадии, references, writers, фазовая применимость.
-- `EvidenceBook.record_batch(stage, iteration, tree, key, receipts)`: добавить immutable наблюдение, повтор идентичного batch — no-op.
+- `EvidencePlan.parse(raw, handlers, checks)`: полный план каждой стадии, references, writers,
+  фазовая применимость.
+- `EvidenceBook.record_batch(stage, iteration, tree, key, receipts)`: добавить immutable наблюдение,
+  повтор идентичного batch — no-op.
 - `EvidenceBook.precheck(...)`: структурные предусловия, обязательные prepare-аргументы и решения.
-- `EvidenceBook.assess(...)`: оценка доступности текущих доказательств и предлагаемого handler outcome. Возвращает новый snapshot, не меняет Task самостоятельно.
+- `EvidenceBook.assess(...)`: оценка доступности текущих доказательств и предлагаемого handler
+  outcome. Возвращает новый snapshot, не меняет Task самостоятельно.
 
 ## Прикладные API
-`TaskCommands` — краткие UoW для создания, submission, content gates, workflow/evidence context, observation batch, assessment, mark_verified, accept/rework/cancel. Runtime не обращается к таблицам Task напрямую.
+`TaskCommands` — краткие UoW для создания, submission, content gates, workflow/evidence context,
+observation batch, assessment, mark_verified, accept/rework/cancel. Runtime не обращается к таблицам
+Task напрямую.
 
-`StageRunner` делегирует текущую механику в TaskCommands; новые методы record_observations и assess_evidence не переключают этап.
+`StageRunner` делегирует текущую механику в TaskCommands; новые методы record_observations и
+assess_evidence не переключают этап.
 
 `CheckRegistry.apply_change` принимает один пакет
 `request_id/expected_revision/operations/executable_obligations`, атомарно меняет current
@@ -45,18 +63,29 @@ projection и сохраняет прежнюю revision в истории. `Che
 receipts или submissions и не восстанавливает current classification из immutable creation
 metadata.
 
-`EvidenceCommands.record_receipt(task_id, actor, stage, iteration, receipt)` проверяет владельца, позицию, известные IDs методов и передаёт запись через EvidenceRepository. Это вход для наблюдающего адаптера, не для LLM. Идентичный ID не перезаписывается другим содержимым или другой задачей.
+`EvidenceCommands.record_receipt(task_id, actor, stage, iteration, receipt)` проверяет владельца,
+позицию, известные IDs методов и передаёт запись через EvidenceRepository. Это вход для наблюдающего
+адаптера, не для LLM. Идентичный ID не перезаписывается другим содержимым или другой задачей.
 
 ## Чтение
-`TaskQueries.section/result/content/trace_point/history/summary/evidence_view`. Тексты остаются в SQLite. `evidence_view` читает snapshot задачи, не весь store. В данном срезе история evidence внутри задачи ещё не вынесена в постраничное чтение; raw text никогда не включается в snapshot.
+`TaskQueries.section/result/content/trace_point/history/summary/evidence_view`. Тексты остаются в
+SQLite. `evidence_view` читает snapshot задачи, не весь store. В данном срезе история evidence
+внутри задачи ещё не вынесена в постраничное чтение; raw text никогда не включается в snapshot.
 
 ## CLI
-`poise work` принимает прямой JSON stdin. `operation` выбирает bootstrap/verify/show/artifacts/accept/cancel. Для известной работы task ID не передаётся повторно. Полный контракт и примеры: [batch-work](../workflows/batch-work.md).
+`poise work` принимает прямой JSON stdin. `operation` выбирает
+bootstrap/verify/show/artifacts/accept/cancel. Для известной работы task ID не передаётся повторно.
+Полный контракт и примеры: [batch-work](../workflows/batch-work.md).
 
-`evidence_work` подаётся частью прямого result object, не редактируемым файлом. `awaiting_continuation` возвращает факты и новый шаблон объекта, а не требует повторного запуска команд. `accept` принимает/останавливается; `continue` выражает новую пользовательскую инструкцию.
+`evidence_work` подаётся частью прямого result object, не редактируемым файлом.
+`awaiting_continuation` возвращает факты и новый шаблон объекта, а не требует повторного запуска
+команд. `accept` принимает/останавливается; `continue` выражает новую пользовательскую инструкцию.
 
 ## Конфигурация типа цели
-`GoalTypeDefinition.parse/build`: общий чистый владелец полного process. `GoalConfigCommands.apply_batch(request)`: один декларативный пакет, создание из явного template либо update по revision. Порт `GoalConfigRepository.edit` реализует короткий controlled edit; FileGoalConfigRepository и FileTemplates — infrastructure.
+`GoalTypeDefinition.parse/build`: общий чистый владелец полного process.
+`GoalConfigCommands.apply_batch(request)`: один декларативный пакет, создание из явного template
+либо update по revision. Порт `GoalConfigRepository.edit` реализует короткий controlled edit;
+FileGoalConfigRepository и FileTemplates — infrastructure.
 
 `GoalConfigCommands.status(request)` наблюдает managed head, live revision и pending request
 без recovery и иных записей. `GoalConfigCommands.reconcile(request)` при отсутствии pending
@@ -64,48 +93,76 @@ metadata.
 атомарно принимает его как новый managed head с durable audit receipt. Adoption не
 перезаписывает process-файл или Task snapshots; неизвестный drift остаётся явным конфликтом.
 
-CLI: `poise goal-config --settings <file>` с одним JSON в stdin. Не требует активной task и не открывает её DB. Стандартные/дополнительные sections, content rules, trace routes, stages/transitions редактируются одним кандидатом. Точный контракт: [goal-config](../configuration/goal-config.md).
+CLI: `poise goal-config --settings <file>` с одним JSON в stdin. Не требует активной task и не
+открывает её DB. Стандартные/дополнительные sections, content rules, trace routes,
+stages/transitions редактируются одним кандидатом. Точный контракт:
+[goal-config](../configuration/goal-config.md).
 
-`exclusive_lock` общий для Task и editor store. Runtime pack loader делегирует в тот же доменный validator. Конкретные EvidencePlan и command methods задачи не перемещены в pack и не заполняются по догадке.
+`exclusive_lock` общий для Task и editor store. Runtime pack loader делегирует в тот же доменный
+validator. Конкретные EvidencePlan и command methods задачи не перемещены в pack и не заполняются по
+догадке.
 
 ## DDD-04B — пакетный вход
 Обновлено: **2026-09-06T22:58:21+05:00**.
 
-- `WorkTools.invoke(packet)` — общий прикладной вход через порты WorkRuntime, InteractionPort, WorkResourcesPort.
+- `WorkTools.invoke(packet)` — общий прикладной вход через порты WorkRuntime, InteractionPort,
+  WorkResourcesPort.
 - `ArtifactPlan.parse(items, config)` — чистый полный план text/template-файлов.
 - `FileArtifactFactory.prepare/materialize` — предвалидация и confined файловая публикация.
 - `UserMessage.parse` / `InteractionLedger.merge` — identity и конфликт/дедупликация.
-- `InteractionStore.prepare/record/delivered/summary` — SQLite-факты и проекция без lifecycle writes.
-- `TaskCommands.validate_submission` — проверка кандидата без сохранения, перед файловыми side effects.
-- `AI poise.bootstrap(task_object, decision, feedback, rework_stage)` / `verify(payload)` — явный новый transport; обязательного result_path нет.
+- `InteractionStore.prepare/record/delivered/summary` — SQLite-факты и проекция без lifecycle
+  writes.
+- `TaskCommands.validate_submission` — проверка кандидата без сохранения, перед файловыми side
+  effects.
+- `AI poise.bootstrap(task_object, decision, feedback, rework_stage)` / `verify(payload)` — явный
+  новый transport; обязательного result_path нет.
 - `TaskQueries.latest_submission` возвращает пакет вместе с section layers, а не только envelope.
 
-Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. Прежние CLI-команды из исторических отчётов не являются действующим API. Полная грамматика: [batch-work](../workflows/batch-work.md).
+Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. Прежние CLI-команды из
+исторических отчётов не являются действующим API. Полная грамматика:
+[batch-work](../workflows/batch-work.md).
 
 
 # DDD-05: Sprint / Task publication
 
 Обновлено: **2026-09-06T22:58:21+05:00**.
 
-- `SprintPolicy.parse`, `SprintPlan.create/apply`, `Sprint.draft/revise/publish/waive/update_dependencies/cancellation_scope/record_task_cancellation/cancel/overview` — чистый домен.
+- `SprintPolicy.parse`, `SprintPlan.create/apply`,
+  `Sprint.draft/revise/publish/waive/update_dependencies/cancellation_scope/record_task_cancellation/cancel/overview`
+  — чистый домен.
 - `SprintCommands.apply(packet)` — draft/publish/graph/cancellation, единый UnitOfWork.
 - `SprintCommands.read/select` — адресные проекции, snapshots и session scope.
-- `validate_creation(contract, process, automatic_checks)` и `build_task(metadata, actor)` — общая проверка и сборка отдельной/планируемой Task, без I/O.
+- `validate_creation(contract, process, automatic_checks)` и `build_task(metadata, actor)` — общая
+  проверка и сборка отдельной/планируемой Task, без I/O.
 - `Task.planned`, `Task.start`, `TaskCommands.start` — незанятая задача и её начало через владельца.
-- `SqliteSprintRepository` — только свои таблицы, layers/receipts и составные FK. Публикация Task через TaskRepository.
-- `SprintWork` — инфраструктурный port adapter для Git-readiness и существующего runtime; не SQL-editor Task.
-- WorkTools принимает `operation: sprint`; `bootstrap` принимает ID зарегистрированной сущности; `show` читает несколько Sprint views. Остальные work methods сохраняются.
+- `SqliteSprintRepository` — только свои таблицы, layers/receipts и составные FK. Публикация Task
+  через TaskRepository.
+- `SprintWork` — инфраструктурный port adapter для Git-readiness и существующего runtime; не
+  SQL-editor Task.
+- WorkTools принимает `operation: sprint`; `bootstrap` принимает ID зарегистрированной сущности;
+  `show` читает несколько Sprint views. Остальные work methods сохраняются.
 
-Публичная cancellation-модель различает текущую standalone Task, выбранных незавершённых участников Sprint и Sprint целиком. Последний вариант одной UoW сохраняет completed/cancelled участников и durable work, отменяет остальные Task через их доменный API и освобождает claims; unresolved pending блокирует весь пакет до первой мутации.
+Публичная cancellation-модель различает текущую standalone Task, выбранных незавершённых участников
+Sprint и Sprint целиком. Последний вариант одной UoW сохраняет completed/cancelled участников и
+durable work, отменяет остальные Task через их доменный API и освобождает claims; unresolved pending
+блокирует весь пакет до первой мутации.
 
-[Точные входы и границы](../workflows/sprints.md). Кандидаты из переписки не превращены в новые обязательные правила без классификации пользователя.
+[Точные входы и границы](../workflows/sprints.md). Кандидаты из переписки не превращены в новые
+обязательные правила без классификации пользователя.
 
 ## DDD-06: библиотека планов и публикации
-`PlanSpec.parse(raw,max_steps)` валидирует весь явный план. `ActionRun` владеет cursor/status/immutable prefix, `start/record/retry_publication` не исполняют I/O. `Publication.parse` требует полный ref/expected SHA/authorization.
+`PlanSpec.parse(raw,max_steps)` валидирует весь явный план. `ActionRun` владеет
+cursor/status/immutable prefix, `start/record/retry_publication` не исполняют I/O.
+`Publication.parse` требует полный ref/expected SHA/authorization.
 
-`PlanCommands.obtain/update/snapshot/record_assessment/restart` — прикладной API через ActionRepository/UoW. `RuntimePlanActions.apply/publish` — внешняя механика. `ApplyPlanHandler/PublishHandler` — чистый приём намерения, не самоудостоверение результата. `Task.record_action_result` связывает trusted receipt с текущей итерацией и деревом.
+`PlanCommands.obtain/update/snapshot/record_assessment/restart` — прикладной API через
+ActionRepository/UoW. `RuntimePlanActions.apply/publish` — внешняя механика.
+`ApplyPlanHandler/PublishHandler` — чистый приём намерения, не самоудостоверение результата.
+`Task.record_action_result` связывает trusted receipt с текущей итерацией и деревом.
 
-Все действия подключены к прежнему `WorkTools.invoke` и `verify`: отдельная цепочка register/merge/receipt/refresh для модели не требуется. Точные примеры пакетов и продолжения: [Actions](../workflows/actions.md).
+Все действия подключены к прежнему `WorkTools.invoke` и `verify`: отдельная цепочка
+register/merge/receipt/refresh для модели не требуется. Точные примеры пакетов и продолжения:
+[Actions](../workflows/actions.md).
 
 ## DDD-07: runtime/output/handoff
 
@@ -116,7 +173,8 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
   `runtime_bindings`, атомарно резервирует уникальную сессию и повторяет generated-кандидат при
   коллизии. Origin сохраняет provenance, но не предоставляет дополнительных прав; generated
   binding не является anti-tamper credential.
-- `RuntimeAdapter.invoke` — transport composition над `SessionEstablisher` и WorkTools, а не новый domain API.
+- `RuntimeAdapter.invoke` — transport composition над `SessionEstablisher` и WorkTools, а не новый
+  domain API.
 - `CodexTranscript.read` — bounded JSONL источник и позиция, без хранения prompt body.
 - `OutputPolicy.parse/select` — чистая схема известных/unknown parser profiles.
 - `OutputParser.render(primary|materialize)` — один парсер над неизменным receipt.
@@ -124,9 +182,11 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
 - `HandoffCommands.prepare/release/resume` — короткие транзакции с Task.handoff/Task.resume_handoff.
 - `LocalHandoff.preserve/resume` — Git/file adapter; не присваивает lifecycle.
 - `EvidenceCommands.list_for` — адресный список receipts текущей задачи через UoW.
-- `Sprint.overview(states,resumable)` — явное множество подтверждённых handoff, без неизвестных task claims.
+- `Sprint.overview(states,resumable)` — явное множество подтверждённых handoff, без неизвестных task
+  claims.
 
-Протоколы: [runtime](../configuration/runtime-services.md), [handoff](../workflows/local-handoff.md), [перенос](../workflows/transfer.md).
+Протоколы: [runtime](../configuration/runtime-services.md),
+[handoff](../workflows/local-handoff.md), [перенос](../workflows/transfer.md).
 
 
 ## DDD-07B: перенос сохранённой работы
@@ -154,17 +214,34 @@ SQL-публикация не объявляет filesystem/Git атомарны
 [Ошибки и исходы](../workflows/transfer.md#согласованность-и-ошибки).
 
 ## DDD-07C — 2026-09-07T01:17:28+05:00
-`HookCommands.install` принимает целый definition; `HookRepository` сохраняет candidate/receipt и только свои groups. `HookDefinition` проверяет явность native-контракта. `CapabilityChecks.run` валидирует пакет ProbeSpec и получает независимые результаты через ProbeExecutor. `LocalProbeExecutor`/`StdioProbe` — внешние адаптеры.
-`HookService` связывает native event с session и InteractionStore, но не меняет lifecycle. Generated launcher вызывает прежний WorkTools с текущим сообщением и запрещает запись Python bytecode в source checkout; точная предыдущая управляемая форма launcher обновляется при native rebind, а произвольное изменение не перезаписывается. Public interfaces: runtime-setup (полный settings + install + probe), runtime-config (install/probe), hook (native event), hook-work (bound packet). `HookSettings.proposed` проверяет кандидат настроек до его записи; `setup_runtime` использует тот же FileHookRepository и не переписывает активные bindings. См. [полный контракт](../configuration/runtime-hooks.md).
+`HookCommands.install` принимает целый definition; `HookRepository` сохраняет candidate/receipt и
+только свои groups. `HookDefinition` проверяет явность native-контракта. `CapabilityChecks.run`
+валидирует пакет ProbeSpec и получает независимые результаты через ProbeExecutor.
+`LocalProbeExecutor`/`StdioProbe` — внешние адаптеры.
+`HookService` связывает native event с session и InteractionStore, но не меняет lifecycle. Generated
+launcher вызывает прежний WorkTools с текущим сообщением и запрещает запись Python bytecode в source
+checkout; точная предыдущая управляемая форма launcher обновляется при native rebind, а произвольное
+изменение не перезаписывается. Public interfaces: runtime-setup (полный settings + install + probe),
+runtime-config (install/probe), hook (native event), hook-work (bound packet).
+`HookSettings.proposed` проверяет кандидат настроек до его записи; `setup_runtime` использует тот же
+FileHookRepository и не переписывает активные bindings. См. [полный
+контракт](../configuration/runtime-hooks.md).
 
 
 ## Accounting API — DDD-08
 
 Updated: 2026-09-07T02:34:02+05:00.
 
-`MetricPolicy` и `BenefitDefinition` — чистые явные контракты. `AccountingCommands` работает через `AccountingPort`. `RuntimeAccounting` связывает исходную Task, clock и измеритель; `SqliteAccounting` хранит ledger и receipts. `AccountingQueries` строит read-only итоговые отчёты. `PayloadMeasurer` читает закреплённые Git blobs и final section layers; он не управляет Task lifecycle.
+`MetricPolicy` и `BenefitDefinition` — чистые явные контракты. `AccountingCommands` работает через
+`AccountingPort`. `RuntimeAccounting` связывает исходную Task, clock и измеритель;
+`SqliteAccounting` хранит ledger и receipts. `AccountingQueries` строит read-only итоговые отчёты.
+`PayloadMeasurer` читает закреплённые Git blobs и final section layers; он не управляет Task
+lifecycle.
 
-Batch work получил optional `telemetry`, а batch show — kind `accounting`. Определение полезных categories/sections редактируется одной `set_benefit` action goal-config. Существующие API сохранены по смыслу, но старые неподдерживаемые schema не читаются. Подробности: [accounting.md](../operations/accounting.md).
+Batch work получил optional `telemetry`, а batch show — kind `accounting`. Определение полезных
+categories/sections редактируется одной `set_benefit` action goal-config. Существующие API сохранены
+по смыслу, но старые неподдерживаемые schema не читаются. Подробности:
+[accounting.md](../operations/accounting.md).
 
 
 # DDD-09 — каталог и planning publication
@@ -184,7 +261,8 @@ Batch work получил optional `telemetry`, а batch show — kind `accounti
 
 Общий WorkTools verify принимает tagged publication `kind=tasks|sprint`, section и authorization.
 Другая ветвь PublishHandler — существующая Git target publication. Отдельного CLI-комплекта
-для каждой цели нет. Подробные поля, ограничения и пример: [process-catalogue](../configuration/process-catalogue.md).
+для каждой цели нет. Подробные поля, ограничения и пример:
+[process-catalogue](../configuration/process-catalogue.md).
 
 
 # Project setup — 2026-09-14T00:00:00+05:00
@@ -215,7 +293,8 @@ questionnaire и применяет один тот же пакет при publi
 через registry-владельца, а список остаётся read-only. Эти операции не изменяют Task/Sprint.
 
 Публичные поля, verdict, CLI и маршруты исправления определены в
-[проверке согласованности проекта](../configuration/project-setup.md#проверка-согласованности-проекта).
+[проверке согласованности
+проекта](../configuration/project-setup.md#проверка-согласованности-проекта).
 `FileProjectPreflight.observe_configuration` сохраняет уже прочитанные факты при известном
 отказе валидации и неожиданной ошибке. Прикладной слой использует это наблюдение и прекращает
 последующие проверки; он не повторяет валидацию конфигурации, Git или commit policy.

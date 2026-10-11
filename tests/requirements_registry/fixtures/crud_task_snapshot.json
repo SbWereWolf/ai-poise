@@ -1,0 +1,11 @@
+{
+  "requirements": {
+    "A3": {
+      "id": "A3",
+      "level": "application",
+      "status": "current",
+      "text": "Free application."
+    }
+  },
+  "links": []
+}

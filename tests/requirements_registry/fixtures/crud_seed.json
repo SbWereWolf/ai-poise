@@ -1,0 +1,140 @@
+{
+  "requirements": [
+    [
+      "A1",
+      "application",
+      "current",
+      "First application."
+    ],
+    [
+      "A2",
+      "application",
+      "future",
+      ""
+    ],
+    [
+      "A3",
+      "application",
+      "current",
+      "Free application."
+    ],
+    [
+      "S1",
+      "system",
+      "current",
+      "First system."
+    ],
+    [
+      "S2",
+      "system",
+      "current",
+      "Second system."
+    ]
+  ],
+  "domain_areas": [
+    [
+      "D0",
+      "Unused",
+      "Unused domain."
+    ],
+    [
+      "D1",
+      "Orders",
+      "Order domain."
+    ],
+    [
+      "D2",
+      "Stock",
+      "Stock domain."
+    ]
+  ],
+  "domain_entities": [
+    [
+      "E1",
+      "D1",
+      "Order",
+      "Order",
+      "Order aggregate."
+    ],
+    [
+      "E2",
+      "D1",
+      "Invoice",
+      "Invoice",
+      "Invoice aggregate."
+    ],
+    [
+      "E3",
+      "D2",
+      "Item",
+      "Item",
+      "Stock item."
+    ]
+  ],
+  "domain_actions": [
+    [
+      "X1",
+      "D1",
+      "Create",
+      "create_order",
+      "Create order."
+    ],
+    [
+      "X2",
+      "D1",
+      "Close",
+      "close_order",
+      "Close order."
+    ],
+    [
+      "X3",
+      "D2",
+      "Reserve",
+      "reserve_item",
+      "Reserve item."
+    ]
+  ],
+  "requirement_links": [
+    [
+      "S1",
+      "A1"
+    ],
+    [
+      "S1",
+      "A2"
+    ],
+    [
+      "S2",
+      "A1"
+    ]
+  ],
+  "requirement_entities": [
+    [
+      "A1",
+      "D1",
+      "E1"
+    ],
+    [
+      "A1",
+      "D2",
+      "E3"
+    ],
+    [
+      "S1",
+      "D1",
+      "E1"
+    ]
+  ],
+  "requirement_actions": [
+    [
+      "A1",
+      "D1",
+      "X1"
+    ],
+    [
+      "S1",
+      "D1",
+      "X1"
+    ]
+  ]
+}

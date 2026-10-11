@@ -4,7 +4,7 @@ import math
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from ..modules.foundation.errors import PoiseError
+from ..modules.foundation.errors import LockUnavailable, PoiseError
 
 
 @contextmanager
@@ -22,7 +22,7 @@ def exclusive_lock(path: Path, wait: float, poll: float):
             except BlockingIOError:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise PoiseError("Истёк лимит ожидания внешнего lock")
+                    raise LockUnavailable("Истёк лимит ожидания внешнего lock")
                 time.sleep(min(poll, remaining))
         try:
             yield

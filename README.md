@@ -34,7 +34,8 @@ Codex передают агенту путь к сессионному `work.sh`
 
 Для подготовки нового проекта
 см. [настройку проекта](docs/configuration/project-setup.md), для этой
-установки — [локальные пути и команды](docs/configuration/project-setup.md#локальный-проект-ai-poise).
+установки — [локальные пути и
+команды](docs/configuration/project-setup.md#локальный-проект-ai-poise).
 Повторно создавать конфигурацию или запускать seed для уже
 настроенного ai-poise не требуется.
 
@@ -101,10 +102,14 @@ Requirements DB уже используется: она хранит канон�
 System/Application требования, а Task DB — согласованные цепочки и
 исторические снимки Task. Обязательные пути задаются в конфигурации,
 без скрытого переноса существующих данных.
-См. [владельцев, версии и границы хранилищ](docs/architecture/storage-lifecycle.md#владельцы-и-версии).
+См. [владельцев, версии и границы
+хранилищ](docs/architecture/storage-lifecycle.md#владельцы-и-версии).
 
 ## Документация
 
+- [Оглавление](docs/README.md) и [пакетный Requirements
+  CRUD](docs/workflows/requirements-registry.md#пакетный-crud): Query, Command, связи, примеры и
+  восстановление.
 - [Жизненный цикл хранилищ](docs/architecture/storage-lifecycle.md#владельцы-и-версии) —
   версии, ограниченный upgrade, явные пути и полная резервная копия.
 
@@ -135,4 +140,5 @@ IDs предусмотрен
 входит в Git history.
 
 Постановка задач с полными цепочками
-требований: [реестр требований](docs/workflows/requirements-registry.md#декларативный-api-и-согласование).
+требований: [реестр
+требований](docs/workflows/requirements-registry.md#декларативный-api-и-согласование).

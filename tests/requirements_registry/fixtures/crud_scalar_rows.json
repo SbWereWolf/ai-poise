@@ -1,0 +1,509 @@
+[
+  {
+    "id": "id-dot",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "id-dot",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": ".",
+              "level": "system",
+              "status": "current",
+              "text": "Valid."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "id-slash",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "id-slash",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R/9",
+              "level": "system",
+              "status": "current",
+              "text": "Valid."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "id-backslash",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "id-backslash",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R\\9",
+              "level": "system",
+              "status": "current",
+              "text": "Valid."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "id-nul",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "id-nul",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R\u00009",
+              "level": "system",
+              "status": "current",
+              "text": "Valid."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "id-space-preserved",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "id-space-preserved",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": " R9 ",
+              "level": "system",
+              "status": "current",
+              "text": "Valid."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "applied",
+      "revision": 8,
+      "replayed": false,
+      "results": [
+        {
+          "id": "c",
+          "affected_rows": 1
+        }
+      ]
+    },
+    "changes": [
+      {
+        "table": "requirements",
+        "kind": "insert",
+        "row": [
+          " R9 ",
+          "system",
+          "current",
+          "Valid."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "text-empty-future",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "text-empty-future",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R9",
+              "level": "application",
+              "status": "future",
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "applied",
+      "revision": 8,
+      "replayed": false,
+      "results": [
+        {
+          "id": "c",
+          "affected_rows": 1
+        }
+      ]
+    },
+    "changes": [
+      {
+        "table": "requirements",
+        "kind": "insert",
+        "row": [
+          "R9",
+          "application",
+          "future",
+          ""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "text-empty-current",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "text-empty-current",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R9",
+              "level": "application",
+              "status": "current",
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "text-empty-obsolete",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "text-empty-obsolete",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R9",
+              "level": "application",
+              "status": "obsolete",
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "future-whitespace",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "future-whitespace",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "R9",
+              "level": "application",
+              "status": "future",
+              "text": " \t"
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "domain-nbsp",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "domain-nbsp",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "domain_areas",
+            "row": {
+              "id": "D9",
+              "business_name": " Other",
+              "definition": "Other."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "domain-ideographic",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "domain-ideographic",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "domain_areas",
+            "row": {
+              "id": "D9",
+              "business_name": "Other　",
+              "definition": "Other."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "domain-definition",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "domain-definition",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "domain_areas",
+            "row": {
+              "id": "D9",
+              "business_name": "Other",
+              "definition": "\t "
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 0,
+        "item_id": "c"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "domain-untrimmed-definition",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "domain-untrimmed-definition",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "domain_areas",
+            "row": {
+              "id": "D9",
+              "business_name": "Other",
+              "definition": "\t Other. \n"
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "applied",
+      "revision": 8,
+      "replayed": false,
+      "results": [
+        {
+          "id": "c",
+          "affected_rows": 1
+        }
+      ]
+    },
+    "changes": [
+      {
+        "table": "domain_areas",
+        "kind": "insert",
+        "row": [
+          "D9",
+          "Other",
+          "\t Other. \n"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "domain-unicode",
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "domain-unicode",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "c",
+            "kind": "create",
+            "table": "domain_areas",
+            "row": {
+              "id": "D9",
+              "business_name": "Заказ 😀",
+              "definition": "Unicode name."
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "applied",
+      "revision": 8,
+      "replayed": false,
+      "results": [
+        {
+          "id": "c",
+          "affected_rows": 1
+        }
+      ]
+    },
+    "changes": [
+      {
+        "table": "domain_areas",
+        "kind": "insert",
+        "row": [
+          "D9",
+          "Заказ 😀",
+          "Unicode name."
+        ]
+      }
+    ]
+  }
+]

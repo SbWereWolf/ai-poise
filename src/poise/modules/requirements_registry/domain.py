@@ -300,6 +300,30 @@ class RequirementsRegistry:
             "snapshot": snapshot,
         }
 
+    def query(self, query, max_items):
+        """One pure specialized evaluator for standalone and mixed query batches."""
+        kind = query.get("kind")
+        if kind == "coverage":
+            if set(query) not in ({"id", "kind"}, {"id", "kind", "mode"}):
+                raise DomainError("coverage query has unknown fields")
+            return self.coverage(query.get("mode"))
+        if kind in ("gaps", "registry"):
+            if set(query) != {"id", "kind"}:
+                raise DomainError(f"{kind} query has unknown fields")
+            return self.gaps() if kind == "gaps" else self.to_dict()
+        if kind == "plan_task":
+            if set(query) != {"id", "kind", "task_requirements"}:
+                raise DomainError("plan_task query requires task_requirements")
+            requirements = query["task_requirements"]
+            if not isinstance(requirements, list) or len(requirements) > max_items:
+                raise DomainError("Task Requirements plan exceeds max_items")
+            return self.plan_task(requirements)
+        if kind == "chain":
+            if set(query) != {"id", "kind", "requirement_id"}:
+                raise DomainError("chain query requires requirement_id")
+            return self.chain(query["requirement_id"])
+        raise DomainError(f"unknown Requirements query: {kind}")
+
     def to_dict(self):
         return {
             "requirements": {

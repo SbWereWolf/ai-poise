@@ -1,0 +1,167 @@
+[
+  {
+    "id": "mixed-missing-chain",
+    "request": {
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "first",
+            "kind": "coverage"
+          },
+          {
+            "id": "bad",
+            "kind": "chain",
+            "requirement_id": "missing"
+          },
+          {
+            "id": "rows",
+            "kind": "entities",
+            "table": "domain_entities",
+            "filter": {},
+            "page": {
+              "limit": 4,
+              "after": null
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 1,
+        "item_id": "bad"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "mixed-malformed-specialized-mode",
+    "request": {
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "first",
+            "kind": "coverage"
+          },
+          {
+            "id": "bad",
+            "kind": "coverage",
+            "mode": "invalid"
+          },
+          {
+            "id": "rows",
+            "kind": "entities",
+            "table": "domain_entities",
+            "filter": {},
+            "page": {
+              "limit": 4,
+              "after": null
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {
+        "code": "invalid_item",
+        "item_index": 1,
+        "item_id": "bad"
+      }
+    },
+    "changes": []
+  },
+  {
+    "id": "legacy-missing-chain",
+    "request": {
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "bad",
+            "kind": "chain",
+            "requirement_id": "missing"
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "unknown requirement: missing"
+    },
+    "changes": []
+  },
+  {
+    "id": "legacy-malformed-specialized-mode",
+    "request": {
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "bad",
+            "kind": "coverage",
+            "mode": "invalid"
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "rejected",
+      "reason": "coverage mode must be analysis or current"
+    },
+    "changes": []
+  },
+  {
+    "id": "legacy-positive-chain",
+    "request": {
+      "operation": "query",
+      "input": {
+        "queries": [
+          {
+            "id": "chain",
+            "kind": "chain",
+            "requirement_id": "A1"
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "read_only",
+      "revision": 7,
+      "results": [
+        {
+          "id": "chain",
+          "value": {
+            "application": {
+              "id": "A1",
+              "level": "application",
+              "status": "current",
+              "text": "First application."
+            },
+            "systems": [
+              {
+                "id": "S1",
+                "level": "system",
+                "status": "current",
+                "text": "First system."
+              },
+              {
+                "id": "S2",
+                "level": "system",
+                "status": "current",
+                "text": "Second system."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "changes": []
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "deep-cursor-key",
+    "file": "crud-nested-cursor-600.json",
+    "bytes": 1502,
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD cursor.",
+      "error": {"code": "invalid_cursor", "item_index": 0, "item_id": "q"}
+    }
+  },
+  {
+    "id": "deep-mixed-specialized",
+    "file": "crud-nested-specialized-600.json",
+    "bytes": 1444,
+    "response": {
+      "status": "rejected",
+      "reason": "Invalid Requirements CRUD item.",
+      "error": {"code": "invalid_item", "item_index": 1, "item_id": "bad"}
+    }
+  }
+]

@@ -660,7 +660,7 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Stage contract worktree is owned by another session; handoff is required")
             if not isinstance(contract, dict) or set(contract) != {
-                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
+                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements", "criteria"
             } or contract["stage_id"] != stage_id:
                 raise DomainError("Exact replacement stage contract is required")
             candidate = [
@@ -865,7 +865,8 @@ class TaskCommands:
             book = StageCriteriaBook.from_dict(candidate['criteria_book'])
             if candidate['executed_restart']:
                 book = book.revise_after_restart(task.route, task.stage_contracts,
-                    candidate['metadata']['restart_history'][-1], actor)
+                    candidate['metadata']['restart_history'][-1], actor,
+                    candidate['metadata']['contract'], candidate['creation'].requirements_context['snapshot'])
         else:
             if candidate['executed_restart']:
                 raise DomainError('stage criteria migration required')
@@ -1094,7 +1095,7 @@ class TaskCommands:
             from ..modules.tasks.stage_criteria import split_work
             _, criteria_work = split_work(json.loads(task.progress.stage_work))
             if criteria_work is not None:
-                producer_submission = uow.tasks.criteria_submission_guard(task, actor)
+                producer_submission = uow.tasks.criteria_submission_guard(task, actor, report)
                 book = task.criteria_book.apply_verified_work(
                     criteria_work, task, actor, producer_submission)
                 change = replace(change, task=replace(change.task, criteria_book=book,

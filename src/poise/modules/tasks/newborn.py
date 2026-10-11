@@ -103,6 +103,8 @@ class NewbornTask:
             "authorization": authorization,
             "from_status": task.state.status.value,
             "from_version": task.state.version,
+            "from_stage": task.stage.stage_id,
+            "from_iteration": task.state.iteration,
             "reason": reason,
         }
         if authority is not None:

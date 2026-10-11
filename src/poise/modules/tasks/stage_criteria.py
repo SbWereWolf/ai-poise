@@ -18,6 +18,37 @@ def text_list(raw, where):
     return tuple(raw)
 
 
+def _sha256(value, where):
+    if (not isinstance(value, str) or len(value) != 64
+            or any(char not in '0123456789abcdef' for char in value)):
+        raise DomainError(f'{where}: SHA-256 identity required')
+
+
+def _source(source):
+    if not isinstance(source, dict):
+        raise DomainError('Stored criteria requires explicit provenance')
+    fields = {
+        'initial': {'contract_digest', 'requirements_snapshot_digest'},
+        'proposal': {'proposal_id', 'proposal_digest', 'decision_id'},
+        'historical': {'original_digest', 'migration_receipt'},
+    }
+    kind = source.get('kind')
+    if kind not in fields:
+        raise DomainError('Unknown stored criteria source kind')
+    exact(source, fields[kind] | {'kind'}, 'stored criteria source')
+    for name in fields[kind]:
+        _sha256(source[name], 'stored criteria source.' + name)
+
+
+def _revision(record):
+    if type(record['revision']) is not int or record['revision'] < 0:
+        raise DomainError('Invalid stored criteria revision')
+    StageCriteria.parse(record['criteria'])
+    text_list(record['entry_requirements'], 'stored entry requirements')
+    text_list(record['exit_requirements'], 'stored exit requirements')
+    _source(record['source'])
+
+
 @dataclass(frozen=True)
 class StageCriteria:
     requirements: tuple[str, ...]
@@ -110,11 +141,7 @@ class StageCriteriaBook:
                 StagePurpose(current["purpose"])
             except (TypeError, ValueError) as exc:
                 raise DomainError("Unknown stored stage purpose") from exc
-            if type(current["revision"]) is not int or current["revision"] < 0:
-                raise DomainError("Invalid stored criteria revision")
-            StageCriteria.parse(current["criteria"])
-            text_list(current["entry_requirements"], "stored entry requirements")
-            text_list(current["exit_requirements"], "stored exit requirements")
+            _revision(current)
             execution = current["execution"]
             exact(execution, {"state", "epoch", "bound_revision"}, "stored execution binding")
             bound = execution["bound_revision"]
@@ -124,12 +151,88 @@ class StageCriteriaBook:
                     or (execution["state"] == "unstarted") != (bound is None)
                     or (bound is not None and bound > current["revision"])):
                 raise DomainError("Invalid stored execution binding")
-            if not isinstance(current["source"], dict) or not current["source"]:
-                raise DomainError("Stored criteria requires explicit provenance")
             for field in ("proposals", "history", "revisions"):
                 if (not isinstance(current[field], list)
                         or any(not isinstance(item, dict) for item in current[field])):
                     raise DomainError(f"Stored criteria {field} requires records")
+            if [item.get('revision') for item in current['revisions']] != list(range(current['revision'])):
+                raise DomainError('Stored criteria revision history is incomplete')
+            for item in current['revisions']:
+                _revision(item)
+            if bound is not None and bound != current['revision']:
+                raise DomainError('Bound criteria cannot have an unbound newer revision')
+            identities = []
+            for proposal in current['proposals']:
+                exact(proposal, {'stage_id', 'expected_criteria_revision', 'criteria',
+                    'entry_requirements', 'exit_requirements', 'producer_stage',
+                    'producer_iteration', 'producer_submission', 'proposal_id',
+                    'proposal_digest', 'decision'}, 'stored criteria proposal')
+                if proposal['stage_id'] != stage_id or proposal['producer_stage'] not in raw['stages']:
+                    raise DomainError('Stored proposal stage membership mismatch')
+                body = {key: proposal[key] for key in ('stage_id', 'expected_criteria_revision',
+                    'criteria', 'entry_requirements', 'exit_requirements', 'producer_stage',
+                    'producer_iteration', 'producer_submission')}
+                if (proposal['proposal_digest'] != fingerprint(body)
+                        or type(proposal['expected_criteria_revision']) is not int
+                        or not 0 <= proposal['expected_criteria_revision'] <= current['revision']
+                        or any(type(proposal[key]) is not int or proposal[key] < 1
+                               for key in ('producer_iteration', 'producer_submission'))):
+                    raise DomainError('Stored proposal provenance mismatch')
+                StageCriteria.parse(proposal['criteria'])
+                text_list(proposal['entry_requirements'], 'stored proposal entry requirements')
+                text_list(proposal['exit_requirements'], 'stored proposal exit requirements')
+                _sha256(proposal['proposal_id'], 'proposal_id')
+                identities.append(proposal['proposal_id'])
+                decision = proposal['decision']
+                if decision is not None:
+                    exact(decision, {'proposal_id', 'proposal_digest', 'decision', 'reason',
+                        'decision_id', 'producer_stage', 'producer_iteration', 'producer_submission'},
+                        'stored criteria decision')
+                    if (decision['proposal_id'] != proposal['proposal_id']
+                            or decision['proposal_digest'] != proposal['proposal_digest']
+                            or decision['decision'] not in ('accepted', 'rejected')
+                            or decision['producer_stage'] not in raw['stages']
+                            or any(type(decision[key]) is not int or decision[key] < 1
+                                   for key in ('producer_iteration', 'producer_submission'))):
+                        raise DomainError('Stored decision provenance mismatch')
+                    text(decision['reason'], 'decision.reason')
+                    _sha256(decision['decision_id'], 'decision_id')
+            if len(identities) != len(set(identities)):
+                raise DomainError('Duplicate stored criteria proposal identity')
+            history_ids = []
+            for event in current['history']:
+                exact(event, {'id', 'action', 'actor', 'stage', 'iteration', 'old_revision',
+                              'new_revision', 'reason', 'source'}, 'stored criteria history')
+                _sha256(event['id'], 'criteria history identity')
+                _source(event['source'])
+                text(event['actor'], 'criteria history actor')
+                text(event['reason'], 'criteria history reason')
+                if (event['stage'] not in raw['stages']
+                        or type(event['iteration']) is not int or event['iteration'] < 1
+                        or event['action'] not in ('accepted', 'rejected', 'restart', 'execution_started')
+                        or any(type(event[key]) is not int or not 0 <= event[key] <= current['revision']
+                               for key in ('old_revision', 'new_revision'))):
+                    raise DomainError('Stored criteria history mismatch')
+                history_ids.append(event['id'])
+            if len(history_ids) != len(set(history_ids)):
+                raise DomainError('Duplicate stored criteria history identity')
+            for record in [*current['revisions'], current]:
+                source = record['source']
+                if source['kind'] != 'proposal':
+                    continue
+                matches = [p for p in current['proposals'] if p['proposal_id'] == source['proposal_id']]
+                if len(matches) != 1:
+                    raise DomainError('Criteria agreement source is absent')
+                proposal = matches[0]
+                decision = proposal['decision']
+                if (proposal['proposal_digest'] != source['proposal_digest'] or decision is None
+                        or decision['decision'] != 'accepted' or decision['decision_id'] != source['decision_id']
+                        or record['revision'] != proposal['expected_criteria_revision'] + 1
+                        or any(record[key] != proposal[key] for key in
+                               ('criteria', 'entry_requirements', 'exit_requirements'))
+                        or not any(event['id'] == source['decision_id'] and event['action'] == 'accepted'
+                                   and event['new_revision'] == record['revision'] for event in current['history'])):
+                    raise DomainError('Criteria agreement provenance is inconsistent')
         for request_id, document in raw["requests"].items():
             text(request_id, "stored criteria request identity")
             if not isinstance(document, str):
@@ -138,6 +241,16 @@ class StageCriteriaBook:
             if parsed.document != document or parsed.data['request_id'] != request_id:
                 raise DomainError("Stored criteria request identity mismatch")
         return cls(canonical(raw))
+
+    @staticmethod
+    def _validate_proposal_contract(task, target, item):
+        original = task.stage_contracts.stage(target)
+        from .domain import TaskStageContract, TaskStageContracts
+        replacement = TaskStageContract(target, original.allowed_paths,
+            tuple(item['entry_requirements']), tuple(item['exit_requirements']),
+            StageCriteria.parse(item['criteria']))
+        TaskStageContracts.parse(task.stage_contracts.replace(target, replacement).to_list(),
+                                 task.route, task.content_policy)
 
     @classmethod
     def initialize_initial(cls, route, contracts, contract, requirements_snapshot):
@@ -184,13 +297,7 @@ class StageCriteriaBook:
                 raise DomainError("criteria revision conflict")
             self._require_future(current)
             # Validate gate references and full graph invariants through their owner.
-            original = task.stage_contracts.stage(target)
-            from .domain import TaskStageContract, TaskStageContracts
-            replacement = TaskStageContract(target, original.allowed_paths,
-                tuple(item["entry_requirements"]), tuple(item["exit_requirements"]),
-                StageCriteria.parse(item["criteria"]))
-            TaskStageContracts.parse(task.stage_contracts.replace(target, replacement).to_list(),
-                                     task.route, task.content_policy)
+            self._validate_proposal_contract(task, target, item)
         for item in value["decisions"]:
             target, proposal = self._proposal(data, item)
             targets.append(target)
@@ -202,6 +309,7 @@ class StageCriteriaBook:
             if (proposal["decision"] is not None
                     or proposal["expected_criteria_revision"] != current["revision"]):
                 raise DomainError("criteria revision conflict")
+            self._validate_proposal_contract(task, target, proposal)
         if len(targets) != len(set(targets)):
             raise DomainError("overlapping_decision_targets")
 
@@ -275,7 +383,7 @@ class StageCriteriaBook:
             tuple(stages[item.stage_id]["exit_requirements"]),
             StageCriteria.parse(stages[item.stage_id]["criteria"])) for item in contracts.items))
 
-    def revise_after_restart(self, route, contracts, audit, actor):
+    def revise_after_restart(self, route, contracts, audit, actor, contract, requirements_snapshot):
         """Reopen only explicitly revised targets; retain all other bindings."""
         data = self.data
         if set(data["stages"]) != {item.stage_id for item in contracts.items}:
@@ -291,15 +399,16 @@ class StageCriteriaBook:
                 continue
             old = current["revision"]
             current["revisions"].append({key: deepcopy(current[key]) for key in
-                ("revision", "criteria", "entry_requirements", "exit_requirements", "source")})
+                ("revision", "criteria", "entry_requirements", "exit_requirements", "source", "execution")})
             identity = fingerprint({"stage": item.stage_id, "audit": audit,
                                     "old_revision": old, "criteria": revised})
-            source = {"kind": "restart", "restart_digest": fingerprint(audit)}
+            source = {"kind": "initial", "contract_digest": fingerprint(contract),
+                      "requirements_snapshot_digest": fingerprint(requirements_snapshot)}
             current.update(revised, revision=old + 1, source=source,
                 execution={"state": "unstarted", "epoch": current["execution"]["epoch"] + 1,
                            "bound_revision": None})
             current["history"].append({"id": identity, "action": "restart",
-                "actor": actor, "stage": item.stage_id,
+                "actor": actor, "stage": audit['from_stage'], "iteration": audit['from_iteration'],
                 "old_revision": old, "new_revision": old + 1,
                 "reason": audit["reason"], "source": source})
         return self.from_dict(data)

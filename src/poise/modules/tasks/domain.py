@@ -387,6 +387,13 @@ class Task:
             raise DomainError("Stage contract revision requires the current inspection stage")
         revised = contracts.replace(stage_id, replacement)
         revised = TaskStageContracts.parse(revised.to_list(), self.route, self.content_policy)
+        if self.criteria_book is None:
+            raise DomainError('stage criteria migration required')
+        current = self.criteria_book.data['stages'][stage_id]
+        if (replacement.criteria.to_dict() != current['criteria']
+                or list(replacement.entry_requirements) != current['entry_requirements']
+                or list(replacement.exit_requirements) != current['exit_requirements']):
+            raise DomainError('Criteria revision requires agreement or authorized restart')
         self.check_registry.validate_route(self.route.with_stage_scopes(revised.to_list()))
         change = self._change("stage_contract_revised", None, None)
         return replace(change, task=replace(

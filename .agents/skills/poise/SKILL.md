@@ -20,14 +20,18 @@ For WSL project selection and storage layout, read only [Local installation →
 Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Local installation
 → Mutable storage paths](../../../docs/configuration/wsl-local-delivery.md#пути-project-local-storage).
 
-For this local ai-poise installation, use [the concrete launcher and
-configuration](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise). `bootstrap` and `verify` are
+For configured project operations, follow the versioned
+[Stride launcher contract](../../../docs/configuration/stride-launcher.md#настройки-запуска)
+and its [independent package version selection](../../../docs/configuration/stride-launcher.md#установка-и-выбор-версии).
+Stride does not create native caller identity or replace the hook-issued session work launcher.
+The [historical local installation](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise)
+retains the native session protocols; resolve actual paths through current configuration. `bootstrap` and `verify` are
 operations of AI poise `work`, not separate skills. For ordinary work invoke the session-scoped `work.sh` supplied by
 the native hook explicitly through Bash, keep `messages=[]`, and reuse the same launcher across calls. Direct
 `.venv/bin/poise work` uses a native Codex identity when available; otherwise it requires an absolute persistent
 `POISE_CALLER_BINDING` whose parent already exists. An agent must not substitute a caller-chosen session value, and a
-direct diagnostic call does not establish native event delivery. The user explicitly authorized state inside this
-repository.
+direct diagnostic call does not establish native event delivery. State placement follows the selected project
+configuration; historical installation examples do not override its current paths.
 
 Treat launcher availability and configured interpreter capability separately. Managed hooks and
 launchers execute the interpreter selected by installation settings directly; they do not provide

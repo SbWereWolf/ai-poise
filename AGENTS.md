@@ -20,6 +20,13 @@ expires. Platform safety constraints and storage integrity are not project rules
 
 ## Purpose and outcomes
 
+Stride names the task-management system; Poise names the agent harness. Keep the
+versioned project-operation entry named `stride.sh`. Independent consumers use the
+shared package through their package manager with an explicitly selected version;
+each consumer updates separately. Keep working launcher settings outside source
+commits and configure tool/data roots independently. Follow the [canonical naming and distribution rule](docs/governance/development-rules.md#имена-системы-и-общая-библиотека-запуска)
+and [launcher contract](docs/configuration/stride-launcher.md#имена-и-владельцы).
+
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
 Before any work, including a request without a formal task, establish the goal, the requirements for the result, the definition of done and how completion will be demonstrated. Keep this preparation proportional to the request. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. `ready` freezes the resolved Task contract and its restart-revision authority; runtime enforces that resolved contract, not the original template.

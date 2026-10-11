@@ -32,3 +32,7 @@ dist/
 
 # Local source-search profile; version its example, not working settings.
 /.ast-index.yaml
+
+# Installation-specific Stride bootstrap and settings; retain sanitized examples.
+/config/stride.env
+/config/stride-launcher.json

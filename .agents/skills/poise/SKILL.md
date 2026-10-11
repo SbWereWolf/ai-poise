@@ -5,6 +5,12 @@ description: Execute project-local AI poise task stages and hand off work betwee
 
 # AI poise task workflow
 
+For explicit stage purpose, criteria authority, `show` with `stage_criteria` and
+`verify.criteria_work`, read the canonical [stage criteria
+contract](../../../docs/workflows/stage-criteria.md). Read actual revisions and
+proposal identities through their owners; do not infer authority from role or
+handler names, edit managed storage, or treat criteria work as a general Task edit.
+
 AI poise is a declarative harness whose job is to remove mechanical administration and tooling implementation details from the agent's work. Templates accelerate planning; they must not become a reason to force a valid Task into a starter shape. The planner owns the newborn draft before `ready`; execution consumes the resolved Task contract.
 
 Use the explicitly selected project configuration. Each project owns its Task DB and its copied process catalogue; never

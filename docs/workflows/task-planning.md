@@ -35,9 +35,13 @@ executable_obligations, stage_contracts, decomposition и process. Типова�
 уточнить по итогам проверки через разрешённый `restart`. После этой границы агент
 не меняет цель той же Task, даже если API позволяет редактировать поле в `newborn`;
 см. [правило сохранения цели](../governance/development-rules.md#task-goal-preservation).
-Ограничения текущего API для DoR/DoD
-и автоматической перемотки перечислены в
-[контракте ревизии этапов](paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
+Критерии конкретного этапа хранятся отдельно от общих требований задачи:
+`stage_contracts` содержит `criteria` с `requirements`, `definition_of_ready`
+и `definition_of_done`, а также `entry_requirements` и `exit_requirements`.
+Назначение этапа и его явные полномочия заданы в process snapshot.
+Уточнение критериев будущего выполнения через `verify.criteria_work` не
+размораживает остальные поля Task; см. [канонический протокол](stage-criteria.md)
+и [границы перемотки](paired-task-stages.md#dor-dod-и-автоматическая-перемотка).
 
 ## Создание по типу цели
 

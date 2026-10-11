@@ -37,6 +37,12 @@ blockers immediately; do not invent skill use or grant yourself a contract edit.
 
 ## Procedure
 
+Read the current stage's explicit purpose and criteria authority separately from
+its role and handler. Use the canonical [stage criteria
+contract](../../../docs/workflows/stage-criteria.md) for future-stage proposals,
+decisions, execution binding and restart history. A criteria proposal is not a
+general edit of the frozen Task contract. Never infer authority from a role name.
+
 Use the selected paired process' [stage
 descriptions](../../../docs/workflows/paired-task-stages.md#шесть-пар-разработки):
 inspect and plan, design checks, implement tests, design code, implement code, then

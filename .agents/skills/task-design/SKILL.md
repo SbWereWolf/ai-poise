@@ -40,7 +40,10 @@ process, routing and supported public Task schema.
 3. Do not predict future class names, test names or commands as readiness gates.
    Supply the complete initial checks object explicitly; an empty object is valid
    for a development Task. Concrete test and code design belong to execution.
-4. Declare actual stage roles, inputs/outputs, skills and sufficient write boundaries
+4. Declare explicit stage purpose and criteria authority using the canonical
+   [stage criteria contract](../../../docs/workflows/stage-criteria.md), separately
+   from stage roles and handlers. Supply initial stage criteria from known facts.
+   Declare actual stage roles, inputs/outputs, skills and sufficient write boundaries
    using the selected project's decomposition contract. A paired process requires
    independent review after each substantive executor result, not role impersonation.
 5. Use only public create/edit/ready and contract APIs. Preserve identity, ownership,
@@ -52,10 +55,10 @@ process, routing and supported public Task schema.
    incident narrative, implementation instructions or single-installation service
    work presented as product requirements; one live installation is not proof of
    the full declared product scope.
-7. Keep the current API limitations explicit. Before-stage DoR/DoD revision and
-   mechanical rewind follow the [revision
-   contract](../../../docs/workflows/paired-task-stages.md#dor-dod-и-автоматическая-перемотка);
-   this skill implements neither a new API nor automatic restart.
+7. Keep Task draft edits separate from future execution-stage criteria proposals
+   and decisions through `verify.criteria_work`. Follow the canonical stage criteria
+   contract for authority, exact revisions and execution binding. Changes to bound
+   criteria require an authorized restart; do not invent a combined restart endpoint.
 
 ## Output
 

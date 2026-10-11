@@ -48,9 +48,9 @@
   "entry_requirements": [],
   "exit_requirements": [],
   "criteria": {
-    "requirements": ["Return twice the integer input."],
-    "definition_of_ready": ["The input and expected result are specified."],
-    "definition_of_done": ["The accepted checks prove the result."]
+    "requirements": ["Возвращается удвоенное входное целое число."],
+    "definition_of_ready": ["Входные данные и ожидаемый результат определены."],
+    "definition_of_done": ["Согласованные проверки доказывают результат."]
   }
 }
 ```
@@ -109,9 +109,9 @@
     "stage_id": "build",
     "expected_criteria_revision": 0,
     "criteria": {
-      "requirements": ["Return twice every integer input."],
-      "definition_of_ready": ["The input and expected result are specified."],
-      "definition_of_done": ["The accepted checks prove the result."]
+      "requirements": ["Для любого входного целого числа возвращается его удвоенное значение."],
+      "definition_of_ready": ["Входные данные и ожидаемый результат определены."],
+      "definition_of_done": ["Согласованные проверки доказывают результат."]
     },
     "entry_requirements": [],
     "exit_requirements": []

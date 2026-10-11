@@ -9,7 +9,7 @@ from poise.common import PoiseError, load_config
 from projects.test_update import project_revision, update_tools
 
 from .material_relocation_helpers import (
-    STDERR, STDOUT, checksum, fresh, immutable, placed, prepare, relocate, required,
+    STDERR, STDOUT, checksum, configured_hook, fresh, immutable, placed, prepare, relocate, required,
 )
 
 
@@ -59,15 +59,18 @@ def test_exact_retry_after_interrupted_effect_preserves_readback(project, tmp_pa
     case = prepare(project, tmp_path)
     before = immutable(case['tools'].runtime)
     effect = getattr(owner, seam)
+    observed = []
 
     def interrupted(*args, **kwargs):
         effect(*args, **kwargs)
+        observed.append(seam)
         raise OSError('test interruption after ' + seam)
 
     with monkeypatch.context() as patch:
         patch.setattr(owner, seam, interrupted)
         with pytest.raises(PoiseError, match='retry|повтор'):
             update_tools(case['settings']).apply(case['packet'])
+    assert observed == [seam]
     moved = relocate(case)
     assert immutable(moved.runtime) == before
     assert moved.runtime._receipt_files_intact(case['receipt'], case['method'])
@@ -199,11 +202,10 @@ def test_delivered_registered_input_still_resolves_permanent_bytes(project, tmp_
 
 
 def test_actual_hook_writer_lock_blocks_retirement(project, tmp_path):
-    from hook_transport.helpers import install, settings
-    from poise.infrastructure.hook_transport import HookService
+    from hook_transport.helpers import install
     from poise.infrastructure.locking import exclusive_lock
     case = prepare(project, tmp_path, native_hooks=True)
-    hook = HookService(settings(case['project'], tmp_path))
+    hook = configured_hook(case, tmp_path)
     install(hook)
     case['packet']['expected_revision'] = project_revision(case['config_path'])
     config_bytes = case['config_path'].read_bytes()
@@ -225,10 +227,9 @@ def test_actual_hook_writer_lock_blocks_retirement(project, tmp_path):
 
 
 def test_stale_native_hook_cannot_recreate_retired_source(project, tmp_path):
-    from hook_transport.helpers import event, install, settings
-    from poise.infrastructure.hook_transport import HookService
+    from hook_transport.helpers import event, install
     case = prepare(project, tmp_path, native_hooks=True)
-    hook = HookService(settings(case['project'], tmp_path))
+    hook = configured_hook(case, tmp_path)
     installed = install(hook)
     case['packet']['expected_revision'] = project_revision(case['config_path'])
     moved = relocate(case)

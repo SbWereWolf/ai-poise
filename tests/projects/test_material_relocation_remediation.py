@@ -13,7 +13,7 @@ from poise.application.work import WorkTools
 from poise.common import PoiseError, load_config
 from projects.test_update import update_tools
 from .material_relocation_helpers import (
-    STDERR, STDOUT, checksum, empty_contract, fresh, immutable, other_owner,
+    STDERR, STDOUT, checksum, configured_hook, empty_contract, fresh, immutable, other_owner,
     placed, prepare, release, relocate, required,
 )
 
@@ -30,7 +30,7 @@ def assert_admission_refusal(case, tools, task_id, worktree):
     except PoiseError as exc:
         error = exc
     assert error is not None, 'The actual relocation route ignored a foreign live owner'
-    assert str(error)
+    assert any(word in str(error).lower() for word in ('claim', 'writer', 'session', 'owner', 'влад'))
     assert case['source'].is_dir()
     assert case['config_path'].read_bytes() == config_bytes
     assert tools.runtime.task_queries.record(task_id)['claimed_by'] == claim
@@ -83,8 +83,10 @@ def test_partial_copy_interruption_keeps_source_then_resumes(project, tmp_path, 
     case = prepare(project, tmp_path)
     before = immutable(case['tools'].runtime)
     config_bytes = case['config_path'].read_bytes()
+    observed = []
 
     def partial(source, staging):
+        observed.append('partial-copy')
         staging.mkdir()
         target = staging / Path(case['receipt']['stdout']).relative_to(source)
         target.parent.mkdir(parents=True)
@@ -96,6 +98,7 @@ def test_partial_copy_interruption_keeps_source_then_resumes(project, tmp_path, 
         patch.setattr(owner, 'copy_state_tree', partial)
         with pytest.raises(PoiseError, match='retry|повтор'):
             update_tools(case['settings']).apply(case['packet'])
+    assert observed == ['partial-copy']
     assert Path(case['receipt']['stdout']).read_bytes() == STDOUT
     assert case['config_path'].read_bytes() == config_bytes
     assert immutable(case['tools'].runtime) == before
@@ -111,14 +114,17 @@ def test_failure_before_existing_effect_is_recoverable(project, tmp_path, monkey
     import poise.infrastructure.project_config as owner
     case = prepare(project, tmp_path)
     before = immutable(case['tools'].runtime)
+    observed = []
 
     def interrupted(*args, **kwargs):
+        observed.append(seam)
         raise OSError('Interrupted before ' + seam)
 
     with monkeypatch.context() as patch:
         patch.setattr(owner, seam, interrupted)
         with pytest.raises(PoiseError, match='retry|повтор'):
             update_tools(case['settings']).apply(case['packet'])
+    assert observed == [seam]
     assert case['source'].is_dir()
     assert Path(case['receipt']['stdout']).read_bytes() == STDOUT
     assert immutable(case['tools'].runtime) == before
@@ -129,14 +135,17 @@ def test_failure_before_existing_effect_is_recoverable(project, tmp_path, monkey
 
 def pending_before_retirement(case, monkeypatch):
     import poise.infrastructure.project_config as owner
+    observed = []
 
     def stop(source):
+        observed.append('before-retirement')
         raise OSError('Stop before source retirement')
 
     with monkeypatch.context() as patch:
         patch.setattr(owner, 'remove_source_state', stop)
         with pytest.raises(PoiseError, match='retry|повтор'):
             update_tools(case['settings']).apply(case['packet'])
+    assert observed == ['before-retirement']
     assert case['source'].is_dir() and case['destination'].is_dir()
 
 
@@ -200,9 +209,9 @@ def test_registry_publication_interruption_rolls_back_and_replays_once(
 def test_hook_publication_interruption_replays_without_duplicate_groups(
         project, tmp_path, monkeypatch, timing, publication):
     import poise.infrastructure.hook_transport as owner
-    from hook_transport.helpers import install, settings
+    from hook_transport.helpers import install
     case = prepare(project, tmp_path, native_hooks=True)
-    service = owner.HookService(settings(case['project'], tmp_path))
+    service = configured_hook(case, tmp_path)
     before = immutable(case['tools'].runtime)
     effect = owner.atomic_write
     observed = []

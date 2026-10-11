@@ -15,6 +15,8 @@ FIXTURES = Path(__file__).parent / 'fixtures/material_relocation'
 FILES = [
     'tests/projects/test_state_material_relocation.py',
     'tests/projects/test_material_relocation_remediation.py',
+    'tests/projects/test_material_relocation_coordination.py',
+    'tests/projects/test_runtime_resources_bootstrap.py',
     'tests/verification/test_material_relocation_consumers.py',
 ]
 

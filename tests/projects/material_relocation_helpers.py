@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import tempfile
 
 from batch.helpers import request, result
 from conftest import WorkPoise, bind_task_requirements, seed_fixture_requirements, write_json
@@ -41,6 +42,9 @@ def prepare(project, tmp_path, *, released=True, native_hooks=False):
     # All configuration is test arrangement, before project setup or Task creation.
     project = deepcopy(project)
     project['cfg']['automatic_checks'] = []
+    project['cfg']['runtime_resources'] = {
+        'project_setup': str(project['root'] / 'setup.json'), 'hooks': [],
+    }
     project['cfg']['paths']['worktrees'] = str(project['app'] / 'task-worktrees')
     project['cfg']['paths']['requirements_database'] = str(tmp_path / 'requirements.sqlite')
     project['cfg']['paths']['requirements_lock'] = str(tmp_path / 'requirements.lock')
@@ -72,6 +76,7 @@ def prepare(project, tmp_path, *, released=True, native_hooks=False):
     if released:
         release(tools)
     move = relocation(config_path, tmp_path / 'relocated-state')
+    move.update(schema='project-state-relocation-1', hook_destinations=[])
     packet = update_request(config_path, project_revision(config_path),
                             state_relocation=move)
     return {
@@ -81,6 +86,48 @@ def prepare(project, tmp_path, *, released=True, native_hooks=False):
         'packet': packet, 'source': Path(move['expected_source']),
         'destination': Path(move['destination']),
     }
+
+
+def configured_hook(case, tmp_path, *, independent=False):
+    """Author a hook fixture before install; publish association through its owner."""
+    from hook_transport.helpers import settings
+    from poise.infrastructure.hook_transport import HookService
+    arrangement = deepcopy(case['project'])
+    # The reused fixture builder writes only this unmanaged throwaway manifest.
+    # It never overwrites the selected already-managed project configuration.
+    with tempfile.TemporaryDirectory(dir=tmp_path) as directory:
+        arrangement['config_path'] = Path(directory) / 'unmanaged-hook-fixture.json'
+        path = settings(arrangement, tmp_path)
+    raw = json.loads(path.read_text())
+    if independent:
+        raw['state'] = 'independent-hook-control'
+        raw['lock'] = 'independent-hook-control.lock'
+        write_json(path, raw)
+    resources = deepcopy(case['project']['cfg']['runtime_resources'])
+    resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
+    packet = update_request(case['config_path'], project_revision(case['config_path']),
+                            request_id='attach-hook-association', manifest_edits=[{
+                                'path': ['runtime_resources'], 'value': resources,
+                            }])
+    packet['receipt_path'] = 'operations/attach-hook-association.json'
+    required(update_tools(case['settings']).apply, packet)
+    service = HookService(path)
+    target = deepcopy(raw)
+    target_path = path
+    if not independent:
+        target['root'] = str(tmp_path)
+        for key in ('project_config', 'hooks_file', 'definitions'):
+            target[key] = str(getattr(service.settings, key))
+        target['state'] = str(case['destination'] / 'hook-control')
+        target['lock'] = str(case['destination'] / 'hook-control.lock')
+        target_path = path.with_name('moved-hook-settings.json')
+    case['move']['hook_destinations'] = [{
+        'installation_id': 'primary-hooks', 'settings_path': str(target_path),
+        'settings': target,
+    }]
+    case['packet']['expected_revision'] = project_revision(case['config_path'])
+    case['hook_target'] = target_path
+    return service
 
 
 def relocate(case):

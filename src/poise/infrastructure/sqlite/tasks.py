@@ -1332,7 +1332,7 @@ class SqliteExecutionRepository:
         # removed by an execution write. Only this owner's current fields vary.
         opaque = set(previous) - EXECUTION_FIELDS
         if (not EXECUTION_FIELDS <= set(data) or set(data) - EXECUTION_FIELDS - opaque
-                or any(data[key] != previous[key] for key in opaque & set(data))):
+                or any(encode(data[key]) != encode(previous[key]) for key in opaque & set(data))):
             raise PoiseError("Из execution adapter нельзя менять Task lifecycle")
         data = {**previous, **data}
         r=self.db.execute("UPDATE task_execution SET data=?,version=version+1 WHERE task_id=? AND version=?",

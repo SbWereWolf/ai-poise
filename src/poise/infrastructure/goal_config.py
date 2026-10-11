@@ -181,7 +181,7 @@ class FileGoalConfigRepository:
         for key, observed in binding['resources'].items():
             path = descendant(s.root, s.raw[key])
             stat = path.stat()
-            if (path.is_symlink() or str(path) != observed['path']
+            if (str(path) != observed['path']
                     or (stat.st_dev, stat.st_ino) != (observed['device'], observed['inode'])):
                 raise VersionConflict('Original migration publication owner changed')
         return cls(s)

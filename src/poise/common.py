@@ -226,22 +226,6 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     ]
     if len(set(requirements_storage + task_storage)) != 4:
         raise PoiseError('Requirements DB/lock должны быть отделены от Task DB/lock')
-    codebase = Path(cfg['git']['repository']).resolve()
-    internal = tuple(path.relative_to(codebase).as_posix()
-                     for path in requirements_storage if path.is_relative_to(codebase))
-    if internal:
-        from .infrastructure.repository_tree import GitRepositoryTree
-        try:
-            facts = GitRepositoryTree(
-                codebase, cfg['limits']['git_seconds'], cfg['limits']['preview_chars'],
-            ).current_path_facts(internal)
-        except (OSError, PoiseError) as exc:
-            raise PoiseError(f'Requirements storage: не удалось проверить Git: {exc}') from exc
-        for name in internal:
-            if name in facts['tracked']:
-                raise PoiseError(f'Requirements storage: Git отслеживает путь в codebase: {name}')
-            if name not in facts['ignored']:
-                raise PoiseError(f'Requirements storage: Git не игнорирует путь в codebase: {name}')
     for index, left in enumerate(requirements_storage):
         for right in [*task_storage, *requirements_storage[index + 1:]]:
             try:

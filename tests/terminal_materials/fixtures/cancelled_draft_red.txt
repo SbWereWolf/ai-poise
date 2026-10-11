@@ -1,0 +1,20 @@
+F
+=================================== FAILURES ===================================
+_________ test_cancelled_untyped_draft_agrees_then_retires_and_replays _________
+tests/terminal_materials/test_cancelled_draft_agreement.py:91: in test_cancelled_untyped_draft_agrees_then_retires_and_replays
+    result = tools.invoke(packet)
+             ^^^^^^^^^^^^^^^^^^^^
+src/poise/application/work.py:36: in invoke
+    if op=='delivery':out=h.delivery_tools.apply(args)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/poise/application/task_delivery.py:140: in apply
+    return self.agree(args)
+           ^^^^^^^^^^^^^^^^
+src/poise/application/task_delivery.py:51: in agree
+    else uow.tasks.load(args['task_id']).state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/poise/infrastructure/sqlite/tasks.py:829: in load
+    raise PoiseError("Нет зарегистрированного контракта содержимого")
+E   poise.modules.foundation.errors.PoiseError: Нет зарегистрированного контракта содержимого
+=========================== short test summary info ============================
+FAILED tests/terminal_materials/test_cancelled_draft_agreement.py::test_cancelled_untyped_draft_agrees_then_retires_and_replays

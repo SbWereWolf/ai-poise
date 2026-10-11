@@ -15,6 +15,35 @@ class HandlerKind(StrEnum):
     PUBLISH = "publish"
 
 
+class StagePurpose(StrEnum):
+    DESIGN = "design"
+    EXECUTION = "execution"
+    OBSERVATION = "observation"
+    OTHER = "other"
+
+
+@dataclass(frozen=True)
+class CriteriaAuthority:
+    propose: tuple[str, ...]
+    decide: tuple[str, ...]
+
+    @classmethod
+    def parse(cls, raw):
+        exact(raw, {"propose", "decide"}, "criteria_authority")
+        values = []
+        for name in ("propose", "decide"):
+            targets = raw[name]
+            if (not isinstance(targets, list)
+                    or any(not isinstance(t, str) or not t.strip() for t in targets)
+                    or len(targets) != len(set(targets))):
+                raise DomainError(f"criteria_authority.{name}: unique target IDs required")
+            values.append(tuple(targets))
+        return cls(*values)
+
+    def to_dict(self):
+        return {"propose": list(self.propose), "decide": list(self.decide)}
+
+
 # Protocol vocabulary of the implemented handler families, not process policy.
 OUTCOMES = {
     HandlerKind.APPLY_PLAN: frozenset({"complete"}),
@@ -57,6 +86,8 @@ class RouteNode:
     rework_targets: tuple[str, ...]
     read_only: bool
     allowed_paths: tuple[str, ...]
+    purpose: StagePurpose
+    criteria_authority: CriteriaAuthority
 
     def target(self, outcome: str) -> str | None:
         choices = dict(self.transitions)
@@ -85,6 +116,13 @@ class RouteDefinition:
             if any(target.stage_id in n.rework_targets for n in self.nodes):
                 raise DomainError("Rework must not bypass the inspection before publish")
         for node in self.nodes:
+            if not isinstance(node.purpose, StagePurpose):
+                raise DomainError("Explicit stage purpose required")
+            if not isinstance(node.criteria_authority, CriteriaAuthority):
+                raise DomainError("Explicit criteria authority required")
+            for target in node.criteria_authority.propose + node.criteria_authority.decide:
+                if target not in names or self.node(target).purpose != StagePurpose.EXECUTION:
+                    raise DomainError("criteria_authority requires execution targets")
             text(node.stage_id, "stage id")
             text(node.role, "stage role")
             if set(dict(node.transitions)) != OUTCOMES[node.handler]:
@@ -161,6 +199,8 @@ class RouteDefinition:
                     tuple(stage["rework_targets"]),
                     stage["read_only"],
                     tuple(stage["allowed_paths"]),
+                    StagePurpose(stage["purpose"]),
+                    CriteriaAuthority.parse(stage["criteria_authority"]),
                 ))
             return cls(cfg["entry"], tuple(nodes))
         except (KeyError, TypeError, ValueError) as exc:

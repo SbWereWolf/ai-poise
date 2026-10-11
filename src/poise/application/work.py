@@ -142,6 +142,7 @@ class WorkTools:
             elif kind=='content':value=h.show_content()
             elif kind=='evidence':value=h.show_evidence()
             elif kind=='verification_registry':value=h.show_verification_registry()
+            elif kind=='stage_criteria':value=h.show_stage_criteria(query['stage_id'])
             elif kind=='trace':value=h.show_trace(query['route'],query['point'],query['submission'])
             elif kind=='section':
                 value=h.show_section(query['name'],query['stage'],query['submission'])

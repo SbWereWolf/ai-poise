@@ -938,6 +938,7 @@ class Poise:
         context = {'session': self.session, 'task': data['id'], 'goal': data['goal'], 'status': data['status'],
                 'version': data['version'],
                 'stage': stage['id'], 'iteration': data['iteration'], 'worktree': data['worktree'],
+                'purpose': stage['purpose'], 'criteria_authority': stage['criteria_authority'],
                 'instruction': stage['instruction'], 'requirements': data['contract']['requirements'],
                 'definition_of_done': data['contract']['definition_of_done'],
                 'action':self.plan_actions.snapshot(data), 'content_requirements':content, 'handler':workflow['handler'], 'workflow':workflow,
@@ -2131,6 +2132,12 @@ class Poise:
     def show_verification_registry(self):
         data = self._task()
         return self.task_queries.verification_registry(data['id'])
+
+    def show_stage_criteria(self, stage_id):
+        current = self.current_task()
+        if current is None:
+            raise PoiseError('No current Task for stage criteria query')
+        return self.task_queries.stage_criteria(current['id'], stage_id)
 
     def show_output(self,receipt_id,representation,requested):
         from .modules.work.domain import read_range

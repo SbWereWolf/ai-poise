@@ -8,6 +8,17 @@ class TaskQueries:
     def __init__(self, database):
         self.database = database
 
+    def stage_criteria(self, task_id, stage_id):
+        from ...modules.tasks.stage_criteria import StageCriteriaBook
+        with self.database.transaction() as db:
+            row = db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
+            if row is None:
+                raise PoiseError('Task not found')
+            metadata = json.loads(row['metadata'])
+            if 'stage_criteria' not in metadata:
+                raise PoiseError('stage criteria migration required')
+            return StageCriteriaBook.from_dict(metadata['stage_criteria']).project_stage(task_id, stage_id)
+
     def resolve_path(self, task_id, path):
         from ...modules.transfers.placement import relocate_path
         with self.database.transaction() as db:

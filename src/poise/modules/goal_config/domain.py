@@ -15,7 +15,8 @@ PROCESS_FIELDS = frozenset({
     "goal_type", "stages", "content_contract", "route", "benefit", "worktree_required"
 })
 STAGE_FIELDS = frozenset({"id", "instruction", "read_only", "allowed_paths", "normalization",
-    "sections", "required_sections", "artifact_requirements", "handler", "role", "transitions", "rework_targets"})
+    "sections", "required_sections", "artifact_requirements", "handler", "role", "transitions", "rework_targets",
+    "purpose", "criteria_authority"})
 ROUTE_FIELDS = frozenset({"entry"})
 GROUPS = {"stage": "stages", "section": "sections", "trace_route": "routes", "requirement": "requirements"}
 
@@ -155,6 +156,8 @@ class GoalTypeDefinition:
             raise DomainError('stages: требуется список')
         data['stages'] = [configuration_fields(stage, STAGE_FIELDS, 'stage', DomainError) for stage in data['stages']]
         for stage in data['stages']:
+            stage['criteria_authority'] = configuration_fields(
+                stage['criteria_authority'], {'propose', 'decide'}, 'criteria_authority', DomainError)
             if not isinstance(stage['artifact_requirements'], list):
                 raise DomainError('artifact_requirements: требуется список')
             stage['artifact_requirements'] = [configuration_fields(rule, {'scope', 'pattern', 'minimum', 'maximum'}, 'artifact requirement', DomainError) for rule in stage['artifact_requirements']]

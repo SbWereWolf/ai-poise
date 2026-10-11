@@ -134,12 +134,15 @@ def parse_request(value, config):
                 raise DomainError('Query IDs must be unique nonempty strings')
             ids.add(query['id'])
             shapes_q={'task_delivery':{'id','kind','task_id'},'ownership_recovery':{'id','kind','task_ids'},'ownership_conflicts':{'id','kind'},'accounting':{'id','kind','scope','group_by','from','to'},'tool_result':{'id','kind','receipt_id','representation','range'},'sprint':{'id','kind','sprint_id','view'},'work_overview':{'id','kind','sprint_statuses','standalone_task_statuses'},'task':{'id','kind'},'integration':{'id','kind','task_id','request_id'},'task_cleanup':{'id','kind','task_id','request_id'},'messages':{'id','kind'},'content':{'id','kind'},'evidence':{'id','kind'},'verification_registry':{'id','kind'},
+               'stage_criteria':{'id','kind','stage_id'},
                'section':{'id','kind','name','stage','submission','range'},
                'trace':{'id','kind','route','point','submission'}}
             kind=query.get('kind')
             if not isinstance(kind,str) or kind not in shapes_q:
                 raise DomainError('Unknown batch query kind')
             exact(query,shapes_q[kind],'query')
+            if kind == 'stage_criteria' and (not isinstance(query['stage_id'], str) or not query['stage_id'].strip()):
+                raise DomainError('stage_criteria requires a stage ID')
             if kind == 'ownership_recovery':
                 from ..ownership.domain import recovery_task_ids
                 recovery_task_ids(query['task_ids'])

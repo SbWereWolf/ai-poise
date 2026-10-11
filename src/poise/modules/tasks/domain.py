@@ -12,6 +12,7 @@ from ..inspection.domain import FeedbackBook
 from ..verification.domain import CheckRegistry
 from ..content_requirements.domain import ContentPolicy, ContentSnapshot, TraceValue, ArtifactFact, Assessment
 from ..foundation.paths import matches_allowed_path
+from .stage_criteria import StageCriteria, StageCriteriaBook, split_work
 
 
 class TaskStatus(StrEnum):
@@ -62,6 +63,7 @@ class TaskStageContract:
     allowed_paths: tuple[str, ...]
     entry_requirements: tuple[str, ...]
     exit_requirements: tuple[str, ...]
+    criteria: StageCriteria
 
     def to_dict(self) -> dict:
         return {
@@ -69,6 +71,7 @@ class TaskStageContract:
             "allowed_paths": list(self.allowed_paths),
             "entry_requirements": list(self.entry_requirements),
             "exit_requirements": list(self.exit_requirements),
+            "criteria": self.criteria.to_dict(),
         }
 
 
@@ -107,7 +110,7 @@ class TaskStageContracts:
         parsed = []
         for value in raw:
             if not isinstance(value, dict) or set(value) != {
-                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
+                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements", "criteria"
             }:
                 raise DomainError("stage contract requires exact fields")
             stage_id = value["stage_id"]
@@ -118,6 +121,7 @@ class TaskStageContracts:
                 _contract_names(value["allowed_paths"], f"{stage_id}.allowed_paths"),
                 _contract_names(value["entry_requirements"], f"{stage_id}.entry_requirements"),
                 _contract_names(value["exit_requirements"], f"{stage_id}.exit_requirements"),
+                StageCriteria.parse(value["criteria"]),
             ))
         route_stages = tuple(node.stage_id for node in route.nodes)
         if (tuple(item.stage_id for item in parsed) != route_stages
@@ -308,6 +312,7 @@ class Task:
     stage_contracts: TaskStageContracts | None = None
     duplicate_reuse: str | None = None
     replay_candidate: str | None = None
+    criteria_book: StageCriteriaBook | None = None
 
     def __post_init__(self) -> None:
         identifier(self.state.task_id)
@@ -397,7 +402,14 @@ class Task:
             identifier(actor)
         if self.state.status != TaskStatus.AVAILABLE:
             raise DomainError("Only an available task can be started")
-        return self._change("started",None,None,status=TaskStatus.ACTIVE,claimed_by=actor)
+        change = self._change("started",None,None,status=TaskStatus.ACTIVE,claimed_by=actor)
+        return replace(change, task=change.task.admit_execution(actor))
+
+    def admit_execution(self, actor):
+        if self.criteria_book is None:
+            raise DomainError("stage criteria migration required")
+        return replace(self, criteria_book=self.criteria_book.admit_execution(
+            self.stage.stage_id, actor, self.state.iteration))
 
     def can_start(self, artifacts=()) -> bool:
         """Task-owned, side-effect-free readiness; resumable work is not a start."""
@@ -640,7 +652,12 @@ class Task:
         if self.state.status != TaskStatus.ACTIVE or self.state.claimed_by != actor:
             raise DomainError("Результат принимается только в активный этап текущей сессии")
         self.evidence_plan.validate_work(self.stage.stage_id, evidence_work)
-        handling = evaluate_stage(self.route, stage_work, self.feedback, self.stage.stage_id, self.state.iteration)
+        ordinary_work, criteria_work = split_work(stage_work)
+        if criteria_work is not None:
+            if self.criteria_book is None:
+                raise DomainError("stage criteria migration required")
+            self.criteria_book.validate_work(criteria_work, self)
+        handling = evaluate_stage(self.route, ordinary_work, self.feedback, self.stage.stage_id, self.state.iteration)
         work_json = json.dumps(stage_work, sort_keys=True, ensure_ascii=False)
         registry_change = None
         registry_event = None
@@ -930,6 +947,7 @@ class Task:
                         status=TaskStatus.ACTIVE, claimed_by=actor, submission_digest=None)
         # Replace progress and position together: __post_init__ checks their equality.
         updated = replace(self, state=state, progress=progress, evidence_input=None, evidence_assessment=None, action_assessment=None, replay_candidate=None)
+        updated = updated.admit_execution(actor)
         return Change(updated, None, (TaskEvent(event, self.stage.stage_id, self.state.iteration, reason),))
 
     def _ensure_pending_resolutions_inspected(self) -> None:
@@ -1086,7 +1104,8 @@ class Task:
                 "stage_contract":contracts.stage(self.stage.stage_id).to_dict()}
 
     def _handling(self):
-        handling = evaluate_stage(self.route, json.loads(self.progress.stage_work),
+        ordinary_work, _ = split_work(json.loads(self.progress.stage_work))
+        handling = evaluate_stage(self.route, ordinary_work,
                                   self.feedback, self.stage.stage_id, self.state.iteration)
         if self.route.node(self.stage.stage_id).handler.value in ('apply_plan','publish'):
             if self.action_assessment is None:
@@ -1131,7 +1150,8 @@ class Task:
         if book == self.evidence_book:
             return self._unchanged()
         change = self._change('observations_recorded',None,None)
-        base=evaluate_stage(self.route, json.loads(self.progress.stage_work),
+        ordinary_work, _ = split_work(json.loads(self.progress.stage_work))
+        base=evaluate_stage(self.route, ordinary_work,
                             self.feedback,self.stage.stage_id,self.state.iteration)
         return replace(change,task=replace(change.task,evidence_book=book,evidence_assessment=None,
                                            progress=replace(self.progress,outcome=base.outcome)))

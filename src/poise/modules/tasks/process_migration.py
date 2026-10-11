@@ -39,6 +39,8 @@ class MigrationRequest:
 
     @classmethod
     def parse(cls, value: object) -> "MigrationRequest":
+        if isinstance(value, dict) and value.get("schema") == "task-stage-criteria-migration-1":
+            return StageCriteriaMigrationRequest.parse(value)
         fields = {"schema", "request_id", "backup_name", "task_ids", "authorization"}
         exact_keys(value, fields, "task process migration request")
         schema = value["schema"]
@@ -75,6 +77,109 @@ class MigrationRequest:
             authorization=value["authorization"],
             digest=digest(normalized),
         )
+
+
+@dataclass(frozen=True)
+class StageCriteriaMigrationRequest:
+    """Explicit resource inventory, separate from historical migration schemas."""
+
+    schema: str
+    request_id: str
+    backup_name: str
+    mapping_document: str
+    authorization: str
+    digest: str
+
+    @property
+    def mapping(self):
+        import json
+        return json.loads(self.mapping_document)
+
+    @classmethod
+    def parse(cls, value):
+        from ..goal_config.domain import canonical, fingerprint
+        from ..workflow.domain import CriteriaAuthority, StagePurpose, text
+        from .stage_criteria import StageCriteria
+        exact_keys(value, {"schema", "request_id", "backup_name", "mapping", "authorization"},
+                   "stage criteria migration request")
+        text(value["request_id"], "migration.request_id")
+        text(value["authorization"], "migration.authorization")
+        backup = exact_backup_name(value["backup_name"])
+        if not isinstance(value["mapping"], list) or not value["mapping"]:
+            raise DomainError("Migration requires a nonempty mapping")
+        identities = set()
+        for resource in value["mapping"]:
+            if not isinstance(resource, dict):
+                raise DomainError("Migration resource must be an object")
+            kind = resource.get("kind")
+            if kind == "process_definition":
+                identity_field, revision_field = "goal_type", "expected_revision"
+                fields = {"kind", identity_field, revision_field, "stages"}
+            elif kind in ("executable_task", "newborn_task"):
+                identity_field = "task_id"
+                revision_field = "expected_version" if kind == "executable_task" else "expected_revision"
+                fields = {"kind", identity_field, revision_field, "expected_process_digest", "stages"}
+            else:
+                raise DomainError("Unknown migration resource kind")
+            exact_keys(resource, fields, "migration resource")
+            text(resource[identity_field], "migration resource identity")
+            if kind == "process_definition":
+                text(resource[revision_field], "migration managed revision")
+            else:
+                if type(resource[revision_field]) is not int or resource[revision_field] < 0:
+                    raise DomainError("Migration requires a nonnegative resource version")
+                text(resource["expected_process_digest"], "migration source digest")
+            identity = ("process" if kind == "process_definition" else "task", resource[identity_field])
+            if identity in identities:
+                raise DomainError("Duplicate migration resource")
+            identities.add(identity)
+            if not isinstance(resource["stages"], list) or not resource["stages"]:
+                raise DomainError("Migration requires explicit stages")
+            stages = set()
+            for stage in resource["stages"]:
+                fields = {"stage_id", "purpose", "criteria_authority"}
+                if kind != "process_definition":
+                    fields |= {"criteria", "execution"}
+                exact_keys(stage, fields, "migration stage")
+                text(stage["stage_id"], "migration stage identity")
+                if stage["stage_id"] in stages:
+                    raise DomainError("Duplicate migration stage")
+                stages.add(stage["stage_id"])
+                try:
+                    StagePurpose(stage["purpose"])
+                except (TypeError, ValueError) as exc:
+                    raise DomainError("Unknown migration stage purpose") from exc
+                CriteriaAuthority.parse(stage["criteria_authority"])
+                if kind != "process_definition":
+                    StageCriteria.parse(stage["criteria"])
+                    execution = stage["execution"]
+                    exact_keys(execution, {"state", "source_revision", "source_refs"}, "migration execution")
+                    if execution["state"] not in ("unstarted", "started", "unknown"):
+                        raise DomainError("Invalid migration execution provenance")
+                    if (execution["source_revision"] is not None and
+                            (type(execution["source_revision"]) is not int or execution["source_revision"] < 0)):
+                        raise DomainError("Invalid migration source revision")
+                    if not isinstance(execution["source_refs"], list) or not execution["source_refs"]:
+                        raise DomainError("Migration source_refs requires a list")
+                    for ref in execution["source_refs"]:
+                        if not isinstance(ref, dict):
+                            raise DomainError("Migration source reference requires an object")
+                        if ref.get("kind") == "contract":
+                            exact_keys(ref, {"kind", "digest"}, "migration contract source")
+                            text(ref["digest"], "migration contract digest")
+                        elif ref.get("kind") in ("submission", "task_event"):
+                            exact_keys(ref, {"kind", "id"}, "migration historical source")
+                            if type(ref["id"]) is not int or ref["id"] < 1:
+                                raise DomainError("Migration source identity requires a positive integer")
+                        else:
+                            raise DomainError("Unknown migration source kind")
+        try:
+            document = canonical(value["mapping"])
+            identity = fingerprint(value)
+        except (ValueError, UnicodeError, TypeError) as exc:
+            raise DomainError("Migration request cannot be encoded") from exc
+        return cls(value["schema"], value["request_id"], backup, document,
+                   value["authorization"], identity)
 
 
 @dataclass(frozen=True)

@@ -21,6 +21,7 @@ from ...modules.inspection.domain import FeedbackBook
 from ...modules.evidence.domain import EvidenceBook
 from ...modules.foundation.errors import PoiseError, VersionConflict
 from ...modules.tasks.newborn import NewbornTask
+from ...modules.tasks.stage_criteria import StageCriteriaBook, split_work
 from ...modules.tasks.lifecycle import TaskLifecycle, invalid_audit
 
 
@@ -584,6 +585,7 @@ class SqliteTaskRepository:
             "stage_contract_history": deepcopy(
                 metadata.get("stage_contract_history", [])
             ),
+            "stage_criteria": deepcopy(metadata.get("stage_criteria")),
         }
 
     def publish_requirements_context(self, task_id, snapshot, agreement) -> None:
@@ -855,7 +857,38 @@ class SqliteTaskRepository:
                     RouteProgress.from_dict(workflow["progress"]), FeedbackBook.from_dict(workflow["feedback"]),
                     evidence_plan_from_metadata(metadata,registry), EvidenceBook.from_dict(proof["book"]),proof["input"],proof["assessment"],workflow["action_assessment"],contracts,
                     None if "duplicate_reuse" not in workflow else encode(workflow["duplicate_reuse"]),
-                    None if "replay_candidate" not in workflow else json.dumps(workflow["replay_candidate"], sort_keys=True, ensure_ascii=False))
+                    None if "replay_candidate" not in workflow else json.dumps(workflow["replay_candidate"], sort_keys=True, ensure_ascii=False),
+                    StageCriteriaBook.from_dict(metadata['stage_criteria'])
+                    if 'stage_criteria' in metadata else self._missing_criteria())
+
+    @staticmethod
+    def _missing_criteria():
+        raise PoiseError('stage criteria migration required')
+
+    def criteria_submission_guard(self, task, actor):
+        row = self.db.execute('SELECT metadata,current_submission_id FROM tasks WHERE id=?',
+                              (task.state.task_id,)).fetchone()
+        guard = json.loads(row['metadata']).get('criteria_pending')
+        if (not isinstance(guard, dict) or guard['actor'] != actor
+                or guard['submission'] != row['current_submission_id']
+                or guard['stage'] != task.stage.stage_id
+                or guard['iteration'] != task.state.iteration):
+            raise PoiseError('criteria verification source guard mismatch')
+        events = self.db.execute('SELECT version,data FROM task_events WHERE task_id=? '
+            'AND version>? AND version<=? ORDER BY version,seq',
+            (task.state.task_id, guard['entry_version'], task.state.version)).fetchall()
+        if {e['version'] for e in events} != set(range(guard['entry_version'] + 1, task.state.version + 1)):
+            raise PoiseError('criteria verification version history incomplete')
+        allowed = {'submitted', 'observations_recorded', 'evidence_assessed', 'action_assessed'}
+        for event in events:
+            value = json.loads(event['data'])
+            if (value['event'] not in allowed or value['submission'] != guard['submission']
+                    or value['stage'] != guard['stage'] or value['iteration'] != guard['iteration']):
+                raise PoiseError('criteria verification intervening change')
+        _, work = split_work(json.loads(task.progress.stage_work))
+        if work is None or work.document != guard['intent']:
+            raise PoiseError('criteria verification intent mismatch')
+        return guard['submission']
 
     def load_check_registry(self, task_id: str, metadata: dict, workflow: dict) -> CheckRegistry:
         from ...modules.tasks.definition import (
@@ -881,6 +914,14 @@ class SqliteTaskRepository:
         if row is None:
             raise PoiseError('Restarted Task has no preserved feedback state')
         return FeedbackBook.from_dict(json.loads(row[0])['feedback'])
+
+    def restarted_evidence(self, task_id: str) -> EvidenceBook:
+        row = self.db.execute(
+            'SELECT data FROM task_proofs WHERE task_id=?', (task_id,)
+        ).fetchone()
+        if row is None:
+            raise PoiseError('Restarted Task has no preserved evidence state')
+        return EvidenceBook.from_dict(json.loads(row[0])['book'])
 
     def restarted_registry(self, task_id: str) -> CheckRegistry:
         row = self.db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
@@ -1077,6 +1118,23 @@ class SqliteTaskRepository:
             policy_data = encode(change.task.content_policy.to_layers())
             if previous is None or previous[0] != policy_data:
                 self.db.execute("INSERT INTO content_contracts VALUES(?,?,?)", (state.task_id,state.version,policy_data))
+        metadata = json.loads(self.db.execute('SELECT metadata FROM tasks WHERE id=?',
+                                             (state.task_id,)).fetchone()[0])
+        if change.task.criteria_book is None:
+            raise PoiseError('stage criteria migration required')
+        metadata['stage_criteria'] = change.task.criteria_book.data
+        metadata['contract']['stage_contracts'] = change.task.stage_contracts.to_list()
+        if change.submission is not None:
+            _, intent = split_work(json.loads(change.submission.stage_work))
+            metadata.pop('criteria_pending', None)
+            if intent is not None:
+                metadata['criteria_pending'] = {'actor': state.claimed_by,
+                    'submission': submission_id, 'stage': change.task.stage.stage_id,
+                    'iteration': state.iteration, 'entry_version': expected_version,
+                    'intent': intent.document}
+        elif state.submission_digest is None:
+            metadata.pop('criteria_pending', None)
+        self.db.execute('UPDATE tasks SET metadata=? WHERE id=?', (encode(metadata), state.task_id))
         self.db.execute("UPDATE task_workflows SET data=? WHERE task_id=?",
                         (encode(change.task.workflow_snapshot()),state.task_id))
         self._save_methods(change.task)

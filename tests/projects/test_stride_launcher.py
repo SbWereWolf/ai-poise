@@ -24,6 +24,15 @@ def write(path, value):
     return path
 
 
+def arrange_manifest(path, config, process_source_root):
+    """Place each referenced process relative to its actual manifest."""
+    for relative_path in config['processes'].values():
+        target = path.parent / relative_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(process_source_root / relative_path, target)
+    return write(path, config)
+
+
 @pytest.fixture(scope='module')
 def installed(tmp_path_factory):
     """Build copied candidate sources; install a wheel, never editable or PYTHONPATH."""
@@ -56,7 +65,7 @@ def case(project, installed, tmp_path):
     data.mkdir()
     config = dict(project['cfg'])
     config['paths'] = dict(config['paths'], state=str(data / 'demo/state'))
-    manifest = write(tools / 'selected/project.json', config)
+    manifest = arrange_manifest(tools / 'selected/project.json', config, tools)
     registry = tools / 'state/project-registry.json'
     write(registry, {'schema': 'configured-project-registry-1',
                      'projects': {'demo': {'config_path': 'selected/project.json'}}})
@@ -125,8 +134,8 @@ def test_registry_selects_manifest_and_rereads_changed_address(case):
     first = read_probe(invoke(case, 'read'))
     assert first['config'] == str(case['manifest'])
     moved = case['tools'] / 'changed/project.json'
-    moved.parent.mkdir()
-    shutil.copy2(case['manifest'], moved)
+    arrange_manifest(moved, json.loads(case['manifest'].read_text()),
+                     case['manifest'].parent)
     write(case['registry'], {'schema': 'configured-project-registry-1',
                             'projects': {'demo': {'config_path': 'changed/project.json'}}})
     assert read_probe(invoke(case, 'read'))['config'] == str(moved)
@@ -135,7 +144,8 @@ def test_registry_selects_manifest_and_rereads_changed_address(case):
 def test_exact_project_selection(case):
     other = json.loads(case['manifest'].read_text())
     other['project'] = 'second'
-    other_path = write(case['tools'] / 'second/project.json', other)
+    other_path = arrange_manifest(case['tools'] / 'second/project.json', other,
+                                  case['manifest'].parent)
     write(case['registry'], {'schema': 'configured-project-registry-1', 'projects': {
         'demo': {'config_path': 'selected/project.json'},
         'second': {'config_path': 'second/project.json'}}})

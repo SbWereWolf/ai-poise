@@ -1,0 +1,49 @@
+{
+  "goal_type": "development",
+  "worktree_required": true,
+  "route": {"entry": "sketch"},
+  "benefit": {"git_categories": ["code", "documentation"], "sections": []},
+  "content_contract": {"sections": [], "routes": [], "requirements": []},
+  "stages": [
+    {
+      "id": "sketch", "purpose": "design",
+      "criteria_authority": {"propose": ["build"], "decide": []},
+      "instruction": "Design the criteria for build.",
+      "handler": "produce", "role": "artisan", "read_only": false,
+      "allowed_paths": ["docs/**"], "normalization": "strip",
+      "sections": {"report": "Describe the design."},
+      "required_sections": ["report"], "artifact_requirements": [],
+      "transitions": {"complete": "assess"}, "rework_targets": ["sketch"]
+    },
+    {
+      "id": "assess", "purpose": "observation",
+      "criteria_authority": {"propose": [], "decide": ["build"]},
+      "instruction": "Decide on the exact proposed criteria.",
+      "handler": "produce", "role": "artisan", "read_only": false,
+      "allowed_paths": ["docs/**"], "normalization": "strip",
+      "sections": {"report": "Describe the decision."},
+      "required_sections": ["report"], "artifact_requirements": [],
+      "transitions": {"complete": "build"}, "rework_targets": ["assess", "sketch"]
+    },
+    {
+      "id": "build", "purpose": "execution",
+      "criteria_authority": {"propose": [], "decide": []},
+      "instruction": "Implement the accepted design.",
+      "handler": "produce", "role": "artisan", "read_only": false,
+      "allowed_paths": ["src/**"], "normalization": "strip",
+      "sections": {"report": "Describe the implementation."},
+      "required_sections": ["report"], "artifact_requirements": [],
+      "transitions": {"complete": "custom"}, "rework_targets": ["build", "sketch"]
+    },
+    {
+      "id": "custom", "purpose": "other",
+      "criteria_authority": {"propose": ["build"], "decide": ["build"]},
+      "instruction": "Follow the explicitly configured custom contract.",
+      "handler": "produce", "role": "artisan", "read_only": false,
+      "allowed_paths": ["docs/**"], "normalization": "strip",
+      "sections": {"report": "Describe the custom result."},
+      "required_sections": ["report"], "artifact_requirements": [],
+      "transitions": {"complete": null}, "rework_targets": ["custom", "sketch"]
+    }
+  ]
+}

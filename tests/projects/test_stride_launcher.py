@@ -86,7 +86,7 @@ def case(project, installed, tmp_path):
                 installed=installed, existing=existing)
 
 
-def invoke(case, *args, stdin=''):
+def invoke(case, *args, stdin='', inherited_environment=None):
     # Missing externally required entry point is an explicit capability assertion,
     # rather than a Python import/collection/environment failure.
     assert LAUNCHER.is_file(), 'Versioned Stride operation entry point is absent'
@@ -94,6 +94,8 @@ def invoke(case, *args, stdin=''):
            if key not in {'PYTHONPATH', 'PYTHONHOME', 'POISE_CONFIG',
                           'STRIDE_CONFIG', 'STRIDE_PYTHON'}}
     env['PYTHONNOUSERSITE'] = '1'
+    if inherited_environment is not None:
+        env.update(inherited_environment)
     return subprocess.run(['bash', str(LAUNCHER), str(case['bootstrap']), *args],
                           cwd=case['cwd'], env=env, input=stdin,
                           capture_output=True, text=True)
@@ -419,3 +421,38 @@ def test_default_command_prefix_is_reread_on_next_operation(case):
     case['settings']['command'][-1] = 'second-prefix'
     write(case['settings_path'], case['settings'])
     assert read_probe(invoke(case, 'read'))['args'] == ['second-prefix', 'read']
+
+
+def shadow_package(root):
+    package = root / 'poise'
+    package.mkdir(parents=True)
+    (package / '__init__.py').write_text('')
+    (package / 'stride.py').write_text("print('UNSELECTED_TEST_PACKAGE')\n")
+
+
+def test_installed_launcher_ignores_package_in_caller_cwd(case):
+    shadow_package(case['cwd'])
+    before = snapshot(case['data'])
+    result = invoke(case, 'read', 'cwd isolation', stdin='caller input\n')
+    observed = read_probe(result)
+    assert observed['config'] == str(case['manifest'])
+    assert observed['args'] == ['read', 'cwd isolation']
+    assert observed['cwd'] == str(case['cwd'])
+    assert observed['stdin'] == 'caller input\n'
+    assert 'UNSELECTED_TEST_PACKAGE' not in result.stdout + result.stderr
+    assert snapshot(case['data']) == before
+
+
+def test_installed_launcher_ignores_inherited_pythonpath_package(case, tmp_path):
+    shadow = tmp_path / 'unselected source package'
+    shadow_package(shadow)
+    before = snapshot(case['data'])
+    result = invoke(case, 'read', 'environment isolation', stdin='caller input\n',
+                    inherited_environment={'PYTHONPATH': str(shadow)})
+    observed = read_probe(result)
+    assert observed['config'] == str(case['manifest'])
+    assert observed['args'] == ['read', 'environment isolation']
+    assert observed['cwd'] == str(case['cwd'])
+    assert observed['stdin'] == 'caller input\n'
+    assert 'UNSELECTED_TEST_PACKAGE' not in result.stdout + result.stderr
+    assert snapshot(case['data']) == before

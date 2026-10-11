@@ -301,9 +301,36 @@ def test_accepted_exit_gate_is_used_for_actual_artifact_effect(project):
     bound = show(tools)
     assert bound["exit_requirements"] == ["build-output"]
     packet = verify_packet(execution)
-    with pytest.raises(PoiseError):
-        tools.invoke(packet)
-    assert show(tools)["execution"] == bound["execution"]
+    with tools.runtime.store.transaction() as database:
+        results_before = [tuple(row) for row in database.execute(
+            "SELECT submission_id,data FROM task_results WHERE task_id=? ORDER BY submission_id", ("T1",),
+        )]
+        links_before = [tuple(row) for row in database.execute(
+            "SELECT artifact_id FROM task_artifacts WHERE task_id=? ORDER BY artifact_id", ("T1",),
+        )]
+    blocked = tools.invoke(packet)
+    assert blocked["status"] == "content_requirements_failed"
+    assert blocked["task"] == "T1"
+    assert blocked["stage"] == "build"
+    gate = blocked["content_gate"]
+    assert gate["phase"] == "post"
+    assert gate["passed"] is False
+    assert [item["id"] for item in gate["requirements"] if not item["passed"]] == ["build-output"]
+    with tools.runtime.store.transaction() as database:
+        current = database.execute(
+            "SELECT t.status,s.stage FROM tasks t JOIN submissions s ON s.seq=t.current_submission_id "
+            "WHERE t.id=?", ("T1",),
+        ).fetchone()
+        assert tuple(current) == ("active", "build")
+        assert [tuple(row) for row in database.execute(
+            "SELECT submission_id,data FROM task_results WHERE task_id=? ORDER BY submission_id", ("T1",),
+        )] == results_before
+        assert [tuple(row) for row in database.execute(
+            "SELECT artifact_id FROM task_artifacts WHERE task_id=? ORDER BY artifact_id", ("T1",),
+        )] == links_before
+    unchanged = show(tools)
+    for field in ("execution", "revision", "source", "criteria"):
+        assert unchanged[field] == bound[field]
     packet["input"]["artifacts"] = [{
         "scope": "task", "path": "outputs/build.txt",
         "source": {"kind": "text", "text": "The build result is available.\n"},

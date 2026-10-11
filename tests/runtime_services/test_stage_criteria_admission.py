@@ -387,6 +387,11 @@ def test_actual_admission_wins_before_competing_future_criteria_edit(project):
         observed["rows"] = rows(client)
         assert client.invoke(packet)["status"] == "progression_target_reached"
         assert rows(client) == observed["rows"]
+        execution = client.invoke(request("bootstrap", {
+            "task": None, "decision": None, "feedback": None, "rework_stage": None,
+        }))
+        assert execution["stage"] == "build"
+        assert client.invoke(verify_packet(execution))["status"] == "verified"
         admitted.set()
 
     def losing_edit():
@@ -483,15 +488,35 @@ def test_admission_contending_with_uncommitted_decision_binds_only_committed_agr
     def commit_boundary(unit, exc_type, exc, traceback):
         if current_thread().name == "criteria-decision" and exc_type is None and not pending.is_set():
             row = unit.tasks.db.execute(
-                "SELECT stage FROM submissions WHERE task_id=? ORDER BY seq DESC LIMIT 1", ("T1",),
+                "SELECT t.status,t.current_submission_id,t.iteration,t.metadata,s.stage,s.iteration,r.data "
+                "FROM tasks t JOIN submissions s ON s.seq=t.current_submission_id AND s.task_id=t.id "
+                "JOIN task_results r ON r.submission_id=s.seq AND r.task_id=t.id WHERE t.id=?", ("T1",),
             ).fetchone()
-            if row is not None and row[0] == "assess":
+            if row is not None and row[0] == "verified" and row[4] == "assess":
+                assert row[2] == row[5] == observation["iteration"]
+                result = json.loads(row[6])
+                assert result["status"] == "verified"
+                assert result["stage"] == "assess"
+                current = json.loads(row[3])["stage_criteria"]["stages"]["build"]
+                assert current["criteria"] == candidate["criteria"]
+                assert current["revision"] == proposed["expected_criteria_revision"] + 1
+                assert current["source"]["proposal_id"] == proposed["proposal_id"]
+                assert current["source"]["proposal_digest"] == proposed["proposal_digest"]
+                decided = next(item for item in current["proposals"]
+                               if item["proposal_id"] == proposed["proposal_id"])["decision"]
+                assert decided["decision"] == "accepted"
+                assert decided["producer_submission"] == row[1]
+                assert decided["producer_stage"] == "assess"
+                assert decided["decision_id"] == current["source"]["decision_id"]
+                responses["committing_agreement"] = {
+                    "revision": current["revision"], "source": current["source"],
+                }
                 pending.set()
                 if not contended.wait(timeout=15):
                     failure = AssertionError("Admission did not contend on the real Task lock.")
                     errors["boundary"] = failure
                     return original_exit(unit, type(failure), failure, None)
-                observed.append("decision_submission_uncommitted")
+                observed.append("final_verified_decision_uncommitted")
                 result = original_exit(unit, exc_type, exc, traceback)
                 committed.set()
                 return result
@@ -539,7 +564,7 @@ def test_admission_contending_with_uncommitted_decision_binds_only_committed_agr
         assert not thread.is_alive()
     assert errors == {}
     assert observed.count("admission_blocked_by_kernel") >= 1
-    assert observed.count("decision_submission_uncommitted") == 1
+    assert observed.count("final_verified_decision_uncommitted") == 1
     assert committed.is_set()
     assert responses["criteria-decision"]["status"] == "verified"
     assert responses["criteria-admission"]["status"] == "progression_target_reached"
@@ -548,3 +573,5 @@ def test_admission_contending_with_uncommitted_decision_binds_only_committed_agr
     assert bound["revision"] != initial["revision"]
     assert bound["execution"]["bound_revision"] == bound["revision"]
     assert bound["source"]["proposal_id"] == proposed["proposal_id"]
+    assert bound["revision"] == responses["committing_agreement"]["revision"]
+    assert bound["source"] == responses["committing_agreement"]["source"]

@@ -13,7 +13,7 @@ from poise.application.work import WorkTools
 from poise.common import PoiseError, load_config
 from projects.test_update import update_tools
 from .material_relocation_helpers import (
-    STDERR, STDOUT, checksum, configured_hook, empty_contract, fresh, immutable, other_owner,
+    STDERR, STDOUT, assert_candidate_authority_denial, checksum, configured_hook, empty_contract, fresh, immutable, other_owner,
     placed, prepare, release, relocate, required,
 )
 
@@ -154,7 +154,7 @@ def recovery_request(case, moved, records):
         'request_id': 'recover-interrupted-publication', 'task_id': 'T1',
         'expected_version': moved.runtime.task_queries.record('T1')['_version'],
         'artifact_ids': [row['id'] for row in records],
-        'source_roots': {'task': case['context']['task_root']},
+        'source_roots': {'task': str(placed(case, case['context']['task_root']))},
         'reason': 'Publish admitted destination registry through its existing owner.',
         'authorization': 'Disposable fixture owner approves exact relocation.',
     })
@@ -165,11 +165,24 @@ def test_registry_publication_interruption_rolls_back_and_replays_once(
         project, tmp_path, monkeypatch, timing):
     from poise.infrastructure.sqlite.artifacts import SqliteArtifactRepository
     case = prepare(project, tmp_path)
-    records = case['tools'].runtime.store.artifact_records('T1')
+    original = case['tools'].runtime.store.artifact_records('T1')
     pending_before_retirement(case, monkeypatch)
     moved = fresh(case)
+    records = moved.runtime.store.artifact_records('T1')
+    assert len(records) == len(original)
+    for old, current in zip(original, records, strict=True):
+        assert {k: current[k] for k in ('id', 'owner', 'scope', 'digest')} == {
+            k: old[k] for k in ('id', 'owner', 'scope', 'digest')}
+        assert Path(current['path']) == placed(case, old['path'])
+        assert checksum(Path(current['path']).read_bytes()) == old['digest']
     before = immutable(moved.runtime)
     packet = recovery_request(case, moved, records)
+    def audit():
+        import sqlite3
+        database = moved.runtime.state / moved.runtime.paths['database']
+        with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as db:
+            return list(db.execute('SELECT seq,task_id,event,data FROM journal ORDER BY seq'))
+    prior_audit = audit()
     effect = SqliteArtifactRepository.rebind
     observed = []
 
@@ -185,22 +198,28 @@ def test_registry_publication_interruption_rolls_back_and_replays_once(
             moved.invoke(packet)
     assert observed == [timing]
     assert moved.runtime.store.artifact_records('T1') == records
+    assert audit() == prior_audit
     assert immutable(moved.runtime) == before
     assert Path(case['receipt']['stdout']).read_bytes() == STDOUT
     assert case['source'].is_dir()
     done = required(moved.invoke, packet)
+    published_audit = audit()
     replay = required(moved.invoke, packet)
+    assert audit() == published_audit
+    assert published_audit[:len(prior_audit)] == prior_audit
     assert done == replay
     assert done['status'] == 'artifacts_recovered'
     rows = moved.runtime.store.artifact_records('T1')
     assert len(rows) == len(records)
     for old, new in zip(records, rows, strict=True):
         assert new['id'] == old['id'] and new['digest'] == old['digest']
-        assert Path(new['path']) == placed(case, old['path'])
+        assert Path(new['path']) == Path(old['path'])
         assert checksum(Path(new['path']).read_bytes()) == old['digest']
-    with moved.runtime.store.transaction() as db:
-        count = db.execute("SELECT COUNT(*) FROM journal WHERE event='artifacts.recovered'").fetchone()[0]
-    assert count == 1
+    own = [row for row in published_audit if row[2] == 'artifacts.recovered'
+           and json.loads(row[3]).get('request_id') == packet['input']['request_id']]
+    assert len(own) == 1
+    assert len([row for row in published_audit[len(prior_audit):]
+                if row[2] == 'artifacts.recovered']) == 1
     assert immutable(moved.runtime) == before
 
 
@@ -362,11 +381,6 @@ def test_unconfirmed_destination_decoy_does_not_authorize_readback(project, tmp_
     path = write_json(root / 'unconfirmed-reader.json', candidate)
     decoy = placed(case, case['receipt']['stdout'])
     decoy.write_bytes(b'unconfirmed destination decoy\n')
-    reader = WorkTools(WorkPoise(path, 'unconfirmed-reader'))
-    before = immutable(reader.runtime)
-    views = reader.runtime.result_views.command_views([case['receipt']])
-    assert 'presentation_error' in views[0], 'Existing bytes were mistaken for placement authority'
-    assert 'unconfirmed destination decoy' not in views[0].get('primary', '')
-    assert immutable(reader.runtime) == before
+    assert_candidate_authority_denial(case, path, 'unconfirmed-reader', case['tools'].runtime)
     assert Path(case['receipt']['stdout']).read_bytes() == STDOUT
     assert decoy.read_bytes() == b'unconfirmed destination decoy\n'

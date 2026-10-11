@@ -11,6 +11,7 @@ from .runtime_resources_bootstrap_helpers import (
     apply_required, arrange_bootstrap, assert_only_publication,
     bootstrap_cli, bootstrap_python, files,
 )
+from .legacy_hook_fixture import restore_legacy_hook
 
 
 def test_installed_bootstrap_adds_only_association_and_replays(project, tmp_path, bootstrap_python):
@@ -164,3 +165,72 @@ def test_bootstrap_never_constructs_ordinary_mutable_runtime(project, tmp_path, 
     done = apply_required(case)
     assert done['status'] == 'completed'
     assert_only_publication(case, before)
+
+
+def test_historical_hook_fixture_restores_without_mutable_runtime(project, tmp_path, monkeypatch):
+    import poise.runtime as runtime
+    import poise.infrastructure.hook_transport as hook
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Historical fixture invoked an ordinary mutable runtime')
+
+    monkeypatch.setattr(runtime.Poise, '__init__', forbidden)
+    monkeypatch.setattr(hook.HookService, '__init__', forbidden)
+    case = arrange_bootstrap(project, tmp_path, native_hooks=True)
+    previous = restore_legacy_hook(case)
+    assert len(case['resources']['hooks']) == 1
+    assert previous['database'].is_file()
+    assert 'runtime_resources' not in json.loads(case['config_path'].read_text())
+
+
+def test_installed_bootstrap_preserves_existing_nonempty_hook_installation(
+        project, tmp_path, bootstrap_python):
+    case = arrange_bootstrap(project, tmp_path, native_hooks=True)
+    previous = restore_legacy_hook(case)
+    before = files(case['root'])
+    process, done = bootstrap_cli(bootstrap_python, case)
+    assert process.returncode == 0, done
+    assert done['status'] == 'completed'
+    assert_only_publication(case, before)
+    published = files(case['root'])
+    process, replay = bootstrap_cli(bootstrap_python, case)
+    assert process.returncode == 0 and replay['replayed'] is True
+    assert files(case['root']) == published
+    assert previous['database'].read_bytes() == before[str(previous['database'].relative_to(case['root']))]
+
+
+@pytest.mark.parametrize('fault', ['installation-id', 'project-binding', 'definition', 'native-group'])
+def test_installed_bootstrap_rejects_changed_existing_hook_authority(
+        project, tmp_path, bootstrap_python, fault):
+    case = arrange_bootstrap(project, tmp_path, native_hooks=True)
+    previous = restore_legacy_hook(case)
+    packet = deepcopy(case['packet'])
+    if fault == 'installation-id':
+        packet['runtime_resources']['hooks'][0]['installation_id'] = 'foreign-installation'
+    elif fault == 'project-binding':
+        foreign = deepcopy(case['config'])
+        foreign['project'] = 'foreign-project'
+        path = case['root'] / 'foreign-hook-project.json'
+        path.write_text(json.dumps(foreign, ensure_ascii=False, indent=2) + '\n')
+        settings = json.loads(previous['settings'].read_text())
+        settings['project_config'] = path.name
+        previous['settings'].write_text(json.dumps(settings, ensure_ascii=False, indent=2) + '\n')
+    elif fault == 'definition':
+        definition = json.loads(previous['definition'].read_text())
+        definition['agent_id'] = 'foreign-agent'
+        previous['definition'].write_text(json.dumps(definition, ensure_ascii=False, indent=2) + '\n')
+    else:
+        native = json.loads(previous['native_hooks'].read_text())
+        native['hooks']['SessionStart'][0]['hooks'][0]['command'] = 'echo foreign-command'
+        previous['native_hooks'].write_text(json.dumps(native, ensure_ascii=False, indent=2) + '\n')
+    before = files(case['root'])
+    process, denied = bootstrap_cli(bootstrap_python, case, packet)
+    assert process.returncode == 2 and denied['status'] == 'rejected'
+    probe = deepcopy(packet)
+    probe['schema'] = 'test-owned-unknown-bootstrap-schema'
+    _, unsupported = bootstrap_cli(bootstrap_python, case, probe)
+    assert denied['reason'] != unsupported['reason'], 'No existing-installation authority check was reached'
+    assert any(word in denied['reason'].lower() for word in (
+        'hook', 'installation', 'definition', 'group', 'project', 'хук', 'установ', 'групп', 'проект',
+    )), denied
+    assert files(case['root']) == before

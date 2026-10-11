@@ -1,0 +1,222 @@
+{
+  "schema": "historical-hook-installation-fixture-1",
+  "user_version": 1,
+  "schema_sql": [
+    "CREATE TABLE bindings(id TEXT PRIMARY KEY, data TEXT NOT NULL, latest_message TEXT)",
+    "CREATE TABLE hook_events(id INTEGER PRIMARY KEY, at TEXT NOT NULL, binding TEXT, event TEXT NOT NULL, data TEXT NOT NULL)",
+    "CREATE TABLE installations(id TEXT PRIMARY KEY, data TEXT NOT NULL)",
+    "CREATE TABLE operations(id TEXT PRIMARY KEY, data TEXT NOT NULL)",
+    "CREATE INDEX hook_events_binding ON hook_events(binding,id)"
+  ],
+  "tables": {
+    "bindings": [],
+    "hook_events": [
+      [
+        1,
+        "2026-10-11T07:43:49.057089+00:00",
+        null,
+        "install.pending",
+        "{\"request_id\":\"install-1\"}"
+      ],
+      [
+        2,
+        "2026-10-11T07:43:49.129563+00:00",
+        null,
+        "install.completed",
+        "{\"request_id\":\"install-1\",\"revision\":\"${NATIVE_REVISION}\"}"
+      ]
+    ],
+    "installations": [
+      [
+        "primary-hooks",
+        "{\"groups\":[[\"SessionStart\",{\"hooks\":[{\"additionalContextLimit\":2000,\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Bind Poise session\",\"timeout\":15,\"type\":\"command\"}],\"matcher\":\"startup|resume|compact|clear\"}],[\"UserPromptSubmit\",{\"hooks\":[{\"additionalContextLimit\":2000,\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Record user turn\",\"timeout\":15,\"type\":\"command\"}]}],[\"Stop\",{\"hooks\":[{\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Report Poise state\",\"timeout\":5,\"type\":\"command\"}]}],[\"SessionEnd\",{\"hooks\":[{\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Record session end\",\"timeout\":3,\"type\":\"command\"}],\"matcher\":\"other\"}]],\"receipt\":{\"definition_path\":\"${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"events\":[\"SessionStart\",\"UserPromptSubmit\",\"Stop\",\"SessionEnd\"],\"hooks_path\":\"${ROOT}/.codex/hooks.json\",\"live_codex\":\"not_observed\",\"request_id\":\"install-1\",\"revision\":\"${NATIVE_REVISION}\",\"status\":\"installed\",\"trust_status\":\"requires_user_review\"}}"
+      ]
+    ],
+    "operations": [
+      [
+        "install-1",
+        "{\"before\":null,\"candidate\":{\"hooks\":{\"SessionEnd\":[{\"hooks\":[{\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Record session end\",\"timeout\":3,\"type\":\"command\"}],\"matcher\":\"other\"}],\"SessionStart\":[{\"hooks\":[{\"additionalContextLimit\":2000,\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Bind Poise session\",\"timeout\":15,\"type\":\"command\"}],\"matcher\":\"startup|resume|compact|clear\"}],\"Stop\":[{\"hooks\":[{\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Report Poise state\",\"timeout\":5,\"type\":\"command\"}]}],\"UserPromptSubmit\":[{\"hooks\":[{\"additionalContextLimit\":2000,\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Record user turn\",\"timeout\":15,\"type\":\"command\"}]}]}},\"definition\":{\"agent_id\":\"primary\",\"context_template\":\"Use {launcher} with a single work JSON packet. Current state: {state}.\",\"events\":[{\"async\":false,\"context_limit\":2000,\"event\":\"SessionStart\",\"matcher\":\"startup|resume|compact|clear\",\"status_message\":\"Bind Poise session\",\"timeout_seconds\":15},{\"async\":false,\"context_limit\":2000,\"event\":\"UserPromptSubmit\",\"matcher\":\"\",\"status_message\":\"Record user turn\",\"timeout_seconds\":15},{\"async\":false,\"context_limit\":null,\"event\":\"Stop\",\"matcher\":\"\",\"status_message\":\"Report Poise state\",\"timeout_seconds\":5},{\"async\":false,\"context_limit\":null,\"event\":\"SessionEnd\",\"matcher\":\"other\",\"status_message\":\"Record session end\",\"timeout_seconds\":3}],\"gate_operations\":[\"bootstrap\",\"verify\",\"artifacts\"],\"id\":\"primary-hooks\",\"message_source\":\"codex-hook-main\",\"probes\":[{\"argv\":[\"${PYTHON}\",\"-B\",\"-c\",\"print(\\\"ready\\\")\"],\"cwd\":\"${workspace}\",\"environment\":{},\"expected_exit_code\":0,\"id\":\"python\",\"json_assertions\":[],\"kind\":\"command\",\"max_output_bytes\":65536,\"mcp\":null,\"project_bound\":false,\"remediation\":\"Install the explicitly required interpreter and retry.\",\"required\":true,\"stderr_contains\":[],\"stdout_contains\":[\"ready\"],\"timeout_seconds\":3.0,\"tool_ref\":\"python\"}],\"schema\":\"hook-definition-1\",\"stop_template\":\"Current Poise state: {state}; no acceptance or transition was performed.\",\"unknown_outcome_message\":\"Native hook failed; inspect the local operational record.\"},\"digest\":\"${OPERATION_DIGEST}\",\"groups\":[[\"SessionStart\",{\"hooks\":[{\"additionalContextLimit\":2000,\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Bind Poise session\",\"timeout\":15,\"type\":\"command\"}],\"matcher\":\"startup|resume|compact|clear\"}],[\"UserPromptSubmit\",{\"hooks\":[{\"additionalContextLimit\":2000,\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Record user turn\",\"timeout\":15,\"type\":\"command\"}]}],[\"Stop\",{\"hooks\":[{\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Report Poise state\",\"timeout\":5,\"type\":\"command\"}]}],[\"SessionEnd\",{\"hooks\":[{\"async\":false,\"command\":\"env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"statusMessage\":\"Record session end\",\"timeout\":3,\"type\":\"command\"}],\"matcher\":\"other\"}]],\"phase\":\"completed\",\"receipt\":{\"definition_path\":\"${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json\",\"events\":[\"SessionStart\",\"UserPromptSubmit\",\"Stop\",\"SessionEnd\"],\"hooks_path\":\"${ROOT}/.codex/hooks.json\",\"live_codex\":\"not_observed\",\"request_id\":\"install-1\",\"revision\":\"${NATIVE_REVISION}\",\"status\":\"installed\",\"trust_status\":\"requires_user_review\"}}"
+      ]
+    ]
+  },
+  "settings": {
+    "schema": "hook-settings-1",
+    "root": ".",
+    "project_config": "project.json",
+    "python": "${PYTHON}",
+    "source_root": "${SOURCE_ROOT}",
+    "hooks_file": ".codex/hooks.json",
+    "definitions": "config/hook-definitions",
+    "state": "state/hook-control",
+    "lock": "state/hook-control.lock",
+    "database": "hook-state.sqlite",
+    "bindings": "bindings",
+    "launcher": "work.sh",
+    "binding_file": "binding.json",
+    "observations": "observations",
+    "response_file": "response.json",
+    "cwd_roots": [
+      "${CWD_ROOT}"
+    ],
+    "file_mode": 384,
+    "executable_mode": 448,
+    "lock_seconds": 3.0,
+    "lock_poll_seconds": 0.01,
+    "max_input_bytes": 1048576,
+    "output_chars": 5000,
+    "max_probes": 30,
+    "probe_files": {
+      "stdout": "stdout.txt",
+      "stderr": "stderr.txt",
+      "receipt": "receipt.json"
+    },
+    "exit_codes": {
+      "success": 0,
+      "incomplete": 1,
+      "rejected": 2
+    }
+  },
+  "definition": {
+    "agent_id": "primary",
+    "context_template": "Use {launcher} with a single work JSON packet. Current state: {state}.",
+    "events": [
+      {
+        "async": false,
+        "context_limit": 2000,
+        "event": "SessionStart",
+        "matcher": "startup|resume|compact|clear",
+        "status_message": "Bind Poise session",
+        "timeout_seconds": 15
+      },
+      {
+        "async": false,
+        "context_limit": 2000,
+        "event": "UserPromptSubmit",
+        "matcher": "",
+        "status_message": "Record user turn",
+        "timeout_seconds": 15
+      },
+      {
+        "async": false,
+        "context_limit": null,
+        "event": "Stop",
+        "matcher": "",
+        "status_message": "Report Poise state",
+        "timeout_seconds": 5
+      },
+      {
+        "async": false,
+        "context_limit": null,
+        "event": "SessionEnd",
+        "matcher": "other",
+        "status_message": "Record session end",
+        "timeout_seconds": 3
+      }
+    ],
+    "gate_operations": [
+      "bootstrap",
+      "verify",
+      "artifacts"
+    ],
+    "id": "primary-hooks",
+    "message_source": "codex-hook-main",
+    "probes": [
+      {
+        "argv": [
+          "${PYTHON}",
+          "-B",
+          "-c",
+          "print(\"ready\")"
+        ],
+        "cwd": "${workspace}",
+        "environment": {},
+        "expected_exit_code": 0,
+        "id": "python",
+        "json_assertions": [],
+        "kind": "command",
+        "max_output_bytes": 65536,
+        "mcp": null,
+        "project_bound": false,
+        "remediation": "Install the explicitly required interpreter and retry.",
+        "required": true,
+        "stderr_contains": [],
+        "stdout_contains": [
+          "ready"
+        ],
+        "timeout_seconds": 3.0,
+        "tool_ref": "python"
+      }
+    ],
+    "schema": "hook-definition-1",
+    "stop_template": "Current Poise state: {state}; no acceptance or transition was performed.",
+    "unknown_outcome_message": "Native hook failed; inspect the local operational record."
+  },
+  "native_hooks": {
+    "hooks": {
+      "SessionEnd": [
+        {
+          "hooks": [
+            {
+              "async": false,
+              "command": "env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json",
+              "statusMessage": "Record session end",
+              "timeout": 3,
+              "type": "command"
+            }
+          ],
+          "matcher": "other"
+        }
+      ],
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "additionalContextLimit": 2000,
+              "async": false,
+              "command": "env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json",
+              "statusMessage": "Bind Poise session",
+              "timeout": 15,
+              "type": "command"
+            }
+          ],
+          "matcher": "startup|resume|compact|clear"
+        }
+      ],
+      "Stop": [
+        {
+          "hooks": [
+            {
+              "async": false,
+              "command": "env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json",
+              "statusMessage": "Report Poise state",
+              "timeout": 5,
+              "type": "command"
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "additionalContextLimit": 2000,
+              "async": false,
+              "command": "env PYTHONPATH=${SOURCE_ROOT} ${PYTHON} -B -m poise hook --settings ${ROOT}/hook-settings.json --definition ${ROOT}/config/hook-definitions/${DEFINITION_DIGEST}.json",
+              "statusMessage": "Record user turn",
+              "timeout": 15,
+              "type": "command"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "producer_commit": "7162b84d6bbff375fd7789ac72fdce3171fdf426",
+    "producer_entry": "HookService.install through HookCommands/FileHookRepository",
+    "producer_source_sha256": "44bfc4209f94597b7854916010d6b43915a530634e625ebd81cdd802899ae20b",
+    "captured_document_sha256": "ee8ef75e0ed60fe12532f9455d2851a41b361d8afbcbd95442f79b424f8a2125",
+    "recorded_outcome": "installed; completed operation; four native groups; no bindings",
+    "portable_projection": "Only root/cwd/interpreter/source paths and their three dependent digests are parameterized. SQL schema and all historical records/groups remain the captured producer format."
+  }
+}

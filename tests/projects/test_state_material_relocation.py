@@ -94,19 +94,21 @@ def test_retry_after_real_destination_registry_change(project, tmp_path, monkeyp
     assert case['source'].is_dir() and case['destination'].is_dir()
     moved = fresh(case)
     record = moved.runtime.task_queries.record('T1')
+    new_db = case['destination'] / case['project']['cfg']['paths']['database']
+    before_recovery = new_db.read_bytes()
     # Real public artifact recovery changes destination SQLite after the copy.
     recovered = required(moved.invoke, request('recover_artifacts', {
         'request_id': 'recover-before-retire', 'task_id': 'T1',
         'expected_version': record['_version'],
         'artifact_ids': [row['id'] for row in records],
-        'source_roots': {'task': case['context']['task_root']},
+        'source_roots': {'task': str(placed(case, case['context']['task_root']))},
         'reason': 'Finish admitted relocation material publication.',
         'authorization': 'The disposable project owner approves exact rehoming.',
     }))
     assert recovered['status'] == 'artifacts_recovered'
     destination_records = moved.runtime.store.artifact_records('T1')
     old_db = case['source'] / case['project']['cfg']['paths']['database']
-    new_db = case['destination'] / case['project']['cfg']['paths']['database']
+    assert new_db.read_bytes() != before_recovery, 'Public recovery must really change destination metadata'
     assert old_db.read_bytes() != new_db.read_bytes(), 'Regression needs changed destination metadata'
     resumed = relocate(case)
     assert resumed.runtime.store.artifact_records('T1') == destination_records

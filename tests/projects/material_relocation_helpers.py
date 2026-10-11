@@ -3,6 +3,7 @@ from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
+import sqlite3
 import tempfile
 
 from batch.helpers import request, result
@@ -91,7 +92,7 @@ def prepare(project, tmp_path, *, released=True, native_hooks=False):
 def configured_hook(case, tmp_path, *, independent=False):
     """Author a hook fixture before install; publish association through its owner."""
     from hook_transport.helpers import settings
-    from poise.infrastructure.hook_transport import HookService
+    from poise.infrastructure.hook_transport import HookService, HookSettings
     arrangement = deepcopy(case['project'])
     # The reused fixture builder writes only this unmanaged throwaway manifest.
     # It never overwrites the selected already-managed project configuration.
@@ -117,10 +118,15 @@ def configured_hook(case, tmp_path, *, independent=False):
     if not independent:
         target['root'] = str(tmp_path)
         for key in ('project_config', 'hooks_file', 'definitions'):
-            target[key] = str(getattr(service.settings, key))
-        target['state'] = str(case['destination'] / 'hook-control')
-        target['lock'] = str(case['destination'] / 'hook-control.lock')
+            target[key] = getattr(service.settings, key).relative_to(tmp_path).as_posix()
+        target['state'] = (case['destination'] / 'hook-control').relative_to(tmp_path).as_posix()
+        target['lock'] = (case['destination'] / 'hook-control.lock').relative_to(tmp_path).as_posix()
         target_path = path.with_name('moved-hook-settings.json')
+    proposed = HookSettings.proposed(target_path, target)
+    for key in ('project_config', 'hooks_file', 'definitions'):
+        assert getattr(proposed, key) == getattr(service.settings, key)
+    assert proposed.state == (service.settings.state if independent else case['destination'] / 'hook-control')
+    assert proposed.lock == (service.settings.lock if independent else case['destination'] / 'hook-control.lock')
     case['move']['hook_destinations'] = [{
         'installation_id': 'primary-hooks', 'settings_path': str(target_path),
         'settings': target,
@@ -147,7 +153,11 @@ def placed(case, original):
 
 
 def immutable(runtime):
-    with runtime.store.transaction() as db:
+    # Observe the trusted selected store without BEGIN IMMEDIATE or bootstrap.
+    database = runtime.state / runtime.paths['database']
+    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as db:
+        db.execute('PRAGMA query_only=ON')
+        db.execute('BEGIN')
         return {
             'tasks': [tuple(r) for r in db.execute(
                 'SELECT id,status,stage_index,iteration,version,current_submission_id,metadata FROM tasks ORDER BY id')],
@@ -156,6 +166,36 @@ def immutable(runtime):
             'events': [tuple(r) for r in db.execute(
                 'SELECT seq,task_id,version,at,data FROM task_events ORDER BY seq')],
         }
+
+
+def assert_candidate_authority_denial(case, path, session, trusted):
+    """Composition may refuse before constructing any ordinary mutable runtime."""
+    before = immutable(trusted)
+    root, cfg, _ = load_config(path)
+    candidate_state = Path(cfg['paths']['state'])
+    if not candidate_state.is_absolute():
+        candidate_state = root / candidate_state
+    roots = {root for root in (case['source'], case['destination'], candidate_state) if root.exists()}
+
+    def snapshots():
+        return {str(p): p.read_bytes() for root in roots for p in root.rglob('*') if p.is_file()}
+
+    physical = snapshots()
+    try:
+        candidate = WorkTools(WorkPoise(path, session))
+        views = candidate.runtime.result_views.command_views([case['receipt']])
+    except PoiseError as exc:
+        explanation = str(exc)
+    else:
+        assert 'presentation_error' in views[0], 'Unregistered candidate consumed material'
+        explanation = views[0]['presentation_error']
+        assert STDOUT.decode().strip() not in views[0].get('primary', '')
+    assert any(word in str(explanation).lower() for word in (
+        'author', 'registry', 'manifest', 'config', 'placement', 'association',
+        'реестр', 'конфиг', 'размещ', 'допуск',
+    )), explanation
+    assert immutable(trusted) == before
+    assert snapshots() == physical
 
 
 def checksum(content):

@@ -11,7 +11,7 @@ from poise.common import PoiseError, load_config
 from poise.modules.ownership.domain import Liveness
 from projects.test_update import update_tools
 from .material_relocation_helpers import (
-    STDOUT, configured_hook, fresh, immutable, placed, prepare, relocate, required,
+    STDOUT, assert_candidate_authority_denial, configured_hook, fresh, immutable, placed, prepare, relocate, required,
 )
 
 
@@ -19,6 +19,20 @@ def native(service, definition, case, kind='SessionStart', session='fixture-hook
     packet = event(kind, session=session)
     packet['cwd'] = str(case['project']['root'])
     return service.event(definition, packet)
+
+
+def test_hook_relocation_settings_are_valid_before_apply(project, tmp_path):
+    from poise.infrastructure.hook_transport import HookSettings
+    case = prepare(project, tmp_path, native_hooks=True)
+    service = configured_hook(case, tmp_path)
+    proposal = case['move']['hook_destinations'][0]
+    assert all(not Path(proposal['settings'][key]).is_absolute() for key in (
+        'project_config', 'hooks_file', 'definitions', 'state', 'lock',
+    ))
+    target = HookSettings.proposed(Path(proposal['settings_path']), proposal['settings'])
+    assert target.project_config == service.settings.project_config
+    assert target.state == case['destination'] / 'hook-control'
+    assert target.lock == case['destination'] / 'hook-control.lock'
 
 
 @pytest.mark.parametrize('timing', ['before', 'after'])
@@ -163,13 +177,8 @@ def test_conflicting_registry_placement_refuses_same_id_decoy(project, tmp_path)
     path = write_json(root / 'conflicting-reader.json', candidate)
     decoy = conflict / placed(case, case['receipt']['stdout']).relative_to(case['destination'])
     decoy.write_bytes(b'conflicting same-id material\n')
-    untrusted = WorkTools(WorkPoise(path, 'conflicting-reader'))
-    before = immutable(untrusted.runtime)
-    views = untrusted.runtime.result_views.command_views([case['receipt']])
-    assert 'presentation_error' in views[0], 'Conflicting root bypassed registered placement'
-    assert 'conflicting same-id material' not in views[0].get('primary', '')
-    assert immutable(untrusted.runtime) == before
-    assert untrusted.runtime.evidence_commands.list_for('T1')[0] == case['receipt']
+    assert_candidate_authority_denial(case, path, 'conflicting-reader', reader.runtime)
+    assert reader.runtime.evidence_commands.list_for('T1')[0] == case['receipt']
     assert placed(case, case['receipt']['stdout']).read_bytes() == STDOUT
     assert decoy.read_bytes() == b'conflicting same-id material\n'
 

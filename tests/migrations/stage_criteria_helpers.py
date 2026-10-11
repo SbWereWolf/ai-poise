@@ -56,7 +56,7 @@ def snapshot(database):
         }
 
 
-def historical_project(project, *, include_newborn=False):
+def historical_project(project, *, include_newborn=False, process_source=None, create_backup=True):
     from poise.infrastructure.goal_config import EditorSettings, FileGoalConfigRepository
     from poise.infrastructure.sqlite.database import Database
 
@@ -64,7 +64,7 @@ def historical_project(project, *, include_newborn=False):
     store = Database(database, database.parent / "fixture-seed.lock", 2.0, 0.01)
     fixtures = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
     historical = json.loads((fixtures / "historical-state.json").read_text(encoding="utf-8"))
-    process = deepcopy(historical["process"])
+    process = deepcopy(historical["process"] if process_source is None else process_source)
     # Frozen owner-produced old state: future shared-fixture/schema edits cannot normalize it.
     assert all("purpose" not in stage and "criteria_authority" not in stage for stage in process["stages"])
     editor_document = json.loads((fixtures / "migration-editor.json").read_text(encoding="utf-8"))
@@ -156,7 +156,7 @@ def historical_project(project, *, include_newborn=False):
                 ("N1", 0, "2026-10-01T12:00:00+00:00",
                  '{"event":"created_newborn","stage":"newborn","iteration":1}'),
             ).lastrowid
-    backup = backup_commands(project).create()
+    backup = backup_commands(project).create() if create_backup else None
     kinds = ("design", "observation", "execution", "observation")
     stages = [
         {"stage_id": stage["id"], "purpose": purpose,
@@ -192,13 +192,123 @@ def historical_project(project, *, include_newborn=False):
         })
     packet = {
         "schema": "task-stage-criteria-migration-1", "request_id": "real-criteria-cutover",
-        "backup_name": backup["name"], "mapping": mapping,
+        "backup_name": backup["name"] if backup is not None else None, "mapping": mapping,
         "authorization": "Migrate the complete quiescent fixture inventory, preserving historical state.",
     }
     return database, packet, settings.target("development")
 
 
-def assert_history_preserved(before, after):
+def historical_state_variants(project):
+    """Bind frozen real-owner snapshots to three independent test-owned identities."""
+    fixtures = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
+    sources = json.loads((fixtures / "historical-owner-sources.json").read_text())
+    process = json.loads(sources["unstarted"]["task"][0][7])["process"]
+    database, packet, path = historical_project(project, process_source=process, create_backup=False)
+    mapped = []
+    with sqlite3.connect(database) as connection:
+        # Disposable arrangement only; the application under test never gets a SQL editor.
+        for table in ("task_events", "submissions", "evidence", "task_execution", "task_workflows",
+                      "task_proofs", "content_contracts", "task_methods", "tasks"):
+            column = "id" if table == "tasks" else "task_id"
+            connection.execute(f"DELETE FROM {table} WHERE {column} IN (?,?)", ("T1", "T2"))
+        for state, task_id in (("unstarted", "T1"), ("started", "T2"), ("control", "CONTROL")):
+            source = sources[state]
+            old = source["task"][0]
+            metadata = json.loads(old[7])
+            metadata["contract"]["id"] = task_id
+            metadata["requirements_snapshot"] = deepcopy(project["task"]["requirements_snapshot"])
+            metadata["requirements_agreement"] = deepcopy(project["task"]["requirements_agreement"])
+            connection.execute(
+                "INSERT INTO tasks(id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata) VALUES(?,?,?,?,?,?,?,?)",
+                (task_id, *old[1:6], None, json.dumps(metadata)),
+            )
+            submission_ids = {}
+            for sequence, _, stage, iteration, digest, raw in source["submissions"]:
+                submission_ids[sequence] = connection.execute(
+                    "INSERT INTO submissions(task_id,stage,iteration,digest,data) VALUES(?,?,?,?,?)",
+                    (task_id, stage, iteration, digest, raw),
+                ).lastrowid
+            connection.execute("UPDATE tasks SET current_submission_id=? WHERE id=?",
+                               (submission_ids.get(old[6]), task_id))
+            event_ids = {}
+            for sequence, _, version, at, raw in source["events"]:
+                event = json.loads(raw)
+                if event.get("submission") is not None:
+                    event["submission"] = submission_ids[event["submission"]]
+                if "previous" in event and event["previous"]["current_submission_id"] is not None:
+                    event["previous"]["current_submission_id"] = submission_ids[event["previous"]["current_submission_id"]]
+                event_ids[sequence] = connection.execute(
+                    "INSERT INTO task_events(task_id,version,at,data) VALUES(?,?,?,?)",
+                    (task_id, version, at, json.dumps(event)),
+                ).lastrowid
+            for _, raw, version in source["execution"]:
+                execution = json.loads(raw)
+                if execution.get("last_report") is not None:
+                    execution["last_report"]["task"] = task_id
+                connection.execute("INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
+                                   (task_id, json.dumps(execution), version))
+            for table, source_name in (("task_workflows", "workflows"), ("task_proofs", "proofs")):
+                for _, raw in source[source_name]:
+                    connection.execute(f"INSERT INTO {table}(task_id,data) VALUES(?,?)", (task_id, raw))
+            for _, version, raw in source["content"]:
+                connection.execute("INSERT INTO content_contracts(task_id,version,data) VALUES(?,?,?)", (task_id, version, raw))
+            if state == "control":
+                continue
+            stages = deepcopy(packet["mapping"][0]["stages"])
+            for stage in stages:
+                stage["criteria"] = {"requirements": [], "definition_of_ready": [], "definition_of_done": []}
+                stage["execution"] = {
+                    "state": "unknown", "source_revision": None,
+                    "source_refs": [{"kind": "contract", "digest": identity(metadata["contract"])}],
+                }
+                if stage["stage_id"] == "tests":
+                    stage["criteria_authority"]["propose"] = ["implementation"]
+                if stage["stage_id"] == "implementation":
+                    stage["execution"] = {
+                        "state": state, "source_revision": None,
+                        "source_refs": [{"kind": "task_event", "id": event_ids[2]}] if state == "unstarted" else
+                                       [{"kind": "submission", "id": submission_ids[3]}],
+                    }
+            mapped.append({"kind": "executable_task", "task_id": task_id, "expected_version": old[5],
+                           "expected_process_digest": identity(process), "stages": stages})
+    packet["mapping"] = [packet["mapping"][0], *mapped]
+    # The process and both active Task mappings share the same explicit authority.
+    packet["mapping"][0]["stages"][0]["criteria_authority"]["propose"] = ["implementation"]
+    packet["backup_name"] = backup_commands(project).create()["name"]
+    return database, packet, path
+
+
+def publication_rows(project):
+    settings = json.loads((project["root"] / "criteria-editor.json").read_text())
+    with sqlite3.connect(f"file:{project['root'] / settings['database']}?mode=ro", uri=True) as connection:
+        return {
+            "heads": connection.execute("SELECT goal_type,revision FROM config_heads ORDER BY goal_type").fetchall(),
+            "operations": connection.execute(
+                "SELECT request_id,goal_type,source_revision,candidate,receipt,phase FROM config_operations ORDER BY request_id"
+            ).fetchall(),
+        }
+
+
+def assert_publication(project, resource, path):
+    observed = publication_rows(project)
+    assert (resource["goal_type"], resource["new_revision"]) in observed["heads"]
+    operations = [row for row in observed["operations"] if row[0] != "historical-process-publication"]
+    assert len(operations) == 1
+    _, goal, old_revision, candidate, raw_receipt, phase = operations[0]
+    document = json.loads(path.read_text())
+    receipt = json.loads(raw_receipt)
+    assert goal == resource["goal_type"]
+    assert phase == "completed"
+    assert old_revision == resource["old_revision"]
+    assert receipt["revision"] == resource["new_revision"] == identity(document)
+    assert receipt["previous_revision"] == old_revision
+    assert receipt["config_path"] == str(path)
+    assert json.loads(candidate) == document
+    assert resource["new_digest"] == identity(document)
+    return observed
+
+
+def assert_history_preserved(before, after, *, control_ids=()):
     for table in ("events", "submissions", "evidence", "execution", "methods", "proofs", "content"):
         assert after[table] == before[table]
     assert len(after["workflows"]) == len(before["workflows"])
@@ -208,6 +318,9 @@ def assert_history_preserved(before, after):
             assert json.loads(new_raw)[key] == value
     assert len(after["tasks"]) == len(before["tasks"])
     for old, new in zip(before["tasks"], after["tasks"], strict=True):
+        if old[0] in control_ids:
+            assert new == old
+            continue
         assert new[:7] == old[:7]
         old_metadata, new_metadata = json.loads(old[7]), json.loads(new[7])
         for key, value in old_metadata.items():
@@ -230,3 +343,22 @@ def assert_history_preserved(before, after):
                 "requirements": [], "definition_of_ready": [], "definition_of_done": [],
             }
         assert stripped_contract == old_contract
+
+
+def assert_mapped_documents(database, packet, path):
+    """Observe mapped values directly; no production transformer generates expectations."""
+    process = json.loads(path.read_text())
+    expected_process = packet["mapping"][0]["stages"]
+    assert [(s["id"], s["purpose"], s["criteria_authority"]) for s in process["stages"]] == [
+        (s["stage_id"], s["purpose"], s["criteria_authority"]) for s in expected_process
+    ]
+    with sqlite3.connect(database) as connection:
+        for resource in packet["mapping"][1:]:
+            metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", (resource["task_id"],)).fetchone()[0])
+            contract = metadata["newborn"]["draft"] if resource["kind"] == "newborn_task" else metadata["contract"]
+            assert [(s["id"], s["purpose"], s["criteria_authority"]) for s in metadata["process"]["stages"]] == [
+                (s["stage_id"], s["purpose"], s["criteria_authority"]) for s in resource["stages"]
+            ]
+            assert [(s["stage_id"], s["criteria"]) for s in contract["stage_contracts"]] == [
+                (s["stage_id"], s["criteria"]) for s in resource["stages"]
+            ]

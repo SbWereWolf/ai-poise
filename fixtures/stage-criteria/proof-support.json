@@ -1,0 +1,18 @@
+{
+  "method": {
+    "id": "CRITERIA-PROOF", "argv": ["$FIXTURE_PYTHON", "-B", "-c", "print('criterion-observation=4')"],
+    "cwd": ".", "environment": {},
+    "source_under_test": {"kind": "external", "reason": "This deterministic external fixture observes a constant, not repository code."},
+    "verification_plan": {
+      "responsibility": "Preserve a real observation receipt shared by the two execution criteria.",
+      "change_surface": [], "red_stages": [], "green_stages": ["build"], "red_failure": null
+    },
+    "expected_exit_code": 0, "stdout_contains": ["criterion-observation=4"], "stderr_contains": []
+  },
+  "argument": {
+    "id": "BUILD-PROOF", "kind": "logical", "facts": ["The observation records criterion-observation=4."],
+    "assumptions": [], "inference": "The exact observed constant agrees with the fixture criterion.",
+    "conclusion": "The fixture criterion is supported by this observation.",
+    "verdict": "proved", "observation_ids": []
+  }
+}

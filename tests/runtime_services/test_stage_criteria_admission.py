@@ -13,7 +13,8 @@ from conftest import WorkPoise, git
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from tests.runtime_services.stage_criteria_helpers import (
-    assert_unstarted, boot, criteria, handoff, next_stage, proposal, rows, show, verify_packet, version, work,
+    assert_unstarted, boot, criteria, fail_commit, handoff, next_stage, preserved_proof, proposal, rows, show,
+    verify_packet, verify_with_proof, version, work,
 )
 
 
@@ -126,12 +127,13 @@ def test_unrelated_future_stage_has_no_start_record_when_first_execution_is_admi
 
 
 def test_design_can_refine_future_target_without_rewriting_shared_bound_criteria_or_proof(project):
-    tools, context = boot(project, second_execution=True)
+    tools, context = boot(project, second_execution=True, with_proof=True)
     tools.invoke(verify_packet(context))
     tools.invoke(verify_packet(next_stage(tools)))
     execution = next_stage(tools)
     assert execution["stage"] == "build"
-    tools.invoke(verify_packet(execution))
+    verify_with_proof(tools, execution)
+    original_proof = preserved_proof(tools)
     bound = show(tools, "build")
     future = show(tools, "build_next")
     assert bound["criteria"] == future["criteria"]  # The initial text is shared.
@@ -153,6 +155,7 @@ def test_design_can_refine_future_target_without_rewriting_shared_bound_criteria
     assert revised["revision"] != future["revision"]
     assert_unstarted(revised["execution"])
     assert show(tools, "build") == bound
+    assert preserved_proof(tools) == original_proof
     after = rows(tools)
     assert after["submissions"][:len(before["submissions"])] == before["submissions"]
     assert after["events"][:len(before["events"])] == before["events"]
@@ -189,7 +192,9 @@ def test_authorized_restart_opens_new_epoch_without_losing_task_wip_or_prior_bin
     assert newborn["status"] == "newborn"
     assert newborn["task"] == "T1"
     contracts = deepcopy(newborn["draft"]["stage_contracts"])
-    contracts[0]["criteria"] = criteria("Return three times the input.")
+    revised = json.loads((Path(__file__).resolve().parents[2] /
+                          "fixtures/stage-criteria/revised-criteria.json").read_text())["restart"]
+    contracts[0]["criteria"] = deepcopy(revised)
     edited = tools.invoke(request("task", {
         "action": "edit", "task_id": "T1", "expected_revision": newborn["revision"],
         "request_id": "revise-restarted-build",
@@ -205,7 +210,7 @@ def test_authorized_restart_opens_new_epoch_without_losing_task_wip_or_prior_bin
     }))
     assert resumed["worktree"] == str(directory)
     current = show(tools)
-    assert current["criteria"] == criteria("Return three times the input.")
+    assert current["criteria"] == revised
     assert current["execution"]["state"] == "started"
     assert current["execution"]["epoch"] == old["execution"]["epoch"] + 1
     assert current["execution"]["bound_revision"] != old["execution"]["bound_revision"]
@@ -233,15 +238,16 @@ def test_stale_restart_cannot_unbind_execution(project):
 
 
 def test_restart_revising_one_bound_target_preserves_other_target_binding_and_proof(project):
-    tools, context = boot(project, second_execution=True)
+    tools, context = boot(project, second_execution=True, with_proof=True)
     tools.invoke(verify_packet(context))
     tools.invoke(verify_packet(next_stage(tools)))
     first = next_stage(tools)
     assert first["stage"] == "build"
-    tools.invoke(verify_packet(first))
+    verify_with_proof(tools, first)
     second = next_stage(tools)
     assert second["stage"] == "build_next"
-    tools.invoke(verify_packet(second))
+    verify_with_proof(tools, second)
+    original_proof = preserved_proof(tools)
     unaffected, affected = show(tools, "build"), show(tools, "build_next")
     before = rows(tools)
     newborn = tools.invoke(request("task", {
@@ -266,6 +272,7 @@ def test_restart_revising_one_bound_target_preserves_other_target_binding_and_pr
         "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
     }))
     assert show(tools, "build") == unaffected
+    assert preserved_proof(tools) == original_proof
     reopened = show(tools, "build_next")
     assert reopened["criteria"] == target["criteria"]
     assert_unstarted(reopened["execution"])
@@ -359,6 +366,95 @@ def test_two_real_connections_order_decision_and_admission_without_binding_stale
     assert bound["execution"]["state"] == "started"
     assert bound["execution"]["bound_revision"] == bound["revision"]
     assert bound["source"]["proposal_id"] == proposed["proposal_id"]
+
+
+def test_actual_admission_wins_before_competing_future_criteria_edit(project):
+    tools, context = boot(project)
+    initial = show(tools)
+    tools.invoke(verify_packet(context))
+    tools.invoke(verify_packet(next_stage(tools)))
+    admitted = Event()
+    observed = {}
+    packet = request("advance", {"request_id": "actual-admission-wins", "task_id": "T1", "target_stage": "build"})
+
+    def admit():
+        client = WorkTools(WorkPoise(project["config_path"], "artisan-session"))
+        response = client.invoke(packet)
+        assert response["status"] == "progression_target_reached"
+        observed["bound"] = show(client)
+        assert observed["bound"]["execution"]["state"] == "started"
+        observed["rows"] = rows(client)
+        assert client.invoke(packet)["status"] == "progression_target_reached"
+        assert rows(client) == observed["rows"]
+        admitted.set()
+
+    def losing_edit():
+        assert admitted.wait(timeout=15)
+        client = WorkTools(WorkPoise(project["config_path"], "artisan-session"))
+        # A genuine configured design stage has edit authority, but that authority
+        # does not erase a completed admission on another real connection.
+        design = client.invoke(request("bootstrap", {
+            "task": None, "decision": "rework", "rework_stage": "sketch",
+            "feedback": "Attempt to refine criteria after a competing connection admitted execution.",
+        }))
+        assert design["stage"] == "sketch"
+        before = rows(client)
+        with pytest.raises(PoiseError, match="target_started_requires_restart"):
+            client.invoke(verify_packet(design, work(client, "losing-edit-after-start", proposals=[proposal(client)])))
+        assert rows(client) == before
+        assert show(client) == observed["bound"]
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        admission = executor.submit(admit)
+        edit = executor.submit(losing_edit)
+        admission.result(timeout=30)
+        edit.result(timeout=30)
+    assert observed["bound"]["criteria"] == initial["criteria"]
+    assert observed["bound"]["revision"] == initial["revision"]
+    assert observed["bound"]["execution"]["bound_revision"] == initial["revision"]
+
+
+def test_admission_transaction_commit_failure_preserves_unstarted_criteria(project, monkeypatch):
+    tools, context = boot(project)
+    tools.invoke(verify_packet(context))
+    tools.invoke(verify_packet(next_stage(tools)))
+    before, current = rows(tools), show(tools)
+    original_version = version(tools)
+    tentative = []
+
+    def has_tentative_admission(database):
+        row = database.execute("SELECT stage_index,version FROM tasks WHERE id=?", ("T1",)).fetchone()
+        if row is not None and row[0] == 2 and row[1] > original_version:
+            tentative.append(tuple(row))
+            return True
+        return False
+
+    observed = fail_commit(monkeypatch, has_tentative_admission)
+    effects = []
+    original = tools.runtime._roots
+
+    def roots(data):
+        if tools.runtime._stage(data)["id"] == "build":
+            effects.append("build_environment")
+        return original(data)
+
+    monkeypatch.setattr(tools.runtime, "_roots", roots)
+    try:
+        response = tools.invoke(request("advance", {
+            "request_id": "admission-commit-failure", "task_id": "T1", "target_stage": "build",
+        }))
+    except PoiseError as error:
+        assert "Fixture COMMIT failure" in str(error)
+    else:
+        assert response["status"] == "broken"
+        assert "Fixture COMMIT failure" in json.dumps(response)
+    assert tentative and tentative[0][0] == 2
+    assert observed == ["tentative_owner_writes"]
+    assert effects == []
+    assert rows(tools) == before
+    observer = WorkTools(WorkPoise(project["config_path"], "artisan-session"))
+    assert show(observer) == current
+    assert_unstarted(show(observer)["execution"])
     assert bound["source"]["proposal_digest"] == proposed["proposal_digest"]
 
 

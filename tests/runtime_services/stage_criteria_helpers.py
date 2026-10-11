@@ -3,6 +3,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+import sys
 
 from batch.helpers import request, result
 from conftest import WorkPoise, write_json
@@ -20,7 +21,7 @@ def criteria(requirement="Return twice the input."):
 
 def boot(project, *, initial_execution=False, custom_design=False, custom_decision=False,
          empty_grants=False, second_execution=False, output_gate=False, input_gate=False,
-         inspection_decision=False):
+         inspection_decision=False, empty_decide_grant=False, with_proof=False):
     process = json.loads(FIXTURE.read_text(encoding="utf-8"))
     if initial_execution:
         build = deepcopy(process["stages"][2])
@@ -49,6 +50,8 @@ def boot(project, *, initial_execution=False, custom_design=False, custom_decisi
                     stage["criteria_authority"][grant].append("build_next")
     if empty_grants:
         process["stages"][0]["criteria_authority"] = {"propose": [], "decide": []}
+    if empty_decide_grant:
+        process["stages"][1]["criteria_authority"] = {"propose": [], "decide": []}
     task = deepcopy(project["task"])
     stages = process["stages"]
     task["methods"] = []
@@ -70,6 +73,26 @@ def boot(project, *, initial_execution=False, custom_design=False, custom_decisi
         }
         for s in stages
     ]
+    if with_proof:
+        support = json.loads((FIXTURE.parent / "proof-support.json").read_text())
+        method = support["method"]
+        method["argv"][0] = sys.executable
+        task["methods"] = [method]
+        task["method_inputs"] = [{
+            "method_id": "CRITERIA-PROOF", "repository_inputs": [], "future_outputs": [],
+            "reference_profile": {"runner": "python", "parser": "inline-no-path-arguments", "version": 1},
+        }]
+        task["checks"]["build"] = ["CRITERIA-PROOF"]
+        task["evidence_plan"]["build"]["arguments"] = [{
+            "id": "BUILD-PROOF", "kind": "logical", "phase": "continue",
+            "observation_methods": ["CRITERIA-PROOF"],
+        }]
+        # A second criterion explicitly consumes the original observation, rather
+        # than constructing an unrelated empty proof book.
+        task["evidence_plan"]["build_next"]["arguments"] = [{
+            "id": "NEXT-PROOF", "kind": "logical", "phase": "prepare",
+            "observation_methods": ["CRITERIA-PROOF"],
+        }]
     if output_gate:
         task["content_contract"]["requirements"] = [{
             "id": "build-output", "kind": "artifact", "stages": ["build"],
@@ -184,3 +207,71 @@ def rows(tools):
                 "SELECT stage,iteration,digest,data FROM submissions WHERE task_id=? ORDER BY seq", ("T1",),
             )],
         }
+
+
+def fail_commit(monkeypatch, predicate):
+    """Fail the real SQLite COMMIT after observing tentative owner writes."""
+    from poise.infrastructure.sqlite import transaction
+    from poise.common import PoiseError
+
+    original = transaction._boundary
+    observed = []
+
+    def boundary(database, sql, path, wait, poll):
+        if sql == "COMMIT" and not observed and predicate(database):
+            observed.append("tentative_owner_writes")
+            raise PoiseError("Fixture COMMIT failure after tentative criteria writes.")
+        return original(database, sql, path, wait, poll)
+
+    monkeypatch.setattr(transaction, "_boundary", boundary)
+    return observed
+
+
+def verify_with_proof(tools, context):
+    support = json.loads((FIXTURE.parent / "proof-support.json").read_text())
+    packet = verify_packet(context)
+    if context["stage"] == "build":
+        pending = tools.invoke(packet)
+        assert pending["status"] == "awaiting_continuation", pending
+        argument = deepcopy(support["argument"])
+        argument["observation_ids"] = [item["id"] for item in pending["checks"]]
+        packet = verify_packet(pending["context"])
+        packet["input"]["result"]["evidence_work"] = {
+            "phase": "continue", "arguments": [argument], "decisions": [],
+        }
+    else:
+        assert context["stage"] == "build_next"
+        argument = deepcopy(support["argument"])
+        argument["id"] = "NEXT-PROOF"
+        argument["observation_ids"] = [item[0] for item in preserved_proof(tools)["evidence"]]
+        packet["input"]["result"]["evidence_work"]["arguments"] = [argument]
+    response = tools.invoke(packet)
+    assert response["status"] == "verified", response
+    return response
+
+
+def preserved_proof(tools):
+    """Exact original proof, immutable receipts/bytes, and public availability."""
+    with tools.runtime.store.transaction() as database:
+        evidence = [tuple(row) for row in database.execute(
+            "SELECT id,data FROM evidence WHERE task_id=? AND stage=? ORDER BY id", ("T1", "build"),
+        )]
+        book = json.loads(database.execute("SELECT data FROM task_proofs WHERE task_id=?", ("T1",)).fetchone()[0])["book"]
+        method = database.execute(
+            "SELECT data FROM task_methods WHERE task_id=? AND method_id=?", ("T1", "CRITERIA-PROOF"),
+        ).fetchone()[0]
+    assert evidence
+    arguments = [item for item in book["arguments"] if item["id"] == "BUILD-PROOF"]
+    batches = [item for item in book["batches"] if item["stage"] == "build"]
+    assert arguments and batches
+    assert arguments[-1]["body"]["verdict"] == "proved"
+    files = {}
+    for _, raw in evidence:
+        receipt = json.loads(raw)
+        assert receipt["passed"] and receipt["capture_complete"] and receipt["source_unchanged"]
+        for stream in ("stdout", "stderr"):
+            path = Path(receipt[stream])
+            files[str(path)] = path.read_bytes()
+    public = tools.invoke(request("show", {"queries": [{"id": "proof", "kind": "evidence"}]}))["results"][0]["value"]
+    assert all(argument in public["arguments"] for argument in arguments)
+    return {"evidence": evidence, "arguments": arguments, "batches": batches, "method": method, "files": files}

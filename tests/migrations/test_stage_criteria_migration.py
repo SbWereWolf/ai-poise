@@ -20,7 +20,8 @@ from batch.helpers import request
 from poise.application.work import WorkTools
 from tests.runtime_services.stage_criteria_helpers import show
 from tests.migrations.stage_criteria_helpers import (
-    FixtureClock, assert_history_preserved, historical_project, snapshot,
+    FixtureClock, assert_history_preserved, assert_mapped_documents, assert_publication,
+    historical_project, historical_state_variants, publication_rows, snapshot,
 )
 
 
@@ -134,10 +135,13 @@ def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preser
     assert migrated_process == original_process
     after = snapshot(database)
     assert_history_preserved(before, after)
+    assert_mapped_documents(database, packet, process_path)
+    publication = assert_publication(project, response["resources"][0], process_path)
     replay = invoke_cli(project, packet)
     assert replay.returncode == 0, (replay.stdout, replay.stderr)
     assert json.loads(replay.stdout) == {**response, "replayed": True}
     assert snapshot(database) == after
+    assert publication_rows(project) == publication
     changed = deepcopy(packet)
     changed["authorization"] = "A different intent cannot reuse this request identity."
     conflict = invoke_cli(project, changed)
@@ -344,6 +348,7 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
     assert [s["purpose"] for s in json.loads(published)["stages"]] == [
         "design", "observation", "execution", "observation",
     ]
+    publication = assert_publication(project, response["resources"][0], process_path)
     completed_calls = []
     recovered = TaskProcessMigrationCommands(SqliteTaskProcessMigration(
         project["config_path"], FixtureClock(), after_update=completed_calls.append,
@@ -353,6 +358,8 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
     assert completed_calls == ["T1", "T2"]
     assert recovered["resources"][:1] == response["resources"]
     assert process_path.read_bytes() == published
+    assert publication_rows(project) == publication
+    assert_mapped_documents(database, packet, process_path)
     final = snapshot(database)
     assert_history_preserved(before, final)
     replay = TaskProcessMigrationCommands(SqliteTaskProcessMigration(
@@ -361,6 +368,155 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
     assert replay == {**recovered, "replayed": True}
     assert completed_calls == ["T1", "T2"]
     assert snapshot(database) == final
+    assert publication_rows(project) == publication
+
+
+def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_provenance(project):
+    database, packet, process_path = historical_state_variants(project)
+    before = snapshot(database)
+    source_submission = packet["mapping"][2]["stages"][2]["execution"]["source_refs"][0]["id"]
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT task_id,stage FROM submissions WHERE seq=?", (source_submission,)).fetchone() == ("T2", "implementation")
+        assert connection.execute("SELECT count(*) FROM submissions WHERE task_id=?", ("T1",)).fetchone()[0] == 0
+    command = invoke_cli(project, packet)
+    assert command.returncode == 0, (command.stdout, command.stderr)
+    response = json.loads(command.stdout)
+    assert [r.get("task_id") for r in response["resources"][1:]] == ["T1", "T2"]
+    after = snapshot(database)
+    assert_history_preserved(before, after, control_ids=("CONTROL",))
+    assert_mapped_documents(database, packet, process_path)
+    assert_publication(project, response["resources"][0], process_path)
+    tools = WorkTools(WorkPoise(project["config_path"], "continue-known-start"))
+    tools.invoke(request("bootstrap", {"task": {"id": "T2"}, "decision": None, "feedback": None, "rework_stage": None}))
+    protected = show(tools, "implementation")
+    assert protected["execution"]["state"] == "started"
+    assert protected["execution"]["bound_revision"] == protected["revision"]
+    assert protected["source"]["migration_receipt"] == response["receipt"]
+    design = tools.invoke(request("bootstrap", {
+        "task": None, "decision": "rework", "feedback": "Attempt refinement without a lawful restart.", "rework_stage": "tests",
+    }))
+    assert design["stage"] == "tests"
+    from tests.runtime_services.stage_criteria_helpers import proposal, verify_packet, version
+    candidate = proposal(tools, "implementation")
+    state = snapshot(database)
+    with pytest.raises(PoiseError, match="target_started_requires_restart"):
+        tools.invoke(verify_packet(design, {"request_id": "deny-known-start-refinement", "expected_version": version(tools),
+                                          "proposals": [candidate], "decisions": []}))
+    assert show(tools, "implementation") == protected
+    assert snapshot(database)["tasks"] == state["tasks"]
+    assert snapshot(database)["submissions"] == state["submissions"]
+    # T1 remains genuinely untouched by T2 continuation and denied refinement.
+    assert next(row for row in snapshot(database)["tasks"] if row[0] == "T1") == next(row for row in after["tasks"] if row[0] == "T1")
+    from tests.runtime_services.stage_criteria_helpers import handoff
+    handoff(tools, "release-known-start-continuation")
+    untouched = WorkTools(WorkPoise(project["config_path"], "continue-unstarted-source"))
+    context = untouched.invoke(request("bootstrap", {"task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None}))
+    current = show(untouched, "implementation")
+    assert current["execution"]["state"] == "unstarted"
+    assert current["execution"]["bound_revision"] is None
+    assert current["source"]["migration_receipt"] == response["receipt"]
+    candidate = proposal(untouched, "implementation")
+    assert untouched.invoke(verify_packet(context, {
+        "request_id": "refine-genuine-unstarted-source", "expected_version": version(untouched),
+        "proposals": [candidate], "decisions": [],
+    }))["status"] == "verified"
+    assert show(untouched, "implementation")["execution"] == current["execution"]
+
+
+def test_unknown_historical_execution_continues_but_cannot_be_refined_without_restart(project):
+    from tests.runtime_services.stage_criteria_helpers import proposal, verify_packet, version
+
+    database, packet, process_path = historical_project(project)
+    for resource in packet["mapping"]:
+        resource["stages"][0]["criteria_authority"]["propose"] = ["implementation"]
+    command = invoke_cli(project, packet)
+    assert command.returncode == 0, (command.stdout, command.stderr)
+    tools = WorkTools(WorkPoise(project["config_path"], "unknown-source-continuation"))
+    context = tools.invoke(request("bootstrap", {"task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None}))
+    retained = show(tools, "implementation")
+    assert retained["execution"]["state"] == "unknown"
+    assert retained["execution"]["bound_revision"] == retained["revision"]
+    assert retained["proposals"] == []
+    # Ordinary unchanged work remains legal; a proposal is a separate mutation.
+    assert tools.invoke(verify_packet(context))["status"] == "verified"
+    design = tools.invoke(request("bootstrap", {"task": None, "decision": "rework", "feedback": "Attempt to change a protected historical target.", "rework_stage": "tests"}))
+    before, process_bytes, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    candidate = proposal(tools, "implementation")
+    with pytest.raises(PoiseError, match="target_started_requires_restart"):
+        tools.invoke(verify_packet(design, {"request_id": "deny-unknown-state-refinement", "expected_version": version(tools),
+                                          "proposals": [candidate], "decisions": []}))
+    assert show(tools, "implementation") == retained
+    assert snapshot(database)["tasks"] == before["tasks"]
+    assert snapshot(database)["submissions"] == before["submissions"]
+    assert process_path.read_bytes() == process_bytes
+    assert publication_rows(project) == owner
+
+
+@pytest.mark.parametrize("fault", ["missing_backup", "corrupt_backup", "backup_mismatch", "foreign_submission", "missing_event", "wrong_contract", "false_revision"])
+def test_backup_and_source_reference_failures_reject_without_mapped_writes(project, fault):
+    from tests.backups.helpers import backup_directory
+
+    database, packet, process_path = historical_project(project)
+    backup = backup_directory(project) / packet["backup_name"]
+    if fault == "missing_backup":
+        packet["backup_name"] = "absent-criteria-source.sqlite"
+    elif fault == "corrupt_backup":
+        backup.write_bytes(b"not a SQLite backup")
+    elif fault == "backup_mismatch":
+        with sqlite3.connect(backup) as connection:
+            connection.execute("UPDATE tasks SET version=version+1 WHERE id=?", ("T2",))
+    elif fault == "false_revision":
+        packet["mapping"][1]["stages"][2]["execution"]["source_revision"] = 12
+    elif fault == "wrong_contract":
+        packet["mapping"][1]["stages"][2]["execution"]["source_refs"] = [{"kind": "contract", "digest": "0" * 64}]
+    else:
+        with sqlite3.connect(database) as connection:
+            foreign = connection.execute("SELECT seq FROM submissions WHERE task_id=?", ("T2",)).fetchone()[0]
+        packet["mapping"][1]["stages"][2]["execution"]["source_refs"] = [
+            {"kind": "submission", "id": foreign} if fault == "foreign_submission" else {"kind": "task_event", "id": 999999},
+        ]
+    before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    command = invoke_cli(project, packet)
+    assert command.returncode == 2
+    response = json.loads(command.stdout)
+    assert set(response) == {"status", "reason"}
+    assert response["status"] == "rejected" and response["reason"]
+    assert snapshot(database) == before
+    assert process_path.read_bytes() == published
+    assert publication_rows(project) == owner
+
+
+@pytest.mark.parametrize("drift", ["published_process", "remaining_task"])
+def test_partial_publication_recovery_refuses_intervening_drift_without_overwrite(project, drift):
+    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+
+    database, packet, process_path = historical_project(project)
+
+    def failure(_):
+        raise OSError("Stop after process publication with the Task transaction uncommitted.")
+
+    partial = TaskProcessMigrationCommands(SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_update=failure)).migrate(packet)
+    assert partial["status"] == "recovery_required"
+    owner = assert_publication(project, partial["resources"][0], process_path)
+    if drift == "published_process":
+        document = json.loads(process_path.read_text())
+        document["stages"][0]["instruction"] = "An intervening writer owns this changed instruction."
+        write_json(process_path, document)
+    else:
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE tasks SET version=version+1 WHERE id=?", ("T2",))
+    before, published = snapshot(database), process_path.read_bytes()
+    command = invoke_cli(project, packet)
+    assert command.returncode == 2
+    response = json.loads(command.stdout)
+    assert set(response) == {"status", "request_id", "receipt", "resources", "reason"}
+    assert response["status"] == "recovery_required" and response["reason"]
+    assert response["request_id"] == packet["request_id"]
+    assert response["receipt"] == partial["receipt"]
+    assert response["resources"] == partial["resources"]
+    assert snapshot(database) == before
+    assert process_path.read_bytes() == published
+    assert publication_rows(project) == owner
 
 
 @pytest.mark.parametrize("schema,task_ids", [

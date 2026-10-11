@@ -1,6 +1,7 @@
 """Stage criteria through real WorkTools, SQLite and disposable Git repositories."""
 
 from copy import deepcopy
+import json
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ from conftest import WorkPoise
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from tests.runtime_services.stage_criteria_helpers import (
-    assert_unstarted, boot, criteria, handoff, next_stage, proposal, rows, show, verify_packet, work,
+    assert_unstarted, boot, criteria, fail_commit, handoff, next_stage, proposal, rows, show, verify_packet, work,
 )
 
 
@@ -347,3 +348,87 @@ def test_other_decision_grant_reaches_real_inspect_handler_under_configured_acto
     accepted = show(tools)
     assert accepted["criteria"] == candidate["criteria"]
     assert accepted["source"]["proposal_id"] == proposed["proposal_id"]
+
+
+def test_agreement_replaces_all_three_lists_including_explicit_empty_done(project):
+    tools, context = boot(project)
+    expected = json.loads((Path(__file__).resolve().parents[2] /
+                          "fixtures/stage-criteria/revised-criteria.json").read_text())["proposal"]
+    candidate = proposal(tools)
+    candidate["criteria"] = deepcopy(expected)
+    tools.invoke(verify_packet(context, work(tools, "all-three-lists", proposals=[candidate])))
+    offered = show(tools)["proposals"][0]
+    tools.invoke(verify_packet(next_stage(tools), work(tools, "agree-three-lists", decisions=[{
+        "proposal_id": offered["proposal_id"], "proposal_digest": offered["proposal_digest"],
+        "decision": "accepted", "reason": "Accept the complete three-list criterion.",
+    }])))
+    assert show(tools)["criteria"] == expected
+    next_stage(tools)
+    bound = show(tools)
+    assert bound["criteria"] == expected
+    assert bound["execution"]["bound_revision"] == bound["revision"]
+
+
+@pytest.mark.parametrize("component,fault", [
+    ("requirements", "missing"), ("definition_of_ready", "missing"),
+    ("definition_of_done", "missing"), ("definition_of_ready", "null"),
+    ("definition_of_done", "not_list"), ("requirements", "not_text"),
+])
+def test_each_criterion_component_has_a_required_text_list_shape(project, component, fault):
+    tools, context = boot(project)
+    candidate = proposal(tools)
+    if fault == "missing":
+        del candidate["criteria"][component]
+    else:
+        candidate["criteria"][component] = {"null": None, "not_list": "text", "not_text": [7]}[fault]
+    before, current = rows(tools), show(tools)
+    with pytest.raises(PoiseError):
+        tools.invoke(verify_packet(context, work(tools, "invalid-list", proposals=[candidate])))
+    assert rows(tools) == before
+    assert show(tools) == current
+
+
+def test_valid_decision_commit_failure_rolls_back_agreement_and_submission(project, monkeypatch):
+    tools, context = boot(project)
+    tools.invoke(verify_packet(context, work(tools, "offer-before-commit-failure", proposals=[proposal(tools)])))
+    offered = show(tools)["proposals"][0]
+    observation = next_stage(tools)
+    before, current = rows(tools), show(tools)
+    submission_count = len(before["submissions"])
+
+    def has_tentative_decision(database):
+        return database.execute("SELECT count(*) FROM submissions WHERE task_id=?", ("T1",)).fetchone()[0] > submission_count
+
+    observed = fail_commit(monkeypatch, has_tentative_decision)
+    with pytest.raises(PoiseError, match="Fixture COMMIT failure"):
+        tools.invoke(verify_packet(observation, work(tools, "decision-commit-failure", decisions=[{
+            "proposal_id": offered["proposal_id"], "proposal_digest": offered["proposal_digest"],
+            "decision": "accepted", "reason": "Attempt a valid activation in a failing transaction.",
+        }])))
+    assert observed == ["tentative_owner_writes"]
+    assert rows(tools) == before
+    assert show(WorkTools(WorkPoise(project["config_path"], "artisan-session"))) == current
+
+
+def test_real_other_inspector_with_empty_decide_grant_cannot_activate_pending_proposal(project):
+    tools, context = boot(project, custom_decision=True, inspection_decision=True, empty_decide_grant=True)
+    tools.invoke(verify_packet(context, work(tools, "authorized-offer", proposals=[proposal(tools)])))
+    offered = show(tools)["proposals"][0]
+    advance = request("advance", {"request_id": "reach-ungranted-inspector", "task_id": "T1", "target_stage": "assess"})
+    assert tools.invoke(advance)["status"] == "role_handoff_required"
+    handoff(tools, "transfer-ungranted-inspector")
+    inspector = WorkTools(WorkPoise(project["config_path"], "arbiter-session"))
+    inspector.invoke(request("bootstrap", {"task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None}))
+    assert inspector.invoke(advance)["status"] == "progression_target_reached"
+    observation = next_stage(inspector)
+    assert observation["handler"] == "inspect"
+    assert observation["purpose"] == "other"
+    assert observation["criteria_authority"] == {"propose": [], "decide": []}
+    before, current = rows(inspector), show(inspector)
+    with pytest.raises(PoiseError, match="criteria_authority_denied"):
+        inspector.invoke(verify_packet(observation, work(inspector, "deny-ungranted-decision", decisions=[{
+            "proposal_id": offered["proposal_id"], "proposal_digest": offered["proposal_digest"],
+            "decision": "accepted", "reason": "An empty grant must not authorize this decision.",
+        }])))
+    assert rows(inspector) == before
+    assert show(inspector) == current

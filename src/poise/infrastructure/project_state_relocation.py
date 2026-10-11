@@ -220,7 +220,16 @@ class FileProjectStateRelocation:
             self.hooks = pending['hooks']
             for hook in self.hooks:
                 self._admit_hook(hook)
-            self._validate_seal()
+            if pending['phase'] == 'admitted' and not self.destination.exists():
+                # No copy has been published. Under the same writer fences,
+                # admit the current source rather than discard writes accepted
+                # after an interrupted first copy. The next copy includes them.
+                # Once a destination exists, the original seal remains binding.
+                self.tasks = self._admit_database(self.source)
+                self.seal = file_snapshot(self.source, self._owned_databases(self.source, target=False))
+                self._save('admitted', tasks=self.tasks, seal=self.seal)
+            else:
+                self._validate_seal()
 
     def copy(self):
         if self._done('copied'):

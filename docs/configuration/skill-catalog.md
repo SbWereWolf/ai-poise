@@ -5,7 +5,9 @@
 ## Владелец и состав
 
 `.agents/skill-catalog.json` — явный каталог **поставленных в этой сборке** skills.
-Он содержит 33 адаптированных прикладных/методических skill и два собственных skill Poise.
+Он содержит 37 skills; состав сверяется с фактическими `*/SKILL.md`.
+Навык `requirements-db` описывает работу через публичный Requirements API,
+не требует владения Task и не заменяет project-specific routing.
 Это не требование переносить весь ERP inventory: `safe-commit` и `system-tests`
 исключены решениями миграции; `preflight`, `playwright` и `jetbrains-ide` в эту
 поставку не входят. Будущая установка skill должна менять каталог и проверку покрытия

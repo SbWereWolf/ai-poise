@@ -1,0 +1,148 @@
+[
+  {
+    "id": "CURSOR-opposite-orientation",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "b": {
+                  "endpoint": "application",
+                  "filter": {
+                    "id": {
+                      "eq": "A1"
+                    }
+                  }
+                },
+                "page": {
+                  "limit": 1,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "relations",
+                      "table": "requirement_links",
+                      "a": {
+                        "endpoint": "application",
+                        "filter": {
+                          "id": {
+                            "eq": "A1"
+                          }
+                        }
+                      },
+                      "b": {
+                        "endpoint": "system",
+                        "filter": {
+                          "id": {
+                            "eq": "S1"
+                          }
+                        }
+                      }
+                    },
+                    "key": [
+                      "S1",
+                      "A1"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "CURSOR-changed-B-filter",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "b": {
+                  "endpoint": "application",
+                  "filter": {
+                    "id": {
+                      "eq": "A1"
+                    }
+                  }
+                },
+                "page": {
+                  "limit": 1,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "relations",
+                      "table": "requirement_links",
+                      "a": {
+                        "endpoint": "system",
+                        "filter": {
+                          "id": {
+                            "eq": "S1"
+                          }
+                        }
+                      },
+                      "b": {
+                        "endpoint": "application",
+                        "filter": {}
+                      }
+                    },
+                    "key": [
+                      "S1",
+                      "A1"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  }
+]

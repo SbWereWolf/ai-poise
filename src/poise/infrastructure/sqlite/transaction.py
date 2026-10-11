@@ -4,7 +4,7 @@ from pathlib import Path
 import sqlite3
 from time import monotonic, sleep
 
-from ...modules.foundation.errors import PoiseError
+from ...modules.foundation.errors import PoiseError, SQLiteBoundaryUnavailable
 from ..locking import exclusive_lock
 
 
@@ -22,7 +22,7 @@ def _boundary(db: sqlite3.Connection, sql: str, path: Path, wait: float, poll: f
                 raise
             remaining = deadline - monotonic()
             if remaining <= 0:
-                raise PoiseError(
+                raise SQLiteBoundaryUnavailable(
                     f'SQLite {sql}: истёк lock_seconds={wait:g} для {path}. '
                     'Закройте удерживающую транзакцию в другом процессе; '
                     'не удаляйте БД или lock-файлы. Повторите операцию после освобождения.'

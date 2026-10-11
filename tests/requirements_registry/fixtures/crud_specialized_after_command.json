@@ -1,0 +1,483 @@
+{
+  "command": {
+    "request": {
+      "operation": "command",
+      "input": {
+        "request_id": "planning-consumers",
+        "expected_revision": 7,
+        "operations": [
+          {
+            "id": "z",
+            "kind": "update",
+            "table": "requirements",
+            "filter": {
+              "id": {
+                "eq": "A1"
+              }
+            },
+            "changes": {
+              "text": "Updated application."
+            }
+          },
+          {
+            "id": "a",
+            "kind": "unlink",
+            "table": "requirement_links",
+            "a": {
+              "endpoint": "system",
+              "filter": {
+                "id": {
+                  "eq": "S1"
+                }
+              }
+            },
+            "b": {
+              "endpoint": "application",
+              "filter": {
+                "id": {
+                  "eq": "A1"
+                }
+              }
+            }
+          },
+          {
+            "id": "m",
+            "kind": "link",
+            "table": "requirement_links",
+            "a": {
+              "endpoint": "system",
+              "filter": {
+                "id": {
+                  "eq": "S2"
+                }
+              }
+            },
+            "b": {
+              "endpoint": "application",
+              "filter": {
+                "id": {
+                  "eq": "A3"
+                }
+              }
+            }
+          },
+          {
+            "id": "b",
+            "kind": "create",
+            "table": "requirements",
+            "row": {
+              "id": "S9",
+              "level": "system",
+              "status": "future",
+              "text": ""
+            }
+          }
+        ]
+      }
+    },
+    "response": {
+      "status": "applied",
+      "revision": 8,
+      "replayed": false,
+      "results": [
+        {
+          "id": "z",
+          "affected_rows": 1
+        },
+        {
+          "id": "a",
+          "affected_rows": 1
+        },
+        {
+          "id": "m",
+          "affected_rows": 1
+        },
+        {
+          "id": "b",
+          "affected_rows": 1
+        }
+      ]
+    },
+    "changes": [
+      {
+        "table": "requirements",
+        "kind": "update",
+        "row": [
+          "A1",
+          "application",
+          "current",
+          "Updated application."
+        ]
+      },
+      {
+        "table": "requirement_links",
+        "kind": "delete",
+        "row": [
+          "S1",
+          "A1"
+        ]
+      },
+      {
+        "table": "requirement_links",
+        "kind": "insert",
+        "row": [
+          "S2",
+          "A3"
+        ]
+      },
+      {
+        "table": "requirements",
+        "kind": "insert",
+        "row": [
+          "S9",
+          "system",
+          "future",
+          ""
+        ]
+      }
+    ]
+  },
+  "queries": [
+    {
+      "request": {
+        "operation": "query",
+        "input": {
+          "queries": [
+            {
+              "id": "registry",
+              "kind": "registry"
+            },
+            {
+              "id": "coverage",
+              "kind": "coverage"
+            },
+            {
+              "id": "gaps",
+              "kind": "gaps"
+            },
+            {
+              "id": "chain",
+              "kind": "chain",
+              "requirement_id": "A1"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": "read_only",
+        "revision": 8,
+        "results": [
+          {
+            "id": "registry",
+            "value": {
+              "requirements": {
+                "A1": {
+                  "id": "A1",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Updated application."
+                },
+                "A2": {
+                  "id": "A2",
+                  "level": "application",
+                  "status": "future",
+                  "text": ""
+                },
+                "A3": {
+                  "id": "A3",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Free application."
+                },
+                "S1": {
+                  "id": "S1",
+                  "level": "system",
+                  "status": "current",
+                  "text": "First system."
+                },
+                "S2": {
+                  "id": "S2",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Second system."
+                },
+                "S9": {
+                  "id": "S9",
+                  "level": "system",
+                  "status": "future",
+                  "text": ""
+                }
+              },
+              "links": [
+                {
+                  "system": "S1",
+                  "application": "A2"
+                },
+                {
+                  "system": "S2",
+                  "application": "A1"
+                },
+                {
+                  "system": "S2",
+                  "application": "A3"
+                }
+              ]
+            }
+          },
+          {
+            "id": "coverage",
+            "value": {
+              "application_without_system": [],
+              "system_without_application": [
+                "S9"
+              ]
+            }
+          },
+          {
+            "id": "gaps",
+            "value": [
+              {
+                "kind": "system_without_application",
+                "requirement_id": "S9",
+                "text": ""
+              },
+              {
+                "kind": "projected_placeholder",
+                "level": "application",
+                "requirement_id": "A2",
+                "text": ""
+              },
+              {
+                "kind": "projected_placeholder",
+                "level": "system",
+                "requirement_id": "S9",
+                "text": ""
+              }
+            ]
+          },
+          {
+            "id": "chain",
+            "value": {
+              "application": {
+                "id": "A1",
+                "level": "application",
+                "status": "current",
+                "text": "Updated application."
+              },
+              "systems": [
+                {
+                  "id": "S2",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Second system."
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "request": {
+        "operation": "query",
+        "input": {
+          "queries": [
+            {
+              "id": "ready",
+              "kind": "plan_task",
+              "task_requirements": [
+                {
+                  "text": "Use current application.",
+                  "applications": [
+                    "A1",
+                    "A3"
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "projected",
+              "kind": "plan_task",
+              "task_requirements": [
+                {
+                  "text": "",
+                  "applications": [
+                    "A2"
+                  ],
+                  "status": "future"
+                }
+              ]
+            },
+            {
+              "id": "current",
+              "kind": "coverage",
+              "mode": "current"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": "read_only",
+        "revision": 8,
+        "results": [
+          {
+            "id": "ready",
+            "value": {
+              "status": "ready",
+              "gaps": [],
+              "chains": [
+                {
+                  "task_text": "Use current application.",
+                  "applications": [
+                    {
+                      "id": "A1",
+                      "level": "application",
+                      "status": "current",
+                      "text": "Updated application."
+                    },
+                    {
+                      "id": "A3",
+                      "level": "application",
+                      "status": "current",
+                      "text": "Free application."
+                    }
+                  ],
+                  "systems": [
+                    {
+                      "id": "S2",
+                      "level": "system",
+                      "status": "current",
+                      "text": "Second system."
+                    }
+                  ]
+                }
+              ],
+              "snapshot": {
+                "requirements": {
+                  "A1": {
+                    "id": "A1",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Updated application."
+                  },
+                  "A3": {
+                    "id": "A3",
+                    "level": "application",
+                    "status": "current",
+                    "text": "Free application."
+                  },
+                  "S2": {
+                    "id": "S2",
+                    "level": "system",
+                    "status": "current",
+                    "text": "Second system."
+                  }
+                },
+                "links": [
+                  {
+                    "system": "S2",
+                    "application": "A1"
+                  },
+                  {
+                    "system": "S2",
+                    "application": "A3"
+                  }
+                ],
+                "task_requirements": [
+                  {
+                    "text": "Use current application.",
+                    "applications": [
+                      "A1",
+                      "A3"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "projected",
+            "value": {
+              "status": "gaps",
+              "gaps": [
+                {
+                  "kind": "projected_placeholder",
+                  "level": "task",
+                  "task_index": 0,
+                  "task_text": ""
+                },
+                {
+                  "kind": "projected_placeholder",
+                  "level": "application",
+                  "requirement_id": "A2",
+                  "task_text": ""
+                }
+              ],
+              "chains": [
+                {
+                  "task_text": "",
+                  "applications": [
+                    {
+                      "id": "A2",
+                      "level": "application",
+                      "status": "future",
+                      "text": ""
+                    }
+                  ],
+                  "systems": [
+                    {
+                      "id": "S1",
+                      "level": "system",
+                      "status": "current",
+                      "text": "First system."
+                    }
+                  ]
+                }
+              ],
+              "snapshot": {
+                "requirements": {
+                  "A2": {
+                    "id": "A2",
+                    "level": "application",
+                    "status": "future",
+                    "text": ""
+                  },
+                  "S1": {
+                    "id": "S1",
+                    "level": "system",
+                    "status": "current",
+                    "text": "First system."
+                  }
+                },
+                "links": [
+                  {
+                    "system": "S1",
+                    "application": "A2"
+                  }
+                ],
+                "task_requirements": [
+                  {
+                    "text": "",
+                    "applications": [
+                      "A2"
+                    ],
+                    "status": "future"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "current",
+            "value": {
+              "application_without_system": [],
+              "system_without_application": [
+                "S1"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

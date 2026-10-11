@@ -1,0 +1,242 @@
+{
+  "query": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "requirements",
+          "kind": "entities",
+          "table": "requirements",
+          "filter": {
+            "level": {
+              "eq": "application"
+            },
+            "status": {
+              "eq": "current"
+            }
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        },
+        {
+          "id": "names",
+          "kind": "entities",
+          "table": "domain_entities",
+          "filter": {
+            "domain_id": {
+              "eq": "D1"
+            }
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        }
+      ]
+    }
+  },
+  "query_response": {
+    "status": "read_only",
+    "revision": 7,
+    "results": [
+      {
+        "id": "requirements",
+        "value": {
+          "rows": [
+            {
+              "id": "A1",
+              "level": "application",
+              "status": "current",
+              "text": "First application."
+            },
+            {
+              "id": "A3",
+              "level": "application",
+              "status": "current",
+              "text": "Free application."
+            }
+          ],
+          "next": null
+        }
+      },
+      {
+        "id": "names",
+        "value": {
+          "rows": [
+            {
+              "id": "E1",
+              "domain_id": "D1",
+              "business_name": "Order",
+              "code_name": "Order",
+              "definition": "Order aggregate."
+            },
+            {
+              "id": "E2",
+              "domain_id": "D1",
+              "business_name": "Invoice",
+              "code_name": "Invoice",
+              "definition": "Invoice aggregate."
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  },
+  "command": {
+    "operation": "command",
+    "input": {
+      "request_id": "agent-workflow",
+      "expected_revision": 7,
+      "operations": [
+        {
+          "id": "z",
+          "kind": "create",
+          "table": "domain_entities",
+          "row": {
+            "id": "E9",
+            "domain_id": "D1",
+            "business_name": "Customer",
+            "code_name": "Customer",
+            "definition": "Customer aggregate."
+          }
+        },
+        {
+          "id": "a",
+          "kind": "link",
+          "table": "requirement_entities",
+          "a": {
+            "endpoint": "requirement",
+            "filter": {
+              "id": {
+                "eq": "A3"
+              }
+            }
+          },
+          "b": {
+            "endpoint": "entity",
+            "filter": {
+              "id": {
+                "eq": "E9"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": "applied",
+    "revision": 8,
+    "replayed": false,
+    "results": [
+      {
+        "id": "z",
+        "affected_rows": 1
+      },
+      {
+        "id": "a",
+        "affected_rows": 1
+      }
+    ]
+  },
+  "changes": [
+    {
+      "table": "domain_entities",
+      "kind": "insert",
+      "row": [
+        "E9",
+        "D1",
+        "Customer",
+        "Customer",
+        "Customer aggregate."
+      ]
+    },
+    {
+      "table": "requirement_entities",
+      "kind": "insert",
+      "row": [
+        "A3",
+        "D1",
+        "E9"
+      ]
+    }
+  ],
+  "readback": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "relation",
+          "kind": "relations",
+          "table": "requirement_entities",
+          "a": {
+            "endpoint": "requirement",
+            "filter": {
+              "id": {
+                "eq": "A3"
+              }
+            }
+          },
+          "b": {
+            "endpoint": "entity"
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        },
+        {
+          "id": "name",
+          "kind": "entities",
+          "table": "domain_entities",
+          "filter": {
+            "id": {
+              "eq": "E9"
+            }
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        }
+      ]
+    }
+  },
+  "readback_response": {
+    "status": "read_only",
+    "revision": 8,
+    "results": [
+      {
+        "id": "relation",
+        "value": {
+          "rows": [
+            {
+              "requirement_id": "A3",
+              "domain_id": "D1",
+              "entity_id": "E9"
+            }
+          ],
+          "next": null
+        }
+      },
+      {
+        "id": "name",
+        "value": {
+          "rows": [
+            {
+              "id": "E9",
+              "domain_id": "D1",
+              "business_name": "Customer",
+              "code_name": "Customer",
+              "definition": "Customer aggregate."
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  }
+}

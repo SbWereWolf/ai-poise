@@ -7,6 +7,7 @@ from ..common import load_config
 from ..composition import migrate_requirements, requirements_tools
 from ..infrastructure.goal_config import strict_json
 from ..modules.foundation.errors import PoiseError
+from ..modules.requirements_registry.crud import RequirementsCrudError, is_crud_query_batch
 
 
 def _packet(value):
@@ -30,12 +31,15 @@ def execute(config_path, stream, output):
             if body:
                 raise PoiseError("Requirements migrate input must be empty")
             result = migrate_requirements(config_path)
-        elif operation in ("apply", "query", "import_bootstrap"):
+        elif operation in ("apply", "query", "import_bootstrap", "command"):
             commands, _ = requirements_tools(config_path)
             result = _command(commands, operation, body)
         else:
             raise PoiseError(f"Unknown Requirements operation: {operation}")
         code = 0
+    except RequirementsCrudError as exc:
+        result = exc.response()
+        code = 2
     except (PoiseError, UnicodeError, RecursionError) as exc:
         result = {"status": "rejected", "reason": str(exc)}
         code = 2
@@ -44,10 +48,14 @@ def execute(config_path, stream, output):
 
 
 def _command(commands, operation, body):
+    if operation == "command":
+        return {"status": "applied", **commands.command(body)}
     if operation == "apply":
         return {"status": "applied", **commands.apply(body)}
     if operation == "query":
         if set(body) != {"queries"}:
+            if is_crud_query_batch(body.get("queries")):
+                raise RequirementsCrudError("invalid_packet")
             raise PoiseError("Requirements query input requires queries")
         return {"status": "read_only", **commands.query(body["queries"])}
     if set(body) != {"path", "request_id"}:

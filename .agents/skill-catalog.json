@@ -23,6 +23,7 @@
     {"id": "remediation", "path": ".agents/skills/remediation/SKILL.md", "purpose": "Correct confirmed review findings without widening scope.", "class": "meta", "level": null, "responsibility": null},
     {"id": "remediation-review", "path": ".agents/skills/remediation-review/SKILL.md", "purpose": "Inspect corrections against the original findings.", "class": "meta", "level": null, "responsibility": null},
     {"id": "repo-tooling", "path": ".agents/skills/repo-tooling/SKILL.md", "purpose": "Use repository tools with bounded inputs and exact failure handling.", "class": "common", "level": null, "responsibility": null},
+    {"id": "requirements-db", "path": ".agents/skills/requirements-db/SKILL.md", "purpose": "Read and change Requirements entities and relations through declarative public packets.", "class": "common", "level": null, "responsibility": null},
     {"id": "review", "path": ".agents/skills/review/SKILL.md", "purpose": "Review delivered changes against requirements and evidence.", "class": "meta", "level": null, "responsibility": null},
     {"id": "security-and-privacy", "path": ".agents/skills/security-and-privacy/SKILL.md", "purpose": "Review trust boundaries, sensitive data and exposure.", "class": "common", "level": null, "responsibility": null},
     {"id": "self-review", "path": ".agents/skills/self-review/SKILL.md", "purpose": "Inspect an executor result before independent review.", "class": "meta", "level": null, "responsibility": null},

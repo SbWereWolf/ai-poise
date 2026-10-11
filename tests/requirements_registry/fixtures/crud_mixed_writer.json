@@ -1,0 +1,80 @@
+{
+  "request": {
+    "operation": "command",
+    "input": {
+      "request_id": "mixed-writer",
+      "expected_revision": 7,
+      "operations": [
+        {
+          "id": "u",
+          "kind": "update",
+          "table": "domain_entities",
+          "filter": {
+            "id": {
+              "eq": "E1"
+            }
+          },
+          "changes": {
+            "definition": "Changed."
+          }
+        }
+      ]
+    }
+  },
+  "success": {
+    "status": "applied",
+    "revision": 8,
+    "replayed": false,
+    "results": [
+      {
+        "id": "u",
+        "affected_rows": 1
+      }
+    ]
+  },
+  "subsequent_query": {
+    "revision": 8,
+    "results": [
+      {
+        "id": "z",
+        "value": {
+          "application_without_system": [
+            "A3"
+          ],
+          "system_without_application": []
+        }
+      },
+      {
+        "id": "a",
+        "value": {
+          "rows": [
+            {
+              "id": "E1",
+              "domain_id": "D1",
+              "business_name": "Order",
+              "code_name": "Order",
+              "definition": "Changed."
+            }
+          ],
+          "next": null
+        }
+      },
+      {
+        "id": "m",
+        "value": {
+          "rows": [
+            {
+              "system_id": "S1",
+              "application_id": "A1"
+            },
+            {
+              "system_id": "S1",
+              "application_id": "A2"
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  }
+}

@@ -8,3 +8,11 @@ class DomainError(PoiseError):
 
 class VersionConflict(PoiseError):
     """Сохранение не может перезаписать более новую версию."""
+
+
+class LockUnavailable(PoiseError):
+    """The configured external lock acquisition wait was exhausted."""
+
+
+class SQLiteBoundaryUnavailable(PoiseError):
+    """The configured SQLITE_BUSY wait at BEGIN/COMMIT was exhausted."""

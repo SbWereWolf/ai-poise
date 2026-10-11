@@ -1,0 +1,1099 @@
+[
+  {
+    "id": "B08-table-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "\ud800",
+                "filter": {},
+                "page": {
+                  "limit": 1,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-filter-key-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "\ud800": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 1,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-cursor-selection-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 1,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "entities",
+                      "table": "\ud800",
+                      "filter": {}
+                    },
+                    "key": [
+                      "E1"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-item-extra-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 1,
+                  "after": null
+                },
+                "\ud800": true
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-packet-extra-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ],
+            "\ud800": true
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-endpoint-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_entities",
+                "a": {
+                  "endpoint": "\ud800",
+                  "filter": {
+                    "id": {
+                      "eq": "A1"
+                    }
+                  }
+                },
+                "b": {
+                  "endpoint": "entity"
+                },
+                "page": {
+                  "limit": 1,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-create-high",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": "application",
+                  "status": "current",
+                  "text": "\ud800"
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-table-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "\udfff",
+                "filter": {},
+                "page": {
+                  "limit": 1,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-filter-key-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "\udfff": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 1,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD filter.",
+          "error": {
+            "code": "invalid_filter",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-cursor-selection-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 1,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "entities",
+                      "table": "\udfff",
+                      "filter": {}
+                    },
+                    "key": [
+                      "E1"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-item-extra-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {},
+                "page": {
+                  "limit": 1,
+                  "after": null
+                },
+                "\udfff": true
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-packet-extra-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ],
+            "\udfff": true
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-endpoint-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "relations",
+                "table": "requirement_entities",
+                "a": {
+                  "endpoint": "\udfff",
+                  "filter": {
+                    "id": {
+                      "eq": "A1"
+                    }
+                  }
+                },
+                "b": {
+                  "endpoint": "entity"
+                },
+                "page": {
+                  "limit": 1,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B08-create-low",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "requirements",
+                "row": {
+                  "id": "R9",
+                  "level": "application",
+                  "status": "current",
+                  "text": "\udfff"
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B01-empty-request",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B01-null-request",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": null,
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B01-numeric-request",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": 1,
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B01-missing-request",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B01-empty-item",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "",
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "B01-null-item",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": null,
+                "kind": "update",
+                "table": "requirements",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD packet.",
+          "error": {
+            "code": "invalid_packet",
+            "item_index": null,
+            "item_id": null
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "W08-service",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirement_requests",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "W08-relation-entity",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "u",
+                "kind": "update",
+                "table": "requirement_links",
+                "filter": {
+                  "id": {
+                    "eq": "A3"
+                  }
+                },
+                "changes": {
+                  "text": "Changed."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "u"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "W08-create-missing",
+    "steps": [
+      {
+        "request": {
+          "operation": "command",
+          "input": {
+            "request_id": "edges",
+            "expected_revision": 7,
+            "operations": [
+              {
+                "id": "c",
+                "kind": "create",
+                "table": "domain_entities",
+                "row": {
+                  "id": "E9",
+                  "business_name": "X",
+                  "code_name": "X",
+                  "definition": "X."
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD item.",
+          "error": {
+            "code": "invalid_item",
+            "item_index": 0,
+            "item_id": "c"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "P07-excluded",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "domain_id": {
+                    "eq": "D1"
+                  }
+                },
+                "page": {
+                  "limit": 1,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "entities",
+                      "table": "domain_entities",
+                      "filter": {
+                        "domain_id": {
+                          "eq": "D1"
+                        }
+                      }
+                    },
+                    "key": [
+                      "E3"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "P09-eq-vs-in",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "q",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 1,
+                  "after": {
+                    "revision": 7,
+                    "selection": {
+                      "kind": "entities",
+                      "table": "domain_entities",
+                      "filter": {
+                        "id": {
+                          "in": [
+                            "E1"
+                          ]
+                        }
+                      }
+                    },
+                    "key": [
+                      "E1"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "rejected",
+          "reason": "Invalid Requirements CRUD cursor.",
+          "error": {
+            "code": "invalid_cursor",
+            "item_index": 0,
+            "item_id": "q"
+          }
+        },
+        "changes": []
+      }
+    ]
+  },
+  {
+    "id": "P10-mixed",
+    "steps": [
+      {
+        "request": {
+          "operation": "query",
+          "input": {
+            "queries": [
+              {
+                "id": "z",
+                "kind": "coverage"
+              },
+              {
+                "id": "a",
+                "kind": "entities",
+                "table": "domain_entities",
+                "filter": {
+                  "id": {
+                    "eq": "E1"
+                  }
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              },
+              {
+                "id": "m",
+                "kind": "relations",
+                "table": "requirement_links",
+                "a": {
+                  "endpoint": "system",
+                  "filter": {
+                    "id": {
+                      "eq": "S1"
+                    }
+                  }
+                },
+                "b": {
+                  "endpoint": "application"
+                },
+                "page": {
+                  "limit": 4,
+                  "after": null
+                }
+              }
+            ]
+          }
+        },
+        "response": {
+          "status": "read_only",
+          "revision": 7,
+          "results": [
+            {
+              "id": "z",
+              "value": {
+                "application_without_system": [
+                  "A3"
+                ],
+                "system_without_application": []
+              }
+            },
+            {
+              "id": "a",
+              "value": {
+                "rows": [
+                  {
+                    "id": "E1",
+                    "domain_id": "D1",
+                    "business_name": "Order",
+                    "code_name": "Order",
+                    "definition": "Order aggregate."
+                  }
+                ],
+                "next": null
+              }
+            },
+            {
+              "id": "m",
+              "value": {
+                "rows": [
+                  {
+                    "system_id": "S1",
+                    "application_id": "A1"
+                  },
+                  {
+                    "system_id": "S1",
+                    "application_id": "A2"
+                  }
+                ],
+                "next": null
+              }
+            }
+          ]
+        },
+        "changes": []
+      }
+    ]
+  }
+]

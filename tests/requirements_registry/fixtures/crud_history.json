@@ -1,0 +1,57 @@
+{
+  "apply_request": {
+    "request_id": "historical",
+    "expected_revision": 0,
+    "operations": [
+      {
+        "kind": "put_requirement",
+        "requirement": {
+          "id": "SYS",
+          "level": "system",
+          "status": "current",
+          "text": "Согласовать язык области."
+        }
+      }
+    ]
+  },
+  "old_response": {
+    "revision": 3,
+    "replayed": false
+  },
+  "replay_response": {
+    "status": "applied",
+    "revision": 3,
+    "replayed": true
+  },
+  "command_request": {
+    "operation": "command",
+    "input": {
+      "request_id": "historical",
+      "expected_revision": 7,
+      "operations": [
+        {
+          "id": "u",
+          "kind": "update",
+          "table": "requirements",
+          "filter": {
+            "id": {
+              "eq": "A3"
+            }
+          },
+          "changes": {
+            "text": "Changed."
+          }
+        }
+      ]
+    }
+  },
+  "collision_response": {
+    "status": "rejected",
+    "reason": "Requirements request_id was used for another request.",
+    "error": {
+      "code": "request_conflict",
+      "item_index": null,
+      "item_id": null
+    }
+  }
+}

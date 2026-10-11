@@ -1,0 +1,94 @@
+{
+  "request": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "z",
+          "kind": "coverage"
+        },
+        {
+          "id": "a",
+          "kind": "entities",
+          "table": "domain_entities",
+          "filter": {
+            "id": {
+              "eq": "E1"
+            }
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        },
+        {
+          "id": "m",
+          "kind": "relations",
+          "table": "requirement_links",
+          "a": {
+            "endpoint": "system",
+            "filter": {
+              "id": {
+                "eq": "S1"
+              }
+            }
+          },
+          "b": {
+            "endpoint": "application"
+          },
+          "page": {
+            "limit": 4,
+            "after": null
+          }
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": "read_only",
+    "revision": 7,
+    "results": [
+      {
+        "id": "z",
+        "value": {
+          "application_without_system": [
+            "A3"
+          ],
+          "system_without_application": []
+        }
+      },
+      {
+        "id": "a",
+        "value": {
+          "rows": [
+            {
+              "id": "E1",
+              "domain_id": "D1",
+              "business_name": "Order",
+              "code_name": "Order",
+              "definition": "Order aggregate."
+            }
+          ],
+          "next": null
+        }
+      },
+      {
+        "id": "m",
+        "value": {
+          "rows": [
+            {
+              "system_id": "S1",
+              "application_id": "A1"
+            },
+            {
+              "system_id": "S1",
+              "application_id": "A2"
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  },
+  "changes": []
+}

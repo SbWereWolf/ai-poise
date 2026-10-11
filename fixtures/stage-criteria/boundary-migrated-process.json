@@ -1,0 +1,49 @@
+{
+  "benefit": {"git_categories": ["code", "documentation"], "sections": []},
+  "content_contract": {"requirements": [], "routes": [], "sections": []},
+  "goal_type": "development",
+  "route": {"entry": "tests"},
+  "worktree_required": true,
+  "stages": [
+    {
+      "allowed_paths": ["tests/**"], "artifact_requirements": [],
+      "handler": "produce", "id": "tests", "purpose": "design",
+      "criteria_authority": {"propose": [], "decide": []},
+      "instruction": "Выполнить один этап tests.", "normalization": "strip",
+      "read_only": false, "required_sections": ["report"],
+      "rework_targets": ["tests"], "role": "executor",
+      "sections": {"report": "Заполнить результат этапа."},
+      "transitions": {"complete": "test_review"}
+    },
+    {
+      "allowed_paths": [], "artifact_requirements": [],
+      "handler": "produce", "id": "test_review", "purpose": "observation",
+      "criteria_authority": {"propose": [], "decide": []},
+      "instruction": "Выполнить один этап test_review.", "normalization": "strip",
+      "read_only": true, "required_sections": ["report"],
+      "rework_targets": ["test_review"], "role": "executor",
+      "sections": {"report": "Заполнить результат этапа."},
+      "transitions": {"complete": "implementation"}
+    },
+    {
+      "allowed_paths": ["src/**"], "artifact_requirements": [],
+      "handler": "produce", "id": "implementation", "purpose": "execution",
+      "criteria_authority": {"propose": [], "decide": []},
+      "instruction": "Выполнить один этап implementation.", "normalization": "strip",
+      "read_only": false, "required_sections": ["report"],
+      "rework_targets": ["implementation"], "role": "executor",
+      "sections": {"report": "Заполнить результат этапа."},
+      "transitions": {"complete": "code_review"}
+    },
+    {
+      "allowed_paths": [], "artifact_requirements": [],
+      "handler": "produce", "id": "code_review", "purpose": "observation",
+      "criteria_authority": {"propose": [], "decide": []},
+      "instruction": "Выполнить один этап code_review.", "normalization": "strip",
+      "read_only": true, "required_sections": ["report"],
+      "rework_targets": ["code_review"], "role": "executor",
+      "sections": {"report": "Заполнить результат этапа."},
+      "transitions": {"complete": null}
+    }
+  ]
+}

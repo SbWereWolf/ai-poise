@@ -740,3 +740,383 @@ def test_historical_migration_schemas_keep_their_exact_request_contract(schema, 
     changed = {**packet, "mapping": []}
     with pytest.raises(PoiseError):
         MigrationRequest.parse(changed)
+
+
+@pytest.mark.parametrize("case", [
+    "completed_same_intent", "absent_completed", "foreign_completion", "process_only",
+    "conflicting_completions", "candidate_drift", "pending",
+])
+def test_migrated_available_task_requires_completed_same_intent_evidence(project, case):
+    from poise.composition import project_tools
+    from tests.projects.helpers import setup_case
+
+    def owner_records():
+        with sqlite3.connect(project["root"] / fixture("migration-editor.json")["database"]) as connection:
+            digests = connection.execute(
+                "SELECT request_id,request_digest FROM config_operations ORDER BY request_id",
+            ).fetchall()
+        return publication_rows(project), digests
+
+    database, packet, process_path = historical_project(project)
+    original = snapshot(database)
+    migrated = invoke_cli(project, packet)
+    assert migrated.returncode == 0, (migrated.stdout, migrated.stderr)
+    receipt = json.loads(migrated.stdout)
+    settings, _, _ = setup_case(project)
+    write_json(project["root"] / "state/project-registry.json", fixture("boundary-project-registry.json"))
+    with sqlite3.connect(database) as connection:
+        records = connection.execute(
+            "SELECT seq,at,session_id,task_id,data FROM journal WHERE event=? ORDER BY seq",
+            ("task_stage_criteria_migration",),
+        ).fetchall()
+        completed = [(row, json.loads(row[4])) for row in records if json.loads(row[4])["phase"] == "completed"]
+        assert len(completed) == 1
+        row, completion = completed[0]
+        assert completion["result"] == receipt
+        if case == "absent_completed":
+            connection.execute("DELETE FROM journal WHERE seq=?", (row[0],))
+        elif case in ("foreign_completion", "process_only", "conflicting_completions"):
+            changed = deepcopy(completion)
+            if case == "foreign_completion":
+                changed["result"]["receipt"] = "f" * 64
+                changed["result"]["resources"][1]["task_id"] = "FOREIGN"
+            elif case == "process_only":
+                changed["result"]["resources"] = changed["result"]["resources"][:1]
+            else:
+                # Both records retain the same request/receipt/Task identity;
+                # their claimed candidate differs, rather than being foreign.
+                changed["result"]["resources"][1]["new_digest"] = "e" * 64
+            if case == "conflicting_completions":
+                connection.execute(
+                    "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
+                    (row[1], row[2], row[3], "task_stage_criteria_migration", json.dumps(changed)),
+                )
+            else:
+                connection.execute("UPDATE journal SET data=? WHERE seq=?", (json.dumps(changed), row[0]))
+        elif case == "candidate_drift":
+            metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", ("T1",)).fetchone()[0])
+            metadata["stage_criteria"]["stages"]["implementation"]["criteria"]["definition_of_done"] = [
+                "An intervening writer specifies another valid criterion.",
+            ]
+            connection.execute("UPDATE tasks SET metadata=? WHERE id=?", (json.dumps(metadata), "T1"))
+        elif case == "pending":
+            execution = json.loads(connection.execute("SELECT data FROM task_execution WHERE task_id=?", ("T1",)).fetchone()[0])
+            execution["pending"] = "checks"
+            connection.execute("UPDATE task_execution SET data=? WHERE task_id=?", (json.dumps(execution), "T1"))
+
+    tools = WorkTools(WorkPoise(project["config_path"], "completed-migration-start"))
+    before, owner, published = snapshot(database), owner_records(), process_path.read_bytes()
+    files = {path: path.read_bytes() for path in (
+        project["config_path"], settings, project["root"] / "criteria-editor.json",
+        project["root"] / "criteria-catalogue.json", project["root"] / "state/project-registry.json",
+    )}
+    listed = project_tools(settings).next("demo")
+    assert snapshot(database) == before
+    assert owner_records() == owner
+    assert process_path.read_bytes() == published
+    assert all(path.read_bytes() == content for path, content in files.items())
+    identities = [(item["project"], item["task"]) for item in listed["tasks"]]
+    bootstrap = request("bootstrap", {
+        "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
+    })
+    if case != "completed_same_intent":
+        assert ("demo", "T1") not in identities
+        with pytest.raises(PoiseError):
+            tools.invoke(bootstrap)
+        after = snapshot(database)
+        for table in before:
+            if table != "journal":
+                assert after[table] == before[table], table
+        # Runtime/refusal audit may append; the migration journal cannot change.
+        assert [row for row in after["journal"] if row[4] == "task_stage_criteria_migration"] == [
+            row for row in before["journal"] if row[4] == "task_stage_criteria_migration"
+        ]
+    else:
+        # Invoke even when discovery wrongly excluded T1, to expose the actual
+        # retained-execution admission failure rather than only an empty list.
+        context = tools.invoke(bootstrap)
+        assert listed["status"] == "listed" and listed["errors"] == []
+        assert identities.count(("demo", "T1")) == 1
+        assert len(identities) == len(set(identities))
+        assert context["task"] == "T1" and context["status"] == "active"
+        assert_original_stage_digests(tools, json.loads(original["tasks"][0][7]), receipt["receipt"])
+        criterion = show(tools, "implementation")
+        assert criterion["execution"]["state"] == "unknown"
+        assert criterion["execution"]["bound_revision"] is not None
+        assert criterion["source"]["kind"] == "historical"
+        assert criterion["source"]["migration_receipt"] == receipt["receipt"]
+        assert criterion["proposals"] == []
+        after = snapshot(database)
+        assert after["tasks"][1] == before["tasks"][1]
+        for table in ("submissions", "evidence", "proofs", "content", "methods"):
+            assert after[table] == before[table], table
+        metadata = json.loads(after["tasks"][0][7])
+        assert metadata.get("restart_history", []) == []
+        assert after["tasks"][0][4] == "completed-migration-start"
+        assert context["worktree"] and Path(context["worktree"]).is_dir()
+    assert owner_records() == owner
+    assert process_path.read_bytes() == published
+    assert all(path.read_bytes() == content for path, content in files.items())
+
+
+def test_migrated_available_task_rechecks_current_claim_after_discovery(project):
+    from poise.composition import project_tools
+    from tests.projects.helpers import setup_case
+
+    database, packet, process_path = historical_project(project)
+    migrated = invoke_cli(project, packet)
+    assert migrated.returncode == 0, (migrated.stdout, migrated.stderr)
+    settings, _, _ = setup_case(project)
+    write_json(project["root"] / "state/project-registry.json", fixture("boundary-project-registry.json"))
+    tools = WorkTools(WorkPoise(project["config_path"], "post-discovery-start"))
+    before = snapshot(database)
+    listed = project_tools(settings).next("demo")
+    assert snapshot(database) == before
+    assert ("demo", "T1") in [(item["project"], item["task"]) for item in listed["tasks"]]
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "UPDATE tasks SET claimed_by=?,version=version+1 WHERE id=? AND version=? AND claimed_by IS NULL",
+            ("foreign-owner-after-discovery", "T1", 7),
+        ).rowcount == 1
+    writer = snapshot(database)
+    owner, published = publication_rows(project), process_path.read_bytes()
+    with pytest.raises(PoiseError):
+        tools.invoke(request("bootstrap", {
+            "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
+        }))
+    after = snapshot(database)
+    for table in writer:
+        if table != "journal":
+            assert after[table] == writer[table], table
+    assert after["tasks"][0][4:6] == ("foreign-owner-after-discovery", 8)
+    assert publication_rows(project) == owner
+    assert process_path.read_bytes() == published
+
+
+@pytest.mark.parametrize("case", ["preintent_manifest", "resume_target_binding", "final_manifest"])
+def test_migration_manifest_drift_preserves_writer_and_distinguishes_preintent_recovery(project, monkeypatch, case):
+    from poise.infrastructure.goal_config import FileGoalConfigRepository
+    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+
+    database, packet, process_path = historical_project(project)
+    original_tasks = snapshot(database)
+    original_manifest = project["config_path"].read_bytes()
+    original_process = process_path.read_bytes()
+    owner_before = publication_rows(project)
+
+    def operation_records():
+        with sqlite3.connect(project["root"] / fixture("migration-editor.json")["database"]) as connection:
+            return connection.execute(
+                "SELECT request_id,request_digest,goal_type,source_revision,candidate,receipt,phase "
+                "FROM config_operations ORDER BY request_id",
+            ).fetchall()
+
+    operations_before = operation_records()
+    observed = []
+    writer = {}
+    original_publish = FileGoalConfigRepository.publish_migration
+
+    def change_manifest():
+        manifest = json.loads(original_manifest)
+        # A valid operational change, not malformed JSON or a reader mock.
+        manifest["limits"]["git_seconds"] = 16.0
+        write_json(project["config_path"], manifest)
+        writer[project["config_path"]] = project["config_path"].read_bytes()
+        observed.append("manifest_writer")
+
+    def fail_update(task_id):
+        observed.append(("after_update", task_id))
+        raise OSError("A real process publication precedes this fixture Task rollback.")
+
+    def publish_then_write(self, *args, **kwargs):
+        result = original_publish(self, *args, **kwargs)
+        if not writer:
+            # The real owner has released its lock and committed its operation.
+            assert_publication(project, {
+                "goal_type": "development", "old_revision": result["previous_revision"],
+                "new_revision": result["revision"], "new_digest": identity(json.loads(process_path.read_bytes())),
+            }, process_path)
+            observed.append("owner_completed")
+            change_manifest()
+        return result
+
+    def execute(port):
+        output = io.StringIO()
+        with monkeypatch.context() as patch:
+            patch.setattr(task_process_migration, "task_process_migration_tools", lambda path: TaskProcessMigrationCommands(port))
+            code = task_process_migration.execute(
+                project["config_path"], io.BytesIO(json.dumps(packet).encode()), output,
+            )
+        return code, json.loads(output.getvalue())
+
+    if case == "resume_target_binding":
+        code, partial = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_update=fail_update))
+        assert code == 2 and partial["status"] == "recovery_required"
+        assert observed == [("after_update", "T1")]
+        assert len(partial["resources"]) == 1
+        assert_publication(project, partial["resources"][0], process_path)
+        alternate = project["root"] / "config/processes/writer-development.json"
+        write_json(alternate, json.loads(process_path.read_bytes()))
+        alternate_editor = project["root"] / "writer-editor.json"
+        editor = fixture("migration-editor.json")
+        editor["processes"]["development"] = "config/processes/writer-development.json"
+        write_json(alternate_editor, editor)
+        alternate_catalogue = project["root"] / "writer-catalogue.json"
+        catalogue = fixture("migration-catalogue.json")
+        catalogue["editor"] = "writer-editor.json"
+        write_json(alternate_catalogue, catalogue)
+        manifest = json.loads(original_manifest)
+        manifest["processes"]["development"] = "config/processes/writer-development.json"
+        manifest["task_planning"]["catalogue"] = str(alternate_catalogue)
+        write_json(project["config_path"], manifest)
+        writer = {path: path.read_bytes() for path in (
+            alternate, alternate_editor, alternate_catalogue, project["config_path"],
+        )}
+        before = snapshot(database)
+        owner_before = publication_rows(project)
+        code, response = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+    elif case == "preintent_manifest":
+        before = snapshot(database)
+        code, response = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock(), after_preflight=change_manifest))
+    else:
+        before = snapshot(database)
+        with monkeypatch.context() as patch:
+            patch.setattr(FileGoalConfigRepository, "publish_migration", publish_then_write)
+            code, response = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+
+    assert writer and all(path.read_bytes() == content for path, content in writer.items())
+    if case == "preintent_manifest":
+        assert observed == ["manifest_writer"]
+        assert code == 2, response
+        assert set(response) == {"status", "reason"}
+        assert response["status"] == "rejected" and response["reason"]
+        assert snapshot(database) == before
+        assert publication_rows(project) == owner_before
+        assert operation_records() == operations_before
+        assert process_path.read_bytes() == original_process
+    else:
+        if case == "final_manifest":
+            assert observed == ["owner_completed", "manifest_writer"]
+        assert code == 2, response
+        assert set(response) == {"status", "request_id", "receipt", "resources", "reason"}
+        assert response["status"] == "recovery_required" and response["reason"]
+        assert response["request_id"] == packet["request_id"]
+        assert isinstance(response["receipt"], str) and response["receipt"]
+        assert len(response["resources"]) == 1
+        if case == "resume_target_binding":
+            assert response["receipt"] == partial["receipt"]
+            assert response["resources"] == partial["resources"]
+        owner = assert_publication(project, response["resources"][0], process_path)
+        operations = operation_records()
+        after = snapshot(database)
+        for table in original_tasks:
+            if table != "journal":
+                assert after[table] == original_tasks[table], table
+        assert not any(json.loads(row[5]).get("phase") == "completed"
+                       for row in after["journal"] if row[4] == "task_stage_criteria_migration")
+        published = process_path.read_bytes()
+        retry_code, retry = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+        assert retry_code == 2 and retry["status"] == "recovery_required"
+        assert retry["receipt"] == response["receipt"] and retry["resources"] == response["resources"]
+        assert snapshot(database) == after
+        assert publication_rows(project) == owner
+        assert operation_records() == operations
+        assert process_path.read_bytes() == published
+        assert all(path.read_bytes() == content for path, content in writer.items())
+        # Explicit fixture writer restores its own manifest, never source state.
+        write_json(project["config_path"], json.loads(original_manifest))
+        recovered_code, recovered = execute(SqliteTaskProcessMigration(project["config_path"], FixtureClock()))
+        assert recovered_code == 0 and recovered["status"] == "migrated"
+        assert recovered["receipt"] == response["receipt"]
+        assert recovered["resources"][:1] == response["resources"]
+        assert publication_rows(project) == owner
+        assert operation_records() == operations
+        assert process_path.read_bytes() == published
+        for path, content in writer.items():
+            if path != project["config_path"]:
+                assert path.read_bytes() == content
+
+
+def test_migration_reports_owner_completion_before_coordinator_observation_and_replays_once(project, monkeypatch):
+    from poise.infrastructure.goal_config import FileGoalConfigRepository
+    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+
+    database, packet, process_path = historical_project(project)
+    before = snapshot(database)
+    old_document = json.loads(process_path.read_bytes())
+    observed = []
+    original_publish = FileGoalConfigRepository.publish_migration
+
+    def migration_operations():
+        with sqlite3.connect(project["root"] / fixture("migration-editor.json")["database"]) as connection:
+            return connection.execute(
+                "SELECT request_id,request_digest,goal_type,source_revision,candidate,receipt,phase "
+                "FROM config_operations WHERE request_id<>? ORDER BY request_id",
+                ("historical-process-publication",),
+            ).fetchall()
+
+    def completed_then_fail(self, *args, **kwargs):
+        result = original_publish(self, *args, **kwargs)
+        if not observed:
+            document = json.loads(process_path.read_bytes())
+            # Independent summary preimages use the actual preserved old file
+            # and literal expected new purpose/grants, not product builders.
+            expected_document = fixture("boundary-migrated-process.json")
+            assert document == expected_document
+            summary = {
+                "kind": "process_definition", "goal_type": "development",
+                "old_digest": identity(old_document), "new_digest": identity(expected_document),
+                "old_revision": packet["mapping"][0]["expected_revision"],
+                "new_revision": identity(expected_document),
+            }
+            owner = assert_publication(project, summary, process_path)
+            rows = migration_operations()
+            assert len(rows) == 1 and rows[0][6] == "completed"
+            assert json.loads(rows[0][5]) == result
+            observed.append((summary, owner, rows, process_path.read_bytes()))
+            raise OSError("Editor effect is durable before coordinator observation.")
+        return result
+
+    output = io.StringIO()
+    with monkeypatch.context() as patch:
+        patch.setattr(FileGoalConfigRepository, "publish_migration", completed_then_fail)
+        patch.setattr(task_process_migration, "task_process_migration_tools", lambda path:
+                      TaskProcessMigrationCommands(SqliteTaskProcessMigration(path, FixtureClock())))
+        code = task_process_migration.execute(
+            project["config_path"], io.BytesIO(json.dumps(packet).encode()), output,
+        )
+    assert len(observed) == 1
+    expected_summary, owner, operations, published = observed[0]
+    partial = snapshot(database)
+    for table in before:
+        if table != "journal":
+            assert partial[table] == before[table], table
+    phases = [json.loads(row[5])["phase"] for row in partial["journal"]
+              if row[4] == "task_stage_criteria_migration"]
+    assert phases == ["intent"]
+    response = json.loads(output.getvalue())
+    assert code == 2 and response["status"] == "recovery_required"
+    assert set(response) == {"status", "request_id", "receipt", "resources", "reason"}
+    assert response["request_id"] == packet["request_id"] and response["receipt"]
+    assert response["reason"] == "Editor effect is durable before coordinator observation."
+    assert response["resources"] == [expected_summary]
+    recovered = invoke_cli(project, packet)
+    assert recovered.returncode == 0, (recovered.stdout, recovered.stderr)
+    success = json.loads(recovered.stdout)
+    assert success["status"] == "migrated" and success["replayed"] is False
+    assert success["receipt"] == response["receipt"]
+    assert success["resources"][:1] == [expected_summary]
+    assert publication_rows(project) == owner
+    assert migration_operations() == operations
+    assert process_path.read_bytes() == published
+    after = snapshot(database)
+    completed = [json.loads(row[5]) for row in after["journal"]
+                 if row[4] == "task_stage_criteria_migration" and json.loads(row[5])["phase"] == "completed"]
+    assert len(completed) == 1 and completed[0]["result"] == success
+    replay = invoke_cli(project, packet)
+    assert replay.returncode == 0, (replay.stdout, replay.stderr)
+    assert json.loads(replay.stdout) == {**success, "replayed": True}
+    assert snapshot(database) == after
+    assert publication_rows(project) == owner
+    assert migration_operations() == operations
+    assert process_path.read_bytes() == published

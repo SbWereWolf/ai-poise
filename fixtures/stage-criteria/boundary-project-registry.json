@@ -1,0 +1,6 @@
+{
+  "schema": "configured-project-registry-1",
+  "projects": {
+    "demo": {"config_path": "project.json"}
+  }
+}

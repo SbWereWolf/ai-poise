@@ -79,5 +79,40 @@
       "test_probe.py::test_probe",
       "test_probe.py::test_missing_obligation"
     ]
+  },
+  {
+    "id": "collect-only",
+    "source": "pass.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ],
+    "addopts": "--collect-only"
+  },
+  {
+    "id": "incomplete-success",
+    "source": "two.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe",
+      "test_probe.py::test_second"
+    ],
+    "plugin": "partial_success.py"
+  },
+  {
+    "id": "duplicate-success",
+    "source": "pass.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe",
+      "test_probe.py::test_probe"
+    ],
+    "plugin": "duplicate.py"
   }
 ]

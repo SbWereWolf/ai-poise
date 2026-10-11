@@ -1,5 +1,6 @@
 """Existing pytest evidence projection with strict, test-owned collection coverage."""
 import argparse
+from collections import Counter
 from contextlib import redirect_stderr, redirect_stdout
 import json
 import os
@@ -13,6 +14,7 @@ from .preflight_pytest import Reports
 FIXTURES = Path(__file__).parent / 'fixtures/material_relocation'
 FILES = [
     'tests/projects/test_state_material_relocation.py',
+    'tests/projects/test_material_relocation_remediation.py',
     'tests/verification/test_material_relocation_consumers.py',
 ]
 
@@ -24,7 +26,8 @@ class CompleteReports(Reports):
 
     def pytest_collection_finish(self, session):
         super().pytest_collection_finish(session)
-        if self.collected != self.expected or not self.collected:
+        if (self.collected != self.expected or not self.collected
+                or len(self.expected) != len(set(self.expected))):
             self.errors.append('collection:expected-inventory-mismatch')
 
     def pytest_runtest_logreport(self, report):
@@ -41,6 +44,12 @@ def run(selectors, expected, output):
             (output / 'pytest.stderr.txt').open('w', encoding='utf-8') as stderr:
         with redirect_stdout(stdout), redirect_stderr(stderr):
             code = int(pytest.main(['-q', '-rA', *selectors], plugins=[reports]))
+    if not reports.errors:
+        completed = reports.passed + reports.failed
+        if Counter(completed) != Counter(expected) or len(completed) != len(set(completed)):
+            reports.errors.append('execution:completed-inventory-mismatch')
+        elif code == 0 and sorted(reports.passed) != sorted(expected):
+            reports.errors.append('execution:green-inventory-mismatch')
     summary = {
         'collected': reports.collected,
         'errors': sorted(set(reports.errors)),

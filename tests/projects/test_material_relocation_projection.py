@@ -17,11 +17,15 @@ def test_projection_preserves_actual_outcome_and_refuses_incomplete_proof(tmp_pa
     root = Path(__file__).resolve().parents[2]
     source = tmp_path / 'test_probe.py'
     source.write_bytes((FIXTURES / case['source']).read_bytes())
+    if case.get('plugin'):
+        (tmp_path / 'conftest.py').write_bytes((FIXTURES / case['plugin']).read_bytes())
+    environment = {**os.environ, 'PYTHONPATH': str(root) + os.pathsep + str(root / 'src')}
+    if case.get('addopts'):
+        environment['PYTEST_ADDOPTS'] = case['addopts']
     process = subprocess.run([
         sys.executable, '-B', str(FIXTURES / 'probe.py'), str(source),
         str(tmp_path / 'raw'), json.dumps(case['expected_nodes']),
-    ], cwd=tmp_path, env={**os.environ, 'PYTHONPATH': str(root) + os.pathsep + str(root / 'src')},
-        capture_output=True, text=True)
+    ], cwd=tmp_path, env=environment, capture_output=True, text=True)
     assert process.returncode == case['effective_exit'], process.stdout + process.stderr
     summary = json.loads(process.stdout)
     assert summary['exit_code'] == case['pytest_exit']

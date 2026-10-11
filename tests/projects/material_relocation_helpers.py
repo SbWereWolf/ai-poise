@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from batch.helpers import request, result
-from conftest import WorkPoise, seed_fixture_requirements, write_json
+from conftest import WorkPoise, bind_task_requirements, seed_fixture_requirements, write_json
 from poise.application.work import WorkTools
 from poise.common import PoiseError, load_config
 from projects.test_update import (
@@ -27,12 +27,12 @@ def required(call, *args, **kwargs):
         raise AssertionError(f'Required material relocation refused: {exc}') from exc
 
 
-def release(tools):
+def release(tools, task_id='T1'):
     current = tools.invoke(request('show', {'queries': [{'id': 'task', 'kind': 'task'}]}))
     task = current['results'][0]['value']
     return tools.invoke(request('release', {
         'request_id': 'release-relocation-' + str(task['version']),
-        'task_id': 'T1', 'expected_version': task['version'],
+        'task_id': task_id, 'expected_version': task['version'],
         'reason': 'Release the disposable material owner for relocation.',
     }))
 
@@ -113,3 +113,29 @@ def immutable(runtime):
 
 def checksum(content):
     return hashlib.sha256(content).hexdigest()
+
+
+def empty_contract(case, identifier, sprint=None):
+    contract = deepcopy(case['tools'].runtime.task_queries.record('T1')['contract'])
+    contract.update(id=identifier, sprint_id=sprint, methods=[], method_inputs=[],
+                    checks={'implementation': []})
+    return bind_task_requirements(contract, case['project']['requirements_registry'])
+
+
+def other_owner(case, identifier='OTHER', scope='task', *, released=True):
+    tools = fresh(case, 'foreign-writer')
+    context = tools.invoke(request('bootstrap', {
+        'task': empty_contract(case, identifier), 'decision': None,
+        'feedback': None, 'rework_stage': None,
+    }))
+    published = tools.invoke(request('artifacts', {'items': [{
+        'scope': scope, 'path': 'foreign.bin',
+        'source': {'kind': 'text', 'text': 'foreign owner material\n'},
+    }]}))
+    records = tools.runtime.validate_artifact_paths(
+        published['artifact_paths'], tools.runtime.current_task())
+    assert len(records) == 1
+    record = records[0]
+    if released:
+        release(tools, identifier)
+    return tools, context, record

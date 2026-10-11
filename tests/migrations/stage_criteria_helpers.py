@@ -312,9 +312,15 @@ def assert_publication(project, resource, path):
 def assert_history_preserved(before, after, *, control_ids=()):
     for table in ("events", "submissions", "evidence", "execution", "methods", "proofs", "content"):
         assert after[table] == before[table]
+    assert [row for row in after["journal"] if row[3] in control_ids] == [
+        row for row in before["journal"] if row[3] in control_ids
+    ]
     assert len(after["workflows"]) == len(before["workflows"])
     for (old_task, old_raw), (new_task, new_raw) in zip(before["workflows"], after["workflows"], strict=True):
         assert new_task == old_task
+        if old_task in control_ids:
+            assert new_raw == old_raw
+            continue
         for key, value in json.loads(old_raw).items():
             assert json.loads(new_raw)[key] == value
     assert len(after["tasks"]) == len(before["tasks"])

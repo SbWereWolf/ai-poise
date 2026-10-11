@@ -206,6 +206,24 @@ def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_p
         assert connection.execute(
             "SELECT count(*) FROM task_execution WHERE task_id=?", ("N1",),
         ).fetchone()[0] == 0
+    original = json.loads(next(row[7] for row in before["tasks"] if row[0] == "N1"))
+    tools = WorkTools(WorkPoise(project["config_path"], "inspect-migrated-newborn"))
+    context = tools.invoke(request("bootstrap", {
+        "task": {"id": "N1"}, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert context["status"] == "newborn"
+    assert context["revision"] == 0
+    assert_original_stage_digests(tools, original, response["receipt"])
+    for stage in packet["mapping"][-1]["stages"]:
+        state = show(tools, stage["stage_id"])
+        assert state["criteria"] == stage["criteria"]
+        assert state["execution"]["state"] == "unstarted"
+        assert state["execution"]["bound_revision"] is None
+    final = tools.invoke(request("bootstrap", {
+        "task": None, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert final["revision"] == context["revision"] == 0
+    assert final["draft"] == context["draft"]
 
 
 @pytest.mark.parametrize("fault", ["missing_resource", "extra_resource", "stale_version", "missing_stage", "false_start"])
@@ -455,8 +473,23 @@ def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_prove
     assert show(untouched, "implementation")["execution"] == current["execution"]
 
 
+def test_preservation_observer_rejects_additions_to_excluded_control_workflow(project):
+    database, _, _ = historical_state_variants(project)
+    before = snapshot(database)
+    controls = ("T1", "T2", "CONTROL")
+    assert_history_preserved(before, deepcopy(before), control_ids=controls)
+    changed = deepcopy(before)
+    index = next(index for index, row in enumerate(changed["workflows"]) if row[0] == "CONTROL")
+    task_id, raw = changed["workflows"][index]
+    workflow = json.loads(raw)
+    workflow["unexpected_migrated_criteria"] = {"revision": 99}
+    changed["workflows"][index] = (task_id, json.dumps(workflow))
+    with pytest.raises(AssertionError):
+        assert_history_preserved(before, changed, control_ids=controls)
+
+
 def test_unknown_historical_execution_continues_but_cannot_be_refined_without_restart(project):
-    from tests.runtime_services.stage_criteria_helpers import proposal, verify_packet, version
+    from tests.runtime_services.stage_criteria_helpers import next_stage, proposal, verify_packet, version
 
     # A valid frozen owner-produced contract with no checks. Only import
     # provenance is arranged here: it cannot prove whether execution started.
@@ -474,15 +507,42 @@ def test_unknown_historical_execution_continues_but_cannot_be_refined_without_re
     assert retained["execution"]["state"] == "unknown"
     assert retained["execution"]["bound_revision"] == retained["revision"]
     assert retained["proposals"] == []
-    # Ordinary unchanged work remains legal; a proposal is a separate mutation.
+    # Enter and actually verify the protected execution target, not just design.
     assert tools.invoke(verify_packet(context))["status"] == "verified"
+    observation = next_stage(tools)
+    assert observation["stage"] == "test_review"
+    assert tools.invoke(verify_packet(observation))["status"] == "verified"
+    execution = next_stage(tools)
+    assert execution["stage"] == "implementation"
+    assert execution["purpose"] == "execution"
+    assert show(tools, "implementation")["execution"] == retained["execution"]
+    assert show(tools, "implementation")["source"] == retained["source"]
+    executed = tools.invoke(verify_packet(execution))
+    assert executed["status"] == "verified"
+    assert executed["stage"] == "implementation"
+    with sqlite3.connect(database) as connection:
+        submission = connection.execute(
+            "SELECT stage,iteration FROM submissions WHERE seq=(SELECT current_submission_id FROM tasks WHERE id=?)",
+            ("T1",),
+        ).fetchone()
+    assert submission == ("implementation", execution["iteration"])
+    completed = show(tools, "implementation")
+    assert completed["execution"] == retained["execution"]
+    assert completed["revision"] == retained["revision"]
+    assert completed["criteria"] == retained["criteria"]
+    assert completed["source"] == retained["source"]
     design = tools.invoke(request("bootstrap", {"task": None, "decision": "rework", "feedback": "Attempt to change a protected historical target.", "rework_stage": "tests"}))
+    protected = show(tools, "implementation")
+    assert {key: value for key, value in protected.items() if key != "history"} == {
+        key: value for key, value in completed.items() if key != "history"
+    }
+    assert protected["history"][:len(completed["history"])] == completed["history"]
     before, process_bytes, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
     candidate = proposal(tools, "implementation")
     with pytest.raises(PoiseError, match="target_started_requires_restart"):
         tools.invoke(verify_packet(design, {"request_id": "deny-unknown-state-refinement", "expected_version": version(tools),
                                           "proposals": [candidate], "decisions": []}))
-    assert show(tools, "implementation") == retained
+    assert show(tools, "implementation") == protected
     assert snapshot(database)["tasks"] == before["tasks"]
     assert snapshot(database)["submissions"] == before["submissions"]
     assert process_path.read_bytes() == process_bytes

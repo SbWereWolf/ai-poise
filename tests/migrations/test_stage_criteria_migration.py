@@ -206,24 +206,75 @@ def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_p
         assert connection.execute(
             "SELECT count(*) FROM task_execution WHERE task_id=?", ("N1",),
         ).fetchone()[0] == 0
+        before_acquisition = connection.execute(
+            "SELECT status,claimed_by,version,current_submission_id,metadata "
+            "FROM tasks WHERE id=?", ("N1",),
+        ).fetchone()
+        before_events = connection.execute(
+            "SELECT seq,task_id,version,at,data FROM task_events WHERE task_id=? ORDER BY seq",
+            ("N1",),
+        ).fetchall()
+    assert before_acquisition[:4] == ("newborn", None, 0, None)
     original = json.loads(next(row[7] for row in before["tasks"] if row[0] == "N1"))
     tools = WorkTools(WorkPoise(project["config_path"], "inspect-migrated-newborn"))
     context = tools.invoke(request("bootstrap", {
         "task": {"id": "N1"}, "decision": None, "feedback": None, "rework_stage": None,
     }))
     assert context["status"] == "newborn"
-    assert context["revision"] == 0
+    assert context["task"] == "N1"
+    assert context["revision"] == 1
+    assert context["claimed_by"] == "inspect-migrated-newborn"
+    assert context["draft"] == json.loads(before_acquisition[4])["newborn"]["draft"]
+    with sqlite3.connect(database) as connection:
+        acquired = connection.execute(
+            "SELECT status,claimed_by,version,current_submission_id,metadata "
+            "FROM tasks WHERE id=?", ("N1",),
+        ).fetchone()
+        acquired_events = connection.execute(
+            "SELECT seq,task_id,version,at,data FROM task_events WHERE task_id=? ORDER BY seq",
+            ("N1",),
+        ).fetchall()
+        assert connection.execute(
+            "SELECT count(*) FROM task_execution WHERE task_id=?", ("N1",),
+        ).fetchone()[0] == 0
+    assert acquired == ("newborn", "inspect-migrated-newborn", 1, None, before_acquisition[4])
+    assert acquired_events[:-1] == before_events
+    assert len(acquired_events) == len(before_events) + 1
+    assert acquired_events[-1][1:3] == ("N1", 1)
+    acquisition_event = json.loads(acquired_events[-1][4])
+    assert acquisition_event["event"] == "ownership_acquired"
+    assert acquisition_event["stage"] == "newborn"
+    assert acquisition_event["iteration"] == 1
     assert_original_stage_digests(tools, original, response["receipt"])
+    criteria_states = {}
     for stage in packet["mapping"][-1]["stages"]:
         state = show(tools, stage["stage_id"])
         assert state["criteria"] == stage["criteria"]
         assert state["execution"]["state"] == "unstarted"
         assert state["execution"]["bound_revision"] is None
+        criteria_states[stage["stage_id"]] = state
     final = tools.invoke(request("bootstrap", {
         "task": None, "decision": None, "feedback": None, "rework_stage": None,
     }))
-    assert final["revision"] == context["revision"] == 0
+    assert final["status"] == "newborn"
+    assert final["task"] == "N1"
+    assert final["claimed_by"] == "inspect-migrated-newborn"
+    assert final["revision"] == context["revision"] == 1
     assert final["draft"] == context["draft"]
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "SELECT status,claimed_by,version,current_submission_id,metadata "
+            "FROM tasks WHERE id=?", ("N1",),
+        ).fetchone() == acquired
+        assert connection.execute(
+            "SELECT seq,task_id,version,at,data FROM task_events WHERE task_id=? ORDER BY seq",
+            ("N1",),
+        ).fetchall() == acquired_events
+        assert connection.execute(
+            "SELECT count(*) FROM task_execution WHERE task_id=?", ("N1",),
+        ).fetchone()[0] == 0
+    for stage_id, state in criteria_states.items():
+        assert show(tools, stage_id) == state
 
 
 @pytest.mark.parametrize("fault", ["missing_resource", "extra_resource", "stale_version", "missing_stage", "false_start"])

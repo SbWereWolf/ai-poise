@@ -179,11 +179,18 @@ def _require_process(root, config, request, item, *, completed):
     return owner
 
 
-def _completed_resources(request, intent):
-    """Read actual original owners without adding coordinator observations."""
+def _completed_resources(request, intent, known):
+    """Retain verified durable observations; inspect unobserved original owners.
+
+    Later file drift blocks recovery, but cannot erase an already observed
+    completed publication. Unobserved effects require fresh owner validation.
+    """
     result = []
     for item in intent['resources']:
         if item['mapping']['kind'] != 'process_definition':
+            continue
+        if item['summary'] in known:
+            result.append(item['summary'])
             continue
         goal = item['mapping']['goal_type']
         try:
@@ -260,7 +267,7 @@ def _continue(db, adapter, root, config, request, intent, saved):
             raise
     except (PoiseError, OSError, sqlite3.Error, ValueError, TypeError, KeyError) as exc:
         return {'status': 'recovery_required', 'request_id': request.request_id,
-                'receipt': intent['receipt'], 'resources': _completed_resources(request, intent),
+                'receipt': intent['receipt'], 'resources': _completed_resources(request, intent, known),
                 'reason': str(exc)}
 
 

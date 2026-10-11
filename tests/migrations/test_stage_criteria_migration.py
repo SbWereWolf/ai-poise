@@ -1120,3 +1120,89 @@ def test_migration_reports_owner_completion_before_coordinator_observation_and_r
     assert publication_rows(project) == owner
     assert migration_operations() == operations
     assert process_path.read_bytes() == published
+
+
+@pytest.fixture
+def opaque_execution_db():
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    connection.execute(
+        "CREATE TABLE task_execution("
+        "task_id TEXT PRIMARY KEY,data TEXT NOT NULL,version INTEGER NOT NULL)"
+    )
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
+@pytest.mark.parametrize("original_value,attempted_value", [
+    pytest.param(1, True, id="scalar-number-to-boolean"),
+    pytest.param({"items": [1]}, {"items": [True]}, id="nested-number-to-boolean"),
+    pytest.param(1, 2, id="changed-number-control"),
+])
+def test_execution_owner_rejects_changed_opaque_json_without_writing(
+    opaque_execution_db, original_value, attempted_value,
+):
+    from poise.infrastructure.sqlite.tasks import SqliteExecutionRepository
+
+    original = fixture("historical-state.json")["execution"]
+    original["opaque_review_value"] = deepcopy(original_value)
+    raw = json.dumps(original, ensure_ascii=False, indent=2)
+    opaque_execution_db.execute(
+        "INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
+        ("T-opaque", raw, 3),
+    )
+    before = tuple(opaque_execution_db.execute(
+        "SELECT data,version FROM task_execution WHERE task_id=?", ("T-opaque",),
+    ).fetchone())
+    assert before == (raw, 3)
+    candidate = {**deepcopy(original), "opaque_review_value": deepcopy(attempted_value)}
+
+    with pytest.raises(PoiseError) as failure:
+        SqliteExecutionRepository(opaque_execution_db).save("T-opaque", candidate, 3)
+
+    assert str(failure.value) == "Из execution adapter нельзя менять Task lifecycle"
+    assert tuple(opaque_execution_db.execute(
+        "SELECT data,version FROM task_execution WHERE task_id=?", ("T-opaque",),
+    ).fetchone()) == before
+
+
+@pytest.mark.parametrize("original_value", [
+    pytest.param(1, id="scalar-number"),
+    pytest.param({"items": [1]}, id="nested-number"),
+])
+@pytest.mark.parametrize("omit_opaque", [False, True], ids=["explicit-opaque", "omitted-opaque"])
+def test_execution_owner_updates_current_fields_and_preserves_opaque_json_types(
+    opaque_execution_db, original_value, omit_opaque,
+):
+    from poise.infrastructure.sqlite.tasks import SqliteExecutionRepository
+
+    original = fixture("historical-state.json")["execution"]
+    original["opaque_review_value"] = deepcopy(original_value)
+    opaque_execution_db.execute(
+        "INSERT INTO task_execution(task_id,data,version) VALUES(?,?,?)",
+        ("T-opaque", json.dumps(original, ensure_ascii=False, indent=2), 3),
+    )
+    candidate = {**deepcopy(original), "attempts": 1}
+    if omit_opaque:
+        del candidate["historical_marker"]
+        del candidate["opaque_review_value"]
+
+    returned = SqliteExecutionRepository(opaque_execution_db).save("T-opaque", candidate, 3)
+
+    raw, version = opaque_execution_db.execute(
+        "SELECT data,version FROM task_execution WHERE task_id=?", ("T-opaque",),
+    ).fetchone()
+    actual = json.loads(raw)
+    expected = {**deepcopy(original), "attempts": 1}
+    assert returned == version == 4
+    assert actual == expected
+    assert type(actual["attempts"]) is int
+    assert actual["historical_marker"] == "preserve"
+    if type(original_value) is int:
+        assert actual["opaque_review_value"] == 1
+        assert type(actual["opaque_review_value"]) is int
+    else:
+        assert actual["opaque_review_value"] == {"items": [1]}
+        assert type(actual["opaque_review_value"]["items"][0]) is int

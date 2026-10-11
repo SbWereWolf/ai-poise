@@ -17,6 +17,7 @@ def process(goal="writing"):
 
 def stage(name,handler,transitions,readonly,paths,rework,role="executor"):
     return {"id":name,"handler":handler,"role":role,"transitions":transitions,"rework_targets":rework,
+      "purpose":"other", "criteria_authority":{"propose":[],"decide":[]},
       "instruction":"Выполнить один этап и доложить.", "read_only":readonly,"allowed_paths":paths,
       "normalization":"strip", "sections":{"report":"Заполнить."},
       "required_sections":["report"], "artifact_requirements":[]}

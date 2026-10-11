@@ -1,0 +1,10 @@
+[
+  "tests/projects/test_material_relocation_resume.py::test_resumed_copy_preserves_intervening_owned_audit",
+  "tests/projects/test_material_relocation_resume.py::test_resumed_destination_preserves_unregistered_source_bytes",
+  "tests/projects/test_material_relocation_resume.py::test_resumed_move_rechecks_new_live_hook_binding",
+  "tests/projects/test_material_relocation_resume.py::test_retry_after_source_retirement_does_not_recreate_old_hook_root",
+  "tests/projects/test_material_relocation_resume.py::test_versioned_relocation_rejects_typed_invalid_input_as_domain_result[list-disposition]",
+  "tests/projects/test_material_relocation_resume.py::test_versioned_relocation_rejects_typed_invalid_input_as_domain_result[missing-hook-fields]",
+  "tests/projects/test_material_relocation_resume.py::test_versioned_relocation_rejects_typed_invalid_input_as_domain_result[null-hook]",
+  "tests/projects/test_material_relocation_resume.py::test_versioned_relocation_rejects_typed_invalid_input_as_domain_result[null-source]"
+]

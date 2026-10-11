@@ -1,0 +1,26 @@
+[
+  {
+    "name": "process",
+    "canonical": "{\"a\":[2,1],\"z\":\"é\\n\"}",
+    "chars": 21,
+    "sha256": "5924cd85b3d1e09cba1de07e23bcccd9f91cde2d102d7792b68a963be94da254"
+  },
+  {
+    "name": "executable",
+    "canonical": "{\"contract\":{},\"process\":{\"a\":[2,1],\"z\":\"é\\n\"}}",
+    "chars": 47,
+    "sha256": "a151b538864aa1a3f1c7d2c4b1da17ac00474599c46429ac6e8767299749fedf"
+  },
+  {
+    "name": "newborn",
+    "canonical": "{\"draft\":{},\"process\":{\"a\":[2,1],\"z\":\"é\\n\"}}",
+    "chars": 44,
+    "sha256": "935dc29f1e3b779d1e0a707bc6d3cdd1792e731562de9e70350bfaefd68afb58"
+  },
+  {
+    "name": "stage_contract",
+    "canonical": "{\"allowed_paths\":[],\"entry_requirements\":[],\"exit_requirements\":[],\"stage_id\":\"E\"}",
+    "chars": 82,
+    "sha256": "c204c4ebe86585cf9ed97805b0a1a73c113949b44ad0222a447bcd584b83e078"
+  }
+]

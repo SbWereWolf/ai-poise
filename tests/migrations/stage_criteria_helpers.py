@@ -19,7 +19,7 @@ class FixtureClock:
 
 def identity(value):
     # Source identity observation, never the expected migrated output.
-    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
@@ -56,7 +56,8 @@ def snapshot(database):
         }
 
 
-def historical_project(project, *, include_newborn=False, process_source=None, create_backup=True):
+def historical_project(project, *, include_newborn=False, process_source=None,
+                       contract_source=None, create_backup=True):
     from poise.infrastructure.goal_config import EditorSettings, FileGoalConfigRepository
     from poise.infrastructure.sqlite.database import Database
 
@@ -89,7 +90,7 @@ def historical_project(project, *, include_newborn=False, process_source=None, c
         assert connection.execute(
             "SELECT revision FROM config_heads WHERE goal_type=?", ("development",),
         ).fetchone()[0] == published["revision"]
-    contract = deepcopy(historical["contract"])
+    contract = deepcopy(historical["contract"] if contract_source is None else contract_source)
     # Explicit fixture binding of the runtime only, before the source is backed up.
     for method in contract["methods"]:
         assert method["argv"][0] == "$FIXTURE_PYTHON"
@@ -362,3 +363,38 @@ def assert_mapped_documents(database, packet, path):
             assert [(s["stage_id"], s["criteria"]) for s in contract["stage_contracts"]] == [
                 (s["stage_id"], s["criteria"]) for s in resource["stages"]
             ]
+
+
+def assert_definition_digests(before, after, original_process, path, resources):
+    """Correlate complete owner documents, independently of the product serializer.
+
+    Call together with mapped-value and preservation assertions: a digest of an
+    incorrectly migrated document is not by itself evidence of correctness.
+    """
+    old_tasks = {row[0]: json.loads(row[7]) for row in before["tasks"]}
+    new_tasks = {row[0]: json.loads(row[7]) for row in after["tasks"]}
+    for resource in resources:
+        if resource["kind"] == "process_definition":
+            old, new = original_process, json.loads(path.read_text(encoding="utf-8"))
+        else:
+            old_meta, new_meta = old_tasks[resource["task_id"]], new_tasks[resource["task_id"]]
+            key = "draft" if resource["kind"] == "newborn_task" else "contract"
+            old_contract = old_meta["newborn"]["draft"] if key == "draft" else old_meta["contract"]
+            new_contract = new_meta["newborn"]["draft"] if key == "draft" else new_meta["contract"]
+            old = {"process": old_meta["process"], key: old_contract}
+            new = {"process": new_meta["process"], key: new_contract}
+        assert resource["old_digest"] == identity(old)
+        assert resource["new_digest"] == identity(new)
+
+
+def assert_original_stage_digests(tools, original_metadata, receipt):
+    from tests.runtime_services.stage_criteria_helpers import show
+
+    contract = (original_metadata["newborn"]["draft"] if "newborn" in original_metadata
+                else original_metadata["contract"])
+    for stage in contract["stage_contracts"]:
+        source = show(tools, stage["stage_id"])["source"]
+        assert source == {
+            "kind": "historical", "original_digest": identity(stage),
+            "migration_receipt": receipt,
+        }

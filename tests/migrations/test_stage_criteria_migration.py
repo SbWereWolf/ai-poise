@@ -20,7 +20,8 @@ from batch.helpers import request
 from poise.application.work import WorkTools
 from tests.runtime_services.stage_criteria_helpers import show
 from tests.migrations.stage_criteria_helpers import (
-    FixtureClock, assert_history_preserved, assert_mapped_documents, assert_publication,
+    FixtureClock, assert_definition_digests, assert_history_preserved, assert_mapped_documents,
+    assert_original_stage_digests, assert_publication, identity,
     historical_project, historical_state_variants, publication_rows, snapshot,
 )
 
@@ -30,6 +31,24 @@ FIXTURES = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
 
 def fixture(name):
     return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("vector", fixture("digest-vectors.json"), ids=lambda item: item["name"])
+def test_independent_digest_observer_matches_accepted_literal_vectors(vector):
+    value = json.loads(vector["canonical"])
+    # Reverse insertion order deliberately; arrays retain their literal order.
+    value = dict(reversed(list(value.items())))
+    canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    assert canonical == vector["canonical"]
+    assert len(canonical) == vector["chars"]
+    assert identity(value) == vector["sha256"]
+
+
+@pytest.mark.parametrize("value,error", [(float("nan"), ValueError), (float("inf"), ValueError),
+                                         (float("-inf"), ValueError), ("\ud800", UnicodeEncodeError)])
+def test_independent_digest_observer_rejects_nonfinite_and_unencodable_values(value, error):
+    with pytest.raises(error):
+        identity({"value": value})
 
 
 class RecordingPort:
@@ -136,6 +155,7 @@ def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preser
     after = snapshot(database)
     assert_history_preserved(before, after)
     assert_mapped_documents(database, packet, process_path)
+    assert_definition_digests(before, after, original_process, process_path, response["resources"])
     publication = assert_publication(project, response["resources"][0], process_path)
     replay = invoke_cli(project, packet)
     assert replay.returncode == 0, (replay.stdout, replay.stderr)
@@ -153,6 +173,7 @@ def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preser
         "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
     }))
     assert context["task"] == "T1"
+    assert_original_stage_digests(tools, json.loads(before["tasks"][0][7]), response["receipt"])
     current = show(tools, "implementation")
     assert current["execution"]["state"] == "unknown"
     assert current["execution"]["bound_revision"] is not None
@@ -165,6 +186,7 @@ def test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preser
 def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_provenance(project):
     database, packet, process_path = historical_project(project, include_newborn=True)
     before = snapshot(database)
+    original_process = json.loads(process_path.read_text(encoding="utf-8"))
     command = invoke_cli(project, packet)
     assert command.returncode == 0, (command.stdout, command.stderr)
     response = json.loads(command.stdout)
@@ -177,6 +199,9 @@ def test_real_migration_preserves_newborn_draft_revision_and_genuine_unstarted_p
     assert newborn["old_digest"] != newborn["new_digest"]
     after = snapshot(database)
     assert_history_preserved(before, after)
+    assert_mapped_documents(database, packet, process_path)
+    assert_definition_digests(before, after, original_process, process_path, response["resources"])
+    assert_publication(project, response["resources"][0], process_path)
     with sqlite3.connect(database) as connection:
         assert connection.execute(
             "SELECT count(*) FROM task_execution WHERE task_id=?", ("N1",),
@@ -325,6 +350,7 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
 
     database, packet, process_path = historical_project(project)
     before = snapshot(database)
+    original_process = json.loads(process_path.read_text(encoding="utf-8"))
     calls = []
 
     def fail_after_update(task_id):
@@ -349,6 +375,7 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
         "design", "observation", "execution", "observation",
     ]
     publication = assert_publication(project, response["resources"][0], process_path)
+    assert_definition_digests(before, partial, original_process, process_path, response["resources"])
     completed_calls = []
     recovered = TaskProcessMigrationCommands(SqliteTaskProcessMigration(
         project["config_path"], FixtureClock(), after_update=completed_calls.append,
@@ -362,6 +389,7 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
     assert_mapped_documents(database, packet, process_path)
     final = snapshot(database)
     assert_history_preserved(before, final)
+    assert_definition_digests(before, final, original_process, process_path, recovered["resources"])
     replay = TaskProcessMigrationCommands(SqliteTaskProcessMigration(
         project["config_path"], FixtureClock(), after_update=completed_calls.append,
     )).migrate(packet)
@@ -374,6 +402,7 @@ def test_published_process_and_rolled_back_tasks_have_truthful_recovery_and_resu
 def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_provenance(project):
     database, packet, process_path = historical_state_variants(project)
     before = snapshot(database)
+    original_process = json.loads(process_path.read_text(encoding="utf-8"))
     source_submission = packet["mapping"][2]["stages"][2]["execution"]["source_refs"][0]["id"]
     with sqlite3.connect(database) as connection:
         assert connection.execute("SELECT task_id,stage FROM submissions WHERE seq=?", (source_submission,)).fetchone() == ("T2", "implementation")
@@ -386,8 +415,10 @@ def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_prove
     assert_history_preserved(before, after, control_ids=("CONTROL",))
     assert_mapped_documents(database, packet, process_path)
     assert_publication(project, response["resources"][0], process_path)
+    assert_definition_digests(before, after, original_process, process_path, response["resources"])
     tools = WorkTools(WorkPoise(project["config_path"], "continue-known-start"))
     tools.invoke(request("bootstrap", {"task": {"id": "T2"}, "decision": None, "feedback": None, "rework_stage": None}))
+    assert_original_stage_digests(tools, json.loads(next(row[7] for row in before["tasks"] if row[0] == "T2")), response["receipt"])
     protected = show(tools, "implementation")
     assert protected["execution"]["state"] == "started"
     assert protected["execution"]["bound_revision"] == protected["revision"]
@@ -411,6 +442,7 @@ def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_prove
     handoff(tools, "release-known-start-continuation")
     untouched = WorkTools(WorkPoise(project["config_path"], "continue-unstarted-source"))
     context = untouched.invoke(request("bootstrap", {"task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None}))
+    assert_original_stage_digests(untouched, json.loads(next(row[7] for row in before["tasks"] if row[0] == "T1")), response["receipt"])
     current = show(untouched, "implementation")
     assert current["execution"]["state"] == "unstarted"
     assert current["execution"]["bound_revision"] is None
@@ -426,7 +458,12 @@ def test_genuine_unstarted_started_and_unrelated_terminal_sources_preserve_prove
 def test_unknown_historical_execution_continues_but_cannot_be_refined_without_restart(project):
     from tests.runtime_services.stage_criteria_helpers import proposal, verify_packet, version
 
-    database, packet, process_path = historical_project(project)
+    # A valid frozen owner-produced contract with no checks. Only import
+    # provenance is arranged here: it cannot prove whether execution started.
+    source = json.loads(fixture("historical-owner-sources.json")["unstarted"]["task"][0][7])
+    database, packet, process_path = historical_project(
+        project, process_source=source["process"], contract_source=source["contract"],
+    )
     for resource in packet["mapping"]:
         resource["stages"][0]["criteria_authority"]["propose"] = ["implementation"]
     command = invoke_cli(project, packet)
@@ -475,6 +512,62 @@ def test_backup_and_source_reference_failures_reject_without_mapped_writes(proje
         packet["mapping"][1]["stages"][2]["execution"]["source_refs"] = [
             {"kind": "submission", "id": foreign} if fault == "foreign_submission" else {"kind": "task_event", "id": 999999},
         ]
+    before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    command = invoke_cli(project, packet)
+    assert command.returncode == 2
+    response = json.loads(command.stdout)
+    assert set(response) == {"status", "reason"}
+    assert response["status"] == "rejected" and response["reason"]
+    assert snapshot(database) == before
+    assert process_path.read_bytes() == published
+    assert publication_rows(project) == owner
+
+
+@pytest.mark.parametrize("fault", ["missing", "duplicate", "incompatible"])
+def test_original_stage_contract_must_exist_uniquely_before_migration_writes(project, fault):
+    from tests.backups.helpers import backup_commands
+
+    database, packet, process_path = historical_project(project, create_backup=False)
+    with sqlite3.connect(database) as connection:
+        metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", ("T1",)).fetchone()[0])
+        contracts = metadata["contract"]["stage_contracts"]
+        if fault == "missing":
+            contracts.pop(2)
+        elif fault == "duplicate":
+            contracts.append(deepcopy(contracts[2]))
+        else:
+            contracts[2]["allowed_paths"] = None
+        connection.execute("UPDATE tasks SET metadata=? WHERE id=?", (json.dumps(metadata), "T1"))
+    # A genuine backup of this unsupported source, not a backup mismatch.
+    packet["backup_name"] = backup_commands(project).create()["name"]
+    for stage in packet["mapping"][1]["stages"]:
+        stage["execution"]["source_refs"] = [{"kind": "contract", "digest": identity(metadata["contract"])}]
+    before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
+    command = invoke_cli(project, packet)
+    assert command.returncode == 2
+    response = json.loads(command.stdout)
+    assert set(response) == {"status", "reason"}
+    assert response["status"] == "rejected" and response["reason"]
+    assert snapshot(database) == before
+    assert process_path.read_bytes() == published
+    assert publication_rows(project) == owner
+
+
+@pytest.mark.parametrize("fault", ["nonfinite", "unencodable"])
+def test_unhashable_original_definition_is_rejected_before_mapped_writes(project, fault):
+    from tests.backups.helpers import backup_commands
+
+    database, packet, process_path = historical_project(project, create_backup=False)
+    with sqlite3.connect(database) as connection:
+        metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", ("T1",)).fetchone()[0])
+        # The complete historical contract is the preimage; this is source
+        # corruption, not an unknown request option or a stale digest.
+        metadata["contract"]["requirements"] = [float("nan") if fault == "nonfinite" else "\ud800"]
+        connection.execute("UPDATE tasks SET metadata=? WHERE id=?", (json.dumps(metadata), "T1"))
+        source_event = connection.execute("SELECT seq FROM task_events WHERE task_id=?", ("T1",)).fetchone()[0]
+    packet["backup_name"] = backup_commands(project).create()["name"]
+    for stage in packet["mapping"][1]["stages"]:
+        stage["execution"]["source_refs"] = [{"kind": "task_event", "id": source_event}]
     before, published, owner = snapshot(database), process_path.read_bytes(), publication_rows(project)
     command = invoke_cli(project, packet)
     assert command.returncode == 2

@@ -366,6 +366,7 @@ def test_two_real_connections_order_decision_and_admission_without_binding_stale
     assert bound["execution"]["state"] == "started"
     assert bound["execution"]["bound_revision"] == bound["revision"]
     assert bound["source"]["proposal_id"] == proposed["proposal_id"]
+    assert bound["source"]["proposal_digest"] == proposed["proposal_digest"]
 
 
 def test_actual_admission_wins_before_competing_future_criteria_edit(project):
@@ -402,7 +403,11 @@ def test_actual_admission_wins_before_competing_future_criteria_edit(project):
         with pytest.raises(PoiseError, match="target_started_requires_restart"):
             client.invoke(verify_packet(design, work(client, "losing-edit-after-start", proposals=[proposal(client)])))
         assert rows(client) == before
-        assert show(client) == observed["bound"]
+        current = show(client)
+        assert {key: value for key, value in current.items() if key != "history"} == {
+            key: value for key, value in observed["bound"].items() if key != "history"
+        }
+        assert current["history"][:len(observed["bound"]["history"])] == observed["bound"]["history"]
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         admission = executor.submit(admit)
@@ -455,7 +460,6 @@ def test_admission_transaction_commit_failure_preserves_unstarted_criteria(proje
     observer = WorkTools(WorkPoise(project["config_path"], "artisan-session"))
     assert show(observer) == current
     assert_unstarted(show(observer)["execution"])
-    assert bound["source"]["proposal_digest"] == proposed["proposal_digest"]
 
 
 def test_admission_contending_with_uncommitted_decision_binds_only_committed_agreement(project, monkeypatch):

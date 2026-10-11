@@ -43,6 +43,8 @@ def prepare_completed_task(
     write_json(project["config_path"], cfg)
     implementation = {
         "id": "implementation",
+        "purpose": "execution",
+        "criteria_authority": {"propose": [], "decide": []},
         "instruction": "Create the accepted result.",
         "read_only": False,
         "allowed_paths": ["src/**"],
@@ -61,6 +63,8 @@ def prepare_completed_task(
     if terminal_stage:
         stages.append({
             "id": "documentation",
+            "purpose": "other",
+            "criteria_authority": {"propose": [], "decide": []},
             "instruction": "Record the final result.",
             "read_only": True,
             "allowed_paths": [],
@@ -114,6 +118,7 @@ def prepare_completed_task(
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
         } for stage in stages],
         "decomposition": {
             "kind": "ordinary",

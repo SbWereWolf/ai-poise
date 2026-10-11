@@ -1,5 +1,6 @@
 """Replayable file effects composed with artifact and hook publication owners."""
 from copy import deepcopy
+from contextlib import ExitStack
 import json
 from pathlib import Path
 import shutil
@@ -52,6 +53,13 @@ class FileProjectStateRelocation:
 
     def _admit_hook(self, hook):
         """One native admission rule for initial effects and every pending resume."""
+        # The outer project fence remains held throughout relocation. Keep the
+        # registry read leases local so its owning publication transaction can
+        # acquire the same lock during an interrupted publication's exact retry.
+        with ExitStack() as locks:
+            self._check_hook(hook, locks)
+
+    def _check_hook(self, hook, locks):
         from .hook_transport import HookSettings
         from .sqlite.hook_transport import HookRegistry
         proposed = HookSettings.proposed(hook['target']['settings_path'], hook['target']['settings'])
@@ -67,16 +75,21 @@ class FileProjectStateRelocation:
             if settings.path in seen or not settings.database.is_file():
                 continue
             seen.add(settings.path)
-            if read_document(settings.path) != settings.raw:
+            published = settings.path.is_file()
+            if published and read_document(settings.path) != settings.raw:
                 raise PoiseError('Intent-owned hook settings changed during relocation')
             if settings.lock not in locked:
-                self.locks.enter_context(exclusive_lock(settings.lock, settings.raw['lock_seconds'],
-                                                        settings.raw['lock_poll_seconds']))
+                locks.enter_context(exclusive_lock(settings.lock, settings.raw['lock_seconds'],
+                                                   settings.raw['lock_poll_seconds']))
                 locked.add(settings.lock)
             with readonly_database(settings.database) as db:
                 if moving and any(HookRegistry.binding_liveness(db, row['id']).value != 'dead'
                                   for row in db.execute('SELECT id FROM bindings')):
                     raise PoiseError('Moved hook runtime requires DEAD native session; LIVE/UNCERTAIN refused')
+            if not published:
+                # A copied target registry precedes publication of its settings.
+                # It still participates in native liveness admission above.
+                continue
             # A pending hook publication has precisely two intent-owned observable
             # placements. Validate installations and native groups at either valid
             # placement; inspect liveness at both existing registries above.
@@ -306,6 +319,8 @@ class FileProjectStateRelocation:
 
     def retire_source(self):
         from . import project_config as effects
+        for hook in self.hooks:
+            self._admit_hook(hook)
         self._validate_seal()
         if self._done('source_retired'):
             return

@@ -73,6 +73,13 @@ def cancellation_events(tools):
         )]
 
 
+def assert_delivery_response(actual, expected):
+    """Delivery fields are the subject; accounting belongs to its own tests."""
+    assert set(actual) == set(expected) | {"interaction"}
+    assert isinstance(actual["interaction"], dict)
+    assert {key: actual[key] for key in expected} == expected
+
+
 def test_cancelled_untyped_draft_agrees_then_retires_and_replays(project):
     tools, root, version = cancelled_draft(project)
     foreign = root.parent / "FOREIGN" / "keep.txt"
@@ -91,7 +98,7 @@ def test_cancelled_untyped_draft_agrees_then_retires_and_replays(project):
     result = tools.invoke(packet)
 
     expected = json.loads((FIXTURES / "cancelled_draft_response.json").read_text())
-    assert result == expected
+    assert_delivery_response(result, expected)
     with tools.runtime.store.transaction() as db:
         row = db.execute(
             "SELECT seq,json_extract(data,'$.agreement.request_id') AS request_id,"
@@ -108,7 +115,7 @@ def test_cancelled_untyped_draft_agrees_then_retires_and_replays(project):
     saved = journal(tools)
     assert len(saved) == 1 and saved[0][0] == row["seq"]
     expected["replayed"] = True
-    assert tools.invoke(packet) == expected
+    assert_delivery_response(tools.invoke(packet), expected)
     assert journal(tools) == saved
     conflict = deepcopy(packet)
     conflict["input"]["authorization"] = "A different explicit intent."
@@ -116,6 +123,14 @@ def test_cancelled_untyped_draft_agrees_then_retires_and_replays(project):
         tools.invoke(conflict)
     assert journal(tools) == saved
     assert (root / "planning.txt").read_bytes() == b"discarded plan\n"
+    new_intent = deepcopy(conflict)
+    new_intent["input"]["request_id"] = "replace-cancelled-T1"
+    with pytest.raises(PoiseError, match="Terminal delivery agreement cannot change intent"):
+        tools.invoke(new_intent)
+    assert journal(tools) == saved
+    assert (root / "planning.txt").read_bytes() == b"discarded plan\n"
+    assert_delivery_response(tools.invoke(packet), expected)
+    assert journal(tools) == saved
 
     assert settle(fresh(project))["status"] == "delivery_complete"
     assert not root.exists()
@@ -124,7 +139,7 @@ def test_cancelled_untyped_draft_agrees_then_retires_and_replays(project):
     assert snapshot(tools)["status"] == "cancelled"
     assert cancellation_events(tools) == history
     after = journal(tools)
-    assert tools.invoke(packet) == expected
+    assert_delivery_response(tools.invoke(packet), expected)
     assert journal(tools) == after
     assert not root.exists()
 
@@ -138,13 +153,18 @@ def test_cancelled_draft_absent_root_is_refused_without_resurrection(project):
     assert journal(tools) == []
 
 
-@pytest.mark.parametrize("fault", ["version", "owner", "missing", "ambiguous"])
-def test_final_transaction_rechecks_task_metadata(project, monkeypatch, fault):
-    tools, root, source, _ = arrange(project)
-    packet = delivery_packet(tools, {"disposition": "no_result", "outputs": []})
+def assert_final_metadata_refusal(tools, root, source, packet, monkeypatch, fault,
+                                  *, original_owner, original_bytes):
     prepare = tools.runtime.delivery_effects.prepare
     database = tools.runtime.store.database.path
     original_version = packet["input"]["expected_version"]
+    before = cancellation_events(tools)
+    foreign = root.parent / "RACE-FOREIGN" / "keep.txt"
+    foreign.parent.mkdir()
+    foreign.write_bytes(b"foreign race material\n")
+    with sqlite3.connect(database) as db:
+        row = db.execute("SELECT version,claimed_by FROM tasks WHERE id=?", ("T1",)).fetchone()
+        assert row == (original_version, original_owner)
 
     def changed_after_preparation(record, args):
         prepared = prepare(record, args)
@@ -162,6 +182,8 @@ def test_final_transaction_rechecks_task_metadata(project, monkeypatch, fault):
             else:
                 db.execute("DROP INDEX tasks_single_claimant")
                 db.execute("DROP INDEX sessions_single_worktree_owner")
+                if original_owner is None:
+                    db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("legacy-first", "T1"))
                 db.execute("INSERT INTO sessions(id,task_id) VALUES(?,?)", ("legacy-second", "T1"))
                 db.execute("PRAGMA user_version=12")
         return prepared
@@ -171,22 +193,45 @@ def test_final_transaction_rechecks_task_metadata(project, monkeypatch, fault):
     assert journal(tools) == []
     with pytest.raises(PoiseError, match=message):
         tools.invoke(packet)
-    assert source.read_bytes() == b"customer result\n" and root.is_dir()
+    assert source.read_bytes() == original_bytes and root.is_dir()
+    assert foreign.read_bytes() == b"foreign race material\n"
     assert journal(tools) == []
+    assert cancellation_events(tools) == before
     with sqlite3.connect(database) as db:
         row = db.execute("SELECT version,claimed_by FROM tasks WHERE id=?", ("T1",)).fetchone()
         if fault == "missing":
             assert row is None
         elif fault == "version":
-            assert row == (original_version + 1, "material-owner")
+            assert row == (original_version + 1, original_owner)
         elif fault == "owner":
             assert row == (original_version, "race-owner")
             assert db.execute("SELECT task_id FROM sessions WHERE id=?", ("race-owner",)).fetchone() == (None,)
         else:
-            assert row == (original_version, "material-owner")
+            assert row == (original_version, original_owner)
             owners = db.execute("SELECT id FROM sessions WHERE task_id=? ORDER BY id", ("T1",)).fetchall()
-            assert owners == [("legacy-second",), ("material-owner",)]
+            if original_owner is None:
+                assert owners == [("legacy-first",), ("legacy-second",)]
+            else:
+                assert owners == [("legacy-second",), ("material-owner",)]
             assert db.execute("PRAGMA user_version").fetchone()[0] == 12
+
+
+@pytest.mark.parametrize("fault", ["version", "owner", "missing", "ambiguous"])
+def test_final_transaction_rechecks_task_metadata(project, monkeypatch, fault):
+    tools, root, source, _ = arrange(project)
+    packet = delivery_packet(tools, {"disposition": "no_result", "outputs": []})
+    assert_final_metadata_refusal(tools, root, source, packet, monkeypatch, fault,
+                                  original_owner="material-owner",
+                                  original_bytes=b"customer result\n")
+
+
+@pytest.mark.parametrize("fault", ["version", "owner", "missing", "ambiguous"])
+def test_cancelled_untyped_final_transaction_rechecks_metadata(project, monkeypatch, fault):
+    tools, root, version = cancelled_draft(project)
+    assert len(cancellation_events(tools)) == 1
+    assert_final_metadata_refusal(tools, root, root / "planning.txt", agreement(version),
+                                  monkeypatch, fault, original_owner=None,
+                                  original_bytes=b"discarded plan\n")
 
 
 @pytest.mark.parametrize("fault", ["missing-task", "stale-version"])

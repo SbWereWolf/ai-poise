@@ -9,6 +9,7 @@ import sys
 
 import pytest
 
+from conftest import track_runtime_dispatchers
 from poise.common import PoiseError
 from hook_transport.helpers import install
 from .material_relocation_helpers import configured_hook, fresh, immutable, prepare
@@ -117,13 +118,48 @@ def test_resumed_destination_preserves_unregistered_source_bytes(project, tmp_pa
     'null-hook',
     'missing-hook-fields',
 ])
-def test_versioned_relocation_rejects_typed_invalid_input_as_domain_result(project, tmp_path, fault):
+def test_versioned_relocation_rejects_typed_invalid_input_as_domain_result(
+        project, tmp_path, monkeypatch, request, fault):
+    dispatchers = track_runtime_dispatchers(monkeypatch)
     case = prepare(project, tmp_path)
+    # Every runtime created by prepare owns a real asynchronous writer. Drain
+    # all of them before the full byte baseline; retain telemetry in that proof.
+    assert dispatchers
+    for dispatcher in dispatchers:
+        request.addfinalizer(dispatcher.close)
+        dispatcher.flush()
     marker = case['source'] / 'operator-working.bin'
     marker.write_bytes(b'unchanged working data\x00\xff')
-    source_bytes = {str(path.relative_to(case['source'])): path.read_bytes()
-                    for path in case['source'].rglob('*') if path.is_file()}
+
+    def source_files():
+        return {str(path.relative_to(case['source'])): path.read_bytes()
+                for path in case['source'].rglob('*') if path.is_file()}
+
+    source_bytes = source_files()
     config_bytes = case['config_path'].read_bytes()
+
+    def invoke(packet):
+        return subprocess.run(
+            [sys.executable, '-B', '-m', 'poise', 'project-config', '--settings', str(case['settings'])],
+            input=json.dumps(packet), capture_output=True, text=True,
+            env={**os.environ, 'PYTHONPATH': str(Path.cwd() / 'src')})
+
+    def assert_preserved():
+        assert source_files() == source_bytes
+        assert case['config_path'].read_bytes() == config_bytes
+        assert not case['destination'].exists()
+
+    # A known-correct domain refusal proves this complete snapshot is compatible
+    # with the requested result before testing the missing nested validation.
+    control_packet = deepcopy(case['packet'])
+    control_packet['state_relocation'] = 'invalid-object'
+    control = invoke(control_packet)
+    assert control.returncode == 2 and control.stderr == ''
+    control_result = json.loads(control.stdout)
+    assert control_result['status'] == 'rejected'
+    assert 'state_relocation' in control_result['reason']
+    assert_preserved()
+
     packet = deepcopy(case['packet'])
     move = packet['state_relocation']
     if fault == 'null-source':
@@ -138,14 +174,8 @@ def test_versioned_relocation_rejects_typed_invalid_input_as_domain_result(proje
     else:
         move['hook_destinations'] = [{'installation_id': 'broken'}]
         field = 'settings_path'
-    process = subprocess.run(
-        [sys.executable, '-B', '-m', 'poise', 'project-config', '--settings', str(case['settings'])],
-        input=json.dumps(packet), capture_output=True, text=True,
-        env={**os.environ, 'PYTHONPATH': str(Path.cwd() / 'src')})
-    assert {str(path.relative_to(case['source'])): path.read_bytes()
-            for path in case['source'].rglob('*') if path.is_file()} == source_bytes
-    assert case['config_path'].read_bytes() == config_bytes
-    assert not case['destination'].exists()
+    process = invoke(packet)
+    assert_preserved()
     assert process.returncode == 2 and process.stderr == '', (
         'Typed bad request escaped the public structured refusal boundary: '
         + process.stderr[-300:])

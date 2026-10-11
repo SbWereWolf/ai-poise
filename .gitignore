@@ -22,6 +22,7 @@ dist/
 /config/project-setup.json
 /config/project-registry.json
 /config/goal-editor.json
+/config/catalogue/settings.json
 /config/projects/ai-poise/*
 !/config/projects/ai-poise/project.example.json
 !/config/projects/ai-poise/hooks-settings.example.json

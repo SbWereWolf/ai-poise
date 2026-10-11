@@ -192,7 +192,7 @@
       "handler": "observe",
       "role": "executor",
       "id": "baseline",
-      "instruction": "Установить исходное поведение или обоснованную неприменимость. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Установить исходное поведение или обоснованную неприменимость. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -225,7 +225,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "solution_planning",
-      "instruction": "Спланировать изменение компонентов, интерфейсов и документации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Спланировать изменение компонентов, интерфейсов и документации. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -266,7 +266,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "verification_planning",
-      "instruction": "Спроектировать доказательства до реализации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Спроектировать доказательства до реализации. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -306,7 +306,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "test_implementation",
-      "instruction": "Написать тесты/fixtures до production change. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Написать тесты/fixtures до production change. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -341,7 +341,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "test_inspection",
-      "instruction": "Read-only осмотр oracle, покрытия, чувствительности и fixtures. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Read-only осмотр oracle, покрытия, чувствительности и fixtures. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -378,7 +378,7 @@
       "handler": "revise",
       "role": "executor",
       "id": "test_remediation",
-      "instruction": "Исправить зарегистрированные дефекты тестов. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Исправить зарегистрированные дефекты тестов. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -413,7 +413,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "test_remediation_inspection",
-      "instruction": "Проверить исправление тестов без правки target. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Проверить исправление тестов без правки target. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -449,7 +449,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "implementation",
-      "instruction": "Реализовать production change по принятым тестам. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Реализовать production change по принятым тестам. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -482,7 +482,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "implementation_inspection",
-      "instruction": "Read-only осмотр корректности, сложности и соответствия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Read-only осмотр корректности, сложности и соответствия. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -518,7 +518,7 @@
       "handler": "revise",
       "role": "executor",
       "id": "implementation_remediation",
-      "instruction": "Исправить находки реализации. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Исправить находки реализации. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [
@@ -551,7 +551,7 @@
       "handler": "inspect",
       "role": "reviewer",
       "id": "implementation_remediation_inspection",
-      "instruction": "Осмотреть каждое исправление read-only. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Осмотреть каждое исправление read-only. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -587,7 +587,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "documentation",
-      "instruction": "Выполнить прямо предусмотренную документацию. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Выполнить прямо предусмотренную документацию. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": false,
       "required_sections": [

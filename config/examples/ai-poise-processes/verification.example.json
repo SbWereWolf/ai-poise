@@ -96,7 +96,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "planning",
-      "instruction": "Определить программу, критерии и точные способы доказательства. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Определить программу, критерии и точные способы доказательства. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -129,7 +129,7 @@
       "handler": "check",
       "role": "executor",
       "id": "execution",
-      "instruction": "Выполнить программу и получить evidence. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Выполнить программу и получить evidence. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -156,7 +156,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "analysis",
-      "instruction": "Интерпретировать evidence и сформировать несоответствия. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Интерпретировать evidence и сформировать несоответствия. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -187,7 +187,7 @@
       "handler": "inspect",
       "role": "executor",
       "id": "self_inspection",
-      "instruction": "Осмотреть качество самой проверки. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Осмотреть качество самой проверки. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

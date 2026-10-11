@@ -201,7 +201,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "framing",
-      "instruction": "Спланировать исходное измерение и критерии воспроизводимости. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Спланировать исходное измерение и критерии воспроизводимости. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -235,7 +235,7 @@
       "handler": "observe",
       "role": "executor",
       "id": "baseline_measurement",
-      "instruction": "Получить исходные measurements. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Получить исходные measurements. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -263,7 +263,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "experiment_planning",
-      "instruction": "Спланировать различающие эксперименты после baseline. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Спланировать различающие эксперименты после baseline. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -295,7 +295,7 @@
       "handler": "observe",
       "role": "executor",
       "id": "measurement",
-      "instruction": "Выполнить эксперименты. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Выполнить эксперименты. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -323,7 +323,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "analysis",
-      "instruction": "Отделить измерения от интерпретаций. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Отделить измерения от интерпретаций. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -363,7 +363,7 @@
       "handler": "check",
       "role": "executor",
       "id": "confirmation",
-      "instruction": "Независимо/повторно подтвердить существенные выводы. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Независимо/повторно подтвердить существенные выводы. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -393,7 +393,7 @@
       "handler": "inspect",
       "role": "executor",
       "id": "self_inspection",
-      "instruction": "Осмотреть качество измерений и выводов. Work on this stage only. Use exact registered checks; submit one batch to verify; report and stop.",
+      "instruction": "Осмотреть качество измерений и выводов. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [

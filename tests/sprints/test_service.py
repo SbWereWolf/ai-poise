@@ -153,6 +153,9 @@ def test_bootstrap_by_sprint_id_returns_ready_set_without_claim(sprint):
     p,h,w=sprint;r=draft(w,[task(p,'A'),task(p,'B')],[{'predecessor':'A','successor':'B','kind':'completion'}]);publish(w,r['revision'])
     out=bootstrap(w,'S')
     assert out['eligible']==['A'] and h.current_task() is None
+    assert out['next_work'] == (
+        'Выбрать одну доступную задачу; продолжать поручение через advance с действующими ограничениями'
+    )
     assert not (h.state/h.paths['worktrees']).exists()
     assert bootstrap(w)['eligible']==['A']
 

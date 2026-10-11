@@ -947,7 +947,7 @@ class Poise:
                 'progression': data.get('progression'),
                 'agents_files': [] if data['worktree'] is None else
                     [str(p) for p in [Path(data['worktree']) / 'AGENTS.md'] if p.is_file()],
-                'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'доложить; ждать решения пользователя'}
+                'next_work': 'заполнить результат этапа и вызвать verify' if prepare else 'продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя'}
 
         if duplicate_gate is not None:
             context['duplicate_gate'] = duplicate_gate
@@ -2057,7 +2057,7 @@ class Poise:
                   'feedback':workflow['feedback'], 'status':'verified','task':data['id'],'stage':stage['id'],'iteration':data['iteration'],
                   'attempt':publication['attempt'],'commit':sha,'verification_commit':sha,'verified_tree':tree,'checks':publication['checks'],
                   'artifacts':[{'id':r['id'],'path':r['path']} for r in permanent],
-                  'replayed':False,'next_work':'доложить пользователю; следующий этап не начинать'}
+                  'replayed':False,'next_work':'продолжить поручение через advance с проверками, передачей роли и полномочиями пользователя'}
         manifests = self.retention.references(publication['checks'])
         if manifests:
             report['acceptance_manifests'] = manifests

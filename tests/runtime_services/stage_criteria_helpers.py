@@ -13,15 +13,14 @@ FIXTURE = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria/process
 
 
 def criteria(requirement="Return twice the input."):
-    return {
-        "requirements": [requirement],
-        "definition_of_ready": ["The intended behavior is specified."],
-        "definition_of_done": ["The required behavior is demonstrated."],
-    }
+    value = json.loads((FIXTURE.parent / "criteria.json").read_text(encoding="utf-8"))
+    value["requirements"] = [requirement]
+    return value
 
 
 def boot(project, *, initial_execution=False, custom_design=False, custom_decision=False,
-         empty_grants=False, second_execution=False, output_gate=False):
+         empty_grants=False, second_execution=False, output_gate=False, input_gate=False,
+         inspection_decision=False):
     process = json.loads(FIXTURE.read_text(encoding="utf-8"))
     if initial_execution:
         build = deepcopy(process["stages"][2])
@@ -33,6 +32,11 @@ def boot(project, *, initial_execution=False, custom_design=False, custom_decisi
         process["stages"][0]["purpose"] = "other"
     if custom_decision:
         process["stages"][1]["purpose"] = "other"
+    if inspection_decision:
+        observation = process["stages"][1]
+        observation.update(handler="inspect", role="arbiter", read_only=True, allowed_paths=[])
+        observation["transitions"] = {"clear": "build", "changes_requested": "sketch"}
+        observation["rework_targets"] = ["sketch"]
     if second_execution:
         another = deepcopy(process["stages"][2])
         another["id"] = "build_next"
@@ -73,6 +77,13 @@ def boot(project, *, initial_execution=False, custom_design=False, custom_decisi
             "minimum": 1, "maximum": 1,
             "source": {"kind": "stage_output", "producer_stage": "build"},
         }]
+    if input_gate:
+        task["content_contract"]["requirements"].append({
+            "id": "build-input", "kind": "artifact", "stages": ["build"],
+            "phase": "pre", "scope": "task", "pattern": "inputs/required.txt",
+            "minimum": 1, "maximum": 1, "source": {"kind": "preexisting"},
+        })
+        next(item for item in task["stage_contracts"] if item["stage_id"] == "build")["entry_requirements"] = ["build-input"]
     project["cfg"]["automatic_checks"] = []
     write_json(project["root"] / "config/processes/development.json", process)
     write_json(project["config_path"], project["cfg"])
@@ -99,6 +110,8 @@ def version(tools):
 
 def verify_packet(context, work=None):
     value = result(context, "The criteria operation and its result are recorded.")
+    if "coverage" in value["stage_work"]:
+        value["stage_work"]["coverage"] = "Inspect the exact proposal against the Task goal and declared authority."
     if work is not None:
         value["stage_work"]["criteria_work"] = deepcopy(work)
     return request("verify", {"result": value, "artifacts": []})
@@ -122,9 +135,39 @@ def work(tools, request_id, *, proposals=(), decisions=()):
 
 
 def next_stage(tools):
+    context = tools.invoke(request("bootstrap", {
+        "task": None, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    current = tools.invoke(request("show", {"queries": [{"id": "task", "kind": "task"}]}))
+    state = current["results"][0]["value"]
+    if state["status"] == "verified":
+        target = context["workflow"]["next_stage"]
+        assert target is not None, "No next stage is declared for this fixture result."
+        advanced = tools.invoke(request("advance", {
+            "request_id": f"next-{state['stage']}-{state['iteration']}-{state['version']}",
+            "task_id": "T1", "target_stage": target,
+        }))
+        assert advanced["status"] == "progression_target_reached", advanced
     return tools.invoke(request("bootstrap", {
         "task": None, "decision": None, "feedback": None, "rework_stage": None,
     }))
+
+
+def assert_unstarted(execution):
+    assert set(execution) == {"state", "epoch", "bound_revision"}
+    assert execution["state"] == "unstarted"
+    assert type(execution["epoch"]) is int and execution["epoch"] >= 0
+    assert execution["bound_revision"] is None
+
+
+def handoff(tools, identifier):
+    response = tools.invoke(request("handoff", {
+        "request_id": identifier, "reason": "Transfer the real fixture Task to its next configured actor.",
+        "result": None, "commit_message": "Preserve fixture task handoff",
+        "artifact_paths": [],
+    }))
+    assert response["status"] == "handed_off"
+    return response
 
 
 def rows(tools):

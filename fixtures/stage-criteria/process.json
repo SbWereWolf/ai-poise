@@ -43,7 +43,7 @@
       "allowed_paths": ["docs/**"], "normalization": "strip",
       "sections": {"report": "Describe the custom result."},
       "required_sections": ["report"], "artifact_requirements": [],
-      "transitions": {"complete": null}, "rework_targets": ["custom", "sketch"]
+      "transitions": {"complete": null}, "rework_targets": ["custom", "sketch", "build"]
     }
   ]
 }

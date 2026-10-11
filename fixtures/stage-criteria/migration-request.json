@@ -2,7 +2,6 @@
   "schema": "task-stage-criteria-migration-1",
   "request_id": "migrate-fixture-criteria",
   "backup_name": "criteria-fixture.sqlite",
-  "expected_inventory_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "mapping": [
     {
       "kind": "process_definition",

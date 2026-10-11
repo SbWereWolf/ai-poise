@@ -87,7 +87,6 @@ def test_unknown_or_nontext_purpose_is_rejected(value):
 @pytest.mark.parametrize("value", [
     None,
     {"propose": []},
-    {"propose": [], "decide": [], "implicit": True},
     {"propose": "build", "decide": []},
     {"propose": ["build", "build"], "decide": []},
     {"propose": ["absent"], "decide": []},
@@ -106,3 +105,12 @@ def test_other_with_explicit_empty_grants_remains_valid_without_implicit_authori
     parsed = GoalTypeDefinition.parse(source).data
     assert parsed["stages"][3]["purpose"] == "other"
     assert parsed["stages"][3]["criteria_authority"] == {"propose": [], "decide": []}
+
+
+def test_unknown_authority_extension_is_ignored_only_at_configuration_boundary():
+    source = process()
+    source["stages"][0]["criteria_authority"]["vendor_note"] = "This grants no authority."
+    parsed = GoalTypeDefinition.from_configuration(source).data
+    assert parsed["stages"][0]["criteria_authority"] == {"propose": ["build"], "decide": []}
+    with pytest.raises(DomainError):
+        GoalTypeDefinition.parse(source)

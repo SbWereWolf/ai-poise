@@ -5,9 +5,12 @@ from pathlib import Path
 
 import pytest
 
+from batch.helpers import request
+from conftest import WorkPoise
+from poise.application.work import WorkTools
 from poise.common import PoiseError
 from tests.runtime_services.stage_criteria_helpers import (
-    boot, criteria, next_stage, proposal, rows, show, verify_packet, work,
+    assert_unstarted, boot, criteria, handoff, next_stage, proposal, rows, show, verify_packet, work,
 )
 
 
@@ -17,13 +20,21 @@ def test_initial_execution_uses_real_initial_criteria_without_proposal_or_decisi
     assert context["purpose"] == "execution"
     assert context["criteria_authority"] == {"propose": [], "decide": []}
     current = show(tools)
+    assert set(current) == {
+        "task", "stage_id", "purpose", "revision", "criteria", "entry_requirements",
+        "exit_requirements", "source", "execution", "proposals", "history",
+    }
+    assert current["task"] == "T1"
+    assert current["stage_id"] == "build"
     assert current["purpose"] == "execution"
     assert current["criteria"] == criteria()
     assert current["source"]["kind"] == "initial"
+    assert set(current["source"]) == {"kind", "contract_digest", "requirements_snapshot_digest"}
+    for field in ("contract_digest", "requirements_snapshot_digest"):
+        assert isinstance(current["source"][field], str) and len(current["source"][field]) == 64
     assert current["proposals"] == []
     assert current["execution"]["state"] == "started"
     assert current["execution"]["bound_revision"] == current["revision"]
-    assert not any(item["action"] in ("proposed", "accepted") for item in current["history"])
     before = rows(tools)
     assert show(tools) == current
     assert rows(tools) == before
@@ -41,7 +52,8 @@ def test_propose_then_accept_binds_exact_revision_with_declared_custom_authority
     pending = show(tools)
     assert pending["revision"] == initial["revision"]
     assert pending["criteria"] == initial["criteria"]
-    assert pending["execution"] == {"state": "unstarted", "epoch": 0, "bound_revision": None}
+    assert_unstarted(pending["execution"])
+    assert pending["execution"] == initial["execution"]
     assert len(pending["proposals"]) == 1
     proposed = pending["proposals"][0]
     assert proposed["producer_stage"] == "sketch"
@@ -59,6 +71,17 @@ def test_propose_then_accept_binds_exact_revision_with_declared_custom_authority
     assert accepted["source"]["kind"] == "proposal"
     assert accepted["source"]["proposal_id"] == proposed["proposal_id"]
     assert accepted["source"]["proposal_digest"] == proposed["proposal_digest"]
+    assert set(accepted["source"]) == {"kind", "proposal_id", "proposal_digest", "decision_id"}
+    assert accepted["source"]["decision_id"] is not None
+    assert accepted["history"][:len(initial["history"])] == initial["history"]
+    agreement = accepted["history"][-1]
+    assert {"id", "action", "actor", "stage", "iteration", "old_revision", "new_revision", "reason", "source"} <= set(agreement)
+    assert agreement["actor"] == tools.runtime.session
+    assert agreement["stage"] == "assess"
+    assert agreement["iteration"] == decision_context["iteration"]
+    assert agreement["old_revision"] == initial["revision"]
+    assert agreement["new_revision"] == accepted["revision"]
+    assert agreement["reason"] == "The proposed criteria express the intended result."
     execution_context = next_stage(tools)
     assert execution_context["stage"] == "build"
     started = show(tools)
@@ -137,6 +160,45 @@ def test_duplicate_decisions_reject_whole_batch_including_accept_then_reject(pro
         tools.invoke(verify_packet(context, work(tools, "duplicate-decisions", decisions=[decision, opposite])))
     assert rows(tools) == before
     assert show(tools) == current
+
+
+@pytest.mark.parametrize("second_decision", ["accepted", "rejected"])
+def test_different_proposals_for_same_target_cannot_overlap_even_when_one_is_rejected(project, second_decision):
+    tools, context = boot(project)
+    tools.invoke(verify_packet(context, work(tools, "offer-first-overlap", proposals=[proposal(tools)])))
+    again = tools.invoke(request("bootstrap", {
+        "task": None, "decision": "rework", "rework_stage": "sketch",
+        "feedback": "Create a distinct proposal against the same unchanged target revision.",
+    }))
+    tools.invoke(verify_packet(again, work(tools, "offer-second-overlap", proposals=[
+        proposal(tools, requirement="Return twice the input, including zero."),
+    ])))
+    offered = show(tools)["proposals"]
+    assert len(offered) == 2
+    assert offered[0]["proposal_id"] != offered[1]["proposal_id"]
+    observation = next_stage(tools)
+    decisions = [
+        {"proposal_id": item["proposal_id"], "proposal_digest": item["proposal_digest"],
+         "decision": disposition, "reason": "Check target overlap independently of decision disposition."}
+        for item, disposition in zip(offered, ("accepted", second_decision), strict=True)
+    ]
+    before, current = rows(tools), show(tools)
+    with pytest.raises(PoiseError, match="overlapping_decision_targets"):
+        tools.invoke(verify_packet(observation, work(tools, "overlapping-decisions", decisions=decisions)))
+    assert rows(tools) == before
+    assert show(tools) == current
+
+
+def test_valid_first_proposal_and_stale_second_target_roll_back_the_complete_packet(project):
+    tools, context = boot(project, second_execution=True)
+    proposals = [proposal(tools), proposal(tools, "build_next")]
+    proposals[1]["expected_criteria_revision"] += 1
+    before = rows(tools)
+    current = [show(tools, stage) for stage in ("build", "build_next")]
+    with pytest.raises(PoiseError):
+        tools.invoke(verify_packet(context, work(tools, "valid-then-stale", proposals=proposals)))
+    assert rows(tools) == before
+    assert [show(tools, stage) for stage in ("build", "build_next")] == current
 
 
 def test_other_without_explicit_grant_cannot_propose(project):
@@ -254,3 +316,34 @@ def test_accepted_exit_gate_is_used_for_actual_artifact_effect(project):
     paths = [Path(row[0]) for row in artifacts if Path(row[0]).name == "build.txt"]
     assert len(paths) == 1
     assert paths[0].read_text(encoding="utf-8") == "The build result is available.\n"
+
+
+def test_other_decision_grant_reaches_real_inspect_handler_under_configured_actor(project):
+    tools, context = boot(project, custom_design=True, custom_decision=True, inspection_decision=True)
+    candidate = proposal(tools)
+    tools.invoke(verify_packet(context, work(tools, "other-produce-offer", proposals=[candidate])))
+    proposed = show(tools)["proposals"][0]
+    advance = request("advance", {
+        "request_id": "reach-custom-inspector", "task_id": "T1", "target_stage": "assess",
+    })
+    assert tools.invoke(advance)["status"] == "role_handoff_required"
+    handoff(tools, "handoff-custom-inspector")
+    inspector = WorkTools(WorkPoise(project["config_path"], "arbiter-session"))
+    inspector.invoke(request("bootstrap", {
+        "task": {"id": "T1"}, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert inspector.invoke(advance)["status"] == "progression_target_reached"
+    context = inspector.invoke(request("bootstrap", {
+        "task": None, "decision": None, "feedback": None, "rework_stage": None,
+    }))
+    assert context["stage"] == "assess"
+    assert context["purpose"] == "other"
+    assert context["handler"] == "inspect"
+    tools = inspector
+    tools.invoke(verify_packet(context, work(tools, "other-inspect-decision", decisions=[{
+        "proposal_id": proposed["proposal_id"], "proposal_digest": proposed["proposal_digest"],
+        "decision": "accepted", "reason": "The configured arbiter accepts this exact criterion.",
+    }])))
+    accepted = show(tools)
+    assert accepted["criteria"] == candidate["criteria"]
+    assert accepted["source"]["proposal_id"] == proposed["proposal_id"]

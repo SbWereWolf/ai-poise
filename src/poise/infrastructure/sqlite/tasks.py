@@ -63,6 +63,67 @@ class SqliteTaskRepository:
     def __init__(self, connection):
         self.db = connection
 
+    def migrated_start_context(self, task_id: str) -> dict | None:
+        """Correlate the unchanged candidate with one completed original intent.
+
+        Read in the caller's snapshot/UoW. Historical completion is not a claim,
+        an execution reservation, or permission to ignore pending outcomes.
+        """
+        from ..stage_criteria_history import identity
+
+        row = self.db.execute('SELECT metadata FROM tasks WHERE id=?', (task_id,)).fetchone()
+        if row is None:
+            return None
+        metadata = json.loads(row['metadata'])
+        book = StageCriteriaBook.from_dict(metadata['stage_criteria']).data
+        receipts = {value['source']['migration_receipt'] for value in book['stages'].values()
+                    if value['source']['kind'] == 'historical'}
+        if len(receipts) != 1:
+            return None
+        receipt = receipts.pop()
+        records = [json.loads(value[0]) for value in self.db.execute(
+            'SELECT data FROM journal WHERE event=? ORDER BY seq', ('task_stage_criteria_migration',))]
+        intents = [value for value in records
+                   if value['phase'] == 'intent' and value['receipt'] == receipt]
+        if len(intents) != 1:
+            return None
+        intent = intents[0]
+        if receipt != identity({'request_digest': intent['request_digest'],
+                                'source_database': intent['baseline']}):
+            return None
+        completions = [value for value in records if value['phase'] == 'completed'
+                       and value['request_id'] == intent['request_id']
+                       and value['request_digest'] == intent['request_digest']]
+        if len(completions) != 1:
+            return None
+        result = completions[0]['result']
+        if (result['status'] != 'migrated' or result['receipt'] != receipt
+                or result['request_id'] != intent['request_id']
+                or result['resources'] != [value['summary'] for value in intent['resources']]):
+            return None
+        matches = [value for value in intent['resources']
+                   if value['mapping']['kind'] == 'executable_task'
+                   and value['mapping']['task_id'] == task_id]
+        if len(matches) != 1:
+            return None
+        item = matches[0]
+        source, summary, candidate = item['source'], item['summary'], item['candidate']
+        original = json.loads(source['metadata'])
+        if (source['id'] != task_id or source['status'] != 'available'
+                or source['version'] != item['mapping']['expected_version']
+                or summary != {'kind': 'executable_task', 'task_id': task_id,
+                    'version': source['version'],
+                    'old_digest': identity({'process': original['process'], 'contract': original['contract']}),
+                    'new_digest': identity({'process': candidate['process'], 'contract': candidate['contract']})}
+                or metadata != candidate):
+            return None
+        for stage in original['contract']['stage_contracts']:
+            expected = {'kind': 'historical', 'original_digest': identity(stage),
+                        'migration_receipt': receipt}
+            if book['stages'][stage['stage_id']]['source'] != expected:
+                return None
+        return {'request_id': intent['request_id'], 'receipt': receipt, 'resource': summary}
+
     def pending_artifact_consumers(self, source_id):
         rows = self.db.execute("SELECT t.id,w.data FROM tasks t JOIN task_workflows w ON w.task_id=t.id WHERE t.id!=? AND t.status NOT IN ('completed','cancelled') AND json_extract(w.data,'$.duplicate_reuse') IS NOT NULL", (source_id,))
         for row in rows:
@@ -1192,7 +1253,7 @@ class SqliteTaskRepository:
         self._save_methods(change.task)
         proof_data=encode(change.task.evidence_snapshot())
         previous_proof=self.db.execute("SELECT data FROM task_proofs WHERE task_id=?",(state.task_id,)).fetchone()[0]
-        if proof_data != previous_proof:
+        if change.task.evidence_snapshot() != json.loads(previous_proof):
             self.db.execute("UPDATE task_proofs SET data=? WHERE task_id=?",(proof_data,state.task_id))
             self.db.execute("INSERT INTO task_proof_layers VALUES(?,?,?)",(state.task_id,state.version,proof_data))
         updated = self.db.execute("UPDATE tasks SET status=?,stage_index=?,iteration=?,claimed_by=?,version=?,current_submission_id=? WHERE id=? AND version=?",
@@ -1223,7 +1284,7 @@ class SqliteTaskRepository:
             data = encode(entry.to_dict())
             if existing is None:
                 self.db.execute("INSERT INTO task_methods VALUES(?,?,?,?)",(task.state.task_id,entry.method_id,task.state.version,data))
-            elif existing[0] != data:
+            elif json.loads(existing[0]) != entry.to_dict():
                 self.db.execute(
                     "UPDATE task_methods SET version=?,data=? WHERE task_id=? AND method_id=?",
                     (task.state.version, data, task.state.task_id, entry.method_id),
@@ -1264,8 +1325,16 @@ class SqliteExecutionRepository:
         return json.loads(row["data"]), row["version"]
 
     def save(self, task_id: str, data: dict, expected_version: int) -> int:
-        if set(data) != EXECUTION_FIELDS:
+        previous, version = self.load(task_id)
+        if version != expected_version:
+            raise VersionConflict('Конфликт версии execution state')
+        # Historical opaque fields are preserved, never introduced, changed or
+        # removed by an execution write. Only this owner's current fields vary.
+        opaque = set(previous) - EXECUTION_FIELDS
+        if (not EXECUTION_FIELDS <= set(data) or set(data) - EXECUTION_FIELDS - opaque
+                or any(data[key] != previous[key] for key in opaque & set(data))):
             raise PoiseError("Из execution adapter нельзя менять Task lifecycle")
+        data = {**previous, **data}
         r=self.db.execute("UPDATE task_execution SET data=?,version=version+1 WHERE task_id=? AND version=?",
                           (encode(data),task_id,expected_version))
         if r.rowcount != 1: raise VersionConflict("Конфликт версии execution state")

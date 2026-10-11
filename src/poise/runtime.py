@@ -14,7 +14,7 @@ from .storage import Store
 from .composition import task_tools
 from .application.runner import StageRunner
 from .application.check_attempts import is_check_attempt, receipt_matches, require_identity, require_quiescence
-from .application.evidence import EvidenceCommands
+from .application.evidence import EvidenceCommands, check_receipts_by_id
 from .modules.content_requirements.domain import ArtifactFact
 from .modules.evidence.domain import completed_receipts
 from .modules.verification.domain import method_expectation_digest
@@ -535,7 +535,7 @@ class Poise:
             if pending is not None:
                 if not is_check_attempt(pending):
                     return {'reason': 'unknown_effect', 'execution_key': key}
-                recorded = {r['id']: r for r in self.evidence_commands.list_for(task_id)}
+                recorded = self._recorded_check_receipts(task_id)
                 for run, invocation in zip(pending['runs'], invocations, strict=True):
                     if run['started'] and (not receipt_matches(pending, run, recorded.get(run['run_id']))
                             or not self._intact_receipts(task_id, [recorded[run['run_id']]],
@@ -1807,6 +1807,10 @@ class Poise:
             'environment': digest([item['environment'] for item in invocations]),
         }
 
+    def _recorded_check_receipts(self, task_id):
+        """Check receipts are distinct from opaque historical evidence records."""
+        return check_receipts_by_id(self.evidence_commands.list_for(task_id))
+
     def _intact_receipts(self, task_id, receipts, invocations, tree):
         if (
             not completed_receipts(receipts)
@@ -1814,11 +1818,7 @@ class Poise:
             or len(receipts) != len(invocations)
         ):
             return False
-        recorded={
-            receipt['id']: receipt
-            for receipt in self.evidence_commands.list_for(task_id)
-            if isinstance(receipt,dict) and isinstance(receipt.get('id'),str)
-        }
+        recorded = self._recorded_check_receipts(task_id)
         required = {
             'stderr',
             'stderr_digest',
@@ -1908,7 +1908,7 @@ class Poise:
         receipts = report['checks']
         if not completed_receipts(receipts):
             return False
-        recorded = {r['id']: r for r in self.evidence_commands.list_for(data['id'])}
+        recorded = self._recorded_check_receipts(data['id'])
         methods = {m['id']: m for m in data['contract']['methods']}
         for receipt in receipts:
             method = methods.get(receipt['method'])
@@ -1928,7 +1928,7 @@ class Poise:
     def _execute_checks(self, data, stage, tree, checks, invocations, roots):
         receipts=[]
         attempt = data['pending']
-        recorded = {r['id']: r for r in self.evidence_commands.list_for(data['id'])}
+        recorded = self._recorded_check_receipts(data['id'])
         # Inspect the whole finished prefix before permitting any new tail effect.
         for run, invocation in zip(attempt['runs'], invocations, strict=True):
             receipt = recorded.get(run['run_id'])

@@ -76,6 +76,28 @@ def _owner(root, config, goal):
     return FileGoalConfigRepository(catalogue.editor)
 
 
+def _configuration_binding(root, config):
+    state = configured_root(root, config['paths']['state'])
+    resources = {}
+    for key in ('database', 'lock'):
+        path = descendant(state, config['paths'][key])
+        stat = path.stat()
+        resources[key] = {'path': str(path), 'device': stat.st_dev, 'inode': stat.st_ino}
+    path = Path(config['task_planning']['catalogue'])
+    catalogue = FileCatalogue(path if path.is_absolute() else root / path)
+    return {'root': str(root), 'manifest_digest': identity(config), 'resources': resources,
+            'catalogue_path': str(catalogue.path), 'catalogue_digest': identity(catalogue.raw),
+            'publications': {goal: _owner(root, config, goal).migration_binding(goal)
+                             for goal in config['processes']}}
+
+
+def _require_configuration(adapter, intent):
+    """Reread actual files; a cached manifest cannot observe another writer."""
+    root, config, _ = load_process_migration_config(adapter.config_path)
+    if _configuration_binding(root, config) != intent['configuration_binding']:
+        raise PoiseError('Migration configuration changed after preparation')
+
+
 def _prepare(db, root, config, processes, request, backup_snapshot):
     tasks, events, submissions = _records(db)
     selected = [row for row in tasks if row['status'] not in ('completed', 'cancelled')]
@@ -107,6 +129,7 @@ def _prepare(db, root, config, processes, request, backup_snapshot):
                        'old_revision': old, 'new_revision': identity(candidate)}
             prepared.append({'mapping': mapping, 'source': source, 'candidate': candidate,
                              'source_bytes_digest': identity(list(observed['bytes'])),
+                             'publication_binding': owner.migration_binding(goal),
                              'summary': summary})
         else:
             matches = [row for row in selected if row['id'] == mapping['task_id']]
@@ -119,7 +142,8 @@ def _prepare(db, root, config, processes, request, backup_snapshot):
             prepared.append({'mapping': mapping, 'source': row,
                              'candidate': candidate, 'summary': summary})
     return {'phase': 'intent', 'receipt': receipt, 'baseline': baseline,
-            'manifest_digest': identity(config), 'resources': prepared}
+            'manifest_digest': identity(config), 'configuration_binding': _configuration_binding(root, config),
+            'resources': prepared}
 
 
 def _publication_request(request, item):
@@ -143,8 +167,11 @@ def _require_process(root, config, request, item, *, completed):
         if (observed['document'] != item['candidate'] or observed['head'] != expected
                 or observed['pending']):
             raise PoiseError('Published migration process drifted')
-        return owner.publish_migration(goal, packet, digest,
-                                       item['summary']['old_revision'], item['candidate'])
+        receipt = owner.completed_migration(goal, packet, digest,
+                                            item['summary']['old_revision'], item['candidate'])
+        if receipt is None:
+            raise PoiseError('Migration publication is not completed')
+        return receipt
     if (identity(observed['document']) != expected or observed['head'] != expected
             or identity(list(observed['bytes'])) != item['source_bytes_digest']
             or observed['pending']):
@@ -152,13 +179,35 @@ def _require_process(root, config, request, item, *, completed):
     return owner
 
 
+def _completed_resources(request, intent):
+    """Read actual original owners without adding coordinator observations."""
+    result = []
+    for item in intent['resources']:
+        if item['mapping']['kind'] != 'process_definition':
+            continue
+        goal = item['mapping']['goal_type']
+        try:
+            owner = FileGoalConfigRepository.from_migration_binding(goal, item['publication_binding'])
+            packet, digest = _publication_request(request, item)
+            receipt = owner.completed_migration(goal, packet, digest,
+                                                item['summary']['old_revision'], item['candidate'])
+            if receipt is not None:
+                result.append(item['summary'])
+        except (PoiseError, OSError, sqlite3.Error, ValueError, TypeError, KeyError):
+            # Unknown/changed original owner is not a verified external effect.
+            continue
+    return result
+
+
 def _continue(db, adapter, root, config, request, intent, saved):
     known = [item['resource'] for item in saved if item['phase'] == 'published']
     try:
-        if identity(config) != intent['manifest_digest'] or _snapshot(db) != intent['baseline']:
+        _require_configuration(adapter, intent)
+        if _snapshot(db) != intent['baseline']:
             raise PoiseError('Migration source inventory changed after preparation')
         processes = [item for item in intent['resources'] if item['mapping']['kind'] == 'process_definition']
         for item in processes:
+            _require_configuration(adapter, intent)
             done = item['summary'] in known
             if done:
                 _require_process(root, config, request, item, completed=True)
@@ -173,8 +222,10 @@ def _continue(db, adapter, root, config, request, intent, saved):
             _require_process(root, config, request, item, completed=True)
             known.append(item['summary'])
             _record(db, adapter, request, {'phase': 'published', 'resource': item['summary']})
+        _require_configuration(adapter, intent)
         db.execute('BEGIN IMMEDIATE')
         try:
+            _require_configuration(adapter, intent)
             if _snapshot(db) != intent['baseline']:
                 raise PoiseError('Task DB drifted before the migration transaction')
             for item in processes:
@@ -209,7 +260,8 @@ def _continue(db, adapter, root, config, request, intent, saved):
             raise
     except (PoiseError, OSError, sqlite3.Error, ValueError, TypeError, KeyError) as exc:
         return {'status': 'recovery_required', 'request_id': request.request_id,
-                'receipt': intent['receipt'], 'resources': known, 'reason': str(exc)}
+                'receipt': intent['receipt'], 'resources': _completed_resources(request, intent),
+                'reason': str(exc)}
 
 
 def migrate_stage_criteria(adapter, request):
@@ -243,9 +295,11 @@ def migrate_stage_criteria(adapter, request):
                 else:
                     intent = _prepare(db, root, config, processes, request, backup_snapshot)
                     adapter.after_preflight()
+                    _require_configuration(adapter, intent)
                     # No intent/publication is durable before this drift check.
                     db.execute('BEGIN IMMEDIATE')
                     try:
+                        _require_configuration(adapter, intent)
                         if _snapshot(db) != intent['baseline']:
                             raise PoiseError('Task DB differs after migration preflight')
                         for item in intent['resources']:

@@ -402,13 +402,16 @@ class Task:
             state=replace(change.task.state, claimed_by=actor),
         ))
 
-    def start(self, actor=None):
+    def _require_start(self):
         self._require_ordinary_stage()
         self._require_stage_contracts()
-        if actor is not None:
-            identifier(actor)
         if self.state.status != TaskStatus.AVAILABLE:
             raise DomainError("Only an available task can be started")
+
+    def start(self, actor=None):
+        self._require_start()
+        if actor is not None:
+            identifier(actor)
         change = self._change("started",None,None,status=TaskStatus.ACTIVE,claimed_by=actor)
         return replace(change, task=change.task.admit_execution(actor))
 
@@ -422,7 +425,7 @@ class Task:
         """Task-owned, side-effect-free readiness; resumable work is not a start."""
         if self.state.status != TaskStatus.AVAILABLE or self.state.claimed_by is not None:
             return False
-        self.start()  # Validate the same saved route contract; do not persist a change.
+        self._require_start()  # Readiness is not actual execution admission/history.
         return self.assess_content('pre', artifacts).passed
 
     def handoff(self, actor: str, reason: str) -> Change:

@@ -196,10 +196,10 @@ class SubmissionReceipt:
     registry_change: dict | None = None
 
 
-def require_start_execution(execution, restart_history):
+def require_start_execution(execution, restart_history, migrated_context):
     """One execution prerequisite for start and read-only discovery."""
     if execution is not None:
-        if not restart_history:
+        if not restart_history and migrated_context is None:
             raise DomainError('Available Task has unexpected execution state')
         if execution['pending'] is not None:
             raise DomainError('Restarted Task execution recovery is still pending')
@@ -962,7 +962,8 @@ class TaskCommands:
                     raise DomainError('Local repair source is absent from reserved base; import it before start')
             if has_execution:
                 current, execution_version = uow.execution.load(task_id)
-                require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'])
+                require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'],
+                                        uow.tasks.migrated_start_context(task_id))
             change=task.start(actor)
             if has_execution:
                 # A new available -> active admission, never an active bootstrap.
@@ -981,7 +982,7 @@ class TaskCommands:
                         raise DomainError('Resolve retained execution before workspace allocation')
                     if execution['worktree'] is None or execution['pending']['kind'] != 'worktree_setup':
                         raise DomainError('Restart requires an explicit worktree reservation')
-                    uow.execution.save(task_id, execution, execution_version)
+                    uow.execution.save(task_id, {**current, **execution}, execution_version)
                 else:
                     if restart_entry_tree is None:
                         raise DomainError('Restart start requires an observed retained workspace tree')

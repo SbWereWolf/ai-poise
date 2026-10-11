@@ -7,9 +7,12 @@ from tests.conftest import write_json
 
 def setup_case(project):
     root=project['root']
+    config = deepcopy(project['cfg'])
+    if 'runtime_resources' in config:
+        config['runtime_resources']['project_setup'] = str(root / 'setup.json')
     blueprint={
         'schema':'project-blueprint-1', 'version':'1',
-        'config':deepcopy(project['cfg']),
+        'config':config,
         'process_sources':{'development':{'path':'config/processes/development.json','digest':digest(project['process'])}},
         'questions':[
             {'id':'project','path':['project'],'type':'text','prompt':'Project ID'},
@@ -35,3 +38,32 @@ def setup_case(project):
                  {'path':['git','push_required'],'value':False}],
         'probe_repository':True}
     return settings_path,blueprint,request
+
+
+def bootstrap_fixture_resources(settings_path, config_path):
+    """Explicit fixture preparation through the real initial-publication owner."""
+    from poise.common import load_config
+    from poise.composition import project_config_tools, project_tools
+    settings_path, config_path = Path(settings_path), Path(config_path)
+    root, config, processes = load_config(config_path)
+    assert 'runtime_resources' not in config
+    registry = project_tools(settings_path).list()
+    assert any(item['project'] == config['project'] and item['config_path'] == str(config_path)
+               for item in registry['projects'])
+    before_processes = {goal: (root / relative).read_bytes()
+                        for goal, relative in config['processes'].items()}
+    result = project_config_tools(settings_path).apply({
+        'schema': 'project-runtime-resources-bootstrap-1',
+        'request_id': 'fixture-runtime-resources', 'config_path': str(config_path),
+        'expected_revision': digest({'config': config, 'processes': processes}),
+        'runtime_resources': {'project_setup': str(settings_path), 'hooks': []},
+        'receipt_path': 'operations/fixture-runtime-resources.json',
+    })
+    _, current, _ = load_config(config_path)
+    assert result['status'] == 'completed'
+    assert current == {**config, 'runtime_resources': {
+        'project_setup': str(settings_path), 'hooks': [],
+    }}
+    assert all((root / config['processes'][goal]).read_bytes() == content
+               for goal, content in before_processes.items())
+    return current

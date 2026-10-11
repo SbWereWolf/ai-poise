@@ -29,3 +29,6 @@ dist/
 
 # AI-poise codebase-owned test package cache
 .poise-test-cache/
+
+# Local source-search profile; version its example, not working settings.
+/.ast-index.yaml

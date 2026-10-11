@@ -19,6 +19,17 @@ FILES = [
     'tests/projects/test_runtime_resources_bootstrap.py',
     'tests/verification/test_material_relocation_consumers.py',
 ]
+PARTITION_COUNT = 7
+
+
+def partition_inventory(inventory):
+    """Partition the unchanged literal obligations; collection still proves each ID."""
+    if (not isinstance(inventory, list) or len(inventory) != 93
+            or any(not isinstance(node, str) or not node.strip() for node in inventory)
+            or len(set(inventory)) != len(inventory)):
+        raise ValueError('Invalid literal material relocation inventory')
+    ordered = sorted(inventory)
+    return [ordered[index::PARTITION_COUNT] for index in range(PARTITION_COUNT)]
 
 
 class CompleteReports(Reports):
@@ -66,10 +77,16 @@ def run(selectors, expected, output):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--selection', required=True, choices=['red', 'all'])
+    parser.add_argument('--selection', required=True, choices=['red', 'all', 'partition'])
+    parser.add_argument('--partition', type=int, choices=range(1, PARTITION_COUNT + 1))
     args = parser.parse_args()
-    expected = json.loads((FIXTURES / (args.selection + '-nodes.json')).read_text())
-    selectors = expected if args.selection == 'red' else FILES
+    if (args.selection == 'partition') != (args.partition is not None):
+        parser.error('--partition is required exactly for --selection partition')
+    inventory = 'all' if args.selection == 'partition' else args.selection
+    expected = json.loads((FIXTURES / (inventory + '-nodes.json')).read_text())
+    if args.selection == 'partition':
+        expected = partition_inventory(expected)[args.partition - 1]
+    selectors = FILES if args.selection == 'all' else expected
     code, summary = run(selectors, expected, Path(os.environ['POISE_RUN_OUTPUT_DIR']))
     print(json.dumps(summary, sort_keys=True, ensure_ascii=False, separators=(',', ':')))
     return code

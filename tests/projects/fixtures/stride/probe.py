@@ -3,6 +3,21 @@ import json
 import os
 import sys
 
+if sys.argv[1:] == ['storage']:
+    import sqlite3
+    from pathlib import Path
+    manifest = Path(os.environ['POISE_CONFIG'])
+    cfg = json.loads(manifest.read_text())
+    state = Path(cfg['paths']['state'])
+    if not state.is_absolute():
+        state = manifest.parent / state
+    database = state / cfg['paths']['database']
+    database.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(database) as connection:
+        connection.execute('CREATE TABLE IF NOT EXISTS probe (value TEXT)')
+        connection.execute('INSERT INTO probe(value) VALUES (?)', ('selected operation',))
+    print(json.dumps({'config': str(manifest), 'state': str(state), 'database': str(database)}))
+    raise SystemExit(0)
 if sys.argv[1:] == ['package-version']:
     from importlib.metadata import version
     print(version('ai-poise'))

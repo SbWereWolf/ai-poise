@@ -74,13 +74,13 @@ def test_agreement_validation_reads_one_consistent_registry(project):
     assert calls == [True]
 
 
-def test_requirements_database_stays_outside_served_code(project):
+def test_requirements_database_can_be_inside_served_code(project):
     cfg = deepcopy(project['cfg'])
     cfg['paths']['state'] = str(project['app'] / 'mutable-project-data')
     write_json(project['config_path'], cfg)
     from poise.common import load_config
-    with pytest.raises(Exception, match='Requirements.*codebase'):
-        load_config(project['config_path'])
+    _, loaded, _ = load_config(project['config_path'])
+    assert loaded['paths']['state'] == str(project['app'] / 'mutable-project-data')
 
 
 def test_requirements_database_and_lock_cannot_be_hardlink_aliases(project):

@@ -6,6 +6,7 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 from pathlib import Path
 
@@ -81,6 +82,46 @@ def assert_empty_registry(config, db, lock):
     assert reply['status'] == 'read_only'
     assert reply['revision'] == 0
     assert db.is_file() and lock.is_file()
+
+
+@pytest.mark.parametrize('placement', ['tracked', 'nonignored', 'external'])
+def test_live_registry_reads_and_updates_valid_database_independent_of_git(project, tmp_path, placement):
+    raw = json.loads(project['config_path'].read_text())
+    original = project['root'] / raw['paths']['state'] / raw['paths']['requirements_database']
+    folder = tmp_path / 'external' if placement == 'external' else project['app'] / 'documentation'
+    folder.mkdir()
+    db, lock = folder / 'requirements.sqlite', folder / 'requirements.lock'
+    # Copy a real fixture registry, not sentinel bytes disguised as SQLite.
+    with sqlite3.connect(original) as source, sqlite3.connect(db) as destination:
+        source.backup(destination)
+    original_bytes = original.read_bytes()
+    lock.touch()
+    if placement == 'tracked':
+        assert git(project['app'], 'add', '-f', '--', str(db.relative_to(project['app']))).returncode == 0
+        assert_git_fact(project['app'], db, ignored=False, tracked=True)
+    elif placement == 'nonignored':
+        assert_git_fact(project['app'], db, ignored=False)
+    raw['paths']['requirements_database'] = str(db)
+    raw['paths']['requirements_lock'] = str(lock)
+    config = write_json(project['root'] / 'git-policy-live.json', raw)
+    code, reply = query(config)
+    assert code == 0 and reply['status'] == 'read_only', reply
+    assert reply['revision'] == 1
+    code, reply = invoke(requirements_execute, config, {
+        'operation': 'apply', 'input': {
+            'request_id': 'git-policy-live-update', 'expected_revision': 1,
+            'operations': [{'kind': 'put_requirement', 'requirement': {
+                'id': 'FIXTURE-SYSTEM', 'level': 'system', 'status': 'obsolete',
+                'text': 'Changed through the selected registry only.',
+            }}],
+        },
+    })
+    assert code == 0, reply
+    with sqlite3.connect(db) as observed:
+        assert observed.execute(
+            'SELECT text, status FROM requirements WHERE id=?', ('FIXTURE-SYSTEM',),
+        ).fetchone() == ('Changed through the selected registry only.', 'obsolete')
+    assert original.read_bytes() == original_bytes
 
 
 @pytest.mark.parametrize('existing', [False, True])
@@ -208,7 +249,7 @@ def test_update_and_live_relative_existing_or_missing_pair(project, members):
 
 @pytest.mark.parametrize('member', ['database', 'lock'])
 @pytest.mark.parametrize('invalid', ['nonignored-missing', 'nonignored-existing', 'tracked-existing', 'tracked-missing'])
-def test_denial_preserves_entire_pair_before_storage_effects(project, member, invalid):
+def test_git_policy_accepts_pair_without_changing_existing_bytes(project, member, invalid):
     settings, packet, config = case(project)
     data = project['app'] / 'shared-data'
     data.mkdir()
@@ -228,23 +269,15 @@ def test_denial_preserves_entire_pair_before_storage_effects(project, member, in
     edit(packet, 'requirements_lock', lock)
     before = pair_bytes(db, lock)
     code, reply = invoke(setup_execute, settings, packet)
-    assert code == 2, reply
-    assert reply['status'] == 'rejected'
-    assert 'Requirements' in reply['reason']
+    assert code == 0, reply
+    assert reply['status'] == 'created'
     assert pair_bytes(db, lock) == before
-    assert not config.exists()
-    # Live public Requirements boundary must deny before constructing either store.
-    raw = json.loads((project['root'] / 'project.json').read_text())
-    raw['paths']['requirements_database'] = str(db)
-    raw['paths']['requirements_lock'] = str(lock)
-    live = write_json(project['root'] / 'denied.json', raw)
-    code, reply = query(live)
-    assert code == 2 and reply['status'] == 'rejected'
-    assert pair_bytes(db, lock) == before
+    assert config.is_file()
+    # Sentinel bytes prove setup preservation, not valid SQLite query behavior.
 
 
 @pytest.mark.parametrize('failure', ['missing-executable', 'nonzero-command'])
-def test_internal_git_failure_is_explicit_and_preserves_pair(project, tmp_path, monkeypatch, failure):
+def test_internal_storage_admission_needs_no_git_and_preserves_pair(project, tmp_path, monkeypatch, failure):
     settings, packet, config = case(project)
     data = project['app'] / 'shared-data'
     data.mkdir()
@@ -263,10 +296,9 @@ def test_internal_git_failure_is_explicit_and_preserves_pair(project, tmp_path, 
     monkeypatch.setenv('PATH', str(executable))
     before = pair_bytes(db, lock)
     code, reply = invoke(setup_execute, settings, packet)
-    assert code == 2 and reply['status'] == 'rejected', reply
-    assert 'git' in reply['reason'].lower(), reply
+    assert code == 0 and reply['status'] == 'created', reply
     assert pair_bytes(db, lock) == before
-    assert not config.exists()
+    assert config.is_file()
 
 
 @pytest.mark.parametrize('physical', [False, True])
@@ -354,7 +386,7 @@ def test_invalid_update_process_cannot_publish_candidate(project):
 
 @pytest.mark.parametrize('member', ['database', 'lock'])
 @pytest.mark.parametrize('invalid', ['tracked', 'nonignored'])
-def test_update_denial_preserves_live_publication_and_pair(project, member, invalid):
+def test_update_accepts_git_policy_and_preserves_storage_pair(project, member, invalid):
     settings, packet, config = case(project)
     packet['edits'][1]['value'] = str(project['root'])
     data = project['app'] / 'shared-data'
@@ -390,10 +422,13 @@ def test_update_denial_preserves_live_publication_and_pair(project, member, inva
     pending = project['app'] / 'operations/project-update-1.json.pending'
     assert not receipt.exists() and not pending.exists()
     code, reply = invoke(update_execute, settings, request)
-    assert code == 2 and reply['status'] == 'rejected', reply
-    assert 'Requirements' in reply['reason'], reply
-    assert (config.read_bytes(), process.read_bytes(), registry.read_bytes(), pair_bytes(db, lock)) == before
-    assert not receipt.exists() and not pending.exists()
+    assert code == 0 and reply['status'] == 'updated', reply
+    assert pair_bytes(db, lock) == before[3]
+    assert json.loads(config.read_text())['git']['repository'] == str(project['app'])
+    assert json.loads(process.read_text())['stages'][0]['instruction'] == 'Valid unpublished candidate instruction.'
+    assert registry.read_bytes() == before[2]
+    assert receipt.is_file()
+    assert not pending.exists()
 
 
 @pytest.mark.parametrize('member', ['database', 'lock'])
@@ -408,7 +443,7 @@ def test_denial_preserves_absent_requirements_parents(project, member):
     assert_git_fact(project['app'], valid, ignored=True)
     assert_git_fact(project['app'], bad, ignored=False)
     edit(packet, 'requirements_database', db)
-    edit(packet, 'requirements_lock', lock)
+    edit(packet, 'requirements_lock', db)
     before = pair_bytes(db, lock)
     code, reply = invoke(setup_execute, settings, packet)
     assert code == 2 and reply['status'] == 'rejected', reply
@@ -418,7 +453,7 @@ def test_denial_preserves_absent_requirements_parents(project, member):
     assert pair_bytes(db, lock) == before
     raw = json.loads(project['config_path'].read_text())
     raw['paths']['requirements_database'] = str(db)
-    raw['paths']['requirements_lock'] = str(lock)
+    raw['paths']['requirements_lock'] = str(db)
     live = write_json(project['root'] / 'absent-parent-denied.json', raw)
     code, reply = query(live)
     assert code == 2 and reply['status'] == 'rejected', reply
@@ -427,7 +462,7 @@ def test_denial_preserves_absent_requirements_parents(project, member):
     assert pair_bytes(db, lock) == before
 
 
-def test_malformed_git_output_cannot_admit_or_publish_storage(project, monkeypatch):
+def test_storage_admission_does_not_observe_git_index(project, monkeypatch):
     settings, packet, config = case(project)
     ignore(project['app'], '/projects/demo/state/\n')
     db, lock = config.parent / 'state/requirements.sqlite', config.parent / 'state/requirements.lock'
@@ -450,9 +485,8 @@ def test_malformed_git_output_cannot_admit_or_publish_storage(project, monkeypat
     with monkeypatch.context() as patch:
         patch.setattr('poise.infrastructure.repository_tree.subprocess.run', append_empty_record)
         code, reply = invoke(setup_execute, settings, packet)
-    assert code == 2, f'malformed-output-admitted: {reply}'
-    assert damaged == [True]
-    assert reply['status'] == 'rejected' and 'git' in reply['reason'].lower()
-    assert not config.exists()
-    assert not db.parent.exists() and not lock.parent.exists()
-    assert (registry.read_bytes(), pair_bytes(db, lock)) == before
+    assert code == 0 and reply['status'] == 'created', reply
+    assert damaged == []
+    assert config.is_file()
+    assert pair_bytes(db, lock) == before[1]
+    assert_empty_registry(config, db, lock)

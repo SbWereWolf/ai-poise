@@ -28,6 +28,10 @@ class Recorder:
                 'blanket_internal_denial': 'Requirements storage must be outside the served codebase' in str(report.longrepr),
                 'malformed_admission': ('malformed-output-admitted:' in str(report.longrepr)
                                         and 'assert 0 == 2' in str(report.longrepr)),
+                'git_admission_denial': any(marker in str(report.longrepr) for marker in (
+                    'Requirements storage: Git',
+                    'Requirements storage: не удалось проверить Git',
+                )),
             })
 
 

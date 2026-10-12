@@ -1,4 +1,9 @@
 In Russian for humans, in English for AI
+
+## Shared Task execution rules
+
+Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение). Registration requires the stated goal only; existing requirements and criteria are optional source material. Develop requirements and achievable DoD when beginning authorized work, after successful local prerequisites. Freeze requirements at the stage after ready. A Sprint may start with one ready root while other members remain newborn. The executor writes plans, results and fixes; the reviewer approves plans and accepts results. These rules apply independently of tool graphs. Write only meaningful, clear requirements; configuration belongs to operator documentation and skills link to it. Twins reuse the same accepted result. Do not invent blockers from hypothetical implementation choices.
+
 Do not give the final answer until every result has been verified
 -Eliminate: filler, hype, soft asks, conversational transitions, call-to-action appendixes.
 -Assume: user retains high-perception despite blunt tone.
@@ -22,7 +27,7 @@ expires. Platform safety constraints and storage integrity are not project rules
 
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
-Before any work, including a request without a formal task, establish the goal, the requirements for the result, the definition of done and how completion will be demonstrated. Keep this preparation proportional to the request. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. `ready` freezes the resolved Task contract and its restart-revision authority; runtime enforces that resolved contract, not the original template.
+When beginning actual execution, establish the refined goal, requirements, achievable definition of done and how completion will be demonstrated. Registration requires only the stated goal and optional existing materials; do not perform execution preparation to register a Task. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; the normative requirement-freezing boundary is the following stage, equally for standalone and Sprint Tasks. Preserve tool integrity without treating that implementation limit as permission to perform future stages.
 Before the first product write, choose the Task or explicitly authorized direct-correction delivery route, the local
 target and the review/check owner. Follow the [canonical decision](docs/governance/development-rules.md#прямое-исправление-без-task-выбор-и-поставка)
 and [pre-ready inventory](docs/workflows/pilot-task-preflight.md#инвентаризация-договора-до-ready). A template's starter
@@ -55,6 +60,14 @@ Requirements describe the requested behavior through its conditions, action and 
 Do not describe what behavior must not be or list excluded actions in requirements; put separately agreed prohibitions
 in Task constraints. Keep requirements within the authorized capability and use stable concepts rather than product
 names or concrete status identifiers. Follow the [positive formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
+At System, Application and Task levels, express requirements through business/domain
+entities and observable behavior, outcomes, environment conditions, meaningful values
+and data. Keep implementation names and details in separate decisions, recommendations
+or explicitly agreed constraints; preserve the executor's implementation freedom.
+Make recorded decisions understandable without executing a checker; verify their
+description only by reading code, documentation and tests without treating that reading as
+behavioral test evidence. Apply the [task-design skill](.agents/skills/task-design/SKILL.md),
+which links to the canonical [domain-language rule](docs/workflows/paired-task-stages.md#предметный-язык-требований-и-свобода-реализации).
 
 Do not introduce symbolic-link checks by default. Such checks require an explicit user decision. Without a direct
 request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
@@ -298,7 +311,10 @@ Keep this English projection and its Russian source consistent in the same chang
   F1 tool owners](docs/governance/jetbrains-mcp-policy.md#применение-поставленных-инструментов-f1); a concrete inspected
   folder does not change how the running Poise resolves tools or hooks.
 - Inter-task dependencies exist only inside one Sprint. Keep a Task with no incoming or outgoing inter-task edge
-  standalone. Every Sprint must contain one connected dependency chain covering its complete local prerequisite graph,
+  standalone. A Sprint must not depend on a standalone Task or another Sprint, including informal waits for their
+  delivery. Include every required undelivered prerequisite in the local Sprint. Waiting on one branch must not stop
+  other work whose own local prerequisites and stage gates permit progress. Follow [Sprint closure](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
+  Every Sprint must contain one connected dependency chain covering its complete local prerequisite graph,
   not independent tasks or disconnected chains; never fabricate edges. When splitting a long Sprint, duplicate required
   Tasks or prerequisite chains locally with new IDs and explicit instructions to check whether their requirements are
   already implemented before doing any implementation. Do not search semantically similar Tasks or manually maintain
@@ -322,8 +338,10 @@ Keep this English projection and its Russian source consistent in the same chang
   never persist or automatically add the flag. Check at acquisition, resume and every actual stage start; refreshed
   context is not a substitute for the gate. This specifies enforced refusals for lagging distance and unconfirmed
   tied-session starts; it does not stop or seize foreign work. Missing or invalid distances must not create permission.
-  Reuse still requires main-base integration and local availability; it must not bypass a denied normal stage start,
-  fabricate terminal progress or inherit another Task's acceptance. Use the implemented work/reuse operation with
+  Identical twins satisfy the same acceptance conditions with one successful result, attributed to its source;
+  needed changes may be included in the consumer branch. The current work/reuse API still requires main-base
+  integration and separate accept; these are runtime limitations, not extra normative conditions. Preserve truthful
+  history and ownership while using the public operation. Use the implemented work/reuse operation with
   explicit task_id, source_task_id, request_id and the original expected_version to verify an accepted, integrated
   family result locally. It returns reuse_verified, not completed; a separately authorized accept rechecks provenance
   and local receipts before completing the Task. Exact replay preserves the original packet; terminal replay returns

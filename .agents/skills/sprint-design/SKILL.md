@@ -5,6 +5,8 @@ description: Design a connected dependency-aware Poise Sprint from bounded Task 
 
 # Dependency-aware Sprint design
 
+Follow the [shared contract](../../../docs/workflows/task-execution-contract.md#граф-спринта-и-самостоятельные-задачи). Registration needs goals and existing materials, not newly researched Task contracts. One ready root permits Sprint start; other members may remain newborn. Detailed preparation belongs to each Task when its successful predecessors allow work. Tool limitations do not authorize future-stage work.
+
 Use when preparing a Sprint graph and its bounded Task drafts. Delegate each draft's
 formulation discipline to [task-design](../task-design/SKILL.md), not to a prototype.
 Use `exec-task` for execution. Planning does not grant publication or implementation
@@ -14,7 +16,8 @@ execution](../../../docs/workflows/paired-task-stages.md#постановка-п
 
 ## Inputs
 
-The feature goal, confirmed requirements/DoD, application/owner boundaries, existing contracts and
+At registration: the stated goal and optional existing material. At actual Task preparation
+after successful predecessors: requirements/DoD, application/owner boundaries, existing contracts and
 results, target-project facts from the explicitly selected checkout path, and the selected
 Poise-owned project/process/routing configuration. The [existing decomposition
 contract](../../../docs/workflows/batch-work.md#декомпозиция-и-фокус-task) and [Sprint
@@ -38,14 +41,22 @@ missing specialist skill, its stage and impact in the final answer for the plann
 ## Procedure
 
 Sprint design owns goals, actual dependencies, coverage and the order of obtaining
-results. Task creation owns initial goal/DoR/DoD and known facts. Executing stages
+results. Registration records the stated goal and optional known material. Requirements/DoR/DoD
+are prepared when the Task begins authorized work. Executing stages
 own detailed check, code and documentation design. Do not require future test names
 or exact commands at Sprint creation, or implement code to justify its initial plan.
+
+Keep the Sprint self-contained: no dependency on a standalone Task or another Sprint,
+including informal waits for delivery. Put each required undelivered prerequisite in
+the local Sprint, using local duplicates when needed. Continue other branches whenever
+their own local prerequisites and stage gates permit. Follow [Sprint closure](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
 
 1. Identify one coherent, verifiable result per ordinary Task. Follow real responsibilities, not
    folder or application count. Split unrelated areas or peer narrow specialties even inside one
    application or across different stages. General/meta skills alone do not force a split.
-2. Declare each stage's inputs, outputs, role, skills and own write scope. Distinguish routed areas,
+2. During actual Task preparation after successful predecessors, declare the inputs, outputs,
+   roles, skills and scopes needed for that preparation. Refine future-stage details at their
+   owning stage; do not design them for registration. Distinguish routed areas,
    stage `allowed_paths` and method inputs using [future paths and stage
    boundaries](../../../docs/workflows/task-planning.md#будущие-пути-и-границы-этапа); permitted
    output paths need not exist yet.

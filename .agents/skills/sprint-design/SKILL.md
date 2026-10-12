@@ -46,6 +46,11 @@ are prepared when the Task begins authorized work. Executing stages
 own detailed check, code and documentation design. Do not require future test names
 or exact commands at Sprint creation, or implement code to justify its initial plan.
 
+Keep the Sprint self-contained: no dependency on a standalone Task or another Sprint,
+including informal waits for delivery. Put each required undelivered prerequisite in
+the local Sprint, using local duplicates when needed. Continue other branches whenever
+their own local prerequisites and stage gates permit. Follow [Sprint closure](../../../docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
+
 1. Identify one coherent, verifiable result per ordinary Task. Follow real responsibilities, not
    folder or application count. Split unrelated areas or peer narrow specialties even inside one
    application or across different stages. General/meta skills alone do not force a split.

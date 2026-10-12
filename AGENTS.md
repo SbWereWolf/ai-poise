@@ -60,6 +60,14 @@ Requirements describe the requested behavior through its conditions, action and 
 Do not describe what behavior must not be or list excluded actions in requirements; put separately agreed prohibitions
 in Task constraints. Keep requirements within the authorized capability and use stable concepts rather than product
 names or concrete status identifiers. Follow the [positive formulation rule](docs/workflows/paired-task-stages.md#цель-и-требования-к-продукту).
+At System, Application and Task levels, express requirements through business/domain
+entities and observable behavior, outcomes, environment conditions, meaningful values
+and data. Keep implementation names and details in separate decisions, recommendations
+or explicitly agreed constraints; preserve the executor's implementation freedom.
+Make recorded decisions understandable without executing a checker; verify their
+description only by reading code, documentation and tests without treating that reading as
+behavioral test evidence. Apply the [task-design skill](.agents/skills/task-design/SKILL.md),
+which links to the canonical [domain-language rule](docs/workflows/paired-task-stages.md#предметный-язык-требований-и-свобода-реализации).
 
 Do not introduce symbolic-link checks by default. Such checks require an explicit user decision. Without a direct
 request, an agent may propose the option, but may investigate, design, implement or test it only after user agreement.
@@ -303,7 +311,10 @@ Keep this English projection and its Russian source consistent in the same chang
   F1 tool owners](docs/governance/jetbrains-mcp-policy.md#применение-поставленных-инструментов-f1); a concrete inspected
   folder does not change how the running Poise resolves tools or hooks.
 - Inter-task dependencies exist only inside one Sprint. Keep a Task with no incoming or outgoing inter-task edge
-  standalone. Every Sprint must contain one connected dependency chain covering its complete local prerequisite graph,
+  standalone. A Sprint must not depend on a standalone Task or another Sprint, including informal waits for their
+  delivery. Include every required undelivered prerequisite in the local Sprint. Waiting on one branch must not stop
+  other work whose own local prerequisites and stage gates permit progress. Follow [Sprint closure](docs/workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).
+  Every Sprint must contain one connected dependency chain covering its complete local prerequisite graph,
   not independent tasks or disconnected chains; never fabricate edges. When splitting a long Sprint, duplicate required
   Tasks or prerequisite chains locally with new IDs and explicit instructions to check whether their requirements are
   already implemented before doing any implementation. Do not search semantically similar Tasks or manually maintain

@@ -42,6 +42,17 @@ process, routing and supported public Task schema.
    Describe positive requested behavior only; excluded actions belong in separately
    agreed constraints. Use stable application/state concepts and keep adjacent scenarios
    outside the authorized scope. Apply the linked product formulation rule above.
+   Apply [domain language and implementation freedom](../../../docs/workflows/paired-task-stages.md#предметный-язык-требований-и-свобода-реализации)
+   at System, Application and Task levels: use business/domain entities and
+   observable behavior, outcomes, environment conditions, meaningful values and
+   data. Keep application names, scripts, classes, packages, paths and other
+   implementation details out of requirements. Preserve explicit technical user
+   decisions separately as decisions or scoped constraints with their source;
+   otherwise the executor chooses the implementation. Record accepted implementation
+   recommendations separately, with enough context to understand the question,
+   choice, rationale, scope and consequences without running a checker. Additional
+   verification of that record uses only reading code, documentation and tests; it does
+   not replace the process-owned behavioral checks or prove that tests passed.
 3. Do not predict future class names, test names or commands as readiness gates.
    Supply the complete initial checks object explicitly; an empty object is valid
    for a development Task. Concrete test and code design belong to execution.

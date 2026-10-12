@@ -56,6 +56,12 @@ def preflight_work_result(h, request):
         roots.append(task_response_root(h, {
             'id': args['task_id'], 'sprint_id': args.get('sprint_id'),
         }))
+        if operation == 'task' and args.get('action') == 'recover_cancelled':
+            saved = h.task_queries.record(args['task_id'])
+            if (saved is not None and saved['status'] == 'cancelled'
+                    and not h.delivery_tools.unavailable(args['task_id'])):
+                roots.append(task_root(h.state, h.paths, h._identifier(args['task_id']),
+                                       saved['sprint_id']))
     if (operation == 'sprint' or operation == 'bootstrap'
             and args['task'] is None and args['decision'] is None and current is None):
         sprint_id = args.get('sprint_id')
@@ -66,12 +72,16 @@ def preflight_work_result(h, request):
         if sprint_id is not None and current is None:
             roots.append(sprint_root(h.state, h.paths, h._identifier(sprint_id)))
         if (current is not None and current['status'] == 'newborn'
-                and current['sprint_id'] == sprint_id and args.get('action') == 'draft'
-                and isinstance(args.get('changes'), list)
-                and any(change.get('kind') == 'remove_tasks'
-                        and isinstance(change.get('ids'), list)
-                        and current['id'] in change.get('ids', [])
-                        for change in args.get('changes', []) if isinstance(change, dict))):
+                and current['sprint_id'] == sprint_id
+                and not h.delivery_tools.unavailable(current['id'])
+                and (args.get('action') == 'cancel'
+                     or (args.get('action') == 'draft'
+                         and isinstance(args.get('changes'), list)
+                         and any(change.get('kind') == 'remove_tasks'
+                                 and isinstance(change.get('ids'), list)
+                                 and current['id'] in change.get('ids', [])
+                                 for change in args.get('changes', [])
+                                 if isinstance(change, dict))))):
             roots.append(task_root(h.state, h.paths, current['id'], None))
     for root in roots:
         predicted = descendant(root, h.paths['runs']) / str(uuid.uuid4()) / h.paths['response']

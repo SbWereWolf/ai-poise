@@ -8,6 +8,8 @@ import pytest
 
 from batch.helpers import request
 from conftest import WorkPoise
+from conftest import write_json
+from ddd.test_task_id_allocation import automatic_intent, configure, policy
 from sprints.helpers import setup as setup_sprints
 from sprints.helpers import task as sprint_task
 from poise.application.work import WorkTools
@@ -16,6 +18,159 @@ from poise.interfaces.work import execute
 from result_integration.helpers import integration_input
 from terminal_materials.archive_oracle import no_new_archive, proof_cells
 from terminal_materials.helpers import PROOF, agree, arrange, declaration, file_output
+
+
+@pytest.mark.parametrize('sufficient', [False, True])
+def test_automatic_bootstrap_admission_does_not_consume_identity(project, monkeypatch, sufficient):
+    configure(project, policy())
+    project['cfg']['paths']['standalone_tasks'] = 'standalone-' + 'x' * 100
+    write_json(project['config_path'], project['cfg'])
+    runtime = WorkPoise(project['config_path'], 'r')
+    packet = request('bootstrap', {'task': automatic_intent(project, 'automatic-budget'),
+        'decision': None, 'feedback': None, 'rework_stage': None})
+    response_suffix = Path(runtime.paths['runs']) / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    budget = len(json.dumps({'status': 'architecture_boundaries_failed',
+        'response_path': str(runtime.runtime / response_suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n')
+    task_home = runtime.state / runtime.paths['standalone_tasks'] / '0001'
+    assert len(json.dumps({'status': 'active',
+        'response_path': str(task_home / response_suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n') > budget
+    runtime.cfg['limits']['output_chars'] = 2200 if sufficient else budget
+    calls = []
+    original = WorkTools.invoke
+
+    def invoke(owner, value):
+        calls.append(value)
+        return original(owner, value)
+
+    monkeypatch.setattr(WorkTools, 'invoke', invoke)
+    output = io.StringIO()
+    try:
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    except PoiseError:
+        code = 2
+    if not sufficient:
+        assert calls == [] and code == 2
+        assert runtime.current_task() is None
+        with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+            assert db.execute('SELECT id, claimed_by FROM tasks').fetchall() == []
+        assert not task_home.exists()
+        assert not (runtime.state / runtime.paths['worktrees']).exists()
+        runtime.cfg['limits']['output_chars'] = 2200
+        output = io.StringIO()
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    assert calls == [packet] and code == 0
+    response = Path(json.loads(output.getvalue())['response_path'])
+    full = json.loads(response.read_text())
+    assert response.is_relative_to(task_home / runtime.paths['runs'])
+    assert full['status'] == 'active' and full['task'] == '0001'
+    assert full['allocation'] == {'request_id': 'automatic-budget',
+                                 'task_id': '0001', 'replayed': False}
+    assert runtime.current_task()['id'] == '0001'
+    assert runtime.current_task()['claimed_by'] == runtime.session
+    assert Path(full['worktree']).is_dir()
+    assert len(output.getvalue()) <= 2200
+
+
+@pytest.mark.parametrize('sufficient', [False, True])
+def test_taskless_bootstrap_admits_selected_sprint_root(project, monkeypatch, sufficient):
+    setup_sprints(project)
+    runtime = WorkPoise(project['config_path'], 'r')
+    sprint_id = 'S-' + 'x' * 140
+    runtime.sprint_tools.apply({'action': 'draft', 'sprint_id': sprint_id,
+        'request_id': 'initial-sprint', 'expected_revision': None,
+        'template': {'id': 'basic', 'version': '1'}, 'changes': []})
+    packet = request('bootstrap', {'task': None, 'decision': None,
+                                   'feedback': None, 'rework_stage': None})
+    suffix = Path(runtime.paths['runs']) / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    budget = len(json.dumps({'status': 'architecture_boundaries_failed',
+        'response_path': str(runtime.runtime / suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n')
+    home = runtime.state / runtime.paths['sprints'] / sprint_id
+    assert len(json.dumps({'status': 'draft', 'response_path': str(home / suffix)},
+        ensure_ascii=False, separators=(',', ':')) + '\n') > budget
+    runtime.cfg['limits']['output_chars'] = 2200 if sufficient else budget
+    calls = []
+    original = WorkTools.invoke
+
+    def invoke(owner, value):
+        calls.append(value)
+        return original(owner, value)
+
+    monkeypatch.setattr(WorkTools, 'invoke', invoke)
+    output = io.StringIO()
+    try:
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    except PoiseError:
+        code = 2
+    assert runtime.current_task() is None
+    with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+        assert db.execute('SELECT id, revision FROM sprints').fetchall() == [(sprint_id, 1)]
+        assert db.execute('SELECT id FROM tasks').fetchall() == []
+    if not sufficient:
+        assert calls == [] and code == 2
+        assert not (home / runtime.paths['runs']).exists()
+    else:
+        assert calls == [packet] and code == 0
+        response = Path(json.loads(output.getvalue())['response_path'])
+        full = json.loads(response.read_text())
+        assert response.is_relative_to(home / runtime.paths['runs'])
+        assert full['sprint'] == sprint_id and full['status'] == 'draft'
+        assert full['revision'] == 1
+        assert len(output.getvalue()) <= 2200
+
+
+@pytest.mark.parametrize('sufficient', [False, True])
+def test_bootstrap_completion_admits_terminal_response_before_accepting(
+        project, monkeypatch, sufficient):
+    tools, root, source, _ = arrange(project, session='response-' + 'long' * 35)
+    agree(tools, declaration([file_output(source, project['root'] / 'result.txt')]))
+    runtime = tools.runtime
+    suffix = Path(runtime.paths['runs']) / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    budget = len(json.dumps({'status': 'architecture_boundaries_failed',
+        'response_path': str(root / suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n')
+    assert len(json.dumps({'status': 'completed',
+        'response_path': str(runtime.runtime / suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n') > budget
+    runtime.cfg['limits']['output_chars'] = 2200 if sufficient else budget
+    packet = request('bootstrap', {'task': None, 'decision': 'continue',
+                                   'feedback': None, 'rework_stage': None})
+    with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+        before = db.execute('SELECT status, version, metadata FROM tasks WHERE id=?',
+                            ('T1',)).fetchone()
+    calls = []
+    original = WorkTools.invoke
+
+    def invoke(owner, value):
+        calls.append(value)
+        return original(owner, value)
+
+    monkeypatch.setattr(WorkTools, 'invoke', invoke)
+    output = io.StringIO()
+    try:
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    except PoiseError:
+        code = 2
+    with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+        after = db.execute('SELECT status, version, metadata FROM tasks WHERE id=?',
+                           ('T1',)).fetchone()
+    if not sufficient:
+        assert calls == [] and code == 2
+        assert after == before and after[0] == 'verified'
+        assert root.is_dir()
+    else:
+        assert calls == [packet] and code == 0
+        response = Path(json.loads(output.getvalue())['response_path'])
+        full = json.loads(response.read_text())
+        assert response.is_relative_to(runtime.runtime / runtime.paths['runs'])
+        assert full['status'] == 'completed' and full['task'] == 'T1'
+        assert after[0] == 'completed'
+        assert len(output.getvalue()) <= 2200
 
 
 @pytest.mark.parametrize('selected_scope', [False, True])

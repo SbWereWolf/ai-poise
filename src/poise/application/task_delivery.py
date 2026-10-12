@@ -47,8 +47,7 @@ class TaskDeliveryCommands:
             if old is not None:
                 state = DeliveryState({**state.data, 'revision': old.data['revision'] + 1})
             with self.uow() as uow:
-                current=(uow.tasks.load_newborn(args['task_id']) if uow.tasks.is_newborn(args['task_id'])
-                         else uow.tasks.load(args['task_id']).state)
+                current = uow.tasks.load_state(args['task_id'])
                 if current.version != args['expected_version'] or current.claimed_by not in (None,self.actor):
                     raise PoiseError('Delivery Task owner/version changed before agreement')
                 uow.task_delivery.save(self.actor,state,state.data['revision']-1)

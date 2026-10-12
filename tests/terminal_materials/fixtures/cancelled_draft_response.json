@@ -1,0 +1,8 @@
+{
+  "task": "T1",
+  "status": "delivery_agreed",
+  "replayed": false,
+  "agreement_id": "agree-cancelled-T1",
+  "outputs": [],
+  "retired_artifacts": []
+}

@@ -1,0 +1,6 @@
+{
+  "version": "Delivery Task owner/version changed before agreement",
+  "owner": "Delivery Task owner/version changed before agreement",
+  "missing": "Задача не найдена: T1|Task is not registered|Unknown.*Task",
+  "ambiguous": "ambiguous legacy ownership"
+}

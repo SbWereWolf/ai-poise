@@ -7,6 +7,7 @@ import shutil
 
 from ..common import PoiseError, configured_root, configured_storage_path, descendant, digest, file_digest
 from ..modules.artifact_factory.domain import ArtifactRecoveryIntent
+from ..modules.tasks.domain import is_terminal_task_status
 from .diagnostic_io import readonly_database
 from .goal_config import read_document
 from .locking import exclusive_lock
@@ -272,7 +273,7 @@ class FileProjectStateRelocation:
                 if metadata['sprint_id'] is not None:
                     roots['sprint'] = sprint_root(self.source, self.live['paths'], metadata['sprint_id'])
                     owners['sprint'] = metadata['sprint_id']
-                for receipt in saved_receipts(db, task_id):
+                for receipt in self._live_receipts(db, task_id):
                     bound = db.execute("SELECT 1 FROM journal WHERE task_id=? AND event='artifact.materials_bound' "
                                        "AND json_extract(data,'$.receipt_id')=? LIMIT 1", (task_id, receipt['id'])).fetchone()
                     if bound is None:
@@ -295,6 +296,16 @@ class FileProjectStateRelocation:
                 if 'replay' not in saved:
                     registry.rebind(intent, request_digest, records, publications, self.request['request_id'])
         self._save('materials_published')
+
+    @staticmethod
+    def _live_receipts(db, task_id):
+        """Terminal history needs no raw hydration; registrations stay strict."""
+        task = db.execute('SELECT status FROM tasks WHERE id=?', (task_id,)).fetchone()
+        if task is None:
+            raise PoiseError('Historical receipt Task unavailable')
+        if is_terminal_task_status(task['status']):
+            return []
+        return saved_receipts(db, task_id)
 
     def publish_hooks(self):
         if self._done('hooks_published'):
@@ -331,7 +342,7 @@ class FileProjectStateRelocation:
                 delivery = SqliteTaskDeliveryRepository(db).read(task['id'])
                 if delivery is not None and delivery.data['retirement_started']:
                     continue
-                for receipt in saved_receipts(db, task['id']):
+                for receipt in self._live_receipts(db, task['id']):
                     reader.physical_receipt(receipt)
                     if receipt.get('acceptance_manifest'):
                         manifest = json.loads(reader.resolve(receipt, 'acceptance_manifest',

@@ -1,0 +1,106 @@
+{
+  "provenance": "Independent sanitized boundary reproducer; not a copy of the missing original incident response.",
+  "legacy_envelope_chars": 2232,
+  "response_path": "/saved/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/response.json",
+  "result": {
+    "status": "integrated",
+    "notice": "Служебные материалы задачи удалены. Служебные журналы уничтожены",
+    "historical_receipts": [
+      {
+        "task": "AIP-STAGE-CRITERIA",
+        "checks": [
+          {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "method": "CHECK_STAGE_CONTRACTS",
+            "actual_exit_code": 1,
+            "passed": false
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "method": "CHECK_CRITERIA_AUTHORITIES",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "method": "CHECK_STAGE_MIGRATION",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "method": "CHECK_STAGE_CONTRACTS",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000005",
+            "method": "CHECK_CRITERIA_AUTHORITIES",
+            "actual_exit_code": 1,
+            "passed": false
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000006",
+            "method": "CHECK_STAGE_MIGRATION",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000007",
+            "method": "CHECK_STAGE_CONTRACTS",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000008",
+            "method": "CHECK_CRITERIA_AUTHORITIES",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000009",
+            "method": "CHECK_STAGE_MIGRATION",
+            "actual_exit_code": 1,
+            "passed": false
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "method": "CHECK_STAGE_CONTRACTS",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000011",
+            "method": "CHECK_CRITERIA_AUTHORITIES",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "method": "CHECK_STAGE_MIGRATION",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000013",
+            "method": "CHECK_STAGE_CONTRACTS",
+            "actual_exit_code": 1,
+            "passed": false
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000014",
+            "method": "CHECK_CRITERIA_AUTHORITIES",
+            "actual_exit_code": 0,
+            "passed": true
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000015",
+            "method": "CHECK_STAGE_MIGRATION",
+            "actual_exit_code": 0,
+            "passed": true
+          }
+        ]
+      }
+    ]
+  }
+}

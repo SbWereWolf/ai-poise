@@ -1,10 +1,12 @@
 """Agent summaries stay bounded while complete history remains authoritative."""
 from copy import deepcopy
 import json
+from pathlib import Path
 
 import pytest
 
 from poise.modules.result_views.domain import bounded_envelope, response_required
+from poise.common import PoiseError
 
 
 @pytest.mark.parametrize('count', [0, 15, 10000])
@@ -37,3 +39,24 @@ def test_even_small_full_result_is_not_inlined_as_agent_view():
 
 def test_small_result_also_requires_a_full_output_file():
     assert response_required(dict(status='read_only'), 2200) is True
+
+
+@pytest.mark.parametrize('budget', [2199, 2200, 2201])
+def test_exact_2200_unicode_boundary_counts_serialized_lf(budget):
+    fixture = json.loads((Path(__file__).with_name('fixtures') /
+                          'envelope_2200_boundary.json').read_text())
+    result, path = fixture['result'], fixture['response_path']
+    minimal = {'status': result['status'], 'response_path': path}
+    assert len(json.dumps(minimal, ensure_ascii=False, separators=(',', ':')) + '\n') == 2200
+    if budget == 2199:
+        with pytest.raises(PoiseError):
+            bounded_envelope(result, path, budget, {}, {}, [])
+    else:
+        text = bounded_envelope(result, path, budget, {}, {}, [])
+        assert json.loads(text) == minimal
+        assert len(text) == 2200 and text.endswith('\n')
+
+
+def test_small_agent_view_rejects_missing_full_file_address():
+    with pytest.raises(PoiseError):
+        bounded_envelope({'status': 'read_only'}, None, 2200, {}, {}, [])

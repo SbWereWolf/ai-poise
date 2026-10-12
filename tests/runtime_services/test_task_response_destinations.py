@@ -224,8 +224,9 @@ def test_invalid_detachment_saves_rejection_without_business_changes(project, id
 
 
 @pytest.mark.parametrize('sufficient', [False, True])
+@pytest.mark.parametrize('operation', ['detach', 'cancel_explicit', 'cancel_selected'])
 def test_current_newborn_detachment_admits_standalone_destination(
-        project, monkeypatch, sufficient):
+        project, monkeypatch, sufficient, operation):
     setup_sprints(project)
     project['cfg']['paths']['standalone_tasks'] = 'standalone-' + 'x' * 100
     write_json(project['config_path'], project['cfg'])
@@ -249,6 +250,11 @@ def test_current_newborn_detachment_admits_standalone_destination(
     packet = request('sprint', {'action': 'draft', 'sprint_id': 'S',
         'request_id': 'detach-member', 'expected_revision': 2, 'template': None,
         'changes': [{'kind': 'remove_tasks', 'ids': ['D']}]})
+    if operation != 'detach':
+        packet = request('sprint', {'action': 'cancel',
+            'sprint_id': None if operation == 'cancel_selected' else 'S',
+            'request_id': 'cancel-member-draft',
+            'reason': 'Cancel the draft while preserving its newborn Task.'})
 
     def rows():
         with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
@@ -302,15 +308,113 @@ def test_current_newborn_detachment_admits_standalone_destination(
         response = Path(json.loads(output.getvalue())['response_path'])
         full = json.loads(response.read_text())
         assert response.is_relative_to(new_home / runtime.paths['runs'])
-        assert full['status'] == 'draft' and full['sprint'] == 'S' and full['revision'] == 3
+        expected_status = 'draft' if operation == 'detach' else 'cancelled'
+        assert full['status'] == expected_status and full['sprint'] == 'S' and full['revision'] == 3
         assert current['sprint_id'] is None and current['revision'] == 1
         assert after[0][:3] == ('newborn', runtime.session, 1)
         assert json.loads(after[0][3])['sprint_id'] is None
         assert after[1][0] == 3
-        assert json.loads(after[1][1])['aggregate']['plan']['tasks'] == []
-        assert [row[0] for row in after[2]] == ['detach-member', 'initial-sprint']
+        if operation == 'detach':
+            assert json.loads(after[1][1])['aggregate']['plan']['tasks'] == []
+            assert [row[0] for row in after[2]] == ['detach-member', 'initial-sprint']
+        else:
+            assert json.loads(after[1][1])['aggregate']['state'] == 'cancelled'
+            assert [row[0] for row in after[2]] == ['cancel-member-draft', 'initial-sprint']
         assert sorted(old_home.rglob('*')) == files_before
         assert len(output.getvalue()) <= 2200
+
+
+@pytest.mark.parametrize('sufficient', [False, True])
+def test_cancelled_recovery_admits_live_destination_before_restoring(
+        project, monkeypatch, sufficient):
+    from runtime_services.test_cancelled_task_recovery import cancelled
+    from runtime_services.test_task_restart import (
+        execution, immutable_audit_rows, work_packet_rows, wip_state,
+    )
+
+    project['cfg']['paths']['standalone_tasks'] = 'standalone-' + 'x' * 100
+    tools, task_id, worktree, prior = cancelled(project)
+    runtime = tools.runtime
+    before = runtime.task_queries.record(task_id)
+    state = execution(runtime, task_id)
+    audit = immutable_audit_rows(runtime, task_id)
+    packets = work_packet_rows(runtime, task_id)
+    work = wip_state(worktree)
+
+    def actions():
+        with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+            return db.execute('SELECT data FROM journal WHERE task_id=? '
+                'AND event=? ORDER BY seq', (task_id, 'newborn.action')).fetchall()
+
+    receipts = actions()
+    assert before['status'] == 'cancelled' and before['claimed_by'] is None
+    assert state['pending']['kind'] == 'task_cleanup'
+    assert runtime.current_task() is None
+    suffix = Path(runtime.paths['runs']) / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    budget = len(json.dumps({'status': 'architecture_boundaries_failed',
+        'response_path': str(runtime.runtime / suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n')
+    live_home = runtime.state / runtime.paths['standalone_tasks'] / task_id
+    assert len(json.dumps({'status': 'task_recovered',
+        'response_path': str(live_home / suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n') > budget
+    runtime.cfg['limits']['output_chars'] = 2200 if sufficient else budget
+    packet = request('task', {'action': 'recover_cancelled',
+        'request_id': 'recover-budget', 'task_id': task_id,
+        'expected_version': before['version'],
+        'reason': 'Restore the accidentally cancelled unfinished Task.',
+        'authorization': 'Explicit isolated test recovery authorization.'})
+    calls = []
+    original = WorkTools.invoke
+
+    def invoke(owner, value):
+        calls.append(value)
+        return original(owner, value)
+
+    monkeypatch.setattr(WorkTools, 'invoke', invoke)
+    output = io.StringIO()
+    try:
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    except PoiseError:
+        code = 2
+    if not sufficient:
+        assert calls == [] and code == 2
+        assert runtime.task_queries.record(task_id) == before
+        assert execution(runtime, task_id) == state
+        assert immutable_audit_rows(runtime, task_id) == audit
+        assert work_packet_rows(runtime, task_id) == packets
+        assert actions() == receipts
+        assert wip_state(worktree) == work
+        assert runtime.current_task() is None
+        view = json.loads(output.getvalue())
+        response = Path(view['response_path'])
+        assert view['status'] == 'rejected' and len(output.getvalue()) <= budget
+        assert response.is_relative_to(runtime.runtime / runtime.paths['runs'])
+        assert json.loads(response.read_text())['status'] == 'rejected'
+        runtime.cfg['limits']['output_chars'] = 2200
+        output = io.StringIO()
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    assert calls == [packet] and code == 0
+    view = json.loads(output.getvalue())
+    response = Path(view['response_path'])
+    full = json.loads(response.read_text())
+    assert response.is_relative_to(live_home / runtime.paths['runs'])
+    assert full['status'] == 'task_recovered' and full['task'] == task_id
+    assert full['task_status'] == prior['status'] and full['replayed'] is False
+    assert full['withdrawn_cleanup'] == state['pending']
+    after = runtime.task_queries.record(task_id)
+    assert after['status'] == prior['status'] and after['version'] == before['version'] + 1
+    assert after['claimed_by'] is None and runtime.current_task() is None
+    assert after['history'][-1]['event'] == 'cancellation_recovered'
+    assert execution(runtime, task_id) == {**state, 'pending': None}
+    restored_audit = immutable_audit_rows(runtime, task_id)
+    for table, records in audit.items():
+        assert restored_audit[table][:len(records)] == records
+    assert wip_state(worktree) == work
+    assert work_packet_rows(runtime, task_id) == packets
+    assert len(actions()) == len(receipts) + 1
+    assert len(output.getvalue()) <= 2200
 
 
 @pytest.mark.parametrize('selected_scope', [False, True])

@@ -26,7 +26,11 @@ def checked(project):
     captured = receipt["outputs"][0]
     assert captured["status"] == "captured"
     assert Path(captured["path"]).read_bytes() == b"declared material proof 491b3d\x00\xff\n"
-    artifact = tools.runtime.store.artifact_records("T1")[0]
+    artifacts = [record for record in tools.runtime.store.artifact_records("T1")
+                 if record["scope"] == "task" and record["owner"] == "T1"
+                 and record["path"] == str(root / "artifacts" / "temporary-proof.txt")]
+    assert len(artifacts) == 1
+    artifact = artifacts[0]
     assert Path(artifact["path"]).read_bytes() == b"registered temporary proof 491b3d\n"
     return tools, root, source, commit, receipt, artifact
 

@@ -43,7 +43,18 @@ def preflight_work_result(h, request):
             else:
                 roots.append(task_response_root(h, task))
     if request['operation'] == 'task' and isinstance(request['input'].get('task_id'), str):
-        roots.append(task_response_root(h, {'id': request['input']['task_id']}))
+        roots.append(task_response_root(h, {
+            'id': request['input']['task_id'],
+            'sprint_id': request['input'].get('sprint_id'),
+        }))
+    if request['operation'] == 'sprint' and current is None:
+        sprint_id = request['input'].get('sprint_id')
+        if sprint_id is None:
+            selected = h.sprint_tools.commands.read(None, 'current')
+            if selected is not None:
+                sprint_id = selected['sprint']
+        if sprint_id is not None:
+            roots.append(sprint_root(h.state, h.paths, h._identifier(sprint_id)))
     for root in roots:
         predicted = descendant(root, h.paths['runs']) / str(uuid.uuid4()) / h.paths['response']
         # Reserve the actual longest Work outcome, including the architecture

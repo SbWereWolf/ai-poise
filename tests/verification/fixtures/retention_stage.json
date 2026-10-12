@@ -1,5 +1,7 @@
 {
   "id": "implementation",
+  "purpose": "execution",
+  "criteria_authority": {"propose": [], "decide": []},
   "instruction": "Retain the exact input and verify the result.",
   "read_only": false,
   "allowed_paths": ["src/**"],

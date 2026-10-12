@@ -5,6 +5,10 @@ description: Formulate a bounded Poise Task draft from known facts without imple
 
 # Bounded Task formulation
 
+## Registration and execution preparation
+
+Follow the [shared contract](../../../docs/workflows/task-execution-contract.md#постановка-и-подготовка-задачи). At registration record the stated goal and optional existing materials only. The detailed procedure below applies when beginning execution preparation, not as a creation gate. Research the actual subject; code research applies only to code tasks. Every requirement condition must change meaning. Do not perform future-stage work. The executor prepares the work; the reviewer reviews it.
+
 Use for creating or revising one authorized Task draft. Use
 [sprint-design](../sprint-design/SKILL.md) for a dependency graph and
 [exec-task](../exec-task/SKILL.md) for execution. Read the canonical
@@ -21,10 +25,11 @@ process, routing and supported public Task schema.
 
 ## Procedure
 
-1. Inspect the existing code through applicable semantic tools. Do not implement a
-   prototype to approve a formulation. Separate observed facts from assumptions.
-2. Formulate one stable application-capability goal, initial DoR/DoD and observable
-   product requirements across the supported scenarios and configurations. Keep
+1. When beginning execution preparation, investigate the actual subject and conditions.
+   For code tasks use applicable semantic tools. Do not build a prototype for registration.
+   Separate observations from assumptions.
+2. Refine the stated goal and determine requirements and achievable DoD from current
+   conditions, without performing future execution stages. For product development, keep
    incident history and concrete installation facts in the factual basis,
    architectural obligations in constraints, and implementation choices in their
    execution stages. Use the selected Task schema, not invented rationale fields.

@@ -9,6 +9,7 @@ import pytest
 from batch.helpers import request
 from conftest import WorkPoise
 from sprints.helpers import setup as setup_sprints
+from sprints.helpers import task as sprint_task
 from poise.application.work import WorkTools
 from poise.common import PoiseError
 from poise.interfaces.work import execute
@@ -112,6 +113,92 @@ def test_live_task_response_uses_its_actual_owner_root(project):
     assert path.is_relative_to(root / tools.runtime.paths['runs'])
     assert full['results'][0]['value']['task'] == 'T1'
     assert root.is_dir() and tools.runtime.task_queries.record('T1')['status'] == 'verified'
+
+
+@pytest.mark.parametrize('action', ['create', 'duplicate'])
+@pytest.mark.parametrize('sufficient', [False, True])
+def test_new_sprint_member_address_admitted_before_creation(
+        project, monkeypatch, action, sufficient):
+    setup_sprints(project)
+    runtime = WorkPoise(project['config_path'], 'r')
+    sprint_id = 'S-' + 'x' * 140
+    runtime.sprint_tools.apply({'action': 'draft', 'sprint_id': sprint_id,
+        'request_id': 'initial-sprint', 'expected_revision': None,
+        'template': {'id': 'basic', 'version': '1'}, 'changes': []})
+    if action == 'duplicate':
+        parent = sprint_task(project, 'P')
+        parent['sprint_id'] = None
+        runtime.task_commands.create(parent, runtime.session,
+            runtime.processes['development'], [], {'config_hash': runtime.config_hash},
+            None, runtime.cfg.get('task_ids'), runtime._creation_base(),
+            runtime.cfg['task_decomposition'])
+    args = {'action': action, 'task_id': 'D', 'sprint_id': sprint_id,
+            'request_id': 'new-member'}
+    if action == 'duplicate':
+        args['parent_id'] = 'P'
+    packet = request('task', args)
+    standalone = runtime.state / runtime.paths['standalone_tasks'] / 'D'
+    assumed_address = standalone / runtime.paths['runs'] / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    budget = len(json.dumps({'status': 'architecture_boundaries_failed',
+        'response_path': str(assumed_address)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n')
+    actual_home = runtime.state / runtime.paths['sprints'] / sprint_id / 'task' / 'D'
+    actual_address = actual_home / runtime.paths['runs'] / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    assert len(json.dumps({'status': 'newborn', 'response_path': str(actual_address)},
+        ensure_ascii=False, separators=(',', ':')) + '\n') > budget
+    runtime.cfg['limits']['output_chars'] = 2200 if sufficient else budget
+
+    def rows():
+        with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+            return (db.execute('SELECT id, status, version, metadata FROM tasks '
+                               'WHERE id IN (?,?) ORDER BY id', ('P', 'D')).fetchall(),
+                    db.execute('SELECT revision, data FROM sprints WHERE id=?',
+                               (sprint_id,)).fetchall(),
+                    db.execute('SELECT sprint_id, task_id FROM sprint_members '
+                               'WHERE sprint_id=? ORDER BY task_id',
+                               (sprint_id,)).fetchall())
+
+    before = rows()
+    calls = []
+    original = WorkTools.invoke
+
+    def invoke(owner, value):
+        calls.append(value)
+        return original(owner, value)
+
+    monkeypatch.setattr(WorkTools, 'invoke', invoke)
+    output = io.StringIO()
+    try:
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    except PoiseError:
+        code = 2
+    if not sufficient:
+        assert calls == [] and code == 2
+        assert runtime.current_task() is None
+        assert rows() == before
+        assert not actual_home.exists() and not standalone.exists()
+    else:
+        assert calls == [packet] and code == 0
+        response = Path(json.loads(output.getvalue())['response_path'])
+        full = json.loads(response.read_text())
+        assert response.is_relative_to(actual_home / runtime.paths['runs'])
+        assert full['status'] == 'newborn' and full['task'] == 'D'
+        assert full['sprint'] == sprint_id and full['revision'] == 0
+        assert len(output.getvalue()) <= 2200
+        after = rows()
+        assert after[0][0][:3] == ('D', 'newborn', 0)
+        assert after[1][0][0] == 2
+        assert json.loads(after[1][0][1])['aggregate']['plan']['tasks'] == ['D']
+        assert after[2] == []  # Draft membership is not published membership.
+        assert not standalone.exists()
+        if action == 'duplicate':
+            assert full['duplicate']['parent_id'] == 'P'
+            assert runtime.current_task() is None
+        else:
+            assert runtime.current_task()['id'] == 'D'
+            assert full['claimed_by'] == runtime.session
 
 
 @pytest.mark.parametrize('operation', ['integrate', 'cleanup'])

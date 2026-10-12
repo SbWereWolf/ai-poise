@@ -62,8 +62,11 @@ def assert_selected_source_records(payload, expanded):
             assert {'id', 'method', 'actual_exit_code', 'passed'} <= set(row)
             actual.append(identity)
     assert len(actual) == len(set(actual))
-    for error in expanded.get('details', {}).get('presentation_errors', []):
-        assert error in payload.get('presentation_errors', [])
+    errors = expanded.get('details', {}).get('presentation_errors', [])
+    source_errors = payload.get('presentation_errors', [])
+    for error in errors:
+        assert error in source_errors
+        assert errors.count(error) <= source_errors.count(error)
     return actual
 
 

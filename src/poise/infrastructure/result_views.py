@@ -6,12 +6,57 @@ import re
 import signal
 import subprocess
 import sys
+import uuid
 from pathlib import Path
-from ..common import PoiseError, descendant, file_digest, encoded
+from ..common import PoiseError, descendant, file_digest, encoded, read_json
 from ..modules.result_views.domain import (
     OutputPolicy, primary_text, command_receipts, terminal_materials_notice,
+    require_result_budget, result_view,
 )
+from ..modules.tasks.domain import is_terminal_task_status
+from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from .goal_config import atomic_write
+from .task_paths import task_root, sprint_root
+
+
+def task_response_root(h, task):
+    """Use the existing live/retired Task owner, never resurrect its materials."""
+    saved = h.task_queries.record(task['id'])
+    sprint_id = task.get('sprint_id') if saved is None else saved['sprint_id']
+    if ((saved is not None and is_terminal_task_status(saved['status']))
+            or h.delivery_tools.unavailable(task['id'])):
+        return h.runtime
+    return task_root(h.state, h.paths, h._identifier(task['id']), sprint_id)
+
+
+def preflight_work_result(h, request):
+    """Validate actual admissible addresses before requested Work effects."""
+    current = h.current_task()
+    roots = [h.runtime if current is None else task_response_root(h, current)]
+    if request['operation'] in ('accept', 'cancel', 'integrate', 'cleanup'):
+        roots.append(h.runtime)
+    if request['operation'] == 'bootstrap':
+        task = request['input']['task']
+        if task is not None and 'id' in task:
+            if h.sprint_tools.known(task['id']):
+                roots.append(sprint_root(h.state, h.paths, h._identifier(task['id'])))
+            else:
+                roots.append(task_response_root(h, task))
+    if request['operation'] == 'task' and isinstance(request['input'].get('task_id'), str):
+        roots.append(task_response_root(h, {'id': request['input']['task_id']}))
+    for root in roots:
+        predicted = descendant(root, h.paths['runs']) / str(uuid.uuid4()) / h.paths['response']
+        # Reserve the actual longest Work outcome, including the architecture
+        # gate; do not assume a shorter success/rejection status will be returned.
+        outcome = max(BUSINESS_INCOMPLETE_STATUSES | {'architecture_boundaries_failed'}, key=len)
+        require_result_budget(predicted, h.cfg['limits']['output_chars'],
+                              outcome)
+
+
+def saved_result_view(path, mode, budget):
+    """Read-only retrieval: no runtime composition, Task claim or operation replay."""
+    path = Path(path).resolve(strict=True)
+    return result_view(read_json(path), path, budget, mode)
 
 
 def _tail(path,limit):

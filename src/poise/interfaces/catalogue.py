@@ -7,13 +7,15 @@ from ..infrastructure.goal_config import strict_json,atomic_write,PublicationPen
 from ..infrastructure.catalogue import FileCatalogue
 from ..application.catalogue import CatalogueCommands
 from ..composition import goal_config_tools
-from ..modules.result_views.domain import bounded_envelope
+from ..modules.result_views.domain import bounded_envelope, require_result_budget
 
 
 def execute(path,stream,output):
     repository=None
     try:
         repository=FileCatalogue(path);cfg=repository.editor.raw
+        predicted=descendant(repository.root,cfg['responses'])/(str(uuid.uuid4())+'.json')
+        require_result_budget(predicted,cfg['output_chars'],'installed')
         raw=stream.read(cfg['max_input_bytes']+1)
         if len(raw)>cfg['max_input_bytes']:raise PoiseError('Catalogue input limit exceeded')
         request=strict_json(raw.decode('utf-8'))

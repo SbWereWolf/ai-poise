@@ -18,9 +18,135 @@ def _envelope_text(value):
 
 
 def response_required(result, budget):
-    """Whether the complete agent reply needs a durable pointer."""
+    """Every agent result has complete saved data, including tiny replies."""
     _positive(budget, 'output budget')
-    return len(_envelope_text(result)) > budget
+    return True
+
+
+def require_result_budget(response_path, budget, status):
+    """Admission uses the same exact JSON/LF boundary as presentation."""
+    _positive(budget, 'output budget')
+    minimal = {'status': status, 'response_path': str(response_path)}
+    if len(_envelope_text(minimal)) > budget:
+        raise DomainError('Output budget cannot fit the persisted result address; action not started')
+
+
+def _historical_records(result):
+    """Receipt identity is global; an owner is provenance, not another ID."""
+    records = {}
+    for group in result.get('historical_receipts', []):
+        for row in group['checks']:
+            identity = row['id']
+            if identity in records:
+                if records[identity][0] != group['task']:
+                    raise DomainError('Historical receipt owner conflict')
+                continue
+            records[identity] = (group['task'], row)
+    return list(records.values())
+
+
+def result_view(result, response_path, budget, mode, *, metadata=None,
+                collections=None, command_views=()):
+    """Pure, source-derived projection. Full always means file navigation."""
+    _positive(budget, 'output budget')
+    if (not isinstance(result, dict) or not isinstance(result.get('status'), str)
+            or not result['status']):
+        raise DomainError('Saved result requires a nonempty string status')
+    if mode not in ('brief', 'expanded', 'full', 'adapter'):
+        raise DomainError('Unknown result view')
+    if response_path is None or not str(response_path):
+        raise DomainError('Result view requires a persisted full result address')
+    history = _historical_records(result)
+    view = {'status': result['status'], 'response_path': str(response_path)}
+    if mode != 'adapter':
+        view['view'] = mode
+    if len(_envelope_text(view)) > budget:
+        raise DomainError('Output budget cannot fit the persisted result address')
+    if mode == 'full':
+        return _envelope_text(view)
+
+    errors = result.get('presentation_errors', [])
+    other = {key: value for key, value in result.items() if isinstance(value, list)
+             and key not in ('historical_receipts', 'presentation_errors')}
+    other.update({} if collections is None else collections)
+    summary = {}
+    if 'historical_receipts' in result:
+        summary['historical_receipts'] = {
+            'total': len(history), 'shown': 0, 'omitted': len(history),
+            'failed': sum(row.get('passed') is False for _, row in history)}
+    if 'presentation_errors' in result:
+        summary['presentation_errors'] = {'total': len(errors), 'shown': 0, 'omitted': len(errors)}
+    for field, items in other.items():
+        if field not in summary:
+            summary[field] = {'total': len(items), 'shown': 0, 'omitted': len(items)}
+    if summary:
+        candidate = {**view, 'summary': summary}
+        if len(_envelope_text(candidate)) <= budget:
+            view = candidate
+        else:
+            # Counts and details are atomic; do not imply completeness without counts.
+            summary = {}
+
+    if mode == 'expanded' and summary:
+        def admit(field, details, shown):
+            nonlocal view
+            counts = {**view['summary'], field: {
+                **view['summary'][field], 'shown': shown,
+                'omitted': view['summary'][field]['total'] - shown}}
+            candidate = {**view, 'summary': counts,
+                         'details': {**view.get('details', {}), field: details}}
+            if len(_envelope_text(candidate)) > budget:
+                return False
+            view = candidate
+            return True
+
+        groups = []
+        shown = 0
+        for task, row in history:
+            candidate = deepcopy(groups)
+            group = next((item for item in candidate if item['task'] == task), None)
+            if group is None:
+                group = {'task': task, 'checks': []}
+                candidate.append(group)
+            group['checks'].append(row)
+            if not admit('historical_receipts', candidate, shown + 1):
+                break
+            groups, shown = candidate, shown + 1
+        for field, items in [('presentation_errors', errors), *other.items()]:
+            if field not in summary:
+                continue
+            selected = []
+            for item in items:
+                if not admit(field, [*selected, item], len(selected) + 1):
+                    break
+                selected.append(item)
+
+    if mode == 'expanded':
+        # Non-history tools use the same owner: show whole useful source fields
+        # when they fit, without inventing another renderer or clipping data.
+        for field, value in result.items():
+            if field in ('status', 'notice', 'reason', 'next_work',
+                         'historical_receipts', 'presentation_errors') or field in other:
+                continue
+            candidate = {**view, 'details': {**view.get('details', {}), field: value}}
+            if len(_envelope_text(candidate)) <= budget:
+                view = candidate
+
+    # Optional outcome/navigation fields never displace the required minimum.
+    extras = {key: result[key] for key in ('reason', 'notice', 'next_work') if key in result}
+    extras.update({} if metadata is None else metadata)
+    for field, value in extras.items():
+        if field in view or field in ('historical_receipts', 'presentation_errors', 'details', 'summary'):
+            continue
+        candidate = {**view, field: value}
+        if len(_envelope_text(candidate)) <= budget:
+            view = candidate
+    if mode == 'adapter' and command_views:
+        # One configured primary preview, not an exhaustive receipt collection.
+        candidate = {**view, 'command_preview': command_views[0]}
+        if len(_envelope_text(candidate)) <= budget:
+            view = candidate
+    return _envelope_text(view)
 
 
 def primary_text(text, parser, selection_pattern, chars):
@@ -55,39 +181,13 @@ def terminal_materials_notice():
 
 def bounded_envelope(result, response_path, budget, metadata, collections, command_views,
                      required_fields=None):
-    """Represent a complete saved result; never mutate or clip machine data."""
-    _positive(budget, 'output budget')
-    view = dict(result)
-    if response_path is not None:
-        view['response_path'] = str(response_path)
-    text = _envelope_text(view)
-    if command_views:
-        enriched = _envelope_text({**view, 'command_views': command_views})
-        if len(enriched) <= budget:
-            return enriched
-    if len(text) <= budget:
-        return text
-    if response_path is None:
-        raise DomainError('Output budget requires a persisted full result')
-    minimal = {'status': result['status'], 'response_path': str(response_path),
-               **({} if required_fields is None else required_fields)}
-    view = {**metadata, **minimal}
-    if len(_envelope_text(view)) > budget:
-        view = minimal
-    if len(_envelope_text(view)) > budget:
-        raise DomainError('Output budget cannot fit the required historical result' if required_fields
-                          else 'Output budget cannot fit the persisted result address')
-    for field, items in [*collections.items(), ('command_views', command_views)]:
-        if not items:
-            continue
-        selected = []
-        for item in items:
-            candidate = {**view, field: [*selected, item]}
-            if len(_envelope_text(candidate)) > budget:
-                break
-            selected.append(item)
-            view = candidate
-    return _envelope_text(view)
+    """Ordinary brief transport over the shared representation owner."""
+    source = dict(result)
+    if required_fields is not None:
+        source.update({key: value for key, value in required_fields.items()
+                       if key in ('notice', 'historical_receipts', 'presentation_errors')})
+    return result_view(source, response_path, budget, 'adapter', metadata=metadata,
+                       collections=collections, command_views=command_views)
 
 
 @dataclass(frozen=True)

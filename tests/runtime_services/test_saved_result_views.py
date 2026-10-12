@@ -144,6 +144,25 @@ def test_summary_counts_unique_receipts_not_groups_or_duplicate_occurrences(tmp_
 
 
 @pytest.mark.parametrize('mode', ['brief', 'expanded', 'full'])
+def test_receipt_identity_cannot_have_conflicting_task_owners(tmp_path, mode):
+    payload = json.loads(TWO_TASKS.read_text())
+    # Receipt identity is global. Keeping the original bytes under a different
+    # Task is still conflicting ownership, not a second distinct receipt.
+    payload['historical_receipts'][1]['checks'].append(
+        deepcopy(payload['historical_receipts'][0]['checks'][0]))
+    path = saved(tmp_path, payload)
+    before = path.read_bytes()
+    files = sorted(str(item) for item in tmp_path.rglob('*'))
+    process = invoke(path, mode)
+    assert process.returncode == 2
+    assert process.stdout == ''
+    diagnostic = process.stderr.lower()
+    assert 'receipt' in diagnostic and 'owner' in diagnostic and 'conflict' in diagnostic
+    assert path.read_bytes() == before
+    assert sorted(str(item) for item in tmp_path.rglob('*')) == files
+
+
+@pytest.mark.parametrize('mode', ['brief', 'expanded', 'full'])
 @pytest.mark.parametrize('delta,exit_code', [(-1, 2), (0, 0), (1, 0)])
 def test_navigation_budget_includes_mode_and_lf_at_exact_boundary(tmp_path, mode, delta, exit_code):
     path = saved(tmp_path, {'status': 'read_only'})

@@ -1,0 +1,22 @@
+{
+  "definitions": {
+    "collected": 1, "passed": 0, "errors": [], "exit_code": 1,
+    "failed": [{"nodeid": "tests/goal_config/test_stage_purposes.py::test_configuration_does_not_discard_known_purpose_or_authority", "phase": "call", "intentional": true}]
+  },
+  "lifecycle": {
+    "collected": 1, "passed": 0, "errors": [], "exit_code": 1,
+    "failed": [{"nodeid": "tests/runtime_services/test_stage_criteria_lifecycle.py::test_initial_execution_uses_real_initial_criteria_without_proposal_or_decision", "phase": "call", "intentional": true}]
+  },
+  "admission": {
+    "collected": 1, "passed": 0, "errors": [], "exit_code": 1,
+    "failed": [{"nodeid": "tests/runtime_services/test_stage_criteria_admission.py::test_design_can_refine_future_target_without_rewriting_shared_bound_criteria_or_proof", "phase": "call", "intentional": true}]
+  },
+  "migration": {
+    "collected": 1, "passed": 0, "errors": [], "exit_code": 1,
+    "failed": [{"nodeid": "tests/migrations/test_stage_criteria_migration.py::test_real_cli_migrates_complete_historical_inventory_and_exact_replay_preserves_data", "phase": "call", "intentional": true}]
+  },
+  "recovery-exit": {
+    "collected": 1, "passed": 0, "errors": [], "exit_code": 1,
+    "failed": [{"nodeid": "tests/migrations/test_stage_criteria_migration.py::test_cli_partial_publication_returns_exact_recovery_envelope_and_exit_two", "phase": "call", "intentional": true}]
+  }
+}

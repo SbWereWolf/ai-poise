@@ -1,0 +1,16 @@
+{
+  "status": "migrated",
+  "request_id": "migrate-fixture-criteria",
+  "receipt": "fixture-complete-receipt",
+  "resources": [
+    {
+      "kind": "process_definition",
+      "goal_type": "development",
+      "old_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "new_digest": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "old_revision": "fixture-observed-revision",
+      "new_revision": "fixture-published-revision"
+    }
+  ],
+  "replayed": false
+}

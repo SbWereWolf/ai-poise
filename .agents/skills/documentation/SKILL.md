@@ -6,6 +6,8 @@ version: 1.0.0
 
 # Documentation as a maintained contract
 
+Configuration belongs to operator documentation: maintain examples, filling instructions and an option reference. Skills provide short guidance and links. Follow the [shared contract](../../../docs/workflows/task-execution-contract.md#требования-и-конфигурация) and [project setup](../../../docs/configuration/project-setup.md). Development-rule links do not substitute for operator guidance.
+
 ## Inputs
 
 The accepted behavior/interface/workflow change, current Task scope, implemented code and real evidence, and affected user/developer/operator scenarios. Locate existing canonical owners from the selected Poise project profile and target-worktree facts. Obtain managed Task content through [poise-workflow](../poise/SKILL.md); historical reports are execution provenance, not current product truth.

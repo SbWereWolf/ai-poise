@@ -1,0 +1,17 @@
+{
+  "schema": "goal-config-editor-1",
+  "root": ".",
+  "database": "state/criteria-config-editor.sqlite",
+  "lock": "state/criteria-config-editor.lock",
+  "responses": "state/criteria-config-responses",
+  "file_mode": 384,
+  "json_indent": 2,
+  "lock_seconds": 2.0,
+  "lock_poll_seconds": 0.01,
+  "max_changes": 1000,
+  "max_input_bytes": 1048576,
+  "output_chars": 8192,
+  "exit_codes": {"success": 0, "rejected": 2, "pending": 3},
+  "processes": {"development": "config/processes/managed-development.json"},
+  "templates": {}
+}

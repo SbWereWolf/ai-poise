@@ -1,0 +1,5 @@
+{
+  "requirements": ["Return twice the input."],
+  "definition_of_ready": ["The intended behavior is specified."],
+  "definition_of_done": ["The required behavior is demonstrated."]
+}

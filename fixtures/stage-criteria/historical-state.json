@@ -1,0 +1,401 @@
+{
+  "config_hash": "dac155abd4e8d62d70a4a81672426defd5bb4601742f9cac8dc05d44cffce2a8",
+"contract": {
+  "artifact_requirements": [],
+  "checks": {
+    "code_review": [
+      "GREEN"
+    ],
+    "implementation": [
+      "GREEN"
+    ],
+    "test_review": [],
+    "tests": [
+      "RED"
+    ]
+  },
+  "content_contract": {
+    "requirements": [],
+    "routes": [],
+    "sections": []
+  },
+  "decomposition": {
+    "integration": null,
+    "kind": "ordinary",
+    "phases": [
+      {
+        "areas": [],
+        "skills": [
+          "task-domain"
+        ],
+        "stage": "tests"
+      },
+      {
+        "areas": [],
+        "skills": [
+          "task-domain"
+        ],
+        "stage": "test_review"
+      },
+      {
+        "areas": [],
+        "skills": [
+          "task-domain"
+        ],
+        "stage": "implementation"
+      },
+      {
+        "areas": [],
+        "skills": [
+          "task-domain"
+        ],
+        "stage": "code_review"
+      }
+    ]
+  },
+  "definition_of_done": [
+    "Регрессионный тест RED до исправления и GREEN после."
+  ],
+  "evidence_plan": {
+    "code_review": {
+      "arguments": [],
+      "review_arguments": [],
+      "subject_methods": {}
+    },
+    "implementation": {
+      "arguments": [],
+      "review_arguments": [],
+      "subject_methods": {}
+    },
+    "test_review": {
+      "arguments": [],
+      "review_arguments": [],
+      "subject_methods": {}
+    },
+    "tests": {
+      "arguments": [],
+      "review_arguments": [],
+      "subject_methods": {}
+    }
+  },
+  "goal": "Исправить double(2): получить 4.",
+  "goal_type": "development",
+  "id": "T1",
+  "method_inputs": [
+    {
+      "future_outputs": [],
+      "method_id": "RED",
+      "reference_profile": {
+        "parser": "inline-no-path-arguments",
+        "runner": "python",
+        "version": 1
+      },
+      "repository_inputs": []
+    },
+    {
+      "future_outputs": [
+        {
+          "path": "tests",
+          "producer_stage": "tests"
+        }
+      ],
+      "method_id": "GREEN",
+      "reference_profile": {
+        "parser": "discover-start-directory",
+        "runner": "unittest",
+        "version": 1
+      },
+      "repository_inputs": []
+    }
+  ],
+  "methods": [
+    {
+      "argv": [
+        "$FIXTURE_PYTHON",
+        "-B",
+        "-c",
+        "import io,json,sys,unittest;result=unittest.TextTestRunner(stream=io.StringIO()).run(unittest.defaultTestLoader.discover('tests'));print(json.dumps({'errors':sorted(case.id() for case,_ in result.errors),'failures':sorted(case.id() for case,_ in result.failures),'tests_run':result.testsRun},sort_keys=True,separators=(',',':')));raise SystemExit(0 if result.wasSuccessful() else 1)"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "expected_exit_code": 1,
+      "id": "RED",
+      "source_under_test": {
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": "."
+          }
+        ],
+        "kind": "repository"
+      },
+      "stderr_contains": [],
+      "stdout_contains": [
+        "{\"errors\":[],\"failures\":[\"test_double.Regression.test_double\"],\"tests_run\":1}"
+      ],
+      "verification_plan": {
+        "change_surface": [
+          "src/**"
+        ],
+        "green_stages": [],
+        "red_failure": {
+          "exit_code": 1,
+          "stderr_equals": "",
+          "stdout_equals": "{\"errors\":[],\"failures\":[\"test_double.Regression.test_double\"],\"tests_run\":1}\n"
+        },
+        "red_stages": [
+          "tests"
+        ],
+        "responsibility": "Prove the regression test fails for the declared product behaviour."
+      }
+    },
+    {
+      "argv": [
+        "$FIXTURE_PYTHON",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": ".",
+      "environment": {},
+      "expected_exit_code": 0,
+      "id": "GREEN",
+      "source_under_test": {
+        "bindings": [
+          {
+            "kind": "cwd",
+            "path": "."
+          }
+        ],
+        "kind": "repository"
+      },
+      "stderr_contains": [
+        "test_double",
+        "Ran 1 test",
+        "OK"
+      ],
+      "stdout_contains": [],
+      "verification_plan": {
+        "change_surface": [
+          "src/**"
+        ],
+        "green_stages": [
+          "implementation",
+          "code_review"
+        ],
+        "red_failure": null,
+        "red_stages": [],
+        "responsibility": "Prove the implemented product behaviour and final regression remain green."
+      }
+    }
+  ],
+  "requirements": [
+    "double(n) возвращает n*2"
+  ],
+  "sprint_id": null,
+  "stage_contracts": [
+    {
+      "allowed_paths": [
+        "tests/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "stage_id": "tests"
+    },
+    {
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "stage_id": "test_review"
+    },
+    {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "stage_id": "implementation"
+    },
+    {
+      "allowed_paths": [],
+      "entry_requirements": [],
+      "exit_requirements": [],
+      "stage_id": "code_review"
+    }
+  ]
+},
+"process": {
+  "benefit": {
+    "git_categories": [
+      "code",
+      "documentation"
+    ],
+    "sections": []
+  },
+  "content_contract": {
+    "requirements": [],
+    "routes": [],
+    "sections": []
+  },
+  "goal_type": "development",
+  "route": {
+    "entry": "tests"
+  },
+  "stages": [
+    {
+      "allowed_paths": [
+        "tests/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "tests",
+      "instruction": "Выполнить один этап tests.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "tests"
+      ],
+      "role": "executor",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "transitions": {
+        "complete": "test_review"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "test_review",
+      "instruction": "Выполнить один этап test_review.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "test_review"
+      ],
+      "role": "executor",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "transitions": {
+        "complete": "implementation"
+      }
+    },
+    {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "implementation",
+      "instruction": "Выполнить один этап implementation.",
+      "normalization": "strip",
+      "read_only": false,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "implementation"
+      ],
+      "role": "executor",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "transitions": {
+        "complete": "code_review"
+      }
+    },
+    {
+      "allowed_paths": [],
+      "artifact_requirements": [],
+      "handler": "produce",
+      "id": "code_review",
+      "instruction": "Выполнить один этап code_review.",
+      "normalization": "strip",
+      "read_only": true,
+      "required_sections": [
+        "report"
+      ],
+      "rework_targets": [
+        "code_review"
+      ],
+      "role": "executor",
+      "sections": {
+        "report": "Заполнить результат этапа."
+      },
+      "transitions": {
+        "complete": null
+      }
+    }
+  ],
+  "worktree_required": true
+},
+  "workflow": {
+    "action_assessment": null,
+    "feedback": {
+      "decisions": [],
+      "findings": [],
+      "resolutions": []
+    },
+    "progress": {
+      "outcome": null,
+      "stage_work": null,
+      "transitions": 0,
+      "visits": {
+        "code_review": 0,
+        "implementation": 0,
+        "test_review": 0,
+        "tests": 1
+      }
+    },
+    "registry": {
+      "executable_obligations": [],
+      "history": [],
+      "requests": [],
+      "revision": 0
+    }
+  },
+  "proof": {
+    "assessment": null,
+    "book": {
+      "arguments": [],
+      "batches": [],
+      "decisions": []
+    },
+    "input": null
+  },
+  "content_contract": {
+    "goal": {
+      "requirements": [],
+      "routes": [],
+      "sections": []
+    },
+    "task": {
+      "requirements": [],
+      "routes": [],
+      "sections": []
+    }
+  },
+  "execution": {
+    "worktree": null,
+    "branch": null,
+    "base": null,
+    "attempts": 0,
+    "publication": null,
+    "pending": null,
+    "entry_tree": null,
+    "last_report": null,
+    "historical_marker": "preserve"
+  }
+}

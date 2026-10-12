@@ -5,6 +5,12 @@ from ..modules.evidence.domain import EvidenceBook
 from ..modules.foundation.errors import DomainError
 
 
+def check_receipts_by_id(records):
+    """Select command receipts without interpreting opaque historical evidence."""
+    return {receipt['id']: receipt for receipt in records
+            if isinstance(receipt, dict) and isinstance(receipt.get('id'), str)}
+
+
 class EvidenceCommands:
     def __init__(self, unit_of_work):
         self.unit_of_work=unit_of_work

@@ -69,6 +69,7 @@
 - [Действия](workflows/actions.md)
 - [Поставка результата и удаление Task-материалов](workflows/terminal-materials.md)
 - [Пакетная работа](workflows/batch-work.md)
+- [Типы и критерии этапов](workflows/stage-criteria.md)
 - [Требования к содержимому](workflows/content-requirements.md)
 - [Доказательства](workflows/evidence.md)
 - [Рабочий путь](workflows/happy-path.md)

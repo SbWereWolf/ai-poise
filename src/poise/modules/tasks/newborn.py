@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from ..foundation.errors import DomainError
 from .definition import creation_fields, path_identifier
 from .domain import Task, TaskState, TaskStatus
+from .stage_criteria import StageCriteriaBook
 
 
 REQUIREMENTS_CONTEXT_FIELDS = frozenset({"requirements_snapshot", "requirements_agreement"})
@@ -49,6 +50,7 @@ class NewbornTask:
     creation_request: dict | None = None
     restart_history: tuple[dict, ...] = ()
     stage_contract_history: tuple[dict, ...] = ()
+    criteria_book: StageCriteriaBook | None = None
 
     @classmethod
     def create(cls, task_id: str, sprint_id: str | None, actor: str | None):
@@ -101,6 +103,8 @@ class NewbornTask:
             "authorization": authorization,
             "from_status": task.state.status.value,
             "from_version": task.state.version,
+            "from_stage": task.stage.stage_id,
+            "from_iteration": task.state.iteration,
             "reason": reason,
         }
         if authority is not None:
@@ -121,6 +125,7 @@ class NewbornTask:
             deepcopy(creation_request),
             tuple(deepcopy(history)) + (audit,),
             tuple(deepcopy(stage_contract_history)),
+            task.criteria_book,
         )
 
     def restart_draft(self, actor, reason, authorization):
@@ -196,7 +201,9 @@ class NewbornTask:
         return cls(task_id, metadata["sprint_id"], claimed_by, version,
                    deepcopy(draft), deepcopy(process), ready, deepcopy(creation_request),
                    tuple(deepcopy(restart_history)),
-                   tuple(deepcopy(stage_contract_history)))
+                   tuple(deepcopy(stage_contract_history)),
+                   StageCriteriaBook.from_dict(metadata['stage_criteria'])
+                   if 'stage_criteria' in metadata else None)
 
     def edit(self, patch: dict, remove: list, processes: dict, actor: str):
         if self.ready:
@@ -367,6 +374,8 @@ class NewbornTask:
             value["restart_history"] = list(deepcopy(self.restart_history))
         if self.stage_contract_history:
             value["stage_contract_history"] = list(deepcopy(self.stage_contract_history))
+        if self.criteria_book is not None:
+            value['stage_criteria'] = self.criteria_book.data
         return value
 
     def describe(self) -> dict:

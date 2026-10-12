@@ -1,0 +1,16 @@
+{
+  "status": "recovery_required",
+  "request_id": "migrate-fixture-criteria",
+  "receipt": "fixture-partial-receipt",
+  "resources": [
+    {
+      "kind": "process_definition",
+      "goal_type": "development",
+      "old_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "new_digest": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "old_revision": "fixture-observed-revision",
+      "new_revision": "fixture-published-revision"
+    }
+  ],
+  "reason": "Process publication completed; the Task store transaction did not commit."
+}

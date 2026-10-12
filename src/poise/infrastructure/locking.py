@@ -8,12 +8,13 @@ from ..modules.foundation.errors import LockUnavailable, PoiseError
 
 
 @contextmanager
-def exclusive_lock(path: Path, wait: float, poll: float):
+def exclusive_lock(path: Path, wait: float, poll: float, *, existing=False):
     for value in (wait, poll):
         if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
             raise PoiseError("Требуются явные конечные положительные пределы lock")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a+b") as handle:
+    if not existing:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("rb" if existing else "a+b") as handle:
         deadline = time.monotonic() + wait
         while True:
             try:

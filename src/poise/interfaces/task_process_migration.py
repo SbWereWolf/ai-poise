@@ -12,7 +12,7 @@ def execute(config_path, stream, output):
     try:
         request = strict_json(stream.read().decode("utf-8"))
         result = task_process_migration_tools(config_path).migrate(request)
-        code = 0
+        code = 2 if result.get("status") == "recovery_required" else 0
     except (PoiseError, UnicodeError, RecursionError) as exc:
         result = {"status": "rejected", "reason": str(exc)}
         code = 2

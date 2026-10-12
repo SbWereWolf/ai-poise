@@ -18,6 +18,7 @@ def setup(project):
     p=deepcopy(project['process'])
     stage=p['stages'][0]
     stage.update(id='work',instruction='Создать результат и подтвердить его.',
+                 purpose='execution',criteria_authority={'propose': [], 'decide': []},
                  read_only=False,allowed_paths=['src/**','docs/**'],
                  transitions={'complete':None},rework_targets=['work'])
     p['stages']=[stage];p['route']['entry']='work'
@@ -49,6 +50,7 @@ def task(project,identifier='A',kind='development',command='print("checked")'):
         'allowed_paths':list(stage['allowed_paths']),
         'entry_requirements':[],
         'exit_requirements':[],
+        'criteria':{'requirements':[], 'definition_of_ready':[], 'definition_of_done':[]},
     } for stage in project['process']['stages']]
     t['decomposition'] = {
         'kind': 'ordinary',

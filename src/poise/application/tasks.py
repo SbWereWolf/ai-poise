@@ -74,7 +74,7 @@ def _action_digest(action: str, payload: dict) -> str:
 
 def _creation_values(
     intent, allocation, actor, process, automatic_checks, decomposition_policy,
-    base_metadata,
+    base_metadata, requirements_context,
 ):
     from ..modules.tasks.allocation import materialize_contract
     from ..modules.tasks.definition import build_task, validate_creation
@@ -91,7 +91,13 @@ def _creation_values(
     metadata.update(sprint_id=contract['sprint_id'], goal=contract['goal'])
     if creation_request is not None:
         metadata['creation_request'] = creation_request
-    return build_task(metadata, actor), metadata, contract
+    task = build_task(metadata, actor)
+    from ..modules.tasks.stage_criteria import StageCriteriaBook
+    book = StageCriteriaBook.initialize_initial(task.route, task.stage_contracts,
+        contract, requirements_context['snapshot'])
+    task = replace(task, criteria_book=book)
+    metadata['stage_criteria'] = book.data
+    return task, metadata, contract
 
 
 @dataclass(frozen=True)
@@ -119,7 +125,7 @@ def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=())
     allocation = uow.tasks.allocate(source_intent, parsed_policy, reserved_ids)
     task, metadata, contract = _creation_values(
         intent, allocation, None, process, automatic_checks, decomposition_policy,
-        base_metadata
+        base_metadata, prepared.requirements_context
     )
     if not allocation.replayed:
         uow.tasks.create(task, metadata)
@@ -190,10 +196,10 @@ class SubmissionReceipt:
     registry_change: dict | None = None
 
 
-def require_start_execution(execution, restart_history):
+def require_start_execution(execution, restart_history, migrated_context):
     """One execution prerequisite for start and read-only discovery."""
     if execution is not None:
-        if not restart_history:
+        if not restart_history and migrated_context is None:
             raise DomainError('Available Task has unexpected execution state')
         if execution['pending'] is not None:
             raise DomainError('Restarted Task execution recovery is still pending')
@@ -328,6 +334,7 @@ class TaskCommands:
                 prepared.automatic_checks,
                 prepared.decomposition_policy,
                 base_metadata,
+                prepared.requirements_context,
             )
             if not allocation.replayed:
                 before = uow.ownership.snapshot(actor)
@@ -653,7 +660,7 @@ class TaskCommands:
             if target.worktree_owner not in (None, actor):
                 raise DomainError("Stage contract worktree is owned by another session; handoff is required")
             if not isinstance(contract, dict) or set(contract) != {
-                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements"
+                "stage_id", "allowed_paths", "entry_requirements", "exit_requirements", "criteria"
             } or contract["stage_id"] != stage_id:
                 raise DomainError("Exact replacement stage contract is required")
             candidate = [
@@ -829,6 +836,7 @@ class TaskCommands:
                 'registry_change': registry_change,
                 'executed_restart': executed_restart, 'restart_base': restart_base,
                 'frozen_context_unchanged': frozen_context_unchanged,
+                'criteria_book': context['stage_criteria'],
                 'resolved_revision': resolved_revision, 'config_hash': effective_hash,
                 'sprint_snapshot': sprint_snapshot, 'execution_snapshot': execution_snapshot}
 
@@ -852,13 +860,28 @@ class TaskCommands:
         if candidate['executed_restart'] and not candidate['frozen_context_unchanged']:
             self.requirements_gate.require_current_registry(candidate['creation'].requirements_context)
         task = build_task(candidate['metadata'], None, current_registry=candidate['registry'])
+        from ..modules.tasks.stage_criteria import StageCriteriaBook
+        if candidate['criteria_book'] is not None:
+            book = StageCriteriaBook.from_dict(candidate['criteria_book'])
+            if candidate['executed_restart']:
+                book = book.revise_after_restart(task.route, task.stage_contracts,
+                    candidate['metadata']['restart_history'][-1], actor,
+                    candidate['metadata']['contract'], candidate['creation'].requirements_context['snapshot'])
+        else:
+            if candidate['executed_restart']:
+                raise DomainError('stage criteria migration required')
+            book = StageCriteriaBook.initialize_initial(task.route, task.stage_contracts,
+                candidate['metadata']['contract'], candidate['creation'].requirements_context['snapshot'])
+        task = replace(task, criteria_book=book)
+        candidate['metadata']['stage_criteria'] = book.data
         if candidate['registry_change'] is not None:
             task = task.bind_restarted_registry_audit(
                 candidate['registry_change'], actor,
                 candidate['previous_registry'].executable_obligations
             )
         if candidate['executed_restart']:
-            task = replace(task, feedback=uow.tasks.restarted_feedback(task_id))
+            task = replace(task, feedback=uow.tasks.restarted_feedback(task_id),
+                           evidence_book=uow.tasks.restarted_evidence(task_id))
         if newborn.restart_history and candidate['restart_base'] is not None:
             from .ownership import release_dependent_worktree_in
             release_dependent_worktree_in(uow, actor, task_id)
@@ -939,7 +962,8 @@ class TaskCommands:
                     raise DomainError('Local repair source is absent from reserved base; import it before start')
             if has_execution:
                 current, execution_version = uow.execution.load(task_id)
-                require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'])
+                require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'],
+                                        uow.tasks.migrated_start_context(task_id))
             change=task.start(actor)
             if has_execution:
                 # A new available -> active admission, never an active bootstrap.
@@ -958,7 +982,7 @@ class TaskCommands:
                         raise DomainError('Resolve retained execution before workspace allocation')
                     if execution['worktree'] is None or execution['pending']['kind'] != 'worktree_setup':
                         raise DomainError('Restart requires an explicit worktree reservation')
-                    uow.execution.save(task_id, execution, execution_version)
+                    uow.execution.save(task_id, {**current, **execution}, execution_version)
                 else:
                     if restart_entry_tree is None:
                         raise DomainError('Restart start requires an observed retained workspace tree')
@@ -1054,12 +1078,10 @@ class TaskCommands:
             task=uow.tasks.load(task_id)
             require_reviewer_identity_in(uow, task, actor)
             if task.route.node(task.stage.stage_id).handler.value in ('apply_plan','publish'):
-                import json
                 assessed = None if task.action_assessment is None else json.loads(task.action_assessment)
                 if assessed is None or assessed['tree'] != report['verified_tree']:
                     raise DomainError("Action receipt is not for the verified tree")
             if task.evidence_plan.stage(task.stage.stage_id).active:
-                import json
                 assessed = None if task.evidence_assessment is None else json.loads(task.evidence_assessment)
                 if assessed is None or assessed['tree'] != report['verified_tree']:
                     raise DomainError("Доклад относится не к проверенному состоянию evidence")
@@ -1071,6 +1093,14 @@ class TaskCommands:
                 if uow.work_packets.current(task_id,task.stage.stage_id,task.state.iteration)!=packet_digest:
                     raise DomainError("Saved verified work packet identity does not match")
                 return task.state
+            from ..modules.tasks.stage_criteria import split_work
+            _, criteria_work = split_work(json.loads(task.progress.stage_work))
+            if criteria_work is not None:
+                producer_submission = uow.tasks.criteria_submission_guard(task, actor, report)
+                book = task.criteria_book.apply_verified_work(
+                    criteria_work, task, actor, producer_submission)
+                change = replace(change, task=replace(change.task, criteria_book=book,
+                    stage_contracts=book.effective_contracts(task.stage_contracts)))
             submission_id = uow.tasks.save(change,task.state.version)
             if submission_id is None:
                 raise DomainError("Нет submission для проверенного результата")

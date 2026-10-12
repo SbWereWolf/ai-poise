@@ -119,6 +119,12 @@ def load_config(path: Path, legacy_process_requirements: dict[str, bool] | None 
     return load_config_document(path, read_json(path), legacy_process_requirements)
 
 
+def load_process_migration_config(path: Path) -> tuple[Path, dict, dict]:
+    """Validate the manifest, retaining historical process bytes for explicit migration."""
+    return _load_config_document(path, path.resolve().parent, read_json(path), None,
+                                 historical_processes=True)
+
+
 def validate_candidate_config(path: Path, final_root: Path) -> tuple[Path, dict, dict]:
     """Validate staged bytes at their explicit final configuration coordinates."""
     return _load_config_document(path, final_root, read_json(path), None)
@@ -137,7 +143,8 @@ def load_config_document(path: Path, cfg: dict, legacy_process_requirements: dic
 
 
 def _load_config_document(path: Path, final_root: Path, cfg: dict,
-                          legacy_process_requirements: dict[str, bool] | None) -> tuple[Path, dict, dict]:
+                          legacy_process_requirements: dict[str, bool] | None,
+                          *, historical_processes=False) -> tuple[Path, dict, dict]:
     root = final_root.resolve()
     material_root = path.resolve().parent
     final_manifest = root / path.name
@@ -310,7 +317,8 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
         if (legacy_process_requirements is not None
                 and set(process) == PROCESS_FIELDS - {'worktree_required'}):
             process['worktree_required'] = legacy_process_requirements[kind]
-        effective_process = GoalTypeDefinition.from_configuration(process).data
+        effective_process = (process if historical_processes else
+                             GoalTypeDefinition.from_configuration(process).data)
         if effective_process['goal_type'] != kind:
             raise PoiseError(f'Неоднозначный process {kind}')
         processes[kind] = process

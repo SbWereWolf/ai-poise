@@ -1,0 +1,12 @@
+{
+  "proposal": {
+    "requirements": ["Return twice every integer input."],
+    "definition_of_ready": ["Integer inputs and zero are included in the test design."],
+    "definition_of_done": []
+  },
+  "restart": {
+    "requirements": ["Return three times every integer input."],
+    "definition_of_ready": [],
+    "definition_of_done": ["Integer and zero cases pass the accepted checks."]
+  }
+}

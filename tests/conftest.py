@@ -138,14 +138,16 @@ def project(tmp_path, monkeypatch):
     poise_root = tmp_path / 'poise'
     poise_root.mkdir()
     stages = []
-    for name, readonly, allowed in [
-        ('tests', False, ['tests/**']),
-        ('test_review', True, []),
-        ('implementation', False, ['src/**']),
-        ('code_review', True, []),
+    for name, purpose, readonly, allowed in [
+        ('tests', 'execution', False, ['tests/**']),
+        ('test_review', 'observation', True, []),
+        ('implementation', 'execution', False, ['src/**']),
+        ('code_review', 'observation', True, []),
     ]:
         stages.append({
             'id': name,
+            'purpose': purpose,
+            'criteria_authority': {'propose': [], 'decide': []},
             'instruction': f'Выполнить один этап {name}.',
             'read_only': readonly,
             'allowed_paths': allowed,
@@ -328,6 +330,7 @@ def project(tmp_path, monkeypatch):
         'allowed_paths': list(stage['allowed_paths']),
         'entry_requirements': [],
         'exit_requirements': [],
+        'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []},
     } for stage in stages]
     task_path = write_json(poise_root / 'task.json', task)
     return {'root': poise_root, 'config_path': cfg_path, 'cfg': cfg, 'process': process,

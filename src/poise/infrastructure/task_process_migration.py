@@ -36,11 +36,14 @@ def _database_snapshot(connection: sqlite3.Connection) -> tuple:
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
         )
     ]
-    data = tuple(
-        (table, tuple(tuple(row) for row in connection.execute(f'SELECT * FROM "{table}" ORDER BY rowid')))
-        for table in tables
-    )
-    return connection.execute("PRAGMA user_version").fetchone()[0], schema, data
+    data = []
+    for table in tables:
+        quoted = '"' + table.replace('"', '""') + '"'
+        columns = connection.execute(f'PRAGMA table_info({quoted})').fetchall()
+        selected = ','.join('"' + column[1].replace('"', '""') + '"' for column in columns)
+        data.append((table, tuple(tuple(row) for row in
+                    connection.execute(f'SELECT {selected} FROM {quoted} ORDER BY rowid'))))
+    return connection.execute("PRAGMA user_version").fetchone()[0], schema, tuple(data)
 
 
 class SqliteTaskProcessMigration:
@@ -57,6 +60,9 @@ class SqliteTaskProcessMigration:
         self.after_preflight = after_preflight or (lambda: None)
 
     def migrate(self, request: MigrationRequest) -> dict:
+        if request.schema == 'task-stage-criteria-migration-1':
+            from .stage_criteria_migration import migrate_stage_criteria
+            return migrate_stage_criteria(self, request)
         root, config, processes = load_config(self.config_path)
         from ..modules.goal_config.domain import GoalTypeDefinition
         processes = {kind: GoalTypeDefinition.from_configuration(document).data

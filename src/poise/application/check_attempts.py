@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from ..modules.foundation.errors import DomainError
 from ..modules.tasks.domain import TaskStatus
+from .evidence import check_receipts_by_id
 
 
 def is_check_attempt(value):
@@ -192,7 +193,7 @@ class CheckAttempts:
                 raise DomainError('Check attempt changed before run permission')
             if current['version'] != 2:
                 raise DomainError('Historical check protocol grants no new run permission')
-            records = {r['id']: r for r in uow.evidence.list_for(task_id)}
+            records = check_receipts_by_id(uow.evidence.list_for(task_id))
             for run in current['runs']:
                 if run['run_id'] == run_id:
                     if run['started'] or run_id in records:
@@ -261,7 +262,7 @@ class CheckAttempts:
         """Batch and pending removal share the caller's single Unit of Work."""
         execution, version = uow.execution.load(task.state.task_id)
         attempt = validate_attempt(task, actor, execution['pending'], tree, execution_key)
-        recorded = {r['id']: r for r in uow.evidence.list_for(task.state.task_id)}
+        recorded = check_receipts_by_id(uow.evidence.list_for(task.state.task_id))
         if (len(receipts) != len(attempt['runs']) or any(
                 not run['started'] or not receipt_matches(attempt, run, receipt)
                 or recorded.get(run['run_id']) != receipt

@@ -19,6 +19,13 @@ def _stage(stage_id, allowed_paths):
         rework_targets.append("test_remediation")
     return {
         "id": stage_id,
+        "purpose": {
+            "implementation": "execution",
+            "test_remediation": "design",
+            "closed_finding_remediation": "design",
+            "closed_finding_inspection": "observation",
+        }[stage_id],
+        "criteria_authority": {"propose": [], "decide": []},
         "instruction": f"Complete {stage_id}.",
         "read_only": False,
         "allowed_paths": allowed_paths,
@@ -114,6 +121,11 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
             "allowed_paths": list(stage["allowed_paths"]),
             "entry_requirements": [],
             "exit_requirements": [],
+            "criteria": {
+                "requirements": [],
+                "definition_of_ready": [],
+                "definition_of_done": [],
+            },
         }
         for stage in stages
     ]

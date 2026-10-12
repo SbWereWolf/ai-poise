@@ -4,6 +4,7 @@ SQLite does not transact the filesystem. A persisted pending candidate is replay
 only when the configured target still has its known before/after digest.
 """
 from __future__ import annotations
+from copy import deepcopy
 import json
 import math
 import os
@@ -74,6 +75,9 @@ class EditorSettings:
     def __init__(self, path):
         self.path=Path(path).resolve()
         self.raw=read_document(self.path)
+        self._validate()
+
+    def _validate(self):
         c=self.raw
         configuration_fields(c,{"schema","root","database","lock","responses","file_mode","json_indent",
                       "lock_seconds","lock_poll_seconds","max_changes","max_input_bytes","output_chars",
@@ -155,6 +159,64 @@ class FileGoalConfigRepository:
     def __init__(self,settings):
         self.settings=settings
 
+    def migration_binding(self, goal):
+        """Explicit original publication resources for read-only recovery."""
+        s = self.settings
+        return {'settings_path': str(s.path), 'settings': deepcopy(s.raw), 'root': str(s.root),
+                'target': str(s.target(goal)),
+                'resources': {key: {'path': str(descendant(s.root, s.raw[key])),
+                    'device': descendant(s.root, s.raw[key]).stat().st_dev,
+                    'inode': descendant(s.root, s.raw[key]).stat().st_ino}
+                    for key in ('database', 'lock')}}
+
+    @classmethod
+    def from_migration_binding(cls, goal, binding):
+        """Inspect recorded owners, never a newly rebound manifest/editor."""
+        s = EditorSettings.__new__(EditorSettings)
+        s.path = Path(binding['settings_path'])
+        s.raw = deepcopy(binding['settings'])
+        s._validate()
+        if str(s.root) != binding['root'] or str(s.target(goal)) != binding['target']:
+            raise VersionConflict('Original migration publication target changed')
+        for key, observed in binding['resources'].items():
+            path = descendant(s.root, s.raw[key])
+            stat = path.stat()
+            if (str(path) != observed['path']
+                    or (stat.st_dev, stat.st_ino) != (observed['device'], observed['inode'])):
+                raise VersionConflict('Original migration publication owner changed')
+        return cls(s)
+
+    @contextmanager
+    def migration_edit(self, goal, *, readonly):
+        """Open existing owner resources; neither initialize nor auto-recover."""
+        s = self.settings
+        target = s.target(goal)
+        database = descendant(s.root, s.raw['database'])
+        lock = descendant(s.root, s.raw['lock'])
+        with exclusive_lock(lock, s.raw['lock_seconds'], s.raw['lock_poll_seconds'], existing=True):
+            mode = 'ro' if readonly else 'rw'
+            db = sqlite3.connect(database.as_uri() + '?mode=' + mode, uri=True,
+                                 timeout=0, isolation_level=None, autocommit=True)
+            db.row_factory = sqlite3.Row
+            try:
+                if db.execute('PRAGMA user_version').fetchone()[0] != 1:
+                    raise PoiseError('Migration requires the existing editor schema')
+                yield FileConfigEdit(s, db, goal, target)
+            finally:
+                db.close()
+
+    def snapshot_for_migration(self, goal):
+        with self.migration_edit(goal, readonly=True) as edit:
+            return edit.migration_snapshot()
+
+    def publish_migration(self, goal, request, request_digest, source_revision, candidate):
+        with self.migration_edit(goal, readonly=False) as edit:
+            return edit.publish_migration(request, request_digest, source_revision, candidate)
+
+    def completed_migration(self, goal, request, request_digest, source_revision, candidate):
+        with self.migration_edit(goal, readonly=True) as edit:
+            return edit.completed_migration(request, request_digest, source_revision, candidate)
+
     @contextmanager
     def edit(self,goal,*,recover=True):
         s=self.settings; cfg=s.raw
@@ -202,6 +264,68 @@ class FileConfigEdit:
             raise PoiseError("Идентичность pack не совпадает с registry")
         GoalTypeDefinition.from_configuration(data)
         return data
+
+    def migration_snapshot(self):
+        """Raw historical source is admitted only at the explicit migration boundary."""
+        document = read_document(self.target)
+        if document.get('goal_type') != self.goal:
+            raise VersionConflict('Migration source identity differs from editor registry')
+        head = self.db.execute('SELECT revision FROM config_heads WHERE goal_type=?',
+                               (self.goal,)).fetchone()
+        pending = self.db.execute(
+            "SELECT request_id,request_digest,source_revision,candidate,receipt FROM config_operations "
+            "WHERE goal_type=? AND phase='pending' ORDER BY request_id", (self.goal,)).fetchall()
+        return {'document': document, 'bytes': self.target.read_bytes(),
+                'target': str(self.target), 'head': None if head is None else head['revision'],
+                'pending': [dict(row) for row in pending]}
+
+    def completed_migration(self, request, request_digest, source_revision, candidate):
+        """One exact completed-publication validation; never recover or write."""
+        row = self.db.execute(
+            'SELECT request_digest,goal_type,source_revision,candidate,receipt,phase '
+            'FROM config_operations WHERE request_id=?', (request['request_id'],)).fetchone()
+        if row is not None:
+            if (row['request_digest'] != request_digest or row['goal_type'] != self.goal
+                    or row['source_revision'] != source_revision
+                    or row['candidate'] != canonical(candidate)):
+                raise VersionConflict('Migration publication intent mismatch')
+            if row['phase'] != 'completed':
+                return None
+            receipt = json.loads(row['receipt'])
+            snapshot = self.migration_snapshot()
+            if (receipt['config_path'] != str(self.target)
+                    or receipt['request_id'] != request['request_id']
+                    or receipt['goal_type'] != self.goal
+                    or receipt['previous_revision'] != source_revision
+                    or receipt['revision'] != fingerprint(candidate)
+                    or receipt['current_revision'] != receipt['revision']
+                    or snapshot['document'] != candidate
+                    or fingerprint(snapshot['document']) != receipt['revision']
+                    or snapshot['head'] != receipt['revision'] or snapshot['pending']):
+                raise VersionConflict('Migration publication readback mismatch')
+            return receipt
+        return None
+
+    def publish_migration(self, request, request_digest, source_revision, candidate):
+        GoalTypeDefinition.from_configuration(candidate)
+        receipt = self.completed_migration(request, request_digest, source_revision, candidate)
+        if receipt is not None:
+            return receipt
+        pending = self.db.execute('SELECT phase FROM config_operations WHERE request_id=?',
+                                  (request['request_id'],)).fetchone()
+        if pending is not None:
+            if pending['phase'] != 'pending':
+                raise VersionConflict('Unknown migration publication phase')
+            self.recover(historical_source=True)
+            receipt = self.completed_migration(request, request_digest, source_revision, candidate)
+            if receipt is None:
+                raise VersionConflict('Migration publication did not complete')
+            return receipt
+        snapshot = self.migration_snapshot()
+        if snapshot['pending'] or snapshot['head'] != source_revision:
+            raise VersionConflict('Migration requires an aligned, quiescent editor head')
+        return self._publish(request, request_digest, source_revision, candidate, None,
+                             snapshot['document'], historical_source=True)
 
     def replay(self,request_id,request_digest):
         row=self.db.execute("SELECT * FROM config_operations WHERE request_id=?",(request_id,)).fetchone()
@@ -299,6 +423,11 @@ class FileConfigEdit:
 
     def publish(self,request,request_digest,source_revision,candidate,template):
         current=self.current()
+        return self._publish(request, request_digest, source_revision, candidate, template, current,
+                             historical_source=False)
+
+    def _publish(self, request, request_digest, source_revision, candidate, template, current,
+                 *, historical_source):
         actual=None if current is None else fingerprint(current)
         if actual!=source_revision:
             raise VersionConflict("Конфиг изменён после чтения")
@@ -313,18 +442,23 @@ class FileConfigEdit:
                  "created_at":datetime.now(timezone.utc).isoformat()}
         self.db.execute("INSERT INTO config_operations VALUES(?,?,?,?,?,?,?)",(
             request["request_id"],request_digest,self.goal,source_revision,canonical(candidate),canonical(receipt),"pending"))
-        self.recover()
+        self.recover(historical_source=historical_source)
         return receipt
 
-    def recover(self):
-        rows=self.db.execute("SELECT * FROM config_operations WHERE goal_type=? AND phase='pending'",(self.goal,)).fetchall()
+    def recover(self, *, historical_source=False):
+        rows=self.db.execute("SELECT request_id,source_revision,candidate,receipt FROM config_operations WHERE goal_type=? AND phase='pending'",(self.goal,)).fetchall()
         if len(rows)>1:
             raise PoiseError("Нарушена согласованность: несколько pending публикаций одного pack")
         for row in rows:
             if json.loads(row["receipt"])["config_path"] != str(self.target):
                 raise VersionConflict("Путь pending publication изменён; исходное назначение нельзя перенаправлять")
             candidate=json.loads(row["candidate"]); revision=fingerprint(candidate)
-            current=self.current(); actual=None if current is None else fingerprint(current)
+            if historical_source:
+                GoalTypeDefinition.from_configuration(candidate)
+                current = self.migration_snapshot()['document']
+            else:
+                current = self.current()
+            actual=None if current is None else fingerprint(current)
             if actual not in (row["source_revision"],revision):
                 raise VersionConflict("Pending publication: внешний конфиг не совпадает ни с исходным, ни с кандидатом; запись остановлена")
             if actual!=revision:

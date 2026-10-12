@@ -31,30 +31,46 @@ def task_response_root(h, task):
 
 def preflight_work_result(h, request):
     """Validate actual admissible addresses before requested Work effects."""
+    operation, args = request['operation'], request['input']
     current = h.current_task()
     roots = [h.runtime if current is None else task_response_root(h, current)]
-    if request['operation'] in ('accept', 'cancel', 'integrate', 'cleanup'):
+    if (operation in ('accept', 'cancel', 'integrate', 'cleanup', 'recover_ownership')
+            or operation == 'bootstrap' and args['decision'] == 'continue'):
         roots.append(h.runtime)
-    if request['operation'] == 'bootstrap':
-        task = request['input']['task']
-        if task is not None and 'id' in task:
+    if operation == 'bootstrap':
+        task = args['task']
+        if isinstance(task, dict) and set(task) == {'request_id', 'task'}:
+            allocation = h.task_commands.preview_creation_allocation(task, h.cfg.get('task_ids'))
+            if allocation.replayed:
+                roots.append(task_response_root(h, {'id': allocation.task_id}))
+            else:
+                # A concurrent fresh candidate has the same configured width.
+                # Do not reinterpret this unconsumed ID as a newly saved owner.
+                roots.append(task_root(h.state, h.paths, allocation.task_id, None))
+        elif task is not None and 'id' in task:
             if h.sprint_tools.known(task['id']):
                 roots.append(sprint_root(h.state, h.paths, h._identifier(task['id'])))
             else:
                 roots.append(task_response_root(h, task))
-    if request['operation'] == 'task' and isinstance(request['input'].get('task_id'), str):
+    if isinstance(args.get('task_id'), str):
         roots.append(task_response_root(h, {
-            'id': request['input']['task_id'],
-            'sprint_id': request['input'].get('sprint_id'),
+            'id': args['task_id'], 'sprint_id': args.get('sprint_id'),
         }))
-    if request['operation'] == 'sprint' and current is None:
-        sprint_id = request['input'].get('sprint_id')
+    if (operation == 'sprint' or operation == 'bootstrap'
+            and args['task'] is None and args['decision'] is None and current is None):
+        sprint_id = args.get('sprint_id')
         if sprint_id is None:
             selected = h.sprint_tools.commands.read(None, 'current')
             if selected is not None:
                 sprint_id = selected['sprint']
-        if sprint_id is not None:
+        if sprint_id is not None and current is None:
             roots.append(sprint_root(h.state, h.paths, h._identifier(sprint_id)))
+        if (current is not None and current['status'] == 'newborn'
+                and current['sprint_id'] == sprint_id and args.get('action') == 'draft'
+                and any(change.get('kind') == 'remove_tasks'
+                        and current['id'] in change.get('ids', [])
+                        for change in args.get('changes', []) if isinstance(change, dict))):
+            roots.append(task_root(h.state, h.paths, current['id'], None))
     for root in roots:
         predicted = descendant(root, h.paths['runs']) / str(uuid.uuid4()) / h.paths['response']
         # Reserve the actual longest Work outcome, including the architecture

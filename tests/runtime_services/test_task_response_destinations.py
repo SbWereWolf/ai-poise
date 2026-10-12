@@ -210,7 +210,11 @@ def test_current_newborn_detachment_admits_standalone_destination(
                                'WHERE sprint_id=? ORDER BY request_id', ('S',)).fetchall())
 
     before = rows()
+    old_home.mkdir(parents=True, exist_ok=True)
+    material = old_home / 'owned.txt'
+    material.write_bytes(b'preserved Task material\n')
     files_before = sorted(old_home.rglob('*'))
+    original_bytes = {path: path.read_bytes() for path in files_before if path.is_file()}
     calls = []
     original = WorkTools.invoke
 
@@ -231,7 +235,18 @@ def test_current_newborn_detachment_admits_standalone_destination(
         assert calls == [] and code == 2
         assert after == before
         assert current['sprint_id'] == 'S' and current['revision'] == 0
-        assert sorted(old_home.rglob('*')) == files_before and not new_home.exists()
+        view = json.loads(output.getvalue())
+        response = Path(view['response_path'])
+        assert view['status'] == 'rejected' and len(output.getvalue()) <= budget
+        assert response.is_relative_to(old_home / runtime.paths['runs'])
+        assert response.name == runtime.paths['response']
+        assert response.parent.parent == old_home / runtime.paths['runs']
+        full = json.loads(response.read_text())
+        assert full['status'] == 'rejected' and full['reason']
+        assert {path: path.read_bytes() for path in original_bytes} == original_bytes
+        assert set(old_home.rglob('*')) - set(files_before) == {
+            response, response.parent, response.parent.parent}
+        assert not new_home.exists()
     else:
         assert calls == [packet] and code == 0
         response = Path(json.loads(output.getvalue())['response_path'])

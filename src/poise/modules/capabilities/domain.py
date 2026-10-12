@@ -4,16 +4,12 @@ from dataclasses import dataclass
 import math
 from ..artifact_factory.domain import exact
 from ..foundation.errors import PoiseError
+from ..foundation.validation import nonempty
 
 
 def positive(value, label, integer=False):
     if type(value) not in ((int,) if integer else (int, float)) or not math.isfinite(value) or value <= 0:
         raise PoiseError(f'{label}: explicit positive finite number required')
-
-
-def nonempty(value, label):
-    if not isinstance(value, str) or not value.strip() or '\0' in value:
-        raise PoiseError(f'{label}: nonempty string required')
 
 
 def assertions(value):

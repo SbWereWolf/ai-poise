@@ -9,10 +9,10 @@ from pathlib import Path
 import shlex
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
 from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
-from ..modules.capabilities.domain import positive,nonempty
+from ..modules.capabilities.domain import positive
 from ..modules.runtime_adapter.domain import RuntimeIdentity
 from ..modules.session_establishment.domain import CallerIdentity
-from ..modules.foundation.validation import configuration_fields
+from ..modules.foundation.validation import configuration_fields, nonempty
 from ..application.capabilities import CapabilityChecks
 from ..application.hook_transport import HookCommands
 from ..application.work import WorkTools
@@ -29,6 +29,7 @@ class HookSettings:
 
     @classmethod
     def proposed(cls,path,document):
+        nonempty(str(path) if isinstance(path,Path) else path, 'hook settings_path')
         obj=cls.__new__(cls);obj.path=Path(path).resolve();obj.raw=deepcopy(document)
         obj._validate()
         return obj
@@ -40,7 +41,23 @@ class HookSettings:
             'cwd_roots','file_mode','executable_mode','lock_seconds','lock_poll_seconds','max_input_bytes',
             'output_chars','max_probes','exit_codes','probe_files'},'hook settings')
         if s['schema']!='hook-settings-1':raise PoiseError('Unsupported hook settings schema')
-        self.root=(self.path.parent/s['root']).resolve(strict=True)
+        for key in ('root','project_config','python','source_root','hooks_file','definitions',
+                    'state','lock','database','bindings','launcher','binding_file','observations','response_file'):
+            nonempty(s[key], 'hook settings.' + key)
+        files = configuration_fields(s['probe_files'],{'stdout','stderr','receipt'},'probe_files')
+        for key,value in files.items():nonempty(value, 'probe_files.' + key)
+        if len(set(files.values()))!=3:raise PoiseError('Probe files must be distinct')
+        codes = configuration_fields(s['exit_codes'],{'success','incomplete','rejected'},'exit_codes')
+        for key,value in codes.items():
+            if type(value) is not int or not 0<=value<=255:
+                raise PoiseError('exit_codes.' + key + ': integer CLI exit code required')
+        if len(set(codes.values()))!=3:raise PoiseError('Explicit distinct CLI exit codes required')
+        if not isinstance(s['cwd_roots'],list) or not s['cwd_roots']:raise PoiseError('Explicit cwd roots required')
+        for p in s['cwd_roots']:
+            nonempty(p, 'cwd_roots element')
+            if not Path(p).is_absolute():raise PoiseError('cwd_roots require absolute paths')
+        self.root=(self.path.parent/s['root']).resolve()
+        if not self.root.is_dir():raise PoiseError('hook settings.root: existing directory required')
         self.project_config=descendant(self.root,s['project_config'])
         self.hooks_file=descendant(self.root,s['hooks_file'])
         self.definitions=descendant(self.root,s['definitions'])
@@ -48,8 +65,6 @@ class HookSettings:
         self.database=descendant(self.state,s['database'])
         self.bindings=descendant(self.state,s['bindings'])
         self.observations=descendant(self.state,s['observations'])
-        files = configuration_fields(s['probe_files'],{'stdout','stderr','receipt'},'probe_files')
-        if len(set(files.values()))!=3:raise PoiseError('Probe files must be distinct')
         for name in files.values():descendant(self.state,name)
         for key in ('launcher','binding_file','response_file'):descendant(self.state,s[key])
         if s['launcher']==s['binding_file']:raise PoiseError('Binding and launcher filenames must differ')
@@ -57,7 +72,6 @@ class HookSettings:
             raise PoiseError('Definitions and operational state must have distinct roots')
         if self.hooks_file.is_relative_to(self.state):raise PoiseError('Native hooks must not live in ephemeral operational state')
         for key in ('python','source_root'):
-            nonempty(s[key],key)
             if not Path(s[key]).is_absolute():raise PoiseError(f'{key} must be an explicit absolute path')
         self.require_runtime()
         for key in ('max_input_bytes','output_chars','max_probes'):positive(s[key],key,True)
@@ -65,12 +79,6 @@ class HookSettings:
         for key in ('file_mode','executable_mode'):
             if type(s[key]) is not int or not 0<=s[key]<=0o777:raise PoiseError(f'{key}: explicit POSIX mode required')
         if not s['executable_mode'] & 0o100:raise PoiseError('Launcher mode must allow owner execution')
-        if not isinstance(s['cwd_roots'],list) or not s['cwd_roots']:raise PoiseError('Explicit cwd roots required')
-        for p in s['cwd_roots']:
-            if not isinstance(p,str) or not Path(p).is_absolute():raise PoiseError('cwd_roots require absolute paths')
-        codes = configuration_fields(s['exit_codes'],{'success','incomplete','rejected'},'exit_codes')
-        if len(set(codes.values()))!=3 or any(type(v) is not int or not 0<=v<=255 for v in codes.values()):
-            raise PoiseError('Explicit distinct CLI exit codes required')
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
 
@@ -138,6 +146,57 @@ def _read_definition(settings,path):
 
 class FileHookRepository:
     def __init__(self,settings,registry):self.settings,self.registry=settings,registry
+
+    def relocate(self, target, installation, request_id):
+        """Publish this installation under an already held project/source lease."""
+        import hashlib
+        import shutil
+        proposed = HookSettings.proposed(target['settings_path'], target['settings'])
+        source = self.settings
+        if proposed.raw == source.raw and proposed.path == source.path:
+            return installation['receipt']
+        if proposed.project_config != source.project_config:
+            raise PoiseError('Hook relocation cannot change project association')
+        definition_path = Path(installation['receipt']['definition_path'])
+        definition = _read_definition(source, definition_path)
+        if definition.data['id'] != target['installation_id']:
+            raise PoiseError('Hook relocation installation identity differs')
+        if proposed.definitions != source.definitions or proposed.hooks_file != source.hooks_file:
+            raise PoiseError('Hook relocation requires explicit unchanged definition/native-file owners')
+        if not proposed.state.exists():
+            shutil.copytree(source.state, proposed.state)
+        if not proposed.database.is_file():
+            raise PoiseError('Hook relocation requires the copied existing registry')
+        repository = FileHookRepository(proposed, HookRegistry(proposed))
+        desired = repository._groups(definition, definition_path)
+        with repository.registry.transaction() as db:
+            row = db.execute('SELECT data FROM installations WHERE id=?', (target['installation_id'],)).fetchone()
+            if row is None:
+                raise PoiseError('Copied hook installation identity is missing')
+            current = json.loads(row['data'])
+            if current['groups'] not in (installation['groups'], desired):
+                raise PoiseError('Copied hook installation changed before relocation')
+            native = read_document(source.hooks_file)
+            if all(native.get('hooks', {}).get(event, []).count(group) == 1 for event, group in desired):
+                candidate = native
+            else:
+                if any(native.get('hooks', {}).get(event, []).count(group) != 1
+                       for event, group in installation['groups']):
+                    raise PoiseError('Native hook groups changed before relocation')
+                candidate = merge_hook_document(native, installation['groups'], desired)
+            body = (json.dumps(candidate, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode()
+            receipt = {**installation['receipt'], 'revision': hashlib.sha256(body).hexdigest()}
+            if proposed.path.exists():
+                if read_document(proposed.path) != proposed.raw:
+                    raise PoiseError('Hook relocation settings destination conflicts')
+            else:
+                atomic_write(proposed.path, (json.dumps(proposed.raw, ensure_ascii=False, indent=2) + '\n').encode(),
+                             proposed.raw['file_mode'])
+            if source.hooks_file.read_bytes() != body:
+                atomic_write(source.hooks_file, body, proposed.raw['file_mode'])
+            db.execute('UPDATE installations SET data=? WHERE id=?',
+                       (encoded({'groups': desired, 'receipt': receipt}), target['installation_id']))
+            return receipt
 
     def revision(self):
         p=self.settings.hooks_file
@@ -306,7 +365,10 @@ class FileHookRepository:
 class HookService:
     """Composition boundary. Native events observe/bind; WorkTools alone changes work."""
     def __init__(self,settings_path):
-        self.settings=HookSettings(settings_path);self.registry=HookRegistry(self.settings)
+        from .project_resources import ProjectRuntimeFence
+        self.settings=HookSettings(settings_path)
+        self.project_fence=ProjectRuntimeFence(self.settings.project_config,hook_settings=self.settings)
+        self.registry=HookRegistry(self.settings,self.project_fence)
         self.repository=FileHookRepository(self.settings,self.registry)
         self.commands=HookCommands(self.repository)
 
@@ -316,12 +378,20 @@ class HookService:
         return HookDiagnostics(HookObservationPort(self)).invoke(packet)
 
     def revision(self):return self.repository.revision()
-    def install(self,packet):return self.commands.install(packet)
-    def reconcile(self,packet):return self.commands.reconcile(packet)
+    def install(self,packet):
+        with self.project_fence.locked():
+            return self.commands.install(packet)
+    def reconcile(self,packet):
+        with self.project_fence.locked():
+            return self.commands.reconcile(packet)
 
     def definition(self,path):return _read_definition(self.settings,path)
 
     def _bind(self,definition_path,event):
+        with self.project_fence.locked():
+            return self._bind_locked(definition_path,event)
+
+    def _bind_locked(self,definition_path,event):
         self.settings.require_runtime()
         definition=self.definition(definition_path)
         native=parse_native_event(event,definition)
@@ -386,6 +456,10 @@ class HookService:
     def latest_binding(self,external,agent):return self.registry.find(external,agent)
 
     def event(self,definition_path,event):
+        with self.project_fence.locked():
+            return self._event_locked(definition_path,event)
+
+    def _event_locked(self,definition_path,event):
         from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
         caller=CallerIdentity.native(binding['project'],binding['external_session'])

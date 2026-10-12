@@ -4,7 +4,8 @@ from dataclasses import dataclass
 import string
 import re
 from ..artifact_factory.domain import exact
-from ..capabilities.domain import ProbeSpec,positive,nonempty
+from ..capabilities.domain import ProbeSpec,positive
+from ..foundation.validation import nonempty
 from ..foundation.errors import PoiseError
 
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}

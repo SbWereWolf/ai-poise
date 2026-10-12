@@ -1,0 +1,146 @@
+[
+  {
+    "id": "poise_root-0",
+    "field": "poise_root",
+    "value": null
+  },
+  {
+    "id": "poise_root-1",
+    "field": "poise_root",
+    "value": ""
+  },
+  {
+    "id": "poise_root-2",
+    "field": "poise_root",
+    "value": []
+  },
+  {
+    "id": "data_root-0",
+    "field": "data_root",
+    "value": false
+  },
+  {
+    "id": "data_root-1",
+    "field": "data_root",
+    "value": ""
+  },
+  {
+    "id": "data_root-2",
+    "field": "data_root",
+    "value": {}
+  },
+  {
+    "id": "project_setup-0",
+    "field": "project_setup",
+    "value": null
+  },
+  {
+    "id": "project_setup-1",
+    "field": "project_setup",
+    "value": ""
+  },
+  {
+    "id": "project_setup-2",
+    "field": "project_setup",
+    "value": []
+  },
+  {
+    "id": "command-0",
+    "field": "command",
+    "value": "python"
+  },
+  {
+    "id": "command-1",
+    "field": "command",
+    "value": []
+  },
+  {
+    "id": "command-2",
+    "field": "command",
+    "value": [
+      123
+    ]
+  },
+  {
+    "id": "command-3",
+    "field": "command",
+    "value": [
+      ""
+    ]
+  },
+  {
+    "id": "overrides-0",
+    "field": "overrides",
+    "value": []
+  },
+  {
+    "id": "overrides-1",
+    "field": "overrides",
+    "value": {
+      "check": "python"
+    }
+  },
+  {
+    "id": "overrides-2",
+    "field": "overrides",
+    "value": {
+      "next": []
+    }
+  },
+  {
+    "id": "overrides-3",
+    "field": "overrides",
+    "value": {
+      "infra": [
+        123
+      ]
+    }
+  },
+  {
+    "id": "overrides-4",
+    "field": "overrides",
+    "value": {
+      "deps": [
+        ""
+      ]
+    }
+  },
+  {
+    "id": "exit_codes-0",
+    "field": "exit_codes",
+    "value": []
+  },
+  {
+    "id": "exit_codes-1",
+    "field": "exit_codes",
+    "value": {}
+  },
+  {
+    "id": "exit_codes-2",
+    "field": "exit_codes",
+    "value": {
+      "rejected": "2"
+    }
+  },
+  {
+    "id": "exit_codes-3",
+    "field": "exit_codes",
+    "value": {
+      "rejected": false
+    }
+  },
+  {
+    "id": "exit_codes-4",
+    "field": "exit_codes",
+    "value": {
+      "rejected": -1
+    }
+  },
+  {
+    "id": "exit_codes-5",
+    "field": "exit_codes",
+    "value": {
+      "rejected": 256
+    }
+  }
+]

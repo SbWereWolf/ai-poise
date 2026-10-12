@@ -8,6 +8,7 @@ class ArtifactMaterialResolver:
         self.delivery = delivery
 
     def resolve(self, source_task_id, records):
+        self.delivery.require_material_records(source_task_id, records)
         state = self.delivery.state(source_task_id)
         if state is None or not state.data['retirement_started']:
             return {r['id']: RegisteredArtifactMaterial.active(r) for r in records}

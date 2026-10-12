@@ -86,6 +86,7 @@ def start(project, marker=None, method=None):
     task['stage_contracts'] = [{
         'stage_id': 'implementation', 'allowed_paths': ['src/**'],
         'entry_requirements': [], 'exit_requirements': [],
+        'criteria': {'requirements': [], 'definition_of_ready': [], 'definition_of_done': []},
     }]
     task['decomposition']['phases'] = [{
         'stage': 'implementation', 'skills': ['task-domain'], 'areas': [],

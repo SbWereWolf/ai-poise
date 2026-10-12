@@ -178,17 +178,20 @@ def materialize_job(job_path):
 
 class ResultViews:
     """Async post-command hook, synchronously drained before a result is handed back."""
-    def __init__(self,config,journal):
+    def __init__(self,config,journal,materials=None):
         self.policy=OutputPolicy.parse(config);self.config=self.policy.data
         self.journal=journal;self.pending=[];self.incidents=[]
+        self.materials = materials
 
     def _incident(self,receipt_id,reason):
         item={'receipt_id':receipt_id,'component':'result_views','reason':reason}
         self.journal('incident.result_views',item);self.incidents.append(item)
 
-    def primary(self, receipt, directory):
+    def primary(self, receipt, directory, *, prepared=False):
         """Read a configured agent view without a worker or receipt mutation."""
         profile = self.policy.select(receipt['argv'])
+        if self.materials is not None and not prepared:
+            receipt = self.materials.physical_receipt(receipt)
         return OutputParser(profile, self.config['chunk_bytes']).render('primary', receipt, directory)
 
     def command_views(self, receipts, *, retired_ids=()):
@@ -240,13 +243,15 @@ class ResultViews:
         return ({**result, **required}, required,
                 self.command_views(receipts, retired_ids=retired_ids))
 
-    def capture(self,receipt,run_dir):
+    def capture(self,receipt,run_dir,*,prepared=False):
         c=self.config;directory=descendant(Path(run_dir),c['directory'])
         manifest=descendant(directory,c['manifest']);profile=self.policy.select(receipt['argv'])
         self.journal('parser.primary.start',{'receipt_id':receipt['id'],'profile':profile['id']})
         try:
+            if self.materials is not None and not prepared:
+                receipt = self.materials.physical_receipt(receipt)
             directory.mkdir(parents=True,exist_ok=True)
-            primary=self.primary(receipt,directory)
+            primary=self.primary(receipt,directory,prepared=True)
             job={'receipt':receipt,'profile':profile,'chunk_bytes':c['chunk_bytes'],'manifest':c['manifest'],'file_mode':c['file_mode']}
             jobpath=descendant(directory,c['job']);atomic_write(jobpath,(encoded(job)+'\n').encode(),c['file_mode'])
             atomic_write(manifest,(encoded({'status':'pending','receipt_id':receipt['id'],'profile':profile['id'],'representations':{}})+'\n').encode(),c['file_mode'])

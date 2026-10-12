@@ -22,6 +22,17 @@ def test_setup_creates_independent_runtime_config_without_task_or_git_mutation(p
     source=project['root']/req['template']['id'] # actual copy, not symlink
     assert (root/cfg['processes']['development']).is_file()
     assert not (root/cfg['processes']['development']).is_symlink()
+    # This scenario intentionally creates a second project. Supply its own
+    # association after the setup-only assertions, before ordinary runtime use.
+    from .helpers import bootstrap_fixture_resources
+    if 'runtime_resources' in cfg:
+        # The selected blueprint explicitly carries association data; setup
+        # publishes it unchanged. Verify its actual configured owner instead.
+        assert cfg['runtime_resources']['project_setup'] == str(settings)
+        listed = project_tools(settings).list()
+        assert any(item['config_path'] == result['config_path'] for item in listed['projects'])
+    else:
+        cfg = bootstrap_fixture_resources(settings, Path(result['config_path']))
     seed_fixture_requirements(root, cfg)
     response=WorkTools(Poise(result['config_path'],'pilot')).invoke({'operation':'bootstrap','input':{'task':project['task'],'decision':None,'feedback':None,'rework_stage':None},'messages':[]})
     assert response['task']=='T1' and response['stage']=='tests'

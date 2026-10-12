@@ -1,5 +1,6 @@
 """Confined, non-overwriting file publication. No task lifecycle writes."""
 from dataclasses import dataclass
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 import os
 import hashlib
@@ -23,10 +24,17 @@ class PreparedFile:
 
 
 class FileArtifactFactory:
-    def __init__(self, roots, config, lock, wait, poll):
+    def __init__(self, roots, config, lock, wait, poll, project_fence=None):
         self.roots=dict(roots)
         self.config=config
         self.lock,self.wait,self.poll=lock,wait,poll
+        self.project_fence=project_fence
+
+    @contextmanager
+    def _locked(self):
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with exclusive_lock(self.lock, self.wait, self.poll):
+                yield
 
     def _observe_destination(self, scope, name, *, directory):
         if scope not in self.roots:
@@ -90,7 +98,7 @@ class FileArtifactFactory:
             raise PoiseError(f'Artifact source file missing or unreadable: {path}: {exc}') from exc
 
     def materialize(self, prepared):
-        with exclusive_lock(self.lock,self.wait,self.poll):
+        with self._locked():
             # Validate the entire batch again before publishing any member.
             for item in prepared:
                 if item.source is not None and self._source_bytes(item.source) != item.content:
@@ -214,7 +222,7 @@ class FileArtifactFactory:
         """One non-overwriting binary publication path for recovery and delivery."""
         completed = []
         try:
-            with exclusive_lock(self.lock, self.wait, self.poll):
+            with self._locked():
                 planned = self._registered_plan(records, source_roots, owners, materials)
                 if destination_owners is not None:
                     # Validate all owner mappings before the first file effect.

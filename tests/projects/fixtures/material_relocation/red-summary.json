@@ -1,0 +1,1 @@
+{"collected":["tests/projects/test_state_material_relocation.py::test_receipt_readback_after_source_retirement"],"errors":[],"exit_code":1,"failed":["tests/projects/test_state_material_relocation.py::test_receipt_readback_after_source_retirement"],"passed":[]}

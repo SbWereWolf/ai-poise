@@ -24,7 +24,8 @@ class WorkResources:
             sprint=h.sprint_tools.overview(None)
             if sprint is not None:roots['sprint']=descendant(h.state,h.paths['sprints'])/sprint['sprint']
         return FileArtifactFactory(roots,h.cfg['batch'],descendant(h.state,h.cfg['batch']['artifact_lock']),
-                                   h.cfg['limits']['lock_seconds'],h.cfg['limits']['lock_poll_seconds'])
+                                   h.cfg['limits']['lock_seconds'],h.cfg['limits']['lock_poll_seconds'],
+                                   h.project_fence)
 
     def recover_artifacts(self, request):
         h = self.runtime
@@ -42,7 +43,7 @@ class WorkResources:
                 roots['sprint'] = sprint_root(h.state,h.paths,snapshot['sprint_id'])
             factory = FileArtifactFactory(roots,h.cfg['batch'],
                 descendant(h.state,h.cfg['batch']['artifact_lock']),
-                h.cfg['limits']['lock_seconds'],h.cfg['limits']['lock_poll_seconds'])
+                h.cfg['limits']['lock_seconds'],h.cfg['limits']['lock_poll_seconds'],h.project_fence)
             published = factory.recover_registered(snapshot['records'],intent.source_roots,snapshot['owners'])
             return registry.rebind(intent,digest,snapshot['records'],published,h.session)
 

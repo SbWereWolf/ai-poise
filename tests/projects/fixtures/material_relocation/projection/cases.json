@@ -1,0 +1,118 @@
+[
+  {
+    "id": "pass",
+    "source": "pass.py",
+    "effective_exit": 0,
+    "pytest_exit": 0,
+    "errors": false,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "skip",
+    "source": "skip.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "xfail",
+    "source": "xfail.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "xpass",
+    "source": "xpass.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "setup",
+    "source": "setup.py",
+    "effective_exit": 1,
+    "pytest_exit": 1,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "empty",
+    "source": "empty.py",
+    "effective_exit": 5,
+    "pytest_exit": 5,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "syntax",
+    "source": "invalid-source.txt",
+    "effective_exit": 2,
+    "pytest_exit": 2,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ]
+  },
+  {
+    "id": "inventory",
+    "source": "pass.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe",
+      "test_probe.py::test_missing_obligation"
+    ]
+  },
+  {
+    "id": "collect-only",
+    "source": "pass.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe"
+    ],
+    "addopts": "--collect-only"
+  },
+  {
+    "id": "incomplete-success",
+    "source": "two.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe",
+      "test_probe.py::test_second"
+    ],
+    "plugin": "partial_success.py"
+  },
+  {
+    "id": "duplicate-success",
+    "source": "pass.py",
+    "effective_exit": 2,
+    "pytest_exit": 0,
+    "errors": true,
+    "expected_nodes": [
+      "test_probe.py::test_probe",
+      "test_probe.py::test_probe"
+    ],
+    "plugin": "duplicate.py"
+  }
+]

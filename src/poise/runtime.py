@@ -102,9 +102,12 @@ class Poise:
             )
         self.config_hash = digest(self.cfg)
         limits = self.cfg['limits']
+        from .infrastructure.project_resources import ProjectRuntimeFence
+        self.project_fence = ProjectRuntimeFence(self.config_path, self.state)
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
-                           limits['lock_seconds'], limits['lock_poll_seconds'], self.processes)
+                           limits['lock_seconds'], limits['lock_poll_seconds'], self.processes,
+                           self.project_fence)
         from .infrastructure.repository_tree import GitRepositoryTree
         repository_tree = GitRepositoryTree(
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
@@ -120,6 +123,7 @@ class Poise:
             configured_storage_path(self.state, self.paths['requirements_lock']),
             limits['lock_seconds'],
             limits['lock_poll_seconds'],
+            self.project_fence,
         )
         self.requirements_commands = RequirementsCommands(
             self.requirements_store,
@@ -144,6 +148,8 @@ class Poise:
         self.ownership = BoundOwnership(ownership_commands, self.session)
         self.runner = StageRunner(self.task_commands)
         self.evidence_commands = EvidenceCommands(self.store.unit_of_work)
+        from .infrastructure.saved_materials import SavedMaterialReader
+        self.saved_materials = SavedMaterialReader(self.store.path)
         from .infrastructure.sqlite.interactions import InteractionStore
         from .infrastructure.work import WorkResources
         self.interactions=InteractionStore(self.store.database,self.cfg['project'],self.cfg['batch'])
@@ -160,6 +166,7 @@ class Poise:
             descendant(self.state,telemetry_storage['lock']),
             limits['lock_seconds'],
             limits['lock_poll_seconds'],
+            self.project_fence,
         )
         self.accounting=AccountingCommands(RuntimeAccounting(self,telemetry_database))
         from .application.telemetry import OptionalTelemetry
@@ -170,7 +177,8 @@ class Poise:
             from .infrastructure.telemetry_spool import TelemetrySpool
             delivery=self.cfg['telemetry_delivery']
             self.telemetry_delivery=TelemetrySpool(
-                self.state / delivery['directory'], delivery['policy'], process_telemetry)
+                self.state / delivery['directory'], delivery['policy'], process_telemetry,
+                project_fence=self.project_fence)
             process_telemetry=self.telemetry_delivery
         self.telemetry=OptionalTelemetry(
             clock,
@@ -186,7 +194,8 @@ class Poise:
         from .infrastructure.actions import RuntimePlanActions
         self.plan_actions=RuntimePlanActions(self)
         from .infrastructure.result_views import ResultViews
-        self.result_views=ResultViews(self.cfg['runtime_services']['output'],self._result_event)
+        self.result_views=ResultViews(self.cfg['runtime_services']['output'],self._result_event,
+                                     self.saved_materials)
         self.check_runner=RegisteredCheckRunner(limits['preview_chars'])
         self.check_timeout_policy=RunnerTimeoutPolicy.parse(self.cfg['runtime_services']['check_runner'])
         from .infrastructure.handoff import LocalHandoff
@@ -899,10 +908,11 @@ class Poise:
                  'task': task_root(self.state, self.paths, task['id'], task['sprint_id'])}
         if task['sprint_id'] is not None:
             roots['sprint'] = sprint_root(self.state, self.paths, task['sprint_id'])
-        for path in roots.values():
-            if path.is_symlink():
-                raise PoiseError('Корень владельца артефактов не может быть symlink')
-            path.mkdir(parents=True, exist_ok=True)
+        with self.project_fence.locked():
+            for path in roots.values():
+                if path.is_symlink():
+                    raise PoiseError('Корень владельца артефактов не может быть symlink')
+                path.mkdir(parents=True, exist_ok=True)
         return roots
 
     def _context(self, data: dict, prepare: bool, *, force_duplicate_start=False) -> dict:
@@ -1363,6 +1373,7 @@ class Poise:
         if 'sprint' in roots: owners['sprint'] = data['sprint_id']
         records = self._inspect_artifacts(data, submitted, roots, owners)
         previous = self.store.artifact_records(data['id'])
+        internal_materials = self.store.internal_material_ids(data['id'])
         delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
         if delivery is not None:
             omitted = set(delivery['manifest']['omitted_artifacts'])
@@ -1392,7 +1403,8 @@ class Poise:
                 if draft['digest'] != old['digest']:
                     raise PoiseError('Editable artifact draft registry digest is inconsistent')
                 current['_draft_previous_digest']=old['digest']
-            merged[(old['scope'],old['path'])] = current
+            if old['id'] not in internal_materials or current['path'] in submitted_paths:
+                merged[(old['scope'],old['path'])] = current
         return list(merged.values())
 
     def _artifact_facts(self, records: list[dict]) -> tuple[ArtifactFact, ...]:
@@ -1849,8 +1861,11 @@ class Poise:
                         return False
             method=invocation['method']
             if 'artifact_inputs' in method and r.get('passed') is True:
+                task = self.task_queries.record(task_id)
+                retained_method = next(item for item in task['contract']['methods']
+                                       if item['id'] == method['id'])
                 self.retention.validate_receipt(
-                    self.task_queries.record(task_id), r, invocation['commit'], method,
+                    task, r, invocation['commit'], retained_method,
                 )
             expected={
                 'argv': method['argv'],
@@ -1871,8 +1886,11 @@ class Poise:
                 return False
         return True
 
-    @staticmethod
-    def _receipt_files_intact(receipt, method):
+    def _receipt_files_intact(self, receipt, method):
+        try:
+            receipt = self.saved_materials.physical_receipt(receipt)
+        except (PoiseError, OSError, ValueError):
+            return False
         systems = receipt.get('systems')
         if not isinstance(systems, dict) or set(systems) not in (set(), {'poise', 'project'}):
             return False
@@ -2019,13 +2037,22 @@ class Poise:
                 receipt[field]=invocation[field]
             if passed:
                 try:
-                    self.retention.create(data, method, receipt, invocation['commit'], tree)
+                    retained_method = next(item for item in data['contract']['methods']
+                                           if item['id'] == method['id'])
+                    self.retention.create(data, retained_method, receipt, invocation['commit'], tree)
                 except Exception:
                     self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
                     raise
-            presentation=self.result_views.capture(receipt,run_dir)
+            presentation=self.result_views.capture(receipt,run_dir,prepared=True)
             receipt['preview']=presentation['primary']
             receipt['presentation']={k:v for k,v in presentation.items() if k!='status'}
+            from .infrastructure.saved_materials import bind_receipt_materials
+            roots = self._roots(data)
+            owners = {'task': data['id'], 'runtime': self.session}
+            if data['sprint_id'] is not None:
+                owners['sprint'] = data['sprint_id']
+            with self.store.transaction() as db:
+                bind_receipt_materials(db, data['id'], receipt, roots, owners, self.session)
             self.evidence_commands.record_receipt(data['id'],self.session,stage['id'],data['iteration'],receipt)
             receipts.append(receipt)
             self.store.event(self.session,data['id'],'check.finished',{'run':run_id,'passed':passed,'exit':result['actual_exit_code']})
@@ -2146,16 +2173,21 @@ class Poise:
         receipt=next((x for x in records if x['id']==receipt_id),None)
         if receipt is None or 'presentation' not in receipt:
             raise PoiseError('No command presentation for current task and receipt')
+        # Display representations are disposable derivatives of authenticated
+        # saved streams. Rebuild through the common parser in this session's
+        # current runtime, never rewrite historical receipt/display paths.
+        root = self.runtime.resolve()
+        publication = self.result_views.capture(receipt, descendant(root, receipt_id))
         self.result_views.finish()
-        root=self._roots(data)['task'].resolve()
-        if receipt['presentation']['manifest'] is None:raise PoiseError('View storage unavailable; original command output remains in receipt')
-        manifest=Path(self.task_queries.resolve_path(data['id'],receipt['presentation']['manifest'])).resolve()
-        if not manifest.is_relative_to(root):raise PoiseError('Presentation outside current task')
+        if publication.get('manifest') is None:
+            raise PoiseError('View storage unavailable; original command output remains in receipt')
+        manifest = Path(publication['manifest']).resolve()
+        if not manifest.is_relative_to(root):raise PoiseError('Presentation outside current runtime')
         state=read_json(manifest)
         if state['status']!='ready':raise PoiseError('Presentation is not ready; see recorded parser incident')
         if representation not in state['representations']:raise PoiseError('Unknown representation')
         item=state['representations'][representation]
-        path=Path(self.task_queries.resolve_path(data['id'],item['path'])).resolve()
+        path=Path(item['path']).resolve()
         if not path.is_relative_to(root) or file_digest(path)!=item['digest']:raise PoiseError('Presentation changed')
         # Explicit range selection is bounded by the existing initial read policy.
         from .infrastructure.result_views import read_output_range

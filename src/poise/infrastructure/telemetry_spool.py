@@ -1,5 +1,5 @@
 """Optional durable delivery, called by the existing asynchronous dispatcher only."""
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 import math
@@ -22,10 +22,11 @@ class TelemetrySpool:
     never a prerequisite for a work result. Status never creates storage.
     """
 
-    def __init__(self, directory, policy, process, *, now=time.time):
+    def __init__(self, directory, policy, process, *, now=time.time, project_fence=None):
         self.directory = Path(directory)
         self.policy = TelemetryDeliveryPolicy.parse(policy)
         self.process, self.now = process, now
+        self.project_fence = project_fence
 
     def _time(self):
         value = self.now()
@@ -35,6 +36,12 @@ class TelemetrySpool:
 
     @contextmanager
     def _lock(self, name):
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with self._directory_lock(name):
+                yield
+
+    @contextmanager
+    def _directory_lock(self, name):
         if self.directory.is_symlink():
             raise PoiseError('Delivery directory must not be a symlink')
         self.directory.mkdir(parents=True, exist_ok=True)

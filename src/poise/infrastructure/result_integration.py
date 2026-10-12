@@ -203,6 +203,12 @@ class RuntimeResultIntegration:
         return record, run, repository
 
     def _save(self, task_id, run, expected_version):
+        if run.checks:
+            record = self.h.task_queries.record(task_id)
+            roots = self.h._roots(record)
+            owners = {'task': task_id}
+            if 'sprint' in roots:
+                owners['sprint'] = record['sprint_id']
         paths = []
         for check in run.checks:
             if 'acceptance_manifest' in check:
@@ -222,6 +228,9 @@ class RuntimeResultIntegration:
             data["pending"] = run.to_storage()
             uow.artifacts.link_task(task_id, records)
             uow.execution.save(task_id, data, version)
+            from .saved_materials import bind_receipt_materials
+            for check in run.checks:
+                bind_receipt_materials(uow.artifacts.db, task_id, check, roots, owners, self.h.session)
         self.h.store.event(
             self.h.session, task_id, "result_integration.state",
             {"request_id": run.intent.request_id, "status": run.status,
@@ -589,7 +598,7 @@ class RuntimeResultIntegration:
                 "stderr_digest": file_digest(Path(result["stderr"])),
             }
             try:
-                receipt['preview'] = self.h.result_views.primary(receipt, run_dir)
+                receipt['preview'] = self.h.result_views.primary(receipt, run_dir, prepared=True)
             except (PoiseError, OSError, ValueError) as exc:
                 receipt['preview'] = ''
                 receipt['preview_errors'] = {**receipt.get('preview_errors', {}),

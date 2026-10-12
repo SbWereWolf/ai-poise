@@ -2,6 +2,14 @@
 from .errors import PoiseError
 
 
+def nonempty(value, label):
+    """Validate text before consumers use it as a path, key or operand."""
+    if not isinstance(value, str) or not value.strip():
+        raise PoiseError(f'{label}: nonempty string required')
+    if '\0' in value:
+        raise PoiseError(f'{label}: NUL is not allowed')
+
+
 def configuration_fields(value, keys, where, error_type=PoiseError):
     """Select supported configuration options, without weakening packet schemas."""
     if not isinstance(value, dict):

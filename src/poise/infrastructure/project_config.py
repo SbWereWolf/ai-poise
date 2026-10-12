@@ -52,6 +52,77 @@ class FileProjectConfigUpdate:
     def __init__(self, settings: ProjectSettings):
         self.settings = settings
 
+    def bootstrap_runtime_resources(self, request):
+        """Publish the first association using only the explicit setup owner."""
+        from .project_resources import require_project_association, observe_hook_association
+        settings = self.settings
+        config_path = self._config_path(request['config_path'])
+        receipt = self._receipt(settings.root, request['receipt_path'])
+        pending_path = receipt.with_name(receipt.name + '.pending')
+        request_digest = digest(request)
+        try:
+            with exclusive_lock(settings.lock, settings.raw['lock_seconds'],
+                                settings.raw['lock_poll_seconds']):
+                root, config, processes = load_config(config_path)
+                resources = request['runtime_resources']
+                require_project_association(settings, config_path, config, resources)
+                state = configured_root(root, config['paths']['state'])
+                if any(path.is_relative_to(state) for path in
+                       (settings.lock, settings.path, settings.registry, receipt)):
+                    raise PoiseError('Bootstrap authority, fence and receipt must remain outside mutable state')
+                for item in resources['hooks']:
+                    observe_hook_association(item, config_path)
+                revision = digest({'config': config, 'processes': processes})
+                if receipt.is_file():
+                    saved = read_document(receipt)
+                    if (saved.get('request_digest') != request_digest or
+                            saved['result']['after_revision'] != revision):
+                        raise VersionConflict('Bootstrap request or live project revision changed')
+                    return {**saved['result'], 'replayed': True}
+                pending = read_document(pending_path) if pending_path.is_file() else None
+                if pending is not None:
+                    if (pending.get('request_digest') != request_digest or
+                            revision not in (pending['before_revision'], pending['after_revision'])):
+                        raise VersionConflict('Bootstrap pending publication conflicts with live project')
+                    candidate = pending['candidate']
+                    if candidate.get('runtime_resources') != resources:
+                        raise VersionConflict('Bootstrap pending association changed')
+                else:
+                    if 'runtime_resources' in config:
+                        raise PoiseError('Runtime resources association already exists')
+                    if (revision != request['expected_revision'] or
+                            revision not in self._known_revisions(root)):
+                        raise VersionConflict('Bootstrap project revision is not the expected known revision')
+                    candidate = deepcopy(config)
+                    candidate['runtime_resources'] = deepcopy(resources)
+                    self._validate_candidate(root, candidate, processes)
+                    pending = {'schema': 'project-runtime-resources-bootstrap-pending-1',
+                               'request_digest': request_digest,
+                               'before_revision': revision,
+                               'after_revision': digest({'config': candidate, 'processes': processes}),
+                               'candidate': candidate}
+                    atomic_write(pending_path, encoded(pending, settings.raw['json_indent']),
+                                 settings.raw['file_mode'])
+                if revision == pending['before_revision']:
+                    atomic_write(config_path, encoded(candidate, settings.raw['json_indent']),
+                                 settings.raw['file_mode'])
+                _, final_config, final_processes = load_config(config_path)
+                after = digest({'config': final_config, 'processes': final_processes})
+                if after != pending['after_revision']:
+                    raise VersionConflict('Bootstrap published project revision changed')
+                result = {'schema': 'project-runtime-resources-bootstrap-result-1',
+                          'status': 'completed', 'request_id': request['request_id'],
+                          'config_path': str(config_path), 'prior_revision': pending['before_revision'],
+                          'revision': after, 'before_revision': pending['before_revision'],
+                          'after_revision': after, 'replayed': revision != pending['before_revision']}
+                atomic_write(receipt, encoded({'schema': 'project-config-receipt-1',
+                             'request_digest': request_digest, 'request_id': request['request_id'],
+                             'result': result}, settings.raw['json_indent']), settings.raw['file_mode'])
+                pending_path.unlink(missing_ok=True)
+                return result
+        except OSError as exc:
+            raise PoiseError(f'Bootstrap publication interrupted; retry the same request: {exc}') from exc
+
     def _config_path(self, value):
         path = Path(value).resolve()
         if not path.is_file() or not path.is_relative_to(self.settings.root):
@@ -164,9 +235,11 @@ class FileProjectConfigUpdate:
             manifest.write_bytes(encoded(config, self.settings.raw["json_indent"]))
             validate_candidate_config(manifest, root)
 
-    def _relocation_state(self, config_path, config, move):
-        if not isinstance(move, dict) or set(move) != {"expected_source", "destination", "source_disposition"}:
-            raise PoiseError("state relocation requires exact fields")
+    def _relocation_state(self, config_path, config, move, recovering=False):
+        if not isinstance(move, dict) or set(move) != {"schema", "expected_source", "destination", "source_disposition", "hook_destinations"}:
+            raise PoiseError("state relocation requires exact versioned fields")
+        if move["schema"] != "project-state-relocation-1" or not isinstance(move["hook_destinations"], list):
+            raise PoiseError("Unsupported state relocation schema or hook destinations")
         source = Path(move["expected_source"]).resolve()
         destination = Path(move["destination"]).resolve()
         disposition = move["source_disposition"]
@@ -177,7 +250,7 @@ class FileProjectConfigUpdate:
         already_switched = configured == destination
         if not already_switched and configured != source:
             raise VersionConflict("State source does not match live configuration")
-        if destination.exists() and not already_switched:
+        if destination.exists() and not already_switched and not recovering:
             if not source.exists() or not same_tree(source, destination):
                 raise PoiseError("State destination must be absent or verified recovery data")
         if not source.exists() and not (already_switched and destination.is_dir()):
@@ -188,33 +261,13 @@ class FileProjectConfigUpdate:
     def _staging_path(destination):
         return destination.parent / f".{destination.name}.project-update"
 
-    def _relocate(self, config_path, live_config, candidate_config, move, locks, recovering):
-        source, destination, disposition, already_switched = self._relocation_state(
-            config_path, live_config, move
-        )
-        staging = self._staging_path(destination)
-        if not destination.exists():
-            if staging.exists():
-                if not recovering:
-                    raise PoiseError("State relocation staging already exists; refusing unverified deletion")
-                shutil.rmtree(staging)
-            copy_state_tree(source, staging)
-            publish_state_tree(staging, destination)
-        if source.exists() and not same_tree(source, destination):
-            raise PoiseError("Relocated state verification failed")
-        if not already_switched:
-            destination_lock = descendant(destination, candidate_config["paths"]["lock"])
-            locks.enter_context(exclusive_lock(
-                destination_lock,
-                self.settings.raw["lock_seconds"],
-                self.settings.raw["lock_poll_seconds"],
-            ))
-        candidate_config["paths"]["state"] = str(destination)
-        switch_project_config(config_path, encoded(candidate_config, self.settings.raw["json_indent"]), self.settings.raw["file_mode"])
-        if disposition == "delete_after_publish" and source.exists():
-            remove_source_state(source)
-        return {"status": "completed", "source_disposition": disposition,
-                "source": str(source), "destination": str(destination)}
+    def _relocate(self, config_path, live_config, candidate_config, move, locks, recovering,
+                  pending_path, request):
+        from ..application.project_state_relocation import ProjectStateRelocation
+        from .project_state_relocation import FileProjectStateRelocation
+        return ProjectStateRelocation(FileProjectStateRelocation(
+            self, config_path, live_config, candidate_config, move, locks, pending_path, request,
+        )).run()
 
     def apply(self, request):
         settings = self.settings
@@ -237,6 +290,13 @@ class FileProjectConfigUpdate:
                     if saved.get("request_digest") != request_digest:
                         raise VersionConflict("Different request uses the same request receipt")
                     return {**saved["result"], "replayed": True}
+                # A completed receipt replays without re-admitting retired inputs.
+                # New and pending effects require complete settings validation
+                # before the publication intent or any relocated-store lease.
+                if request['state_relocation'] is not None:
+                    from .hook_transport import HookSettings
+                    for target in request['state_relocation']['hook_destinations']:
+                        HookSettings.proposed(target['settings_path'], target['settings'])
                 replayed = False
                 if pending_path.is_file():
                     pending = read_document(pending_path)
@@ -253,22 +313,26 @@ class FileProjectConfigUpdate:
                     raise VersionConflict("Live project differs from the expected known revision")
                 if request["state_relocation"] is not None:
                     _, destination, _, _ = self._relocation_state(
-                        config_path, live_config, request["state_relocation"]
+                        config_path, live_config, request["state_relocation"], replayed
                     )
                     if not replayed and self._staging_path(destination).exists():
                         raise PoiseError(
                             "State relocation staging already exists; refusing unverified deletion"
                         )
                 state = configured_root(root, live_config["paths"]["state"])
-                if request['state_relocation'] is not None:
+                moving = request['state_relocation'] is not None
+                if moving:
+                    state = Path(request['state_relocation']['expected_source']).resolve()
+                if moving and state.exists():
                     locks.enter_context(exclusive_lock(
                         descendant(state, live_config['batch']['artifact_lock']),
                         live_config['limits']['lock_seconds'], live_config['limits']['lock_poll_seconds']))
                 state_lock = descendant(state, live_config["paths"]["lock"])
-                locks.enter_context(exclusive_lock(
-                    state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
-                ))
-                if request['state_relocation'] is not None:
+                if not moving or state.exists():
+                    locks.enter_context(exclusive_lock(
+                        state_lock, settings.raw["lock_seconds"], settings.raw["lock_poll_seconds"]
+                    ))
+                if moving and state.exists():
                     # Task status is not a writer barrier: freeze the actual
                     # Requirements and asynchronous telemetry stores while copying.
                     for value in (live_config['paths']['requirements_lock'],
@@ -280,6 +344,11 @@ class FileProjectConfigUpdate:
                 candidate_processes = self._processes(live_processes, request["process_updates"])
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
+                    if 'runtime_resources' not in candidate_config:
+                        raise PoiseError('State relocation requires explicit runtime resources association')
+                    candidate_config['runtime_resources']['hooks'] = [
+                        {'installation_id': item['installation_id'], 'settings_path': item['settings_path']}
+                        for item in request['state_relocation']['hook_destinations']]
                 component_digests = lambda config, processes: {
                     "config": digest(config),
                     "processes": {goal: digest(value) for goal, value in processes.items()},
@@ -309,7 +378,7 @@ class FileProjectConfigUpdate:
                 if request["state_relocation"] is not None:
                     relocation = self._relocate(
                         config_path, live_config, candidate_config, request["state_relocation"],
-                        locks, replayed,
+                        locks, replayed, pending_path, request,
                     )
                 elif candidate_config != live_config:
                     atomic_write(config_path, encoded(candidate_config, settings.raw["json_indent"]), settings.raw["file_mode"])

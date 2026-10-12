@@ -12,8 +12,8 @@ from .infrastructure.sqlite.artifacts import SqliteArtifactRepository
 
 class Store:
     """Composition/receipt facade of the original slice; no Task lifecycle writes."""
-    def __init__(self, database: Path, lock: Path, wait: float, poll: float, processes: dict):
-        self.database=Database(database,lock,wait,poll)
+    def __init__(self, database: Path, lock: Path, wait: float, poll: float, processes: dict, project_fence=None):
+        self.database=Database(database,lock,wait,poll,project_fence)
         self.path=database
         self.processes=processes
         self.queries=TaskQueries(self.database)
@@ -54,6 +54,10 @@ class Store:
     def artifact_records(self, task_id: str) -> list[dict]:
         with self.transaction() as db:
             return SqliteArtifactRepository(db).records(task_id)
+
+    def internal_material_ids(self, task_id: str) -> set[str]:
+        with self.transaction() as db:
+            return SqliteArtifactRepository(db).internal_material_ids(task_id)
 
     def artifact_drafts(self, task_id: str) -> dict[str,dict]:
         with self.transaction() as db:

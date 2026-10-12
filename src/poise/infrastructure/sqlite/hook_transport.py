@@ -1,16 +1,24 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded
 from .transaction import write_transaction
 
 
 class HookRegistry:
-    def __init__(self,settings):self.settings=settings
+    def __init__(self,settings,project_fence=None):
+        self.settings=settings
+        self.project_fence=project_fence
 
     @contextmanager
     def transaction(self):
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with self._transaction() as db:
+                yield db
+
+    @contextmanager
+    def _transaction(self):
         s=self.settings
         with write_transaction(s.database,s.lock,s.raw['lock_seconds'],s.raw['lock_poll_seconds']) as db:
             version=db.execute('PRAGMA user_version').fetchone()[0]
@@ -60,14 +68,18 @@ class HookRegistry:
         return matches[0]
 
     def liveness(self, binding):
-        from ...modules.ownership.domain import Liveness
         with self.transaction() as db:
-            known=db.execute('SELECT 1 FROM bindings WHERE id=?',(binding,)).fetchone()
-            if known is None:return Liveness.UNCERTAIN
-            row=db.execute(
-                'SELECT event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
-                (binding,),
-            ).fetchone()
+            return self.binding_liveness(db, binding)
+
+    @staticmethod
+    def binding_liveness(db, binding):
+        from ...modules.ownership.domain import Liveness
+        known=db.execute('SELECT 1 FROM bindings WHERE id=?',(binding,)).fetchone()
+        if known is None:return Liveness.UNCERTAIN
+        row=db.execute(
+            'SELECT event FROM hook_events WHERE binding=? ORDER BY id DESC LIMIT 1',
+            (binding,),
+        ).fetchone()
         if row is None:return Liveness.UNCERTAIN
         return Liveness.DEAD if row[0]=='SessionEnd' else Liveness.LIVE
 

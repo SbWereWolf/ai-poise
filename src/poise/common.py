@@ -222,7 +222,10 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
     if state.is_relative_to(final_manifest) or final_manifest.is_relative_to(state):
         raise PoiseError('Mutable state root overlaps the project manifest')
     for key in ('database','lock','runtime','standalone_tasks','sprints'):
-        descendant(state, cfg['paths'][key])
+        try:
+            descendant(state, cfg['paths'][key])
+        except PoiseError as exc:
+            raise PoiseError(f'paths.{key}: {exc}') from exc
     requirements_storage = [
         configured_storage_path(state, cfg['paths'][key])
         for key in ('requirements_database', 'requirements_lock')

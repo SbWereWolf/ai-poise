@@ -173,6 +173,56 @@ def test_bootstrap_completion_admits_terminal_response_before_accepting(
         assert len(output.getvalue()) <= 2200
 
 
+@pytest.mark.parametrize('ids', [None, 1, 'D'])
+def test_invalid_detachment_saves_rejection_without_business_changes(project, ids):
+    setup_sprints(project)
+    runtime = WorkPoise(project['config_path'], 'r')
+    runtime.sprint_tools.apply({'action': 'draft', 'sprint_id': 'S',
+        'request_id': 'initial-sprint', 'expected_revision': None,
+        'template': {'id': 'basic', 'version': '1'}, 'changes': []})
+    born = runtime.task_action({'action': 'create', 'task_id': 'D',
+        'sprint_id': 'S', 'request_id': 'initial-member'})
+    assert born['revision'] == 0 and born['sprint_revision'] == 2
+    old_home = runtime.state / runtime.paths['sprints'] / 'S' / 'task' / 'D'
+    new_home = runtime.state / runtime.paths['standalone_tasks'] / 'D'
+    old_home.mkdir(parents=True, exist_ok=True)
+    material = old_home / 'owned.txt'
+    material.write_bytes(b'preserved Task material\n')
+    files_before = set(old_home.rglob('*'))
+
+    def rows():
+        with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+            return (db.execute('SELECT status, claimed_by, version, metadata FROM tasks '
+                               'WHERE id=?', ('D',)).fetchone(),
+                    db.execute('SELECT revision, data FROM sprints WHERE id=?',
+                               ('S',)).fetchone(),
+                    db.execute('SELECT request_id, digest, data FROM sprint_requests '
+                               'WHERE sprint_id=? ORDER BY request_id', ('S',)).fetchall())
+
+    before = rows()
+    packet = request('sprint', {'action': 'draft', 'sprint_id': 'S',
+        'request_id': 'invalid-detach', 'expected_revision': 2, 'template': None,
+        'changes': [{'kind': 'remove_tasks', 'ids': ids}]})
+    output = io.StringIO()
+    code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    assert code == 2 and rows() == before
+    current = runtime.current_task()
+    assert current['id'] == 'D' and current['claimed_by'] == runtime.session
+    assert current['sprint_id'] == 'S' and current['revision'] == 0
+    view = json.loads(output.getvalue())
+    assert view['status'] == 'rejected' and len(output.getvalue()) <= 2200
+    response = Path(view['response_path'])
+    assert response.parent.parent == old_home / runtime.paths['runs']
+    assert response.name == runtime.paths['response']
+    full = json.loads(response.read_text())
+    assert full['status'] == 'rejected'
+    assert full['reason'] == 'remove_tasks requires unique IDs'
+    assert material.read_bytes() == b'preserved Task material\n'
+    assert set(old_home.rglob('*')) - files_before == {
+        response, response.parent, response.parent.parent}
+    assert not new_home.exists()
+
+
 @pytest.mark.parametrize('sufficient', [False, True])
 def test_current_newborn_detachment_admits_standalone_destination(
         project, monkeypatch, sufficient):

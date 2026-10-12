@@ -21,7 +21,9 @@
 - [pilot-task-preflight.md](pilot-task-preflight.md)
 - [requirements-registry.md](requirements-registry.md)
 - [runnable-examples.md](runnable-examples.md)
-- [runner.md](runner.md)
+- [Runner и три представления вывода](runner.md#три-представления-вывода)
+- [Чтение сохранённого ответа без повтора
+  операции](runner.md#чтение-сохранённого-результата-без-повторного-выполнения)
 - [source-reader.md](source-reader.md)
 - [sprints.md](sprints.md)
 - [Критерии этапов](stage-criteria.md)

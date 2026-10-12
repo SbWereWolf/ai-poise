@@ -9,6 +9,9 @@ Keep brief and expanded agent views distinct and within configured budgets.
 Full output is always a saved-file link, not inline data. Preserve complete machine
 results and actual operation outcomes. Follow the canonical
 [three-view contract](../../../docs/workflows/runner.md#три-представления-вывода).
+Use `poise result-view` with an explicit saved path, view and character budget.
+Never replay a mutation to read its output; read success is not business success.
+Follow [read-only navigation](../../../docs/workflows/runner.md#чтение-сохранённого-результата-без-повторного-выполнения).
 
 For explicit stage purpose, criteria authority, `show` with `stage_criteria` and
 `verify.criteria_work`, read the canonical [stage criteria

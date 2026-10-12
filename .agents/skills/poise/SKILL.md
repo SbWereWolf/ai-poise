@@ -5,6 +5,11 @@ description: Execute project-local AI poise task stages and hand off work betwee
 
 # AI poise task workflow
 
+Keep brief and expanded agent views distinct and within configured budgets.
+Full output is always a saved-file link, not inline data. Preserve complete machine
+results and actual operation outcomes. Follow the canonical
+[three-view contract](../../../docs/workflows/runner.md#три-представления-вывода).
+
 For explicit stage purpose, criteria authority, `show` with `stage_criteria` and
 `verify.criteria_work`, read the canonical [stage criteria
 contract](../../../docs/workflows/stage-criteria.md). Read actual revisions and

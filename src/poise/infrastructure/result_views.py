@@ -67,7 +67,9 @@ def preflight_work_result(h, request):
             roots.append(sprint_root(h.state, h.paths, h._identifier(sprint_id)))
         if (current is not None and current['status'] == 'newborn'
                 and current['sprint_id'] == sprint_id and args.get('action') == 'draft'
+                and isinstance(args.get('changes'), list)
                 and any(change.get('kind') == 'remove_tasks'
+                        and isinstance(change.get('ids'), list)
                         and current['id'] in change.get('ids', [])
                         for change in args.get('changes', []) if isinstance(change, dict))):
             roots.append(task_root(h.state, h.paths, current['id'], None))

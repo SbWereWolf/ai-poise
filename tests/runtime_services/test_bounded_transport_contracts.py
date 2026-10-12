@@ -10,7 +10,7 @@ import pytest
 
 from poise.common import PoiseError
 from poise.infrastructure.result_views import ResultViews
-from poise.interfaces import catalogue, goal_config, hook_transport, work
+from poise.interfaces import catalogue, goal_config, hook_transport, runtime_adapter, work
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -197,7 +197,9 @@ def editor_settings(tmp_path, cap):
         'exit_codes': {'success': 7, 'rejected': 9, 'pending': 11}})
 
 
-@pytest.mark.parametrize('adapter', ['work', 'goal-config', 'catalogue', 'runtime-config'])
+@pytest.mark.parametrize('adapter', [
+    'work', 'goal-config', 'catalogue', 'runtime-config', 'hook-work', 'runtime',
+])
 def test_impossible_budget_never_invokes_effect(tmp_path, runtime, monkeypatch, adapter):
     calls = []
     output, error = io.StringIO(), io.StringIO()
@@ -225,6 +227,27 @@ def test_impossible_budget_never_invokes_effect(tmp_path, runtime, monkeypatch, 
         monkeypatch.setattr(catalogue, 'CatalogueCommands', lambda *args: SimpleNamespace(install=effect))
         run = lambda: catalogue.execute(tmp_path / 'catalogue.json',
             io.BytesIO(b'{"action":"install","items":[],"project_config":null}'), output)
+    elif adapter in ('hook-work', 'runtime'):
+        runtime.cfg['limits']['output_chars'] = 1
+        packet = {'operation': 'verify', 'input': {'result': None, 'artifacts': []}, 'messages': []}
+        if adapter == 'hook-work':
+            settings = SimpleNamespace(observations=tmp_path, raw={
+                'output_chars': 1, 'response_file': 'response.json', 'file_mode': 0o600,
+                'max_input_bytes': 20000,
+                'exit_codes': {'success': 7, 'incomplete': 8, 'rejected': 9}})
+            service = SimpleNamespace(settings=settings, work=effect, runtime=runtime)
+            monkeypatch.setattr(hook_transport, 'HookService', lambda path: service)
+            run = lambda: hook_transport.execute('hook-work',
+                SimpleNamespace(settings='fixture', binding='fixture-binding'),
+                io.BytesIO(json.dumps(packet).encode()), output, error)
+        else:
+            monkeypatch.setattr(runtime_adapter, 'read_json',
+                                lambda path: {'project_config': str(tmp_path / 'project.json')})
+            monkeypatch.setattr(runtime_adapter, 'RuntimeAdapter',
+                                lambda settings: SimpleNamespace(invoke=effect, runtime=runtime))
+            monkeypatch.setattr(runtime_adapter, 'load_config', lambda path: (None, runtime.cfg, None))
+            run = lambda: runtime_adapter.execute(tmp_path / 'runtime.json',
+                io.BytesIO(json.dumps(packet).encode()), output, error)
     else:
         settings = SimpleNamespace(observations=tmp_path, project_config=tmp_path / 'project.json', raw={
             'output_chars': 1, 'response_file': 'response.json', 'file_mode': 0o600,
@@ -245,6 +268,48 @@ def test_impossible_budget_never_invokes_effect(tmp_path, runtime, monkeypatch, 
         code = 2
     assert calls == [] and not (tmp_path / 'unwanted-effect.txt').exists()
     assert code != 0
+
+
+@pytest.mark.parametrize('adapter', ['hook-work', 'runtime'])
+@pytest.mark.parametrize('outcome', ['integrated', 'checks_failed', 'thrown-rejection'])
+def test_bound_work_consumers_save_true_outcomes(runtime, monkeypatch, adapter, outcome):
+    calls = []
+    payload = deepcopy(json.loads(FIXTURE.read_text())['result'])
+    payload['status'] = outcome
+
+    def invoke(*args):
+        calls.append(args)
+        if outcome == 'thrown-rejection':
+            raise PoiseError('consumer refused')
+        return payload
+
+    packet = {'operation': 'verify', 'input': {'result': None, 'artifacts': []}, 'messages': []}
+    output, error = io.StringIO(), io.StringIO()
+    if adapter == 'hook-work':
+        settings = SimpleNamespace(observations=runtime.runtime, raw={
+            'output_chars': 2200, 'response_file': 'response.json', 'file_mode': 0o600,
+            'max_input_bytes': 20000, 'exit_codes': {'success': 7, 'incomplete': 8, 'rejected': 9}})
+        monkeypatch.setattr(hook_transport, 'HookService',
+                            lambda path: SimpleNamespace(settings=settings, work=invoke, runtime=runtime))
+        code = hook_transport.execute('hook-work', SimpleNamespace(settings='fixture', binding='fixture-binding'),
+                                      io.BytesIO(json.dumps(packet).encode()), output, error)
+        expected_code = {'integrated': 7, 'checks_failed': 8, 'thrown-rejection': 9}[outcome]
+    else:
+        monkeypatch.setattr(runtime_adapter, 'read_json',
+                            lambda path: {'project_config': str(runtime.runtime / 'project.json')})
+        monkeypatch.setattr(runtime_adapter, 'RuntimeAdapter',
+                            lambda settings: SimpleNamespace(invoke=invoke, runtime=runtime))
+        monkeypatch.setattr(runtime_adapter, 'load_config', lambda path: (None, runtime.cfg, None))
+        code = runtime_adapter.execute(runtime.runtime / 'runtime.json',
+            io.BytesIO(json.dumps(packet).encode()), output, error)
+        expected_code = {'integrated': 0, 'checks_failed': 1, 'thrown-rejection': 2}[outcome]
+    expected_status = 'rejected' if outcome == 'thrown-rejection' else outcome
+    brief, full = read_response(output, expected_status)
+    assert code == expected_code and len(calls) == 1 and error.getvalue() == ''
+    if outcome == 'thrown-rejection':
+        assert full == {'status': 'rejected', 'reason': 'consumer refused'}
+    else:
+        assert full == payload and 'historical_receipts' not in brief
 
 
 @pytest.mark.parametrize('adapter', ['goal-config', 'catalogue'])

@@ -72,6 +72,12 @@ def notice(value):
         'Terminal presentation must report deleted service materials')
 
 
+def brief_history(value, failed):
+    assert 'historical_receipts' not in value
+    assert value['summary']['historical_receipts'] == {
+        'total': 1, 'shown': 0, 'omitted': 1, 'failed': failed}
+
+
 def integration_arrangement(project, failed=False, identifier='T1'):
     counter = project['root'] / (identifier + '-receipt-executions.txt')
     method = {
@@ -116,9 +122,10 @@ def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, s
         record = next(row for row in full['evidence']['records'] if row['id'] == receipt['id'])
         assert record['method'] == 'CHECK'
         assert record['actual_exit_code'] == 0 and record['passed'] is True
-        historical_outcome(brief, receipt['id'], 'CHECK', 0, True)
+        historical_outcome(full, receipt['id'], 'CHECK', 0, True)
+        brief_history(brief, 0)
         notice(brief)
-        assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
+        assert 'T1' in task_ids(full)
         notice(full)
     if removed:
         assert not root.exists(), 'Historical display must preserve the retired Task location'
@@ -138,9 +145,10 @@ def test_integration_first_display_and_exact_replay_keep_history_and_notice(proj
         receipt = full['checks'][0]
         assert receipt['method'] == 'RECEIPT_PROBE'
         assert receipt['actual_exit_code'] == 0 and receipt['passed'] is True
-        historical_outcome(brief, receipt['id'], 'RECEIPT_PROBE', 0, True)
+        historical_outcome(full, receipt['id'], 'RECEIPT_PROBE', 0, True)
+        brief_history(brief, 0)
         notice(brief)
-        assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
+        assert 'T1' in task_ids(full)
         notice(full)
 
 
@@ -181,9 +189,10 @@ def test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query(p
         assert code == 0
         stored = full['results'][0]['value']
         assert stored['task'] == 'T1' and stored['checks'][0] == original
-        historical_outcome(brief, original['id'], 'RECEIPT_PROBE', 7, False)
+        historical_outcome(full, original['id'], 'RECEIPT_PROBE', 7, False)
+        brief_history(brief, 1)
         notice(brief)
-        assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
+        assert 'T1' in task_ids(full)
         notice(full)
 
 
@@ -199,9 +208,8 @@ def test_receipt_state_read_failure_is_explicit_in_saved_and_short_response(proj
     write_result(runtime, {'status': 'read_only', 'checks': [receipt], 'detail': 'x' * 20000}, output)
     brief = json.loads(output.getvalue())
     full = json.loads(Path(brief['response_path']).read_text())
-    for value in (brief, full):
-        assert 'Receipt state unavailable' in json.dumps(value), (
-            'Receipt state lookup failure must be displayed explicitly')
+    assert 'Receipt state unavailable' in json.dumps(full)
+    assert brief['summary']['presentation_errors'] == {'total': 1, 'shown': 0, 'omitted': 1}
 
 
 def test_bounded_terminal_notice_survives_omission_of_all_command_views(project):
@@ -210,7 +218,7 @@ def test_bounded_terminal_notice_survives_omission_of_all_command_views(project)
     runtime = WorkPoise(project['config_path'], 'bounded-terminal-reader')
     predicted = runtime.runtime / runtime.paths['runs'] / ('0' * 36) / runtime.paths['response']
     minimal = {'status': 'read_only', 'response_path': str(predicted)}
-    # Space for notice, Task and one minimal historical outcome, independently of container names.
+    # Space for a notice and bounded summary, not a mandatory historical list.
     budget = len(json.dumps(minimal, ensure_ascii=False, separators=(',', ':')) + '\n') + 350
     runtime.cfg['limits']['output_chars'] = budget
     query = request('show', {'queries': [{
@@ -219,9 +227,10 @@ def test_bounded_terminal_notice_survives_omission_of_all_command_views(project)
     assert code == 0 and len(raw) <= budget
     assert brief.get('command_views', []) == []
     assert full['results'][0]['value']['checks'] == done['checks']
-    historical_outcome(brief, done['checks'][0]['id'], 'RECEIPT_PROBE', 0, True)
+    historical_outcome(full, done['checks'][0]['id'], 'RECEIPT_PROBE', 0, True)
+    brief_history(brief, 0)
     notice(brief)
-    assert 'T1' in task_ids(brief), 'Short historical response must identify its Task'
+    assert 'T1' in task_ids(full)
     notice(full)
 
 
@@ -252,7 +261,8 @@ def test_failed_ordinary_stage_receipt_keeps_failure_on_first_and_repeated_displ
     observations = [display(reader, packet), display(reader, packet)]
     for code, raw, brief, full in observations:
         assert code == 0 and full['task'] == 'FAILED' and full['status'] == 'cancelled'
-        for value in (brief, full):
-            historical_outcome(value, receipt['id'], 'CHECK', 7, False)
-            assert 'FAILED' in task_ids(value)
-            notice(value)
+        historical_outcome(full, receipt['id'], 'CHECK', 7, False)
+        assert 'FAILED' in task_ids(full)
+        brief_history(brief, 1)
+        notice(brief)
+        notice(full)

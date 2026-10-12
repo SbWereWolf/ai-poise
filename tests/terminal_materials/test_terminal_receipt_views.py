@@ -72,10 +72,10 @@ def notice(value):
         'Terminal presentation must report deleted service materials')
 
 
-def brief_history(value, failed):
+def brief_history(value, failed, expected_total):
     assert 'historical_receipts' not in value
     assert value['summary']['historical_receipts'] == {
-        'total': 1, 'shown': 0, 'omitted': 1, 'failed': failed}
+        'total': expected_total, 'shown': 0, 'omitted': expected_total, 'failed': failed}
 
 
 def integration_arrangement(project, failed=False, identifier='T1'):
@@ -104,9 +104,17 @@ def integration_arrangement(project, failed=False, identifier='T1'):
 @pytest.mark.parametrize('removed', [False, True], ids=['retained', 'removed'])
 def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, status, removed):
     tools, root, source, commit, receipt, _ = checked(project)
+    integration_receipt = None
     if removed:
         agree(tools, declaration([file_output(source, project['root'] / 'result.txt')]))
-        finish(project, tools, commit, status)
+        finished = finish(project, tools, commit, status)
+        if status == 'completed':
+            assert finished['status'] == 'integrated' and len(finished['checks']) == 1
+            integration_receipt = finished['checks'][0]
+            assert integration_receipt['id'] != receipt['id']
+            assert integration_receipt['method'] == 'CHECK'
+            assert integration_receipt['actual_exit_code'] == 0
+            assert integration_receipt['passed'] is True
         assert not root.exists()
     else:
         operation = request('accept', {}) if status == 'completed' else request(
@@ -123,7 +131,18 @@ def test_stage_receipts_report_terminal_materials_on_first_and_repeat(project, s
         assert record['method'] == 'CHECK'
         assert record['actual_exit_code'] == 0 and record['passed'] is True
         historical_outcome(full, receipt['id'], 'CHECK', 0, True)
-        brief_history(brief, 0)
+        brief_history(brief, 0, 2 if removed and status == 'completed' else 1)
+        if integration_receipt is not None:
+            assert len(full['historical_receipts']) == 1
+            group = full['historical_receipts'][0]
+            assert group['task'] == 'T1'
+            assert len(group['checks']) == 2
+            assert {row['id'] for row in group['checks']} == {
+                receipt['id'], integration_receipt['id']}
+            for row in group['checks']:
+                assert row == {'id': row['id'], 'method': 'CHECK',
+                               'actual_exit_code': 0, 'passed': True}
+            historical_outcome(full, integration_receipt['id'], 'CHECK', 0, True)
         notice(brief)
         assert 'T1' in task_ids(full)
         notice(full)
@@ -146,7 +165,7 @@ def test_integration_first_display_and_exact_replay_keep_history_and_notice(proj
         assert receipt['method'] == 'RECEIPT_PROBE'
         assert receipt['actual_exit_code'] == 0 and receipt['passed'] is True
         historical_outcome(full, receipt['id'], 'RECEIPT_PROBE', 0, True)
-        brief_history(brief, 0)
+        brief_history(brief, 0, 1)
         notice(brief)
         assert 'T1' in task_ids(full)
         notice(full)
@@ -190,7 +209,7 @@ def test_failed_historical_integration_receipt_keeps_outcome_in_repeated_query(p
         stored = full['results'][0]['value']
         assert stored['task'] == 'T1' and stored['checks'][0] == original
         historical_outcome(full, original['id'], 'RECEIPT_PROBE', 7, False)
-        brief_history(brief, 1)
+        brief_history(brief, 1, 1)
         notice(brief)
         assert 'T1' in task_ids(full)
         notice(full)
@@ -228,7 +247,7 @@ def test_bounded_terminal_notice_survives_omission_of_all_command_views(project)
     assert brief.get('command_views', []) == []
     assert full['results'][0]['value']['checks'] == done['checks']
     historical_outcome(full, done['checks'][0]['id'], 'RECEIPT_PROBE', 0, True)
-    brief_history(brief, 0)
+    brief_history(brief, 0, 1)
     notice(brief)
     assert 'T1' in task_ids(full)
     notice(full)
@@ -263,6 +282,6 @@ def test_failed_ordinary_stage_receipt_keeps_failure_on_first_and_repeated_displ
         assert code == 0 and full['task'] == 'FAILED' and full['status'] == 'cancelled'
         historical_outcome(full, receipt['id'], 'CHECK', 7, False)
         assert 'FAILED' in task_ids(full)
-        brief_history(brief, 1)
+        brief_history(brief, 1, 1)
         notice(brief)
         notice(full)

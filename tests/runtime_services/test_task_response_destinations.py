@@ -173,6 +173,81 @@ def test_bootstrap_completion_admits_terminal_response_before_accepting(
         assert len(output.getvalue()) <= 2200
 
 
+@pytest.mark.parametrize('sufficient', [False, True])
+def test_current_newborn_detachment_admits_standalone_destination(
+        project, monkeypatch, sufficient):
+    setup_sprints(project)
+    project['cfg']['paths']['standalone_tasks'] = 'standalone-' + 'x' * 100
+    write_json(project['config_path'], project['cfg'])
+    runtime = WorkPoise(project['config_path'], 'r')
+    runtime.sprint_tools.apply({'action': 'draft', 'sprint_id': 'S',
+        'request_id': 'initial-sprint', 'expected_revision': None,
+        'template': {'id': 'basic', 'version': '1'}, 'changes': []})
+    born = runtime.task_action({'action': 'create', 'task_id': 'D',
+        'sprint_id': 'S', 'request_id': 'initial-member'})
+    assert born['revision'] == 0 and born['sprint_revision'] == 2
+    old_home = runtime.state / runtime.paths['sprints'] / 'S' / 'task' / 'D'
+    new_home = runtime.state / runtime.paths['standalone_tasks'] / 'D'
+    suffix = Path(runtime.paths['runs']) / (
+        '00000000-0000-4000-8000-000000000000') / runtime.paths['response']
+    budget = len(json.dumps({'status': 'architecture_boundaries_failed',
+        'response_path': str(old_home / suffix)}, ensure_ascii=False,
+        separators=(',', ':')) + '\n')
+    assert len(json.dumps({'status': 'draft', 'response_path': str(new_home / suffix)},
+        ensure_ascii=False, separators=(',', ':')) + '\n') > budget
+    runtime.cfg['limits']['output_chars'] = 2200 if sufficient else budget
+    packet = request('sprint', {'action': 'draft', 'sprint_id': 'S',
+        'request_id': 'detach-member', 'expected_revision': 2, 'template': None,
+        'changes': [{'kind': 'remove_tasks', 'ids': ['D']}]})
+
+    def rows():
+        with sqlite3.connect(runtime.state / runtime.paths['database']) as db:
+            return (db.execute('SELECT status, claimed_by, version, metadata FROM tasks '
+                               'WHERE id=?', ('D',)).fetchone(),
+                    db.execute('SELECT revision, data FROM sprints WHERE id=?',
+                               ('S',)).fetchone(),
+                    db.execute('SELECT request_id, digest, data FROM sprint_requests '
+                               'WHERE sprint_id=? ORDER BY request_id', ('S',)).fetchall())
+
+    before = rows()
+    files_before = sorted(old_home.rglob('*'))
+    calls = []
+    original = WorkTools.invoke
+
+    def invoke(owner, value):
+        calls.append(value)
+        return original(owner, value)
+
+    monkeypatch.setattr(WorkTools, 'invoke', invoke)
+    output = io.StringIO()
+    try:
+        code = execute(runtime, io.BytesIO(json.dumps(packet).encode()), output)
+    except PoiseError:
+        code = 2
+    after = rows()
+    current = runtime.current_task()
+    assert current['id'] == 'D' and current['claimed_by'] == runtime.session
+    if not sufficient:
+        assert calls == [] and code == 2
+        assert after == before
+        assert current['sprint_id'] == 'S' and current['revision'] == 0
+        assert sorted(old_home.rglob('*')) == files_before and not new_home.exists()
+    else:
+        assert calls == [packet] and code == 0
+        response = Path(json.loads(output.getvalue())['response_path'])
+        full = json.loads(response.read_text())
+        assert response.is_relative_to(new_home / runtime.paths['runs'])
+        assert full['status'] == 'draft' and full['sprint'] == 'S' and full['revision'] == 3
+        assert current['sprint_id'] is None and current['revision'] == 1
+        assert after[0][:3] == ('newborn', runtime.session, 1)
+        assert json.loads(after[0][3])['sprint_id'] is None
+        assert after[1][0] == 3
+        assert json.loads(after[1][1])['aggregate']['plan']['tasks'] == []
+        assert [row[0] for row in after[2]] == ['detach-member', 'initial-sprint']
+        assert sorted(old_home.rglob('*')) == files_before
+        assert len(output.getvalue()) <= 2200
+
+
 @pytest.mark.parametrize('selected_scope', [False, True])
 @pytest.mark.parametrize('sufficient', [False, True])
 def test_sprint_destination_admitted_before_business_effects(

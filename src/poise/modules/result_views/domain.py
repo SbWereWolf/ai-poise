@@ -79,6 +79,7 @@ def result_view(result, response_path, budget, mode, *, metadata=None,
     for field, items in other.items():
         if field not in summary:
             summary[field] = {'total': len(items), 'shown': 0, 'omitted': len(items)}
+    has_collections = bool(summary)
     if summary:
         candidate = {**view, 'summary': summary}
         if len(_envelope_text(candidate)) <= budget:
@@ -121,7 +122,7 @@ def result_view(result, response_path, budget, mode, *, metadata=None,
                     break
                 selected.append(item)
 
-    if mode == 'expanded':
+    if mode == 'expanded' and (not has_collections or summary):
         # Non-history tools use the same owner: show whole useful source fields
         # when they fit, without inventing another renderer or clipping data.
         for field, value in result.items():

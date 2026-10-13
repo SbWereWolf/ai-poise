@@ -27,6 +27,22 @@ from .goal_config import read_document,atomic_write
 from .locking import exclusive_lock
 
 
+def valid_project_probe_readiness(value):
+    """Validate saved native probe data without repeating the Git observation."""
+    if not isinstance(value, dict):
+        return False
+    if set(value) == {"repository", "remote"}:
+        return value["repository"] == "not_checked" and value["remote"] == "not_checked"
+    if set(value) == {"repository", "remote", "base_revision"}:
+        return (
+            value["repository"] == "verified"
+            and value["remote"] == "not_required"
+            and isinstance(value["base_revision"], str)
+            and bool(value["base_revision"])
+        )
+    return False
+
+
 def confined(root,relative):
     target=descendant(root,relative)
     lexical=root/relative

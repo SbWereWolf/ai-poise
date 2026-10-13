@@ -53,9 +53,11 @@ class SqliteTaskProcessMigration:
         clock: Clock,
         after_update: Callable[[str], None] | None = None,
         after_preflight: Callable[[], None] | None = None,
+        project_publication=None,
     ):
         self.config_path = Path(config_path).resolve()
         self.clock = clock
+        self.project_publication = project_publication
         self.after_update = after_update or (lambda task_id: None)
         self.after_preflight = after_preflight or (lambda: None)
 
@@ -63,6 +65,8 @@ class SqliteTaskProcessMigration:
         if request.schema == 'task-stage-criteria-migration-1':
             from .stage_criteria_migration import migrate_stage_criteria
             return migrate_stage_criteria(self, request)
+        if self.project_publication is not None:
+            raise PoiseError("Project publication selection requires stage criteria migration")
         root, config, processes = load_config(self.config_path)
         from ..modules.goal_config.domain import GoalTypeDefinition
         processes = {kind: GoalTypeDefinition.from_configuration(document).data

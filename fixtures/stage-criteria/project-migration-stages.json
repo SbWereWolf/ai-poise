@@ -1,0 +1,22 @@
+[
+  {
+    "stage_id": "tests",
+    "purpose": "design",
+    "criteria_authority": {"propose": ["implementation"], "decide": []}
+  },
+  {
+    "stage_id": "test_review",
+    "purpose": "observation",
+    "criteria_authority": {"propose": [], "decide": ["implementation"]}
+  },
+  {
+    "stage_id": "implementation",
+    "purpose": "execution",
+    "criteria_authority": {"propose": [], "decide": []}
+  },
+  {
+    "stage_id": "code_review",
+    "purpose": "observation",
+    "criteria_authority": {"propose": [], "decide": []}
+  }
+]

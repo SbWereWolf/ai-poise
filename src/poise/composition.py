@@ -72,11 +72,22 @@ def route_migration_tools(config_path):
     return RouteMigrationCommands(FileRouteCountLimitMigration(config_path))
 
 
-def task_process_migration_tools(config_path):
+def task_process_migration_tools(config_path, project_settings=None):
     from .application.task_process_migration import TaskProcessMigrationCommands
     from .infrastructure.clock import SystemClock
     from .infrastructure.task_process_migration import SqliteTaskProcessMigration
-    return TaskProcessMigrationCommands(SqliteTaskProcessMigration(config_path, SystemClock()))
+    owner = None
+    if project_settings is not None:
+        from .infrastructure.projects import ProjectSettings
+        from .infrastructure.project_config import FileProjectConfigUpdate
+        from .modules.foundation.errors import PoiseError
+        try:
+            settings = ProjectSettings(project_settings)
+        except OSError as exc:
+            raise PoiseError(f"Cannot load selected project settings: {exc}") from exc
+        owner = FileProjectConfigUpdate(settings)
+    return TaskProcessMigrationCommands(SqliteTaskProcessMigration(
+        config_path, SystemClock(), project_publication=owner))
 
 
 def local_assets_tools():

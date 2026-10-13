@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+import re
 
 from ...common import digest, exact_keys
 from ..backups.domain import exact_backup_name
@@ -119,6 +120,9 @@ class StageCriteriaMigrationRequest:
                 identity_field = "task_id"
                 revision_field = "expected_version" if kind == "executable_task" else "expected_revision"
                 fields = {"kind", identity_field, revision_field, "expected_process_digest", "stages"}
+            elif kind == "newborn_draft":
+                identity_field, revision_field = "task_id", "expected_revision"
+                fields = {"kind", identity_field, revision_field, "expected_metadata_digest", "stages"}
             else:
                 raise DomainError("Unknown migration resource kind")
             exact_keys(resource, fields, "migration resource")
@@ -127,18 +131,27 @@ class StageCriteriaMigrationRequest:
                 text(resource[revision_field], "migration managed revision")
             else:
                 if type(resource[revision_field]) is not int or resource[revision_field] < 0:
+                    if kind == "newborn_draft":
+                        raise DomainError("Migration draft revision must be a nonnegative integer")
                     raise DomainError("Migration requires a nonnegative resource version")
-                text(resource["expected_process_digest"], "migration source digest")
+                if kind == "newborn_draft":
+                    source_digest = resource["expected_metadata_digest"]
+                    if (not isinstance(source_digest, str)
+                            or re.fullmatch(r"[0-9a-f]{64}", source_digest) is None):
+                        raise DomainError("Migration draft metadata digest must be 64 lowercase hexadecimal digits")
+                else:
+                    text(resource["expected_process_digest"], "migration source digest")
             identity = ("process" if kind == "process_definition" else "task", resource[identity_field])
             if identity in identities:
                 raise DomainError("Duplicate migration resource")
             identities.add(identity)
-            if not isinstance(resource["stages"], list) or not resource["stages"]:
+            if (not isinstance(resource["stages"], list)
+                    or (not resource["stages"] and kind != "newborn_draft")):
                 raise DomainError("Migration requires explicit stages")
             stages = set()
             for stage in resource["stages"]:
                 fields = {"stage_id", "purpose", "criteria_authority"}
-                if kind != "process_definition":
+                if kind not in ("process_definition", "newborn_draft"):
                     fields |= {"criteria", "execution"}
                 exact_keys(stage, fields, "migration stage")
                 text(stage["stage_id"], "migration stage identity")
@@ -150,7 +163,7 @@ class StageCriteriaMigrationRequest:
                 except (TypeError, ValueError) as exc:
                     raise DomainError("Unknown migration stage purpose") from exc
                 CriteriaAuthority.parse(stage["criteria_authority"])
-                if kind != "process_definition":
+                if kind not in ("process_definition", "newborn_draft"):
                     StageCriteria.parse(stage["criteria"])
                     execution = stage["execution"]
                     exact_keys(execution, {"state", "source_revision", "source_refs"}, "migration execution")

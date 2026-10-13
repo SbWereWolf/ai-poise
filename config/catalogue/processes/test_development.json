@@ -165,6 +165,11 @@
       },
       "transitions": {
         "complete": "coverage_planning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -196,6 +201,11 @@
       },
       "transitions": {
         "complete": "test_planning"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -233,6 +243,11 @@
       },
       "transitions": {
         "complete": "test_implementation"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -267,6 +282,11 @@
       },
       "transitions": {
         "complete": "sensitivity_verification"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -298,6 +318,11 @@
         "inconclusive": "test_implementation",
         "not_satisfied": "test_implementation",
         "satisfied": "test_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -328,6 +353,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -362,6 +392,11 @@
       },
       "transitions": {
         "complete": "remediation_inspection"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -392,6 +427,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

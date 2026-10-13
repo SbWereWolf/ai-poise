@@ -1,9 +1,9 @@
-"""Read-only first-stage pilot on an explicitly supplied, real Poise Git revision.
+"""Historical Task pilot with maintained explicit project-setup inputs.
 
-No synthetic application, no user acceptance, no target modifications. Project
-configuration, task creation and result persistence use their existing tools.
-The project-test command below is specific to this Poise pilot, not inferred
-by the library for arbitrary applications.
+Only request composition is verified against the current configuration contract.
+The subsequent legacy Task flow is not a supported new-project setup procedure;
+use the documented public project generator instead. This example does not grant
+user acceptance or authorize future Task stages.
 """
 from __future__ import annotations
 import argparse
@@ -31,14 +31,15 @@ def _stage_contracts(process):
             for stage in process['stages']]
 
 
-def run(root,repository,base_ref,destination,task_id,*,requirements_root):
+def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_root,worktrees_root):
     root=Path(root).resolve();repository=Path(repository).resolve()
     settings=root/'config/project-setup.json'
     setup=json.loads(settings.read_text());selected=setup['templates']['linux-reference']
     template=json.loads((root/selected['path']).read_text())
     values={'project':'poise-pilot','repository':str(repository),'base':base_ref,
             'remote':'not-configured','author_name':'Poise pilot','author_email':'pilot@example.invalid',
-            'push':False,'state':'state','environment':['PATH','HOME']}
+            'push':False,'state':str(Path(data_root).resolve()),
+            'worktrees':str(Path(worktrees_root).resolve()),'environment':['PATH','HOME']}
     request={'schema':'project-setup-1','request_id':task_id,'destination':destination,
              'template':{'id':'linux-reference','version':selected['version'],'digest':selected['digest']},
              'edits':[{'path':q['path'],'value':values[q['id']]} for q in template['questions']],
@@ -134,5 +135,7 @@ if __name__=='__main__':
     p.add_argument('--destination',required=True,help='new directory relative to Poise root')
     p.add_argument('--task-id',required=True)
     p.add_argument('--requirements-root',required=True,type=Path,help='explicit Requirements storage outside the served repository')
+    p.add_argument('--data-root',required=True,type=Path,help='explicit project data directory')
+    p.add_argument('--worktrees-root',required=True,type=Path,help='explicit Task worktree directory inside the selected repository')
     a=p.parse_args()
-    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id,requirements_root=a.requirements_root),ensure_ascii=False,indent=2))
+    print(json.dumps(run(a.poise_root,a.repository,a.base_ref,a.destination,a.task_id,requirements_root=a.requirements_root,data_root=a.data_root,worktrees_root=a.worktrees_root),ensure_ascii=False,indent=2))

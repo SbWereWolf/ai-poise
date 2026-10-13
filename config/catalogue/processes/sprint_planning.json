@@ -267,6 +267,11 @@
       },
       "transitions": {
         "complete": "decomposition"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -300,6 +305,11 @@
       },
       "transitions": {
         "complete": "task_classification"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -333,6 +343,11 @@
       },
       "transitions": {
         "complete": "task_contracts"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -368,6 +383,11 @@
       },
       "transitions": {
         "complete": "dependency_design"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -401,6 +421,11 @@
       },
       "transitions": {
         "complete": "execution_planning"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -440,6 +465,11 @@
       },
       "transitions": {
         "complete": "coverage_analysis"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -475,6 +505,11 @@
         "inconclusive": "task_contracts",
         "not_satisfied": "task_contracts",
         "satisfied": "sprint_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -507,6 +542,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": "publication"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -544,6 +584,11 @@
       },
       "transitions": {
         "complete": "remediation_inspection"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -576,6 +621,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": "publication"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -603,6 +653,11 @@
       "sections": {},
       "transitions": {
         "complete": null
+      },
+      "purpose": "other",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

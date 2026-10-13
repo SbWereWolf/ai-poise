@@ -59,6 +59,129 @@ Hook Registry и реестр чтений решают разные задач�
 имён файлов. SQLite WAL/SHM и принадлежащие БД lock-файлы располагаются рядом с БД;
 не надо переносить их отдельно от работающего владельца.
 
+## Новый проект: шаблоны и заполнение
+
+Краткая агентская [инструкция подключения](../../.agents/references/project-storage-setup.md#project-storage-setup)
+ссылается на этот полный справочник. Скиллы дают маршрут к инструкции, а не
+дублируют настройки. Настройка генератора и пакет публикации принадлежат
+[владельцу проекта](project-setup.md#пакетный-путь-для-агента).
+
+Корень данных `D` — непосредственно каталог проекта, например
+`/srv/poise-project-data/demo`, без дополнительного `state`. Конфигурация, исходники
+и Task worktrees имеют независимо выбранные корни. В поставляемой схеме:
+
+```text
+poise-project-data/demo/
+  tasks/tasks.sqlite
+  requirements/requirements.sqlite
+  telemetry/events.sqlite
+  codex-hook/sessions-runtime.sqlite
+```
+
+Сопутствующие SQLite-файлы и locks принадлежат своей БД. Каталоги материалов,
+спринтов, сеансов и передач задаются отдельными существующими настройками: эта
+схема не переименовывает их неявно. Пример `demo` — заменяемое значение оператора.
+Иные явные поддерживаемые пути допустимы; автоматической нормализации нет.
+
+### Комплект примеров
+
+| Файл под Git | Для чего | Что заполнить |
+|---|---|---|
+| [project-registry.example.json](../../config/project-registry.example.json) | Начальный реестр | Пустой `projects`; генератор регистрирует опубликованный manifest. |
+| [project-setup.example.json](../../config/project-setup.example.json) | Настройки генератора | `root`, registry, внешний setup lock и точные выбранные template ID/version/digest. |
+| [linux-reference.json](../../config/project-templates/linux-reference.json), [wsl-poise.json](../../config/project-templates/wsl-poise.json) | Полные blueprint нового проекта | Все вопросы, включая абсолютные корни данных и worktrees; не править blueprint ради одной установки. |
+| [project.example.json](../../config/project.example.json) | Обезличенный полный manifest и справочный образец значений | Project ID, репозиторий, наблюдённая ветка, автор, политика публикации и корни. Для создания использовать генератор. |
+| [hook-settings.example.json](../../config/hook-settings.example.json) | Отдельные настройки Hook Registry | Общий файловый `root`, выбранные Python/source root, project config, native hooks, definitions и проектный hook state. |
+| [stride.example.env](../../config/stride.example.env), [stride-launcher.example.json](../../config/stride-launcher.example.json) | Запуск выбранного проекта | Явный интерпретатор установленного пакета, registry settings, ID проекта и независимые tool/data roots. |
+
+Рабочие копии примеров остаются вне Git. Выбранные версия и digest blueprint
+должны совпадать с фактическим файлом; `process_sources` фиксирует реальные
+поставляемые процессы. Обновление примеров не обновляет уже заполненные настройки
+оператора и не обновляет установленный пакет. Для другой версии инструмента
+совместимость проверяют отдельно; сведения о [выборе версии](stride-launcher.md#установка-и-выбор-версии)
+не заменяются импортом checkout.
+
+### Значения manifest и hook settings
+
+| Параметр | Значение поставляемой схемы и корень разрешения |
+|---|---|
+| `paths.state` | Явный абсолютный `D`, например `/srv/poise-project-data/demo`. |
+| `paths.database`, `paths.lock` | `tasks/tasks.sqlite`, `tasks/tasks.lock` относительно `D`. |
+| `paths.requirements_database`, `paths.requirements_lock` | `requirements/requirements.sqlite`, `requirements/requirements.lock` относительно `D`; явные абсолютные пути также поддержаны. |
+| `accounting.storage.database`, `accounting.storage.lock` | `telemetry/events.sqlite`, `telemetry/events.lock` относительно `D`. |
+| `paths.worktrees` | Явный абсолютный каталог внутри обслуживаемого репозитория; относительный путь разрешился бы от `D`. |
+| Hook `root` | Явный общий файловый предок tools, данных и native hooks; образец использует `/srv`. Это не `paths.state`. |
+| Hook `state` | `poise-project-data/demo/codex-hook` относительно hook `root`. |
+| Hook `database` | `sessions-runtime.sqlite` относительно hook `state`. |
+| Hook `lock` | `poise-project-data/demo/codex-hook/sessions-runtime.lock` относительно hook `root`. |
+| Hook `bindings`, `observations` | `bindings`, `probes` относительно hook `state`; привязки сеансов создаёт настоящий native event. |
+
+Остальные опции hook settings, их типы, лимиты, режимы файлов и коды отказа
+описаны в [справочнике хуков](runtime-hooks.md#настройки-установки). Опции генератора и manifest —
+в [настройке проекта](project-setup.md); launcher — в [контракте Stride](stride-launcher.md).
+Секреты и действующие идентичности сеансов в примеры не записывают.
+
+Процессы новых проектов содержат явные назначения этапов и пустые полномочия
+на изменение критериев. Это дополнение поставляемых snapshot для текущей схемы,
+а не миграция существующих Task или рабочих process files. Полный договор —
+[новые проекты и старые снимки](../workflows/stage-criteria.md#новые-проекты-и-старые-снимки).
+
+Для обоих blueprint обязательные ответы передаются через `edits`: `project`,
+`git.repository`, `git.base_ref`, `git.remote`, `git.author_name`, `git.author_email`,
+`git.push_required`, `paths.state`, `paths.worktrees`, `environment_names`.
+Типы и prompts находятся в `questions`; остальные значения берутся из полного
+выбранного blueprint. Готовый операторский пакет передают без выбора скрытого root:
+
+```bash
+/srv/poise/app/tools/.venv/bin/python -I -B -m poise project \
+  --settings /srv/poise/app/config/project-setup.json \
+  < /srv/poise/app/config/create-demo.json
+```
+
+Все пути в команде — заменяемые явные значения оператора; файл запроса должен
+лежать вне создаваемого `destination`. Полная форма запроса и ответы инструмента —
+в [пакетном контракте](project-setup.md#пакетный-путь-для-агента).
+Поддержка назначения этапов определяется выбранной установленной версией: само
+наличие новых metadata в JSON не доказывает работу нового runtime договора.
+
+### Порядок подключения и проверка
+
+1. Выбрать существующий primary checkout и прочитать его ветку по
+   [инструкции выбора](project-setup.md#выбор-ветки-основного-checkout-для-интеграции).
+   Задать отдельные абсолютные `D` и worktrees. Подготовить рабочий registry и
+   generator settings из примеров, сверив все template pins с выбранной поставкой.
+2. Передать полный `project-setup-1` через
+   [публичный пакет](project-setup.md#пакетный-путь-для-агента), заполнив все вопросы.
+   Публикация создаёт manifest, process snapshots, receipt и запись registry;
+   она не создаёт Task DB, Requirements DB, worktree, native binding или архив.
+3. Прочитать manifest и разрешённые пути. Выполнить
+   [проектную проверку](project-setup.md#проверка-согласованности-проекта)
+   с точными settings/config/project selectors. Она не заменяет создание БД
+   их владельцами и не означает получения Task claim.
+4. Перед изменяющим runtime опубликовать
+   [ресурсную связь](project-setup.md#привязка-владельцев-ресурсов) через
+   `project-runtime-resources-bootstrap-1`; для проекта без хуков список `hooks` пуст.
+   Если нужны native hooks, явно выбрать совместимый `batch.message_source` с режимом
+   `runtime_event` и тем же ID, что в definition. Для первой установки после пустой
+   связи обычный `project-config` публикует `runtime_resources.hooks` и message source,
+   затем `runtime-setup` с заполненными hook settings устанавливает определение.
+   Использовать текущую revision и явные пакеты из
+   [контракта обновления](project-setup.md#обновление-действующего-проекта) и
+   [владельца хуков](runtime-hooks.md#интерфейсы). Проверить native groups и реестр;
+   настоящий SessionStart даёт собственный launcher. Шаблон сам hooks не включает.
+5. Проверить Stride и выбранные потребители. Для существующего проекта изменение
+   пути не переносит данные: сначала определить фактические исходники, писателей
+   и способы восстановления, затем сверить данные и удалить согласованный исходник.
+
+Штатный `state_relocation` запрещает пересечение исходника и назначения, в том
+числе перенос `D/state` в его родительский `D`. Такую коррекцию нельзя выдавать
+за штатный перенос: применим только отдельно разрешённый проверяемый маршрут
+[ручного восстановления](../governance/development-rules.md#сбой-harness-и-ручной-обход).
+При операционном переносе также учитывать начальное создание session registry
+прямым CLI до runtime fence: исключить такие команды на время переключения,
+проверить реальные открытые БД и уведомить владельцев о новых путях. Блокировка
+проекта сама по себе не доказывает остановку всех внешних запусков.
+
 ## Подтверждённые потребители и текущие пути
 
 Ниже сохранён исторический срез рабочих настроек, проверенный 11 октября 2026 года.

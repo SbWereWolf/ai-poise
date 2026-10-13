@@ -5,6 +5,14 @@ description: Execute project-local AI poise task stages and hand off work betwee
 
 # AI poise task workflow
 
+Keep brief and expanded agent views distinct and within configured budgets.
+Full output is always a saved-file link, not inline data. Preserve complete machine
+results and actual operation outcomes. Follow the canonical
+[three-view contract](../../../docs/workflows/runner.md#три-представления-вывода).
+Use `poise result-view` with an explicit saved path, view and character budget.
+Never replay a mutation to read its output; read success is not business success.
+Follow [read-only navigation](../../../docs/workflows/runner.md#чтение-сохранённого-результата-без-повторного-выполнения).
+
 For explicit stage purpose, criteria authority, `show` with `stage_criteria` and
 `verify.criteria_work`, read the canonical [stage criteria
 contract](../../../docs/workflows/stage-criteria.md). Read actual revisions and
@@ -110,17 +118,16 @@ Track installed-runtime continuation through the
 [open
 incident](../../../docs/operations/known-bugs.md#recovery-publication-owner-001--исторические-процессы-блокируют-чтение).
 
-Apply the canonical [failure and manual bypass
-rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
-whenever normal work is blocked. Classify the cause and repeatability, journal the
-incident and chosen correction with alternatives, and continue authorized subject
-work manually when Poise obstructs it. Recurring failures require a repair draft.
-A trivial low-risk data repair does not automatically require new code. Always
-verify configuration corrections, roll back unsuccessful ones, and record rejected
-solutions. Preserve real evidence, independent review and foreign ownership; manual
-work is never a fabricated native stage receipt or Task completion. The ordinary
-managed-data prohibition below does not prohibit the narrowly scoped, documented
-manual recovery authorized by this canonical rule.
+When normal Poise work is blocked, apply
+[harness-recovery](../harness-recovery/SKILL.md) and the canonical
+[failure and manual bypass rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
+Classify cause and recurrence, log every incident and manual correction, and choose
+a verified authorized continuation. Repeated or repeatable problems require one repair
+draft, not necessarily code. Configuration defects remain obligations until corrected;
+reject failed fixes. Preserve real evidence, independent review and foreign ownership.
+The ordinary managed-data prohibition below does not prohibit the narrowly scoped,
+audited manual recovery authorized by the canonical rule. Manual work is never a
+fabricated native receipt or Task completion.
 
 ## Start or resume work
 

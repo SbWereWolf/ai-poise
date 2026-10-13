@@ -121,6 +121,11 @@
       },
       "transitions": {
         "complete": "execution"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -148,6 +153,11 @@
         "inconclusive": "analysis",
         "not_satisfied": "analysis",
         "satisfied": "analysis"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -179,6 +189,11 @@
       },
       "transitions": {
         "complete": "self_inspection"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -205,6 +220,11 @@
       "transitions": {
         "changes_requested": "planning",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

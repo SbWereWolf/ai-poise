@@ -6,13 +6,15 @@ from ..infrastructure.goal_config import EditorSettings, strict_json, atomic_wri
 from ..common import descendant
 from ..modules.foundation.errors import PoiseError
 from ..modules.goal_config.domain import BatchValidationError
-from ..modules.result_views.domain import bounded_envelope
+from ..modules.result_views.domain import bounded_envelope, require_result_budget
 
 
 def execute(settings_path, stream, output):
     settings=None
     try:
         settings=EditorSettings(settings_path)
+        predicted=descendant(settings.root,settings.raw['responses'])/(str(uuid.uuid4())+'.json')
+        require_result_budget(predicted,settings.raw['output_chars'],'goal_config_status')
         raw=stream.read(settings.raw['max_input_bytes']+1)
         if len(raw)>settings.raw['max_input_bytes']:
             raise PoiseError('Превышен max_input_bytes; ни одно изменение не принято')

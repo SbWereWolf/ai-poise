@@ -101,7 +101,9 @@ class RuntimeAdapter:
         registry=established.registry;session=established.session.session_id
         h=established.runtime;self.runtime=h;work=deepcopy(packet['work'])
         from ..modules.work.domain import parse_request
-        parse_request(work,cfg['batch'])
+        request=parse_request(work,cfg['batch'])
+        from .result_views import preflight_work_result
+        preflight_work_result(h, request)
         source=None;cursor=None;path=None
         if packet['transcript'] is not None:
             exact_keys(packet['transcript'],{'path','initial_offset'},'transcript input')

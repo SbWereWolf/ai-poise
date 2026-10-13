@@ -310,17 +310,24 @@ class TaskCommands:
     def requirements_snapshot(self, task_id):
         return self.requirements_gate.snapshot(task_id)
 
+    def preview_creation_allocation(self, intent: dict, policy):
+        """Read the existing allocation owner without consuming an identity."""
+        from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
+        request_id, _, _ = creation_parts(intent)
+        parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
+        with self.unit_of_work() as uow:
+            return uow.tasks.allocate(intent, parsed_policy)
+
     def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
                base_metadata: dict, execution, policy, base_revision,
                decomposition_policy):
         from ..application.ownership import release_task_in
         from ..modules.tasks.allocation import TaskIdPolicy, creation_parts
-        request_id, _, _ = creation_parts(intent)
-        parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
-        with self.unit_of_work() as uow:
-            replay = uow.tasks.allocate(intent, parsed_policy)
+        replay = self.preview_creation_allocation(intent, policy)
         if replay.replayed:
             return replay
+        request_id, _, _ = creation_parts(intent)
+        parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
         prepared = self.prepare_creation(
             intent, process, automatic_checks, base_revision, decomposition_policy
         )

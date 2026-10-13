@@ -6,16 +6,14 @@ from ..common import PoiseError,exact_keys,load_config
 from ..infrastructure.hook_transport import HookService
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
-from ..modules.result_views.domain import bounded_envelope, response_required
+from ..modules.result_views.domain import bounded_envelope, require_result_budget
 from .work import write_result
 
 
 def _write(service,result,output):
     settings=service.settings
-    path=None
-    if response_required(result,settings.raw['output_chars']):
-        path=settings.observations/uuid.uuid4().hex/settings.raw['response_file']
-        atomic_write(path,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),settings.raw['file_mode'])
+    path=settings.observations/uuid.uuid4().hex/settings.raw['response_file']
+    atomic_write(path,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),settings.raw['file_mode'])
     output.write(bounded_envelope(result,path,settings.raw['output_chars'],{}, {}, []))
 
 
@@ -33,11 +31,14 @@ def execute(command,args,stream,output,error):
             output.write(json.dumps(result,ensure_ascii=False)+'\n')
             return cfg['exit_codes']['success']
         if command=='hook-work':
+            require_result_budget('',cfg['output_chars'],'rejected')
             result=service.work(args.binding,packet)
             write_result(service.runtime,result,output)
             bad = result['status'] in BUSINESS_INCOMPLETE_STATUSES
             return cfg['exit_codes']['incomplete' if bad else 'success']
         exact_keys(packet,{'operation','input'},'runtime-config packet')
+        predicted=service.settings.observations/uuid.uuid4().hex/cfg['response_file']
+        require_result_budget(predicted,cfg['output_chars'],'inconclusive')
         if packet['operation'] in ('install','reconcile'):
             action=service.install if packet['operation']=='install' else service.reconcile
             result=action(packet['input'])

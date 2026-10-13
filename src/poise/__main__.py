@@ -10,6 +10,10 @@ from .infrastructure.session_establishment import direct_caller,establish_poise
 def parser():
     p=argparse.ArgumentParser(description='Декларативный work-пакет или пакет правок goal-config через stdin.')
     sub=p.add_subparsers(dest='command',required=True)
+    result_view=sub.add_parser('result-view',help='Read a bounded view of an existing complete result')
+    result_view.add_argument('--response',type=Path,required=True)
+    result_view.add_argument('--view',choices=('brief','expanded','full'),required=True)
+    result_view.add_argument('--output-chars',type=int,required=True)
     for name in ('infra','deps','check'):
         sub.add_parser(name,help='Route to the independent environment-maintenance application')
     local_assets=sub.add_parser('local-assets',help='Restore declared local files from an explicit snapshot')
@@ -75,6 +79,9 @@ def main():
         from .interfaces.maintenance import execute
         return execute(sys.argv[1:])
     args=parser().parse_args()
+    if args.command=='result-view':
+        from .interfaces.result_views import execute
+        return execute(args.response,args.view,args.output_chars,sys.stdout,sys.stderr)
     if args.command=='local-assets':
         from .interfaces.local_assets import execute
         return execute(args.manifest,sys.stdin.buffer,sys.stdout)

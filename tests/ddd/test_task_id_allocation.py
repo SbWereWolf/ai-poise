@@ -243,7 +243,6 @@ def test_missing_or_invalid_allocation_policy_fails_explicitly(project):
         policy(minimum=5, maximum=4),
         policy(minimum=1, maximum=5, first=6),
         policy(minimum=1, maximum=100, width=2),
-        {**policy(), "unknown": 1},
     ]
     for index, value in enumerate(invalid):
         cfg = deepcopy(project["cfg"])
@@ -251,6 +250,17 @@ def test_missing_or_invalid_allocation_policy_fails_explicitly(project):
         write_json(project["config_path"], cfg)
         with pytest.raises(PoiseError, match="(?i)task_ids"):
             Poise(project["config_path"], f"invalid-policy-{index}")
+
+
+def test_unknown_allocation_option_does_not_block_creation(project):
+    configure(project, {**policy(), "unknown": 1})
+    tools = WorkTools(Poise(project["config_path"], "unknown-policy"))
+    result = bootstrap(tools, automatic_intent(project, "unknown-policy-request"))
+    assert result["task"] == "0001"
+    assert result["allocation"] == {
+        "request_id": "unknown-policy-request", "task_id": "0001", "replayed": False,
+    }
+    assert json.loads(project["config_path"].read_text())["task_ids"]["unknown"] == 1
 
 
 def test_exhaustion_leaves_existing_tasks_unchanged(project):

@@ -503,6 +503,8 @@ class HookService:
             self.settings.raw['max_probes']).run(d.data['probes'],workspace)
 
     def _execute(self,h,record,req,definition):
+        from .result_views import preflight_work_result
+        preflight_work_result(h, req)
         if req['operation']=='verify':
             h.check_runner.bind_cancellation(self.registry.runner_cancellation_check(h.session))
         def invoke():

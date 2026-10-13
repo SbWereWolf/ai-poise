@@ -399,7 +399,9 @@ class RuntimeResultIntegration:
 
     def _select_checks(self, record):
         selected = []
-        for method in record["contract"]["methods"]:
+        registry = self.h.task_queries.verification_registry(record["id"])
+        for entry in registry["current"]:
+            method = entry["method"]
             plan = method["verification_plan"]
             if plan["green_stages"] and plan["change_surface"]:
                 selected.append(method)

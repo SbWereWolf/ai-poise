@@ -1,0 +1,26 @@
+{
+  "schema": "stride-bootstrap/v1",
+  "command": "check",
+  "dry_run": false,
+  "selection": {"requested": "alpha", "source": "argument", "resolved": ["alpha"]},
+  "status": "not_required",
+  "exit_code": 0,
+  "targets": [{
+    "target": "alpha",
+    "config_digest": "dbbea48f607930988c72b7fc18e3272fa3d8fb2d725d54454385789032d61445",
+    "status": "not_required",
+    "exit_code": 0,
+    "effects": "none",
+    "core": {
+      "schema": "environment-maintenance/result/v1",
+      "command": "check",
+      "dry_run": false,
+      "status": "not_required",
+      "exit_code": 0,
+      "parameters": {},
+      "parameter_sources": {},
+      "requirements": []
+    },
+    "error": null
+  }]
+}

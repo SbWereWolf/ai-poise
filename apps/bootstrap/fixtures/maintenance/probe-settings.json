@@ -1,0 +1,11 @@
+{
+  "state": "@STATE@",
+  "audit": "@AUDIT@",
+  "apply_exit": 0,
+  "materialize": true,
+  "sleep": {},
+  "stdout_bytes": {},
+  "spawn": false,
+  "mutations": [],
+  "echo": false
+}

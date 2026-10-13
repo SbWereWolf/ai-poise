@@ -1,0 +1,21 @@
+{
+  "readonly": [
+    {"command": "check", "dry_run": false},
+    {"command": "check", "dry_run": true},
+    {"command": "infra", "dry_run": true},
+    {"command": "deps", "dry_run": true}
+  ],
+  "truth_table": [
+    {"apply_exit": 0, "materialize": true, "status": "repaired", "exit_code": 0},
+    {"apply_exit": 0, "materialize": false, "status": "failed", "exit_code": 4},
+    {"apply_exit": 1, "materialize": true, "status": "failed", "exit_code": 4},
+    {"apply_exit": 1, "materialize": false, "status": "failed", "exit_code": 4}
+  ],
+  "sequence": ["check", "apply", "check"],
+  "environment": {"T027_INHERITED": "declared", "T027_NOT_INHERITED": null, "T027_EXPLICIT": "action"},
+  "documentation": {
+    "command": ["apps/bootstrap/bin/bootstrap", "--config", "--target", "--set", "--dry-run", "environment-maintenance==0.1.1", "repairs", "T026", "T028"],
+    "owner": ["engine.execute", "check", "apply", "recheck", "parameter_values_files", "inherit_env", "cwd", "snapshot"],
+    "result": ["stride-bootstrap/v1", "environment-maintenance/result/v1", "effects", "unknown", "not_started", "target_timeout", "run_deadline_exceeded", "output_limit_exceeded", "max_output_bytes", "config_digest", "secret"]
+  }
+}

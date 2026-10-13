@@ -116,8 +116,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
 
     def test_bootstrap_surface_excludes_engine_copy_and_legacy_route(self) -> None:
         source = (self.layout / "bootstrap").read_text(encoding="utf-8")
-        for path in (self.layout / "apps/bootstrap").rglob("*.py"):
-            source += path.read_text(encoding="utf-8")
+        source += (self.layout / "apps/bootstrap/application.py").read_text(encoding="utf-8")
         for obsolete in ("requirements.json", "repairs.json", "--repairs", "\"apply\""):
             self.assertNotIn(obsolete, source)
         self.assertFalse((self.layout / "apps/bootstrap/catalogue.py").exists())

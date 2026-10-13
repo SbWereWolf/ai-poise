@@ -1,0 +1,7 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {},
+  "requirements": [
+    {"id": "never-execute", "check": {"argv": ["sh", "-c", "printf changed > MUST_NOT_EXIST"]}, "apply": {"argv": ["sh", "-c", "printf changed > MUST_NOT_EXIST"]}}
+  ]
+}

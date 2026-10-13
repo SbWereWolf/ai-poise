@@ -1,0 +1,12 @@
+{
+  "schema": "stride-poise/v1",
+  "status": "rejected",
+  "error": {
+    "code": "unsupported_schema",
+    "message": "Unsupported Poise schema",
+    "retryable": false,
+    "details": {
+      "schema": "unknown-é"
+    }
+  }
+}

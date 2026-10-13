@@ -1,0 +1,14 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {
+    "python": {"type": "string", "secret": false},
+    "marker": {"type": "string", "secret": false}
+  },
+  "requirements": [{
+    "id": "owner-readiness",
+    "kind": "infra",
+    "check": {"argv": ["${python}", "-c", "from pathlib import Path; import sys; raise SystemExit(0 if Path(sys.argv[1]).is_file() else 1)", "${marker}"], "timeout": 5},
+    "apply": {"argv": ["${python}", "-c", "raise SystemExit('Configure a public owner repair command before use')"], "timeout": 5},
+    "recommendation": "Настройте публичную команду исправления владельца; шаблон сам ничего не исправляет."
+  }]
+}

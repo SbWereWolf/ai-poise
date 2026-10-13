@@ -1,0 +1,29 @@
+{
+  "schema": "stride-orchestrator-config/v1",
+  "paths": {
+    "state": "../state",
+    "database": "orchestrator.sqlite",
+    "lock": "orchestrator.lock"
+  },
+  "batch": {
+    "max_input_bytes": 65536,
+    "max_items": 128
+  },
+  "read": {
+    "max_queries": 128
+  },
+  "lock": {
+    "seconds": 5.0,
+    "poll_seconds": 0.05
+  },
+  "commands": {
+    "requirements.query": {
+      "protocol": "owner-json-v1",
+      "argv": ["../../requirements/bin/requirements", "--config", "../../requirements/config/requirements.json"],
+      "cwd": ".",
+      "env": {},
+      "timeout_seconds": 10.0,
+      "accepted_exit_codes": [0, 2]
+    }
+  }
+}

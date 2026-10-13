@@ -147,6 +147,18 @@ Inspect the configured primary checkout and its symbolic branch read-only. Treat
 uncertain binding, or mismatch with `git.base_ref` as a stop condition until the authorized configuration
 owner resolves it. Do not switch the primary checkout to satisfy a manifest value.
 
+When a reproduced harness defect blocks user-authorized work, record a defect task and use
+native source, test and Git tools within that authorization instead of repeatedly retrying
+an impossible gate. Preserve managed state and distinguish out-of-band work/commits from
+Poise-verified stages or acceptance. This does not authorize fabricated evidence, direct Task
+DB edits, loss of WIP or disabling platform safeguards. Return to the managed route after the
+relevant fix is validated and deployed.
+
+Manifest edits must not be rejected merely because an unfinished Task exists. Apply the
+[effect-specific configuration guards](docs/configuration/project-setup.md#изменения-без-общего-запрета-на-незавершённые-task):
+compare actual resource bindings, preserve storage/Workspace safety, and allow ordinary
+policy corrections without forcing Tasks to finish or be cancelled.
+
 Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their
 working files or database directly. Native coding tools remain appropriate for source code, tests and target
 documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not
@@ -171,6 +183,50 @@ Saving commits and check evidence does not require an archive. On resume, inspec
 asking for another upload. Follow [checkpoint and
 recovery](docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Do not equate a saved commit, a
 passed check, a delivery receipt, and Task completion.
+
+## Cloud Working — cloud agents only
+
+These rules apply **only to cloud agents using ephemeral execution storage**. They do not impose a backup
+cadence on local agents using durable user-managed storage. User update: 2026-09-27.
+
+- Treat the execution container as disposable. Preserve every meaningful result, local commit, changed artifact
+  and new verification result in the pending delivery journal. Do not rely on local files surviving a final response.
+- Deliver a readable handoff to Gmail and the corresponding recoverable results to Google Drive. Use the latest
+  **10–15 minute snapshot window** below rather than creating an archive for every individual operation.
+- Required inputs should be in existing backups. Inspect them first; report a specifically missing input instead
+  of inventing authoritative state or repeatedly asking for existing material.
+- Use the provided `workspace-recover` for restoration and delivery orchestration. Parameterize manifests and
+  scripts for assembly, verification, copying/moving, environment setup, packaging, deployment, mail composition,
+  sending and readback. Reuse existing tools; automate unambiguous mechanical operations instead of repeating
+  them manually. The host executes authenticated connector requests produced by the flow; the local process
+  does not acquire connector credentials. Include the manifests, configuration and restoration scripts in delivery.
+- Make local Git commits for logical results. **Do not run git push.** A commit is a pending backup milestone,
+  not evidence of independent review, Task acceptance or durable remote storage.
+- During Task work run only narrow Task-specific checks and maintained application smoke checks. Broad/full
+  test suites are release work, not ordinary development or backup prerequisites.
+
+### Cloud backup policy
+
+Every meaningful stage (including RED, implementation, GREEN and **every commit**) must be represented in the
+next recoverable checkpoint. Queue multiple milestones; do not discard their separate evidence or make a new
+archive immediately for each one. During active cloud work create snapshots **no less than 600 seconds apart
+and no more than 900 seconds apart** (10–15 minutes). Measure from snapshot creation, not upload/readback time.
+The first snapshot starts the clock. Stop initiating new mutations and deliver pending work within the next
+eligible window before ending the response. Do not omit pending work to meet the minimum interval.
+
+Check the remaining window before a long operation; split work where needed. Resume an interrupted delivery of
+its existing immutable snapshot rather than taking an early replacement. A commit or failed transport does not
+reset the clock. Preserve the actual failure and remote IDs; do not blindly send another email after an unknown
+outcome. This is in-session bookkeeping, not an unattended/background promise.
+
+Each delivery contains a checkpoint/results copy with SHA-256 and restore inputs in Google Drive, plus a Gmail
+handoff recording commits, Task/stage, evidence, limitations and deterministic resumption. Verify returned IDs
+and read back the actual stored data; a local path or upload intent is not durable delivery.
+
+When Google Drive or Gmail cannot persist a required component, retain the successful channel and use ChatGPT
+Library/Project as fallback for the missing component. If both fail, persist all important files there. Record
+which channel actually worked; never claim a failed send/upload succeeded. Attach final artifacts and recovery
+inputs to the final response as an additional accessible copy.
 
 ## Stage skills and missing expertise
 

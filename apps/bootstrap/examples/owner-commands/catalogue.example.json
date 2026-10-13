@@ -1,0 +1,25 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {
+    "database_path": {
+      "type": "string",
+      "env": "OWNER_DATABASE_PATH",
+      "secret": true
+    }
+  },
+  "requirements": [
+    {
+      "id": "db.prepare",
+      "kind": "infra",
+      "check": {
+        "repair": "db.prepare"
+      },
+      "apply": {
+        "repair": "db.prepare"
+      },
+      "recommendation": {
+        "repair": "db.prepare"
+      }
+    }
+  ]
+}

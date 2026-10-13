@@ -454,9 +454,19 @@ def test_same_candidate_successful_prior_configuration_proof_is_rechecked(
 
     def save_prior_definition_proof(self, run, repository):
         prior_record = deepcopy(self.h.task_queries.record("T1"))
-        prior_record["contract"]["methods"] = [configured_method("PRIOR_CONFIG")]
+        registry_query = self.h.task_queries.verification_registry
+
+        def prior_registry(task_id):
+            projection = deepcopy(registry_query(task_id))
+            assert len(projection["current"]) == 1
+            projection["current"][0]["method"] = configured_method("PRIOR_CONFIG")
+            return projection
+
         # Run the independently authored prior configuration on the SAME candidate.
-        checked = original_checks(self, prior_record, replace(run, phase="candidate_ready"))
+        # Restore the actual current projection before the public retry.
+        with monkeypatch.context() as prior_patch:
+            prior_patch.setattr(self.h.task_queries, "verification_registry", prior_registry)
+            checked = original_checks(self, prior_record, replace(run, phase="candidate_ready"))
         # A historical persisted run has only its successful prior-definition proof.
         historical = replace(checked, checks=(checked.checks[-1],))
         blocked = historical.publication_blocked("test_publication_blocked", {})

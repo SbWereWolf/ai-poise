@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[3]
+for entry in (ROOT, ROOT / "src"):
+    if str(entry) not in sys.path:
+        sys.path.insert(0, str(entry))
+
+from apps.execution.shell import main
+
+raise SystemExit(main())

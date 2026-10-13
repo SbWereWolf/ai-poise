@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+APP = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(APP))
+from shell import main
+raise SystemExit(main())

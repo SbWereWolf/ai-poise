@@ -1,0 +1,11 @@
+{
+  "schema": "stride-uat-program/v1",
+  "program_id": "external-program",
+  "version": "1",
+  "application_ids": ["widget-external"],
+  "graphs": [],
+  "steps": [
+    {"id":"first","application_id":"widget-external","command_id":"adapter","arguments":["${context}"],"graph_id":null,"timeout_seconds":2},
+    {"id":"second","application_id":"widget-external","command_id":"adapter","arguments":["${context}"],"graph_id":null,"timeout_seconds":2}
+  ]
+}

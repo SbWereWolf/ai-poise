@@ -36,3 +36,12 @@ dist/
 # Installation-specific Stride bootstrap and settings; retain sanitized examples.
 /config/stride.env
 /config/stride-launcher.json
+
+# Application-owned working configuration; commit sanitized examples only.
+/apps/bootstrap/config/bootstrap.json
+/apps/execution/config/execution.json
+/apps/orchestrator/config/orchestrator.json
+/apps/poise/config/poise.json
+/apps/requirements/config/requirements.json
+/apps/sequencing/config/sequencing.json
+/apps/stride-uat/config/uat.json

@@ -196,6 +196,7 @@ def test_state_relocation_holds_all_store_locks_during_copy(project, monkeypatch
     import poise.infrastructure.project_config as owner
     from .test_update import relocation
     settings, path, created = installed_project(project)
+    work_tools(path, 'relocation-lock-fixture')
     root, cfg, _ = load_config(path)
     state = configured_root(root, cfg['paths']['state'])
     state.mkdir(parents=True, exist_ok=True)
@@ -212,8 +213,9 @@ def test_state_relocation_holds_all_store_locks_during_copy(project, monkeypatch
             observed.append(lock)
         original(source, target)
     monkeypatch.setattr(owner, 'copy_state_tree', copy_under_locks)
-    packet = update_request(path, created['revision'], state_relocation=relocation(
-        path, project['root'].parent / 'locked-relocation'))
+    move = relocation(path, project['root'].parent / 'locked-relocation')
+    move.update(schema='project-state-relocation-1', hook_destinations=[])
+    packet = update_request(path, created['revision'], state_relocation=move)
     assert update_tools(settings).apply(packet)['status'] == 'updated'
     assert observed == expected
 

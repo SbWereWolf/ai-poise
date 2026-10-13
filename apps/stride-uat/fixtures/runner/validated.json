@@ -1,0 +1,4 @@
+{
+  "schema":"stride-uat/v1","status":"validated","program_id":"external-program",
+  "program_sha256":"@PROGRAM_SHA256@","profile_id":"ci","step_count":2,"graph_count":0
+}

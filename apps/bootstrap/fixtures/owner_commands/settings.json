@@ -1,0 +1,9 @@
+{
+  "database": "@DATABASE@",
+  "audit": "@AUDIT@",
+  "apply_exit": 0,
+  "final_fail": false,
+  "apply_sleep": 0,
+  "rewrite": null,
+  "echo": ""
+}

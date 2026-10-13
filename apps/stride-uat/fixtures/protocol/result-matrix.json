@@ -1,0 +1,8 @@
+[
+  {"mode":"pass","exit":0,"result":"PASS","verdict":"PASS","reason":null},
+  {"mode":"fail-zero","exit":0,"result":"FAIL","verdict":"FAIL","reason":"case_failed"},
+  {"mode":"pass-nonzero","exit":1,"result":"PASS","verdict":"FAIL","reason":"case_failed"},
+  {"mode":"blocked","exit":3,"result":"BLOCKED","verdict":"BLOCKED","reason":"fixture_blocked"},
+  {"mode":"blocked-zero","exit":0,"result":"BLOCKED","verdict":"FAIL","reason":"case_failed"},
+  {"mode":"fail","exit":1,"result":"FAIL","verdict":"FAIL","reason":"case_failed"}
+]

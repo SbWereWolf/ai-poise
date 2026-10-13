@@ -1,0 +1,216 @@
+{
+  "schema": "poise-application-boundaries-policy/v1",
+  "owners": {
+    "requirements": {
+      "root": "apps/requirements",
+      "entry": "apps/requirements/bin/requirements",
+      "config": "apps/requirements/config/requirements.json",
+      "loader_kind": "checkout-src-qualified",
+      "path_fields": [
+        {
+          "pointer": "/paths/state",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/paths/database",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        },
+        {
+          "pointer": "/paths/lock",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        }
+      ]
+    },
+    "sequencing": {
+      "root": "apps/sequencing",
+      "entry": "apps/sequencing/bin/sequencing",
+      "config": "apps/sequencing/config/sequencing.json",
+      "loader_kind": "checkout-src-qualified",
+      "path_fields": [
+        {
+          "pointer": "/paths/state",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/paths/database",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        },
+        {
+          "pointer": "/paths/lock",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        }
+      ]
+    },
+    "execution": {
+      "root": "apps/execution",
+      "entry": "apps/execution/bin/execution",
+      "config": "apps/execution/config/execution.json",
+      "loader_kind": "checkout-src-qualified",
+      "path_fields": [
+        {
+          "pointer": "/paths/state",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/paths/database",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        },
+        {
+          "pointer": "/paths/lock",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        }
+      ]
+    },
+    "orchestrator": {
+      "root": "apps/orchestrator",
+      "entry": "apps/orchestrator/bin/orchestrator",
+      "config": "apps/orchestrator/config/orchestrator.json",
+      "loader_kind": "own-shell",
+      "path_fields": [
+        {
+          "pointer": "/paths/state",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/paths/database",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        },
+        {
+          "pointer": "/paths/lock",
+          "base": "/paths/state",
+          "kind": "private_file",
+          "relative_only": true
+        }
+      ]
+    },
+    "bootstrap": {
+      "root": "apps/bootstrap",
+      "entry": "apps/bootstrap/bin/bootstrap",
+      "config": "apps/bootstrap/config/bootstrap.json",
+      "loader_kind": "own-spec",
+      "path_fields": [
+        {
+          "pointer": "/projects_root",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        }
+      ]
+    },
+    "stride-uat": {
+      "root": "apps/stride-uat",
+      "entry": "apps/stride-uat/bin/stride-uat",
+      "config": "apps/stride-uat/config/uat.json",
+      "loader_kind": "own-shell",
+      "path_fields": [
+        {
+          "pointer": "/state_root",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/workspace_root",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/input_roots/*",
+          "base": "config_directory",
+          "kind": "input_root",
+          "relative_only": false
+        }
+      ]
+    },
+    "poise": {
+      "root": "apps/poise",
+      "entry": "apps/poise/bin/poise",
+      "config": "apps/poise/config/poise.json",
+      "loader_kind": "own-shell",
+      "path_fields": [
+        {
+          "pointer": "/state_root",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/results_root",
+          "base": "config_directory",
+          "kind": "private_directory",
+          "relative_only": false
+        },
+        {
+          "pointer": "/session_store",
+          "base": "config_directory",
+          "kind": "private_file",
+          "relative_only": false
+        },
+        {
+          "pointer": "/lock_path",
+          "base": "config_directory",
+          "kind": "private_file",
+          "relative_only": false
+        }
+      ]
+    }
+  },
+  "requirements_legacy": {
+    "own_modules": [
+      "poise.application.requirements_registry",
+      "poise.infrastructure.requirements_registry",
+      "poise.modules.requirements_registry.domain",
+      "poise.modules.tasks.allocation"
+    ],
+    "shared_modules": [
+      "poise.infrastructure.locking",
+      "poise.infrastructure.sqlite.transaction",
+      "poise.modules.foundation.errors",
+      "poise.modules.foundation.strict_json"
+    ],
+    "entry_symbols": [
+      "poise.application.requirements_registry.RequirementsCommands",
+      "poise.infrastructure.requirements_registry.RequirementsStore",
+      "poise.modules.foundation.errors.PoiseError",
+      "poise.modules.foundation.strict_json.strict_json",
+      "poise.modules.tasks.allocation.TaskIdPolicy"
+    ]
+  },
+  "deferred_export": {
+    "module": "poise",
+    "function": "__getattr__",
+    "symbol": "Poise",
+    "target": "poise.runtime.Poise"
+  },
+  "limits": {
+    "max_files": 256,
+    "max_file_bytes": 1048576,
+    "max_total_bytes": 16777216,
+    "max_ast_nodes": 200000,
+    "max_diagnostics": 256,
+    "max_report_bytes": 1048576
+  }
+}

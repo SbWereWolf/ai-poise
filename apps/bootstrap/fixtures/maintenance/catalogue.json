@@ -1,0 +1,13 @@
+{
+  "schema": "environment-maintenance/requirements/v1",
+  "parameters": {},
+  "requirements": [
+    {
+      "id": "r",
+      "kind": "infra",
+      "check": {"argv": ["@PYTHON@", "@PROBE@", "@SETTINGS@", "check"], "timeout": 4},
+      "apply": {"argv": ["@PYTHON@", "@PROBE@", "@SETTINGS@", "apply"], "timeout": 4},
+      "recommendation": "Operator repair required"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "successes": [
+    {
+      "input": "{\"text\":\"строка\",\"values\":[1,true,null],\"nested\":{\"x\":2}}",
+      "expected": {
+        "text": "строка",
+        "values": [
+          1,
+          true,
+          null
+        ],
+        "nested": {
+          "x": 2
+        }
+      }
+    },
+    {
+      "input": "[false,2.5,\"é\"]",
+      "expected": [
+        false,
+        2.5,
+        "é"
+      ]
+    },
+    {
+      "input": "null",
+      "expected": null
+    }
+  ],
+  "errors": [
+    {
+      "input": "{\"a\":1,\"a\":2}",
+      "error": "Повтор поля JSON: a"
+    },
+    {
+      "input": "{\"outer\":{\"x\":1,\"x\":2}}",
+      "error": "Повтор поля JSON: x"
+    },
+    {
+      "input": "NaN",
+      "error": "Недопустимое JSON-число: NaN"
+    },
+    {
+      "input": "Infinity",
+      "error": "Недопустимое JSON-число: Infinity"
+    },
+    {
+      "input": "-Infinity",
+      "error": "Недопустимое JSON-число: -Infinity"
+    },
+    {
+      "input": "{",
+      "error": "Неверный JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+    }
+  ]
+}

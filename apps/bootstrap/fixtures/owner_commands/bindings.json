@@ -1,0 +1,32 @@
+{
+  "schema": "stride-bootstrap-owner-commands/v1",
+  "repairs": {
+    "db.prepare": {
+      "check": {
+        "argv": [
+          "@PYTHON@",
+          "@OWNER@",
+          "@SETTINGS@",
+          "check"
+        ],
+        "timeout": 2,
+        "env": {
+          "T028_EXPLICIT": "owner environment"
+        }
+      },
+      "apply": {
+        "argv": [
+          "@PYTHON@",
+          "@OWNER@",
+          "@SETTINGS@",
+          "apply"
+        ],
+        "timeout": 2,
+        "env": {
+          "T028_EXPLICIT": "owner environment"
+        }
+      },
+      "recommendation": "Use the public owner command"
+    }
+  }
+}

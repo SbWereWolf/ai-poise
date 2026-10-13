@@ -11,6 +11,12 @@ contract](../../../docs/workflows/stage-criteria.md). Read actual revisions and
 proposal identities through their owners; do not infer authority from role or
 handler names, edit managed storage, or treat criteria work as a general Task edit.
 
+For explicit stage-criteria migration, a genuine native runtime-resources bootstrap receipt
+may prove the source revision. Preserve its original identity and saved bytes; use the
+ordinary migration update receipt to prove completion. Follow the canonical
+[source and recovery
+contract](../../../docs/task-process-snapshot-migration.md#публикация-атомарность-и-восстановление).
+
 AI poise is a declarative harness whose job is to remove mechanical administration and tooling
 implementation details from the agent's work. Templates accelerate planning; they must not become a
 reason to force a valid Task into a starter shape. The planner owns the newborn draft before
@@ -36,15 +42,23 @@ paths](../../../docs/configuration/wsl-local-delivery.md#пути-project-local-
 
 For configured project operations, follow the versioned
 [Stride launcher contract](../../../docs/configuration/stride-launcher.md#настройки-запуска)
-and its [independent package version selection](../../../docs/configuration/stride-launcher.md#установка-и-выбор-версии).
+and its [independent package version
+selection](../../../docs/configuration/stride-launcher.md#установка-и-выбор-версии).
 Stride does not create native caller identity or replace the hook-issued session work launcher.
-The [historical local installation](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise)
-retains the native session protocols; resolve actual paths through current configuration. `bootstrap` and `verify` are
-operations of AI poise `work`, not separate skills. For ordinary work invoke the session-scoped `work.sh` supplied by
-the native hook explicitly through Bash, keep `messages=[]`, and reuse the same launcher across calls. Direct
-`.venv/bin/poise work` uses a native Codex identity when available; otherwise it requires an absolute persistent
-`POISE_CALLER_BINDING` whose parent already exists. An agent must not substitute a caller-chosen session value, and a
-direct diagnostic call does not establish native event delivery. State placement follows the selected project
+The [historical local
+installation](../../../docs/configuration/project-setup.md#локальный-проект-ai-poise)
+retains the native session protocols; resolve actual paths through current configuration.
+`bootstrap` and `verify` are
+operations of AI poise `work`, not separate skills. For ordinary work invoke the session-scoped
+`work.sh` supplied by
+the native hook explicitly through Bash, keep `messages=[]`, and reuse the same launcher across
+calls. Direct
+`.venv/bin/poise work` uses a native Codex identity when available; otherwise it requires an
+absolute persistent
+`POISE_CALLER_BINDING` whose parent already exists. An agent must not substitute a caller-chosen
+session value, and a
+direct diagnostic call does not establish native event delivery. State placement follows the
+selected project
 configuration; historical installation examples do not override its current paths.
 
 Treat launcher availability and configured interpreter capability separately. Managed hooks and

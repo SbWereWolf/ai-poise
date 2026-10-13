@@ -1,0 +1,171 @@
+{
+  "receipt": {
+    "schema": "project-config-receipt-1",
+    "request_id": "historical-bootstrap",
+    "request_digest": "REQUEST_DIGEST",
+    "result": {
+      "schema": "project-runtime-resources-bootstrap-result-1",
+      "status": "completed",
+      "request_id": "historical-bootstrap",
+      "config_path": "CONFIG_PATH",
+      "prior_revision": "BEFORE_REVISION",
+      "revision": "AFTER_REVISION",
+      "before_revision": "BEFORE_REVISION",
+      "after_revision": "AFTER_REVISION",
+      "replayed": false
+    }
+  },
+  "faults": [
+    {
+      "path": "request_id",
+      "value": ""
+    },
+    {
+      "path": "request_id",
+      "value": "  "
+    },
+    {
+      "path": "request_id",
+      "value": "bad\u0000id"
+    },
+    {
+      "path": "request_id",
+      "value": false
+    },
+    {
+      "path": "request_digest",
+      "value": "bad"
+    },
+    {
+      "path": "request_digest",
+      "value": false
+    },
+    {
+      "path": "extra",
+      "value": "unknown"
+    },
+    {
+      "path": "result",
+      "value": null
+    },
+    {
+      "path": "result",
+      "value": []
+    },
+    {
+      "path": "result.schema",
+      "value": "unknown-bootstrap-result"
+    },
+    {
+      "path": "result.status",
+      "value": "updated"
+    },
+    {
+      "path": "result.request_id",
+      "value": "different-id"
+    },
+    {
+      "path": "result.request_id",
+      "value": "  "
+    },
+    {
+      "path": "result.request_id",
+      "value": "bad\u0000id"
+    },
+    {
+      "path": "result.config_path",
+      "value": false
+    },
+    {
+      "path": "result.config_path",
+      "value": "  "
+    },
+    {
+      "path": "result.config_path",
+      "value": "bad\u0000path"
+    },
+    {
+      "path": "result.prior_revision",
+      "value": "bad"
+    },
+    {
+      "path": "result.before_revision",
+      "value": false
+    },
+    {
+      "path": "result.revision",
+      "value": "bad"
+    },
+    {
+      "path": "result.after_revision",
+      "value": false
+    },
+    {
+      "path": "result.replayed",
+      "value": 1
+    },
+    {
+      "path": "result.changed",
+      "value": true
+    },
+    {
+      "path": "result.readiness",
+      "value": {}
+    },
+    {
+      "path": "result.receipt_path",
+      "value": "alias"
+    },
+    {
+      "path": "request_digest",
+      "delete": true
+    },
+    {
+      "path": "result.before_revision",
+      "delete": true
+    },
+    {
+      "path": "result.after_revision",
+      "delete": true
+    }
+  ],
+  "invalid_equal_ids": [
+    "",
+    "  ",
+    "bad\u0000id",
+    true,
+    7
+  ],
+  "invalid_coherent_revisions": [
+    null,
+    false,
+    true,
+    7,
+    "",
+    "  ",
+    "bad",
+    "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+  ],
+  "invalid_full_length_digests": [
+    "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+  ],
+  "required_envelope_keys": [
+    "schema",
+    "request_id",
+    "request_digest",
+    "result"
+  ],
+  "required_result_keys": [
+    "schema",
+    "status",
+    "request_id",
+    "config_path",
+    "prior_revision",
+    "revision",
+    "before_revision",
+    "after_revision",
+    "replayed"
+  ]
+}

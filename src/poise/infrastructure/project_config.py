@@ -10,6 +10,7 @@ import tempfile
 
 from ..common import configured_root, configured_storage_path, descendant, digest, load_config, load_process_migration_config, validate_candidate_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
+from ..modules.foundation.validation import nonempty
 from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
 from .goal_config import atomic_write, read_document
@@ -221,6 +222,42 @@ class FileProjectConfigUpdate:
             raise PoiseError(f"Invalid project migration receipt: {path}")
         return result
 
+    def _stage_criteria_bootstrap_source_receipt(self, saved, path):
+        """Admit the native first-association record as a source only."""
+        result = saved.get("result")
+        required = {"schema", "status", "request_id", "config_path", "prior_revision",
+                    "revision", "before_revision", "after_revision", "replayed"}
+        if (set(saved) != {"schema", "request_id", "request_digest", "result"}
+                or saved.get("schema") != "project-config-receipt-1"
+                or not isinstance(result, dict) or set(result) != required
+                or result.get("schema") != "project-runtime-resources-bootstrap-result-1"
+                or result.get("status") != "completed"
+                or not self._receipt_digest(saved.get("request_digest"))
+                or not all(self._receipt_digest(result.get(key)) for key in
+                           ("prior_revision", "revision", "before_revision", "after_revision"))
+                or result.get("before_revision") != result.get("prior_revision")
+                or result.get("after_revision") != result.get("revision")
+                or result.get("prior_revision") == result.get("revision")
+                or type(result.get("replayed")) is not bool):
+            raise PoiseError(f"Invalid project bootstrap receipt: {path}")
+        try:
+            nonempty(saved["request_id"], "request_id")
+            nonempty(result["request_id"], "result.request_id")
+            nonempty(result["config_path"], "result.config_path")
+        except PoiseError as exc:
+            raise PoiseError(f"Invalid project bootstrap receipt: {path}") from exc
+        if saved["request_id"] != result["request_id"]:
+            raise PoiseError(f"Invalid project bootstrap receipt: {path}")
+        return result
+
+    def _stage_criteria_source_receipt(self, saved, path):
+        """Share source admission without broadening completion admission."""
+        result = saved.get("result")
+        if (isinstance(result, dict)
+                and result.get("schema") == "project-runtime-resources-bootstrap-result-1"):
+            return self._stage_criteria_bootstrap_source_receipt(saved, path)
+        return self._stage_criteria_update_receipt(saved, path)
+
     def _stage_criteria_pending_document(self, saved):
         if (set(saved) != {"schema", "request_id", "request_digest", "before", "after"}
                 or saved.get("schema") != "project-config-pending-1"
@@ -252,7 +289,7 @@ class FileProjectConfigUpdate:
                 result = saved.get("result")
                 if isinstance(result, dict) and result.get("config_path") != str(config_path):
                     continue
-                result = self._stage_criteria_update_receipt(saved, path)
+                result = self._stage_criteria_source_receipt(saved, path)
                 for key in ("revision", "prior_revision"):
                     if result[key] == revision:
                         return {"path": str(path), "digest": digest(saved), "revision": revision,
@@ -266,7 +303,7 @@ class FileProjectConfigUpdate:
         if digest(saved) != source["digest"] or saved.get("schema") != source["schema"]:
             raise PoiseError("Migration source receipt changed")
         if source["schema"] == "project-config-receipt-1":
-            result = self._stage_criteria_update_receipt(saved, path)
+            result = self._stage_criteria_source_receipt(saved, path)
         else:
             result = saved["result"]  # Setup record is validated by binding admission.
         if (result.get("config_path") != publication["config_path"]

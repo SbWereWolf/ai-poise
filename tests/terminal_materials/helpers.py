@@ -20,9 +20,9 @@ PROOF = b"temporary proof must disappear\n"
 
 
 def arrange(project, member=False, identifier="T1", before_verify=None,
-            with_checks=False, artifact_files=()):
+            with_checks=False, artifact_files=(), session="material-owner"):
     setup(project)
-    tools = WorkTools(WorkPoise(project["config_path"], "material-owner"))
+    tools = WorkTools(WorkPoise(project["config_path"], session))
     contract = task(project, identifier)
     contract["methods"] = []
     contract["method_inputs"] = []

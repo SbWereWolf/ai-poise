@@ -3,6 +3,7 @@ from ..common import PoiseError,read_json,load_config
 from ..infrastructure.runtime_adapter import RuntimeAdapter
 from ..infrastructure.goal_config import strict_json
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
+from ..modules.result_views.domain import require_result_budget
 from .work import write_result
 from pathlib import Path
 
@@ -13,6 +14,7 @@ def execute(settings_path,stream,output,error):
         settings=read_json(settings_path)
         adapter=RuntimeAdapter(settings)
         _,cfg,_=load_config(Path(settings['project_config']))
+        require_result_budget('',cfg['limits']['output_chars'],'rejected')
         raw=stream.read(cfg['batch']['max_input_bytes']+1)
         if len(raw)>cfg['batch']['max_input_bytes']:raise PoiseError('Runtime packet exceeds input limit')
         packet=strict_json(raw.decode('utf-8'))

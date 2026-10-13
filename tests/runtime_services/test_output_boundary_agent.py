@@ -103,18 +103,15 @@ class AgentBoundaryTests(unittest.TestCase):
         self.assert_full_response(output, before, 2000)
         self.assertEqual(payload, before)
 
-    def test_work_equal_below_above_character_budget_uses_valid_json(self):
+    def test_work_small_replies_also_have_complete_saved_results(self):
         payload = {'status': 'read_only', 'value': 'Ж'}
-        size = len(json.dumps(payload, ensure_ascii=False, separators=(',', ':')) + '\n')
-        # Small replies at/equal/below need no pointer. A large configured cap
-        # leaves room for a truthful pointer instead of forcing impossible JSON.
-        for cap in (size, size + 1):
+        for cap in (2000, 2001):
             with self.subTest(cap=cap):
                 self.runtime.cfg['limits']['output_chars'] = cap
                 output = io.StringIO()
                 write_result(self.runtime, payload, output)
-                self.assertEqual(json.loads(output.getvalue()), payload)
-                self.assertLessEqual(len(output.getvalue()), cap)
+                brief = self.assert_full_response(output, payload, cap)
+                self.assertNotIn('value', brief)
         self.runtime.cfg['limits']['output_chars'] = 2000
         output = io.StringIO()
         write_result(self.runtime, deepcopy(self.fixture['structured_result']), output)

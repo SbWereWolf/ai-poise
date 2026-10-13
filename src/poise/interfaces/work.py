@@ -5,18 +5,9 @@ from ..application.work import WorkTools
 from ..common import PoiseError,descendant
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES, parse_request
 from ..infrastructure.goal_config import strict_json,atomic_write
-from ..infrastructure.task_paths import sprint_root, task_root
-from ..modules.result_views.domain import bounded_envelope, response_required
-from ..modules.tasks.domain import is_terminal_task_status
-
-
-def _task_root(h, task):
-    saved = h.task_queries.record(task['id'])
-    sprint_id = task.get('sprint_id') if saved is None else saved['sprint_id']
-    if ((saved is not None and is_terminal_task_status(saved['status']))
-            or h.delivery_tools.unavailable(task['id'])):
-        return h.runtime
-    return task_root(h.state, h.paths, h._identifier(task['id']), sprint_id)
+from ..infrastructure.task_paths import sprint_root
+from ..infrastructure.result_views import task_response_root, preflight_work_result
+from ..modules.result_views.domain import bounded_envelope
 
 
 def execute(runtime,stream,output):
@@ -27,16 +18,7 @@ def execute(runtime,stream,output):
         if len(raw)>h.cfg['batch']['max_input_bytes']:
             raise PoiseError('Packet exceeds configured max_input_bytes')
         request=parse_request(strict_json(raw.decode('utf-8')),h.cfg['batch'])
-        current=h.current_task()
-        root=h.runtime if current is None else _task_root(h, current)
-        if request['operation']=='bootstrap' and request['input']['task'] is not None:
-            task=request['input']['task']
-            if 'id' in task:
-                root=_task_root(h, task)
-        predicted=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
-        minimal={'status':'content_requirements_failed','response_path':str(predicted)}
-        if len(json.dumps(minimal,ensure_ascii=False,separators=(',',':'))+'\n')>h.cfg['limits']['output_chars']:
-            raise PoiseError('Configured output_chars cannot fit the result receipt; action not started')
+        preflight_work_result(h, request)
         result=WorkTools(h).invoke(request)
         category = (
             'business_incomplete'
@@ -56,14 +38,12 @@ def write_result(h,result,output):
     presented, required, command_views = h.result_views.present_result(
         result, h.retired_receipt, lambda receipt_id: h.task_queries.receipt_task(receipt_id),
     )
-    # Task reports survive cleanup. A small taskless finalization needs no file.
-    response=None
-    if current is not None or isinstance(result.get('sprint'),str) or response_required(presented,h.cfg['limits']['output_chars']):
-        root = (_task_root(h, current) if current is not None else
-                (sprint_root(h.state, h.paths, h._identifier(result['sprint']))
-                 if isinstance(result.get('sprint'), str) else h.runtime))
-        response=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
-        atomic_write(response,(json.dumps(presented,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
+    # Complete replies survive cleanup and also exist for tiny taskless results.
+    root = (task_response_root(h, current) if current is not None else
+            (sprint_root(h.state, h.paths, h._identifier(result['sprint']))
+             if isinstance(result.get('sprint'), str) else h.runtime))
+    response=descendant(root,h.paths['runs'])/str(uuid.uuid4())/h.paths['response']
+    atomic_write(response,(json.dumps(presented,ensure_ascii=False,indent=2)+'\n').encode(),h.cfg['batch']['file_mode'])
     metadata={'details':'full_result','session':h.session}
     metadata.update({key:result[key] for key in ('task','stage','iteration','next_work') if key in result})
     if 'results' in result:metadata['result_count']=len(result['results'])

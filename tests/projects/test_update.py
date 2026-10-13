@@ -35,6 +35,39 @@ def installed_project(project):
     return settings, Path(created["config_path"]), created
 
 
+def test_disposable_fixture_has_explicit_project_authority_without_task_allocation(project):
+    from poise.composition import project_tools
+    from poise.infrastructure.projects import ProjectSettings
+    root, config, _ = load_config(project['config_path'])
+    association = config['runtime_resources']
+    settings = ProjectSettings(association['project_setup'])
+    entries = project_tools(settings.path).list()['projects']
+    assert any(item['project'] == config['project'] and
+               item['config_path'] == str(project['config_path']) for item in entries)
+    state = root / config['paths']['state']
+    assert not settings.lock.is_relative_to(state)
+    assert not settings.path.is_relative_to(state)
+    assert association['hooks'] == []
+    assert not (state / config['paths']['database']).exists()
+
+
+def test_explicit_bootstrap_fixture_preserves_absent_association_until_publication(project, tmp_path):
+    from .helpers import bootstrap_fixture_resources
+    from .runtime_resources_bootstrap_helpers import arrange_bootstrap, files
+    case = arrange_bootstrap(project, tmp_path)
+    assert 'runtime_resources' not in json.loads(case['config_path'].read_text())
+    before = files(case['root'])
+    with pytest.raises(PoiseError, match='runtime_resources'):
+        Poise(case['config_path'], 'absent-association', DeterministicClock())
+    assert files(case['root']) == before
+    config = bootstrap_fixture_resources(case['settings'], case['config_path'])
+    assert config['runtime_resources'] == {'project_setup': str(case['settings']), 'hooks': []}
+    assert not (case['state'] / config['paths']['database']).exists()
+    runtime = Poise(case['config_path'], 'prepared-association', DeterministicClock())
+    assert runtime.state == case['state']
+    assert runtime.current_task() is None
+
+
 def work_tools(config_path, session):
     # Project setup deliberately leaves each private Requirements store empty.
     # Seed only executable test scenarios, through the existing registry API.

@@ -14,6 +14,31 @@ class SqliteArtifactRepository:
             'JOIN task_artifacts t ON a.id=t.artifact_id WHERE t.task_id=? ORDER BY a.id',
             (task_id,))]
 
+    def bind_materials(self, task_id, receipt_id, bindings, actor):
+        value = {'schema': 'artifact-material-bindings-1', 'receipt_id': receipt_id,
+                 'bindings': bindings}
+        row = self.db.execute("SELECT data FROM journal WHERE task_id=? "
+                              "AND event='artifact.materials_bound' "
+                              "AND json_extract(data,'$.receipt_id')=? ORDER BY seq DESC LIMIT 1",
+                              (task_id, receipt_id)).fetchone()
+        if row is not None:
+            if json.loads(row['data']) != value:
+                raise PoiseError('Saved receipt material association conflicts')
+            return
+        self.append_draft_event(task_id, actor, 'artifact.materials_bound', value)
+
+    def internal_material_ids(self, task_id):
+        """Bound evidence remains registered without becoming a delivered result."""
+        bound = set()
+        for row in self.db.execute(
+                "SELECT data FROM journal WHERE task_id=? AND event='artifact.materials_bound'",
+                (task_id,)):
+            bound.update(item['artifact_id'] for item in json.loads(row['data'])['bindings'])
+        delivered = set()
+        for row in self.db.execute('SELECT data FROM task_results WHERE task_id=?', (task_id,)):
+            delivered.update(item['id'] for item in json.loads(row['data'])['artifacts'])
+        return bound - delivered
+
     def link_task(self, task_id, artifacts):
         for item in artifacts:
             self._register(item)
@@ -143,6 +168,107 @@ class SqliteArtifactRepository:
             if live is not None:
                 raise PoiseError('Shared artifact has an unreleased Task claim')
         return {'records': records, 'sprint_id': sprint, 'owners': owners}
+
+    def recovery_sessions(self, after_sequence):
+        return {row['session_id'] for row in self.db.execute(
+            "SELECT session_id FROM journal WHERE seq>? AND event='artifacts.recovered'",
+            (after_sequence,))}
+
+    def relocation_records(self, after_sequence):
+        """Undo only recorded, identity-preserving rebinds for admission comparison."""
+        records = {row['id']: dict(row) for row in self.db.execute(
+            'SELECT id,owner,scope,path,digest FROM artifacts')}
+        for row in self.db.execute(
+                "SELECT data FROM journal WHERE seq>? AND event='artifacts.recovered' ORDER BY seq DESC",
+                (after_sequence,)):
+            event = json.loads(row['data'])
+            prior = event['prior_records']
+            published = event['result']['artifacts']
+            if len(prior) != len(published):
+                raise PoiseError('Artifact recovery history has inconsistent records')
+            for old, new in zip(prior, published, strict=True):
+                # Public recovery also carries transport source/relative paths;
+                # only the existing registry columns describe stored identity.
+                columns = ('id', 'owner', 'scope', 'path', 'digest')
+                old = {key: old[key] for key in columns}
+                new = {key: new[key] for key in columns}
+                if (any(old[key] != new[key] for key in ('id', 'owner', 'scope', 'digest'))
+                        or records.get(new['id']) != new):
+                    raise PoiseError('Artifact recovery history does not prove current placement')
+                records[old['id']] = old
+        return list(records.values())
+
+    def normalize_relocation(self, before, actual, database, actor):
+        """Authorize only this owner's exact binding/recovery effects for a seal.
+
+        This changes the temporary comparison, never stored records or history.
+        All other rows, implicit row identities and database metadata remain exact.
+        """
+        from ..saved_materials import SavedMaterialReader, material_specs, saved_receipts
+        original, current = before['tables'], actual['tables']
+        sequence = max((row['seq'] for row in original['journal']), default=0)
+        appended = [row for row in current['journal'] if row['seq'] > sequence]
+        task_versions = {row['id']: row['version'] for row in original['tasks']}
+        allowed_artifacts, task_links, sprint_links = set(), set(), set()
+        records = {row['id']: row for row in current['artifacts']}
+        reader = SavedMaterialReader(database)
+        for row in appended:
+            task_id = row['task_id']
+            if task_id not in task_versions or row['event'] not in (
+                    'artifacts.recovered', 'artifact.materials_bound'):
+                raise PoiseError('Destination history has an unconfirmed relocation event')
+            value = json.loads(row['data'])
+            if row['event'] == 'artifacts.recovered':
+                result = value['result']
+                if result['task'] != task_id or result['task_version'] != task_versions[task_id]:
+                    raise PoiseError('Artifact recovery history has a different Task/version')
+                continue
+            if row['session_id'] != actor or value['schema'] != 'artifact-material-bindings-1':
+                raise PoiseError('Material binding is outside the admitted relocation')
+            receipts = [receipt for receipt in saved_receipts(self.db, task_id)
+                        if receipt['id'] == value['receipt_id']]
+            if len(receipts) != 1:
+                raise PoiseError('Relocation binding has no unique saved receipt')
+            specs = material_specs(reader.physical_receipt(receipts[0]))
+            bindings = {item['selector']: item['artifact_id'] for item in value['bindings']}
+            if len(bindings) != len(value['bindings']) or set(bindings) != set(specs):
+                raise PoiseError('Relocation binding differs from complete receipt materials')
+            for selector, identifier in bindings.items():
+                record = records[identifier]
+                if any(record[key] != specs[selector][key] for key in ('path', 'digest')):
+                    raise PoiseError('Relocation binding has different physical material')
+                allowed_artifacts.add(identifier)
+                task_links.add((task_id, identifier))
+                if record['scope'] == 'sprint':
+                    sprint_links.add((record['owner'], identifier))
+        restored = {row['id']: row for row in self.relocation_records(sequence)}
+        admitted_ids = {row['id'] for row in original['artifacts']}
+        for row in current['artifacts']:
+            row.update(restored[row['id']])
+        current['artifacts'] = [row for row in current['artifacts']
+                                if row['id'] in admitted_ids or row['id'] not in allowed_artifacts]
+        for table, owner, permitted in (
+                ('task_artifacts', 'task_id', task_links),
+                ('sprint_artifacts', 'sprint_id', sprint_links)):
+            admitted = {(row[owner], row['artifact_id']) for row in original[table]}
+            current[table] = [row for row in current[table]
+                              if (row[owner], row['artifact_id']) in admitted
+                              or (row[owner], row['artifact_id']) not in permitted]
+        # The only allowed sequence change is allocation of those checked append
+        # events. Preserve the row's own identity and every unrelated sequence.
+        maximum = max((row['seq'] for row in current['journal']), default=0)
+        prior_sequence = next((row for row in original['sqlite_sequence']
+                               if row['name'] == 'journal'), None)
+        for row in current['sqlite_sequence']:
+            if row['name'] == 'journal' and appended:
+                if row['seq'] != maximum:
+                    raise PoiseError('Destination journal allocation has unconfirmed changes')
+                if prior_sequence is not None:
+                    row['seq'] = prior_sequence['seq']
+        if prior_sequence is None and appended:
+            current['sqlite_sequence'] = [row for row in current['sqlite_sequence']
+                                         if row['name'] != 'journal']
+        current['journal'] = [row for row in current['journal'] if row['seq'] <= sequence]
 
     def rebind(self, intent, digest, records, publications, actor):
         if len(records) != len(publications):

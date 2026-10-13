@@ -25,6 +25,13 @@ expires. Platform safety constraints and storage integrity are not project rules
 
 ## Purpose and outcomes
 
+Stride names the task-management system; Poise names the agent harness. Keep the
+versioned project-operation entry named `stride.sh`. Independent consumers use the
+shared package through their package manager with an explicitly selected version;
+each consumer updates separately. Keep working launcher settings outside source
+commits and configure tool/data roots independently. Follow the [canonical naming and distribution rule](docs/governance/development-rules.md#имена-системы-и-общая-библиотека-запуска)
+and [launcher contract](docs/configuration/stride-launcher.md#имена-и-владельцы).
+
 AI poise is a harness that helps agents work declaratively without needing to understand or manually service the implementation details of the tooling. Reduce the model tokens spent administering tasks. Keep bookkeeping, repeated mechanical actions and unnecessary tool calls out of the agent's work so that its effort goes into sound engineering decisions, useful code and clear documentation. Evaluate every proposed tooling change against this rule: prefer interfaces that remove mechanical work and implementation knowledge while preserving the agent's substantive engineering choices. A template, router or recommendation is assistance, not a hidden policy that forces a valid task to fit the starter shape.
 
 When beginning actual execution, establish the refined goal, requirements, achievable definition of done and how completion will be demonstrated. Registration requires only the stated goal and optional existing materials; do not perform execution preparation to register a Task. For Task planning, treat a selected template as materialized starter data: the planner may reshape the task-owned draft before `ready`. The current runtime freezes its resolved contract in `ready`; the normative requirement-freezing boundary is the following stage, equally for standalone and Sprint Tasks. Preserve tool integrity without treating that implementation limit as permission to perform future stages.

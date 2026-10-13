@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from copy import deepcopy
 import hashlib
 import json
@@ -27,7 +27,8 @@ def _encoded(value):
 class RequirementsStore:
     SCHEMA_VERSION = 2
 
-    def __init__(self, database, lock, lock_seconds, poll_seconds):
+    def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None):
+        self.project_fence = project_fence
         self.database = Path(database)
         self.lock = Path(lock)
         for value in (lock_seconds, poll_seconds):
@@ -35,8 +36,6 @@ class RequirementsStore:
                 raise PoiseError("Requirements store requires positive finite lock limits")
         self.lock_seconds = lock_seconds
         self.poll_seconds = poll_seconds
-        self.database.parent.mkdir(parents=True, exist_ok=True)
-        self.lock.parent.mkdir(parents=True, exist_ok=True)
         with self._transaction() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             if version == 0:
@@ -91,10 +90,11 @@ class RequirementsStore:
     def _transaction(self):
         # Reserve the writer before reading revision/request state. Only the
         # shared BEGIN/COMMIT boundary may retry; this body is never replayed.
-        with write_transaction(
-            self.database, self.lock, self.lock_seconds, self.poll_seconds
-        ) as connection:
-            yield connection
+        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+            with write_transaction(
+                self.database, self.lock, self.lock_seconds, self.poll_seconds
+            ) as connection:
+                yield connection
 
     @staticmethod
     def _registry(connection):

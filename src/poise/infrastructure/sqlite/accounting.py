@@ -188,17 +188,49 @@ class SqliteAccounting:
             return False
         db.execute(
             'INSERT INTO accounting_cycles VALUES(?,?,?,?,?,?,?)',
-            (
-                envelope.identity,
-                None,
-                self.project,
-                data['session'],
-                data['started']['audit_utc'],
-                data['finished']['audit_utc'],
-                encoded(stored),
-            ),
+            tuple(self.telemetry_record(envelope.identity,data,self.project).values()),
         )
         return True
+
+    @staticmethod
+    def telemetry_record(identifier,data,project):
+        """The accounting owner's complete stored envelope projection."""
+        return {'id':identifier,'task_id':None,'project':project,
+                'session_id':data['session'],'started_at':data['started']['audit_utc'],
+                'ended_at':data['finished']['audit_utc'],
+                'data':encoded({'kind':'telemetry_envelope','envelope':data})}
+
+    @staticmethod
+    def normalize_relocation(before,actual,project,recovery_sessions):
+        """Ignore only new recovery envelopes backed by the Task audit owner.
+
+        Existing envelopes, row identities and all accounting effects remain
+        exact. Usage ingestion is not a relocation metadata effect.
+        """
+        admitted={row['id'] for row in before['tables']['accounting_cycles']}
+        retained=[]
+        for row in actual['tables']['accounting_cycles']:
+            if row['id'] in admitted:
+                retained.append(row)
+                continue
+            stored=json.loads(row['data'])
+            data=stored.get('envelope') if isinstance(stored,dict) else None
+            fields={'operation','session','turn_id','before_binding','after_binding',
+                    'started','finished','result_status','telemetry'}
+            if (not isinstance(data,dict) or set(data)!=fields
+                    or data['operation']!='recover_artifacts'
+                    or data['result_status']!='artifacts_recovered'
+                    or data['session'] not in recovery_sessions
+                    or data['telemetry'] is not None):
+                raise PoiseError('Copied telemetry has an unconfirmed recovery envelope')
+            for name in ('started','finished'):
+                observation=data[name]
+                ClockObservation(observation['audit_utc'],observation['monotonic_ns'],
+                                 observation['comparison_domain'])
+            expected=SqliteAccounting.telemetry_record(identity(data),data,project)
+            if any(row[key]!=value for key,value in expected.items()):
+                raise PoiseError('Copied recovery telemetry differs from its owner projection')
+        actual['tables']['accounting_cycles']=retained
 
     @staticmethod
     def _new_timing(observation:ClockObservation):

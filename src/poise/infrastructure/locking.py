@@ -18,7 +18,7 @@ def exclusive_lock(path: Path, wait: float, poll: float, *, existing=False):
         deadline = time.monotonic() + wait
         while True:
             try:
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 break
             except BlockingIOError:
                 remaining = deadline - time.monotonic()
@@ -28,4 +28,4 @@ def exclusive_lock(path: Path, wait: float, poll: float, *, existing=False):
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)

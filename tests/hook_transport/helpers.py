@@ -35,13 +35,24 @@ def definition():
 
 def settings(project,tmp_path):
     root=project['root']
-    project['cfg']['batch']['message_source']={'id':'codex-hook-main','mode':'runtime_event'}
+    candidate = deepcopy(project['cfg'])
+    candidate['batch']['message_source']={'id':'codex-hook-main','mode':'runtime_event'}
     # Hook transport tests exercise message identity and process routing, not elapsed-time
     # accounting. Reported mode keeps those process-boundary tests independent of host
     # wall-clock adjustments while the accounting suite retains tool-cycle coverage.
-    project['cfg']['accounting']['time_mode']='reported'
-    write_json(project['config_path'],project['cfg'])
-    return write_json(root/'hook-settings.json',{
+    candidate['accounting']['time_mode']='reported'
+    managed = False
+    if 'runtime_resources' in candidate:
+        from poise.composition import project_tools
+        selected = candidate['runtime_resources']['project_setup']
+        listed = project_tools(selected).list()
+        managed = any(item['config_path'] == str(project['config_path'])
+                      for item in listed['projects'])
+    if not managed:
+        # Some tests explicitly request an unmanaged/absent-association input.
+        # This builder preserves that input; it never bootstraps it implicitly.
+        write_json(project['config_path'], candidate)
+    path = write_json(root/'hook-settings.json',{
         'schema':'hook-settings-1','root':'.','project_config':'project.json',
         'python':sys.executable,'source_root':str(Path(__file__).resolve().parents[2]/'src'),
         'hooks_file':'.codex/hooks.json','definitions':'config/hook-definitions',
@@ -53,6 +64,31 @@ def settings(project,tmp_path):
         'max_input_bytes':1048576,'output_chars':5000,'max_probes':30,
         'probe_files':{'stdout':'stdout.txt','stderr':'stderr.txt','receipt':'receipt.json'},
         'exit_codes':{'success':0,'incomplete':1,'rejected':2}})
+    if managed:
+        from poise.common import digest, load_config
+        from poise.composition import project_config_tools
+        from projects.test_update import update_request
+        _, current, processes = load_config(project['config_path'])
+        resources = deepcopy(current['runtime_resources'])
+        resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
+        revision = digest({'config': current, 'processes': processes})
+        identity = 'fixture-hook-resources-' + digest([revision, resources])
+        packet = update_request(project['config_path'], revision, request_id=identity,
+                                manifest_edits=[
+                                    {'path': ['batch', 'message_source'],
+                                     'value': candidate['batch']['message_source']},
+                                    {'path': ['accounting', 'time_mode'], 'value': 'reported'},
+                                    {'path': ['runtime_resources'], 'value': resources},
+                                ])
+        packet['receipt_path'] = 'operations/' + identity + '.json'
+        result = project_config_tools(selected).apply(packet)
+        assert result['status'] == 'updated'
+        _, current, _ = load_config(project['config_path'])
+        assert current['runtime_resources'] == resources
+        project['cfg'] = current
+    else:
+        project['cfg'] = candidate
+    return path
 
 
 def install(service, d=None, request_id='install-1', revision=None):

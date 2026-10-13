@@ -2,12 +2,16 @@
 from ..modules.hook_transport.domain import HookDefinition
 from ..modules.hook_transport.ports import HookRepository
 from ..modules.artifact_factory.domain import exact
-from ..modules.capabilities.domain import nonempty
+from ..modules.foundation.validation import nonempty
 from ..modules.foundation.errors import PoiseError
 
 
 class HookCommands:
     def __init__(self, repository: HookRepository):self.repository=repository
+
+    def relocate(self, target, installation, request_id):
+        exact(target, {'installation_id', 'settings_path', 'settings'}, 'hook relocation')
+        return self.repository.relocate(target, installation, request_id)
 
     def install(self,packet):
         exact(packet,{'request_id','expected_revision','definition'},'hook install packet')

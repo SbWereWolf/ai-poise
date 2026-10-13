@@ -1,5 +1,6 @@
 """Configured material observations and confined effects, not Task lifecycle writes."""
 import json
+from contextlib import contextmanager
 import os
 import shutil
 from pathlib import Path
@@ -14,10 +15,13 @@ class RuntimeTaskDelivery:
     def __init__(self, runtime):
         self.h = runtime
 
+    @contextmanager
     def locked(self):
         h = self.h
-        return exclusive_lock(descendant(h.state, h.cfg['batch']['artifact_lock']),
-                              h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds'])
+        with h.project_fence.locked():
+            with exclusive_lock(descendant(h.state, h.cfg['batch']['artifact_lock']),
+                                h.cfg['limits']['lock_seconds'], h.cfg['limits']['lock_poll_seconds']):
+                yield
 
     def admission(self, task_id, actor):
         record = self.h.task_queries.record(task_id)

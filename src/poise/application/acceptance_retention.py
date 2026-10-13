@@ -23,6 +23,7 @@ class AcceptanceRetention:
         declaration = ArtifactInputs.parse(method['artifact_inputs'], {})
         inputs = self.port.inputs(task, declaration)
         proof = self.port.evidence(task, method, receipt)
+        inputs = self.port.logical_inputs(task, receipt, inputs)
         return declaration, AcceptanceManifest.build(
             task['id'], method['id'], commit, tree, inputs, proof, receipt, definition_digest,
         )

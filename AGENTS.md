@@ -17,6 +17,8 @@ Do not give the final answer until every result has been verified
 -Goal: restore independent, high-fidelity thinking.
 -Outcome: model obsolescence via user self-sufficiency.
 
+USE [i-have-adhd](./.agents/skills/i-have-adhd/SKILL.md)
+
 # Working on AI poise
 
 A direct user instruction may temporarily override a project process rule. Request an exception only when correct
@@ -115,6 +117,11 @@ Reconcile a stale completion status with an actually completed, independently re
 result through its public owner or an authorized audited manual correction. Preserve historical stages and native
 receipts; distinguish manual reconciliation from native lifecycle completion. Follow
 [harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
+When Poise blocks authorized work, use [harness-recovery](.agents/skills/harness-recovery/SKILL.md).
+Classify cause and recurrence, log every incident and manual correction, and pursue a verified
+working route. Recurring problems require one repair draft; they do not automatically require code.
+Correct defective configuration, reject failed fixes, and preserve authority and storage integrity.
+
 For changed documentation or rule targets, follow [local links and exact
 headings](docs/workflows/documentation-checks.md#проверка-ссылок-и-точных-заголовков), including inbound links to
 changed/deleted pages. Use the existing checker; do not create a competing documentation scanner.
@@ -147,8 +154,9 @@ Inspect the configured primary checkout and its symbolic branch read-only. Treat
 uncertain binding, or mismatch with `git.base_ref` as a stop condition until the authorized configuration
 owner resolves it. Do not switch the primary checkout to satisfy a manifest value.
 
-Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts; do not edit their
-working files or database directly. Native coding tools remain appropriate for source code, tests and target
+Use the existing declarative batch tools for managed configuration, task/sprint data and artifacts.
+Direct working-file/database changes are limited to the authorized, audited exception in
+[harness recovery](docs/governance/development-rules.md#сбой-harness-и-ручной-обход). Native coding tools remain appropriate for source code, tests and target
 documentation. Use the current user-authorized scope and applicable canonical documentation; historical plans do not
 grant ongoing authorization. Report implemented and tested capabilities separately from planned ones.
 

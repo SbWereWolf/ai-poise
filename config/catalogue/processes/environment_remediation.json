@@ -143,6 +143,11 @@
       },
       "transitions": {
         "complete": "baseline"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -172,6 +177,11 @@
       },
       "transitions": {
         "complete": "change_planning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -207,6 +217,11 @@
       },
       "transitions": {
         "complete": "application"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -239,6 +254,11 @@
       },
       "transitions": {
         "complete": "verification"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -270,6 +290,11 @@
         "inconclusive": "inspection",
         "not_satisfied": "inspection",
         "satisfied": "inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -302,6 +327,11 @@
       "transitions": {
         "changes_requested": "correction",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -336,6 +366,11 @@
       },
       "transitions": {
         "complete": "correction_inspection"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -368,6 +403,11 @@
       "transitions": {
         "changes_requested": "correction",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

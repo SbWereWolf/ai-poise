@@ -589,7 +589,7 @@ Process update не переписывает process snapshot уже созда�
 намерения и копирования. Непригодные типы и встроенный NUL дают адресный отказ.
 Неизвестные поля versioned API-пакета отклоняются; неизвестные опции внутри конфигурации
 сохраняются по [общему правилу](#удаление-устаревшего-параметра-transfer).
-Полный [образец hook settings](../../config/projects/ai-poise/hooks-settings.example.json)
+Полный [образец hook settings](../../config/hook-settings.example.json)
 заполняют целевыми значениями с учётом его `root` и путей проекта, установки и данных.
 Его условные пути не являются рабочей конфигурацией.
 
@@ -736,25 +736,17 @@ paths.
 
 ## Пилот на реальном коде AI poise
 
-```bash
-python examples/project_pilot.py \
-  --poise-root "$PWD" \
-  --repository /absolute/git/checkout/of/poise \
-  --base-ref tasks/POISE-PILOT-01 \
-  --destination state/pilots/self-check \
-  --requirements-root /absolute/external/pilot-requirements \
-  --task-id SELF-PILOT
-```
+[Исходник исторического пилота](../../examples/project_pilot.py) сохранён как пример
+композиции. Формирование его project-setup пакета проверяется отдельно от выполнения
+Task: оператор явно задаёт `--data-root`, `--worktrees-root` внутри репозитория
+и `--requirements-root`; корни не выводятся из текущего каталога.
 
-Нужен реальный закоммиченный revision этой версии с `tests/projects`. Имя repository/ref
-оператор задаёт явно. `--requirements-root` задаёт отдельное хранилище требований вне
-проверяемого Git checkout; путь не выводится из каталога исходников. Пример создаёт конфиг
-инструментом, задачу через Catalogue, затем
-выполняет **один** read-only planning stage полного verification route. В этот же пакет
-регистрируется точная readiness-команда `python -m pytest tests/projects -q`, выполняемая
-над реальными исходниками в отдельном worktree. Отчёт и stdout сохранены. Повтор verify
-не перезапускает команду. Задача остаётся verified: пользовательское принятие не подделывается,
-следующий этап не начинается. Наблюдения этого примера не измеряют качество чужой модели.
+Последующее создание и выполнение Task этого исторического примера не подтверждено
+для текущего договора критериев этапов. Проверка формирования пакета не является
+проверкой полного пилота, пользовательской приёмкой или разрешением начинать будущие
+этапы. Для рабочего подключения нового проекта используйте
+[пакетный путь](#пакетный-путь-для-агента) и
+[полный порядок размещения](storage-layout.md#новый-проект-шаблоны-и-заполнение).
 
 ## Границы
 
@@ -793,10 +785,10 @@ project` из явно
 | `config/project-setup.json` | [project-setup.example.json](../../config/project-setup.example.json) | `root` задаёт корень установки; `templates` — пути, версии и digests; `manifest`, `receipt`, `registry`, `lock` — имена выходов и блокировки; `file_mode`/`directory_mode`, лимиты и `exit_codes` — режимы записи, границы операции и коды результата. |
 | `config/project-registry.json` | [project-registry.example.json](../../config/project-registry.example.json) | `schema` выбирает формат, `projects` сопоставляет ID с `config_path` действующего manifest; добавляют только действительно настроенные проекты. |
 | `config/goal-editor.json` | [goal-editor.example.json](../../config/goal-editor.example.json) | `root`, `database`, `lock`, `responses` задают локальное хранение; `processes` и `templates` — разрешённые цели и версии; modes, limits и `exit_codes` — границы редактора. См. [редактор конфигурации целей](goal-config.md). |
-| `config/projects/ai-poise/project.json` | [project.example.json](../../config/projects/ai-poise/project.example.json) | `git.repository` — точный checkout, `git.base_ref` — ветка основного checkout, `paths` — локальные данные, `processes` — рабочие snapshots; остальные группы задают проверки, лимиты и политики Task. См. [настройку проекта](#назначение). |
-| `config/projects/ai-poise/hooks-settings.json` | [hooks-settings.example.json](../../config/projects/ai-poise/hooks-settings.example.json) | `python`, `source_root`, `cwd_roots` — пути данной установки; `project_config`, `hooks_file`, `definitions`, `state`, `database`, `bindings`, modes и limits — расположение и ограничения хуков. См. [runtime hooks](runtime-hooks.md). |
+| `projects/<project>/config/project.json` | [project.example.json](../../config/project.example.json) | `git.repository` — точный checkout, `git.base_ref` — ветка основного checkout, `paths` — локальные данные, `processes` — рабочие snapshots; остальные группы задают проверки, лимиты и политики Task. См. [настройку проекта](#назначение). |
+| `projects/<project>/config/hook-settings.json` | [hook-settings.example.json](../../config/hook-settings.example.json) | `python`, `source_root`, `cwd_roots` — пути данной установки; `project_config`, `hooks_file`, `definitions`, `state`, `database`, `bindings`, modes и limits — расположение и ограничения хуков. См. [runtime hooks](runtime-hooks.md). |
 | `config/projects/ai-poise/config/processes/*.json` | [примеры 13 процессов](../../config/examples/ai-poise-processes/) и [reference catalogue](../../config/catalogue/processes/) | Каждый файл задаёт маршрут и этапы одного goal type; рабочие копии изменяются через владельца конфигурации целей. |
-| `config/projects/ai-poise/hook-definitions/*.json` | [пример определения](../../config/examples/ai-poise-hook-definition.example.json) и [шаблон](../../config/hook-templates/codex-main.json) | События, проверки, разрешённые операции и команда probe относятся к конкретной установке; рабочее определение создаёт `runtime-setup`. |
+| `projects/<project>/config/hook-definitions/*.json` | [пример определения](../../config/examples/ai-poise-hook-definition.example.json) и [шаблон](../../config/hook-templates/codex-main.json) | События, проверки, разрешённые операции и команда probe относятся к конкретной установке; рабочее определение создаёт `runtime-setup`. |
 | `.codex/hooks.json` | [шаблон обработчиков](../../config/hook-templates/codex-main.json) | Сгенерированные команды содержат абсолютные пути установки; файл создаётся `runtime-setup`. |
 | `config/projects/ai-poise/setup-receipt.json` | Генерируется `poise project` | Квитанция публикации, не редактируемый конфиг; в Git не хранится. |
 
@@ -872,9 +864,11 @@ DB в корне
 нужен отдельный верхнеуровневый `task_planning`: абсолютный путь к действующему
 `config/catalogue/settings.json` и явная `restart_revision_policy`. Запись
 `processes.task_planning` выбирает только маршрут процесса и не подключает
-каталог Task starters. Пример
-[project.example.json](../../config/projects/ai-poise/project.example.json) содержит
-полную форму настройки; путь-заполнитель заменяют на путь текущей установки. Для
+каталог Task starters. Общий
+[project.example.json](../../config/project.example.json) описывает конфигурацию проекта;
+опциональную группу `task_planning` заполняют по
+[полному контракту создания](../workflows/task-planning.md#создание-по-типу-цели),
+указывая путь текущей установки. Для
 `goal_type=task_planning` каталог выбирает единственный зарегистрированный starter
 `task_planning-v1` из `config/catalogue/task-templates/task_planning.json`. Он создаёт
 редактируемый newborn draft; его поля и process следует согласовать до `ready`.
@@ -1158,6 +1152,11 @@ bootstrap/refresh и диагностические ограничения оп�
 сохраняются; никаких managed manifests автоматически не изменяется.
 
 ## Доступные шаблоны поставки
+
+Заполнение новых проектов по согласованной схеме БД описано в
+[полном справочнике размещения](storage-layout.md#новый-проект-шаблоны-и-заполнение).
+Краткий порядок для агента — [инструкция подключения](../../.agents/references/project-storage-setup.md#project-storage-setup).
+
 
 В текущую поставку входят `linux-reference` и `wsl-poise`. Выбор выполняется по
 точным `id`, `version` и `digest` из `config/project-setup.json`; изменение шаблона

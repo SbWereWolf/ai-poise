@@ -235,6 +235,11 @@
       },
       "transitions": {
         "complete": "reproduction"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -263,6 +268,11 @@
       },
       "transitions": {
         "complete": "hypothesis_planning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -295,6 +305,11 @@
       },
       "transitions": {
         "complete": "experiments"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -323,6 +338,11 @@
       },
       "transitions": {
         "complete": "root_cause_analysis"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -357,6 +377,11 @@
       },
       "transitions": {
         "complete": "confirmation"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -387,6 +412,11 @@
         "inconclusive": "self_inspection",
         "not_satisfied": "self_inspection",
         "satisfied": "self_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -418,6 +448,11 @@
       "transitions": {
         "changes_requested": "reproduction",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

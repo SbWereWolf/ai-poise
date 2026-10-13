@@ -227,6 +227,11 @@
       },
       "transitions": {
         "complete": "baseline_measurement"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -255,6 +260,11 @@
       },
       "transitions": {
         "complete": "experiment_planning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -287,6 +297,11 @@
       },
       "transitions": {
         "complete": "measurement"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -315,6 +330,11 @@
       },
       "transitions": {
         "complete": "analysis"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -355,6 +375,11 @@
       },
       "transitions": {
         "complete": "confirmation"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -385,6 +410,11 @@
         "inconclusive": "self_inspection",
         "not_satisfied": "self_inspection",
         "satisfied": "self_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -416,6 +446,11 @@
       "transitions": {
         "changes_requested": "experiment_planning",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

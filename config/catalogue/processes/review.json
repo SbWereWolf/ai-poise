@@ -93,6 +93,11 @@
       },
       "transitions": {
         "complete": "inspection"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -124,6 +129,11 @@
       "transitions": {
         "changes_requested": "self_inspection",
         "clear": "self_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -151,6 +161,11 @@
       "transitions": {
         "changes_requested": "inspection",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

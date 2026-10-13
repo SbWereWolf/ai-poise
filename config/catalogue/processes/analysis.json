@@ -228,6 +228,11 @@
       },
       "transitions": {
         "complete": "evidence_collection"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -254,6 +259,11 @@
       },
       "transitions": {
         "complete": "reasoning"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -286,6 +296,11 @@
       },
       "transitions": {
         "complete": "challenge"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -318,6 +333,11 @@
       },
       "transitions": {
         "complete": "self_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -347,6 +367,11 @@
       "transitions": {
         "changes_requested": "evidence_collection",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

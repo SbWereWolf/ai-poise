@@ -7,6 +7,11 @@ description: Change AI poise itself using its DDD, TDD, declarative-tool and pro
 
 Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current process' explicit `worktree_required` policy; without a required worktree, use the configured repository checkout. See [Task worktree placement](../../../docs/governance/development-rules.md#размещение-task-worktree).
 
+For project storage setup follow the concise [setup instruction](../../references/project-storage-setup.md#project-storage-setup):
+explicit project root; separate stores; versioned template selection; owner-managed
+publication and verified consumers. Full options and examples belong to the linked
+operator documentation, not this skill.
+
 ## Design boundaries
 
 Keep every tool response complete for internal composition: stdout, stderr and structured data cannot depend on

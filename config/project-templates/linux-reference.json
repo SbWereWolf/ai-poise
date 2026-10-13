@@ -1,24 +1,24 @@
 {
   "schema": "project-blueprint-1",
-  "version": "6",
+  "version": "7",
   "config": {
     "schema": "ddd-accounting-12",
     "project": "REPLACE_WITH_PROJECT_ID",
     "paths": {
-      "state": "state",
-      "database": "state.sqlite",
-      "lock": "state.lock",
+      "state": "",
+      "database": "tasks/tasks.sqlite",
+      "lock": "tasks/tasks.lock",
       "runtime": "runtime",
       "standalone_tasks": "standalone",
       "sprints": "sprints",
-      "worktrees": "worktrees",
+      "worktrees": "",
       "git_index": "snapshot.index",
       "runs": "runs",
       "stdout": "stdout.txt",
       "stderr": "stderr.txt",
       "response": "response.json",
-      "requirements_database": "database/requirements.sqlite",
-      "requirements_lock": "database/requirements.lock"
+      "requirements_database": "requirements/requirements.sqlite",
+      "requirements_lock": "requirements/requirements.lock"
     },
     "limits": {
       "lock_seconds": 2.0,
@@ -427,7 +427,7 @@
         "state"
       ],
       "type": "text",
-      "prompt": "State directory relative to generated project manifest"
+      "prompt": "Explicit project data root (the project directory, without an extra state layer)"
     },
     {
       "id": "environment",
@@ -436,60 +436,69 @@
       ],
       "type": "strings",
       "prompt": "Names of inherited environment variables"
+    },
+    {
+      "id": "worktrees",
+      "path": [
+        "paths",
+        "worktrees"
+      ],
+      "type": "text",
+      "prompt": "Explicit absolute Task worktree directory inside the selected code repository"
     }
   ],
   "process_sources": {
     "analysis": {
       "path": "config/catalogue/processes/analysis.json",
-      "digest": "75060254ee4be788dd18a38e24828992de6fd761b64f7e90d24ce0f51ab50209"
+      "digest": "8ec458b3faa6ee6606e66da53b66cc5d2a85408538f348313b2ba41bdef7592d"
     },
     "design": {
       "path": "config/catalogue/processes/design.json",
-      "digest": "3afe057e6232f86a938083eed704b57cfb4e83a4f71a548342c7de58a4cb63f8"
+      "digest": "215833a9e090cef8b64c8d22e240e24df01eb65f51534eec9b92a4956fdf721f"
     },
     "development": {
       "path": "config/catalogue/processes/development.json",
-      "digest": "835e48c5be7bec979ff6623a63ef8d42ba9f7798641ad5f749f8b92a157951dc"
+      "digest": "215ab230942c69d4cae4856ebbc2ded1e332ad6be7be68b135e18150acfd9709"
     },
     "documentation": {
       "path": "config/catalogue/processes/documentation.json",
-      "digest": "3b4cfb67b94f975b30c6726fe09c83702a24e742b296cb924a14ba2405fa548e"
+      "digest": "af22db74c31d4ccfeec8ff787565d1a1ea46808b006d2828c6f1448c2eb92c4a"
     },
     "environment_diagnostics": {
       "path": "config/catalogue/processes/environment_diagnostics.json",
-      "digest": "5309898e61ae6bec7404d51583151dc783bfcdd1dbeb0b984f36bd2bb901bef8"
+      "digest": "d4ddb9c1ed88742085e3b349967509b3d13d4884a8ac2e28179766de8a5c370a"
     },
     "environment_remediation": {
       "path": "config/catalogue/processes/environment_remediation.json",
-      "digest": "1092cdbbaaa009ede63afd8ef28b585864e374e07da30423addc53fda470ca2b"
+      "digest": "d5bdb2324ca5248284e1a224b6a2ec362a453d922e5a9b21b5d9f336c6cdcbd3"
     },
     "integration": {
       "path": "config/catalogue/processes/integration.json",
-      "digest": "82d11342ec02cca9e8796efb4f8bc140b559c26438e5e73048395a9e0495d4cd"
+      "digest": "f30424b3d0b217aa9fc82c8c177fb93984456a3821edc0a875046a3c77cb66ef"
     },
     "profiling": {
       "path": "config/catalogue/processes/profiling.json",
-      "digest": "4821d67a540f031fe9c3e200760c9cc02a8aabfea266d915a39e724321578b3d"
+      "digest": "d43ccad3b750b333a762adafac7dd6c990aeb243889b0634b077356230731be1"
     },
     "review": {
       "path": "config/catalogue/processes/review.json",
-      "digest": "b52793fdff51bc27a169e00371da06aef99cb7005bda61e0df385b74471b827c"
+      "digest": "779ba7ec7e0d830fd830cd61ac371a46f92b32fd6ebb204efb29b60a9b16d13d"
     },
     "sprint_planning": {
       "path": "config/catalogue/processes/sprint_planning.json",
-      "digest": "631e21b8a597a25cbc4bfaf0ca7113330c3297d0711fb05df5d8b31cedc263ca"
+      "digest": "9f3dfba3c367e75aa0e3c95bc9163b219208ced5a038fd6248f737663ff1e884"
     },
     "task_planning": {
       "path": "config/catalogue/processes/task_planning.json",
-      "digest": "82a864f294a8badeabffaeae6281e2869a3d286d3efa47eae4892e205796d112"
+      "digest": "7678f69cbab8b219e366e71dd288fd802535081164d89fbb8d218c0cfa244219"
     },
     "test_development": {
       "path": "config/catalogue/processes/test_development.json",
-      "digest": "4769fd5268e835a0ac254756191f2de397e7b4ba05818c9495f5623588fdc496"
+      "digest": "80cb825755941dd66e1c622498e80559dd83e31e6ef5a72ec2fd4e5ed944696e"
     },
     "verification": {
       "path": "config/catalogue/processes/verification.json",
-      "digest": "fd02fcc5dc28fb25a63e5b4c47442a97eef3a8e2c470323f19d46ca1722777ad"
+      "digest": "6a2caef44396c71b5ee259ee23dc25fd1fdbc6335634b4f76ea1a06be7b475ba"
     }
   }
 }

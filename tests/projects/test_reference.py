@@ -13,12 +13,13 @@ def test_installed_reference_template_builds_all_thirteen_processes(project):
     shutil.copytree(ROOT/'config',root/'catalogue-config')
     # This copy is the explicitly mounted Poise configuration, not the target application.
     shutil.rmtree(root/'config');(root/'catalogue-config').rename(root/'config')
-    settings=root/'config/project-setup.json';cfg=json.loads(settings.read_text())
+    settings=root/'config/project-setup.example.json';cfg=json.loads(settings.read_text())
+    (root/'config/project-registry.json').write_text(json.dumps({'schema':'configured-project-registry-1','projects':{}}))
     selection=cfg['templates']['linux-reference']
     blueprint=json.loads((root/selection['path']).read_text())
     values={'project':'real-probe','repository':str(project['app']),'base':'main','remote':'backup',
             'author_name':'Fixture','author_email':'fixture@example.invalid','push':False,'state':'state',
-            'environment':['PATH','HOME']}
+            'environment':['PATH','HOME'],'worktrees':str(project['app']/'task-worktrees')}
     request={'schema':'project-setup-1','request_id':'reference','destination':'configured/reference',
              'template':{'id':'linux-reference','version':selection['version'],'digest':selection['digest']},
              'edits':[{'path':q['path'],'value':values[q['id']]} for q in blueprint['questions']],

@@ -2,20 +2,20 @@
   "schema": "ddd-accounting-12",
   "project": "demo",
   "paths": {
-    "state": "state",
-    "database": "state.sqlite",
-    "lock": "state.lock",
+    "state": "/srv/poise-project-data/demo",
+    "database": "tasks/tasks.sqlite",
+    "lock": "tasks/tasks.lock",
     "runtime": "runtime",
     "standalone_tasks": "standalone",
     "sprints": "sprints",
-    "worktrees": "worktrees",
+    "worktrees": "/srv/repositories/demo/worktrees",
     "git_index": "snapshot.index",
     "runs": "runs",
     "stdout": "stdout.txt",
     "stderr": "stderr.txt",
     "response": "response.json",
-    "requirements_database": "database/requirements.sqlite",
-    "requirements_lock": "database/requirements.lock"
+    "requirements_database": "requirements/requirements.sqlite",
+    "requirements_lock": "requirements/requirements.lock"
   },
   "limits": {
     "lock_seconds": 2.0,

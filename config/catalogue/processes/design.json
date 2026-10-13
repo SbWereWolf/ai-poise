@@ -230,6 +230,11 @@
       },
       "transitions": {
         "complete": "alternatives"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -261,6 +266,11 @@
       },
       "transitions": {
         "complete": "decision"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -294,6 +304,11 @@
       },
       "transitions": {
         "complete": "detailed_design"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -331,6 +346,11 @@
       },
       "transitions": {
         "complete": "design_verification"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -362,6 +382,11 @@
         "inconclusive": "detailed_design",
         "not_satisfied": "detailed_design",
         "satisfied": "design_inspection"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -392,6 +417,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -427,6 +457,11 @@
       },
       "transitions": {
         "complete": "remediation_inspection"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -457,6 +492,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": null
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

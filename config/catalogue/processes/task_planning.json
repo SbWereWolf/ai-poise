@@ -207,6 +207,11 @@
       },
       "transitions": {
         "complete": "classification"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -239,6 +244,11 @@
       },
       "transitions": {
         "complete": "requirements"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -271,6 +281,11 @@
       },
       "transitions": {
         "complete": "acceptance_design"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -305,6 +320,11 @@
       },
       "transitions": {
         "complete": "work_planning"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -339,6 +359,11 @@
       },
       "transitions": {
         "complete": "verification_planning"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -373,6 +398,11 @@
       },
       "transitions": {
         "complete": "task_inspection"
+      },
+      "purpose": "design",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -404,6 +434,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": "publication"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -436,6 +471,11 @@
       },
       "transitions": {
         "complete": "remediation_inspection"
+      },
+      "purpose": "execution",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -467,6 +507,11 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": "publication"
+      },
+      "purpose": "observation",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     },
     {
@@ -493,6 +538,11 @@
       "sections": {},
       "transitions": {
         "complete": null
+      },
+      "purpose": "other",
+      "criteria_authority": {
+        "propose": [],
+        "decide": []
       }
     }
   ]

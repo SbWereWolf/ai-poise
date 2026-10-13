@@ -79,16 +79,16 @@ detailed corrections belong in canonical docs, with a short skill link.
 
 ## Harness refusal and manual continuation
 
-Apply the canonical [failure and manual bypass rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
-whenever normal work is blocked. Classify the cause and repeatability, journal the
-incident and chosen correction with alternatives, and continue authorized subject
-work manually when Poise obstructs it. Recurring failures require a repair draft.
-A trivial low-risk data repair does not automatically require new code. Always
-verify configuration corrections, roll back unsuccessful ones, and record rejected
-solutions. Preserve real evidence, independent review and foreign ownership; manual
-work is never a fabricated native stage receipt or Task completion. The ordinary
-managed-data prohibition below does not prohibit the narrowly scoped, documented
-manual recovery authorized by this canonical rule.
+When normal Poise work is blocked, apply
+[harness-recovery](../harness-recovery/SKILL.md) and the canonical
+[failure and manual bypass rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
+Classify cause and recurrence, log every incident and manual correction, and choose
+a verified authorized continuation. Repeated or repeatable problems require one repair
+draft, not necessarily code. Configuration defects remain obligations until corrected;
+reject failed fixes. Preserve real evidence, independent review and foreign ownership.
+The ordinary managed-data prohibition below does not prohibit the narrowly scoped,
+audited manual recovery authorized by the canonical rule. Manual work is never a
+fabricated native receipt or Task completion.
 
 ## Start or resume work
 

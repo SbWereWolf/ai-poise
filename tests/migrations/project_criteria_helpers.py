@@ -37,6 +37,7 @@ def historical_project_owned(project):
     stages = json.loads((ROOT / "fixtures/stage-criteria/project-migration-stages.json").read_text())
     config = json.loads(project["config_path"].read_text())
     config["paths"]["state"] = str(database.parent)
+    config["runtime_resources"] = {"project_setup": str(settings), "hooks": []}
     bundle = root / create["destination"]
     project["config_path"] = bundle / "project.json"
     config["processes"] = {}
@@ -58,6 +59,7 @@ def historical_project_owned(project):
     blueprint["process_sources"] = sources
     blueprint_path = write_json(root / "config/project-blueprint.json", blueprint)
     setup_settings = json.loads(settings.read_text())
+    setup_settings["lock"] = "project-setup.lock"
     setup_settings["templates"]["selected"]["digest"] = identity(blueprint)
     write_json(settings, setup_settings)
     create["request_id"] = "historical-project-setup"
@@ -160,6 +162,9 @@ def assert_fixture_consistent(case):
     assert settings.raw["templates"]["selected"]["digest"] == create["template"]["digest"] == identity(blueprint)
     assert FileProjectSetup(settings)._registry()["projects"][case["project"]["cfg"]["project"]]["config_path"] == str(case["config"].relative_to(settings.root))
     config = json.loads(case["config"].read_text())
+    assert config["runtime_resources"] == {"project_setup": str(case["settings"]), "hooks": []}
+    assert settings.lock == settings.root / "project-setup.lock"
+    assert not settings.lock.is_relative_to(case["database"].parent)
     configured = deepcopy(blueprint["config"])
     for edit in create["edits"]:
         parent = configured

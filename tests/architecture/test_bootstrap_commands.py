@@ -191,7 +191,7 @@ def test_missing_executable_reports_available_diagnostics(installation):
     value = packet(invoke(installation), 4)
     assert value["status"] == "error"
     assert value["reason"]
-    assert str(installation["root"] / "missing-python") in json.dumps(value)
+    assert str(installation["root"] / "missing-python") in value["reason"]
     assert calls(installation) == []
 
 

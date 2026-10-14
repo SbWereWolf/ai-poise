@@ -1,0 +1,12 @@
+{
+  "schema": "environment-maintenance/repairs/v1",
+  "repairs": {
+    "poison": {
+      "argv": [
+        "poison"
+      ],
+      "timeout": 25,
+      "env": {}
+    }
+  }
+}

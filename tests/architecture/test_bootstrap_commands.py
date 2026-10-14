@@ -145,9 +145,8 @@ def test_second_error_returns_both_diagnostics_without_second_repair(installatio
     assert actions(installation) == ["run", "repair", "verify"]
     assert value["actions"] == ["repair", "verify"]
     assert [item["exit_code"] for item in value["observations"]] == expected_codes
-    assert [item["stderr"] for item in value["observations"]] == json.loads(
-        (FIXTURES / "maintenance_stderr_expected.json").read_text())
-    assert all(item["stdout"] for item in value["observations"])
+    assert value["observations"] == json.loads(
+        (FIXTURES / f"maintenance_{scenario}_expected.json").read_text(encoding="utf-8"))
 
 
 def test_new_invocation_has_independent_single_repair(installation):

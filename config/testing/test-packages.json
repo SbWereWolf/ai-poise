@@ -2,6 +2,78 @@
   "schema": "ai-poise-test-packages-2",
   "packages": [
     {
+      "id": "contract-migration",
+      "owner": "migrations",
+      "integration_boundaries": ["tasks", "projects", "verification-runner"],
+      "members": {
+        "source": [
+          "src/poise/**/*.py",
+          "src/poise_environment/**/*.py",
+          "tools/run_ai_poise_test_package.py",
+          "pyproject.toml"
+        ],
+        "tests": [
+          "tests/migrations/test_project_stage_criteria_drafts.py",
+          "tests/migrations/test_project_stage_criteria_migration.py",
+          "tests/migrations/test_stage_criteria_migration.py"
+        ],
+        "fixtures": [
+          "fixtures/stage-criteria/**/*",
+          "tests/backups/__init__.py",
+          "tests/batch/__init__.py",
+          "tests/migrations/__init__.py",
+          "tests/projects/__init__.py",
+          "tests/runtime_services/__init__.py",
+          "tests/conftest.py",
+          "tests/backups/helpers.py",
+          "tests/projects/helpers.py",
+          "tests/migrations/project_criteria_draft_helpers.py",
+          "tests/migrations/project_criteria_helpers.py",
+          "tests/migrations/stage_criteria_helpers.py",
+          "tests/runtime_services/stage_criteria_helpers.py",
+          "tests/batch/helpers.py",
+          "config/accounting.example.json",
+          "config/runtime.example.json",
+          "config/batch.example.json",
+          "config/sprint.example.json"
+        ]
+      }
+    },
+    {
+      "id": "cancelled-draft-delivery",
+      "owner": "terminal-materials",
+      "integration_boundaries": ["tasks", "sprints", "evidence", "verification-runner"],
+      "members": {
+        "source": [
+          "src/poise/**/*.py",
+          "src/poise_environment/**/*.py",
+          "tools/run_ai_poise_test_package.py",
+          "pyproject.toml"
+        ],
+        "tests": [
+          "tests/terminal_materials/test_cancelled_draft_agreement.py",
+          "tests/terminal_materials/test_delivery.py",
+          "tests/terminal_materials/test_invalid_contracts.py"
+        ],
+        "fixtures": [
+          "tests/terminal_materials/fixtures/**/*",
+          "tests/batch/__init__.py",
+          "tests/projects/__init__.py",
+          "tests/sprints/__init__.py",
+          "tests/terminal_materials/__init__.py",
+          "tests/terminal_materials/helpers.py",
+          "tests/conftest.py",
+          "tests/projects/helpers.py",
+          "tests/sprints/helpers.py",
+          "tests/batch/helpers.py",
+          "config/accounting.example.json",
+          "config/runtime.example.json",
+          "config/batch.example.json",
+          "config/sprint.example.json"
+        ]
+      }
+    },
+    {
       "id": "verification-runner",
       "owner": "verification",
       "integration_boundaries": [

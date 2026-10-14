@@ -1,0 +1,13 @@
+[
+  "run",
+  "--tool-config",
+  "REPLACED_BY_TEST",
+  "--catalog-dir",
+  "каталог с пробелами",
+  "--values",
+  "first.json",
+  "--set",
+  "x=Ж",
+  "--values",
+  "second file.json"
+]

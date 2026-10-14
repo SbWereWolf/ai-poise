@@ -72,8 +72,9 @@ def handle(initial: CompletedProcess[bytes], invoke: InvokeCommand,
         return classify(result, options)
 
     # Linear flow: a new result can never re-enter the correction decision.
+    verification_command = options["verification_command"]
     repaired = attempt(options["repair_command"], "repair")
-    verified = attempt(options["verification_command"], "verification")
+    verified = attempt(verification_command, "verification")
     ready = (repaired is not None and repaired in options["success_statuses"]
              and verified is not None and verified in options["success_statuses"])
     return response(ready, observations, actions, options,

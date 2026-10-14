@@ -39,7 +39,8 @@ def require_sprint_execution_in(uow, task_id):
 class SprintCommands:
     def __init__(self,unit_of_work,project,actor,policy,task_id_policy,processes,
                  automatic_checks,decomposition_policy,execution_hash,
-                 prepare_creation,creation_base,prepare_newborn_ready,promote_newborn_ready_in):
+                 prepare_creation,creation_base,prepare_newborn_ready,promote_newborn_ready_in,
+                 publication_target):
         self.uow=unit_of_work;self.project=project;self.actor=actor
         self.policy=SprintPolicy.parse(policy);self.processes=deepcopy(processes)
         self.task_id_policy=task_id_policy
@@ -48,6 +49,14 @@ class SprintCommands:
         self.prepare_creation=prepare_creation;self.creation_base=creation_base
         self.prepare_newborn_ready=prepare_newborn_ready
         self.promote_newborn_ready_in=promote_newborn_ready_in
+        self.publication_target=publication_target
+
+    def _publication_target_for(self, facts):
+        if any(fact['status'] == 'completed' and isinstance(fact['pending'], dict)
+               and fact['pending'].get('kind') == 'result_integration'
+               for fact in facts.values()):
+            return self.publication_target()
+        return None
 
     def _errors(self,record,facts=None):
         s=Sprint.restore(record['aggregate']);errors=s.plan.content_errors(s.policy)+s.plan.graph_errors(s.policy)
@@ -329,7 +338,7 @@ class SprintCommands:
             snapshot=fingerprint(record)
             facts=u.sprints.facts(sid)
             if sprint.reopened:
-                sprint.require_released_members(facts)
+                sprint.require_released_members(facts, self._publication_target_for(facts))
             errors=sprint.republication_errors()
             if errors:raise DomainError('; '.join(errors))
         base=self.creation_base()
@@ -439,7 +448,9 @@ class SprintCommands:
                 if action=='unpublish':
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Unpublish revision changed')
-                    s=s.unpublish(u.sprints.facts(sid),packet['reason'],packet['authorization'])
+                    facts=u.sprints.facts(sid)
+                    s=s.unpublish(facts,packet['reason'],packet['authorization'],
+                                  self._publication_target_for(facts))
                 elif action=='publish':
                     if type(packet['expected_revision']) is not int or packet['expected_revision']!=prior:
                         raise VersionConflict('Publish revision changed')
@@ -449,7 +460,7 @@ class SprintCommands:
                         raise VersionConflict('Sprint changed after creation preflight')
                     if s.reopened:
                         facts=u.sprints.facts(sid)
-                        s.require_released_members(facts)
+                        s.require_released_members(facts, self._publication_target_for(facts))
                         if facts!=publication['facts']:
                             raise VersionConflict('Sprint members changed after publication preflight')
                     s=s.publish()

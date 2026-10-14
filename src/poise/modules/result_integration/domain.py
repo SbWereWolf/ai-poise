@@ -36,6 +36,35 @@ def _resolution(value):
 
 
 @dataclass(frozen=True)
+class IntegrationPublicationTarget:
+    repository: str
+    target_ref: str
+
+    def __post_init__(self):
+        _text(self.repository, "publication repository")
+        _text(self.target_ref, "publication target ref")
+
+    @staticmethod
+    def target_ref_for(base_ref):
+        name = _text(base_ref, "publication base ref")
+        return name if name.startswith("refs/heads/") else f"refs/heads/{name}"
+
+    def confirms_ordinary_receipt(self, receipt, task_branch):
+        return (
+            isinstance(receipt, dict)
+            and set(receipt) == {"argv", "actual_exit_code", "stdout", "stderr"}
+            and receipt["argv"] == [
+                "git", "-C", self.repository, "merge", "--ff-only",
+                task_branch.removeprefix("refs/heads/"),
+            ]
+            and type(receipt["actual_exit_code"]) is int
+            and receipt["actual_exit_code"] == 0
+            and isinstance(receipt["stdout"], str)
+            and isinstance(receipt["stderr"], str)
+        )
+
+
+@dataclass(frozen=True)
 class IntegrationIntent:
     request_id: str
     task_id: str
@@ -125,6 +154,62 @@ class IntegrationRun:
                 "temporary_backups": "removed",
             }
         )
+
+    @classmethod
+    def terminal_receipt_for(cls, value, *, task_id, result_commit,
+                             task_branch, task_worktree, publication_target):
+        """Recognize saved proof; never recover or rewrite the retained run."""
+        try:
+            if (not isinstance(value, dict)
+                    or any(not isinstance(value[key], dict)
+                           for key in ("intent", "publication", "cleanup"))
+                    or any(not isinstance(value[key], list) for key in (
+                        "history", "checks", "conflicts", "resolutions", "temporary_backups"))):
+                return False
+            return cls.restore(value).confirms_publication_for(
+                task_id=task_id, result_commit=result_commit, task_branch=task_branch,
+                task_worktree=task_worktree, publication_target=publication_target,
+            )
+        except (DomainError, KeyError, TypeError, ValueError):
+            return False
+
+    def confirms_publication_for(self, *, task_id, result_commit,
+                                 task_branch, task_worktree, publication_target):
+        if not isinstance(publication_target, IntegrationPublicationTarget):
+            return False
+        if not self.complete or self.failure is not None or self.intent.task_id != task_id:
+            return False
+        for name, commit in (
+            ("accepted commit", self.accepted_commit), ("result commit", result_commit),
+            ("integration head", self.integration_head), ("target after", self.target_after),
+            ("included target", self.last_included_target),
+        ):
+            _commit(commit, name)
+        _text(task_branch, "execution branch")
+        _text(task_worktree, "execution worktree")
+        if (self.accepted_commit != self.intent.expected_source_commit
+                or self.accepted_commit != result_commit
+                or self.task_branch != task_branch or self.task_worktree != task_worktree
+                or task_branch.removeprefix("refs/heads/")
+                == publication_target.target_ref.removeprefix("refs/heads/")):
+            return False
+        publication = self.publication
+        if (publication.get("status") != "confirmed"
+                or self.integration_head != self.target_after
+                or publication.get("commit") != self.integration_head
+                or publication.get("last_included_target") != self.last_included_target
+                or publication.get("target_ref") != publication_target.target_ref
+                or type(publication.get("no_op")) is not bool
+                or type(publication.get("recovered")) is not bool
+                or publication["no_op"] != (self.integration_head == self.last_included_target)):
+            return False
+        receipt = publication.get("receipt")
+        if publication["recovered"]:
+            return receipt == {
+                "kind": "reconciled_fast_forward", "commit": self.integration_head,
+            }
+        return (not publication["no_op"]
+                and publication_target.confirms_ordinary_receipt(receipt, task_branch))
 
     @classmethod
     def new(cls, intent, task_branch, task_worktree, temporary_backup_directory):

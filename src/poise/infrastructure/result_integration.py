@@ -13,7 +13,7 @@ import uuid
 from ..common import descendant, digest, file_digest
 from ..execution import capture_declared_outputs, inspect_declared_output_receipts, method_passed, run_command
 from ..modules.foundation.errors import PoiseError, VersionConflict
-from ..modules.result_integration.domain import IntegrationRun
+from ..modules.result_integration.domain import IntegrationRun, IntegrationPublicationTarget
 from ..modules.task_cleanup.domain import CleanupIntent, CleanupRun, CommitDisposition
 from .locking import exclusive_lock
 from .task_cleanup import RuntimeTaskResourceCleanup
@@ -29,8 +29,7 @@ class RuntimeResultIntegration:
         self.cleanup = RuntimeTaskResourceCleanup(runtime)
 
     def _target_ref(self):
-        name = self.h.cfg["git"]["base_ref"]
-        return name if name.startswith("refs/heads/") else f"refs/heads/{name}"
+        return IntegrationPublicationTarget.target_ref_for(self.h.cfg["git"]["base_ref"])
 
     @staticmethod
     def _short_branch(ref):

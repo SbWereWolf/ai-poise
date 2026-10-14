@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 from pathlib import Path
+import re
 import subprocess
 
 import pytest
@@ -19,7 +20,7 @@ def terminal_receipt():
     return json.loads((Path(__file__).parent / 'fixtures/terminal-integration.json').read_text())
 
 
-def prepared_receipt(planner, repository, mode='ordinary'):
+def prepared_receipt(planner, project, mode='ordinary'):
     """Bind fixture inputs to observed accepted work, not a product-generated oracle."""
     with planner.runtime.store.transaction() as db:
         row = db.execute('SELECT data FROM task_execution WHERE task_id=?', ('A',)).fetchone()
@@ -30,8 +31,13 @@ def prepared_receipt(planner, repository, mode='ordinary'):
     receipt['accepted_commit'] = source
     receipt['task_branch'] = observed['branch']
     receipt['task_worktree'] = observed['worktree']
+    # Bind declared fixture paths, not the production backup-scope builder.
+    state = project['root'] / project['cfg']['paths']['state']
+    assert state == planner.runtime.state
+    scope = Path(receipt['temporary_backup_directory']).relative_to('/fixture/state/runtime')
+    receipt['temporary_backup_directory'] = str(state / project['cfg']['paths']['runtime'] / scope)
     publication = receipt['publication']
-    publication['receipt']['argv'][2] = str(repository)
+    publication['receipt']['argv'][2] = str(project['app'])
     if mode == 'no-op':
         head = receipt['last_included_target']
         receipt.update(integration_head=head, target_after=head)
@@ -88,7 +94,7 @@ def assert_refused_unchanged(planner, revision, diagnostic='pending|external|pub
 def test_terminal_admission_preserves_results_materials_and_replay(planned, mode):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner, project['app'], mode)
+    receipt = prepared_receipt(planner, project, mode)
     set_execution(planner, 'A', receipt)
 
     # B owns retained work and evidence; A's delivery may legitimately remove A's tree.
@@ -176,7 +182,7 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
 def test_incomplete_or_contradictory_receipt_refuses_atomically(planned, path, value):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner, project['app'])
+    receipt = prepared_receipt(planner, project)
     target = receipt
     for key in path[:-1]:
         target = target[key]
@@ -193,7 +199,7 @@ def test_incomplete_or_contradictory_receipt_refuses_atomically(planned, path, v
 def test_malformed_or_unsupported_receipt_refuses_atomically(planned, case):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner, project['app'])
+    receipt = prepared_receipt(planner, project)
     if case == 'missing-intent':
         del receipt['intent']
     elif case == 'missing-message':
@@ -225,7 +231,7 @@ def test_malformed_or_unsupported_receipt_refuses_atomically(planned, case):
 def test_terminal_proof_preserves_other_admission_guards(planned, case):
     project, planner, published = planned
     prepare_member(project, 'verified' if case == 'nonterminal' else 'completed')
-    receipt = prepared_receipt(planner, project['app'])
+    receipt = prepared_receipt(planner, project)
     publication = {'kind': 'unknown-effect'} if case == 'publication' else None
     set_execution(planner, 'A', receipt, publication)
     if case in ('task-claim', 'tree-claim'):
@@ -249,7 +255,7 @@ def test_contradictory_source_and_publication_provenance_refuses(planned, case):
     mode = 'no-op' if case == 'ordinary-with-equal-target' else 'ordinary'
     if case == 'no-op-with-different-target':
         mode = 'recovered'
-    receipt = prepared_receipt(planner, project['app'], mode)
+    receipt = prepared_receipt(planner, project, mode)
     if case == 'wrong-source-pair':
         wrong = '1111111111111111111111111111111111111111'
         assert receipt['accepted_commit'] != wrong
@@ -272,7 +278,7 @@ def test_contradictory_source_and_publication_provenance_refuses(planned, case):
 def test_foreign_target_or_publication_action_refuses_atomically(planned, case):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner, project['app'])
+    receipt = prepared_receipt(planner, project)
     publication = receipt['publication']
     command = publication['receipt']
     if case == 'foreign-target':
@@ -290,3 +296,68 @@ def test_foreign_target_or_publication_action_refuses_atomically(planned, case):
         command['argv'][-1] = 'tasks/B'
     set_execution(planner, 'A', receipt)
     assert_refused_unchanged(planner, published['revision'])
+
+
+@pytest.mark.parametrize('case', [
+    'foreign-backup-scope',
+    'missing-report-commit',
+    'missing-execution-branch',
+    'nonobject-last-report',
+    'execution-json-array',
+    'execution-invalid-json',
+])
+def test_damaged_terminal_facts_refuse_atomically(planned, case):
+    project, planner, published = planned
+    prepare_member(project, 'completed')
+    set_execution(planner, 'A', prepared_receipt(planner, project))
+    with planner.runtime.store.transaction() as db:
+        row = db.execute('SELECT data,version FROM task_execution WHERE task_id=?', ('A',)).fetchone()
+        metadata = db.execute('SELECT metadata FROM tasks WHERE id=?', ('A',)).fetchone()[0]
+        data = json.loads(row[0])
+        if case == 'foreign-backup-scope':
+            data['pending']['temporary_backup_directory'] = '/fixture/foreign-backups'
+        elif case == 'missing-report-commit':
+            del data['last_report']['commit']
+        elif case == 'missing-execution-branch':
+            del data['branch']
+        elif case == 'nonobject-last-report':
+            data['last_report'] = 'damaged-report'
+        raw = {'execution-json-array': '[]', 'execution-invalid-json': '{'}.get(case)
+        if raw is None:
+            raw = json.dumps(data)
+        changed = db.execute(
+            'UPDATE task_execution SET data=?,version=? WHERE task_id=? AND version=?',
+            (raw, row[1] + 1, 'A', row[1]),
+        )
+        assert changed.rowcount == 1
+        assert db.execute('SELECT data FROM task_execution WHERE task_id=?', ('A',)).fetchone()[0] == raw
+        assert db.execute('SELECT metadata FROM tasks WHERE id=?', ('A',)).fetchone()[0] == metadata
+    before = snapshot(planner)
+    try:
+        reopen(planner, published['revision'])
+    except PoiseError as exc:
+        assert re.search(r'\bA\b', str(exc))
+        assert re.search('facts|execution|report|branch|result|data|pending|publication|scope|invalid',
+                         str(exc), re.IGNORECASE)
+        assert snapshot(planner) == before
+        return
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        expected = (
+            (case == 'missing-report-commit' and type(exc) is KeyError and exc.args == ('commit',))
+            or (case == 'missing-execution-branch' and type(exc) is KeyError and exc.args == ('branch',))
+            or (case == 'nonobject-last-report' and type(exc) is TypeError
+                and str(exc).startswith('string indices must be integers'))
+            or (case == 'execution-json-array' and type(exc) is TypeError
+                and str(exc).startswith('list indices must be integers'))
+            or (case == 'execution-invalid-json' and type(exc) is json.JSONDecodeError
+                and exc.doc == '{' and exc.pos == 1)
+        )
+        if not expected:
+            raise
+        assert snapshot(planner) == before
+        print(f'EXPECTED_RED: {case}')
+        pytest.fail('An internal exception is not an explained public refusal.', pytrace=False)
+    if case != 'foreign-backup-scope':
+        pytest.fail('Damaged execution data was unexpectedly admitted.', pytrace=False)
+    print(f'EXPECTED_RED: {case}')
+    pytest.fail('A foreign backup scope must refuse replanning.', pytrace=False)

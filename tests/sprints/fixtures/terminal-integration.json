@@ -15,7 +15,7 @@
   "accepted_commit": "1111111111111111111111111111111111111111",
   "task_branch": "tasks/A",
   "task_worktree": "/fixture/worktrees/A",
-  "temporary_backup_directory": "/fixture/runtime/integration/A",
+  "temporary_backup_directory": "/fixture/state/runtime/result-integration/A/c5e6e87f99ea",
   "last_included_target": "2222222222222222222222222222222222222222",
   "integration_head": "3333333333333333333333333333333333333333",
   "target_after": "3333333333333333333333333333333333333333",

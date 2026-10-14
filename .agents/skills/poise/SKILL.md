@@ -5,13 +5,103 @@ description: Execute project-local AI poise task stages and hand off work betwee
 
 # AI poise task workflow
 
+## Command quick reference
+
+Use the [complete CLI
+reference](../../../docs/operator/poise-command-reference.md#запуск-и-общие-аргументы)
+for argument meanings, prerequisites and canonical packet owners.
+Use the [environment
+entry](../../../docs/operator/poise-command-reference.md#обслуживание-окружения)
+for the setup instruction immediately below its target heading.
+The prepared standalone Bootstrap and installed delegated maintenance CLI are distinct.
+
+Examples assume explicit absolute paths and a valid JSON packet for the selected
+owner. Define `poise=( "${poise_python:?Select installed Poise Python}" -I -B -m poise )`.
+Here `settings` means the settings of the particular operation, not one universal
+file. Operator examples document capabilities; they do not authorize mutations.
+For Task work retain the native hook-issued session launcher and caller identity.
+
+### Task work and reads
+
+[Arguments and
+packets](../../../docs/operator/poise-command-reference.md#работа-и-чтение-результатов).
+
+| Command | Purpose | Correct example |
+|---|---|---|
+| `work` | Execute one declarative Task/Sprint packet. | `bash "${AI_POISE_WORK:?Native session work.sh}" < "$packet"` |
+| `result-view` | Read a saved bounded view without replay. | `"${poise[@]}" result-view --response "$response" --view expanded --output-chars 3000` |
+| `next` | List startable Tasks without claiming. | `"${poise[@]}" next --settings "$settings" --project "$project_id"` |
+| `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
+| `skills` | Read metadata or validate decomposition without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
+
+### Project and process configuration
+
+[Arguments and packets](../../../docs/operator/poise-command-reference.md#проект-и-его-настройки).
+
+| Command | Purpose | Correct example |
+|---|---|---|
+| `project` | Create a configured project from one packet. | `"${poise[@]}" project --settings "$settings" < "$packet"` |
+| `project list` | List configured projects. | `"${poise[@]}" project list --settings "$settings"` |
+| `project check` | Check the explicitly selected project. | `"${poise[@]}" project check --settings "$settings" < "$packet"` |
+| `project-config` | Update an existing project's settings. | `"${poise[@]}" project-config --settings "$settings" < "$packet"` |
+| `project-init` | Prepare a selected template interactively. | `"${poise[@]}" project-init --settings "$settings" --template "$template_id" --destination "$destination" --request-id "$request_id" --probe-repository yes` |
+| `goal-config` | Edit goal/process configuration declaratively. | `"${poise[@]}" goal-config --settings "$settings" < "$packet"` |
+| `catalogue` | Install processes or prepare typed Tasks. | `"${poise[@]}" catalogue --settings "$settings" < "$packet"` |
+
+### Runtime and hooks
+
+[Arguments and packets](../../../docs/operator/poise-command-reference.md#runtime-и-native-hooks).
+
+| Command | Purpose | Correct example |
+|---|---|---|
+| `runtime` | Submit identity/capabilities/transcript and one work packet. | `"${poise[@]}" runtime --settings "$settings" < "$packet"` |
+| `runtime-setup` | Create explicit hook settings and install. | `"${poise[@]}" runtime-setup --settings "$settings" --max-input-bytes 262144 < "$packet"` |
+| `runtime-config` | Configure hooks or run installation probes. | `"${poise[@]}" runtime-config --settings "$settings" < "$packet"` |
+| `hook` | Deliver an actual native event using its immutable definition. | `"${poise[@]}" hook --settings "$settings" --definition "$definition" < "$native_event"` |
+| `hook-work` | Submit work with the hook-generated session binding. | `"${poise[@]}" hook-work --settings "$settings" --binding "$binding" < "$packet"` |
+
+### Environment maintenance
+
+[Installed CLI and standalone
+arguments](../../../docs/operator/poise-command-reference.md#обслуживание-окружения);
+[Bootstrap settings, handler and results](../../../docs/operator/bootstrap-catalog-v2.md).
+
+| Command | Purpose | Correct example |
+|---|---|---|
+| `poise infra` | Delegate infrastructure maintenance to the installed external CLI. | `"${poise[@]}" infra --catalog "$requirements_catalog" --repairs "$repairs_file" --dry-run` |
+| `poise deps` | Delegate dependency maintenance. | `"${poise[@]}" deps --catalog "$requirements_catalog" --values "$values_file" --dry-run` |
+| `poise check` | Delegate environment observation. | `"${poise[@]}" check --catalog "$requirements_catalog" --values "$values_file"` |
+| `bootstrap infra` | Observe, then allow one configured correction. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" infra --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
+| `bootstrap deps` | Observe dependency readiness with configured correction. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" deps --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
+| `bootstrap check` | Observe with the supplied read-only sample permissions. | `"$bootstrap_python" -I -B "$poise_root/bootstrap" check --config "$poise_root/config/bootstrap.json" --catalog-dir "$catalog_dir"` |
+
+Run standalone examples from the explicitly selected `poise_root`; populate
+the ignored working files from tracked examples first. The configured plugin
+owns full result analysis and the single invocation-local correction/recheck.
+
+### Operator recovery and migrations
+
+[Arguments, authority and
+procedures](../../../docs/operator/poise-command-reference.md#локальные-файлы-резервные-копии-и-миграции).
+
+| Command | Purpose | Correct example |
+|---|---|---|
+| `local-assets` | Restore declared files from an explicit snapshot. | `"${poise[@]}" local-assets --manifest "$manifest" < "$packet"` |
+| `backup help` | Read backup/operator-window guidance. | `"${poise[@]}" backup help` |
+| `backup list` | List Task DB backups. | `"${poise[@]}" backup list --config "$project_json"` |
+| `backup create` | Create a backup with writers stopped. | `"${poise[@]}" backup create --config "$project_json"` |
+| `backup restore` | Restore a named backup with writers stopped. | `"${poise[@]}" backup restore --config "$project_json" "$backup_name"` |
+| `route-migrate` | Apply the authorized route migration. | `"${poise[@]}" route-migrate --config "$project_json"` |
+| `task-process-migrate` | Migrate an explicitly authorized process-snapshot batch. | `"${poise[@]}" task-process-migrate --config "$project_json" --project-settings "$settings" < "$packet"` |
+
 Keep brief and expanded agent views distinct and within configured budgets.
 Full output is always a saved-file link, not inline data. Preserve complete machine
 results and actual operation outcomes. Follow the canonical
 [three-view contract](../../../docs/workflows/runner.md#три-представления-вывода).
 Use `poise result-view` with an explicit saved path, view and character budget.
 Never replay a mutation to read its output; read success is not business success.
-Follow [read-only navigation](../../../docs/workflows/runner.md#чтение-сохранённого-результата-без-повторного-выполнения).
+Follow [read-only
+navigation](../../../docs/workflows/runner.md#чтение-сохранённого-результата-без-повторного-выполнения).
 
 For explicit stage purpose, criteria authority, `show` with `stage_criteria` and
 `verify.criteria_work`, read the canonical [stage criteria
@@ -120,7 +210,8 @@ incident](../../../docs/operations/known-bugs.md#recovery-publication-owner-001-
 
 When normal Poise work is blocked, apply
 [harness-recovery](../harness-recovery/SKILL.md) and the canonical
-[failure and manual bypass rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
+[failure and manual bypass
+rule](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход).
 Classify cause and recurrence, log every incident and manual correction, and choose
 a verified authorized continuation. Repeated or repeatable problems require one repair
 draft, not necessarily code. Configuration defects remain obligations until corrected;

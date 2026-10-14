@@ -19,7 +19,7 @@ def terminal_receipt():
     return json.loads((Path(__file__).parent / 'fixtures/terminal-integration.json').read_text())
 
 
-def prepared_receipt(planner, mode='ordinary'):
+def prepared_receipt(planner, repository, mode='ordinary'):
     """Bind fixture inputs to observed accepted work, not a product-generated oracle."""
     with planner.runtime.store.transaction() as db:
         row = db.execute('SELECT data FROM task_execution WHERE task_id=?', ('A',)).fetchone()
@@ -31,6 +31,7 @@ def prepared_receipt(planner, mode='ordinary'):
     receipt['task_branch'] = observed['branch']
     receipt['task_worktree'] = observed['worktree']
     publication = receipt['publication']
+    publication['receipt']['argv'][2] = str(repository)
     if mode == 'no-op':
         head = receipt['last_included_target']
         receipt.update(integration_head=head, target_after=head)
@@ -87,7 +88,7 @@ def assert_refused_unchanged(planner, revision, diagnostic='pending|external|pub
 def test_terminal_admission_preserves_results_materials_and_replay(planned, mode):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner, mode)
+    receipt = prepared_receipt(planner, project['app'], mode)
     set_execution(planner, 'A', receipt)
 
     # B owns retained work and evidence; A's delivery may legitimately remove A's tree.
@@ -175,7 +176,7 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
 def test_incomplete_or_contradictory_receipt_refuses_atomically(planned, path, value):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner)
+    receipt = prepared_receipt(planner, project['app'])
     target = receipt
     for key in path[:-1]:
         target = target[key]
@@ -192,7 +193,7 @@ def test_incomplete_or_contradictory_receipt_refuses_atomically(planned, path, v
 def test_malformed_or_unsupported_receipt_refuses_atomically(planned, case):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = prepared_receipt(planner)
+    receipt = prepared_receipt(planner, project['app'])
     if case == 'missing-intent':
         del receipt['intent']
     elif case == 'missing-message':
@@ -223,9 +224,8 @@ def test_malformed_or_unsupported_receipt_refuses_atomically(planned, case):
 @pytest.mark.parametrize('case', ['nonterminal', 'publication', 'task-claim', 'tree-claim', 'other-pending'])
 def test_terminal_proof_preserves_other_admission_guards(planned, case):
     project, planner, published = planned
-    if case != 'nonterminal':
-        prepare_member(project, 'completed')
-    receipt = terminal_receipt() if case == 'nonterminal' else prepared_receipt(planner)
+    prepare_member(project, 'verified' if case == 'nonterminal' else 'completed')
+    receipt = prepared_receipt(planner, project['app'])
     publication = {'kind': 'unknown-effect'} if case == 'publication' else None
     set_execution(planner, 'A', receipt, publication)
     if case in ('task-claim', 'tree-claim'):
@@ -249,7 +249,7 @@ def test_contradictory_source_and_publication_provenance_refuses(planned, case):
     mode = 'no-op' if case == 'ordinary-with-equal-target' else 'ordinary'
     if case == 'no-op-with-different-target':
         mode = 'recovered'
-    receipt = prepared_receipt(planner, mode)
+    receipt = prepared_receipt(planner, project['app'], mode)
     if case == 'wrong-source-pair':
         wrong = '1111111111111111111111111111111111111111'
         assert receipt['accepted_commit'] != wrong
@@ -261,5 +261,32 @@ def test_contradictory_source_and_publication_provenance_refuses(planned, case):
         receipt['publication']['no_op'] = False
     else:
         receipt['publication']['recovered'] = True
+    set_execution(planner, 'A', receipt)
+    assert_refused_unchanged(planner, published['revision'])
+
+
+@pytest.mark.parametrize('case', [
+    'foreign-target', 'missing-repository-prefix', 'wrong-repository',
+    'unrelated-command', 'missing-stream', 'self-consistent-foreign-branch',
+])
+def test_foreign_target_or_publication_action_refuses_atomically(planned, case):
+    project, planner, published = planned
+    prepare_member(project, 'completed')
+    receipt = prepared_receipt(planner, project['app'])
+    publication = receipt['publication']
+    command = publication['receipt']
+    if case == 'foreign-target':
+        publication['target_ref'] = 'refs/heads/master'
+    elif case == 'missing-repository-prefix':
+        command['argv'] = ['git', 'merge', '--ff-only', 'tasks/A']
+    elif case == 'wrong-repository':
+        command['argv'][2] = str(project['root'] / 'foreign-repository')
+    elif case == 'unrelated-command':
+        command['argv'] = ['git', '-C', str(project['app']), 'status']
+    elif case == 'missing-stream':
+        del command['stderr']
+    else:
+        receipt['task_branch'] = 'tasks/B'
+        command['argv'][-1] = 'tasks/B'
     set_execution(planner, 'A', receipt)
     assert_refused_unchanged(planner, published['revision'])

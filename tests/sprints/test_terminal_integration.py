@@ -19,6 +19,30 @@ def terminal_receipt():
     return json.loads((Path(__file__).parent / 'fixtures/terminal-integration.json').read_text())
 
 
+def prepared_receipt(planner, mode='ordinary'):
+    """Bind fixture inputs to observed accepted work, not a product-generated oracle."""
+    with planner.runtime.store.transaction() as db:
+        row = db.execute('SELECT data FROM task_execution WHERE task_id=?', ('A',)).fetchone()
+    observed = json.loads(row[0])
+    source = observed['last_report']['commit']
+    receipt = terminal_receipt()
+    receipt['intent']['expected_source_commit'] = source
+    receipt['accepted_commit'] = source
+    receipt['task_branch'] = observed['branch']
+    receipt['task_worktree'] = observed['worktree']
+    publication = receipt['publication']
+    if mode == 'no-op':
+        head = receipt['last_included_target']
+        receipt.update(integration_head=head, target_after=head)
+        publication.update(commit=head, no_op=True)
+    if mode in ('no-op', 'recovered'):
+        publication['recovered'] = True
+        publication['receipt'] = {
+            'kind': 'reconciled_fast_forward', 'commit': receipt['integration_head'],
+        }
+    return receipt
+
+
 def set_execution(planner, task_id, pending, publication=None):
     """Arrange only fixture data; no production serializer generates the receipt."""
     with planner.runtime.store.transaction() as db:
@@ -52,7 +76,7 @@ def snapshot(planner):
     return unchanged(planner), audit_rows(planner)
 
 
-def assert_refused_unchanged(planner, revision, diagnostic='pending|external|publication|invalid|intent|commit'):
+def assert_refused_unchanged(planner, revision, diagnostic='pending|external|publication|invalid|intent|commit|source|receipt'):
     before = snapshot(planner)
     with pytest.raises(PoiseError, match=diagnostic):
         reopen(planner, revision)
@@ -63,9 +87,7 @@ def assert_refused_unchanged(planner, revision, diagnostic='pending|external|pub
 def test_terminal_admission_preserves_results_materials_and_replay(planned, mode):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = terminal_receipt()
-    receipt['publication']['no_op'] = mode == 'no-op'
-    receipt['publication']['recovered'] = mode == 'recovered'
+    receipt = prepared_receipt(planner, mode)
     set_execution(planner, 'A', receipt)
 
     # B owns retained work and evidence; A's delivery may legitimately remove A's tree.
@@ -153,7 +175,7 @@ def test_terminal_admission_preserves_results_materials_and_replay(planned, mode
 def test_incomplete_or_contradictory_receipt_refuses_atomically(planned, path, value):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = terminal_receipt()
+    receipt = prepared_receipt(planner)
     target = receipt
     for key in path[:-1]:
         target = target[key]
@@ -170,7 +192,7 @@ def test_incomplete_or_contradictory_receipt_refuses_atomically(planned, path, v
 def test_malformed_or_unsupported_receipt_refuses_atomically(planned, case):
     project, planner, published = planned
     prepare_member(project, 'completed')
-    receipt = terminal_receipt()
+    receipt = prepared_receipt(planner)
     if case == 'missing-intent':
         del receipt['intent']
     elif case == 'missing-message':
@@ -203,8 +225,9 @@ def test_terminal_proof_preserves_other_admission_guards(planned, case):
     project, planner, published = planned
     if case != 'nonterminal':
         prepare_member(project, 'completed')
+    receipt = terminal_receipt() if case == 'nonterminal' else prepared_receipt(planner)
     publication = {'kind': 'unknown-effect'} if case == 'publication' else None
-    set_execution(planner, 'A', terminal_receipt(), publication)
+    set_execution(planner, 'A', receipt, publication)
     if case in ('task-claim', 'tree-claim'):
         with planner.runtime.store.transaction() as db:
             if case == 'task-claim':
@@ -214,3 +237,29 @@ def test_terminal_proof_preserves_other_admission_guards(planned, case):
     elif case == 'other-pending':
         set_execution(planner, 'B', {'kind': 'unknown-effect'})
     assert_refused_unchanged(planner, published['revision'], 'pending|external|publication|owned|claim')
+
+
+@pytest.mark.parametrize('case', [
+    'wrong-source-pair', 'no-op-with-different-target',
+    'ordinary-with-equal-target', 'recovered-with-ordinary-receipt',
+])
+def test_contradictory_source_and_publication_provenance_refuses(planned, case):
+    project, planner, published = planned
+    prepare_member(project, 'completed')
+    mode = 'no-op' if case == 'ordinary-with-equal-target' else 'ordinary'
+    if case == 'no-op-with-different-target':
+        mode = 'recovered'
+    receipt = prepared_receipt(planner, mode)
+    if case == 'wrong-source-pair':
+        wrong = '1111111111111111111111111111111111111111'
+        assert receipt['accepted_commit'] != wrong
+        receipt['accepted_commit'] = wrong
+        receipt['intent']['expected_source_commit'] = wrong
+    elif case == 'no-op-with-different-target':
+        receipt['publication']['no_op'] = True
+    elif case == 'ordinary-with-equal-target':
+        receipt['publication']['no_op'] = False
+    else:
+        receipt['publication']['recovered'] = True
+    set_execution(planner, 'A', receipt)
+    assert_refused_unchanged(planner, published['revision'])

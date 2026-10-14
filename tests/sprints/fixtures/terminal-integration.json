@@ -30,7 +30,17 @@
     "no_op": false,
     "recovered": false,
     "drift_retries": 0,
-    "receipt": {"actual_exit_code": 0}
+    "receipt": {
+      "argv": [
+        "git",
+        "merge",
+        "--ff-only",
+        "tasks/A"
+      ],
+      "actual_exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
   },
   "temporary_backups": [],
   "failure": null,

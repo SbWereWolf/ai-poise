@@ -1,0 +1,93 @@
+{
+  "parameters": {
+    "python": "/srv/poise/bootstrap-venv/bin/python",
+    "tool_config": "/srv/poise/app/config/environment-maintenance.json"
+  },
+  "commands": {
+    "infra": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "deps": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "check": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "repair": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "run",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ],
+    "verify": [
+      "${python}",
+      "-I",
+      "-B",
+      "-m",
+      "environment_maintenance",
+      "check",
+      "--catalog-dir",
+      "${catalog_dir}",
+      "--values",
+      "${tool_config}"
+    ]
+  },
+  "handler": {
+    "callable": "apps.bootstrap.environment_result:handle",
+    "options": {
+      "schema": "environment-maintenance/result/v2",
+      "status_exit_codes": {
+        "ready": 0,
+        "action_required": 2,
+        "unavailable": 3,
+        "failed": 4
+      },
+      "success_statuses": [
+        "ready"
+      ],
+      "repairable_statuses": [
+        "action_required"
+      ],
+      "repair_operations": [
+        "infra",
+        "deps"
+      ],
+      "repair_command": "repair",
+      "verification_command": "verify",
+      "failure_exit_code": 4
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "kind": "result_integration",
+  "schema": "existing-task-worktree-1",
+  "intent": {
+    "request_id": "integrate-A",
+    "task_id": "A",
+    "expected_source_commit": "1111111111111111111111111111111111111111",
+    "expected_target_commit": "2222222222222222222222222222222222222222",
+    "authorization": "Test-owned delivery authorization.",
+    "commit_message": "Deliver accepted test result"
+  },
+  "status": "integrated",
+  "phase": "integrated",
+  "version": 7,
+  "accepted_commit": "1111111111111111111111111111111111111111",
+  "task_branch": "tasks/A",
+  "task_worktree": "/fixture/worktrees/A",
+  "temporary_backup_directory": "/fixture/runtime/integration/A",
+  "last_included_target": "2222222222222222222222222222222222222222",
+  "integration_head": "3333333333333333333333333333333333333333",
+  "target_after": "3333333333333333333333333333333333333333",
+  "conflicts": [],
+  "resolutions": [],
+  "checks": [],
+  "publication": {
+    "status": "confirmed",
+    "commit": "3333333333333333333333333333333333333333",
+    "target_ref": "refs/heads/master",
+    "last_included_target": "2222222222222222222222222222222222222222",
+    "no_op": false,
+    "recovered": false,
+    "drift_retries": 0,
+    "receipt": {"actual_exit_code": 0}
+  },
+  "temporary_backups": [],
+  "failure": null,
+  "cleanup": {
+    "task_worktree": "removed",
+    "task_branch": "deleted",
+    "temporary_backups": "removed"
+  },
+  "history": [],
+  "drift_retries": 0
+}

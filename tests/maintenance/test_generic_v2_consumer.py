@@ -169,8 +169,12 @@ def test_per_stream_output_boundaries(consumer, catalog, stream, size):
     row = report(invoke(consumer, catalog), 4 if size == 513 else 0,
                  "failed" if size == 513 else "ready")["requirements"][0]
     check = row["initial_check"]
-    for name in (("stdout", "stderr") if stream == "both" else (stream,)):
+    exact_streams = (("stderr",) if stream == "both" and size == 513 else
+                     ("stdout", "stderr") if stream == "both" else (stream,))
+    for name in exact_streams:
         assert len(check[name].encode()) == min(size, 512)
+    if stream == "both" and size == 513:
+        assert len(check["stdout"].encode()) <= 512
     assert check["capture_complete"] is (size <= 512)
     assert check["timed_out"] is False
     assert check["status"] == ("protocol_failure" if size == 513 else "passed")
@@ -313,3 +317,118 @@ def test_wrong_child_protocol_identity_never_becomes_ready(consumer, catalog, fi
     assert row["initial_check"]["status"] == "protocol_failure"
     assert "response" not in row["initial_check"]
     assert [item["role"] for item in calls(root)] == ["check"]
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_invalid_utf8_child_bytes_fail_before_mutation(consumer, catalog, stream):
+    root, data = catalog
+    data["requirements"][0]["check"]["argv"][-1] = f"invalid-utf8-{stream}"
+    row = report(invoke(consumer, catalog), 4, "failed")["requirements"][0]
+    check = row["initial_check"]
+    assert check["status"] == "protocol_failure"
+    assert check["capture_complete"] is True
+    assert check["timed_out"] is False
+    assert check["error"].startswith("Invalid action output:")
+    assert "response" not in check
+    assert [item["role"] for item in calls(root)] == ["check"]
+    assert not (root / "resource").exists()
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("source", ["values", "environment", "cli"])
+@pytest.mark.parametrize("name,value", [
+    ("count", "wrong"), ("count", True), ("count", 1.5), ("count", None),
+    ("enabled", "true"), ("enabled", 1), ("enabled", None),
+    ("ratio", "wrong"), ("ratio", True), ("ratio", None)])
+def test_invalid_typed_parameters_rejected_before_actions(consumer, catalog, source, name, value):
+    root, data = catalog
+    data["parameters"] = json.loads((ACTION.parent / "v2_parameters.json").read_text())
+    data["parameters"][name]["env"] = "V2_INPUT"
+    extra = ()
+    env = {}
+    if source == "values":
+        values = root / "values.json"
+        values.write_text(json.dumps({name: value}))
+        extra = ("--values", str(values))
+    elif source == "environment":
+        env["V2_INPUT"] = json.dumps(value)
+    else:
+        extra = ("--set", name + "=" + json.dumps(value))
+    result = invoke(consumer, catalog, extra=extra, env=env)
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert name.encode() in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+
+
+@pytest.mark.parametrize("value", [1, True, None])
+def test_non_string_values_parameter_is_rejected(consumer, catalog, value):
+    root, data = catalog
+    data["parameters"] = json.loads((ACTION.parent / "v2_parameters.json").read_text())
+    values = root / "values.json"
+    values.write_text(json.dumps({"selected": value}))
+    result = invoke(consumer, catalog, extra=("--values", str(values)), env={})
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert b"selected" in result.stderr
+    assert calls(root) == []
+
+
+@pytest.mark.parametrize("name", ["selected", "count", "enabled", "ratio"])
+def test_missing_required_parameter_rejected_before_actions(consumer, catalog, name):
+    root, data = catalog
+    data["parameters"] = json.loads((ACTION.parent / "v2_parameters.json").read_text())
+    data["parameters"][name].pop("default")
+    result = invoke(consumer, catalog, env={})
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert ("Missing parameter: " + name).encode() in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+
+
+@pytest.mark.parametrize("case", ["unknown-values", "unknown-cli", "duplicate-cli", "bad-string", "unknown-token"])
+def test_invalid_parameter_input_rejected_before_actions(consumer, catalog, case):
+    root, data = catalog
+    data["parameters"] = json.loads((ACTION.parent / "v2_parameters.json").read_text())
+    extra = ()
+    if case == "unknown-values":
+        values = root / "values.json"
+        values.write_text('{"unknown":1}')
+        extra = ("--values", str(values))
+        diagnostic = b"Unknown values: unknown"
+    elif case == "unknown-cli":
+        extra = ("--set", "unknown=1")
+        diagnostic = b"Unknown or duplicate override: unknown"
+    elif case == "duplicate-cli":
+        extra = ("--set", "count=1", "--set", "count=2")
+        diagnostic = b"Unknown or duplicate override: count"
+    elif case == "bad-string":
+        extra = ("--set", 'selected="unterminated')
+        diagnostic = b"Invalid string override"
+    else:
+        # Complete expansion precedes even the first otherwise valid action.
+        other = deepcopy(data["requirements"][0])
+        other["id"] = "other"
+        other["repair"]["env"] = {"BOUND": "${unknown}"}
+        data["requirements"].append(other)
+        diagnostic = b"Unknown placeholder: unknown"
+    result = invoke(consumer, catalog, extra=extra, env={})
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert diagnostic in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+
+
+def test_parameter_expansion_is_exactly_one_pass(consumer, catalog):
+    root, data = catalog
+    data["parameters"] = json.loads((ACTION.parent / "v2_parameters.json").read_text())
+    data["parameters"]["selected"]["default"] = "${count}"
+    for role in ("check", "install", "repair"):
+        data["requirements"][0][role]["env"] = {"BOUND": "${selected}"}
+    result = report(invoke(consumer, catalog, env={}), 0, "ready")
+    assert result["parameters"]["selected"] == "${count}"
+    for item in calls(root):
+        assert item["env"]["BOUND"] == "${count}"

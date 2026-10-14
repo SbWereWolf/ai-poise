@@ -41,9 +41,17 @@ if mode.startswith("stderr=") or mode.startswith("both="):
     sys.stderr.buffer.write(b"e" * count)
     sys.stderr.buffer.flush()
     if mode.startswith("both="):
+        if count == 513:
+            # Deliberately separate writes: overflow can kill before stdout.
+            time.sleep(.2)
         output += b" " * (count - len(output))
 if mode == "malformed":
     output = b"not JSON"
+if mode == "invalid-utf8-stdout":
+    output += Path(__file__).with_name("invalid_utf8.bin").read_bytes()
+if mode == "invalid-utf8-stderr":
+    sys.stderr.buffer.write(Path(__file__).with_name("invalid_utf8.bin").read_bytes())
+    sys.stderr.buffer.flush()
 sys.stdout.buffer.write(output)
 sys.stdout.buffer.flush()
 if mode == "fail":

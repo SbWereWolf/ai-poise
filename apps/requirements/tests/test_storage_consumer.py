@@ -335,6 +335,35 @@ class ConsumerStorageTests(unittest.TestCase):
         reason = self.rejected(process).lower()
         self.assertTrue("revision" in reason or "meta" in reason, reason)
 
+    def test_operation_order_changes_intent(self):
+        self.seed_model()
+        case = json.loads((FIXTURES / "storage-operation-order.json").read_text())
+        self.successful(self.invoke(case["packet"]), case["applied_response"])
+        with closing(sqlite3.connect(self.database)) as db:
+            self.assertEqual(db.execute(
+                "SELECT r.id,v.status,v.text FROM requirements r "
+                "JOIN requirement_revisions v ON v.id=r.id "
+                "AND v.revision=r.current_revision WHERE r.id=?", ("SYS-B",)
+            ).fetchall(), [tuple(row) for row in case["current_requirement"]])
+            self.assertEqual(db.execute(
+                "SELECT revision,schema_version FROM requirements_meta"
+            ).fetchall(), [(3, 1)])
+            saved = db.execute(
+                "SELECT intent,response FROM requirement_requests WHERE request_id=?",
+                ("consumer-operation-order",),
+            ).fetchall()
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(json.loads(saved[0][0]), case["packet"]["input"])
+        self.assertEqual(json.loads(saved[0][1]), {"revision": 3, "replayed": False})
+        before = self.model_state()
+        self.successful(self.invoke(case["packet"]), case["replayed_response"])
+        self.assertEqual(self.model_state(), before)
+        reordered = deepcopy(case["packet"])
+        reordered["input"]["operations"].reverse()
+        reason = self.rejected(self.invoke(reordered))
+        self.assertIn("request", reason.lower())
+        self.assertEqual(self.model_state(), before)
+
 
 def main():
     parser = argparse.ArgumentParser()

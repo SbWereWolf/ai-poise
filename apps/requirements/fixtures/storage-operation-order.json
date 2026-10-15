@@ -1,0 +1,46 @@
+{
+  "packet": {
+    "operation": "apply",
+    "input": {
+      "request_id": "consumer-operation-order",
+      "expected_revision": 2,
+      "operations": [
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "SYS-B",
+            "level": "system",
+            "status": "current",
+            "text": "Первое значение в последовательности."
+          }
+        },
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "SYS-B",
+            "level": "system",
+            "status": "current",
+            "text": "Последнее значение в последовательности."
+          }
+        }
+      ]
+    }
+  },
+  "applied_response": {
+    "status": "applied",
+    "revision": 3,
+    "replayed": false
+  },
+  "replayed_response": {
+    "status": "applied",
+    "revision": 3,
+    "replayed": true
+  },
+  "current_requirement": [
+    [
+      "SYS-B",
+      "current",
+      "Последнее значение в последовательности."
+    ]
+  ]
+}

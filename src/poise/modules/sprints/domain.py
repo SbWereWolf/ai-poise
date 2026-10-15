@@ -216,7 +216,7 @@ class Sprint:
         if task_id not in {task_identity(item) for item in self.plan.data['tasks']}:
             raise DomainError('Task is not a published Sprint member')
 
-    def require_released_members(self, facts, publication_target):
+    def require_released_members(self, facts, publication_target, backup_scope):
         ids = {task_identity(item) for item in self.plan.data['tasks']}
         if set(facts) != ids:
             raise DomainError('Sprint member facts are missing or inconsistent')
@@ -234,7 +234,8 @@ class Sprint:
                     and IntegrationRun.terminal_receipt_for(
                         pending, task_id=task_id, result_commit=fact.get('result_commit'),
                         task_branch=fact.get('_execution_branch'),
-                        task_worktree=fact.get('worktree'), publication_target=publication_target)):
+                        task_worktree=fact.get('worktree'), publication_target=publication_target,
+                        backup_scope=backup_scope)):
                 pending = None
             if (fact['status'] == 'cancelled' and isinstance(pending, dict)
                     and pending.get('kind') == 'task_cleanup'):
@@ -246,14 +247,14 @@ class Sprint:
             if pending is not None or fact['publication'] is not None:
                 raise DomainError(f'Member has an unresolved pending external publication: {task_id}')
 
-    def unpublish(self, facts, reason, authorization, publication_target):
+    def unpublish(self, facts, reason, authorization, publication_target, backup_scope):
         if self.state != 'published':
             raise DomainError('Only a published Sprint may be returned to draft')
         if not isinstance(reason, str) or not reason.strip():
             raise DomainError('Unpublish reason is required')
         if not isinstance(authorization, str) or not authorization.strip():
             raise DomainError('Unpublish authorization is required')
-        self.require_released_members(facts, publication_target)
+        self.require_released_members(facts, publication_target, backup_scope)
         return replace(self, state='draft', revision=self.revision + 1,
                        decisions=self.decisions + ({'kind': 'unpublish',
                            'reason': reason, 'authorization': authorization},))

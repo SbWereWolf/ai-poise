@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
+from pathlib import PurePath
 import re
 
 from ..foundation.errors import DomainError
@@ -33,6 +35,24 @@ def _resolution(value):
     if path.startswith("/") or ".." in path.split("/"):
         raise DomainError("Resolution path must stay inside the task worktree")
     return {"path": path, "resolution": _text(value["resolution"], "resolution rationale")}
+
+
+@dataclass(frozen=True)
+class IntegrationBackupScope:
+    runtime_root: str
+
+    def __post_init__(self):
+        _text(self.runtime_root, "integration runtime root")
+
+    @staticmethod
+    def request_identity(task_id, request_id):
+        return hashlib.sha256(f"{task_id}\0{request_id}".encode()).hexdigest()[:12]
+
+    def directory_for(self, task_id, request_id):
+        return str(
+            PurePath(self.runtime_root) / "result-integration" / task_id
+            / self.request_identity(task_id, request_id)
+        )
 
 
 @dataclass(frozen=True)
@@ -157,7 +177,7 @@ class IntegrationRun:
 
     @classmethod
     def terminal_receipt_for(cls, value, *, task_id, result_commit,
-                             task_branch, task_worktree, publication_target):
+                             task_branch, task_worktree, publication_target, backup_scope):
         """Recognize saved proof; never recover or rewrite the retained run."""
         try:
             if (not isinstance(value, dict)
@@ -169,15 +189,20 @@ class IntegrationRun:
             return cls.restore(value).confirms_publication_for(
                 task_id=task_id, result_commit=result_commit, task_branch=task_branch,
                 task_worktree=task_worktree, publication_target=publication_target,
+                backup_scope=backup_scope,
             )
         except (DomainError, KeyError, TypeError, ValueError):
             return False
 
     def confirms_publication_for(self, *, task_id, result_commit,
-                                 task_branch, task_worktree, publication_target):
-        if not isinstance(publication_target, IntegrationPublicationTarget):
+                                 task_branch, task_worktree, publication_target, backup_scope):
+        if (not isinstance(publication_target, IntegrationPublicationTarget)
+                or not isinstance(backup_scope, IntegrationBackupScope)):
             return False
         if not self.complete or self.failure is not None or self.intent.task_id != task_id:
+            return False
+        if self.temporary_backup_directory != backup_scope.directory_for(
+                self.intent.task_id, self.intent.request_id):
             return False
         for name, commit in (
             ("accepted commit", self.accepted_commit), ("result commit", result_commit),

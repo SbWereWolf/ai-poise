@@ -2,7 +2,7 @@
 from pathlib import Path
 from ..application.sprints import SprintCommands
 from ..modules.foundation.errors import PoiseError
-from ..modules.result_integration.domain import IntegrationPublicationTarget
+from ..modules.result_integration.domain import IntegrationBackupScope, IntegrationPublicationTarget
 from ..common import descendant
 
 
@@ -15,7 +15,10 @@ class SprintWork:
             runtime.config_hash,
             runtime.task_commands.prepare_creation,runtime._creation_base,
             runtime.task_commands.prepare_newborn_ready,
-            runtime.task_commands.promote_newborn_ready_in,self._publication_target)
+            runtime.task_commands.promote_newborn_ready_in,self._publication_target,self._backup_scope)
+
+    def _backup_scope(self):
+        return IntegrationBackupScope(str(descendant(self.h.state, self.h.paths['runtime'])))
 
     def _publication_target(self):
         git=self.h.cfg['git']

@@ -207,6 +207,7 @@ def reconfigure(settings_path, packet):
     nonempty(packet['request_id'], 'hook reconfiguration.request_id')
     service = transport.HookService(settings_path)
     proposed = transport.HookSettings.proposed(settings_path, packet['settings'])
+    proposed.require_summary()
     if 'repository_scope' not in proposed.raw:
         raise PoiseError('Shared session entry requires explicit repository_scope and hooks_lock')
     definition = HookDefinition.parse(packet['definition'])

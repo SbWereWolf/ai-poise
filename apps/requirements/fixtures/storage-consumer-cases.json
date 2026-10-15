@@ -1,0 +1,1424 @@
+{
+  "registry_packet": {
+    "operation": "query",
+    "input": {
+      "queries": [
+        {
+          "id": "registry",
+          "kind": "registry"
+        }
+      ]
+    }
+  },
+  "empty_registry_response": {
+    "status": "read_only",
+    "revision": 0,
+    "results": [
+      {
+        "id": "registry",
+        "value": {
+          "requirements": {},
+          "links": []
+        }
+      }
+    ]
+  },
+  "update_packet": {
+    "operation": "apply",
+    "input": {
+      "request_id": "consumer-update",
+      "expected_revision": 2,
+      "operations": [
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "APP-A",
+            "level": "application",
+            "status": "current",
+            "text": "Новая проверяемая редакция."
+          }
+        }
+      ]
+    }
+  },
+  "update_response": {
+    "status": "applied",
+    "revision": 3,
+    "replayed": false
+  },
+  "later_packet": {
+    "operation": "apply",
+    "input": {
+      "request_id": "consumer-later",
+      "expected_revision": 3,
+      "operations": [
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "APP-B",
+            "level": "application",
+            "status": "current",
+            "text": "Следующая независимая редакция."
+          }
+        }
+      ]
+    }
+  },
+  "later_response": {
+    "status": "applied",
+    "revision": 4,
+    "replayed": false
+  },
+  "conflict_packet": {
+    "operation": "apply",
+    "input": {
+      "request_id": "consumer-update",
+      "expected_revision": 2,
+      "operations": [
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "APP-A",
+            "level": "application",
+            "status": "current",
+            "text": "Другое намерение с тем же номером."
+          }
+        }
+      ]
+    }
+  },
+  "stale_packet": {
+    "operation": "apply",
+    "input": {
+      "request_id": "consumer-stale",
+      "expected_revision": 2,
+      "operations": [
+        {
+          "kind": "put_requirement",
+          "requirement": {
+            "id": "APP-A",
+            "level": "application",
+            "status": "current",
+            "text": "Запись на устаревшей ревизии."
+          }
+        }
+      ]
+    }
+  },
+  "current_application_rows": [
+    {
+      "id": "APP-A",
+      "level": "application",
+      "status": "current",
+      "text": "Сохранять обе редакции."
+    },
+    {
+      "id": "APP-B",
+      "level": "application",
+      "status": "current",
+      "text": "Открывать сохранённые постановки."
+    }
+  ],
+  "registry_value": {
+    "requirements": {
+      "APP-A": {
+        "id": "APP-A",
+        "level": "application",
+        "status": "current",
+        "text": "Сохранять обе редакции."
+      },
+      "APP-B": {
+        "id": "APP-B",
+        "level": "application",
+        "status": "current",
+        "text": "Открывать сохранённые постановки."
+      },
+      "SYS-A": {
+        "id": "SYS-A",
+        "level": "system",
+        "status": "current",
+        "text": "Уточнённая цель: хранить требования и историю."
+      },
+      "SYS-B": {
+        "id": "SYS-B",
+        "level": "system",
+        "status": "current",
+        "text": "Сохранять связи нескольких оснований."
+      }
+    },
+    "links": [
+      {
+        "system": "SYS-A",
+        "application": "APP-A"
+      },
+      {
+        "system": "SYS-A",
+        "application": "APP-B"
+      },
+      {
+        "system": "SYS-B",
+        "application": "APP-A"
+      }
+    ]
+  },
+  "metadata": {
+    "domain_areas": {
+      "columns": [
+        "id",
+        "business_name",
+        "definition"
+      ],
+      "rows": [
+        [
+          "D-A",
+          "Хранение",
+          "Предметная область хранения."
+        ],
+        [
+          "D-B",
+          "Публикация",
+          "Отдельная область публикации."
+        ]
+      ]
+    },
+    "domain_entities": {
+      "columns": [
+        "id",
+        "domain_id",
+        "business_name",
+        "code_name",
+        "definition"
+      ],
+      "rows": [
+        [
+          "E-A",
+          "D-A",
+          "Требование",
+          "Requirement",
+          "Сохраняемое требование."
+        ],
+        [
+          "E-B",
+          "D-A",
+          "Редакция",
+          "Revision",
+          "Сохранённая редакция."
+        ],
+        [
+          "E-C",
+          "D-B",
+          "Публикация",
+          "Publication",
+          "Объект другой области."
+        ]
+      ]
+    },
+    "domain_actions": {
+      "columns": [
+        "id",
+        "domain_id",
+        "business_name",
+        "code_name",
+        "definition"
+      ],
+      "rows": [
+        [
+          "A-A",
+          "D-A",
+          "Сохранить",
+          "Save",
+          "Сохранить редакцию."
+        ]
+      ]
+    },
+    "requirement_entities": {
+      "columns": [
+        "requirement_id",
+        "domain_id",
+        "entity_id"
+      ],
+      "rows": [
+        [
+          "SYS-A",
+          "D-A",
+          "E-A"
+        ],
+        [
+          "SYS-A",
+          "D-A",
+          "E-B"
+        ],
+        [
+          "SYS-B",
+          "D-A",
+          "E-A"
+        ]
+      ]
+    },
+    "requirement_actions": {
+      "columns": [
+        "requirement_id",
+        "domain_id",
+        "action_id"
+      ],
+      "rows": [
+        [
+          "SYS-A",
+          "D-A",
+          "A-A"
+        ],
+        [
+          "APP-A",
+          "D-A",
+          "A-A"
+        ]
+      ]
+    }
+  },
+  "bootstrap": {
+    "schema": "requirements-bootstrap-1",
+    "purpose": "Сохранять самостоятельные требования.",
+    "system_requirements": [
+      {
+        "id": "BOOT-S",
+        "status": "current",
+        "text": "Сохранять требования."
+      }
+    ],
+    "application_requirements": [
+      {
+        "id": "BOOT-A",
+        "application": "Requirements",
+        "status": "current",
+        "text": "Читать сохранённые требования."
+      }
+    ],
+    "derivations": [
+      {
+        "child": "BOOT-A",
+        "parents": [
+          "BOOT-S"
+        ]
+      }
+    ]
+  },
+  "app_history_after_update": [
+    [
+      "APP-A",
+      1,
+      "current",
+      "Сохранять первую редакцию.",
+      1
+    ],
+    [
+      "APP-A",
+      2,
+      "current",
+      "Сохранять обе редакции.",
+      2
+    ],
+    [
+      "APP-A",
+      3,
+      "current",
+      "Новая проверяемая редакция.",
+      3
+    ]
+  ],
+  "queries": {
+    "apps": {
+      "id": "r",
+      "kind": "entities",
+      "table": "requirements",
+      "filter": {
+        "level": {
+          "eq": "application"
+        }
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "apps_first": {
+      "id": "r",
+      "kind": "entities",
+      "table": "requirements",
+      "filter": {
+        "level": {
+          "eq": "application"
+        }
+      },
+      "page": {
+        "limit": 1,
+        "after": null
+      }
+    },
+    "areas": {
+      "id": "r",
+      "kind": "entities",
+      "table": "domain_areas",
+      "filter": {},
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "entities": {
+      "id": "r",
+      "kind": "entities",
+      "table": "domain_entities",
+      "filter": {
+        "domain_id": {
+          "eq": "D-A"
+        }
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "actions": {
+      "id": "r",
+      "kind": "entities",
+      "table": "domain_actions",
+      "filter": {},
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "system_links": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_links",
+      "a": {
+        "endpoint": "system",
+        "filter": {
+          "id": {
+            "eq": "SYS-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "application"
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "application_links": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_links",
+      "a": {
+        "endpoint": "application",
+        "filter": {
+          "id": {
+            "eq": "APP-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "system"
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "requirement_entities": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_entities",
+      "a": {
+        "endpoint": "requirement",
+        "filter": {
+          "id": {
+            "eq": "SYS-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "entity"
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "entity_requirements": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_entities",
+      "a": {
+        "endpoint": "entity",
+        "filter": {
+          "id": {
+            "eq": "E-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "requirement"
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "requirement_actions": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_actions",
+      "a": {
+        "endpoint": "requirement",
+        "filter": {
+          "id": {
+            "eq": "SYS-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "action"
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "action_requirements": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_actions",
+      "a": {
+        "endpoint": "action",
+        "filter": {
+          "id": {
+            "eq": "A-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "requirement"
+      },
+      "page": {
+        "limit": 10,
+        "after": null
+      }
+    },
+    "system_links_first": {
+      "id": "r",
+      "kind": "relations",
+      "table": "requirement_links",
+      "a": {
+        "endpoint": "system",
+        "filter": {
+          "id": {
+            "eq": "SYS-A"
+          }
+        }
+      },
+      "b": {
+        "endpoint": "application"
+      },
+      "page": {
+        "limit": 1,
+        "after": null
+      }
+    }
+  },
+  "query_rows": {
+    "apps": [
+      {
+        "id": "APP-A",
+        "level": "application",
+        "status": "current",
+        "text": "Сохранять обе редакции."
+      },
+      {
+        "id": "APP-B",
+        "level": "application",
+        "status": "current",
+        "text": "Открывать сохранённые постановки."
+      }
+    ],
+    "areas": [
+      {
+        "id": "D-A",
+        "business_name": "Хранение",
+        "definition": "Предметная область хранения."
+      },
+      {
+        "id": "D-B",
+        "business_name": "Публикация",
+        "definition": "Отдельная область публикации."
+      }
+    ],
+    "entities": [
+      {
+        "id": "E-A",
+        "domain_id": "D-A",
+        "business_name": "Требование",
+        "code_name": "Requirement",
+        "definition": "Сохраняемое требование."
+      },
+      {
+        "id": "E-B",
+        "domain_id": "D-A",
+        "business_name": "Редакция",
+        "code_name": "Revision",
+        "definition": "Сохранённая редакция."
+      }
+    ],
+    "actions": [
+      {
+        "id": "A-A",
+        "domain_id": "D-A",
+        "business_name": "Сохранить",
+        "code_name": "Save",
+        "definition": "Сохранить редакцию."
+      }
+    ],
+    "system_links": [
+      {
+        "system_id": "SYS-A",
+        "application_id": "APP-A"
+      },
+      {
+        "system_id": "SYS-A",
+        "application_id": "APP-B"
+      }
+    ],
+    "application_links": [
+      {
+        "system_id": "SYS-A",
+        "application_id": "APP-A"
+      },
+      {
+        "system_id": "SYS-B",
+        "application_id": "APP-A"
+      }
+    ],
+    "requirement_entities": [
+      {
+        "requirement_id": "SYS-A",
+        "domain_id": "D-A",
+        "entity_id": "E-A"
+      },
+      {
+        "requirement_id": "SYS-A",
+        "domain_id": "D-A",
+        "entity_id": "E-B"
+      }
+    ],
+    "entity_requirements": [
+      {
+        "requirement_id": "SYS-A",
+        "domain_id": "D-A",
+        "entity_id": "E-A"
+      },
+      {
+        "requirement_id": "SYS-B",
+        "domain_id": "D-A",
+        "entity_id": "E-A"
+      }
+    ],
+    "requirement_actions": [
+      {
+        "requirement_id": "SYS-A",
+        "domain_id": "D-A",
+        "action_id": "A-A"
+      }
+    ],
+    "action_requirements": [
+      {
+        "requirement_id": "APP-A",
+        "domain_id": "D-A",
+        "action_id": "A-A"
+      },
+      {
+        "requirement_id": "SYS-A",
+        "domain_id": "D-A",
+        "action_id": "A-A"
+      }
+    ]
+  },
+  "first_app_page": {
+    "rows": [
+      {
+        "id": "APP-A",
+        "level": "application",
+        "status": "current",
+        "text": "Сохранять обе редакции."
+      }
+    ],
+    "next": {
+      "revision": 2,
+      "selection": {
+        "kind": "entities",
+        "table": "requirements",
+        "filter": {
+          "level": {
+            "eq": "application"
+          }
+        }
+      },
+      "key": [
+        "APP-A"
+      ]
+    }
+  },
+  "second_app_page": {
+    "rows": [
+      {
+        "id": "APP-B",
+        "level": "application",
+        "status": "current",
+        "text": "Открывать сохранённые постановки."
+      }
+    ],
+    "next": null
+  },
+  "bootstrap_packet": {
+    "operation": "import_bootstrap",
+    "input": {
+      "path": "bootstrap.json",
+      "request_id": "consumer-bootstrap"
+    }
+  },
+  "bootstrap_response": {
+    "status": "imported",
+    "revision": 1,
+    "replayed": false
+  },
+  "bootstrap_history": [
+    [
+      "BOOT-A",
+      1,
+      "current",
+      "Читать сохранённые требования.",
+      1
+    ],
+    [
+      "BOOT-S",
+      1,
+      "current",
+      "Сохранять требования.",
+      1
+    ]
+  ],
+  "first_link_page": {
+    "rows": [
+      {
+        "system_id": "SYS-A",
+        "application_id": "APP-A"
+      }
+    ],
+    "next": {
+      "revision": 2,
+      "selection": {
+        "kind": "relations",
+        "table": "requirement_links",
+        "a": {
+          "endpoint": "system",
+          "filter": {
+            "id": {
+              "eq": "SYS-A"
+            }
+          }
+        },
+        "b": {
+          "endpoint": "application",
+          "filter": {}
+        }
+      },
+      "key": [
+        "SYS-A",
+        "APP-A"
+      ]
+    }
+  },
+  "second_link_page": {
+    "rows": [
+      {
+        "system_id": "SYS-A",
+        "application_id": "APP-B"
+      }
+    ],
+    "next": null
+  },
+  "query_responses": {
+    "apps": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "id": "APP-A",
+                "level": "application",
+                "status": "current",
+                "text": "Сохранять обе редакции."
+              },
+              {
+                "id": "APP-B",
+                "level": "application",
+                "status": "current",
+                "text": "Открывать сохранённые постановки."
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "areas": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "id": "D-A",
+                "business_name": "Хранение",
+                "definition": "Предметная область хранения."
+              },
+              {
+                "id": "D-B",
+                "business_name": "Публикация",
+                "definition": "Отдельная область публикации."
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "entities": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "id": "E-A",
+                "domain_id": "D-A",
+                "business_name": "Требование",
+                "code_name": "Requirement",
+                "definition": "Сохраняемое требование."
+              },
+              {
+                "id": "E-B",
+                "domain_id": "D-A",
+                "business_name": "Редакция",
+                "code_name": "Revision",
+                "definition": "Сохранённая редакция."
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "actions": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "id": "A-A",
+                "domain_id": "D-A",
+                "business_name": "Сохранить",
+                "code_name": "Save",
+                "definition": "Сохранить редакцию."
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "system_links": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "system_id": "SYS-A",
+                "application_id": "APP-A"
+              },
+              {
+                "system_id": "SYS-A",
+                "application_id": "APP-B"
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "application_links": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "system_id": "SYS-A",
+                "application_id": "APP-A"
+              },
+              {
+                "system_id": "SYS-B",
+                "application_id": "APP-A"
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "requirement_entities": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "requirement_id": "SYS-A",
+                "domain_id": "D-A",
+                "entity_id": "E-A"
+              },
+              {
+                "requirement_id": "SYS-A",
+                "domain_id": "D-A",
+                "entity_id": "E-B"
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "entity_requirements": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "requirement_id": "SYS-A",
+                "domain_id": "D-A",
+                "entity_id": "E-A"
+              },
+              {
+                "requirement_id": "SYS-B",
+                "domain_id": "D-A",
+                "entity_id": "E-A"
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "requirement_actions": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "requirement_id": "SYS-A",
+                "domain_id": "D-A",
+                "action_id": "A-A"
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    },
+    "action_requirements": {
+      "status": "read_only",
+      "revision": 2,
+      "results": [
+        {
+          "id": "r",
+          "value": {
+            "rows": [
+              {
+                "requirement_id": "APP-A",
+                "domain_id": "D-A",
+                "action_id": "A-A"
+              },
+              {
+                "requirement_id": "SYS-A",
+                "domain_id": "D-A",
+                "action_id": "A-A"
+              }
+            ],
+            "next": null
+          }
+        }
+      ]
+    }
+  },
+  "first_app_response": {
+    "status": "read_only",
+    "revision": 2,
+    "results": [
+      {
+        "id": "r",
+        "value": {
+          "rows": [
+            {
+              "id": "APP-A",
+              "level": "application",
+              "status": "current",
+              "text": "Сохранять обе редакции."
+            }
+          ],
+          "next": {
+            "revision": 2,
+            "selection": {
+              "kind": "entities",
+              "table": "requirements",
+              "filter": {
+                "level": {
+                  "eq": "application"
+                }
+              }
+            },
+            "key": [
+              "APP-A"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "second_app_response": {
+    "status": "read_only",
+    "revision": 2,
+    "results": [
+      {
+        "id": "r",
+        "value": {
+          "rows": [
+            {
+              "id": "APP-B",
+              "level": "application",
+              "status": "current",
+              "text": "Открывать сохранённые постановки."
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  },
+  "first_link_response": {
+    "status": "read_only",
+    "revision": 2,
+    "results": [
+      {
+        "id": "r",
+        "value": {
+          "rows": [
+            {
+              "system_id": "SYS-A",
+              "application_id": "APP-A"
+            }
+          ],
+          "next": {
+            "revision": 2,
+            "selection": {
+              "kind": "relations",
+              "table": "requirement_links",
+              "a": {
+                "endpoint": "system",
+                "filter": {
+                  "id": {
+                    "eq": "SYS-A"
+                  }
+                }
+              },
+              "b": {
+                "endpoint": "application",
+                "filter": {}
+              }
+            },
+            "key": [
+              "SYS-A",
+              "APP-A"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "second_link_response": {
+    "status": "read_only",
+    "revision": 2,
+    "results": [
+      {
+        "id": "r",
+        "value": {
+          "rows": [
+            {
+              "system_id": "SYS-A",
+              "application_id": "APP-B"
+            }
+          ],
+          "next": null
+        }
+      }
+    ]
+  },
+  "registry_after_update_response": {
+    "status": "read_only",
+    "revision": 3,
+    "results": [
+      {
+        "id": "registry",
+        "value": {
+          "requirements": {
+            "APP-A": {
+              "id": "APP-A",
+              "level": "application",
+              "status": "current",
+              "text": "Новая проверяемая редакция."
+            },
+            "APP-B": {
+              "id": "APP-B",
+              "level": "application",
+              "status": "current",
+              "text": "Открывать сохранённые постановки."
+            },
+            "SYS-A": {
+              "id": "SYS-A",
+              "level": "system",
+              "status": "current",
+              "text": "Уточнённая цель: хранить требования и историю."
+            },
+            "SYS-B": {
+              "id": "SYS-B",
+              "level": "system",
+              "status": "current",
+              "text": "Сохранять связи нескольких оснований."
+            }
+          },
+          "links": [
+            {
+              "system": "SYS-A",
+              "application": "APP-A"
+            },
+            {
+              "system": "SYS-A",
+              "application": "APP-B"
+            },
+            {
+              "system": "SYS-B",
+              "application": "APP-A"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "mixed_cases": [
+    {
+      "queries": [
+        {
+          "id": "registry",
+          "kind": "registry"
+        },
+        {
+          "id": "apps",
+          "kind": "entities",
+          "table": "requirements",
+          "filter": {
+            "level": {
+              "eq": "application"
+            }
+          },
+          "page": {
+            "limit": 10,
+            "after": null
+          }
+        },
+        {
+          "id": "links",
+          "kind": "relations",
+          "table": "requirement_links",
+          "a": {
+            "endpoint": "system",
+            "filter": {
+              "id": {
+                "eq": "SYS-A"
+              }
+            }
+          },
+          "b": {
+            "endpoint": "application"
+          },
+          "page": {
+            "limit": 10,
+            "after": null
+          }
+        }
+      ],
+      "response": {
+        "status": "read_only",
+        "revision": 2,
+        "results": [
+          {
+            "id": "registry",
+            "value": {
+              "requirements": {
+                "APP-A": {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Сохранять обе редакции."
+                },
+                "APP-B": {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Открывать сохранённые постановки."
+                },
+                "SYS-A": {
+                  "id": "SYS-A",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Уточнённая цель: хранить требования и историю."
+                },
+                "SYS-B": {
+                  "id": "SYS-B",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять связи нескольких оснований."
+                }
+              },
+              "links": [
+                {
+                  "system": "SYS-A",
+                  "application": "APP-A"
+                },
+                {
+                  "system": "SYS-A",
+                  "application": "APP-B"
+                },
+                {
+                  "system": "SYS-B",
+                  "application": "APP-A"
+                }
+              ]
+            }
+          },
+          {
+            "id": "apps",
+            "value": {
+              "rows": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Сохранять обе редакции."
+                },
+                {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Открывать сохранённые постановки."
+                }
+              ],
+              "next": null
+            }
+          },
+          {
+            "id": "links",
+            "value": {
+              "rows": [
+                {
+                  "system_id": "SYS-A",
+                  "application_id": "APP-A"
+                },
+                {
+                  "system_id": "SYS-A",
+                  "application_id": "APP-B"
+                }
+              ],
+              "next": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "queries": [
+        {
+          "id": "links",
+          "kind": "relations",
+          "table": "requirement_links",
+          "a": {
+            "endpoint": "system",
+            "filter": {
+              "id": {
+                "eq": "SYS-A"
+              }
+            }
+          },
+          "b": {
+            "endpoint": "application"
+          },
+          "page": {
+            "limit": 10,
+            "after": null
+          }
+        },
+        {
+          "id": "apps",
+          "kind": "entities",
+          "table": "requirements",
+          "filter": {
+            "level": {
+              "eq": "application"
+            }
+          },
+          "page": {
+            "limit": 10,
+            "after": null
+          }
+        },
+        {
+          "id": "registry",
+          "kind": "registry"
+        }
+      ],
+      "response": {
+        "status": "read_only",
+        "revision": 2,
+        "results": [
+          {
+            "id": "links",
+            "value": {
+              "rows": [
+                {
+                  "system_id": "SYS-A",
+                  "application_id": "APP-A"
+                },
+                {
+                  "system_id": "SYS-A",
+                  "application_id": "APP-B"
+                }
+              ],
+              "next": null
+            }
+          },
+          {
+            "id": "apps",
+            "value": {
+              "rows": [
+                {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Сохранять обе редакции."
+                },
+                {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Открывать сохранённые постановки."
+                }
+              ],
+              "next": null
+            }
+          },
+          {
+            "id": "registry",
+            "value": {
+              "requirements": {
+                "APP-A": {
+                  "id": "APP-A",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Сохранять обе редакции."
+                },
+                "APP-B": {
+                  "id": "APP-B",
+                  "level": "application",
+                  "status": "current",
+                  "text": "Открывать сохранённые постановки."
+                },
+                "SYS-A": {
+                  "id": "SYS-A",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Уточнённая цель: хранить требования и историю."
+                },
+                "SYS-B": {
+                  "id": "SYS-B",
+                  "level": "system",
+                  "status": "current",
+                  "text": "Сохранять связи нескольких оснований."
+                }
+              },
+              "links": [
+                {
+                  "system": "SYS-A",
+                  "application": "APP-A"
+                },
+                {
+                  "system": "SYS-A",
+                  "application": "APP-B"
+                },
+                {
+                  "system": "SYS-B",
+                  "application": "APP-A"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "empty_page_response": {
+    "status": "read_only",
+    "revision": 0,
+    "results": [
+      {
+        "id": "r",
+        "value": {
+          "rows": [],
+          "next": null
+        }
+      }
+    ]
+  }
+}

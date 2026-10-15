@@ -62,7 +62,14 @@ class SqliteTaskWorkflowMigration:
         self.after_preflight = after_preflight or (lambda: None)
 
     def migrate(self, request: MigrationRequest) -> dict:
-        if request.schema == 'task-stage-criteria-migration-1':
+        if request.schema == 'task-stage-criteria-process-migration-1' and self.project_publication is not None:
+            from copy import copy
+            from .process_stage_publication import ProcessStagePublication
+            from .stage_criteria_migration import migrate_stage_criteria
+            adapter = copy(self)
+            adapter.project_publication = ProcessStagePublication(self.project_publication.settings)
+            return migrate_stage_criteria(adapter, request)
+        if request.schema in {'task-stage-criteria-migration-1', 'task-stage-criteria-process-migration-1'}:
             from .stage_criteria_migration import migrate_stage_criteria
             return migrate_stage_criteria(self, request)
         if self.project_publication is not None:

@@ -65,12 +65,14 @@ def historical_project(project, *, include_newborn=False, workflow_source=None,
     store = Database(database, database.parent / "fixture-seed.lock", 2.0, 0.01)
     fixtures = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
     historical = json.loads((fixtures / "historical-state.json").read_text(encoding="utf-8"))
-    workflow = deepcopy(historical["workflow"] if workflow_source is None else workflow_source)
+    workflow = deepcopy(historical["process"] if workflow_source is None else workflow_source)
     # Frozen owner-produced old state: future shared-fixture/schema edits cannot normalize it.
     assert all("purpose" not in stage and "criteria_authority" not in stage for stage in workflow["stages"])
     editor_document = json.loads((fixtures / "migration-editor.json").read_text(encoding="utf-8"))
+    editor_document['workflows'] = editor_document.pop('processes')
     editor_path = write_json(project["root"] / "criteria-editor.json", editor_document)
     catalogue_document = json.loads((fixtures / "migration-catalogue.json").read_text(encoding="utf-8"))
+    catalogue_document['schema'] = 'workflow-catalogue-1'
     catalogue_path = write_json(project["root"] / "criteria-catalogue.json", catalogue_document)
     settings = EditorSettings(editor_path)
     repository = FileGoalConfigRepository(settings)

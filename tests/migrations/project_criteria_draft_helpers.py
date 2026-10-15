@@ -58,7 +58,7 @@ def bind_resource(case, task_id):
 def draft_case(project, mode="mixed"):
     assert project["cfg"]["project"] == "demo"
     case = historical_project_owned(project)
-    source_workflow = json.loads((ROOT / "fixtures/stage-criteria/historical-state.json").read_text())["workflow"]
+    source_workflow = json.loads((ROOT / "fixtures/stage-criteria/historical-state.json").read_text())["process"]
     selected = ["U1"] if mode == "untyped" else ["P1"] if mode == "typed" else ["U1", "P1"]
     for task_id in selected:
         metadata = deepcopy(DATA["untyped" if task_id == "U1" else "typed_partial"])

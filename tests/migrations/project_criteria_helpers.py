@@ -75,7 +75,8 @@ def historical_project_owned(project):
     receipt_path = bundle / "setup-receipt.json"
     write_json(receipt_path, {
         "schema": "project-receipt-1", "request_id": create["request_id"],
-        "request_digest": identity(create), "template": create["template"],
+        "request_digest": identity(create),
+        "template": {**create["template"], "version": setup_settings["templates"]["selected"]["version"]},
         "files": {key: hashlib.sha256(value).hexdigest() for key, value in initial_bytes.items()},
         "result": {"status": "created", "project": config["project"], "revision": initial_revision,
                    "config_path": str(project["config_path"]), "workflow_count": 2,
@@ -179,7 +180,7 @@ def assert_fixture_consistent(case):
     setup = json.loads(case["setup_receipt"].read_text())
     assert setup["request_id"] == create["request_id"]
     assert setup["request_digest"] == identity(create)
-    assert setup["template"] == create["template"]
+    assert setup["template"] == {**create["template"], "version": "1"}
     assert setup["files"] == {key: hashlib.sha256(value).hexdigest() for key, value in case["initial_bytes"].items()}
     assert setup["result"]["revision"] == identity({"config": config, "workflows": case["initial_documents"]})
     update = case["update_request"]

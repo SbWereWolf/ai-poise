@@ -156,38 +156,58 @@ class StorageTests(unittest.TestCase):
         self.addCleanup(reader.close)
         events = []
         write_states = []
+        observation_errors = []
 
         class ObservedConnection(sqlite3.Connection):
-            def execute(connection, sql, parameters=()):
-                command = sql.lstrip().split(None, 1)[0].upper()
+            def __init__(connection, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                connection.observing = False
+                connection.set_trace_callback(connection.observe_statement)
+
+            def observe_statement(connection, sql):
+                # SQLite traces statements from Connection and Cursor APIs alike.
+                # The next statement observes the preceding completed write.
+                if connection.observing:
+                    return
+                connection.observing = True
                 try:
-                    result = super().execute(sql, parameters)
-                except sqlite3.Error as exc:
-                    events.append((command, getattr(exc, "sqlite_errorcode", None)))
-                    raise
-                if command in ("CREATE", "INSERT", "UPDATE", "DELETE") and not write_states:
-                    state = schema_state(connection)
-                    if state != before:
-                        write_states.append(state)
-                        events.append(("write_completed", connection.in_transaction))
-                        reader.execute("BEGIN")
-                        reader.execute("SELECT name FROM sqlite_master ORDER BY name").fetchall()
-                        events.append(("reader_holds_lock", reader.in_transaction))
-                return result
+                    if not write_states:
+                        state = schema_state(connection)
+                        if state != before:
+                            write_states.append(state)
+                            events.append(("write_completed", connection.in_transaction))
+                            reader.execute("BEGIN")
+                            reader.execute("SELECT name FROM sqlite_master ORDER BY name").fetchall()
+                            events.append(("reader_holds_lock", reader.in_transaction))
+                    if sql.strip().upper() == "COMMIT":
+                        events.append(("commit_attempt_with_reader", reader.in_transaction))
+                except Exception as exc:
+                    # sqlite3 suppresses callback exceptions; preserve setup errors.
+                    observation_errors.append(f"{type(exc).__name__}: {exc}")
+                finally:
+                    connection.observing = False
 
         def observed_connect(*args, **kwargs):
             kwargs["factory"] = ObservedConnection
             return CONNECT(*args, **kwargs)
 
+        failure = None
         try:
             with patch.object(sqlite3, "connect", observed_connect):
-                preparation_error(self, self.database, self.lock)
+                try:
+                    prepare(self.database, self.lock)
+                except (PoiseError, sqlite3.Error) as exc:
+                    failure = exc
         finally:
             if reader.in_transaction:
                 reader.execute("ROLLBACK")
+        self.assertEqual(observation_errors, [], "Fault observation setup failed")
+        self.assertTrue(write_states, "Fault injection was not reached: no completed write observed")
         self.assertEqual(events[:2], [("write_completed", True), ("reader_holds_lock", True)])
-        self.assertTrue(write_states, "Preparation never reached an actual schema/data write")
-        self.assertIn(("COMMIT", sqlite3.SQLITE_BUSY), events)
+        self.assertIn(("commit_attempt_with_reader", True), events)
+        self.assertIsNotNone(failure, "Preparation reported success after the reader blocked COMMIT")
+        reason = str(failure).lower()
+        self.assertTrue("lock" in reason or "busy" in reason, str(failure))
         with closing(CONNECT(self.database)) as db:
             self.assertEqual(schema_state(db), before, f"Partial preparation persisted: {events}")
 

@@ -1,0 +1,18 @@
+{
+  "kind": "independent-corrected-packet-review",
+  "reviewer_thread": "01a138ea-a400-7273-82da-527a190135b1",
+  "decision": "approved-exact-input-only",
+  "corrected_packet_sha256": "7ee2d42a06ac57674778caf38e8cc336d15c818890efa7f937134b85100dc2ad",
+  "accepted_baseline_sha256": "1b689406f708c01742801787ac090e17a2ffe5610c868c4142071e9d979b0407",
+  "offline_proof_sha256": "408f6216b1c0133b3b2be1ca7d63a72f6f8693367176f9926f29a480527e2c5c",
+  "verified": [
+    "Eight exact public result envelope fields and three sections match the current owner schema",
+    "Operation, artifacts, messages and every non-section result value equal the accepted baseline",
+    "Method additions remain empty; result unchanged; original report/documentation prefixes preserved",
+    "Runtime packet and durable copy have the same exact approved hash"
+  ],
+  "conditions": ["Use only this exact packet after a renewed actual participant window", "No second recovery or requirement/method mutation is needed"],
+  "native_execution_inferred": false,
+  "native_acceptance": false,
+  "shared_window_granted_by_this_review": false
+}

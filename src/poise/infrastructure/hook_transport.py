@@ -189,7 +189,10 @@ def matches_repository_scope(settings, cwd):
         raise PoiseError('Native cwd requires an absolute path')
     scope = settings.raw['repository_scope']
     arguments = ['rev-parse', '--path-format=absolute', '--git-common-dir']
-    selected = run_git_receipt(scope['repository'], arguments, scope['timeout_seconds'], None)
+    # These local observations select repositories by explicit paths, not by
+    # a caller's inherited Git repository/configuration controls.
+    environment = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    selected = run_git_receipt(scope['repository'], arguments, scope['timeout_seconds'], environment)
     if selected['actual_exit_code'] != 0:
         raise PoiseError('Configured session repository is unavailable: ' + selected['stderr'])
     def common_directory(receipt):
@@ -198,7 +201,7 @@ def matches_repository_scope(settings, cwd):
             raise PoiseError('An absolute Git common directory is required from the selected Git command')
         return Path(value).resolve()
     selected_directory = common_directory(selected)
-    observed = run_git_receipt(cwd, arguments, scope['timeout_seconds'], None)
+    observed = run_git_receipt(cwd, arguments, scope['timeout_seconds'], environment)
     if observed['actual_exit_code'] != 0:
         return False
     return selected_directory == common_directory(observed)

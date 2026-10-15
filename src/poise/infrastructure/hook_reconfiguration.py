@@ -4,6 +4,7 @@ The prepared journal owns publication recovery; it is retired on completion.
 Task state, native identities, messages and prior events are never rewritten.
 """
 from contextlib import ExitStack
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -35,6 +36,27 @@ def _observed_file(item):
 def _bindings(db, settings_path):
     return {key: raw for key, raw in db.execute('SELECT id,data FROM bindings')
             if json.loads(raw)['settings'] == str(settings_path)}
+
+
+def _binding_change(service, proposed, key, raw, definition_path, installation_id):
+    record = json.loads(raw)
+    # Use the normal binding owner before preparing any publication bytes.
+    observed, _ = service._record(Path(record['binding_path']))
+    if observed != record:
+        raise PoiseError('Binding changed before reconfiguration: ' + key)
+    if service.definition(record['definition_path']).data['id'] != installation_id:
+        raise PoiseError('Binding belongs to another installation: ' + key)
+    source = service.settings
+    launcher = Path(record['launcher'])
+    allowed = [source.launcher_bytes(record['binding_path'])] + [
+        ('#!/bin/sh\nexec ' + command + '\n').encode()
+        for command in source.prior_launcher_commands('hook-work', '--binding', record['binding_path'])]
+    if launcher.read_bytes() not in allowed:
+        raise PoiseError('Foreign launcher content before reconfiguration: ' + key)
+    after = {**record, 'settings_digest': digest(proposed.raw), 'definition_path': str(definition_path)}
+    return ({'id': key, 'before': raw, 'after': encoded(after)}, [
+        _file(record['binding_path'], _bytes(after), proposed.raw['file_mode']),
+        _file(launcher, proposed.launcher_bytes(record['binding_path']), proposed.raw['executable_mode'])])
 
 
 def _prepare(service, proposed, definition, packet, request_digest, locks):
@@ -82,23 +104,10 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
     files = [_file(definition_path, definition_body, proposed.raw['file_mode']), *native_files]
     changed = []
     for key, raw in bindings.items():
-        record = json.loads(raw)
-        # Reuse ordinary binding validation, including identity, paths and the SQL/file relation.
-        observed, _ = service._record(Path(record['binding_path']))
-        if observed != record or record['settings_digest'] != digest(source.raw):
-            raise PoiseError('Binding changed before reconfiguration: ' + key)
-        if service.definition(record['definition_path']).data['id'] != definition.data['id']:
-            raise PoiseError('Binding belongs to another installation: ' + key)
-        launcher = Path(record['launcher'])
-        allowed = [source.launcher_bytes(record['binding_path'])] + [
-            ('#!/bin/sh\nexec ' + command + '\n').encode()
-            for command in source.prior_launcher_commands('hook-work', '--binding', record['binding_path'])]
-        if launcher.read_bytes() not in allowed:
-            raise PoiseError('Foreign launcher content before reconfiguration: ' + key)
-        after = {**record, 'settings_digest': digest(proposed.raw), 'definition_path': str(definition_path)}
-        changed.append({'id': key, 'before': raw, 'after': encoded(after)})
-        files.extend([_file(record['binding_path'], _bytes(after), proposed.raw['file_mode']),
-                      _file(launcher, proposed.launcher_bytes(record['binding_path']), proposed.raw['executable_mode'])])
+        change, binding_files = _binding_change(
+            service, proposed, key, raw, definition_path, definition.data['id'])
+        changed.append(change)
+        files.extend(binding_files)
     files.append(_file(source.path, _bytes(proposed.raw), proposed.raw['file_mode']))
     receipt = {'status': 'installed', 'request_id': packet['request_id'],
                'hooks_path': str(proposed.hooks_file), 'previous_hooks_path': str(source.hooks_file),
@@ -120,22 +129,61 @@ def _prepare(service, proposed, definition, packet, request_digest, locks):
     return operation
 
 
+def _pending_state(service, db, operation, *, allow_arrivals=False):
+    selected = _bindings(db, service.settings.path)
+    expected = {item['id'] for item in operation['bindings']}
+    if not expected.issubset(selected) or (not allow_arrivals and set(selected) != expected):
+        raise PoiseError('Binding inventory changed during pending reconfiguration')
+    for item in operation['bindings']:
+        if selected[item['id']] not in (item['before'], item['after']):
+            raise PoiseError('Binding changed during pending reconfiguration: ' + item['id'])
+    installation = db.execute('SELECT data FROM installations WHERE id=?',
+                              (operation['installation_id'],)).fetchone()
+    if installation is None or installation[0] not in (operation['installation_before'], operation['installation_after']):
+        raise PoiseError('Installation changed during pending reconfiguration')
+    for item in operation['files']:
+        if _observed_file(item) not in (item['before'], item['after']):
+            raise PoiseError('File changed during pending reconfiguration: ' + item['path'])
+    return selected
+
+
+def _adopt_arrivals(service, proposed, operation):
+    # The existing project/native leases are held. Inspect normal new bindings
+    # outside a registry transaction because their owner opens its own read.
+    with service.registry.transaction() as db:
+        selected = _pending_state(service, db, operation, allow_arrivals=True)
+    arrivals = set(selected) - {item['id'] for item in operation['bindings']}
+    if not arrivals:
+        return operation
+    previous = json.loads(operation['installation_before'])
+    definitions = {previous['receipt']['definition_path'], operation['receipt']['definition_path']}
+    expanded = deepcopy(operation)
+    for key in sorted(arrivals):
+        if json.loads(selected[key])['definition_path'] not in definitions:
+            raise PoiseError('New binding does not belong to the pending native entries: ' + key)
+        change, files = _binding_change(service, proposed, key, selected[key],
+            operation['receipt']['definition_path'], operation['installation_id'])
+        expanded['bindings'].append(change)
+        expanded['files'].extend(files)
+    expanded['receipt']['binding_count'] = len(expanded['bindings'])
+    installation = json.loads(expanded['installation_after'])
+    installation['receipt'] = expanded['receipt']
+    expanded['installation_after'] = encoded(installation)
+    request_id = operation['receipt']['request_id']
+    with service.registry.transaction() as db:
+        saved = db.execute('SELECT data FROM operations WHERE id=?', (request_id,)).fetchone()
+        if saved is None or json.loads(saved[0]) != operation:
+            raise PoiseError('Pending reconfiguration intent changed during binding adoption')
+        if _pending_state(service, db, expanded) != selected:
+            raise PoiseError('Binding inventory changed during binding adoption')
+        # Journal every added before/after byte before its first file effect.
+        db.execute('UPDATE operations SET data=? WHERE id=?', (encoded(expanded), request_id))
+    return expanded
+
+
 def _publish(service, operation):
     with service.registry.transaction() as db:
-        selected = _bindings(db, service.settings.path)
-        if set(selected) != {item['id'] for item in operation['bindings']}:
-            raise PoiseError('Binding inventory changed during pending reconfiguration')
-        for item in operation['bindings']:
-            if selected[item['id']] not in (item['before'], item['after']):
-                raise PoiseError('Binding changed during pending reconfiguration: ' + item['id'])
-        installation = db.execute('SELECT data FROM installations WHERE id=?',
-                                  (operation['installation_id'],)).fetchone()
-        if installation is None or installation[0] not in (operation['installation_before'], operation['installation_after']):
-            raise PoiseError('Installation changed during pending reconfiguration')
-        # Validate the entire set before writing any file on this attempt.
-        for item in operation['files']:
-            if _observed_file(item) not in (item['before'], item['after']):
-                raise PoiseError('File changed during pending reconfiguration: ' + item['path'])
+        _pending_state(service, db, operation)
         for item in operation['files']:
             if _observed_file(item) != item['after']:
                 transport.atomic_write(Path(item['path']), bytes.fromhex(item['after']), item['mode'])
@@ -184,4 +232,6 @@ def reconfigure(settings_path, packet):
                                                    service.settings.raw['lock_poll_seconds']))
             if operation is None:
                 operation = _prepare(service, proposed, definition, packet, request_digest, locks)
+            else:
+                operation = _adopt_arrivals(service, proposed, operation)
             return _publish(service, operation)

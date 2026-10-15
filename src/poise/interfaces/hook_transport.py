@@ -1,19 +1,26 @@
 """CLI envelopes for managed configuration, native hooks and bound work."""
-import json
 from pathlib import Path
 import uuid
 from ..common import PoiseError,exact_keys,load_config
 from ..infrastructure.hook_transport import HookService, HookSettings, matches_repository_scope
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
-from ..modules.result_views.domain import bounded_envelope, require_result_budget
+from ..modules.result_views.domain import (
+    bounded_envelope, native_context_view, require_result_budget, utf8_json_text,
+)
 from .work import write_result
 
 
-def _write(service,result,output):
+def _save_response(service,result):
     settings=service.settings
     path=settings.observations/uuid.uuid4().hex/settings.raw['response_file']
-    atomic_write(path,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),settings.raw['file_mode'])
+    atomic_write(path,(utf8_json_text(result,indent=2)+'\n').encode('utf-8'),settings.raw['file_mode'])
+    return path
+
+
+def _write(service,result,output):
+    path=_save_response(service,result)
+    settings=service.settings
     output.write(bounded_envelope(result,path,settings.raw['output_chars'],{}, {}, []))
 
 
@@ -32,9 +39,15 @@ def execute(command,args,stream,output,error):
         service=HookService(args.settings)
         if command=='hook':
             result=service.event(args.definition,packet)
-            if len(json.dumps(result,ensure_ascii=False))>cfg['output_chars']:
-                raise PoiseError('Configured hook context cannot fit output limit')
-            output.write(json.dumps(result,ensure_ascii=False)+'\n')
+            if 'systemMessage' in result and 'hookSpecificOutput' in result:
+                path=_save_response(service,result)
+                notice=service.definition(args.definition).data['unknown_outcome_message']
+                text=native_context_view(result,path,cfg['output_chars'],notice)
+            else:
+                text=utf8_json_text(result)+'\n'
+                if len(text)>cfg['output_chars']:
+                    raise PoiseError('Configured hook context cannot fit output limit')
+            output.write(text)
             return cfg['exit_codes']['success']
         if command=='hook-work':
             require_result_budget('',cfg['output_chars'],'rejected')

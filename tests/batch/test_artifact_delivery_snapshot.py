@@ -23,10 +23,11 @@ EXPECTED = (
 def registered(project):
     tools = public_tools(project, 'delivery-snapshot-owner')
     context = bootstrap(tools, project)
-    records = tools.invoke(request('artifacts', {'items': [
+    tools.invoke(request('artifacts', {'items': [
         text_artifact(path=f'snapshot-{i}.md', text=f'proof-{i}')
         for i in range(3)
-    ]}))['artifacts']
+    ]}))
+    records = tools.runtime.store.artifact_records(context['task'])
     return tools.runtime, context, records
 
 

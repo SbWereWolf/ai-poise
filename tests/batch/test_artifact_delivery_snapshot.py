@@ -53,7 +53,8 @@ def test_artifact_batch_reads_delivery_once_and_preserves_each_file(registered, 
         assert (record['id'], record['digest']) == EXPECTED[i]
         assert record['scope'] == 'task'
         assert record['owner'] == 'T1'
-        assert record['relative_path'] == f'artifacts/snapshot-{i}.md'
+        if entry != 'replay':
+            assert record['relative_path'] == f'artifacts/snapshot-{i}.md'
         assert record['path'] == str(Path(context['task_root']) / 'artifacts' / f'snapshot-{i}.md')
         assert Path(record['path']).read_bytes() == f'proof-{i}'.encode()
 

@@ -18,12 +18,12 @@ def empty():
 
 def setup(project, goal, extra, *, exit_refs=()):
     project['cfg']['schema']='ddd-accounting-12'
-    project['process']['content_contract']=goal
+    project['workflow']['content_contract']=goal
     project['task']['content_contract']=extra
     if exit_refs:
         project['task']['stage_contracts'][0]['exit_requirements'] = list(exit_refs)
     write_json(project['config_path'],project['cfg'])
-    write_json(project['root']/'config/processes/development.json',project['process'])
+    write_json(project['root']/'config/workflows/development.json',project['workflow'])
     write_json(project['task_path'],project['task'])
     h=Poise(project['config_path'],'S1')
     return h,h.bootstrap(task_file=project['task_path'])
@@ -344,11 +344,11 @@ def test_repository_rehydrates_historical_invalid_schedule_without_rewriting_it(
     }]}
     contract['content_contract'] = legacy
     arguments = (
-        source['process']['content_contract'], legacy,
-        tuple(stage['id'] for stage in source['process']['stages']),
+        source['workflow']['content_contract'], legacy,
+        tuple(stage['id'] for stage in source['workflow']['stages']),
         tuple(contract['requirements']),
         tuple(method['id'] for method in contract['methods']),
-        tuple(sorted({name for stage in source['process']['stages']
+        tuple(sorted({name for stage in source['workflow']['stages']
                       for name in stage['sections']})),
     )
     # Only rehydration tolerates the historical schedule; new creation still rejects it.
@@ -366,7 +366,7 @@ def test_repository_rehydrates_historical_invalid_schedule_without_rewriting_it(
             content_policy=policy,
         )
         uow.tasks.create(historical, {
-            'contract': contract, 'process': deepcopy(source['process']),
+            'contract': contract, 'workflow': deepcopy(source['workflow']),
             'sprint_id': None, 'goal': contract['goal'],
             'config_hash': source['config_hash'],
         })
@@ -423,7 +423,7 @@ def test_method_can_be_registered_with_trace_in_same_stage_result_and_is_execute
     import sys
     project['task']['methods']=[]
     project['task']['method_inputs']=[]
-    project['task']['checks']={s['id']:[] for s in project['process']['stages']}
+    project['task']['checks']={s['id']:[] for s in project['workflow']['stages']}
     project['cfg']['automatic_checks']=[]
     route={'id':'new-test','requirements':project['task']['requirements'],'points':[
         {'id':'method','kind':'method','fields':{},'write_stages':['tests']}]}

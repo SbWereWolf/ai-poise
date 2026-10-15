@@ -56,7 +56,7 @@ def snapshot(database):
         }
 
 
-def historical_project(project, *, include_newborn=False, process_source=None,
+def historical_project(project, *, include_newborn=False, workflow_source=None,
                        contract_source=None, create_backup=True):
     from poise.infrastructure.goal_config import EditorSettings, FileGoalConfigRepository
     from poise.infrastructure.sqlite.database import Database
@@ -65,9 +65,9 @@ def historical_project(project, *, include_newborn=False, process_source=None,
     store = Database(database, database.parent / "fixture-seed.lock", 2.0, 0.01)
     fixtures = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
     historical = json.loads((fixtures / "historical-state.json").read_text(encoding="utf-8"))
-    process = deepcopy(historical["process"] if process_source is None else process_source)
+    workflow = deepcopy(historical["workflow"] if workflow_source is None else workflow_source)
     # Frozen owner-produced old state: future shared-fixture/schema edits cannot normalize it.
-    assert all("purpose" not in stage and "criteria_authority" not in stage for stage in process["stages"])
+    assert all("purpose" not in stage and "criteria_authority" not in stage for stage in workflow["stages"])
     editor_document = json.loads((fixtures / "migration-editor.json").read_text(encoding="utf-8"))
     editor_path = write_json(project["root"] / "criteria-editor.json", editor_document)
     catalogue_document = json.loads((fixtures / "migration-catalogue.json").read_text(encoding="utf-8"))
@@ -79,8 +79,8 @@ def historical_project(project, *, include_newborn=False, process_source=None,
         # Arrange literal OLD persistence through its real publication owner. The
         # target is initially absent; no current-domain parser generates this source.
         assert not settings.target("development").exists()
-        published = edit.publish(historical_request, identity(historical_request), None, deepcopy(process), None)
-    project["cfg"]["processes"]["development"] = editor_document["processes"]["development"]
+        published = edit.publish(historical_request, identity(historical_request), None, deepcopy(workflow), None)
+    project["cfg"]["workflows"]["development"] = editor_document["workflows"]["development"]
     project["cfg"]["task_planning"] = {
         "catalogue": str(catalogue_path), "restart_revision_policy": {"reviewer": [], "user": []},
     }
@@ -101,7 +101,7 @@ def historical_project(project, *, include_newborn=False, process_source=None,
     with store.transaction() as connection:
         for index, task_id in enumerate(task_ids):
             saved_contract = {**deepcopy(contract), "id": task_id}
-            metadata = {"contract": saved_contract, "process": deepcopy(process),
+            metadata = {"contract": saved_contract, "workflow": deepcopy(workflow),
                         "goal": saved_contract["goal"], "historical_marker": task_id,
                         "config_hash": historical["config_hash"],
                         "sprint_id": None, "requirements_snapshot": deepcopy(requirements_snapshot),
@@ -145,7 +145,7 @@ def historical_project(project, *, include_newborn=False, process_source=None,
             draft.pop("sprint_id")
             metadata = {
                 "sprint_id": None, "goal": draft["goal"], "config_hash": "historical-config",
-                "newborn": {"draft": draft, "ready": False}, "process": deepcopy(process),
+                "newborn": {"draft": draft, "ready": False}, "workflow": deepcopy(workflow),
             }
             connection.execute(
                 "INSERT INTO tasks(id,status,stage_index,iteration,claimed_by,version,current_submission_id,metadata) "
@@ -162,15 +162,15 @@ def historical_project(project, *, include_newborn=False, process_source=None,
     stages = [
         {"stage_id": stage["id"], "purpose": purpose,
          "criteria_authority": {"propose": [], "decide": []}}
-        for stage, purpose in zip(process["stages"], kinds, strict=True)
+        for stage, purpose in zip(workflow["stages"], kinds, strict=True)
     ]
-    mapping = [{"kind": "process_definition", "goal_type": "development",
+    mapping = [{"kind": "workflow_definition", "goal_type": "development",
                 "expected_revision": published["revision"], "stages": stages}]
     for index, task_id in enumerate(task_ids):
         saved_contract = {**deepcopy(contract), "id": task_id}
         mapping.append({
             "kind": "executable_task", "task_id": task_id, "expected_version": 7 + index,
-            "expected_process_digest": identity(process),
+            "expected_workflow_digest": identity(workflow),
             "stages": [
                 {**deepcopy(stage),
                  "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
@@ -182,7 +182,7 @@ def historical_project(project, *, include_newborn=False, process_source=None,
     if include_newborn:
         mapping.append({
             "kind": "newborn_task", "task_id": "N1", "expected_revision": 0,
-            "expected_process_digest": identity(process),
+            "expected_workflow_digest": identity(workflow),
             "stages": [
                 {**deepcopy(stage),
                  "criteria": {"requirements": [], "definition_of_ready": [], "definition_of_done": []},
@@ -203,8 +203,8 @@ def historical_state_variants(project):
     """Bind frozen real-owner snapshots to three independent test-owned identities."""
     fixtures = Path(__file__).resolve().parents[2] / "fixtures/stage-criteria"
     sources = json.loads((fixtures / "historical-owner-sources.json").read_text())
-    process = json.loads(sources["unstarted"]["task"][0][7])["process"]
-    database, packet, path = historical_project(project, process_source=process, create_backup=False)
+    workflow = json.loads(sources["unstarted"]["task"][0][7])["workflow"]
+    database, packet, path = historical_project(project, workflow_source=workflow, create_backup=False)
     mapped = []
     with sqlite3.connect(database) as connection:
         # Disposable arrangement only; the application under test never gets a SQL editor.
@@ -271,7 +271,7 @@ def historical_state_variants(project):
                                        [{"kind": "submission", "id": submission_ids[3]}],
                     }
             mapped.append({"kind": "executable_task", "task_id": task_id, "expected_version": old[5],
-                           "expected_process_digest": identity(process), "stages": stages})
+                           "expected_workflow_digest": identity(workflow), "stages": stages})
     packet["mapping"] = [packet["mapping"][0], *mapped]
     # The process and both active Task mappings share the same explicit authority.
     packet["mapping"][0]["stages"][0]["criteria_authority"]["propose"] = ["implementation"]
@@ -331,13 +331,13 @@ def assert_history_preserved(before, after, *, control_ids=()):
         assert new[:7] == old[:7]
         old_metadata, new_metadata = json.loads(old[7]), json.loads(new[7])
         for key, value in old_metadata.items():
-            if key not in ("process", "contract", "newborn"):
+            if key not in ("workflow", "contract", "newborn"):
                 assert new_metadata[key] == value
-        stripped_process = deepcopy(new_metadata["process"])
-        for stage in stripped_process["stages"]:
+        stripped_workflow = deepcopy(new_metadata["workflow"])
+        for stage in stripped_workflow["stages"]:
             stage.pop("purpose")
             stage.pop("criteria_authority")
-        assert stripped_process == old_metadata["process"]
+        assert stripped_workflow == old_metadata["workflow"]
         if old[1] == "newborn":
             assert new_metadata["newborn"]["ready"] == old_metadata["newborn"]["ready"]
             stripped_contract = deepcopy(new_metadata["newborn"]["draft"])
@@ -354,16 +354,16 @@ def assert_history_preserved(before, after, *, control_ids=()):
 
 def assert_mapped_documents(database, packet, path):
     """Observe mapped values directly; no production transformer generates expectations."""
-    process = json.loads(path.read_text())
-    expected_process = packet["mapping"][0]["stages"]
-    assert [(s["id"], s["purpose"], s["criteria_authority"]) for s in process["stages"]] == [
-        (s["stage_id"], s["purpose"], s["criteria_authority"]) for s in expected_process
+    workflow = json.loads(path.read_text())
+    expected_workflow = packet["mapping"][0]["stages"]
+    assert [(s["id"], s["purpose"], s["criteria_authority"]) for s in workflow["stages"]] == [
+        (s["stage_id"], s["purpose"], s["criteria_authority"]) for s in expected_workflow
     ]
     with sqlite3.connect(database) as connection:
         for resource in packet["mapping"][1:]:
             metadata = json.loads(connection.execute("SELECT metadata FROM tasks WHERE id=?", (resource["task_id"],)).fetchone()[0])
             contract = metadata["newborn"]["draft"] if resource["kind"] == "newborn_task" else metadata["contract"]
-            assert [(s["id"], s["purpose"], s["criteria_authority"]) for s in metadata["process"]["stages"]] == [
+            assert [(s["id"], s["purpose"], s["criteria_authority"]) for s in metadata["workflow"]["stages"]] == [
                 (s["stage_id"], s["purpose"], s["criteria_authority"]) for s in resource["stages"]
             ]
             assert [(s["stage_id"], s["criteria"]) for s in contract["stage_contracts"]] == [
@@ -371,7 +371,7 @@ def assert_mapped_documents(database, packet, path):
             ]
 
 
-def assert_definition_digests(before, after, original_process, path, resources):
+def assert_definition_digests(before, after, original_workflow, path, resources):
     """Correlate complete owner documents, independently of the product serializer.
 
     Call together with mapped-value and preservation assertions: a digest of an
@@ -380,15 +380,15 @@ def assert_definition_digests(before, after, original_process, path, resources):
     old_tasks = {row[0]: json.loads(row[7]) for row in before["tasks"]}
     new_tasks = {row[0]: json.loads(row[7]) for row in after["tasks"]}
     for resource in resources:
-        if resource["kind"] == "process_definition":
-            old, new = original_process, json.loads(path.read_text(encoding="utf-8"))
+        if resource["kind"] == "workflow_definition":
+            old, new = original_workflow, json.loads(path.read_text(encoding="utf-8"))
         else:
             old_meta, new_meta = old_tasks[resource["task_id"]], new_tasks[resource["task_id"]]
             key = "draft" if resource["kind"] == "newborn_task" else "contract"
             old_contract = old_meta["newborn"]["draft"] if key == "draft" else old_meta["contract"]
             new_contract = new_meta["newborn"]["draft"] if key == "draft" else new_meta["contract"]
-            old = {"process": old_meta["process"], key: old_contract}
-            new = {"process": new_meta["process"], key: new_contract}
+            old = {"workflow": old_meta["workflow"], key: old_contract}
+            new = {"workflow": new_meta["workflow"], key: new_contract}
         assert resource["old_digest"] == identity(old)
         assert resource["new_digest"] == identity(new)
 

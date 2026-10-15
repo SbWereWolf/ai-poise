@@ -11,14 +11,14 @@ import pytest
 from poise.common import PoiseError
 from poise.composition import project_config_tools
 from tests.conftest import write_json
-from tests.projects.test_update import process_change, read_process, update_request
+from tests.projects.test_update import workflow_change, read_workflow, update_request
 from .project_criteria_bootstrap_helpers import (
     DATA, historical_bootstrap, literal_receipt, native_bootstrap, source_publication,
 )
 from .project_criteria_helpers import fresh_work_read, observe, project_receipts, run_migration
 from .project_criteria_receipt_helpers import files, native_receipt, negative_copy
 from .stage_criteria_helpers import identity
-from .test_project_stage_criteria_migration import assert_preserved, assert_success, interrupt_first_process
+from .test_project_stage_criteria_migration import assert_preserved, assert_success, interrupt_first_workflow
 
 
 def selected(case, revision=None):
@@ -84,8 +84,8 @@ def test_native_durable_replayed_true_is_source(project, monkeypatch):
 
 def test_valid_bootstrap_history_does_not_block_later_native_source(project):
     case = native_bootstrap(project)
-    request = update_request(case["config"], case["revision"], process_updates=[
-        process_change(read_process(case["config"]), "Later actual native publication.")])
+    request = update_request(case["config"], case["revision"], workflow_updates=[
+        workflow_change(read_workflow(case["config"]), "Later actual native publication.")])
     request["receipt_path"] = "operations/20-after-bootstrap.json"
     done = project_config_tools(case["settings"]).apply(request)
     before = files(case)
@@ -203,7 +203,7 @@ def test_bootstrap_source_never_satisfies_migration_completion(project):
     wrong = literal_receipt(case["config"], snapshot["revision"], "f" * 64, request)
     write_json(receipt, wrong)
     publication = {**snapshot, **source_publication(case, source),
-                   "candidate": deepcopy(snapshot["processes"]), "request": request}
+                   "candidate": deepcopy(snapshot["workflows"]), "request": request}
     before = files(case)
     with pytest.raises(PoiseError) as failure:
         owner.completed_stage_criteria(publication)
@@ -214,7 +214,7 @@ def test_bootstrap_source_never_satisfies_migration_completion(project):
 def test_historical_pending_bootstrap_source_drift_preserves_intent(project, monkeypatch):
     case = historical_bootstrap(project)
     assert selected(case)["path"] == str(case["receipt"])
-    interrupt_first_process(case, monkeypatch)
+    interrupt_first_workflow(case, monkeypatch)
     document = json.loads(case["raw"])
     document["request_id"] = document["result"]["request_id"] = "changed-after-intent"
     write_json(case["receipt"], document)

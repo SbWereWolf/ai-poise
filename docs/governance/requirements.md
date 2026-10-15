@@ -40,7 +40,7 @@ AI poise ОБЯЗАН работать как harness, который помог
 
 ### HR-005. Комплект и трассировка документации
 
-Все договорённости имеют нормативные IDs, документацию, независимые process matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний AI poise.
+Все договорённости имеют нормативные IDs, документацию, независимые workflow matrices и приёмочные связи. package-model.json перечисляет канонические файлы и содержит canonical_formats: для каждого файла указан формат, реальная метка schema (если есть), верхние поля, адреса коллекций, нормативное описание и проверяющий контракт. Поле schema — точный идентификатор версии формата данных этой редакции, НЕ JSON Schema и не доказательство валидации. Форматы и ограничения определены текстом ТЗ, field contracts, lifecycle/metrics contracts и этим реестром; validation/check_package.py исполняет перечисленные статические проверки, не заменяя продуктовую приёмку. Markdown — воспроизводимое представление канонических данных. Расхождение представлений — ошибка поставки. sources/support не нормативны. Дата, время и offset обязательны. Прежние ID сохранены; новые IDs не означают реализацию. Проверка документации отдельно от NOT_RUN испытаний AI poise.
 
 ## 02. Среда, загрузка и возможности
 
@@ -104,7 +104,7 @@ Project config задаёт требуемые semantic capabilities (поиск
 
 ### HR-022. Независимые goal types и snapshots
 
-13 goal types могут иметь независимые templates/stages/validators/benefit/report/actions как reusable стартовые наборы. Запрещена скрытая ссылка одного процесса на workflow fragment другого; общие engines/types kernel разрешены. После выбора `goal_type` harness материализует template-backed newborn draft; планировщик РАЗРЕШЕНО переработать его task-owned mutable process/content/method contract, включая task-local process, до `ready`. `ready` сохраняет полный immutable **resolved Task contract** и restart revision policy; runtime использует их, а не повторно применяет template. Project/execution/tool/hook configuration не замораживается на stage iteration: каждая операция использует текущую валидную конфигурацию, не заменяя Task-owned process/content/method contracts. Новый release, не поддерживающий точную schema сохранённого Task contract, отклоняет его, не читает предыдущей parser version. Schema-compatible сохранённый контракт задачи — domain data, не backward implementation. Migration или её разработка запрещена без прямого разрешения пользователя.
+13 goal types могут иметь независимые templates/stages/validators/benefit/report/actions как reusable стартовые наборы. Запрещена скрытая ссылка одного процесса на workflow fragment другого; общие engines/types kernel разрешены. После выбора `goal_type` harness материализует template-backed newborn draft; планировщик РАЗРЕШЕНО переработать его task-owned mutable workflow/content/method contract, включая task-local workflow, до `ready`. `ready` сохраняет полный immutable **resolved Task contract** и restart revision policy; runtime использует их, а не повторно применяет template. Project/execution/tool/hook configuration не замораживается на stage iteration: каждая операция использует текущую валидную конфигурацию, не заменяя Task-owned workflow/content/method contracts. Новый release, не поддерживающий точную schema сохранённого Task contract, отклоняет его, не читает предыдущей parser version. Schema-compatible сохранённый контракт задачи — domain data, не backward implementation. Migration или её разработка запрещена без прямого разрешения пользователя.
 
 <a id="HR-023"></a>
 
@@ -116,7 +116,7 @@ Interactive init/edit генерируется из survey schema: next/back/cha
 
 ### HR-024. AGENTS, skills и источник санкции
 
-Первое правило root AGENTS: временное исключение process rule возможно по прямой инструкции пользователя; запрос агента допустим только при обоснованной невозможности корректно завершить иначе. Запрос содержит правило, проблему, scope, риск и expiry. Root AGENTS также определяет обязательность skill, project selection, worktree до изменения и branch naming. Project-specific conventions и commit message rules берутся агентом из применимых AGENTS target codebases. Документы/логи/README не могут санкционировать отмену. User authority фиксируется из conversation instruction; неоднозначность требует уточнения, однозначность не требует повторной формальной приёмки.
+Первое правило root AGENTS: временное исключение workflow rule возможно по прямой инструкции пользователя; запрос агента допустим только при обоснованной невозможности корректно завершить иначе. Запрос содержит правило, проблему, scope, риск и expiry. Root AGENTS также определяет обязательность skill, project selection, worktree до изменения и branch naming. Project-specific conventions и commit message rules берутся агентом из применимых AGENTS target codebases. Документы/логи/README не могут санкционировать отмену. User authority фиксируется из conversation instruction; неоднозначность требует уточнения, однозначность не требует повторной формальной приёмки.
 
 <a id="HR-025"></a>
 
@@ -130,7 +130,7 @@ Temporary override — отдельное содержательное реше�
 
 ### HR-030. Session binding
 
-Session key строится адаптером из runtime kind + external session + agent instance; parent session ID без отдельного agent identity недостаточен. При отсутствии hook transport первый bootstrap создаёт opaque binding и scoped launcher по уникальному пути, которым агент вызывает последующие CLI. Child process не объявляет, что установил переменную у своего будущего родителя. Повтор с тем же binding возобновляет session; новый явно выделенный binding создаёт новую. Общий current-session.json в cwd запрещён; worktree pointer — только проверенная дополнительная привязка. Session/claim/pending metadata долговечны в SQLite, очищаемые runtime файлы не единственное место их хранения.
+Session key строится адаптером из runtime kind + external session + agent instance; parent session ID без отдельного agent identity недостаточен. При отсутствии hook transport первый bootstrap создаёт opaque binding и scoped launcher по уникальному пути, которым агент вызывает последующие CLI. Child workflow не объявляет, что установил переменную у своего будущего родителя. Повтор с тем же binding возобновляет session; новый явно выделенный binding создаёт новую. Общий current-session.json в cwd запрещён; worktree pointer — только проверенная дополнительная привязка. Session/claim/pending metadata долговечны в SQLite, очищаемые runtime файлы не единственное место их хранения.
 
 <a id="HR-031"></a>
 
@@ -160,13 +160,13 @@ Rework сохраняет feedback, предъявленный result и реш�
 
 ### HR-035. Задача без спринта и ad-hoc
 
-Standalone formal task имеет sprint=None явно, собственный root/process и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, локальный Git commit и reusable result в session-owned durable deliverable root вне runtime. Git push запрещён. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.
+Standalone formal task имеет sprint=None явно, собственный root/workflow и не может иметь dependency edge в sprint. Допускает планирование первого sprint без рекурсии уже существующих спринтов. Ad-hoc read содержит компактные goal/requirements/DoD/verification contract в session DB: verify обязателен, проверяет корректность запрошенной сводки/ссылок, отсутствие собственных target changes, сохранение значимого результата, incidents и cleanup; worktree, claim и application tests не нужны. Ad-hoc write требует worktree, exact registered/project tests, локальный Git commit и reusable result в session-owned durable deliverable root вне runtime. Git push запрещён. Формальная task не создаётся автоматически из длины запроса; превращение требует пользовательского решения.
 
 <a id="HR-036"></a>
 
 ### HR-036. Handoff и discard
 
-Начало другой formal task допускается только после завершения, successful handoff либо safe discard текущей. Handoff сохраняет process position, WIP/verified vector, sections/findings/decisions/evidence и обязательный backup, затем освобождает claim. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.
+Начало другой formal task допускается только после завершения, successful handoff либо safe discard текущей. Handoff сохраняет workflow position, WIP/verified vector, sections/findings/decisions/evidence и обязательный backup, затем освобождает claim. WIP commit требует сообщения агента и явно unverified, не выдаёт acceptance. Discard может удалить только несохранённый draft/WIP текущей попытки относительно последнего durable checkpoint; уже принятые layers/decisions и чужой/user/unattributed WIP не стираются. Чужая работа требует отдельной санкции; неопределимый scope блокирует reset. Discard не добавляет фиктивных бизнес-результатов, но operational event, отказ от draft и метрики затрат сохраняются. Отсутствие процесса не доказывает orphan claim: recovery требует bind/receipt и явного resume либо решения пользователя, без таймаута-захвата.
 
 <a id="HR-037"></a>
 
@@ -175,8 +175,8 @@ Standalone formal task имеет sprint=None явно, собственный r
 Обновлено: 2026-09-13. Источник: Task 0076, требования 0–6;
 принятые решения 0072/0073 о продолжении ролей и прямой передаче.
 Сессия может владеть одной Task и одним worktree независимо: ни одним, только Task,
-только worktree или обоими. Явный `worktree_required` process snapshot определяет
-зависимый worktree; отсутствие или неверный тип поля в новом process — ошибка.
+только worktree или обоими. Явный `worktree_required` workflow snapshot определяет
+зависимый worktree; отсутствие или неверный тип поля в новом workflow — ошибка.
 Полный набор захватывается после preflight и повторной проверки одной транзакцией,
 с идемпотентным узнаванием собственной сессии и автоматической заменой прежнего
 владения того же вида. Отказ не оставляет частичного нового набора.
@@ -195,11 +195,11 @@ Standalone formal task имеет sprint=None явно, собственный r
 авторизации из операции владения. Исполнимый контракт и ограничения:
 [правила владения](development-rules.md#владение-task-и-worktree).
 
-Сохранённый process snapshot без обязательного `worktree_required` не читается через
+Сохранённый workflow snapshot без обязательного `worktree_required` не читается через
 совместимость или скрытое значение. Для явно названного закрытого набора Task применяется
-только пользовательски авторизованная **явная миграция** `task-process-migrate` по
-[операторскому контракту](../task-process-snapshot-migration.md), **без fallback** и без
-прямого SQL. Она выводит значение из неизменяемого `goal_type` и настроенного process,
+только пользовательски авторизованная **явная миграция** `task-workflow-migrate` по
+[операторскому контракту](../task-workflow-snapshot-migration.md), **без fallback** и без
+прямого SQL. Она выводит значение из неизменяемого `goal_type` и настроенного workflow,
 проверяет весь набор до записи и изменяет snapshots атомарно. Существующий claim не
 блокирует миграцию и сохраняется без изменения; операция не создаёт, не снимает и не
 заменяет ownership, а любой drift claim относительно backup/preflight отклоняет весь пакет.
@@ -222,7 +222,7 @@ Canonical task/sprint structured state, весь текст секций/сло�
 
 ### HR-042. Artifacts и публикация
 
-Валидная текущая project configuration является live operational input, а не lifecycle identity задачи. Изменение общего конфига не инвалидирует, не перезапускает и не пересоздаёт существующие Task. Их process/content/method contracts остаются неизменными, а сохранённый `config_hash` используется только как диагностический provenance и не блокирует операции. Одновременную работу обеспечивают отдельные worktree, Task ownership, optimistic revisions и короткие resource-scoped locks; общий конфиг на iteration не замораживается.
+Валидная текущая project configuration является live operational input, а не lifecycle identity задачи. Изменение общего конфига не инвалидирует, не перезапускает и не пересоздаёт существующие Task. Их workflow/content/method contracts остаются неизменными, а сохранённый `config_hash` используется только как диагностический provenance и не блокирует операции. Одновременную работу обеспечивают отдельные worktree, Task ownership, optimistic revisions и короткие resource-scoped locks; общий конфиг на iteration не замораживается.
 
 Все task artifacts внутри task root, sprint-shared внутри sprint root, ad-hoc durable внутри session deliverable root, runtime-only внутри cycle root; roots — явно заданные пути относительно AI poise codebase, gitignored. Artifact: owner, logical path, media type, bytes, digest, provenance, retention, publication state. Файл пишется staging в той же filesystem, проверяется digest, fsync и atomic rename публикуют immutable файл до DB reference. DB transaction не ссылается на partial. Crash до DB даёт unreferenced staged/published artifact для bounded recovery, не ложное evidence; после DB файл существует. Export pin/reference предотвращает удаление файла во время snapshot/copy. Потеря/искажение existing artifact обнаруживается по digest и даёт corruption Incident без подмены.
 
@@ -304,7 +304,7 @@ SemanticSubmission, OperationIntent и ExecutionAttempt имеют разную 
 
 ### HR-058. Полный verify pipeline
 
-Verify — фазовый протокол одной iteration. PREPARE: submission/candidate/authority, required agent-before fields и exact method readiness. OBSERVE: bind current subject, run/reuse declared preparations/observations и сохранить факты. Если process требует решение по новым фактам, вернуть весь evidence/conflict context и awaiting_agent; не verified, не user acceptance, не новая task/iteration. CONTINUE: принять только declared agent-after-observation поля с refs на receipt/subject. CHECK: missing proposals/fields обнаружить до final expensive checks, затем выполнить недостающие exact predicates, сохранить evidence. SEAL: typed invalidation/stabilization, tree=commit equality, private publication receipts, durable detail set, Incidents, report, runtime cleanup. Только SEAL даёт verified/STOP. Ветви, не требующие post-observation reasoning, проходят без дополнительного LLM call. Число continuations/attempts bounded общим budget iteration, не сбрасывается новым вызовом.
+Verify — фазовый протокол одной iteration. PREPARE: submission/candidate/authority, required agent-before fields и exact method readiness. OBSERVE: bind current subject, run/reuse declared preparations/observations и сохранить факты. Если workflow требует решение по новым фактам, вернуть весь evidence/conflict context и awaiting_agent; не verified, не user acceptance, не новая task/iteration. CONTINUE: принять только declared agent-after-observation поля с refs на receipt/subject. CHECK: missing proposals/fields обнаружить до final expensive checks, затем выполнить недостающие exact predicates, сохранить evidence. SEAL: typed invalidation/stabilization, tree=commit equality, private publication receipts, durable detail set, Incidents, report, runtime cleanup. Только SEAL даёт verified/STOP. Ветви, не требующие post-observation reasoning, проходят без дополнительного LLM call. Число continuations/attempts bounded общим budget iteration, не сбрасывается новым вызовом.
 
 <a id="HR-059"></a>
 
@@ -348,7 +348,7 @@ Blocking hooks нужны для разрешений/обязательных e
 
 ### HR-065. Диагностирование собственного отказа
 
-Operational journal — append-only файлы на выделенном configured AI poise journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, process sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.
+Operational journal — append-only файлы на выделенном configured AI poise journal root, а SQLite хранит их индекс. Запись имеет event ID, operation/parent ID, session/cycle, workflow sequence, storage transaction sequence когда есть, monotonic/wall timestamps, input/output digest, outcome/attempt/retry. Business facts остаются в DB. При отказе DB журнал должен сохранять причину независимо; при отказе journal используется заранее configured emergency descriptor/channel из boot contract. Если оба storage недоступны, stderr/launcher failure с operation locator — последний наблюдаемый исход, а не обещание несуществующего log. Destructive external actions не начинают без durable intent record. Incident registry содержит invariant, scope, impact, recovery, references; новый баг не маскируется обычным test failure. После восстановления аварийные записи индексируются один раз.
 
 ## 08. Восстановление и перенос
 
@@ -362,7 +362,7 @@ Operational journal — append-only файлы на выделенном configu
 
 ### HR-071. Crash на границах и atomic receipts
 
-Bootstrap/verify/handoff/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Process/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.
+Bootstrap/verify/handoff/publication состоят из durable steps с idempotent operation+submission keys. Crash до DB commit не публикует половину business mutation; после commit response loss возвращает тот же receipt. Worktree/commit/raw artifact уже существует, а DB marker нет — recovery сверяет identity/digest/expected parent/tree и связывает существующий объект, не создаёт дубликат. Recovery не верит произвольному совпадению времени/message. Partial parser files не published. Workflow/source generation mismatch не исправляется «на лету» новой реализацией внутри старой pending operation; требуется явное безопасное восстановление в поддержанном contract.
 
 <a id="HR-072"></a>
 
@@ -430,9 +430,9 @@ Benefit ledger хранит credit/reversal с unique task result revision и as
 
 <a id="HR-090"></a>
 
-### HR-090. Полные независимые process contracts
+### HR-090. Полные независимые workflow contracts
 
-Каждый из 13 типов имеет независимый полный process definition. Нормативные узлы разделены kind=content_stage и kind=mechanical_gate; сохранены 98 GS IDs, из них три publication gates не создают содержательную iteration. Для каждого stage указаны creation inputs, PREPARE agent fields, automatic OBSERVE/CHECK outputs, CONTINUE agent fields, final fields, read-only scope, transitions с guards и rework targets. Producer/phase каждого field однозначны, generated view не обязательный агентский ввод. Переходы ссылаются только на собственные объявленные nodes/closure; произвольный next не допустим. Publication выполняется после accepted inspection и explicit authority одним механическим действием. Разрешённый method kind должен иметь достижимого производителя evidence во всех заявленных ветвях. Для planning конечный draft валидируется не фактом наличия planned_task/task_contracts, а вложенными creation fields выбранного независимого goal_type; общие views и шаблоны не добавляют missing business values.
+Каждый из 13 типов имеет независимый полный workflow definition. Нормативные узлы разделены kind=content_stage и kind=mechanical_gate; сохранены 98 GS IDs, из них три publication gates не создают содержательную iteration. Для каждого stage указаны creation inputs, PREPARE agent fields, automatic OBSERVE/CHECK outputs, CONTINUE agent fields, final fields, read-only scope, transitions с guards и rework targets. Producer/phase каждого field однозначны, generated view не обязательный агентский ввод. Переходы ссылаются только на собственные объявленные nodes/closure; произвольный next не допустим. Publication выполняется после accepted inspection и explicit authority одним механическим действием. Разрешённый method kind должен иметь достижимого производителя evidence во всех заявленных ветвях. Для planning конечный draft валидируется не фактом наличия planned_task/task_contracts, а вложенными creation fields выбранного независимого goal_type; общие views и шаблоны не добавляют missing business values.
 
 <a id="HR-091"></a>
 
@@ -458,7 +458,7 @@ F01–F14 исторического анализа связаны с конкр
 
 ### GP-DEV. Полный профиль development
 
-Независимый process development: Production-код/поведение приложения; тесты и документация — средства качества и сопутствующий результат. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Все обязательные stages accepted, applicable tests удовлетворяют final predicates, требования/DoD связаны с current accepted evidence, task-quality findings resolved/waived, docs obligation выполнена, весь Git vector проверен/опубликован. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow development: Production-код/поведение приложения; тесты и документация — средства качества и сопутствующий результат. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Все обязательные stages accepted, applicable tests удовлетворяют final predicates, требования/DoD связаны с current accepted evidence, task-quality findings resolved/waived, docs obligation выполнена, весь Git vector проверен/опубликован. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-DEV-01"></a>
 
@@ -536,7 +536,7 @@ development.documentation (content_stage): Выполнить прямо пре�
 
 ### GP-TST. Полный профиль test_development
 
-Независимый process test_development: Тесты и тестовые fixtures как самостоятельный конечный продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, локальные commits подтверждены. Git push запрещён. Closure не требует второй приёмки механической локальной интеграции; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow test_development: Тесты и тестовые fixtures как самостоятельный конечный продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Coverage complete, final test predicates выполнены, sensitivity handled, fixtures valid, production delivered delta=0, required inspection accepted, task-quality findings closed, локальные commits подтверждены. Git push запрещён. Closure не требует второй приёмки механической локальной интеграции; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-TST-01"></a>
 
@@ -590,7 +590,7 @@ test_development.remediation_inspection (content_stage): Проверить ис
 
 ### GP-VER. Полный профиль verification
 
-Независимый process verification: Доказать или опровергнуть соответствие зафиксированного результата требованиям; не исправлять продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Программа исполнена или user waivers, критерии имеют current evidence/verdict, task-quality objections устранены/waived, target unchanged, temporary probes cleaned. Product findings могут оставаться open и product verdict negative. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow verification: Доказать или опровергнуть соответствие зафиксированного результата требованиям; не исправлять продукт. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Программа исполнена или user waivers, критерии имеют current evidence/verdict, task-quality objections устранены/waived, target unchanged, temporary probes cleaned. Product findings могут оставаться open и product verdict negative. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-VER-01"></a>
 
@@ -602,7 +602,7 @@ verification.planning (content_stage): Определить программу, 
 
 ### GS-VER-02. verification.execution
 
-verification.execution: PREPARE принимает manual_evidence для методов по имеющимся фактам и проверяет их наличие до executable OBSERVE. OBSERVE исполняет только явно объявленные точные команды. Если план требует reasoning по новым receipts, возвращает awaiting_agent с полным контекстом; CONTINUE принимает observed_manual_evidence и не повторяет команды. CHECK регистрирует manual/observed proposals и command receipts как разные evidence, проверяет покрытие methods/subject и неизменность target. SEAL требует все обязательные proposals, но не придумывает reviewer verdict. Logical-only имеет 0 external invocations; отсутствующее доказательство блокирует verified. Подробный независимый контракт — process-matrices.json:verification и lifecycle-contracts.json:noncommand_evidence.
+verification.execution: PREPARE принимает manual_evidence для методов по имеющимся фактам и проверяет их наличие до executable OBSERVE. OBSERVE исполняет только явно объявленные точные команды. Если план требует reasoning по новым receipts, возвращает awaiting_agent с полным контекстом; CONTINUE принимает observed_manual_evidence и не повторяет команды. CHECK регистрирует manual/observed proposals и command receipts как разные evidence, проверяет покрытие methods/subject и неизменность target. SEAL требует все обязательные proposals, но не придумывает reviewer verdict. Logical-only имеет 0 external invocations; отсутствующее доказательство блокирует verified. Подробный независимый контракт — workflow-matrices.json:verification и lifecycle-contracts.json:noncommand_evidence.
 
 <a id="GS-VER-03"></a>
 
@@ -620,7 +620,7 @@ verification.self_inspection (content_stage): Осмотреть качеств�
 
 ### GP-REV. Полный профиль review
 
-Независимый process review: Найти доказанные дефекты/риски в зафиксированном результате, не исправляя его. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Scope/criteria coverage и evidence полны, review quality accepted, target unchanged. Open subject findings не блокируют; unresolved task-quality defects блокируют. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow review: Найти доказанные дефекты/риски в зафиксированном результате, не исправляя его. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Scope/criteria coverage и evidence полны, review quality accepted, target unchanged. Open subject findings не блокируют; unresolved task-quality defects блокируют. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-REV-01"></a>
 
@@ -644,7 +644,7 @@ review.self_inspection (content_stage): Проверить качество со
 
 ### GP-DES. Полный профиль design
 
-Независимый process design: Спроектировать техническое решение/архитектуру/контракт без production реализации. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Контракт полного design, alternatives/decision зафиксированы, DoD/proofs current, все task-quality findings resolved/waived, allowed artifacts сохранены и Git receipt при необходимости. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow design: Спроектировать техническое решение/архитектуру/контракт без production реализации. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Контракт полного design, alternatives/decision зафиксированы, DoD/proofs current, все task-quality findings resolved/waived, allowed artifacts сохранены и Git receipt при необходимости. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-DES-01"></a>
 
@@ -698,7 +698,7 @@ design.remediation_inspection (content_stage): Проверить design correct
 
 ### GP-ANA. Полный профиль analysis
 
-Независимый process analysis: Доказательный аналитический вывод по заданным вопросам без изменения предмета исследования. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Все mandatory questions имеют обоснованный final conclusion, challenge/limitations выполнены, факты traced, task-quality objections resolved/waived, inputs не изменены, final report durable. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow analysis: Доказательный аналитический вывод по заданным вопросам без изменения предмета исследования. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Все mandatory questions имеют обоснованный final conclusion, challenge/limitations выполнены, факты traced, task-quality objections resolved/waived, inputs не изменены, final report durable. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-ANA-01"></a>
 
@@ -734,7 +734,7 @@ analysis.self_inspection (content_stage): Осмотреть достоверн�
 
 ### GP-PRO. Полный профиль profiling
 
-Независимый process profiling: Измерить performance/resources характеристики и подтвердить выводы; постоянная оптимизация не входит. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Measurements/baseline/confirmation complete, target/environment traced, temporary instrumentation removed, выводы осмотрены; неудовлетворительная производительность продукта не мешает завершению profiling. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow profiling: Измерить performance/resources характеристики и подтвердить выводы; постоянная оптимизация не входит. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Measurements/baseline/confirmation complete, target/environment traced, temporary instrumentation removed, выводы осмотрены; неудовлетворительная производительность продукта не мешает завершению profiling. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-PRO-01"></a>
 
@@ -782,7 +782,7 @@ profiling.self_inspection (content_stage): Осмотреть качество �
 
 ### GP-DIA. Полный профиль environment_diagnostics
 
-Независимый process environment_diagnostics: Установить причину сбоя среды/tooling и дать воспроизводимую рекомендацию, не постоянное исправление. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Причина доказана в границах DoD или разрешённый inconclusive verdict, required confirmation exists, рекомендация проверяема, temporary state restored, task-quality objections closed. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow environment_diagnostics: Установить причину сбоя среды/tooling и дать воспроизводимую рекомендацию, не постоянное исправление. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Причина доказана в границах DoD или разрешённый inconclusive verdict, required confirmation exists, рекомендация проверяема, temporary state restored, task-quality objections closed. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-DIA-01"></a>
 
@@ -830,7 +830,7 @@ environment_diagnostics.self_inspection (content_stage): Проверить ди
 
 ### GP-ENV. Полный профиль environment_remediation
 
-Независимый process environment_remediation: Изменить среду/tooling и доказать достижение явно заданного desired state. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Desired criteria proved, permanent required changes остаются, temporary effects removed, task-quality findings resolved/waived, exact action/verification evidence complete; Git commit обязателен только для Git deliverables. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow environment_remediation: Изменить среду/tooling и доказать достижение явно заданного desired state. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Desired criteria proved, permanent required changes остаются, temporary effects removed, task-quality findings resolved/waived, exact action/verification evidence complete; Git commit обязателен только для Git deliverables. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-ENV-01"></a>
 
@@ -884,7 +884,7 @@ environment_remediation.correction_inspection (content_stage): Проверит�
 
 ### GP-DOC. Полный профиль documentation
 
-Независимый process documentation: Создать/обновить документацию как основной deliverable. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Content requirements covered, required examples checked, sources traced, docs durable/published по target, inspection accepted и task-quality findings closed. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow documentation: Создать/обновить документацию как основной deliverable. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Content requirements covered, required examples checked, sources traced, docs durable/published по target, inspection accepted и task-quality findings closed. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-DOC-01"></a>
 
@@ -932,7 +932,7 @@ documentation.remediation_inspection (content_stage): Повторно вычи�
 
 ### GP-TPL. Полный профиль task_planning
 
-Независимый process task_planning: Опубликовать полноценный contract одной будущей/пересматриваемой задачи. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Будущая task опубликована атомарно, валидна по собственному independent pack, references/methods/dependencies корректны; planning result inspection accepted. При revise предыдущие layers сохранены и invalidations рассчитаны. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision. Publication проверяет вложенный creation_payload каждого child его независимым goal_type contract; недостающие поля не создаёт. Exact methods разрешимы, future observation digests не требуются на creation. Post-publication bootstrap использует только опубликованные значения и явные dependency receipts.
+Независимый workflow task_planning: Опубликовать полноценный contract одной будущей/пересматриваемой задачи. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Будущая task опубликована атомарно, валидна по собственному independent pack, references/methods/dependencies корректны; planning result inspection accepted. При revise предыдущие layers сохранены и invalidations рассчитаны. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision. Publication проверяет вложенный creation_payload каждого child его независимым goal_type contract; недостающие поля не создаёт. Exact methods разрешимы, future observation digests не требуются на creation. Post-publication bootstrap использует только опубликованные значения и явные dependency receipts.
 
 <a id="GS-TPL-01"></a>
 
@@ -962,7 +962,7 @@ task_planning.acceptance_design (content_stage): Спроектировать Do
 
 ### GS-TPL-05. task_planning.work_planning
 
-task_planning.work_planning (content_stage): Заполнить process-specific planning inputs. PREPARE: work_plan, planned_task. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.
+task_planning.work_planning (content_stage): Заполнить workflow-specific planning inputs. PREPARE: work_plan, planned_task. CONTINUE: не требуется. Автоматические поля: artifacts, evidence, traceability. Полный контракт ownership/guards/transitions обязателен в матрице, это не значения defaults.
 
 <a id="GS-TPL-06"></a>
 
@@ -998,7 +998,7 @@ task_planning.publication (mechanical_gate): Механически опубли
 
 ### GP-SPL. Полный профиль sprint_planning
 
-Независимый process sprint_planning: Опубликовать валидный sprint с tasks и same-sprint DAG единым согласованным результатом. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Sprint и все tasks опубликованы единым валидным set, no cross-sprint edges, methods/coverage complete, inspection accepted; execution не начинается автоматически. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision. Publication проверяет вложенный creation_payload каждого child его независимым goal_type contract; недостающие поля не создаёт. Exact methods разрешимы, future observation digests не требуются на creation. Post-publication bootstrap использует только опубликованные значения и явные dependency receipts.
+Независимый workflow sprint_planning: Опубликовать валидный sprint с tasks и same-sprint DAG единым согласованным результатом. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Sprint и все tasks опубликованы единым валидным set, no cross-sprint edges, methods/coverage complete, inspection accepted; execution не начинается автоматически. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision. Publication проверяет вложенный creation_payload каждого child его независимым goal_type contract; недостающие поля не создаёт. Exact methods разрешимы, future observation digests не требуются на creation. Post-publication bootstrap использует только опубликованные значения и явные dependency receipts.
 
 <a id="GS-SPL-01"></a>
 
@@ -1070,7 +1070,7 @@ sprint_planning.publication (mechanical_gate): Механически опубл
 
 ### GP-INT. Полный профиль integration
 
-Независимый process integration: Объединить существующие результаты с target codebase и доказать integrated result без новой самостоятельной функциональности. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Нет unresolved merge entries/conflicts, requirements source preserved по evidence/inspection, target publication observed (FF/no-op явно), all components receipts, последний этап accepted. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
+Независимый workflow integration: Объединить существующие результаты с target codebase и доказать integrated result без новой самостоятельной функциональности. Creation fields, content stages и mechanical gates, field ownership, phased checks, named transitions, rework и completion полностью заданы соответствующей матрицей. Никакого наследования другого goal_type. Нет unresolved merge entries/conflicts, requirements source preserved по evidence/inspection, target publication observed (FF/no-op явно), all components receipts, последний этап accepted. Closure не требует второй приёмки механической publication; все обязательные reviews относятся к последней версии предмета. Inspecting a resolved proposal требует отдельного ResolutionReviewDecision.
 
 <a id="GS-INT-01"></a>
 
@@ -2671,7 +2671,7 @@ Negative product verdict не даёт cancelled verification. По каждой
 | manual_evidence | Проверяемое агентское рассуждение: claim, facts, assumptions, inference summary, conclusion, source/subject refs. Не raw execution и не придуманная коллекция tests. |
 | resolution_bindings | Generated proposal→result tree/section revision→actual evidence relations после CHECK; не агентские hashes. |
 | resolution_review_decisions | Отдельные immutable records reviewer: proposal ref, reviewed exact result/evidence refs, accepted/rejected, rationale. Создаются только осмотром после proposal/bindings; rejected не удаляет прошлое. |
-| constraints | Явные ограничения review scope; absent не заменяется значениями другого process pack. |
+| constraints | Явные ограничения review scope; absent не заменяется значениями другого workflow pack. |
 | artifact_paths | Вход агента: список путей файлов; пустой список передаётся явно. Файлы заранее размещены только в текущих runtime/task/sprint roots. Идентификатор присваивает AI poise. Дополнительные декларации, назначение, тип и hashes от агента не требуются. |
 
 ### Этапы и автоматические действия
@@ -5432,7 +5432,7 @@ User-executed instruction фиксируется как external action и по�
 
 #### 5. `work_planning` — содержательный этап
 
-**GS-TPL-05.** Заполнить process-specific planning inputs.
+**GS-TPL-05.** Заполнить workflow-specific planning inputs.
 
 | Контракт | Требование |
 | --- | --- |
@@ -5445,7 +5445,7 @@ User-executed instruction фиксируется как external action и по�
 | Автоматические выходы | artifacts, evidence, traceability |
 | Разрешённые изменения | task-data |
 | Проверки | Applicability baseline/docs/fixtures по target pack; future-stage fields permitted only explicitly; no mechanical duplicated checklist. Артефакты: проверить существование файлов и принадлежность разрешённым текущим roots; при явном требовании посчитать уникальные файлы по настроенному признаку типа. Не выводить количество тест-кейсов из количества файлов. |
-| Доказательства | process input readiness. |
+| Доказательства | workflow input readiness. |
 | Final fields / conditions | {"work_plan":"always","planned_task":"always","artifacts":"always","evidence":"always","traceability":"always"} |
 | Когда нужен CONTINUE | never |
 | Условие результата | {"required_final":["work_plan","planned_task","artifacts","evidence","traceability"],"subject":"exact candidate subject vector","evidence":"current required obligations of task_planning.work_planning","phase_terminal":"SEAL","on_success":"verified_stop","negative_subject_outcome":"allowed only if exact stage expectation permits; task-quality objections route via named transitions"} |
@@ -6731,7 +6731,7 @@ Private publication на промежуточных этапах не означ
 
 ### HR-099. Пакетный редактор goal-type конфигурации
 
-GoalConfig API поддерживает create/change самодостаточного process pack по устойчивым ID объектов. При change используется известный исходный snapshot и явные изменения; итоговый кандидат валидируется целиком, ссылки могут создаваться в том же пакете. При ошибке действующий конфиг не публикуется частично. Полный файл генерирует инструмент. Повтор возвращает результат существующей операции; active task/process snapshots не мигрируют. Отдельные generate/validate/publish вызовы не обязательны.
+GoalConfig API поддерживает create/change самодостаточного workflow pack по устойчивым ID объектов. При change используется известный исходный snapshot и явные изменения; итоговый кандидат валидируется целиком, ссылки могут создаваться в том же пакете. При ошибке действующий конфиг не публикуется частично. Полный файл генерирует инструмент. Повтор возвращает результат существующей операции; active task/workflow snapshots не мигрируют. Отдельные generate/validate/publish вызовы не обязательны.
 
 <a id="HR-100"></a>
 

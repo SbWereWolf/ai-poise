@@ -21,14 +21,14 @@ from poise.runtime import Poise
 from poise.infrastructure.clock import SystemClock
 
 
-def _stage_contracts(process):
-    requirements=process['content_contract']['requirements']
+def _stage_contracts(workflow):
+    requirements=workflow['content_contract']['requirements']
     return [{'stage_id':stage['id'],'allowed_paths':list(stage['allowed_paths']),
              'entry_requirements':[rule['id'] for rule in requirements
                  if stage['id'] in rule['stages'] and rule['phase']=='pre'],
              'exit_requirements':[rule['id'] for rule in requirements
                  if stage['id'] in rule['stages'] and rule['phase']=='post']}
-            for stage in process['stages']]
+            for stage in workflow['stages']]
 
 
 def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_root,worktrees_root):
@@ -49,7 +49,7 @@ def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_ro
         {'path':['paths','requirements_database'],'value':str(requirements_root/'requirements.sqlite')},
         {'path':['paths','requirements_lock'],'value':str(requirements_root/'requirements.lock')}])
     setup_result=project_tools(settings).apply(request)
-    _,cfg,processes=load_config(Path(setup_result['config_path']))
+    _,cfg,workflows=load_config(Path(setup_result['config_path']))
     catalogue=FileCatalogue(root/'config/catalogue/settings.json')
     commands=CatalogueCommands(catalogue,goal_config_tools(catalogue.editor.path),catalogue.raw['max_items'])
     selected_task=catalogue.raw['task_templates']['verification-v1']
@@ -61,7 +61,7 @@ def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_ro
         'expected_exit_code':0,'stdout_contains':['passed'],'stderr_contains':[]}
     parameters={'identity':task_id,'membership':None,
         'goal':'Plan the verification of declarative project setup on the real Poise revision.',
-        'requirements':['The generated configuration loads all thirteen explicit process snapshots.',
+        'requirements':['The generated configuration loads all thirteen explicit workflow snapshots.',
                         'The exact setup test command works from the real Poise worktree.'],
         'dod':['Preserve the project receipt, exact test procedure and real readiness test output.',
                'Stop after the verified planning stage; do not invent user acceptance.'],
@@ -70,22 +70,22 @@ def run(root,repository,base_ref,destination,task_id,*,requirements_root,data_ro
             'reference_profile':{'runner':'pytest','parser':'positional-paths','version':1}}],
         'artifact_requirements':[],
         'contract':{'sections':[],'routes':[],'requirements':[]},
-        'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in processes['verification']['stages']},
-        'stage_contracts':_stage_contracts(processes['verification']),
+        'evidence':{s['id']:{'subject_methods':{},'arguments':[],'review_arguments':[]} for s in workflows['verification']['stages']},
+        'stage_contracts':_stage_contracts(workflows['verification']),
         'decomposition':{'kind':'ordinary','phases':[
             {'stage':stage['id'],'skills':['workflow'],'areas':[]}
-            for stage in processes['verification']['stages']],
+            for stage in workflows['verification']['stages']],
             'integration':None}}
     parameters['evidence']['execution']['subject_methods']={
         'VERIFY':{'exit_codes':[0],'stdout_contains':['passed'],'stderr_contains':[]}}
     task=commands.tasks([{'template':{'id':'verification-v1','version':selected_task['version'],'digest':selected_task['digest']},
-                           'parameters':parameters}],processes,cfg['automatic_checks'],
+                           'parameters':parameters}],workflows,cfg['automatic_checks'],
                          cfg['task_decomposition'])['tasks'][0]
     from poise.composition import requirements_tools
     requirements,_=requirements_tools(Path(setup_result['config_path']))
     requirements.apply({'request_id':task_id+'-requirements','expected_revision':0,'operations':[
         {'kind':'put_requirement','requirement':{'id':'PILOT-SYS','level':'system','status':'current','text':'Verification retains evidence without implicit acceptance.'}},
-        {'kind':'put_requirement','requirement':{'id':'PILOT-APP','level':'application','status':'current','text':'Poise project setup loads its explicitly configured process catalogue.'}},
+        {'kind':'put_requirement','requirement':{'id':'PILOT-APP','level':'application','status':'current','text':'Poise project setup loads its explicitly configured workflow catalogue.'}},
         {'kind':'link','system':'PILOT-SYS','application':'PILOT-APP'}]})
     plan=requirements.store.registry().plan_task([{'text':text,'applications':['PILOT-APP']} for text in task['requirements']])
     task['requirements_snapshot']=plan['snapshot']

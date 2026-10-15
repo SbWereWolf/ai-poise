@@ -23,7 +23,13 @@ from .goal_config import atomic_write
 class LocalHandoff:
     def __init__(self,poise):
         self.h=poise;self.commands=HandoffCommands(poise.store.unit_of_work)
-        self.config=poise.cfg['runtime_services']['handoff']
+
+    @property
+    def config(self):
+        """Filesystem settings belong to an explicitly requested file operation."""
+        if 'handoff' not in self.h.cfg['runtime_services']:
+            raise PoiseError('Файловая передача задачи не настроена')
+        return self.h.cfg['runtime_services']['handoff']
 
     def preserve(self,args, *, portable=False):
         h=self.h

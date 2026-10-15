@@ -35,7 +35,7 @@ paths,
 confirm stopped writers, use the existing recover_ownership template and preserve
 Task history, WIP and pending outcomes. Never fabricate SessionEnd or reuse a revoked caller. Derive
 the
-dependent worktree from the explicit process snapshot, not a caller flag. Release it
+dependent worktree from the explicit workflow snapshot, not a caller flag. Release it
 with its Task while preserving independent worktree ownership. Ownership must not
 change cwd, launch roots, Git or WIP, and must not absorb cleanup or result integration.
 Treat restart-ready promotion as the same release boundary: promoting a restarted
@@ -110,7 +110,7 @@ entry-gate preflight and confirmed handoff resumption; transport only parses and
 add a second lifecycle, hidden autoaccept, stage-work execution or messaging to progression.
 
 Reuse the standard stage handlers and the common route runner across workflows. A new goal type
-defines its own process; it does not require a new execution engine.
+defines its own workflow; it does not require a new execution engine.
 
 ## Explicit configuration
 
@@ -129,18 +129,18 @@ Task/Sprint for read-only work, and never derive workflow authority from identit
 Do not preserve backward compatibility merely to read earlier formats. Do not design or run data
 migrations without a direct user instruction; request permission when a migration is necessary.
 
-For the authorized legacy Task process repair, follow
-[`docs/task-process-snapshot-migration.md`](../docs/task-process-snapshot-migration.md).
-Do not repair stored process snapshots through direct SQL; use the public migration and
+For the authorized legacy Task workflow repair, follow
+[`docs/task-workflow-snapshot-migration.md`](../docs/task-workflow-snapshot-migration.md).
+Do not repair stored workflow snapshots through direct SQL; use the public migration and
 its named public backup, atomic validation, audit receipt, and exact replay contract.
 A stable existing claim does not block that authorized migration and must remain unchanged;
 any claim creation, release, or replacement after the named backup or preflight is drift
 that rejects the complete batch.
-The separately authorized `task-process-migration-2` accepts exactly Task `0082`; it does
+The separately authorized `task-workflow-migration-2` accepts exactly Task `0082`; it does
 not widen schema 1 and its issued receipt remains exactly replayable. Corrective
-`task-process-migration-3` has the same exact Task scope. It preserves an already migrated
+`task-workflow-migration-3` has the same exact Task scope. It preserves an already migrated
 matching `worktree_required`, or adds the missing explicit value, and initializes exact stage
-contracts from that preserved process and its content requirements. Apply schema 3 metadata
+contracts from that preserved workflow and its content requirements. Apply schema 3 metadata
 changes without changing Task version, lifecycle, released handoff, result, evidence, ownership,
 or Git state, then require a native reviewer bootstrap of the preserved verified Task.
 Recover an accidentally cleaned nonterminal verified/accepted worktree only through the
@@ -150,9 +150,9 @@ branch and configured Task path registered to that repository. Reject independen
 at the same path. Roll back only Git resources created by the failed invocation, and never change
 Task ownership or lifecycle in that recovery.
 
-Each goal type may provide a complete, self-contained process/template as a fast starting point.
+Each goal type may provide a complete, self-contained workflow/template as a fast starting point.
 Template provenance is not runtime policy: the planner may reshape the newborn Task before `ready`,
-including choosing or defining a valid task-local process when the standard one is not appropriate.
+including choosing or defining a valid task-local workflow when the standard one is not appropriate.
 The resolved Task contract, not template identity, owns execution restrictions. Reusing library code
 does not imply inheritance between goal-type business configurations.
 
@@ -162,7 +162,7 @@ invocation in the task or project configuration.
 
 ## Development workflow
 
-Follow the Task process' worktree requirement before modifying code. A required worktree belongs to
+Follow the Task workflow' worktree requirement before modifying code. A required worktree belongs to
 the repository/codebase being changed; a Task that does not require one uses the configured
 repository checkout. See [worktree
 placement](../docs/governance/development-rules.md#размещение-task-worktree). Do not complicate
@@ -208,7 +208,7 @@ failures do not pass. Preserve pre-plan snapshot restoration without adding a
 default, migration, or recursive runner-specific source inference.
 Keep current-registry mutation, revision/idempotency guards, immutable snapshots,
 and executable-obligation validation in `CheckRegistry`. Task creation requires explicit
-`executable_obligations` when the process schema owns `test_registry`; a schema without
+`executable_obligations` when the workflow schema owns `test_registry`; a schema without
 that field must omit it and initializes an explicitly empty registry classification.
 Every stage-authorized `test_registry` mutation supplies the full explicit list; never
 infer it from all requirements/DoD. Restore the current classification only
@@ -273,7 +273,7 @@ not mutate Git/WIP. Read the [canonical public
 contract](../docs/workflows/batch-work.md#восстановление-неоднозначного-владения).
 
 Newborn inspection and handoff must branch before reading an execution contract or
-stage, even after a process has been selected. Use the same handoff journal and
+stage, even after a workflow has been selected. Use the same handoff journal and
 ownership transaction to save/release and resume drafts. Keep staged candidates out
 of newborn handoff, preserve opaque metadata on ownership-only changes, and validate
 saved WIP/bundle before reacquiring a released draft. The registry projection must
@@ -327,7 +327,7 @@ records local repair provenance and permits normal local work despite family dis
 Preserve lineage/WIP and require fresh own evidence; no extra repair Task or broad force.
 See [restart recovery](../docs/workflows/sprints.md#локальная-доработка-через-общий-restart).
 
-Process roles are required explicit configuration, not handler policy. For inspection compare
+Workflow roles are required explicit configuration, not handler policy. For inspection compare
 the actual produced-result stage role with the inspecting stage role from the Task snapshot.
 Equal roles require no identity separation; unequal roles require distinct effective actors
 with saved provenance. Keep ownership, evidence and gate validation unchanged. Never infer
@@ -376,3 +376,40 @@ alone grant no exemption. Keep live/nonterminal validation and partial-retiremen
 with their existing owners. Follow the
 [historical replay
 contract](../docs/workflows/terminal-materials.md#чтение-и-повторное-использование-после-удаления).
+
+## Workflow terminology and placement
+
+The accepted breaking replacement calls Task stage graphs `workflow` and uses
+`workflows` in project configuration. Update all current configurations and
+examples; do not add legacy aliases, fallback reads or a private project-specific
+runtime version. Current poise-op data are explicitly converted. Other project databases were
+not migrated by that operation. OS processes and
+message processing retain their names. Project-owned graphs are mutable project
+data, separate from shared catalogue examples. Resolve an absolute graph path as
+supplied and a relative graph path from the selected manifest directory. Readers
+and writers share this selection; candidate validation consumes an in-memory
+overlay without writing live graphs. Preserve current Task/Sprint graphs and
+execution facts during explicit format conversion. Historical receipts are not
+a continuation prerequisite. Do not rewrite historical logs or receipts.
+For this authorized poise-op move, copy to the working destination, verify reads
+and writer selection, then delete only the exact copied source graphs without
+backups or archives. Preserve later destination edits. See the canonical
+[workflow contract](../docs/configuration/project-setup.md#workflow-имя-и-размещение-графов-этапов).
+
+## Shared Poise launch source
+
+All projects use one common Poise application directory. The authorized local
+source is `/home/sbwerewolf/workdata/poise-op/app`, passed explicitly to the
+launcher. Keep operator-selected Python; selecting an interpreter does not
+require a project-private Poise version. Pass the project identity to Poise,
+which resolves its manifest through its existing registry owner. Do not
+introduce a version manager or remove command/override configuration as part
+of source selection. See the canonical
+[launch decision](../docs/configuration/stride-launcher.md#установка-и-выбор-версии).
+
+Ordinary project configuration updates compare the exact current manifest and
+selected workflow revision; old setup/update receipt provenance is not an admission
+gate. Launch the common selected source with the configured Python and
+`-P -s -B`, supplying `--poise-root` and `--project`. The source root supplies
+`PYTHONPATH=<poise-root>/src`; preserve operator command/override selection.
+See the [launcher contract](../docs/configuration/stride-launcher.md#выполнение-команды).

@@ -13,7 +13,7 @@ def setup_case(project):
     blueprint={
         'schema':'project-blueprint-1', 'version':'1',
         'config':config,
-        'process_sources':{'development':{'path':'config/processes/development.json','digest':digest(project['process'])}},
+        'workflow_sources':{'development':{'path':'config/workflows/development.json','digest':digest(project['workflow'])}},
         'questions':[
             {'id':'project','path':['project'],'type':'text','prompt':'Project ID'},
             {'id':'repository','path':['git','repository'],'type':'text','prompt':'Repository'},
@@ -45,17 +45,17 @@ def bootstrap_fixture_resources(settings_path, config_path):
     from poise.common import load_config
     from poise.composition import project_config_tools, project_tools
     settings_path, config_path = Path(settings_path), Path(config_path)
-    root, config, processes = load_config(config_path)
+    root, config, workflows = load_config(config_path)
     assert 'runtime_resources' not in config
     registry = project_tools(settings_path).list()
     assert any(item['project'] == config['project'] and item['config_path'] == str(config_path)
                for item in registry['projects'])
-    before_processes = {goal: (root / relative).read_bytes()
-                        for goal, relative in config['processes'].items()}
+    before_workflows = {goal: (root / relative).read_bytes()
+                        for goal, relative in config['workflows'].items()}
     result = project_config_tools(settings_path).apply({
         'schema': 'project-runtime-resources-bootstrap-1',
         'request_id': 'fixture-runtime-resources', 'config_path': str(config_path),
-        'expected_revision': digest({'config': config, 'processes': processes}),
+        'expected_revision': digest({'config': config, 'workflows': workflows}),
         'runtime_resources': {'project_setup': str(settings_path), 'hooks': []},
         'receipt_path': 'operations/fixture-runtime-resources.json',
     })
@@ -64,6 +64,6 @@ def bootstrap_fixture_resources(settings_path, config_path):
     assert current == {**config, 'runtime_resources': {
         'project_setup': str(settings_path), 'hooks': [],
     }}
-    assert all((root / config['processes'][goal]).read_bytes() == content
-               for goal, content in before_processes.items())
+    assert all((root / config['workflows'][goal]).read_bytes() == content
+               for goal, content in before_workflows.items())
     return current

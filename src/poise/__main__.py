@@ -34,9 +34,9 @@ def parser():
     sub.add_parser('work',help='work, sprint, handoff, transfer: один декларативный JSON-пакет')
     runtime=sub.add_parser('runtime',help='Explicit identity/capabilities/transcript plus one work packet')
     runtime.add_argument('--settings',type=Path,required=True)
-    editor=sub.add_parser('goal-config',help='Создать/изменить process одним JSON-пакетом')
+    editor=sub.add_parser('goal-config',help='Создать/изменить workflow одним JSON-пакетом')
     editor.add_argument('--settings',type=Path,required=True)
-    catalogue=sub.add_parser('catalogue',help='Batch install independent processes or prepare typed tasks')
+    catalogue=sub.add_parser('catalogue',help='Batch install independent workflows or prepare typed tasks')
     catalogue.add_argument('--settings',type=Path,required=True)
     skills=sub.add_parser('skills',help='Read skill metadata or validate decomposition without a Task session')
     skills.add_argument('--catalog',type=Path,required=True)
@@ -63,11 +63,11 @@ def parser():
     restore.add_argument('backup_name')
     migration=sub.add_parser('route-migrate',help='Remove retired route count limits from one project')
     migration.add_argument('--config',type=Path,required=True)
-    task_process_migration=sub.add_parser(
-        'task-process-migrate', help='Migrate one explicitly authorized Task process-snapshot batch'
+    task_workflow_migration=sub.add_parser(
+        'task-workflow-migrate', help='Migrate one explicitly authorized Task workflow-snapshot batch'
     )
-    task_process_migration.add_argument('--config',type=Path,required=True)
-    task_process_migration.add_argument('--project-settings',type=Path)
+    task_workflow_migration.add_argument('--config',type=Path,required=True)
+    task_workflow_migration.add_argument('--project-settings',type=Path)
     requirements=sub.add_parser(
         'requirements', help='Apply/query one project Requirements Registry JSON packet'
     )
@@ -139,8 +139,8 @@ def main():
     if args.command=='route-migrate':
         from .interfaces.route_migration import execute
         return execute(args.config,sys.stdout)
-    if args.command=='task-process-migrate':
-        from .interfaces.task_process_migration import execute
+    if args.command=='task-workflow-migrate':
+        from .interfaces.task_workflow_migration import execute
         return execute(args.config,sys.stdin.buffer,sys.stdout,args.project_settings)
     if args.command=='requirements':
         from .interfaces.requirements_registry import execute

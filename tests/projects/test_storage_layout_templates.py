@@ -44,7 +44,7 @@ def test_new_project_publishes_separate_stores_at_explicit_project_root(tmp_path
         }, 'edits': edits, 'probe_repository': False,
     })
     assert result['status'] == 'created'
-    _, config, processes = load_config(Path(result['config_path']))
+    _, config, workflows = load_config(Path(result['config_path']))
     assert config['paths']['state'] == str(data)
     assert config['paths']['database'] == 'tasks/tasks.sqlite'
     assert config['paths']['lock'] == 'tasks/tasks.lock'
@@ -54,7 +54,7 @@ def test_new_project_publishes_separate_stores_at_explicit_project_root(tmp_path
         'database': 'telemetry/events.sqlite', 'lock': 'telemetry/events.lock',
     }
     assert config['paths']['worktrees'] == str(trees)
-    assert len(processes) == 13
+    assert len(workflows) == 13
     assert not data.exists()  # Publication is configuration, not initialization/migration.
     assert not trees.exists()
     assert not (tools / 'projects/demo/config/state').exists()
@@ -75,7 +75,7 @@ def test_hook_example_validates_independent_registry_with_actual_owner(tmp_path)
     assert not settings.database.exists()
 
 
-def test_manifest_example_uses_canonical_stores_and_validates_with_process_owner(tmp_path):
+def test_manifest_example_uses_canonical_stores_and_validates_with_workflow_owner(tmp_path):
     example = json.loads((ROOT / 'config/project.example.json').read_text())
     assert example['paths']['database'] == 'tasks/tasks.sqlite'
     assert example['paths']['lock'] == 'tasks/tasks.lock'
@@ -92,10 +92,10 @@ def test_manifest_example_uses_canonical_stores_and_validates_with_process_owner
     manifest = tmp_path / 'configuration/project.json'
     manifest.parent.mkdir()
     manifest.write_text(json.dumps(example))
-    for goal, relative in example['processes'].items():
+    for goal, relative in example['workflows'].items():
         target = manifest.parent / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / 'config/catalogue/processes' / (goal + '.json'), target)
+        shutil.copyfile(ROOT / 'config/catalogue/workflows' / (goal + '.json'), target)
     _, actual, _ = load_config(manifest)
     assert actual['paths']['state'] == str(data)
     assert not data.exists()
@@ -165,9 +165,9 @@ def test_pilot_request_accepts_explicit_roots_and_stops_before_task_work(tmp_pat
     assert not (tools / 'projects/demo/config').exists()
 
 
-def test_all_new_project_process_sources_declare_purpose_without_implicit_authority():
+def test_all_new_project_workflow_sources_declare_purpose_without_implicit_authority():
     from poise.modules.goal_config.domain import GoalTypeDefinition
-    sources = ROOT / 'config/catalogue/processes'
+    sources = ROOT / 'config/catalogue/workflows'
     for goal in ('analysis','design','development','documentation','environment_diagnostics',
                  'environment_remediation','integration','profiling','review','sprint_planning',
                  'task_planning','test_development','verification'):

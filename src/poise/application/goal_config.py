@@ -2,7 +2,7 @@
 from __future__ import annotations
 from ..modules.goal_config.domain import GoalTypeDefinition, BatchValidationError, fingerprint, problem, require_shape
 from ..modules.foundation.errors import DomainError, VersionConflict
-from ..modules.goal_config.ports import GoalConfigRepository, ProcessTemplates
+from ..modules.goal_config.ports import GoalConfigRepository, WorkflowTemplates
 
 
 def validate_identifier(value, field):
@@ -65,7 +65,7 @@ def validate_reconcile_request(request: dict) -> None:
 
 
 class GoalConfigCommands:
-    def __init__(self, repository: GoalConfigRepository, templates: ProcessTemplates, max_changes: int):
+    def __init__(self, repository: GoalConfigRepository, templates: WorkflowTemplates, max_changes: int):
         if type(max_changes) is not int or max_changes <= 0:
             raise DomainError("max_changes должен быть задан явно")
         self.repository, self.templates, self.max_changes = repository, templates, max_changes

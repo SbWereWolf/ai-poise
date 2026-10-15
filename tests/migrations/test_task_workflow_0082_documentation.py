@@ -2,17 +2,17 @@ from pathlib import Path
 import unittest
 
 
-class Task0082ProcessMigrationDocumentationTests(unittest.TestCase):
+class Task0082WorkflowMigrationDocumentationTests(unittest.TestCase):
     def test_operator_contract_is_exact_and_complete(self):
         text = (
             Path(__file__).resolve().parents[2]
-            / "docs/task-process-snapshot-migration.md"
+            / "docs/task-workflow-snapshot-migration.md"
         ).read_text(encoding="utf-8")
         required = (
-            "`task-process-migration-2`",
-            "`task-process-migration-3`",
+            "`task-workflow-migration-2`",
+            "`task-workflow-migration-3`",
             '`task_ids: ["0082"]`',
-            "не расширяет разрешение `task-process-migration-1`",
+            "не расширяет разрешение `task-workflow-migration-1`",
             "публичную резервную копию",
             "`backup_name`",
             "`receipt`",

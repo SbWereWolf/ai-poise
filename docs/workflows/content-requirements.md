@@ -6,13 +6,13 @@
 
 Task владеет ContentPolicy, ContentSnapshot и CheckRegistry. Чистая библиотека `modules/content_requirements` не знает имён goal types, не читает файлы, не запускает команды, не меняет Task/Sprint. Она принимает снимок и возвращает Assessment. Проверенные пути в наблюдения превращает существующий filesystem adapter. Переход `verified` принадлежит Task и повторно проверяет gates — runner не может ограничиться выставлением статуса.
 
-Два источника предикатов: `process.content_contract` (минимумы типа цели) и `task.content_contract` (решения планировщика конкретной задачи). Оба обязательны в формате, даже если каждый содержит три явно пустых списка. Process packs не наследуют друг друга. Слои объединяют каталог неизменяемых определений: повтор неизменного определения идемпотентен, замена существующего запрещена. Какие из этих предикатов являются gates конкретной Task, задаёт `stage_contracts`.
+Два источника предикатов: `workflow.content_contract` (минимумы типа цели) и `task.content_contract` (решения планировщика конкретной задачи). Оба обязательны в формате, даже если каждый содержит три явно пустых списка. Workflow packs не наследуют друг друга. Слои объединяют каталог неизменяемых определений: повтор неизменного определения идемпотентен, замена существующего запрещена. Какие из этих предикатов являются gates конкретной Task, задаёт `stage_contracts`.
 
 ## Точный StageContract Task
 
 Новая Task обязательно содержит `stage_contracts`: по одному объекту на каждый route stage в том же порядке. Объект имеет точные поля `stage_id`, `allowed_paths`, `entry_requirements` и `exit_requirements`. Read-only stage не может иметь writable scope. Ссылка gate обязана указывать на существующий предикат с теми же stage и phase: `pre` для entry, `post` для exit. Списки refs — явное подмножество каталога ContentPolicy, а не неявно все правила phase.
 
-`allowed_paths` из process stage задаёт шаблон при планировании, но в runtime действует точный `allowed_paths` из Task StageContract. Перед submit, материализацией artifacts и любым action runtime повторно проверяет entry gates и текущий Git scope. Отказ не создаёт submission и не меняет Task. После внешнего `apply_plan` scope проверяется ещё раз; action с внешними путями не может завершить stage. Exit gates проверяются после получения outputs и checks и ещё раз в Task перед `verified`.
+`allowed_paths` из workflow stage задаёт шаблон при планировании, но в runtime действует точный `allowed_paths` из Task StageContract. Перед submit, материализацией artifacts и любым action runtime повторно проверяет entry gates и текущий Git scope. Отказ не создаёт submission и не меняет Task. После внешнего `apply_plan` scope проверяется ещё раз; action с внешними путями не может завершить stage. Exit gates проверяются после получения outputs и checks и ещё раз в Task перед `verified`.
 
 Новый artifact-предикат обязан явно объявить `source`: `{"kind":"preexisting"}`, `{"kind":"stage_output","producer_stage":"..."}` или `{"kind":"declared_arrival","arrival_stage":"..."}`. Для активного `stage_output` producer обязан доминировать consumer на обычном и rework маршруте, иметь покрывающий writable scope и независимый exit gate на тот же output. `declared_arrival` не может удовлетворять более ранний entry gate.
 
@@ -68,7 +68,7 @@ Task он проверяет только действительно новые 
 
 Уже сохранённый контракт восстанавливается структурно через отдельный read-path
 без применения нового правила: история остаётся читаемой и не переписывается.
-Миграция прежних process snapshots не выполняется. Это исключение не разрешает
+Миграция прежних workflow snapshots не выполняется. Это исключение не разрешает
 добавить к сохранённому контракту новое недостижимое trace-требование.
 
 `stages` перечисляет все этапы обязательности, а не только последний срок. Если

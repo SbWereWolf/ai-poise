@@ -21,7 +21,7 @@ def evaluate_stage(route: RouteDefinition, work: dict, book: FeedbackBook,
     for finding in book.findings:
         if finding.stage not in inspectors:
             from ..foundation.errors import DomainError
-            raise DomainError(f"Inspection scope has unknown finding owner {finding.stage}; restore its inspector in the Task process before continuing")
+            raise DomainError(f"Inspection scope has unknown finding owner {finding.stage}; restore its inspector in the Task workflow before continuing")
     scoped = book.for_stages(scope)
     evaluated = handler(node.handler).evaluate(work, scoped, stage, iteration)
     return HandlerResult(evaluated.outcome, book.append_inspection(scoped, evaluated.feedback))

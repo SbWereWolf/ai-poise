@@ -12,14 +12,14 @@ from .infrastructure.sqlite.artifacts import SqliteArtifactRepository
 
 class Store:
     """Composition/receipt facade of the original slice; no Task lifecycle writes."""
-    def __init__(self, database: Path, lock: Path, wait: float, poll: float, processes: dict, project_fence=None):
+    def __init__(self, database: Path, lock: Path, wait: float, poll: float, workflows: dict, project_fence=None):
         self.database=Database(database,lock,wait,poll,project_fence)
         self.path=database
-        self.processes=processes
+        self.workflows=workflows
         self.queries=TaskQueries(self.database)
 
     def unit_of_work(self):
-        return SqliteUnitOfWork(self.database,self.processes)
+        return SqliteUnitOfWork(self.database,self.workflows)
 
     def transaction(self):
         return self.database.transaction()

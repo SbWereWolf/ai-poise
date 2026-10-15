@@ -40,3 +40,6 @@ dist/
 # Operator-owned working maintenance settings; commit populated examples only.
 /config/bootstrap.json
 /config/environment-maintenance.json
+
+# Working catalogue editor settings; retain its sanitized example.
+/config/catalogue/editor.json

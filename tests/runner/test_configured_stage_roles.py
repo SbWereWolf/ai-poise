@@ -12,7 +12,7 @@ from poise.modules.tasks.progression import progression_step
 from poise.modules.workflow.domain import RouteDefinition
 
 
-def process(producer_role='executor', review_role='executor'):
+def workflow(producer_role='executor', review_role='executor'):
     return {
         'goal_type': 'role-contract', 'worktree_required': False,
         'route': {'entry': 'build'},
@@ -37,7 +37,7 @@ def process(producer_role='executor', review_role='executor'):
 
 def task_for(definition, *, current='build', status=TaskStatus.VERIFIED, outcome='complete'):
     return SimpleNamespace(
-        route=RouteDefinition.from_process(definition),
+        route=RouteDefinition.from_workflow(definition),
         stage=SimpleNamespace(stage_id=current),
         state=SimpleNamespace(task_id='T-role', status=status, claimed_by='session-A'),
         progress=SimpleNamespace(outcome=outcome),
@@ -51,11 +51,11 @@ def uow_for(actor='session-A', source_stage='build'):
     return SimpleNamespace(tasks=SimpleNamespace(review_identity=lambda task_id: deepcopy(identity)))
 
 
-def test_process_accepts_and_preserves_explicit_custom_stage_roles():
-    raw = process('developer', 'assayer')
+def test_workflow_accepts_and_preserves_explicit_custom_stage_roles():
+    raw = workflow('developer', 'assayer')
     parsed = GoalTypeDefinition.parse(raw)
     assert parsed.data == raw
-    route = RouteDefinition.from_process(parsed.data)
+    route = RouteDefinition.from_workflow(parsed.data)
     assert route.node('build').role == 'developer'
     assert route.node('inspect').role == 'assayer'
 
@@ -63,11 +63,11 @@ def test_process_accepts_and_preserves_explicit_custom_stage_roles():
 @pytest.mark.parametrize('bad_role', [None, '', '   ', 1, [], {}])
 def test_invalid_role_is_rejected_instead_of_inferred_from_handler(bad_role):
     with pytest.raises(DomainError, match='role'):
-        GoalTypeDefinition.parse(process(bad_role))
+        GoalTypeDefinition.parse(workflow(bad_role))
 
 
 def test_missing_role_is_a_config_error_not_implicit_executor():
-    raw = process()
+    raw = workflow()
     for stage in raw['stages']:
         del stage['role']
     with pytest.raises(DomainError, match='role'):
@@ -75,14 +75,14 @@ def test_missing_role_is_a_config_error_not_implicit_executor():
 
 
 def test_same_role_produce_to_inspect_advances_without_handoff():
-    task = task_for(process('executor', 'executor'))
+    task = task_for(workflow('executor', 'executor'))
     decision = progression_step(task, 'inspect', False)
     assert decision.kind == 'advance'
     assert decision.from_role == decision.to_role == 'executor'
 
 
 def test_same_handler_different_roles_requires_handoff():
-    raw = process('writer', 'auditor')
+    raw = workflow('writer', 'auditor')
     raw['stages'][1].update(handler='produce', transitions={'complete': None})
     decision = progression_step(task_for(raw), 'inspect', False)
     assert decision.kind == 'role_handoff_required'
@@ -90,31 +90,31 @@ def test_same_handler_different_roles_requires_handoff():
 
 
 def test_role_boundary_resumes_after_confirmed_handoff():
-    task = task_for(process('writer', 'auditor'))
+    task = task_for(workflow('writer', 'auditor'))
     assert progression_step(task, 'inspect', True).kind == 'advance'
 
 
 @pytest.mark.parametrize('producer_actor', ['session-A', 'session-B', None])
 def test_same_role_does_not_require_actor_difference_or_actor_provenance(producer_actor):
-    task = task_for(process('executor', 'executor'))
+    task = task_for(workflow('executor', 'executor'))
     assert require_reviewer_identity_in(
         uow_for(producer_actor), task, 'session-A', target_stage='inspect',
     ) is None
 
 
 def test_same_role_guard_also_applies_after_entry_to_inspection():
-    task = task_for(process(), current='inspect', status=TaskStatus.ACTIVE, outcome=None)
+    task = task_for(workflow(), current='inspect', status=TaskStatus.ACTIVE, outcome=None)
     assert require_reviewer_identity_in(uow_for(), task, 'session-A') is None
 
 
 def test_different_roles_reject_same_effective_session():
-    task = task_for(process('author', 'assayer'))
+    task = task_for(workflow('author', 'assayer'))
     with pytest.raises(DomainError, match='equals executor'):
         require_reviewer_identity_in(uow_for(), task, 'session-A', target_stage='inspect')
 
 
 def test_different_roles_accept_distinct_effective_session():
-    task = task_for(process('author', 'assayer'))
+    task = task_for(workflow('author', 'assayer'))
     receipt = require_reviewer_identity_in(uow_for(), task, 'session-B', target_stage='inspect')
     assert receipt['executor_actor'] == 'session-A'
     assert receipt['reviewer_actor'] == 'session-B'
@@ -122,13 +122,13 @@ def test_different_roles_accept_distinct_effective_session():
 
 
 def test_different_roles_fail_closed_if_producer_identity_unavailable():
-    task = task_for(process('author', 'assayer'))
+    task = task_for(workflow('author', 'assayer'))
     with pytest.raises(DomainError, match='identity provenance is unavailable'):
         require_reviewer_identity_in(uow_for(None), task, 'session-B', target_stage='inspect')
 
 
 def test_actual_producing_stage_role_is_used_not_a_relay_or_previous_list_index():
-    raw = process('author', 'assayer')
+    raw = workflow('author', 'assayer')
     # Production may return through a remediation loop. Identity.stage is the source.
     repair = deepcopy(raw['stages'][0])
     repair.update(id='repair', role='assayer', handler='revise', rework_targets=['repair'])
@@ -139,7 +139,7 @@ def test_actual_producing_stage_role_is_used_not_a_relay_or_previous_list_index(
 
 
 def test_public_stage_patch_changes_role_without_changing_handler_or_source():
-    original = process('author', 'assayer')
+    original = workflow('author', 'assayer')
     updated = GoalTypeDefinition.build('role-contract', original, [{
         'op': 'patch_stage', 'id': 'inspect', 'set': {'role': 'author'},
     }])
@@ -159,11 +159,11 @@ def test_shipped_presets_keep_documented_roles_including_handler_exceptions(goal
     from pathlib import Path
     import json
     root = Path(__file__).resolve().parents[2]
-    for folder in ('config/catalogue/processes', 'config/catalogue/process-templates',
-                   'config/projects/ai-poise/config/processes'):
+    for folder in ('config/catalogue/workflows', 'config/catalogue/workflow-templates',
+                   'config/projects/ai-poise/config/workflows'):
         value = json.loads((root / folder / (goal + '.json')).read_text())
-        definition = GoalTypeDefinition.parse(value.get('process', value))
-        assert RouteDefinition.from_process(definition.data).node(stage).role == expected
+        definition = GoalTypeDefinition.parse(value.get('workflow', value))
+        assert RouteDefinition.from_workflow(definition.data).node(stage).role == expected
 
 
 def test_role_change_roundtrips_through_public_config_owner(tmp_path):

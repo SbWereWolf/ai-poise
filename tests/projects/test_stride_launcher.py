@@ -24,12 +24,12 @@ def write(path, value):
     return path
 
 
-def arrange_manifest(path, config, process_source_root):
+def arrange_manifest(path, config, workflow_source_root):
     """Place each referenced process relative to its actual manifest."""
-    for relative_path in config['processes'].values():
+    for relative_path in config['workflows'].values():
         target = path.parent / relative_path
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(process_source_root / relative_path, target)
+        shutil.copy2(workflow_source_root / relative_path, target)
     return write(path, config)
 
 

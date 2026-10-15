@@ -59,10 +59,10 @@ def generate(args):
             destination.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
             destination.chmod(0o600)
         write(selection['path'], blueprint)
-        for reference in blueprint['process_sources'].values():
+        for reference in blueprint['workflow_sources'].values():
             document = read_json(source / reference['path'])
             if digest(document) != reference['digest']:
-                raise ValueError('Process template digest mismatch')
+                raise ValueError('Workflow template digest mismatch')
             write(reference['path'], document)
         settings.update(root='.', templates={args.template: selection},
                         registry='configured-projects.json', lock='setup.lock')

@@ -82,16 +82,16 @@ bootstrap/verify/show/artifacts/accept/cancel. Для известной раб�
 команд. `accept` принимает/останавливается; `continue` выражает новую пользовательскую инструкцию.
 
 ## Конфигурация типа цели
-`GoalTypeDefinition.parse/build`: общий чистый владелец полного process.
+`GoalTypeDefinition.parse/build`: общий чистый владелец полного workflow.
 `GoalConfigCommands.apply_batch(request)`: один декларативный пакет, создание из явного template
 либо update по revision. Порт `GoalConfigRepository.edit` реализует короткий controlled edit;
 FileGoalConfigRepository и FileTemplates — infrastructure.
 
 `GoalConfigCommands.status(request)` наблюдает managed head, live revision и pending request
 без recovery и иных записей. `GoalConfigCommands.reconcile(request)` при отсутствии pending
-сверяет exact managed/live revisions, валидирует полный live process тем же доменным parser и
+сверяет exact managed/live revisions, валидирует полный live workflow тем же доменным parser и
 атомарно принимает его как новый managed head с durable audit receipt. Adoption не
-перезаписывает process-файл или Task snapshots; неизвестный drift остаётся явным конфликтом.
+перезаписывает workflow-файл или Task snapshots; неизвестный drift остаётся явным конфликтом.
 
 CLI: `poise goal-config --settings <file>` с одним JSON в stdin. Не требует активной task и не
 открывает её DB. Стандартные/дополнительные sections, content rules, trace routes,
@@ -132,7 +132,7 @@ Public CLI: `poise work` (stdin JSON) и `poise goal-config --settings ...`. П�
   — чистый домен.
 - `SprintCommands.apply(packet)` — draft/publish/graph/cancellation, единый UnitOfWork.
 - `SprintCommands.read/select` — адресные проекции, snapshots и session scope.
-- `validate_creation(contract, process, automatic_checks)` и `build_task(metadata, actor)` — общая
+- `validate_creation(contract, workflow, automatic_checks)` и `build_task(metadata, actor)` — общая
   проверка и сборка отдельной/планируемой Task, без I/O.
 - `Task.planned`, `Task.start`, `TaskCommands.start` — незанятая задача и её начало через владельца.
 - `SqliteSprintRepository` — только свои таблицы, layers/receipts и составные FK. Публикация Task
@@ -248,11 +248,11 @@ categories/sections редактируется одной `set_benefit` action g
 
 Обновлено: **2026-09-07T07:34:23+05:00**.
 
-- `TaskBlueprint.parse(raw).instantiate(parameters,process,automatic_checks)` — чистая
+- `TaskBlueprint.parse(raw).instantiate(parameters,workflow,automatic_checks)` — чистая
   типизированная подстановка и штатная проверка создаваемого контракта.
 - `CatalogueCommands.install(items)` — один явный пакет установки/редактирования независимых
   процессов через GoalConfigCommands; проверка итоговых кандидатов до публикации.
-- `CatalogueCommands.tasks(items,processes,automatic_checks)` — пакет полных контрактов задач.
+- `CatalogueCommands.tasks(items,workflows,automatic_checks)` — пакет полных контрактов задач.
 - `PlanningPublications.publish(task_id,actor,intent)` — публикация сохранённого принятого
   planning-результата через Task/Sprint repositories в одном UoW.
 - `FileCatalogue` — проверяемые файловые шаблоны; не пишет бизнес-таблицы.
@@ -262,14 +262,14 @@ categories/sections редактируется одной `set_benefit` action g
 Общий WorkTools verify принимает tagged publication `kind=tasks|sprint`, section и authorization.
 Другая ветвь PublishHandler — существующая Git target publication. Отдельного CLI-комплекта
 для каждой цели нет. Подробные поля, ограничения и пример:
-[process-catalogue](../configuration/process-catalogue.md).
+[workflow-catalogue](../configuration/workflow-catalogue.md).
 
 
 # Project setup — 2026-09-14T00:00:00+05:00
 
 | API | Контракт |
 |---|---|
-| `ProjectBlueprint.parse(raw)` | Полный явный шаблон, вопросы и process references |
+| `ProjectBlueprint.parse(raw)` | Полный явный шаблон, вопросы и workflow references |
 | `ProjectBlueprint.build(edits, max_edits)` | Один кандидат; нет изменения исходного шаблона и разрешения конфликтов порядком |
 | `Survey.answer/keep/back` | Явное изменение позиции/ответов; нет файлов или публикации |
 | `ProjectCommands.apply(request)` | Проверка пакетного намерения и вызов port |

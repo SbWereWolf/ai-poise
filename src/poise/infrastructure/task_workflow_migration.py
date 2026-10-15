@@ -1,4 +1,4 @@
-"""Locked SQLite adapter for the explicit Task process-snapshot migration."""
+"""Locked SQLite adapter for the explicit Task workflow-snapshot migration."""
 from __future__ import annotations
 
 from contextlib import closing
@@ -10,9 +10,9 @@ from typing import Callable
 from ..common import configured_root, descendant, digest, encoded, load_config
 from ..modules.foundation.errors import PoiseError
 from ..modules.accounting.clock import Clock, ClockObservation
-from ..modules.tasks.process_migration import (
+from ..modules.tasks.workflow_migration import (
     MigrationRequest,
-    ProcessSnapshotMigration,
+    WorkflowSnapshotMigration,
     STAGE_CONTRACT_RECOVERY_SCHEMAS,
 )
 from .locking import exclusive_lock
@@ -46,7 +46,7 @@ def _database_snapshot(connection: sqlite3.Connection) -> tuple:
     return connection.execute("PRAGMA user_version").fetchone()[0], schema, tuple(data)
 
 
-class SqliteTaskProcessMigration:
+class SqliteTaskWorkflowMigration:
     def __init__(
         self,
         config_path: Path,
@@ -67,10 +67,10 @@ class SqliteTaskProcessMigration:
             return migrate_stage_criteria(self, request)
         if self.project_publication is not None:
             raise PoiseError("Project publication selection requires stage criteria migration")
-        root, config, processes = load_config(self.config_path)
+        root, config, workflows = load_config(self.config_path)
         from ..modules.goal_config.domain import GoalTypeDefinition
-        processes = {kind: GoalTypeDefinition.from_configuration(document).data
-                     for kind, document in processes.items()}
+        workflows = {kind: GoalTypeDefinition.from_configuration(document).data
+                     for kind, document in workflows.items()}
         try:
             state = configured_root(root, config["paths"]["state"])
             database = descendant(state, config["paths"]["database"])
@@ -78,7 +78,7 @@ class SqliteTaskProcessMigration:
             wait = config["limits"]["lock_seconds"]
             poll = config["limits"]["lock_poll_seconds"]
         except (KeyError, TypeError) as exc:
-            raise PoiseError(f"Incomplete project manifest for Task process migration: {exc}") from exc
+            raise PoiseError(f"Incomplete project manifest for Task workflow migration: {exc}") from exc
         backup = database.parent / "backups" / request.backup_name
         if backup.is_symlink() or not backup.is_file():
             raise PoiseError(f"Named Task DB backup is missing or not a regular file: {request.backup_name}")
@@ -112,7 +112,7 @@ class SqliteTaskProcessMigration:
                         }
                         for row in selected
                     ]
-                plan = ProcessSnapshotMigration.plan(request, rows, processes)
+                plan = WorkflowSnapshotMigration.plan(request, rows, workflows)
                 self.after_preflight()
 
                 connection = sqlite3.connect(database, timeout=0, isolation_level=None, autocommit=True)
@@ -127,7 +127,7 @@ class SqliteTaskProcessMigration:
                             "SELECT metadata FROM tasks WHERE id=?", (update.task_id,)
                         ).fetchone()[0]
                         metadata = json.loads(raw)
-                        metadata["process"] = update.process
+                        metadata["workflow"] = update.workflow
                         if update.contract is not None:
                             metadata["contract"] = update.contract
                         connection.execute(
@@ -136,9 +136,9 @@ class SqliteTaskProcessMigration:
                         )
                         summary = {
                             "task_id": update.task_id,
-                            "worktree_required": update.process["worktree_required"],
-                            "old_process_digest": update.old_process_digest,
-                            "new_process_digest": update.new_process_digest,
+                            "worktree_required": update.workflow["worktree_required"],
+                            "old_workflow_digest": update.old_workflow_digest,
+                            "new_workflow_digest": update.new_workflow_digest,
                         }
                         if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
                             summary.update({
@@ -172,9 +172,9 @@ class SqliteTaskProcessMigration:
                         "INSERT INTO journal(at,session_id,task_id,event,data) VALUES(?,?,?,?,?)",
                         (
                             self._audit_utc(),
-                            "task-process-migrate",
+                            "task-workflow-migrate",
                             None,
-                            "task_process_snapshot_migrated",
+                            "task_workflow_snapshot_migrated",
                             encoded(audit),
                         ),
                     )
@@ -189,25 +189,25 @@ class SqliteTaskProcessMigration:
         except PoiseError:
             raise
         except (OSError, sqlite3.Error, ValueError, KeyError, TypeError) as exc:
-            raise PoiseError(f"Task process migration failed: {exc}") from exc
+            raise PoiseError(f"Task workflow migration failed: {exc}") from exc
 
     @staticmethod
     def _replay(connection: sqlite3.Connection, request: MigrationRequest) -> dict | None:
         rows = connection.execute(
-            "SELECT data FROM journal WHERE event='task_process_snapshot_migrated' ORDER BY seq DESC"
+            "SELECT data FROM journal WHERE event='task_workflow_snapshot_migrated' ORDER BY seq DESC"
         ).fetchall()
         for row in rows:
             audit = json.loads(row[0])
             if not isinstance(audit, dict):
-                raise PoiseError("Stored Task process migration audit is incompatible")
+                raise PoiseError("Stored Task workflow migration audit is incompatible")
             if set(audit) != {"request_digest", "request_id", "result"}:
-                raise PoiseError("Stored Task process migration audit structure is incompatible")
+                raise PoiseError("Stored Task workflow migration audit structure is incompatible")
             if audit.get("request_id") != request.request_id:
                 continue
             if audit.get("request_digest") != request.digest:
-                raise PoiseError("Task process migration request_id belongs to a different intent")
+                raise PoiseError("Task workflow migration request_id belongs to a different intent")
             result = audit.get("result")
-            SqliteTaskProcessMigration._validate_replay_result(connection, request, result)
+            SqliteTaskWorkflowMigration._validate_replay_result(connection, request, result)
             return {**result, "replayed": True}
         return None
 
@@ -223,7 +223,7 @@ class SqliteTaskProcessMigration:
     ) -> None:
         fields = {"status", "replayed", "request_id", "backup_name", "tasks", "receipt"}
         if not isinstance(result, dict) or set(result) != fields:
-            raise PoiseError("Stored Task process migration audit result is incompatible")
+            raise PoiseError("Stored Task workflow migration audit result is incompatible")
         if (
             result["status"] != "migrated"
             or result["replayed"] is not False
@@ -231,11 +231,11 @@ class SqliteTaskProcessMigration:
             or result["backup_name"] != request.backup_name
             or not isinstance(result["tasks"], list)
         ):
-            raise PoiseError("Stored Task process migration audit identity is incompatible")
+            raise PoiseError("Stored Task workflow migration audit identity is incompatible")
         summaries = []
         for task_id, item in zip(request.task_ids, result["tasks"], strict=False):
             item_fields = {
-                "task_id", "worktree_required", "old_process_digest", "new_process_digest"
+                "task_id", "worktree_required", "old_workflow_digest", "new_workflow_digest"
             }
             if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
                 item_fields.update({
@@ -245,28 +245,28 @@ class SqliteTaskProcessMigration:
                     "new_contract_digest",
                 })
             if not isinstance(item, dict) or set(item) != item_fields or item["task_id"] != task_id:
-                raise PoiseError("Stored Task process migration audit Task summary is incompatible")
+                raise PoiseError("Stored Task workflow migration audit Task summary is incompatible")
             if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS and (
                 type(item["worktree_required_added"]) is not bool
                 or item["stage_contracts_initialized"] is not True
             ):
-                raise PoiseError("Stored Task process migration audit Task summary is incompatible")
+                raise PoiseError("Stored Task workflow migration audit Task summary is incompatible")
             row = connection.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()
             if row is None:
-                raise PoiseError("Stored Task process migration audit references a missing Task")
+                raise PoiseError("Stored Task workflow migration audit references a missing Task")
             metadata = json.loads(row[0])
-            process = metadata.get("process") if isinstance(metadata, dict) else None
-            if not isinstance(process, dict) or type(process.get("worktree_required")) is not bool:
-                raise PoiseError("Stored Task process migration audit process is incompatible")
-            worktree_required = process["worktree_required"]
-            old_process = dict(process)
+            workflow = metadata.get("workflow") if isinstance(metadata, dict) else None
+            if not isinstance(workflow, dict) or type(workflow.get("worktree_required")) is not bool:
+                raise PoiseError("Stored Task workflow migration audit workflow is incompatible")
+            worktree_required = workflow["worktree_required"]
+            old_workflow = dict(workflow)
             if request.schema not in STAGE_CONTRACT_RECOVERY_SCHEMAS or item["worktree_required_added"]:
-                old_process.pop("worktree_required")
+                old_workflow.pop("worktree_required")
             expected = {
                 "task_id": task_id,
                 "worktree_required": worktree_required,
-                "old_process_digest": digest(old_process),
-                "new_process_digest": digest(process),
+                "old_workflow_digest": digest(old_workflow),
+                "new_workflow_digest": digest(workflow),
             }
             if request.schema in STAGE_CONTRACT_RECOVERY_SCHEMAS:
                 contract = metadata.get("contract")
@@ -275,7 +275,7 @@ class SqliteTaskProcessMigration:
                     or not isinstance(contract.get("stage_contracts"), list)
                 ):
                     raise PoiseError(
-                        "Stored Task process migration audit stage contracts are incompatible"
+                        "Stored Task workflow migration audit stage contracts are incompatible"
                     )
                 old_contract = dict(contract)
                 old_contract.pop("stage_contracts")
@@ -286,10 +286,10 @@ class SqliteTaskProcessMigration:
                     "new_contract_digest": digest(contract),
                 })
             if item != expected:
-                raise PoiseError("Stored Task process migration audit digest is incompatible")
+                raise PoiseError("Stored Task workflow migration audit digest is incompatible")
             summaries.append(expected)
         if len(summaries) != len(request.task_ids) or len(result["tasks"]) != len(request.task_ids):
-            raise PoiseError("Stored Task process migration audit Task batch is incompatible")
+            raise PoiseError("Stored Task workflow migration audit Task batch is incompatible")
         expected_receipt = digest(
             {
                 "request_digest": request.digest,
@@ -298,4 +298,4 @@ class SqliteTaskProcessMigration:
             }
         )
         if result["receipt"] != expected_receipt:
-            raise PoiseError("Stored Task process migration audit receipt is incompatible")
+            raise PoiseError("Stored Task workflow migration audit receipt is incompatible")

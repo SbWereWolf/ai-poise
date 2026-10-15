@@ -36,7 +36,7 @@ def destination(project,root):
     subprocess.run(['git','-C',str(repo),'remote','rename','origin','backup'],check=True,capture_output=True)
     home=root/'poise';home.mkdir()
     cfg=deepcopy(project['cfg']);cfg['git']['repository']=str(repo)
-    for name,rel in cfg['processes'].items():
+    for name,rel in cfg['workflows'].items():
         original=project['root']/rel
         write_json(home/rel,json.loads(original.read_text()))
     path = home / 'project.json'

@@ -208,7 +208,7 @@ class CreationPreflight:
     methods: tuple[MethodInputs, ...]
 
     @classmethod
-    def parse(cls, contract, process):
+    def parse(cls, contract, workflow):
         methods = contract["methods"]
         declared = contract["method_inputs"]
         if not isinstance(declared, list):
@@ -223,11 +223,11 @@ class CreationPreflight:
             )
         by_id = {value["method_id"]: value for value in declared}
         parsed = tuple(MethodInputs.parse(by_id[method["id"]], method) for method in methods)
-        route = RouteDefinition.from_process(process).with_stage_scopes(contract["stage_contracts"])
+        route = RouteDefinition.from_workflow(workflow).with_stage_scopes(contract["stage_contracts"])
         stages = {node.stage_id: node for node in route.nodes}
         for inputs in parsed:
             execution_stages = tuple(
-                stage["id"] for stage in process["stages"]
+                stage["id"] for stage in workflow["stages"]
                 if inputs.method_id in contract["checks"][stage["id"]]
             )
             for output in inputs.future_outputs:

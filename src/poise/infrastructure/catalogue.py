@@ -12,7 +12,7 @@ class FileCatalogue:
     def __init__(self,path):
         self.path=Path(path).resolve();self.raw=read_document(self.path)
         configuration_fields(self.raw,{'schema','editor','task_templates','max_items'},'catalogue settings')
-        if self.raw['schema']!='process-catalogue-1':raise PoiseError('Unsupported catalogue schema')
+        if self.raw['schema']!='workflow-catalogue-1':raise PoiseError('Unsupported catalogue schema')
         self.editor=EditorSettings((self.path.parent/self.raw['editor']).resolve())
         self.root=self.editor.root
         if type(self.raw['max_items']) is not int or self.raw['max_items']<=0:raise PoiseError('Explicit max_items required')
@@ -22,7 +22,7 @@ class FileCatalogue:
             if any(not isinstance(v,str) or not v for v in entry.values()):raise PoiseError('Incomplete template selection')
             descendant(self.root,entry['path'])
 
-    def process_selection(self,goal_type):
+    def workflow_selection(self,goal_type):
         # IDs are explicit, not inferred from filename or goal prefix.
         matches=[{'id':ident,'version':v['version'],'digest':v['digest']}
                  for ident,v in self.editor.raw['templates'].items()
@@ -31,9 +31,9 @@ class FileCatalogue:
         self.editor.target(goal_type)
         return matches[0]
 
-    def process_template(self,selection):return FileTemplates(self.editor).resolve(selection)
+    def workflow_template(self,selection):return FileTemplates(self.editor).resolve(selection)
 
-    def configured_process(self,goal_type):return read_document(self.editor.target(goal_type))
+    def configured_workflow(self,goal_type):return read_document(self.editor.target(goal_type))
 
     def task_selection(self, goal_type):
         matches = [{'id': ident, 'version': entry['version'], 'digest': entry['digest']}

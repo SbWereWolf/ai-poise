@@ -81,7 +81,7 @@ class DuplicateReuseWorkspace:
         h = self.h
         repository, ref, base = self._integrated(source_commit)
         if execution is None:
-            execution = h._execution_reservation(task_id, base, context['process']['worktree_required'])
+            execution = h._execution_reservation(task_id, base, context['workflow']['worktree_required'])
             path = execution['worktree'] or str(repository)
             observation = {'head': base, 'verified_tree': self._git(repository, 'rev-parse', base + '^{tree}'),
                            'base_ref': ref, 'base_commit': base, 'worktree': path}
@@ -123,9 +123,9 @@ class DuplicateReuseWorkspace:
 
     def _artifact_rules(self, task_id, context, stage_id, records):
         # Reuse delivers the accepted result, not artifacts for simulated prior stages.
-        stage = next((s for s in context['process']['stages'] if s['id'] == stage_id), None)
+        stage = next((s for s in context['workflow']['stages'] if s['id'] == stage_id), None)
         if stage is None:
-            raise PoiseError('Accepted artifact stage is not in the local process')
+            raise PoiseError('Accepted artifact stage is not in the local workflow')
         check_counts(records, context['contract']['artifact_requirements'])
         check_counts(records, stage['artifact_requirements'])
         with self.h.store.unit_of_work() as uow:

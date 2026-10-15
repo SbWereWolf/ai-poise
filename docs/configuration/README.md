@@ -7,7 +7,7 @@
 - [development-routing.md](development-routing.md)
 - [goal-config.md](goal-config.md)
 - [local-assets.md](local-assets.md)
-- [process-catalogue.md](process-catalogue.md)
+- [workflow-catalogue.md](workflow-catalogue.md)
 - [project-setup.md](project-setup.md)
 - [runtime-hooks.md](runtime-hooks.md)
 - [runtime-services.md](runtime-services.md)

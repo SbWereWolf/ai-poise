@@ -5,7 +5,7 @@ description: Change AI poise itself using its DDD, TDD, declarative-tool and pro
 
 # AI poise development
 
-Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current process' explicit `worktree_required` policy; without a required worktree, use the configured repository checkout. See [Task worktree placement](../../../docs/governance/development-rules.md#размещение-task-worktree).
+Read the repository `AGENTS.md` and `src/AGENTS.md` first. Use the current workflow' explicit `worktree_required` policy; without a required worktree, use the configured repository checkout. See [Task worktree placement](../../../docs/governance/development-rules.md#размещение-task-worktree).
 
 For project storage setup follow the concise [setup instruction](../../references/project-storage-setup.md#project-storage-setup):
 explicit project root; separate stores; versioned template selection; owner-managed
@@ -46,7 +46,7 @@ For review, apply the incident-derived [evidence-based checklist](../../../docs/
 
 For a development Task, pass the complete initial checks schedule explicitly; `{}` is valid and must not trigger template defaults. Design and register the actual RED/GREEN methods, schedules and future-output provenance at `verification_planning`, once their source paths are known.
 
-Keep executable-obligation field presence schema-driven: process schemas with a
+Keep executable-obligation field presence schema-driven: workflow schemas with a
 `test_registry` inspection route require the explicit field, while schemas without it reject
 the field and initialize an empty registry classification. Permit an empty repository
 `change_surface` only for a no-RED baseline guard whose sole GREEN is the route-entry
@@ -109,16 +109,16 @@ Use the existing [single-session worktree ownership](../../../docs/configuration
 
 ## Project-local configuration
 
-AI poise is a separate application. Each configured project owns its Task DB and its copied process catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's process configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
+AI poise is a separate application. Each configured project owns its Task DB and its copied workflow catalogue initialized from AI poise reference templates. Changing a reference template must not silently change an existing project's workflow configuration. For the WSL delivery model, read [Local installation → Architecture](../../../docs/configuration/wsl-local-delivery.md#архитектура-локальной-установки) and [Project setup → Publication and replay](../../../docs/configuration/project-setup.md#публикация-и-повтор).
 
 Keep target-project skill inventory and area routing out of AI poise source. Read the selected
-project's `task_decomposition` policy and require every process phase to declare skills and
+project's `task_decomposition` policy and require every workflow phase to declare skills and
 areas before readiness. Ordinary Tasks cannot combine peer narrow responsibilities. An integration Task names component_inputs, combined_result, integration_checks, and allowed_paths.
 Every area routed to a policy-owned narrow responsibility must match a declared narrow-skill
 responsibility regardless of phase; routes outside the policy's narrow responsibilities remain
 non-narrow. Integration allowed paths cover every declared phase area. Validation does not prove factual completeness of declared skills or boundaries.
 
-When another authorized owner has replaced a managed process file, diagnose the exact head
+When another authorized owner has replaced a managed workflow file, diagnose the exact head
 and live revisions with `goal-config-status-1`, then adopt validated content only with an exact
 `goal-config-reconcile-1` request carrying reason and authority. Do not create a fresh editor database
 to evade a stale managed head. Read [Goal config → revision reconciliation](../../../docs/configuration/goal-config.md#сверка-управляемой-revision-с-live-конфигурацией) before acting.
@@ -143,7 +143,7 @@ An idle reviewer starts on a received handoff. If several handoffs arrive, finis
 
 Never run the full test suite during task work, including at a delivery boundary. Run only narrow task-specific checks and the maintained bounded `tests/smoke.sh`; never register unfiltered repository-wide test discovery as a task method. Preserve failed diagnostic workspaces and do not replace a failed run with a retry. Package code, tasks/configs, documentation and verification evidence as one self-contained delivery.
 
-Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). User Task start authorizes executor and reviewer to continue their respective stages, including checks and remediation, without a separate command for each review; honor explicit user limits and AI poise gates. At a role boundary, save results, confirm public handoff/release, stop modifying the Task and [directly notify the known counterpart](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим). The receiver claims/resumes before work. A configured single-role process permits self-inspection without a second participant. Self-inspection is not independent review, and publication/integration retains its separate authorization.
+Follow the canonical [executor/reviewer stage policy](../../../docs/governance/development-rules.md#роли-этапов-и-непрерывность-поручения). User Task start authorizes executor and reviewer to continue their respective stages, including checks and remediation, without a separate command for each review; honor explicit user limits and AI poise gates. At a role boundary, save results, confirm public handoff/release, stop modifying the Task and [directly notify the known counterpart](../../../docs/workflows/local-handoff.md#прямая-передача-между-исполнителем-и-проверяющим). The receiver claims/resumes before work. A configured single-role workflow permits self-inspection without a second participant. Self-inspection is not independent review, and publication/integration retains its separate authorization.
 
 After release and notification, continue actionable received assignments or the authorized stage/Task chain in the same turn. Track assignments until completed, cancelled or explicitly transferred, including pending work and blockers in checkpoints and compaction context. New messages add work unless they explicitly change an assignment; acknowledgment is not completion. Before a final answer, account for every pending assignment; end only when no authorized actionable work remains, preserving each remaining blocker and next action. Finish your own already-started operations. Checking your own pending work is required; do not poll the other agent's status, read its conversation for progress or schedule background monitoring.
 
@@ -191,7 +191,7 @@ For a reported hook/runtime problem, use the explicit
 [hook effect diagnostics](../../../docs/operations/hook-effect-diagnostics.md#диагностика-фактических-эффектов-hooks).
 `runtime-config` accepts a declarative `diagnose` batch; it observes existing owners without
 bootstrapping work or replaying telemetry. Supply a concrete `probe_cwd` only when actively
-requesting the configured probes. A current-process provenance path is not another resolution root.
+requesting the configured probes. A current-workflow provenance path is not another resolution root.
 
 ## Accidental cancellation recovery
 

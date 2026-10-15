@@ -16,10 +16,10 @@
     "rejected": 2,
     "pending": 3
   },
-  "processes": {
-    "development": "config/processes/development.json",
-    "documentation": "config/processes/documentation.json",
-    "generated_notes": "config/processes/generated_notes.json"
+  "workflows": {
+    "development": "config/workflows/development.json",
+    "documentation": "config/workflows/documentation.json",
+    "generated_notes": "config/workflows/generated_notes.json"
   },
   "templates": {
     "development-v1": {

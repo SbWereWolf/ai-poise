@@ -17,11 +17,11 @@ from demo import create, save, git, SOURCE
 def run(directory: Path) -> dict:
     fixture = json.loads((SOURCE / 'examples/content-demo-contract.json').read_text())
     home = create(directory)
-    process_path = home / 'config/processes/development.json'
-    process = json.loads(process_path.read_text())
-    process['content_contract'] = fixture['goal_content']
-    process['stages'][2]['allowed_paths'].append('docs/**')
-    save(process_path, process)
+    workflow_path = home / 'config/workflows/development.json'
+    workflow = json.loads(workflow_path.read_text())
+    workflow['content_contract'] = fixture['goal_content']
+    workflow['stages'][2]['allowed_paths'].append('docs/**')
+    save(workflow_path, workflow)
     task_path = home / 'task.json'
     task = json.loads(task_path.read_text())
     task['content_contract'] = fixture['task_content']
@@ -34,7 +34,7 @@ def run(directory: Path) -> dict:
                                 if stage['id'] in r['stages'] and r['phase'] == 'pre'],
          'exit_requirements': [r['id'] for r in predicates
                                if stage['id'] in r['stages'] and r['phase'] == 'post']}
-        for stage in process['stages']
+        for stage in workflow['stages']
     ]
     save(task_path, task)
     # The scenario is self-contained, not a continuation of the invoking agent.

@@ -14,7 +14,7 @@ from runtime_services.test_restart_registry_preservation import (
     persisted, projection, ready_task, restart_task, setup_current,
     verification_calls, changes_fixture, wire_hash,
 )
-from runtime_services.test_task_restart import git, process_contract
+from runtime_services.test_task_restart import git, workflow_contract
 from verification.test_current_registry_mutation import (
     configure_public_registry_case, public_tools, change, operation,
 )
@@ -24,12 +24,12 @@ def prepare_documentation_restart(project):
     configure_public_registry_case(project)
     project["task"].update(
         methods=[], method_inputs=[],
-        checks={stage["id"]: [] for stage in project["process"]["stages"]},
+        checks={stage["id"]: [] for stage in project["workflow"]["stages"]},
         planning={
             "schema": "task-planning-1", "template": None,
             "restart_revision_policy": {
-                "reviewer": ["process"],
-                "user": ["process", "methods", "method_inputs", "checks",
+                "reviewer": ["workflow"],
+                "user": ["workflow", "methods", "method_inputs", "checks",
                          "decomposition", "evidence_plan", "stage_contracts",
                          "executable_obligations"],
             },
@@ -46,17 +46,17 @@ def prepare_documentation_restart(project):
     assert registry_before["executable_obligations"] == ["requirements[0]", "definition_of_done[0]"]
     assert registry_before["current"] == []
     newborn = restart_task(tools, "T1")
-    process = deepcopy(newborn["process"])
+    workflow = deepcopy(newborn["workflow"])
     # Two real documentation stages; no verification-registry schema owner.
-    process["stages"] = process["stages"][:2]
-    first, second = process["stages"]
+    workflow["stages"] = workflow["stages"][:2]
+    first, second = workflow["stages"]
     first["sections"].pop("test_registry")
     first["allowed_paths"] = ["docs/**"]
     second["transitions"] = {"clear": None, "changes_requested": first["id"]}
-    for stage in process["stages"]:
+    for stage in workflow["stages"]:
         stage["rework_targets"] = [first["id"], second["id"]]
-    patch = process_contract(newborn["draft"]["goal_type"], process)
-    patch["process"] = process
+    patch = workflow_contract(newborn["draft"]["goal_type"], workflow)
+    patch["workflow"] = workflow
     edited = tools.invoke(request("task", {
         "action": "edit", "task_id": "T1", "request_id": "documentation-contract",
         "expected_revision": newborn["revision"], "patch": patch,
@@ -258,7 +258,7 @@ def test_reclassified_task_preserves_old_green_but_executes_fresh_candidate(proj
     configure_public_registry_case(project)
     project["task"]["planning"] = {
         "schema": "task-planning-1", "template": None,
-        "restart_revision_policy": {"reviewer": ["process"], "user": ["executable_obligations"]},
+        "restart_revision_policy": {"reviewer": ["workflow"], "user": ["executable_obligations"]},
     }
     counter = project["root"] / "classification-proof-calls.txt"
     probe = changes_fixture()["probe"]
@@ -268,7 +268,7 @@ def test_reclassified_task_preserves_old_green_but_executes_fresh_candidate(proj
         "method_id": "PROBE", "repository_inputs": [], "future_outputs": [],
         "reference_profile": {"runner": "python", "parser": "inline-no-path-arguments", "version": 1},
     }]
-    checks = {stage["id"]: [] for stage in project["process"]["stages"]}
+    checks = {stage["id"]: [] for stage in project["workflow"]["stages"]}
     checks["test_implementation"] = ["PROBE"]
     project["task"]["checks"] = checks
     project["cfg"]["automatic_checks"][0]["by_stage"] = deepcopy(checks)

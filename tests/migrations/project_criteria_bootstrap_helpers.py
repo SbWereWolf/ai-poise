@@ -14,7 +14,7 @@ from poise.infrastructure.project_config import FileProjectConfigUpdate
 from poise.infrastructure.projects import ProjectSettings
 from tests.conftest import write_json
 from tests.projects.helpers import setup_case
-from tests.projects.test_update import process_change, read_process, update_request
+from tests.projects.test_update import workflow_change, read_workflow, update_request
 from .project_criteria_helpers import historical_project_owned
 from .stage_criteria_helpers import identity
 
@@ -44,8 +44,8 @@ def native_bootstrap(project, *, prior_update=False, request_id="native-bootstra
     config = Path(created["config_path"])
     before = created["revision"]
     if prior_update:
-        update = update_request(config, before, process_updates=[
-            process_change(read_process(config), "Native instruction before association.")])
+        update = update_request(config, before, workflow_updates=[
+            workflow_change(read_workflow(config), "Native instruction before association.")])
         update["receipt_path"] = "operations/10-before-bootstrap.json"
         before = project_config_tools(settings).apply(update)["revision"]
         assert before != created["revision"]
@@ -58,11 +58,11 @@ def native_bootstrap(project, *, prior_update=False, request_id="native-bootstra
     }
     before_config = json.loads(config.read_text())
     documents = {goal: json.loads((config.parent / path).read_text())
-                 for goal, path in before_config["processes"].items()}
-    process_bytes = {path: (config.parent / path).read_bytes()
-                     for path in before_config["processes"].values()}
+                 for goal, path in before_config["workflows"].items()}
+    workflow_bytes = {path: (config.parent / path).read_bytes()
+                     for path in before_config["workflows"].values()}
     assert "runtime_resources" not in before_config
-    assert before == identity({"config": before_config, "processes": documents})
+    assert before == identity({"config": before_config, "workflows": documents})
     receipt = settings.parent / request["receipt_path"]
     pending = receipt.with_name(receipt.name + ".pending")
     if durable_retry:
@@ -91,8 +91,8 @@ def native_bootstrap(project, *, prior_update=False, request_id="native-bootstra
     result = project_config_tools(settings).apply(request)
     after_config = json.loads(config.read_text())
     assert after_config == {**before_config, "runtime_resources": request["runtime_resources"]}
-    assert all((config.parent / path).read_bytes() == content for path, content in process_bytes.items())
-    expected_revision = identity({"config": after_config, "processes": documents})
+    assert all((config.parent / path).read_bytes() == content for path, content in workflow_bytes.items())
+    expected_revision = identity({"config": after_config, "workflows": documents})
     assert result["revision"] == result["after_revision"] == expected_revision
     assert result["prior_revision"] == result["before_revision"] == before
     raw = receipt.read_bytes()
@@ -115,10 +115,10 @@ def historical_bootstrap(project):
     before_config = deepcopy(config)
     resources = before_config.pop("runtime_resources")
     documents = {goal: json.loads((case["bundle"] / path).read_text())
-                 for goal, path in config["processes"].items()}
-    initial_revision = identity({"config": before_config, "processes": case["initial_documents"]})
-    prior = identity({"config": before_config, "processes": documents})
-    after = identity({"config": config, "processes": documents})
+                 for goal, path in config["workflows"].items()}
+    initial_revision = identity({"config": before_config, "workflows": case["initial_documents"]})
+    prior = identity({"config": before_config, "workflows": documents})
+    after = identity({"config": config, "workflows": documents})
     assert after == case["source_revision"] and prior != after
     # Rebuild only synthetic historical setup/update records into a coherent
     # pre-association chain. Genuine current producer bytes never enter this case.
@@ -165,8 +165,8 @@ def historical_bootstrap(project):
         parent[edit["path"][-1]] = edit["value"]
     assert configured == before_config
     assert setup["files"] == {key: hashlib.sha256(value).hexdigest() for key, value in initial_bytes.items()}
-    assert setup["result"]["revision"] == identity({"config": before_config, "processes": case["initial_documents"]})
-    for goal, source in blueprint["process_sources"].items():
+    assert setup["result"]["revision"] == identity({"config": before_config, "workflows": case["initial_documents"]})
+    for goal, source in blueprint["workflow_sources"].items():
         document = json.loads((case["settings"].parent / source["path"]).read_text())
         assert source["digest"] == identity(document)
         assert document == case["initial_documents"][goal]
@@ -174,7 +174,7 @@ def historical_bootstrap(project):
                for doc in documents.values() for stage in doc["stages"])
     assert all((case["bundle"] / path).read_bytes() == content
                for path, content in case["initial_bytes"].items() if path != "project.json"
-               and path != config["processes"]["development"])
+               and path != config["workflows"]["development"])
     case.update(owner=FileProjectConfigUpdate(ProjectSettings(case["settings"])),
                 receipt=receipt, raw=receipt.read_bytes(), revision=after,
                 prior=prior, root=case["project"]["root"],

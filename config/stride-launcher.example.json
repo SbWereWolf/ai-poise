@@ -6,7 +6,8 @@
   "project_setup": "config/project-setup.json",
   "command": [
     "/opt/poise/.venv/bin/python",
-    "-I",
+    "-P",
+    "-s",
     "-B",
     "-m",
     "poise"
@@ -14,7 +15,8 @@
   "overrides": {
     "next": [
       "/opt/poise/.venv/bin/python",
-      "-I",
+      "-P",
+      "-s",
       "-B",
       "-m",
       "poise",

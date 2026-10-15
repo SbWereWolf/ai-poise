@@ -9,7 +9,7 @@ from conftest import write_json
 from poise.common import PoiseError
 from poise.modules.foundation.errors import DomainError
 from poise.modules.tasks.domain import TaskStageContracts
-from runner.helpers import decision, finding, inspect, process, resolution, task, verify
+from runner.helpers import decision, finding, inspect, workflow, resolution, task, verify
 from runner.test_runner_paths import edit, result, setup_project
 
 
@@ -21,7 +21,7 @@ EXPECTED_ERROR = (
 
 def pending_runtime(project):
     runtime = setup_project(project, "development")
-    configured = runtime.processes["development"]
+    configured = runtime.workflows["development"]
     project["task"]["stage_contracts"] = [
         {
             "stage_id": stage["id"],
@@ -49,7 +49,7 @@ def pending_runtime(project):
 
 
 def task_with_contracts(route=None):
-    configured = process() if route is None else route
+    configured = workflow() if route is None else route
     current = task(configured)
     contracts = TaskStageContracts.parse(
         [
@@ -93,7 +93,7 @@ def test_rework_rejects_pending_resolution_before_state_change(project):
 
 
 def test_failed_check_rework_rejects_pending_resolution_before_state_change():
-    route = process()
+    route = workflow()
     route["stages"][3]["rework_targets"].append("amend")
     current = pending_task(route).accept("S", True).task
     current = current.submit(
@@ -212,7 +212,7 @@ def test_exact_rework_retry_is_idempotent():
 
 
 def test_mixed_history_reports_only_unresolved_resolution():
-    route = process()
+    route = workflow()
     route["stages"][2]["transitions"]["complete"] = "resolution_audit"
     route["stages"][3]["id"] = "resolution_audit"
     route["stages"][3]["rework_targets"] = ["resolution_audit", "draft"]

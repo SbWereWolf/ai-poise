@@ -24,7 +24,7 @@ def binding(task):
                 'goal_type':task.get('goal_type') or 'newborn',
                 'stage':'newborn','iteration':1}
     return {'task':task['id'],'sprint':task['sprint_id'],'goal_type':task['contract']['goal_type'],
-            'stage':task['process']['stages'][task['stage_index']]['id'],'iteration':task['iteration']}
+            'stage':task['workflow']['stages'][task['stage_index']]['id'],'iteration':task['iteration']}
 
 
 class SqliteAccounting:

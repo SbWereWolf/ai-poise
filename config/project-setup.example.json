@@ -5,12 +5,12 @@
     "linux-reference": {
       "path": "config/project-templates/linux-reference.json",
       "version": "7",
-      "digest": "924ca9cc0d61986b5acbee25972740ff136a570e1023eab4ae891dc7aef2b6e4"
+      "digest": "ef2da2c21c4e98bdb891f6ef3ee4382c020fb4da9fbcfb3b42526fe2875e358e"
     },
     "wsl-poise": {
       "path": "config/project-templates/wsl-poise.json",
       "version": "9",
-      "digest": "cb3d0827244b8cf4d7ce45467083bf7bb8b4baef4ce09747368104d3d59c559f"
+      "digest": "24c2f4b22cd624b0c7a1a1eb602db77c63c316bdef735c3456fa7f5fb544c5e4"
     }
   },
   "manifest": "project.json",

@@ -46,7 +46,7 @@ def migration_lock_probe():
     with ExitStack() as patches, redirect_stdout(out), redirect_stderr(err):
         for module in (locking, project_config, stage_criteria_migration):
             patches.enter_context(patch.object(module, "exclusive_lock", tracked))
-        patches.enter_context(patch.object(sys, "argv", ["poise", "task-process-migrate",
+        patches.enter_context(patch.object(sys, "argv", ["poise", "task-workflow-migrate",
                               "--config", str(config_path), "--project-settings", str(settings_path)]))
         try:
             code = cli()

@@ -69,15 +69,15 @@ def resolve_source_under_test(
 class Poise:
     """Одна сессия, одна текущая задача; переход этапа только по решению пользователя."""
     def __init__(self, config_path: Path | str, session: str, clock,
-                 legacy_process_requirements: dict[str, bool] | None = None,
+                 legacy_workflow_requirements: dict[str, bool] | None = None,
                  liveness=None):
         self.config_path = Path(config_path).resolve()
-        self.root, self.cfg, self.processes = load_config(
-            self.config_path, legacy_process_requirements
+        self.root, self.cfg, self.workflows = load_config(
+            self.config_path, legacy_workflow_requirements
         )
         from .modules.goal_config.domain import GoalTypeDefinition
-        self.processes = {kind: GoalTypeDefinition.from_configuration(document).data
-                          for kind, document in self.processes.items()}
+        self.workflows = {kind: GoalTypeDefinition.from_configuration(document).data
+                          for kind, document in self.workflows.items()}
         self.development_routing = None
         if 'development_routing' in self.cfg:
             from .infrastructure.development_routing import load_development_routing
@@ -106,7 +106,7 @@ class Poise:
         self.project_fence = ProjectRuntimeFence(self.config_path, self.state)
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
-                           limits['lock_seconds'], limits['lock_poll_seconds'], self.processes,
+                           limits['lock_seconds'], limits['lock_poll_seconds'], self.workflows,
                            self.project_fence)
         from .infrastructure.repository_tree import GitRepositoryTree
         repository_tree = GitRepositoryTree(
@@ -200,9 +200,8 @@ class Poise:
         self.check_timeout_policy=RunnerTimeoutPolicy.parse(self.cfg['runtime_services']['check_runner'])
         from .infrastructure.handoff import LocalHandoff
         self.handoff_tools=LocalHandoff(self)
-        from .application.transfers import TransferCommands
-        from .infrastructure.transfers import RuntimeTransfers
-        self.transfer_tools=TransferCommands(RuntimeTransfers(self),self.cfg['runtime_services']['transfer'])
+        from .infrastructure.sqlite.transfers import SqliteTransferRepository
+        self.transfer_repository = SqliteTransferRepository(self.store.database)
         from .application.result_integration import ResultIntegrationCommands
         from .infrastructure.result_integration import RuntimeResultIntegration
         self.source_under_test_resolver = resolve_source_under_test
@@ -223,6 +222,15 @@ class Poise:
         if task is None:
             raise PoiseError('Historical receipt Task unavailable')
         return is_terminal_task_status(task['status'])
+
+    @property
+    def transfer_tools(self):
+        """Compose the file-transfer adapter only for an explicit transfer request."""
+        if 'transfer' not in self.cfg['runtime_services']:
+            raise PoiseError('Файловый перенос задач не настроен')
+        from .application.transfers import TransferCommands
+        from .infrastructure.transfers import RuntimeTransfers
+        return TransferCommands(RuntimeTransfers(self), self.cfg['runtime_services']['transfer'])
 
     def delivery_after(self,result,operation):
         task_id=result['task']
@@ -294,7 +302,7 @@ class Poise:
         revision_policy = configuration_fields(settings['restart_revision_policy'],
                                                {'reviewer', 'user'}, 'task_planning.restart_revision_policy')
         return CatalogueCommands(repository, None, repository.raw['max_items']).materialize_draft(
-            goal_type, task_id, sprint_id, self.processes, revision_policy)
+            goal_type, task_id, sprint_id, self.workflows, revision_policy)
 
     def task_action(self, args):
         action = args['action']
@@ -313,12 +321,12 @@ class Poise:
             return self.task_commands.create_newborn(
                 args['task_id'], args['sprint_id'], self.session, self.config_hash,
                 args['request_id'], goal_type=args.get('goal_type'), patch=args.get('patch'),
-                processes=self.processes, planning_source=self._task_planning_source,
+                workflows=self.workflows, planning_source=self._task_planning_source,
             )
         if action == 'edit':
             return self.task_commands.edit_newborn(
                 args['task_id'], self.session, args['expected_revision'], args['patch'],
-                args['remove'], self.processes, self.config_hash, args['request_id'],
+                args['remove'], self.workflows, self.config_hash, args['request_id'],
                 planning_source=(self._task_planning_source if 'task_planning' in self.cfg else None),
             )
         if action == 'ready':
@@ -504,7 +512,7 @@ class Poise:
         owners = {'runtime': self.session, 'task': task_id}
         if data['sprint_id'] is not None:
             owners['sprint'] = data['sprint_id']
-        delivery = self.transfer_tools.port.repo.delivery_for_task(task_id)
+        delivery = self.transfer_repository.delivery_for_task(task_id)
         omitted = set() if delivery is None else set(delivery['manifest']['omitted_artifacts'])
         for accepted in source['report']['artifacts']:
             if accepted['id'] in omitted:
@@ -901,7 +909,7 @@ class Poise:
         return task
 
     def _stage(self, task: dict) -> dict:
-        return task['process']['stages'][task['stage_index']]
+        return task['workflow']['stages'][task['stage_index']]
 
     def _roots(self, task: dict) -> dict[str,Path]:
         roots = {'runtime': self.runtime,
@@ -932,7 +940,7 @@ class Poise:
             self._roots(data)
             payload = self.task_queries.current_submission(data['id'])
             if payload is not None:
-                delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
+                delivery = self.transfer_repository.delivery_for_task(data['id'])
                 if delivery is not None:
                     omitted = set(delivery['manifest']['omitted_artifacts'])
                     missing = {item['path'] for item in self.store.artifact_records(data['id']) if item['id'] in omitted}
@@ -1045,12 +1053,12 @@ class Poise:
                 'sprint_root': None if sid is None else str(sprint_root(self.state, self.paths, sid)),
                 'next_work': 'Read historical records; no current-task binding or execution'}
 
-    def _validate_task(self, task: dict, process: dict) -> dict:
+    def _validate_task(self, task: dict, workflow: dict) -> dict:
         from .modules.tasks.definition import validate_creation
         validate_creation(
-            task, process, self.cfg['automatic_checks'], self.cfg['task_decomposition']
+            task, workflow, self.cfg['automatic_checks'], self.cfg['task_decomposition']
         )
-        return process
+        return workflow
 
     def _creation_base(self):
         repository=Path(self.cfg['git']['repository']).resolve(strict=True)
@@ -1180,11 +1188,11 @@ class Poise:
                 if existing['status']=='available':
                     blocked = self._require_entry(existing)
                     return blocked if blocked is not None else self.sprint_tools.start(existing['id'],force_duplicate_start=force_duplicate_start)
-                selected_process = existing['process']
+                selected_workflow = existing['workflow']
             else:
-                if contract.get('goal_type') not in self.processes:
+                if contract.get('goal_type') not in self.workflows:
                     raise PoiseError('Неизвестный goal_type')
-                selected_process = self.processes[contract['goal_type']]
+                selected_workflow = self.workflows[contract['goal_type']]
             if existing is not None:
                 data = existing
                 self.task_commands.execution_preflight(data['id'])
@@ -1206,10 +1214,10 @@ class Poise:
                 if not automatic and self.sprint_tools.known(contract['id']):raise PoiseError('Task/sprint ID collision')
                 base=self._creation_base()
                 allocation=self.task_commands.create(
-                intent,self.session,selected_process,self.cfg['automatic_checks'],
+                intent,self.session,selected_workflow,self.cfg['automatic_checks'],
                     {'config_hash':self.config_hash},
                     lambda task_id:self._execution_reservation(
-                        task_id,base,selected_process['worktree_required']
+                        task_id,base,selected_workflow['worktree_required']
                     ),
                 self.cfg.get('task_ids'),base,self.cfg['task_decomposition'])
                 allocation_receipt=allocation.receipt()
@@ -1365,7 +1373,7 @@ class Poise:
 
     def _inspect_artifacts(self, data, paths, roots, owners):
         from .infrastructure.recovery_artifacts import artifact_placement
-        delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
+        delivery = self.transfer_repository.delivery_for_task(data['id'])
         return artifact_placement(inspect_paths(paths, roots, owners), delivery)
 
     def _candidate_artifacts(self, data: dict, submitted: list[str], roots: dict[str,Path]):
@@ -1374,7 +1382,7 @@ class Poise:
         records = self._inspect_artifacts(data, submitted, roots, owners)
         previous = self.store.artifact_records(data['id'])
         internal_materials = self.store.internal_material_ids(data['id'])
-        delivery = self.transfer_tools.port.repo.delivery_for_task(data['id'])
+        delivery = self.transfer_repository.delivery_for_task(data['id'])
         if delivery is not None:
             omitted = set(delivery['manifest']['omitted_artifacts'])
             previous = [item for item in previous if item['id'] not in omitted]
@@ -1739,7 +1747,7 @@ class Poise:
             return self._content_blocked(data,gate,receipts)
         if stage['handler']=='publish':
             from .modules.workflow.domain import RouteDefinition
-            if RouteDefinition.from_process(data['process']).node(stage['id']).target('complete') is None:
+            if RouteDefinition.from_workflow(data['workflow']).node(stage['id']).target('complete') is None:
                 check_counts(artifacts,data['contract']['artifact_requirements'])
             action=self.plan_actions.publish(data,payload)
             if action['status']!='complete':

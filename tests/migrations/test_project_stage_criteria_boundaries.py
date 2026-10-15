@@ -11,7 +11,7 @@ from tests.migrations.project_criteria_helpers import (
     historical_project_owned, observe, project_receipts, run_migration,
 )
 from tests.migrations.test_project_stage_criteria_migration import (
-    assert_durable_receipt_pending, assert_success, interrupt_first_process,
+    assert_durable_receipt_pending, assert_success, interrupt_first_workflow,
 )
 
 
@@ -42,7 +42,7 @@ def test_pending_nonobject_before_refuses_without_effects(project, invalid):
     # Isolate a nonobject before field in the native pending container.
     pending = {"schema": "project-config-pending-1", "request_id": "foreign",
                "request_digest": "a" * 64, "before": invalid,
-               "after": {"config": "b" * 64, "processes": {}}}
+               "after": {"config": "b" * 64, "workflows": {}}}
     path = project["root"] / "operations/foreign.json.pending"
     path.write_text(json.dumps(pending))
     before = observe(case)
@@ -115,8 +115,8 @@ def test_foreign_history_schema_cannot_authorize_source_revision(project):
 
 def test_selected_source_receipt_drift_before_intent_refuses(project, monkeypatch):
     case = historical_project_owned(project)
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
-    original = SqliteTaskProcessMigration.__init__
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
+    original = SqliteTaskWorkflowMigration.__init__
     at_drift = []
 
     def change_source_receipt():
@@ -133,7 +133,7 @@ def test_selected_source_receipt_drift_before_intent_refuses(project, monkeypatc
         self.after_preflight = change_source_receipt
 
     with monkeypatch.context() as scoped:
-        scoped.setattr(SqliteTaskProcessMigration, "__init__", instrument)
+        scoped.setattr(SqliteTaskWorkflowMigration, "__init__", instrument)
         code, response, stderr = run_migration(case, patch=scoped)
     assert len(at_drift) == 1
     assert_refusal(code, response, stderr, "rejected", ["receipt", "revision", "source", "owner"])
@@ -143,7 +143,7 @@ def test_selected_source_receipt_drift_before_intent_refuses(project, monkeypatc
 
 def test_partial_recovery_rechecks_original_source_receipt(project, monkeypatch):
     case = historical_project_owned(project)
-    interrupt_first_process(case, monkeypatch)
+    interrupt_first_workflow(case, monkeypatch)
     document = json.loads(case["history_receipt"].read_text())
     document["result"]["revision"] = "0" * 64
     case["history_receipt"].write_text(json.dumps(document))

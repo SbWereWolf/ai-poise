@@ -33,7 +33,7 @@ TASKS_V1 = ("0077", "0081", "0079", "0078", "0074", "0063")
 CURRENT_TASK = "ERP-HARNESS-COMPARISON-PLAN"
 
 
-class Task0082ProcessMigrationTests(unittest.TestCase):
+class Task0082WorkflowMigrationTests(unittest.TestCase):
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.monkeypatch = pytest.MonkeyPatch()
@@ -70,17 +70,17 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             state = self.project["config_path"].parent / state
         return state / config["paths"]["database"]
 
-    def _configured_process(self) -> dict:
+    def _configured_workflow(self) -> dict:
         config = json.loads(
             self.project["config_path"].read_text(encoding="utf-8")
         )
-        path = self.project["config_path"].parent / config["processes"]["development"]
+        path = self.project["config_path"].parent / config["workflows"]["development"]
         return json.loads(path.read_text(encoding="utf-8"))
 
     @staticmethod
     def _request(backup_name: str, **changes: object) -> dict:
         value = {
-            "schema": "task-process-migration-3",
+            "schema": "task-workflow-migration-3",
             "request_id": "migrate-task-0082-stage-contracts-2",
             "backup_name": backup_name,
             "task_ids": ["0082"],
@@ -92,7 +92,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
     @staticmethod
     def _legacy_request(backup_name: str) -> dict:
         return {
-            "schema": "task-process-migration-2",
+            "schema": "task-workflow-migration-2",
             "request_id": "migrate-task-0082-process-1",
             "backup_name": backup_name,
             "task_ids": ["0082"],
@@ -102,7 +102,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
     @staticmethod
     def _current_task_request(backup_name: str, **changes: object) -> dict:
         value = {
-            "schema": "task-process-migration-4",
+            "schema": "task-workflow-migration-4",
             "request_id": "migrate-current-task-stage-contracts-1",
             "backup_name": backup_name,
             "task_ids": [CURRENT_TASK],
@@ -133,10 +133,10 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
     def _seed_legacy_0082(self, task_id: str = "0082") -> tuple[Path, dict, list[dict]]:
         self.project["task"]["id"] = task_id
         setup_project(self.project, "development")
-        process_path = self.project["root"] / "config/processes/development.json"
-        process = json.loads(process_path.read_text(encoding="utf-8"))
-        process["route"]["entry"] = "test_remediation"
-        for stage in process["stages"]:
+        workflow_path = self.project["root"] / "config/workflows/development.json"
+        workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+        workflow["route"]["entry"] = "test_remediation"
+        for stage in workflow["stages"]:
             if stage["id"] == "draft":
                 stage["id"] = "test_remediation"
             stage["transitions"] = {
@@ -147,7 +147,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 "test_remediation" if target == "draft" else target
                 for target in stage["rework_targets"]
             ]
-        write_json(process_path, process)
+        write_json(workflow_path, workflow)
 
         task = self.project["task"]
         task["checks"]["test_remediation"] = task["checks"].pop("draft")
@@ -155,7 +155,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             "draft"
         )
         requirements = (
-            process["content_contract"]["requirements"]
+            workflow["content_contract"]["requirements"]
             + task["content_contract"]["requirements"]
         )
         task["stage_contracts"] = [
@@ -171,7 +171,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                     if stage["id"] in item["stages"] and item["phase"] == "post"
                 ],
             }
-            for stage in process["stages"]
+            for stage in workflow["stages"]
         ]
         for method in task["methods"]:
             plan = method["verification_plan"]
@@ -228,13 +228,13 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             ).fetchone()[0]
             metadata = json.loads(raw)
             stage_contracts = metadata["contract"].pop("stage_contracts")
-            legacy_process = metadata["process"]
+            legacy_workflow = metadata["workflow"]
             stage = next(
-                item for item in legacy_process["stages"]
+                item for item in legacy_workflow["stages"]
                 if item["id"] == "test_remediation"
             )
             stage["instruction"] = "Preserve the legacy Task 0082 instruction."
-            legacy_process.pop("worktree_required")
+            legacy_workflow.pop("worktree_required")
             connection.execute(
                 "UPDATE tasks SET metadata=? WHERE id=?",
                 (
@@ -260,7 +260,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                 sys.executable,
                 "-m",
                 "poise",
-                "task-process-migrate",
+                "task-workflow-migrate",
                 "--config",
                 str(self.project["config_path"]),
             ],
@@ -273,7 +273,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         )
 
     def test_schemas_2_to_4_accept_only_their_authorized_task(self):
-        from poise.modules.tasks.process_migration import MigrationRequest
+        from poise.modules.tasks.workflow_migration import MigrationRequest
 
         parsed = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
         self.assertEqual(parsed.task_ids, ("0082",))
@@ -285,7 +285,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         self.assertEqual(parsed_current.task_ids, (CURRENT_TASK,))
         parsed_v1 = MigrationRequest.parse(
             {
-                "schema": "task-process-migration-1",
+                "schema": "task-workflow-migration-1",
                 "request_id": "preserve-schema-1",
                 "backup_name": "tasks-backup.sqlite",
                 "task_ids": list(TASKS_V1),
@@ -338,12 +338,12 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         )
 
     def test_domain_plans_only_missing_worktree_and_stage_contract_fields(self):
-        from poise.modules.tasks.process_migration import (
+        from poise.modules.tasks.workflow_migration import (
             MigrationRequest,
-            ProcessSnapshotMigration,
+            WorkflowSnapshotMigration,
         )
 
-        configured = self._configured_process()
+        configured = self._configured_workflow()
         legacy = deepcopy(configured)
         legacy.pop("worktree_required")
         legacy["stages"][0]["instruction"] = "Preserve a legacy instruction."
@@ -352,7 +352,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         contract.pop("stage_contracts")
         request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
 
-        plan = ProcessSnapshotMigration.plan(
+        plan = WorkflowSnapshotMigration.plan(
             request,
             [
                 {
@@ -361,7 +361,7 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
                     "claimed_by": None,
                     "metadata": {
                         "contract": contract,
-                        "process": legacy,
+                        "workflow": legacy,
                     },
                 }
             ],
@@ -371,19 +371,19 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         self.assertEqual(tuple(item.task_id for item in plan.updates), ("0082",))
         expected = deepcopy(legacy)
         expected["worktree_required"] = True
-        self.assertEqual(plan.updates[0].process, expected)
+        self.assertEqual(plan.updates[0].workflow, expected)
         self.assertEqual(
             [item["stage_id"] for item in plan.updates[0].contract["stage_contracts"]],
             [item["id"] for item in legacy["stages"]],
         )
 
-    def test_schema_3_finishes_partial_process_recovery_without_replacing_it(self):
-        from poise.modules.tasks.process_migration import (
+    def test_schema_3_finishes_partial_workflow_recovery_without_replacing_it(self):
+        from poise.modules.tasks.workflow_migration import (
             MigrationRequest,
-            ProcessSnapshotMigration,
+            WorkflowSnapshotMigration,
         )
 
-        configured = self._configured_process()
+        configured = self._configured_workflow()
         legacy = deepcopy(configured)
         legacy["stages"][0]["instruction"] = "Preserve partial recovery state."
         contract = deepcopy(self.project["task"])
@@ -391,35 +391,35 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         contract.pop("stage_contracts")
         request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
 
-        plan = ProcessSnapshotMigration.plan(
+        plan = WorkflowSnapshotMigration.plan(
             request,
             [{
                 "id": "0082",
                 "status": "verified",
                 "claimed_by": None,
-                "metadata": {"contract": contract, "process": legacy},
+                "metadata": {"contract": contract, "workflow": legacy},
             }],
             {"development": configured},
         )
 
         update = plan.updates[0]
         self.assertFalse(update.worktree_required_added)
-        self.assertEqual(update.process, legacy)
-        self.assertEqual(update.old_process_digest, update.new_process_digest)
+        self.assertEqual(update.workflow, legacy)
+        self.assertEqual(update.old_workflow_digest, update.new_workflow_digest)
         self.assertIn("stage_contracts", update.contract)
 
     def test_schema_3_rejects_nonexact_partial_recovery(self):
-        from poise.modules.tasks.process_migration import (
+        from poise.modules.tasks.workflow_migration import (
             MigrationRequest,
-            ProcessSnapshotMigration,
+            WorkflowSnapshotMigration,
         )
 
-        configured = self._configured_process()
+        configured = self._configured_workflow()
         contract = deepcopy(self.project["task"])
         contract["id"] = "0082"
         request = MigrationRequest.parse(self._request("tasks-backup.sqlite"))
 
-        for process, existing_contract, reason in (
+        for workflow, existing_contract, reason in (
             (deepcopy(configured), contract, "already has stage_contracts"),
             (
                 {**deepcopy(configured), "worktree_required": False},
@@ -428,19 +428,19 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             ),
         ):
             with self.subTest(reason=reason), self.assertRaisesRegex(DomainError, reason):
-                ProcessSnapshotMigration.plan(
+                WorkflowSnapshotMigration.plan(
                     request,
                     [{
                         "id": "0082",
                         "status": "verified",
                         "claimed_by": None,
-                        "metadata": {"contract": existing_contract, "process": process},
+                        "metadata": {"contract": existing_contract, "workflow": workflow},
                     }],
                     {"development": configured},
                 )
 
     def test_public_migration_preserves_task_0082_and_replays(self):
-        from poise.modules.tasks.process_migration import MigrationRequest
+        from poise.modules.tasks.workflow_migration import MigrationRequest
 
         database, metadata, stage_contracts = self._seed_legacy_0082()
         backup = backup_commands(self.project).create()
@@ -492,11 +492,11 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         self.assertEqual(row[:6], before_task[1:7])
         migrated_metadata = json.loads(row[6])
         expected_metadata = deepcopy(metadata)
-        expected_metadata["process"]["worktree_required"] = True
+        expected_metadata["workflow"]["worktree_required"] = True
         expected_metadata["contract"]["stage_contracts"] = stage_contracts
         self.assertEqual(migrated_metadata, expected_metadata)
         preserved_stage = next(
-            item for item in migrated_metadata["process"]["stages"]
+            item for item in migrated_metadata["workflow"]["stages"]
             if item["id"] == "test_remediation"
         )
         self.assertEqual(
@@ -510,8 +510,8 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
             "worktree_required": True,
             "worktree_required_added": True,
             "stage_contracts_initialized": True,
-            "old_process_digest": digest(metadata["process"]),
-            "new_process_digest": digest(expected_metadata["process"]),
+            "old_workflow_digest": digest(metadata["workflow"]),
+            "new_workflow_digest": digest(expected_metadata["workflow"]),
             "old_contract_digest": digest(metadata["contract"]),
             "new_contract_digest": digest(expected_metadata["contract"]),
         }
@@ -566,12 +566,12 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         legacy_result = json.loads(first.stdout)
         self.assertEqual(
             set(legacy_result["tasks"][0]),
-            {"task_id", "worktree_required", "old_process_digest", "new_process_digest"},
+            {"task_id", "worktree_required", "old_workflow_digest", "new_workflow_digest"},
         )
         after_schema_2 = self._snapshot(database)
         before_task = next(row for row in after_schema_2["tasks"] if row[0] == "0082")
         partial_metadata = json.loads(before_task[7])
-        self.assertTrue(partial_metadata["process"]["worktree_required"])
+        self.assertTrue(partial_metadata["workflow"]["worktree_required"])
         self.assertNotIn("stage_contracts", partial_metadata["contract"])
 
         legacy_replay = self._invoke_cli(legacy_request)
@@ -592,14 +592,14 @@ class Task0082ProcessMigrationTests(unittest.TestCase):
         corrective_result = json.loads(corrective.stdout)
         self.assertFalse(corrective_result["tasks"][0]["worktree_required_added"])
         self.assertEqual(
-            corrective_result["tasks"][0]["old_process_digest"],
-            corrective_result["tasks"][0]["new_process_digest"],
+            corrective_result["tasks"][0]["old_workflow_digest"],
+            corrective_result["tasks"][0]["new_workflow_digest"],
         )
         after_schema_3 = self._snapshot(database)
         after_task = next(row for row in after_schema_3["tasks"] if row[0] == "0082")
         self.assertEqual(after_task[:7], before_task[:7])
         completed_metadata = json.loads(after_task[7])
-        self.assertEqual(completed_metadata["process"], partial_metadata["process"])
+        self.assertEqual(completed_metadata["workflow"], partial_metadata["workflow"])
         self.assertEqual(completed_metadata["contract"]["stage_contracts"], stage_contracts)
         expected_contract = deepcopy(metadata["contract"])
         expected_contract["stage_contracts"] = stage_contracts

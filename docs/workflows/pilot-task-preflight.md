@@ -37,7 +37,7 @@ policy/поиска Task. Она не выбирает конфигурацию 
 
 | Маршрут | Что установить заранее | Как фиксировать результат |
 |---|---|---|
-| Task | Точный ID в выбранном проекте, требования, target repository, `goal_type`/process, разрешённые пути и gates приёмки/интеграции. | Публичные `task/edit` → `task/ready` → `bootstrap`/stage `verify`/handoff. После завершения и отдельного разрешения — публичный `integrate`. |
+| Task | Точный ID в выбранном проекте, требования, target repository, `goal_type`/workflow, разрешённые пути и gates приёмки/интеграции. | Публичные `task/edit` → `task/ready` → `bootstrap`/stage `verify`/handoff. После завершения и отдельного разрешения — публичный `integrate`. |
 | Прямое исправление без Task | Прямое поручение, собственные ветка/worktree, локальная цель, независимый проверяющий, полномочие на ручную поставку и защита чужого WIP. | Git-кандидат, проверка точного commit и отдельно разрешённый ручной локальный fast-forward. Контрольные точки обязательны только в облаке; локально — лишь по отдельному прямому поручению. Poise Task status/receipts не создаются задним числом. |
 | Диагностика без правки | Источник наблюдения и граница чтения. | Точный вывод и неопределённости; отсутствие Task не превращает наблюдение в продуктовый результат. |
 
@@ -50,7 +50,7 @@ policy/поиска Task. Она не выбирает конфигурацию 
 ## Инвентаризация договора до ready
 
 Выбранный template — материализованная заготовка. До `ready` планировщик может изменить
-собственный draft, включая process, этапы, handlers, пути, методы и доказательства. `ready`
+собственный draft, включая workflow, этапы, handlers, пути, методы и доказательства. `ready`
 замораживает **разрешённый итоговый договор**; runtime применяет его, а не начальный template.
 Публичные формы `edit`/`ready`/`restart` описаны в [планировании Task](task-planning.md#исполнимый-контракт).
 Будущий тест, его имя, команда и output могут ещё не существовать. Пустое начальное
@@ -101,7 +101,7 @@ claim по догадке, не готовить результат в чужо�
 сохраняют ID, историю, Sprint membership, worktree, branch и WIP. `cancel` с terminal
 cleanup не исправляет постановку. Для поля вне frozen restart policy проверяющий
 явно предоставляет `authorization.revision_fields`; исполнитель не выдаёт себя за
-проверяющего. Ошибку project/process configuration нельзя лечить правкой product
+проверяющего. Ошибку project/workflow configuration нельзя лечить правкой product
 source либо называть дефектом Poise без доказательства соответствующей границы.
 
 Если пользователь отдельно поручил миграцию сохранённой работы, каждый агент фиксирует
@@ -185,12 +185,12 @@ iteration 2; terminal cleanup удалил его worktree и `tasks/AIP-R001` �
 | Receipt directory | Что зафиксировано |
 |---|---|
 | `6aa306dc31291daefff174c68419f14e63c80a6be4a38d387382094b1d3258ff` | Method admission отклонил `.gitignore`: `implementation` разрешал только `src/**`; до правки тестов/кода рекомендован restart той же Task. |
-| `cde8ba49e75789dbac6dfde88d73245a643c523ee99b070dc6e1896384820e5c` | После частичной правки `stage_contracts` старый process route gate всё ещё отклонял `.gitignore`; указан повторный restart task-local process и contracts. Это исторический факт receipt, не основание вернуть второй whitelist в текущий контракт. |
+| `cde8ba49e75789dbac6dfde88d73245a643c523ee99b070dc6e1896384820e5c` | После частичной правки `stage_contracts` старый workflow route gate всё ещё отклонял `.gitignore`; указан повторный restart task-local workflow и contracts. Это исторический факт receipt, не основание вернуть второй whitelist в текущий контракт. |
 | `dcfd781e90f76295cf6db6445e3bb0f8ab61668f43677b41960f70f881a75911` | Для `docs/operations/known-bugs.md` понадобилась отдельная ответственность add/remove между RED и GREEN этапами; снова передан restart. |
 
 Receipts показывают недостаточную предметную инвентаризацию и неполное исправление
 frozen scope. Действующее правило `stage_contracts[].allowed_paths` и разрешение
-Task-local process следует читать по [нынешнему контракту планировщика](task-planning.md#process-и-границы-изменений),
+Task-local workflow следует читать по [нынешнему контракту планировщика](task-planning.md#workflow-и-границы-изменений),
 а не восстанавливать по прежней ошибке дублирующий route whitelist. Исторический
 handoff сам по себе не доказывает потерю WIP либо текущий дефект runtime.
 Процедура задаёт semantic reviewer obligations, не автоматический валидатор.

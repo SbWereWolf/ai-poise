@@ -8,13 +8,14 @@ from pathlib import Path
 import shutil
 import tempfile
 
-from ..common import configured_root, configured_storage_path, descendant, digest, load_config, load_process_migration_config, validate_candidate_config
+from ..common import configured_root, configured_storage_path, descendant, digest, load_config, load_workflow_migration_config, validate_candidate_config
 from ..modules.foundation.errors import PoiseError, VersionConflict
 from ..modules.foundation.validation import nonempty
-from ..modules.goal_config.domain import GoalTypeDefinition, PROCESS_FIELDS, BatchValidationError
+from ..modules.goal_config.domain import GoalTypeDefinition, WORKFLOW_FIELDS, BatchValidationError
 from ..modules.projects.domain import field_at, path_key
 from .goal_config import atomic_write, read_document
 from .locking import exclusive_lock
+from .workflow_files import workflow_path
 from .projects import confined, ProjectSettings, FileProjectSetup, valid_project_probe_readiness
 
 
@@ -64,7 +65,7 @@ class FileProjectConfigUpdate:
         try:
             with exclusive_lock(settings.lock, settings.raw['lock_seconds'],
                                 settings.raw['lock_poll_seconds']):
-                root, config, processes = load_config(config_path)
+                root, config, workflows = load_config(config_path)
                 resources = request['runtime_resources']
                 require_project_association(settings, config_path, config, resources)
                 state = configured_root(root, config['paths']['state'])
@@ -73,7 +74,7 @@ class FileProjectConfigUpdate:
                     raise PoiseError('Bootstrap authority, fence and receipt must remain outside mutable state')
                 for item in resources['hooks']:
                     observe_hook_association(item, config_path)
-                revision = digest({'config': config, 'processes': processes})
+                revision = digest({'config': config, 'workflows': workflows})
                 if receipt.is_file():
                     saved = read_document(receipt)
                     if (saved.get('request_digest') != request_digest or
@@ -96,19 +97,19 @@ class FileProjectConfigUpdate:
                         raise VersionConflict('Bootstrap project revision is not the expected known revision')
                     candidate = deepcopy(config)
                     candidate['runtime_resources'] = deepcopy(resources)
-                    self._validate_candidate(root, candidate, processes)
+                    self._validate_candidate(root, candidate, workflows)
                     pending = {'schema': 'project-runtime-resources-bootstrap-pending-1',
                                'request_digest': request_digest,
                                'before_revision': revision,
-                               'after_revision': digest({'config': candidate, 'processes': processes}),
+                               'after_revision': digest({'config': candidate, 'workflows': workflows}),
                                'candidate': candidate}
                     atomic_write(pending_path, encoded(pending, settings.raw['json_indent']),
                                  settings.raw['file_mode'])
                 if revision == pending['before_revision']:
                     atomic_write(config_path, encoded(candidate, settings.raw['json_indent']),
                                  settings.raw['file_mode'])
-                _, final_config, final_processes = load_config(config_path)
-                after = digest({'config': final_config, 'processes': final_processes})
+                _, final_config, final_workflows = load_config(config_path)
+                after = digest({'config': final_config, 'workflows': final_workflows})
                 if after != pending['after_revision']:
                     raise VersionConflict('Bootstrap published project revision changed')
                 result = {'schema': 'project-runtime-resources-bootstrap-result-1',
@@ -138,19 +139,19 @@ class FileProjectConfigUpdate:
             return load_config(config_path)
         except BatchValidationError as failure:
             config = read_document(config_path)
-            if not isinstance(config.get("processes"), dict) or not config["processes"]:
+            if not isinstance(config.get("workflows"), dict) or not config["workflows"]:
                 raise failure
             root = config_path.parent
-            processes = {}
+            workflows = {}
             legacy = set()
-            legacy_fields = PROCESS_FIELDS - {"worktree_required"}
-            for goal, relative in config["processes"].items():
-                process = read_document(descendant(root, relative))
-                if set(process) == legacy_fields and process.get("goal_type") == goal:
+            legacy_fields = WORKFLOW_FIELDS - {"worktree_required"}
+            for goal, relative in config["workflows"].items():
+                workflow = read_document(workflow_path(config_path, relative))
+                if set(workflow) == legacy_fields and workflow.get("goal_type") == goal:
                     legacy.add(goal)
                 else:
-                    GoalTypeDefinition.parse(process)
-                processes[goal] = process
+                    GoalTypeDefinition.parse(workflow)
+                workflows[goal] = workflow
             explicit = {
                 item.get("goal_type")
                 for item in updates
@@ -164,7 +165,7 @@ class FileProjectConfigUpdate:
             }
             if not legacy or not legacy <= explicit:
                 raise failure
-            return root, config, processes
+            return root, config, workflows
 
     def _known_revisions(self, root):
         known = set()
@@ -266,11 +267,11 @@ class FileProjectConfigUpdate:
             raise PoiseError("Invalid project pending publication")
         for key in ("before", "after"):
             value = saved[key]
-            if (not isinstance(value, dict) or set(value) != {"config", "processes"}
+            if (not isinstance(value, dict) or set(value) != {"config", "workflows"}
                     or not self._receipt_digest(value.get("config"))
-                    or not isinstance(value.get("processes"), dict)
+                    or not isinstance(value.get("workflows"), dict)
                     or not all(isinstance(k, str) and k and self._receipt_digest(v)
-                               for k, v in value["processes"].items())):
+                               for k, v in value["workflows"].items())):
                 raise PoiseError("Invalid project pending publication components")
         return saved
 
@@ -349,8 +350,8 @@ class FileProjectConfigUpdate:
                 or not receipt["files"] or not all(isinstance(k, str) and k and sha256(v)
                                                    for k, v in receipt["files"].items())
                 or set(result) != {"status", "project", "revision", "config_path",
-                                   "process_count", "readiness", "replayed"}
-                or type(result.get("process_count")) is not int or result["process_count"] < 0
+                                   "workflow_count", "readiness", "replayed"}
+                or type(result.get("workflow_count")) is not int or result["workflow_count"] < 0
                 or type(result.get("replayed")) is not bool
                 or not valid_project_probe_readiness(result.get("readiness"))
                 or receipt["result"].get("project") != config["project"]
@@ -360,28 +361,28 @@ class FileProjectConfigUpdate:
         return {"kind": "project", "settings_path": str(s.path), "settings": deepcopy(s.raw),
                 "root": str(s.root), "config_path": str(config_path),
                 "registry": digest(registry), "setup_receipt": digest(receipt),
-                "targets": {goal: str(descendant(config_path.parent, value))
-                            for goal, value in config["processes"].items()},
+                "targets": {goal: str(workflow_path(config_path, value))
+                            for goal, value in config["workflows"].items()},
                 "lock": {"path": str(s.lock), "device": s.lock.stat().st_dev,
                          "inode": s.lock.stat().st_ino}}
 
     def stage_criteria_snapshot(self, config_path):
         binding = self.stage_criteria_binding(config_path)
-        root, config, processes = load_process_migration_config(config_path)
+        root, config, workflows = load_workflow_migration_config(config_path)
         for directory in (self.settings.root / "operations", root / "operations"):
             for path in directory.glob("*.json.pending"):
                 pending = self._stage_criteria_pending_document(read_document(path))
                 if pending["before"]["config"] == digest(config):
                     raise PoiseError("Project has an unrelated pending publication")
-        return {"binding": binding, "config": config, "processes": processes,
-                "bytes": {goal: descendant(root, relative).read_bytes()
-                          for goal, relative in config["processes"].items()},
-                "revision": digest({"config": config, "processes": processes})}
+        return {"binding": binding, "config": config, "workflows": workflows,
+                "bytes": {goal: workflow_path(config_path, relative).read_bytes()
+                          for goal, relative in config["workflows"].items()},
+                "revision": digest({"config": config, "workflows": workflows})}
 
     @staticmethod
-    def _component_digests(config, processes):
+    def _component_digests(config, workflows):
         return {"config": digest(config),
-                "processes": {goal: digest(value) for goal, value in processes.items()}}
+                "workflows": {goal: digest(value) for goal, value in workflows.items()}}
 
     def _stage_criteria_receipt(self, publication):
         config_path = Path(publication["config_path"])
@@ -393,7 +394,7 @@ class FileProjectConfigUpdate:
         if not receipt_path.is_file():
             return None
         saved = read_document(receipt_path)
-        expected = digest({"config": publication["config"], "processes": publication["candidate"]})
+        expected = digest({"config": publication["config"], "workflows": publication["candidate"]})
         result = self._stage_criteria_update_receipt(saved, receipt_path)
         if (set(saved) != {"schema", "request_id", "request_digest", "result"}
                 or saved["schema"] != "project-config-receipt-1"
@@ -405,9 +406,9 @@ class FileProjectConfigUpdate:
                 or result.get("receipt_path") != str(receipt_path)
                 or result.get("status") != "updated"):
             raise PoiseError("Project migration receipt differs from its intent")
-        _, config, processes = load_config(config_path)
-        if config != publication["config"] or processes != publication["candidate"]:
-            raise PoiseError("Published migration process drifted")
+        _, config, workflows = load_config(config_path)
+        if config != publication["config"] or workflows != publication["candidate"]:
+            raise PoiseError("Published migration workflow drifted")
         return saved
 
     def completed_stage_criteria(self, publication):
@@ -424,7 +425,7 @@ class FileProjectConfigUpdate:
         request = publication["request"]
         return {"schema": "project-config-pending-1", "request_id": request["request_id"],
                 "request_digest": digest(request),
-                "before": self._component_digests(publication["config"], publication["processes"]),
+                "before": self._component_digests(publication["config"], publication["workflows"]),
                 "after": self._component_digests(publication["config"], publication["candidate"])}
 
     def _require_stage_criteria_pending(self, publication, path):
@@ -447,7 +448,7 @@ class FileProjectConfigUpdate:
             return done["result"]
         request = publication["request"]
         config_path = Path(publication["config_path"])
-        root, live_config, live_processes = load_process_migration_config(config_path)
+        root, live_config, live_workflows = load_workflow_migration_config(config_path)
         if live_config != publication["config"]:
             raise PoiseError("Unmanaged manifest change during recovery")
         receipt_path = self._receipt(self.settings.root, request["receipt_path"])
@@ -456,30 +457,30 @@ class FileProjectConfigUpdate:
         replayed = pending_path.is_file()
         if replayed:
             self._require_stage_criteria_pending(publication, pending_path)
-        for goal, live in live_processes.items():
-            if live not in (publication["processes"][goal], publication["candidate"][goal]):
-                raise PoiseError("Unmanaged process change during recovery")
-        if not replayed and live_processes != publication["processes"]:
+        for goal, live in live_workflows.items():
+            if live not in (publication["workflows"][goal], publication["candidate"][goal]):
+                raise PoiseError("Unmanaged workflow change during recovery")
+        if not replayed and live_workflows != publication["workflows"]:
             raise PoiseError("Partial project publication lacks its pending intent")
         self._validate_candidate(root, live_config, publication["candidate"])
         if not replayed:
             atomic_write(pending_path, encoded(pending, self.settings.raw["json_indent"]),
                          self.settings.raw["file_mode"])
-        current_revision = digest({"config": live_config, "processes": live_processes})
+        current_revision = digest({"config": live_config, "workflows": live_workflows})
         return self._publish_candidate_locked(
-            request, config_path, live_config, live_processes, live_config,
+            request, config_path, live_config, live_workflows, live_config,
             publication["candidate"], receipt_path, pending_path, replayed,
             current_revision, {"repository": "not_checked", "remote": "not_checked"}, None)
 
-    def _publish_candidate_locked(self, request, config_path, live_config, live_processes,
-                                  candidate_config, candidate_processes, receipt_path,
+    def _publish_candidate_locked(self, request, config_path, live_config, live_workflows,
+                                  candidate_config, candidate_workflows, receipt_path,
                                   pending_path, replayed, current_revision, readiness, locks):
         settings = self.settings
         root = config_path.parent
-        for goal, process in candidate_processes.items():
-            if process != live_processes[goal]:
-                atomic_write(descendant(root, candidate_config["processes"][goal]),
-                             encoded(process, settings.raw["json_indent"]), settings.raw["file_mode"])
+        for goal, workflow in candidate_workflows.items():
+            if workflow != live_workflows[goal]:
+                atomic_write(workflow_path(config_path, candidate_config["workflows"][goal]),
+                             encoded(workflow, settings.raw["json_indent"]), settings.raw["file_mode"])
         relocation = None
         if request["state_relocation"] is not None:
             relocation = self._relocate(config_path, live_config, candidate_config,
@@ -487,10 +488,10 @@ class FileProjectConfigUpdate:
         elif candidate_config != live_config:
             atomic_write(config_path, encoded(candidate_config, settings.raw["json_indent"]),
                          settings.raw["file_mode"])
-        _, final_config, final_processes = load_config(config_path)
-        if final_config != candidate_config or final_processes != candidate_processes:
+        _, final_config, final_workflows = load_config(config_path)
+        if final_config != candidate_config or final_workflows != candidate_workflows:
             raise PoiseError("Project publication readback differs from candidate")
-        revision = digest({"config": final_config, "processes": final_processes})
+        revision = digest({"config": final_config, "workflows": final_workflows})
         result = {"status": "updated", "changed": revision != request["expected_revision"],
                   "prior_revision": request["expected_revision"], "revision": revision,
                   "config_path": str(config_path), "readiness": readiness,
@@ -511,7 +512,7 @@ class FileProjectConfigUpdate:
             if not isinstance(item, dict) or set(item) != {"path", "value"}:
                 raise PoiseError("manifest edit requires path and value")
             path = path_key(item["path"])
-            if path[0] in {"paths", "processes", "project", "schema"} and not (
+            if path[0] in {"paths", "workflows", "project", "schema"} and not (
                     workspace and path == ('paths', 'worktrees')):
                 raise PoiseError(f"Manifest field {path[0]} has a dedicated owner")
             # Named optional C004 capability, not permission to create arbitrary fields.
@@ -524,33 +525,27 @@ class FileProjectConfigUpdate:
             changed.add(path)
         return candidate
 
-    def _processes(self, processes, updates):
-        candidate = deepcopy(processes)
+    def _workflows(self, workflows, updates):
+        candidate = deepcopy(workflows)
         seen = set()
         for item in updates:
             if not isinstance(item, dict) or set(item) != {"goal_type", "expected_revision", "changes"}:
-                raise PoiseError("process update requires goal_type, expected_revision and changes")
+                raise PoiseError("workflow update requires goal_type, expected_revision and changes")
             goal = item["goal_type"]
             if goal in seen or goal not in candidate:
-                raise PoiseError("Unknown or duplicate process update")
+                raise PoiseError("Unknown or duplicate workflow update")
             current = candidate[goal]
             built = GoalTypeDefinition.build_configuration(goal, current, item["changes"]).data
             if digest(current) != item["expected_revision"] and built != current:
-                raise VersionConflict("Process revision is stale")
+                raise VersionConflict("Workflow revision is stale")
             candidate[goal] = built
             seen.add(goal)
         return candidate
 
-    def _validate_candidate(self, root, config, processes):
-        with tempfile.TemporaryDirectory(prefix=".project-update-", dir=root.parent) as temporary:
-            candidate_root = Path(temporary)
-            for goal, relative in config["processes"].items():
-                path = descendant(candidate_root, relative)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(encoded(processes[goal], self.settings.raw["json_indent"]))
-            manifest = candidate_root / self.settings.raw["manifest"]
-            manifest.write_bytes(encoded(config, self.settings.raw["json_indent"]))
-            validate_candidate_config(manifest, root)
+    def _validate_candidate(self, root, config, workflows):
+        from ..common import load_config_document
+        manifest = root / self.settings.raw['manifest']
+        load_config_document(manifest, config, workflow_documents=workflows)
 
     def _relocation_state(self, config_path, config, move, recovering=False):
         if not isinstance(move, dict) or set(move) != {"schema", "expected_source", "destination", "source_disposition", "hook_destinations"}:
@@ -590,8 +585,8 @@ class FileProjectConfigUpdate:
         settings = self.settings
         workspace = request['schema'] == 'project-worktree-root-1'
         config_path = self._config_path(request["config_path"])
-        root, live_config, live_processes = self._source(
-            config_path, request["process_updates"]
+        root, live_config, live_workflows = self._source(
+            config_path, request["workflow_updates"]
         )
         receipt_path = self._receipt(settings.root, request["receipt_path"])
         pending_path = receipt_path.with_name(receipt_path.name + ".pending")
@@ -620,12 +615,10 @@ class FileProjectConfigUpdate:
                     if pending.get("request_digest") != request_digest:
                         raise VersionConflict("Different request uses the pending request receipt")
                     replayed = True
-                root, live_config, live_processes = self._source(
-                    config_path, request["process_updates"]
+                root, live_config, live_workflows = self._source(
+                    config_path, request["workflow_updates"]
                 )
-                current_revision = digest({"config": live_config, "processes": live_processes})
-                if not workspace and request["expected_revision"] not in self._known_revisions(root):
-                    raise VersionConflict("External project revision is not known")
+                current_revision = digest({"config": live_config, "workflows": live_workflows})
                 if not replayed and current_revision != request["expected_revision"]:
                     raise VersionConflict("Live project differs from the expected known revision")
                 if request["state_relocation"] is not None:
@@ -658,7 +651,7 @@ class FileProjectConfigUpdate:
                             configured_storage_path(state, value), settings.raw['lock_seconds'],
                             settings.raw['lock_poll_seconds']))
                 candidate_config = self._manifest(live_config, request["manifest_edits"], workspace=workspace)
-                candidate_processes = self._processes(live_processes, request["process_updates"])
+                candidate_workflows = self._workflows(live_workflows, request["workflow_updates"])
                 if request["state_relocation"] is not None:
                     candidate_config["paths"]["state"] = request["state_relocation"]["destination"]
                     if 'runtime_resources' not in candidate_config:
@@ -666,18 +659,18 @@ class FileProjectConfigUpdate:
                     candidate_config['runtime_resources']['hooks'] = [
                         {'installation_id': item['installation_id'], 'settings_path': item['settings_path']}
                         for item in request['state_relocation']['hook_destinations']]
-                before = self._component_digests(live_config, live_processes)
-                after = self._component_digests(candidate_config, candidate_processes)
+                before = self._component_digests(live_config, live_workflows)
+                after = self._component_digests(candidate_config, candidate_workflows)
                 if replayed:
                     if pending.get("before") is None or pending.get("after") is None:
                         raise VersionConflict("Pending publication lacks recovery digests")
-                    live = self._component_digests(live_config, live_processes)
+                    live = self._component_digests(live_config, live_workflows)
                     if live["config"] not in {pending["before"]["config"], pending["after"]["config"]}:
                         raise VersionConflict("Unmanaged manifest change during recovery")
-                    for goal, value in live["processes"].items():
-                        if value not in {pending["before"]["processes"].get(goal), pending["after"]["processes"].get(goal)}:
-                            raise VersionConflict("Unmanaged process change during recovery")
-                self._validate_candidate(root, candidate_config, candidate_processes)
+                    for goal, value in live["workflows"].items():
+                        if value not in {pending["before"]["workflows"].get(goal), pending["after"]["workflows"].get(goal)}:
+                            raise VersionConflict("Unmanaged workflow change during recovery")
+                self._validate_candidate(root, candidate_config, candidate_workflows)
                 readiness = FileProjectSetup(settings)._probe(candidate_config, request["probe_repository"])
                 if not replayed:
                     atomic_write(pending_path, encoded({"schema": "project-config-pending-1",
@@ -685,8 +678,8 @@ class FileProjectConfigUpdate:
                         "before": before, "after": after}, settings.raw["json_indent"]),
                         settings.raw["file_mode"])
                 return self._publish_candidate_locked(
-                    request, config_path, live_config, live_processes, candidate_config,
-                    candidate_processes, receipt_path, pending_path, replayed,
+                    request, config_path, live_config, live_workflows, candidate_config,
+                    candidate_workflows, receipt_path, pending_path, replayed,
                     current_revision, readiness, locks)
         except OSError as exc:
             raise PoiseError(f"Project publication interrupted; retry the same request: {exc}") from exc

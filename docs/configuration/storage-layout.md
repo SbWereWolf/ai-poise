@@ -95,7 +95,7 @@ poise-project-data/demo/
 | [stride.example.env](../../config/stride.example.env), [stride-launcher.example.json](../../config/stride-launcher.example.json) | Запуск выбранного проекта | Явный интерпретатор установленного пакета, registry settings, ID проекта и независимые tool/data roots. |
 
 Рабочие копии примеров остаются вне Git. Выбранные версия и digest blueprint
-должны совпадать с фактическим файлом; `process_sources` фиксирует реальные
+должны совпадать с фактическим файлом; `workflow_sources` фиксирует реальные
 поставляемые процессы. Обновление примеров не обновляет уже заполненные настройки
 оператора и не обновляет установленный пакет. Для другой версии инструмента
 совместимость проверяют отдельно; сведения о [выборе версии](stride-launcher.md#установка-и-выбор-версии)
@@ -123,7 +123,7 @@ poise-project-data/demo/
 
 Процессы новых проектов содержат явные назначения этапов и пустые полномочия
 на изменение критериев. Это дополнение поставляемых snapshot для текущей схемы,
-а не миграция существующих Task или рабочих process files. Полный договор —
+а не миграция существующих Task или рабочих workflow files. Полный договор —
 [новые проекты и старые снимки](../workflows/stage-criteria.md#новые-проекты-и-старые-снимки).
 
 Для обоих blueprint обязательные ответы передаются через `edits`: `project`,
@@ -152,7 +152,7 @@ poise-project-data/demo/
    generator settings из примеров, сверив все template pins с выбранной поставкой.
 2. Передать полный `project-setup-1` через
    [публичный пакет](project-setup.md#пакетный-путь-для-агента), заполнив все вопросы.
-   Публикация создаёт manifest, process snapshots, receipt и запись registry;
+   Публикация создаёт manifest, workflow snapshots, receipt и запись registry;
    она не создаёт Task DB, Requirements DB, worktree, native binding или архив.
 3. Прочитать manifest и разрешённые пути. Выполнить
    [проектную проверку](project-setup.md#проверка-согласованности-проекта)

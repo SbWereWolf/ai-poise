@@ -4,8 +4,8 @@
 
 ## Что поставлено
 
-13 независимых полных определений маршрута в `config/catalogue/process-templates/`,
-13 подготовленных редактором конфигов в `config/catalogue/processes/`,
+13 независимых полных определений маршрута в `config/catalogue/workflow-templates/`,
+13 подготовленных редактором конфигов в `config/catalogue/workflows/`,
 13 типизированных шаблонов создания задачи в `config/catalogue/task-templates/`.
 Восемь парных исходных определений расширены независимым осмотром каждого
 содержательного результата; см.
@@ -24,19 +24,19 @@ produce/inspect/revise/observe/check/apply_plan/publish остаются общ�
 
 Текущий формат требует явные `purpose` и `criteria_authority` каждого этапа;
 см. [критерии этапов](../workflows/stage-criteria.md) и
-[полный пример](../workflows/stage-criteria-process.example.json).
+[полный пример](../workflows/stage-criteria-workflow.example.json).
 Перечисленные исторические packs без этих полей не становятся валидными за счёт
 имени роли, handler или загрузки новым кодом. Перед применением их классифицируют
 явно. Для сохранённой установки требуется отдельно разрешённая
-[инвентаризация и миграция](../task-process-snapshot-migration.md#миграция-типов-и-критериев-этапов).
+[инвентаризация и миграция](../task-workflow-snapshot-migration.md#миграция-типов-и-критериев-этапов).
 Эта документационная поставка не меняет packs, их digest, managed конфиги или Task snapshots.
 
-`process-templates` — исходные шаблоны продукта. `processes` — готовые рабочие файлы,
+`workflow-templates` — исходные шаблоны продукта. `workflows` — готовые рабочие файлы,
 созданные существующим GoalConfigCommands, не скопированные агентом в обход редактора.
 `editor.example.json` явно задаёт версии/digest исходных шаблонов и образцовые пути.
 `settings.example.json` задаёт типизированные шаблоны задач и лимит пакета.
 Рабочие `editor.json`/`settings.json` принадлежат конкретной установке:
-они не переключены этой правкой. Не копируйте новый шаблон поверх managed process.
+они не переключены этой правкой. Не копируйте новый шаблон поверх managed workflow.
 Обновление новых Task и существующих frozen snapshots — разные операции.
 
 Для нового пустого назначения `catalogue install` принимает явные create-запросы;
@@ -56,7 +56,7 @@ python -m poise catalogue --settings "$PWD/config/catalogue/settings.json"
 Для `action=install`: `project_config=null`, items — список из `goal_type`, `request_id`,
 `mode`, `expected_revision`, `template`, `changes`. Схема отдельного пакета редактора
 добавляется самим инструментом. Шаблон create выбирается явно по id/version/digest.
-Все формы запросов и конечные process definitions проверяются до первой публикации.
+Все формы запросов и конечные workflow definitions проверяются до первой публикации.
 Для файлов остаются отдельные receipts: это **не транзакция всей файловой системы**.
 Конфликт ревизии или I/O после начала может оставить уже опубликованные валидные конфиги;
 повтор возвращается к тем же request IDs и не создаёт дубликаты.
@@ -66,7 +66,7 @@ python -m poise catalogue --settings "$PWD/config/catalogue/settings.json"
 Они пока не записываются в Task store: контракт передают в обычный bootstrap, план спринта
 или результат planning-этапа. Нет отдельного потока хранения черновиков в редакторе.
 
-`CatalogueCommands.install(items)` и `CatalogueCommands.tasks(items,processes,automatic_checks)`
+`CatalogueCommands.install(items)` и `CatalogueCommands.tasks(items,workflows,automatic_checks)`
 доступны как прикладная библиотека. Оба используют явный max_items.
 Ответ краткий; полный JSON сохраняется по адресуемому пути с ограничениями существующего редактора.
 
@@ -136,7 +136,7 @@ Sprint planning:
 
 В публикации нельзя заменить draft новым inline-объектом. Читается уже сохранённая секция,
 не разрешённая для записи в этом этапе, после принятого осмотра согласно графу.
-Каждый ребёнок валидируется собственным выбранным process contract. Task/Sprint IDs не
+Каждый ребёнок валидируется собственным выбранным workflow contract. Task/Sprint IDs не
 должны пересекаться. Explicit IDs полного пакета и новый Sprint ID резервируются до первой
 automatic allocation, поэтому порядок детей не определяет коллизию. Все дочерние строки,
 граф, allocation receipts и receipt публикации записываются одним UoW.

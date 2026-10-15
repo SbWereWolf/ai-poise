@@ -478,7 +478,7 @@ class HookService:
             recovery = h.restore_context(reason=event['source'], event_id=f'hook-event:{event_id}',
                 facts=[], cwd=native['cwd'], reads=[])
 
-        state='idle' if task is None else f"{task['id']} / {task['status']} / {task['process']['stages'][task['stage_index']]['id']}"
+        state='idle' if task is None else f"{task['id']} / {task['status']} / {task['workflow']['stages'][task['stage_index']]['id']}"
         if native['event'] in ('SessionStart','UserPromptSubmit'):
             context=definition.data['context_template'].format(launcher=binding['launcher'],state=state)
             if recovery is not None:

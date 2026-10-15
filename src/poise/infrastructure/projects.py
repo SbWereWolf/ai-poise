@@ -190,7 +190,7 @@ class FileProjectSetup:
         if s.registry.is_relative_to(target):raise PoiseError('Project registry cannot be inside project destination')
         request_digest=digest(request)
         minimal={'status':'created','project':'','revision':'0'*64,'config_path':str(target/c['manifest']),
-                 'process_count':0,'readiness':{'repository':'not_checked','remote':'not_checked'},'replayed':False}
+                 'workflow_count':0,'readiness':{'repository':'not_checked','remote':'not_checked'},'replayed':False}
         if len(json.dumps(minimal,ensure_ascii=False)+'\n')>c['output_chars']:
             raise PoiseError('output_chars cannot hold project receipt; no publication attempted')
         try:
@@ -211,16 +211,16 @@ class FileProjectSetup:
                 relative=self._relative_config_path(target)
                 if existing is not None and existing['config_path']!=relative:
                     raise VersionConflict(f'Project identity {cfg["project"]} already registered to another configuration')
-                sources=blueprint.data['process_sources'];documents={}
-                if not isinstance(cfg['processes'],dict) or not cfg['processes']:raise PoiseError('Explicit selected processes required')
-                for goal,relative in cfg['processes'].items():
+                sources=blueprint.data['workflow_sources'];documents={}
+                if not isinstance(cfg['workflows'],dict) or not cfg['workflows']:raise PoiseError('Explicit selected workflows required')
+                for goal,relative in cfg['workflows'].items():
                     if goal not in sources:raise PoiseError(f'No source snapshot for {goal}')
                     source=sources[goal];raw=read_document(confined(s.root,source['path']))
-                    if digest(raw)!=source['digest']:raise VersionConflict(f'Process source changed: {goal}')
+                    if digest(raw)!=source['digest']:raise VersionConflict(f'Workflow source changed: {goal}')
                     documents[goal]=raw
-                paths=[confined(target,rel) for rel in cfg['processes'].values()]+[target/c['manifest'],target/c['receipt']]
+                paths=[confined(target,rel) for rel in cfg['workflows'].values()]+[target/c['manifest'],target/c['receipt']]
                 if any(a==b or a.is_relative_to(b) or b.is_relative_to(a) for i,a in enumerate(paths) for b in paths[i+1:]):
-                    raise PoiseError('Project manifest, receipt and process paths overlap')
+                    raise PoiseError('Project manifest, receipt and workflow paths overlap')
                 target.parent.mkdir(parents=True,exist_ok=True)
                 with tempfile.TemporaryDirectory(prefix='.project-setup-',dir=target.parent) as temporary:
                     candidate=Path(temporary)/'candidate';candidate.mkdir(mode=c['directory_mode'])
@@ -228,15 +228,15 @@ class FileProjectSetup:
                         p=confined(candidate,rel)
                         atomic_write(p,(json.dumps(value,ensure_ascii=False,indent=c['json_indent'],allow_nan=False)+'\n').encode(),c['file_mode'])
                     write(c['manifest'],cfg)
-                    for goal,document in documents.items():write(cfg['processes'][goal],document)
+                    for goal,document in documents.items():write(cfg['workflows'][goal],document)
                     # The runtime remains the authority on complete configuration.
                     validate_candidate_config(candidate/c['manifest'], target)
                     state=configured_root(target,cfg['paths']['state'])
                     if any(state.is_relative_to(p) or p.is_relative_to(state) for p in paths):
                         raise PoiseError('Mutable state overlaps published project files')
                     readiness=self._probe(cfg,request['probe_repository'])
-                    result={'status':'created','project':cfg['project'],'revision':digest({'config':cfg,'processes':documents}),
-                            'config_path':str(target/c['manifest']),'process_count':len(documents),'readiness':readiness,'replayed':False}
+                    result={'status':'created','project':cfg['project'],'revision':digest({'config':cfg,'workflows':documents}),
+                            'config_path':str(target/c['manifest']),'workflow_count':len(documents),'readiness':readiness,'replayed':False}
                     if len(json.dumps(result,ensure_ascii=False)+'\n')>c['output_chars']:
                         raise PoiseError('output_chars cannot hold project result; no publication attempted')
                     files={str(p.relative_to(candidate)):file_digest(p) for p in candidate.rglob('*') if p.is_file()}

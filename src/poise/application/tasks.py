@@ -12,7 +12,7 @@ from ..modules.tasks.domain import (
 )
 from ..modules.workflow.domain import RouteDefinition
 from ..modules.tasks.ports import RepositoryTreeReader, TaskUnitOfWork
-from ..modules.tasks.contracts import stages_from_process, evidence_plan_from_metadata
+from ..modules.tasks.contracts import stages_from_workflow, evidence_plan_from_metadata
 from ..modules.verification.domain import CheckRegistry
 from ..modules.content_requirements.domain import ArtifactFact, Assessment
 from ..modules.foundation.errors import DomainError, VersionConflict
@@ -49,7 +49,7 @@ def require_reviewer_identity_in(
     producer_role = task.route.node(identity["stage"]).role
     inspection_role = task.route.node(target).role
     if producer_role == inspection_role:
-        return None  # A single-role process does not require identity separation.
+        return None  # A single-role workflow does not require identity separation.
     executor = identity["executor_actor"]
     if executor is None:
         raise DomainError(
@@ -73,7 +73,7 @@ def _action_digest(action: str, payload: dict) -> str:
 
 
 def _creation_values(
-    intent, allocation, actor, process, automatic_checks, decomposition_policy,
+    intent, allocation, actor, workflow, automatic_checks, decomposition_policy,
     base_metadata, requirements_context,
 ):
     from ..modules.tasks.allocation import materialize_contract
@@ -85,7 +85,7 @@ def _creation_values(
             "digest": allocation.digest,
         }
     metadata = validate_creation(
-        contract, process, automatic_checks, decomposition_policy
+        contract, workflow, automatic_checks, decomposition_policy
     )
     metadata.update(base_metadata)
     metadata.update(sprint_id=contract['sprint_id'], goal=contract['goal'])
@@ -104,7 +104,7 @@ def _creation_values(
 class PreparedCreation:
     source_intent: dict
     intent: dict
-    process: dict
+    workflow: dict
     automatic_checks: list
     decomposition_policy: dict
     requirements_context: dict | None
@@ -117,14 +117,14 @@ def create_planned_in_uow(uow, prepared, base_metadata, policy, reserved_ids=())
         raise DomainError("Task creation requires a verified creation preflight")
     source_intent = deepcopy(prepared.source_intent)
     intent = deepcopy(prepared.intent)
-    process = deepcopy(prepared.process)
+    workflow = deepcopy(prepared.workflow)
     automatic_checks = deepcopy(prepared.automatic_checks)
     decomposition_policy = deepcopy(prepared.decomposition_policy)
     request_id, _, _ = creation_parts(source_intent)
     parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
     allocation = uow.tasks.allocate(source_intent, parsed_policy, reserved_ids)
     task, metadata, contract = _creation_values(
-        intent, allocation, None, process, automatic_checks, decomposition_policy,
+        intent, allocation, None, workflow, automatic_checks, decomposition_policy,
         base_metadata, prepared.requirements_context
     )
     if not allocation.replayed:
@@ -175,11 +175,11 @@ def rewrite_task_plan(plan, contracts_by_alias):
     return data
 
 
-def validate_creation_intent(intent, process, automatic_checks, decomposition_policy):
+def validate_creation_intent(intent, workflow, automatic_checks, decomposition_policy):
     from ..modules.tasks.allocation import creation_alias, materialize_contract
     from ..modules.tasks.definition import validate_creation
     contract, _ = materialize_contract(intent, creation_alias(intent))
-    return validate_creation(contract, process, automatic_checks, decomposition_policy)
+    return validate_creation(contract, workflow, automatic_checks, decomposition_policy)
 
 
 def creation_intent_alias(intent):
@@ -196,11 +196,9 @@ class SubmissionReceipt:
     registry_change: dict | None = None
 
 
-def require_start_execution(execution, restart_history, migrated_context):
+def require_start_execution(execution):
     """One execution prerequisite for start and read-only discovery."""
     if execution is not None:
-        if not restart_history and migrated_context is None:
-            raise DomainError('Available Task has unexpected execution state')
         if execution['pending'] is not None:
             raise DomainError('Restarted Task execution recovery is still pending')
 
@@ -239,10 +237,10 @@ class TaskCommands:
         if candidate != saved['contract']:
             raise DomainError('Existing task contract is immutable; bootstrap is not an editor')
 
-    def prepare_creation(self, intent, process, automatic_checks, base_revision, decomposition_policy, *, current_registry=None):
+    def prepare_creation(self, intent, workflow, automatic_checks, base_revision, decomposition_policy, *, current_registry=None):
         return self._prepare_creation(
             intent,
-            process,
+            workflow,
             automatic_checks,
             base_revision,
             decomposition_policy,
@@ -251,12 +249,12 @@ class TaskCommands:
         )
 
     def _prepare_restarted_creation(
-        self, intent, process, automatic_checks, base_revision, decomposition_policy, persisted_context,
+        self, intent, workflow, automatic_checks, base_revision, decomposition_policy, persisted_context,
         *, current_registry=None
     ):
         return self._prepare_creation(
             intent,
-            process,
+            workflow,
             automatic_checks,
             base_revision,
             decomposition_policy,
@@ -269,7 +267,7 @@ class TaskCommands:
         )
 
     def _prepare_creation(
-        self, intent, process, automatic_checks, base_revision, decomposition_policy, prepare_requirements,
+        self, intent, workflow, automatic_checks, base_revision, decomposition_policy, prepare_requirements,
         *, current_registry=None
     ):
         from ..modules.tasks.allocation import creation_alias, materialize_contract
@@ -279,10 +277,10 @@ class TaskCommands:
         intent, requirements_context = prepare_requirements(intent)
         candidate, _ = materialize_contract(intent, creation_alias(intent))
         try:
-            preflight = CreationPreflight.parse(candidate, process)
+            preflight = CreationPreflight.parse(candidate, workflow)
         except KeyError as exc:
             validate_creation(
-                candidate, process, automatic_checks, decomposition_policy, current_registry=current_registry
+                candidate, workflow, automatic_checks, decomposition_policy, current_registry=current_registry
             )
             raise DomainError(
                 f"Task creation preflight requires field {exc.args[0]!r}"
@@ -292,12 +290,12 @@ class TaskCommands:
         preflight.validate_base(
             self.repository_tree.existing_paths(base_revision, preflight.repository_inputs)
         )
-        validate_creation(candidate, process, automatic_checks, decomposition_policy,
+        validate_creation(candidate, workflow, automatic_checks, decomposition_policy,
                           current_registry=current_registry)
         return PreparedCreation(
             source_intent,
             deepcopy(intent),
-            deepcopy(process),
+            deepcopy(workflow),
             deepcopy(automatic_checks),
             deepcopy(decomposition_policy),
             deepcopy(requirements_context),
@@ -318,7 +316,7 @@ class TaskCommands:
         with self.unit_of_work() as uow:
             return uow.tasks.allocate(intent, parsed_policy)
 
-    def create(self, intent: dict, actor: str, process: dict, automatic_checks: list,
+    def create(self, intent: dict, actor: str, workflow: dict, automatic_checks: list,
                base_metadata: dict, execution, policy, base_revision,
                decomposition_policy):
         from ..application.ownership import release_task_in
@@ -329,7 +327,7 @@ class TaskCommands:
         request_id, _, _ = creation_parts(intent)
         parsed_policy = None if request_id is None else TaskIdPolicy.parse(policy)
         prepared = self.prepare_creation(
-            intent, process, automatic_checks, base_revision, decomposition_policy
+            intent, workflow, automatic_checks, base_revision, decomposition_policy
         )
         with self.unit_of_work() as uow:
             allocation = uow.tasks.allocate(intent, parsed_policy)
@@ -337,7 +335,7 @@ class TaskCommands:
                 prepared.intent,
                 allocation,
                 None,
-                prepared.process,
+                prepared.workflow,
                 prepared.automatic_checks,
                 prepared.decomposition_policy,
                 base_metadata,
@@ -368,7 +366,7 @@ class TaskCommands:
             return result
 
     def create_newborn(self, task_id, sprint_id, actor, config_hash, request_id, *,
-                       goal_type=None, patch=None, processes=None, planning_source=None):
+                       goal_type=None, patch=None, workflows=None, planning_source=None):
         from ..application.ownership import release_task_in
         from ..modules.sprints.domain import Sprint
         intent = {"task_id": task_id, "sprint_id": sprint_id}
@@ -384,19 +382,19 @@ class TaskCommands:
                 if patch is not None and not isinstance(patch, dict):
                     raise DomainError('Task creation patch must be an object')
                 changes = deepcopy(patch) if patch is not None else {}
-                mapping = deepcopy(processes) if processes is not None else {}
+                mapping = deepcopy(workflows) if workflows is not None else {}
                 if goal_type is not None:
                     if not isinstance(goal_type, str) or not goal_type.strip():
                         raise DomainError('Task goal_type must be a nonempty string')
                     if 'goal_type' in changes and changes['goal_type'] != goal_type:
                         raise DomainError('Task goal_type selection conflicts with creation patch')
                     changes['goal_type'] = goal_type
-                    if 'process' not in changes:
+                    if 'workflow' not in changes:
                         if planning_source is None:
                             raise DomainError('Task starter source is not configured')
-                        defaults, process = planning_source(goal_type, task_id, sprint_id)
+                        defaults, workflow = planning_source(goal_type, task_id, sprint_id)
                         changes = {**defaults, **changes}
-                        mapping[goal_type] = process
+                        mapping[goal_type] = workflow
                 newborn = newborn.edit(changes, [], mapping, actor)
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
@@ -556,7 +554,7 @@ class TaskCommands:
             newborn = NewbornTask.restart(
                 task,
                 restart_contract,
-                context["process"],
+                context["workflow"],
                 context["sprint_id"],
                 actor,
                 reason,
@@ -579,7 +577,7 @@ class TaskCommands:
                 reason,
                 authorization,
             )
-            if uow.execution.exists(task_id) and context["process"]["worktree_required"]:
+            if uow.execution.exists(task_id) and context["workflow"]["worktree_required"]:
                 uow.ownership.bind_worktree(actor, task_id)
             result = {**newborn.describe(), "replayed": False}
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
@@ -623,7 +621,7 @@ class TaskCommands:
             context = uow.tasks.restart_context(task_id)
             CreationPreflight.parse(
                 {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
-                context["process"],
+                context["workflow"],
             )
             change = task.initialize_stage_contracts(parsed)
             return uow.tasks.save_stage_contract_change(change, expected_version, audit)
@@ -678,7 +676,7 @@ class TaskCommands:
             from ..modules.tasks.creation_preflight import CreationPreflight
             CreationPreflight.parse(
                 {**context["contract"], "stage_contracts": [item.to_dict() for item in parsed.items]},
-                context["process"],
+                context["workflow"],
             )
             before = uow.ownership.snapshot(actor)
             if before.task_id not in (None, task_id):
@@ -696,7 +694,7 @@ class TaskCommands:
             task._require_stage_contracts()
             return uow.tasks.stage_contract_context(task_id)
 
-    def edit_newborn(self, task_id, actor, expected_revision, patch, remove, processes,
+    def edit_newborn(self, task_id, actor, expected_revision, patch, remove, workflows,
                      config_hash, request_id, *, planning_source=None):
         from ..application.ownership import release_task_in
         if type(expected_revision) is not int:
@@ -722,20 +720,20 @@ class TaskCommands:
             if before.task_id not in (None, task_id):
                 release_task_in(uow, actor, before.task_id)
             effective_patch = deepcopy(patch)
-            effective_processes = processes
+            effective_workflows = workflows
             if (planning_source is not None and isinstance(patch, dict)
-                    and 'goal_type' in patch and 'process' not in patch
-                    and (newborn.process is None or patch['goal_type'] != newborn.draft.get('goal_type'))):
-                defaults, process = planning_source(patch['goal_type'], task_id, newborn.sprint_id)
+                    and 'goal_type' in patch and 'workflow' not in patch
+                    and (newborn.workflow is None or patch['goal_type'] != newborn.draft.get('goal_type'))):
+                defaults, workflow = planning_source(patch['goal_type'], task_id, newborn.sprint_id)
                 effective_patch = {**{key: value for key, value in defaults.items()
                                      if key not in newborn.draft}, **patch}
-                effective_processes = {**processes, patch['goal_type']: process}
-            changed = newborn.edit(effective_patch, remove, effective_processes, actor)
-            if (newborn.process is not None and changed.process is not None
-                    and newborn.process['worktree_required'] != changed.process['worktree_required']
+                effective_workflows = {**workflows, patch['goal_type']: workflow}
+            changed = newborn.edit(effective_patch, remove, effective_workflows, actor)
+            if (newborn.workflow is not None and changed.workflow is not None
+                    and newborn.workflow['worktree_required'] != changed.workflow['worktree_required']
                     and uow.execution.exists(task_id)):
                 execution, _ = uow.execution.load(task_id)
-                if (not changed.process['worktree_required']
+                if (not changed.workflow['worktree_required']
                         or any(execution[key] is not None for key in
                                ('worktree', 'branch', 'pending', 'publication', 'last_report'))):
                     raise DomainError(
@@ -753,7 +751,7 @@ class TaskCommands:
             newborn = uow.tasks.load_newborn(task_id)
             if newborn.claimed_by not in (None, actor):
                 raise DomainError('Newborn Sprint member is owned by another session')
-            if newborn.process is None:
+            if newborn.workflow is None:
                 raise DomainError('Select goal_type before ready')
             contract = {'id':task_id, 'sprint_id':newborn.sprint_id, **deepcopy(newborn.draft)}
             snapshot = newborn
@@ -777,7 +775,7 @@ class TaskCommands:
                 from ..modules.tasks.domain import Task
                 previous_registry = uow.tasks.restarted_registry(task_id)
                 current_registry, registry_change = Task.prepare_restarted_registry(
-                    previous_registry, contract, newborn.process, edited,
+                    previous_registry, contract, newborn.workflow, edited,
                     request_id, None if authority is None else authority['allowed_changes'],
                 )
             restart_base = None
@@ -791,7 +789,7 @@ class TaskCommands:
                 effective_decomposition = sprint['task_decomposition']
         base_revision = restart_base if restart_base is not None else creation_base()
         from ..modules.tasks.planning import require_revision
-        resolved_revision = require_revision(contract, snapshot.process, snapshot.restart_history)
+        resolved_revision = require_revision(contract, snapshot.workflow, snapshot.restart_history)
         frozen_context_unchanged = (
             contract.get('requirements_snapshot') == context['requirements_snapshot']
             and contract.get('requirements_agreement') == context['requirements_agreement']
@@ -799,7 +797,7 @@ class TaskCommands:
         if executed_restart and frozen_context_unchanged:
             prepared = self._prepare_restarted_creation(
                 contract,
-                snapshot.process,
+                snapshot.workflow,
                 effective_checks,
                 base_revision,
                 effective_decomposition,
@@ -809,14 +807,14 @@ class TaskCommands:
         else:
             prepared = self.prepare_creation(
                 contract,
-                snapshot.process,
+                snapshot.workflow,
                 effective_checks,
                 base_revision,
                 effective_decomposition,
                 current_registry=current_registry,
             )
         metadata = validate_creation(
-            prepared.intent, newborn.process, effective_checks,
+            prepared.intent, newborn.workflow, effective_checks,
             effective_decomposition,
             current_registry=current_registry,
         )
@@ -938,7 +936,7 @@ class TaskCommands:
                     'status':'available', 'task':task_id, 'revision':newborn.version + 1,
                     'sprint':newborn.sprint_id, 'claimed_by':None,
                     'goal_type':newborn.draft['goal_type'],
-                    'route_entry':newborn.process['route']['entry'], 'ready':True,
+                    'route_entry':newborn.workflow['route']['entry'], 'ready':True,
                 }
             uow.tasks.remember_action(task_id, actor, request_id, identity, result)
             return result
@@ -969,8 +967,7 @@ class TaskCommands:
                     raise DomainError('Local repair source is absent from reserved base; import it before start')
             if has_execution:
                 current, execution_version = uow.execution.load(task_id)
-                require_start_execution(current, uow.tasks.restart_context(task_id)['restart_history'],
-                                        uow.tasks.migrated_start_context(task_id))
+                require_start_execution(current)
             change=task.start(actor)
             if has_execution:
                 # A new available -> active admission, never an active bootstrap.
@@ -1519,7 +1516,7 @@ class TaskCommands:
                 raise DomainError("Newborn Task has historical execution; cancellation is not planning-only")
             from .ownership import release_dependent_worktree_in
             # Resolve dependency from the pre-transition planning snapshot. An
-            # untyped cancelled draft has no execution process to consult.
+            # untyped cancelled draft has no execution workflow to consult.
             release_dependent_worktree_in(uow, actor, task_id)
             uow.tasks.cancel_newborn(state, newborn.version, actor, reason)
             return state

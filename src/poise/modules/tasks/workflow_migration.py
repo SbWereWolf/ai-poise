@@ -1,4 +1,4 @@
-"""Domain contract for the one authorized Task process-snapshot migration."""
+"""Domain contract for the one authorized Task workflow-snapshot migration."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -17,14 +17,14 @@ AUTHORIZED_TASK_IDS = ("0077", "0081", "0079", "0078", "0074", "0063")
 TASK_0082_AUTHORIZED_IDS = ("0082",)
 CURRENT_PLANNING_TASK_IDS = ("ERP-HARNESS-COMPARISON-PLAN",)
 AUTHORIZED_TASK_IDS_BY_SCHEMA = {
-    "task-process-migration-1": AUTHORIZED_TASK_IDS,
-    "task-process-migration-2": TASK_0082_AUTHORIZED_IDS,
-    "task-process-migration-3": TASK_0082_AUTHORIZED_IDS,
-    "task-process-migration-4": CURRENT_PLANNING_TASK_IDS,
+    "task-workflow-migration-1": AUTHORIZED_TASK_IDS,
+    "task-workflow-migration-2": TASK_0082_AUTHORIZED_IDS,
+    "task-workflow-migration-3": TASK_0082_AUTHORIZED_IDS,
+    "task-workflow-migration-4": CURRENT_PLANNING_TASK_IDS,
 }
 STAGE_CONTRACT_RECOVERY_SCHEMAS = frozenset({
-    "task-process-migration-3",
-    "task-process-migration-4",
+    "task-workflow-migration-3",
+    "task-workflow-migration-4",
 })
 NONTERMINAL_STATUSES = frozenset({"available", "active", "verified", "accepted"})
 
@@ -43,26 +43,26 @@ class MigrationRequest:
         if isinstance(value, dict) and value.get("schema") == "task-stage-criteria-migration-1":
             return StageCriteriaMigrationRequest.parse(value)
         fields = {"schema", "request_id", "backup_name", "task_ids", "authorization"}
-        exact_keys(value, fields, "task process migration request")
+        exact_keys(value, fields, "task workflow migration request")
         schema = value["schema"]
         if schema not in AUTHORIZED_TASK_IDS_BY_SCHEMA:
-            raise DomainError("Unsupported task process migration schema")
+            raise DomainError("Unsupported task workflow migration schema")
         if not isinstance(value["request_id"], str) or not value["request_id"].strip():
-            raise DomainError("Task process migration request_id must be a nonempty string")
+            raise DomainError("Task workflow migration request_id must be a nonempty string")
         if not isinstance(value["authorization"], str) or not value["authorization"].strip():
-            raise DomainError("Task process migration authorization must be a nonempty string")
+            raise DomainError("Task workflow migration authorization must be a nonempty string")
         backup_name = exact_backup_name(value["backup_name"])
         authorized_task_ids = AUTHORIZED_TASK_IDS_BY_SCHEMA[schema]
         if not isinstance(value["task_ids"], list) or tuple(value["task_ids"]) != authorized_task_ids:
-            if schema == "task-process-migration-1":
+            if schema == "task-workflow-migration-1":
                 raise DomainError(
-                    "Task process migration accepts exactly 0077, 0081, 0079, 0078, 0074 and 0063 in that order"
+                    "Task workflow migration accepts exactly 0077, 0081, 0079, 0078, 0074 and 0063 in that order"
                 )
-            if schema == "task-process-migration-4":
+            if schema == "task-workflow-migration-4":
                 raise DomainError(
-                    "Task process migration accepts exactly the current planning Task"
+                    "Task workflow migration accepts exactly the current planning Task"
                 )
-            raise DomainError("Task process migration accepts exactly 0082")
+            raise DomainError("Task workflow migration accepts exactly 0082")
         normalized = {
             "schema": schema,
             "request_id": value["request_id"],
@@ -113,13 +113,13 @@ class StageCriteriaMigrationRequest:
             if not isinstance(resource, dict):
                 raise DomainError("Migration resource must be an object")
             kind = resource.get("kind")
-            if kind == "process_definition":
+            if kind == "workflow_definition":
                 identity_field, revision_field = "goal_type", "expected_revision"
                 fields = {"kind", identity_field, revision_field, "stages"}
             elif kind in ("executable_task", "newborn_task"):
                 identity_field = "task_id"
                 revision_field = "expected_version" if kind == "executable_task" else "expected_revision"
-                fields = {"kind", identity_field, revision_field, "expected_process_digest", "stages"}
+                fields = {"kind", identity_field, revision_field, "expected_workflow_digest", "stages"}
             elif kind == "newborn_draft":
                 identity_field, revision_field = "task_id", "expected_revision"
                 fields = {"kind", identity_field, revision_field, "expected_metadata_digest", "stages"}
@@ -127,7 +127,7 @@ class StageCriteriaMigrationRequest:
                 raise DomainError("Unknown migration resource kind")
             exact_keys(resource, fields, "migration resource")
             text(resource[identity_field], "migration resource identity")
-            if kind == "process_definition":
+            if kind == "workflow_definition":
                 text(resource[revision_field], "migration managed revision")
             else:
                 if type(resource[revision_field]) is not int or resource[revision_field] < 0:
@@ -140,8 +140,8 @@ class StageCriteriaMigrationRequest:
                             or re.fullmatch(r"[0-9a-f]{64}", source_digest) is None):
                         raise DomainError("Migration draft metadata digest must be 64 lowercase hexadecimal digits")
                 else:
-                    text(resource["expected_process_digest"], "migration source digest")
-            identity = ("process" if kind == "process_definition" else "task", resource[identity_field])
+                    text(resource["expected_workflow_digest"], "migration source digest")
+            identity = ("workflow" if kind == "workflow_definition" else "task", resource[identity_field])
             if identity in identities:
                 raise DomainError("Duplicate migration resource")
             identities.add(identity)
@@ -151,7 +151,7 @@ class StageCriteriaMigrationRequest:
             stages = set()
             for stage in resource["stages"]:
                 fields = {"stage_id", "purpose", "criteria_authority"}
-                if kind not in ("process_definition", "newborn_draft"):
+                if kind not in ("workflow_definition", "newborn_draft"):
                     fields |= {"criteria", "execution"}
                 exact_keys(stage, fields, "migration stage")
                 text(stage["stage_id"], "migration stage identity")
@@ -163,7 +163,7 @@ class StageCriteriaMigrationRequest:
                 except (TypeError, ValueError) as exc:
                     raise DomainError("Unknown migration stage purpose") from exc
                 CriteriaAuthority.parse(stage["criteria_authority"])
-                if kind not in ("process_definition", "newborn_draft"):
+                if kind not in ("workflow_definition", "newborn_draft"):
                     StageCriteria.parse(stage["criteria"])
                     execution = stage["execution"]
                     exact_keys(execution, {"state", "source_revision", "source_refs"}, "migration execution")
@@ -196,29 +196,29 @@ class StageCriteriaMigrationRequest:
 
 
 @dataclass(frozen=True)
-class ProcessUpdate:
+class WorkflowUpdate:
     task_id: str
-    process: dict
+    workflow: dict
     contract: dict | None
     worktree_required_added: bool
-    old_process_digest: str
-    new_process_digest: str
+    old_workflow_digest: str
+    new_workflow_digest: str
     old_contract_digest: str | None
     new_contract_digest: str | None
 
 
 @dataclass(frozen=True)
 class MigrationPlan:
-    updates: tuple[ProcessUpdate, ...]
+    updates: tuple[WorkflowUpdate, ...]
 
 
-class ProcessSnapshotMigration:
+class WorkflowSnapshotMigration:
     @staticmethod
-    def _stage_contracts(metadata: dict, process: dict) -> list[dict]:
+    def _stage_contracts(metadata: dict, workflow: dict) -> list[dict]:
         try:
             contract = metadata["contract"]
             requirements = [
-                *process["content_contract"]["requirements"],
+                *workflow["content_contract"]["requirements"],
                 *contract["content_contract"]["requirements"],
             ]
             values = [
@@ -234,29 +234,29 @@ class ProcessSnapshotMigration:
                         if stage["id"] in item["stages"] and item["phase"] == "post"
                     ],
                 }
-                for stage in process["stages"]
+                for stage in workflow["stages"]
             ]
         except (KeyError, TypeError) as exc:
             raise DomainError("Task stage contract source is incompatible") from exc
-        route = RouteDefinition.from_process(process)
+        route = RouteDefinition.from_workflow(workflow)
         policy = candidate_content_policy_from_metadata(
-            {**metadata, "process": process},
+            {**metadata, "workflow": workflow},
             {
-                "goal": process["content_contract"],
+                "goal": workflow["content_contract"],
                 "task": contract["content_contract"],
             },
         )
         return TaskStageContracts.parse(values, route, policy).to_list()
 
     @staticmethod
-    def plan(request: MigrationRequest, rows: list[dict], processes: dict[str, dict]) -> MigrationPlan:
+    def plan(request: MigrationRequest, rows: list[dict], workflows: dict[str, dict]) -> MigrationPlan:
         by_id = {row.get("id"): row for row in rows if isinstance(row, dict)}
         if len(by_id) != len(rows):
-            raise DomainError("Task process migration targets contain duplicate or invalid Task IDs")
+            raise DomainError("Task workflow migration targets contain duplicate or invalid Task IDs")
         missing = [task_id for task_id in request.task_ids if task_id not in by_id]
         extra = sorted(task_id for task_id in by_id if task_id not in request.task_ids)
         if missing or extra:
-            raise DomainError(f"Task process migration target mismatch; missing {missing}; extra {extra}")
+            raise DomainError(f"Task workflow migration target mismatch; missing {missing}; extra {extra}")
 
         updates = []
         for task_id in request.task_ids:
@@ -267,21 +267,21 @@ class ProcessSnapshotMigration:
             if not isinstance(metadata, dict):
                 raise DomainError(f"Task {task_id} metadata is incompatible")
             contract = metadata.get("contract")
-            process = metadata.get("process")
-            if not isinstance(contract, dict) or not isinstance(process, dict):
-                raise DomainError(f"Task {task_id} process definition is incompatible")
+            workflow = metadata.get("workflow")
+            if not isinstance(contract, dict) or not isinstance(workflow, dict):
+                raise DomainError(f"Task {task_id} workflow definition is incompatible")
             goal_type = contract.get("goal_type")
             if not isinstance(goal_type, str) or not goal_type:
                 raise DomainError(f"Task {task_id} immutable goal_type is incompatible")
-            if process.get("goal_type") != goal_type:
+            if workflow.get("goal_type") != goal_type:
                 raise DomainError(f"Task {task_id} goal_type does not match its immutable contract")
-            configured = processes.get(goal_type)
+            configured = workflows.get(goal_type)
             if not isinstance(configured, dict) or configured.get("goal_type") != goal_type:
-                raise DomainError(f"Task {task_id} goal_type has no matching configured process")
+                raise DomainError(f"Task {task_id} goal_type has no matching configured workflow")
             worktree_required = configured.get("worktree_required")
             if type(worktree_required) is not bool:
                 raise DomainError(f"Task {task_id} configured worktree_required is not explicit")
-            candidate = deepcopy(process)
+            candidate = deepcopy(workflow)
             worktree_required_added = "worktree_required" not in candidate
             if worktree_required_added:
                 candidate["worktree_required"] = worktree_required
@@ -302,18 +302,18 @@ class ProcessSnapshotMigration:
                         f"Task {task_id} already has stage_contracts; exact recovery is not applicable"
                     )
                 migrated_contract = deepcopy(contract)
-                migrated_contract["stage_contracts"] = ProcessSnapshotMigration._stage_contracts(
+                migrated_contract["stage_contracts"] = WorkflowSnapshotMigration._stage_contracts(
                     metadata, candidate
                 )
                 old_contract_digest = digest(contract)
                 new_contract_digest = digest(migrated_contract)
             updates.append(
-                ProcessUpdate(
+                WorkflowUpdate(
                     task_id,
                     candidate,
                     migrated_contract,
                     worktree_required_added,
-                    digest(process),
+                    digest(workflow),
                     digest(candidate),
                     old_contract_digest,
                     new_contract_digest,

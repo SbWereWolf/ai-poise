@@ -1,9 +1,9 @@
-"""CLI adapter for the explicit Task process-snapshot migration."""
+"""CLI adapter for the explicit Task workflow-snapshot migration."""
 from __future__ import annotations
 
 import json
 
-from ..composition import task_process_migration_tools
+from ..composition import task_workflow_migration_tools
 from ..infrastructure.goal_config import strict_json
 from ..modules.foundation.errors import PoiseError
 
@@ -11,8 +11,8 @@ from ..modules.foundation.errors import PoiseError
 def execute(config_path, stream, output, project_settings=None):
     try:
         request = strict_json(stream.read().decode("utf-8"))
-        commands = (task_process_migration_tools(config_path) if project_settings is None
-                    else task_process_migration_tools(config_path, project_settings))
+        commands = (task_workflow_migration_tools(config_path) if project_settings is None
+                    else task_workflow_migration_tools(config_path, project_settings))
         result = commands.migrate(request)
         code = 2 if result.get("status") == "recovery_required" else 0
     except (PoiseError, UnicodeError, RecursionError) as exc:

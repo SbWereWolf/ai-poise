@@ -25,10 +25,10 @@ def task_rows(path, task_id):
 
 def prepare(project):
     configure(project)
-    stage=deepcopy(project['process']['stages'][0]);stage['transitions']={'complete':None}
-    process={**deepcopy(project['process']),'stages':[stage],
+    stage=deepcopy(project['workflow']['stages'][0]);stage['transitions']={'complete':None}
+    workflow={**deepcopy(project['workflow']),'stages':[stage],
              'benefit':{'git_categories':['code','documentation'],'sections':['report']}}
-    write_json(project['root']/'config/processes/development.json',process)
+    write_json(project['root']/'config/workflows/development.json',workflow)
     project['cfg']['automatic_checks']=[]
     write_json(project['config_path'],project['cfg'])
     task=deepcopy(project['task'])

@@ -19,7 +19,7 @@ execution](../../../docs/workflows/paired-task-stages.md#постановка-п
 At registration: the stated goal and optional existing material. At actual Task preparation
 after successful predecessors: requirements/DoD, application/owner boundaries, existing contracts and
 results, target-project facts from the explicitly selected checkout path, and the selected
-Poise-owned project/process/routing configuration. The [existing decomposition
+Poise-owned project/workflow/routing configuration. The [existing decomposition
 contract](../../../docs/workflows/batch-work.md#декомпозиция-и-фокус-task) and [Sprint
 owner](../../../docs/workflows/sprints.md#владелец-и-основные-гарантии) define the actual schema.
 

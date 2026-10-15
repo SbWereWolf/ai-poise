@@ -68,10 +68,10 @@ def settings(project,tmp_path):
         from poise.common import digest, load_config
         from poise.composition import project_config_tools
         from projects.test_update import update_request
-        _, current, processes = load_config(project['config_path'])
+        _, current, workflows = load_config(project['config_path'])
         resources = deepcopy(current['runtime_resources'])
         resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
-        revision = digest({'config': current, 'processes': processes})
+        revision = digest({'config': current, 'workflows': workflows})
         identity = 'fixture-hook-resources-' + digest([revision, resources])
         packet = update_request(project['config_path'], revision, request_id=identity,
                                 manifest_edits=[

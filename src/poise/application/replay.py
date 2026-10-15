@@ -22,8 +22,8 @@ class ReplayCoordinator:
             data = self.read_task(task_id)
             # Fresh invalid requests have no journal, ref or Task effects.
             from ..modules.workflow.domain import RouteDefinition
-            route = RouteDefinition.from_process(data['process'])
-            current = data['process']['stages'][data['stage_index']]['id']
+            route = RouteDefinition.from_workflow(data['workflow'])
+            current = data['workflow']['stages'][data['stage_index']]['id']
             if target_stage is not None and not route.can_reach(current, target_stage):
                 raise DomainError('Progression target is not reachable')
             start = self.workspace.inspect_preservation(context['sources'])
@@ -48,7 +48,7 @@ class ReplayCoordinator:
 
         while True:
             data = self.read_task(task_id)
-            stage = data['process']['stages'][data['stage_index']]['id']
+            stage = data['workflow']['stages'][data['stage_index']]['id']
             source = cursor['sources'].get(stage)
             if source is None:
                 if stage == target_stage:
@@ -59,7 +59,7 @@ class ReplayCoordinator:
             if any(visit['visit_id'] == source['visit_id'] for visit in cursor['passed']):
                 return stop('progression_work_required', 'work_required', stage, None)
             from ..modules.workflow.domain import RouteDefinition
-            route = RouteDefinition.from_process(data['process'])
+            route = RouteDefinition.from_workflow(data['workflow'])
             try:
                 following = route.node(stage).target(source['report']['stage_outcome'])
             except DomainError:

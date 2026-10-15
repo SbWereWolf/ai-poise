@@ -290,7 +290,7 @@ post gate». В разделе
 
 **Код:** `tests/ddd/test_content_gates.py:336–344; examples/content_demo.py:17–34; src/poise/infrastructure/session_establishment.py:88–97.`
 
-**Граница доказательства:** Не проверены completed, base_unchanged, doc_in_task_worktree и ровно два content-отказа. Статическое чтение также показывает наследуемую identity и изменения process после материализации task stage_contracts; это последующие риски, не дополнительно воспроизведённые отказы.
+**Граница доказательства:** Не проверены completed, base_unchanged, doc_in_task_worktree и ровно два content-отказа. Статическое чтение также показывает наследуемую identity и изменения workflow после материализации task stage_contracts; это последующие риски, не дополнительно воспроизведённые отказы.
 
 ## Адресные подтверждения и дополнительный отказ
 
@@ -507,7 +507,7 @@ Unique ownership index и валидаторы не менялись; реаль
 
 **Scope:** Дополнительный node tests/runtime_services/test_stage_contract_runtime.py::test_reviewer_revision_changes_gate_refs_atomically и его _configure(inspection=True); вне исходной выборки 48.
 
-**Исправление:** После выбора двух стадий пересобрать decomposition.phases по фактическому process route; сохранить stage/role/scope контракты. Не ослаблять FocusedDecomposition.require_valid. Дальнейшие возможные prerequisites не объявлять исправленными заранее.
+**Исправление:** После выбора двух стадий пересобрать decomposition.phases по фактическому workflow route; сохранить stage/role/scope контракты. Не ослаблять FocusedDecomposition.require_valid. Дальнейшие возможные prerequisites не объявлять исправленными заранее.
 
 **Приёмка:** Node доходит до reviewer revision и проверяет атомарность старых/новых gate refs; негативная fixture с mismatched phases продолжает отвергаться до создания Task. Запускать адресные owning tests затронутого helper, а не полный suite.
 

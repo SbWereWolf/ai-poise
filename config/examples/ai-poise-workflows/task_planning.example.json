@@ -207,11 +207,6 @@
       },
       "transitions": {
         "complete": "classification"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -244,11 +239,6 @@
       },
       "transitions": {
         "complete": "requirements"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -281,11 +271,6 @@
       },
       "transitions": {
         "complete": "acceptance_design"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -320,11 +305,6 @@
       },
       "transitions": {
         "complete": "work_planning"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -333,7 +313,7 @@
       "handler": "produce",
       "role": "executor",
       "id": "work_planning",
-      "instruction": "Заполнить process-specific planning inputs. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
+      "instruction": "Заполнить workflow-specific planning inputs. Use exact registered checks; submit one batch to verify. Continue authorized work through public advance; preserve stage gates, role handoff, real blockers, and separate user authorization for acceptance, publication and reviewed integration.",
       "normalization": "strip",
       "read_only": true,
       "required_sections": [
@@ -359,11 +339,6 @@
       },
       "transitions": {
         "complete": "verification_planning"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -398,11 +373,6 @@
       },
       "transitions": {
         "complete": "task_inspection"
-      },
-      "purpose": "design",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -434,11 +404,6 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": "publication"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -471,11 +436,6 @@
       },
       "transitions": {
         "complete": "remediation_inspection"
-      },
-      "purpose": "execution",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -507,11 +467,6 @@
       "transitions": {
         "changes_requested": "remediation",
         "clear": "publication"
-      },
-      "purpose": "observation",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     },
     {
@@ -538,11 +493,6 @@
       "sections": {},
       "transitions": {
         "complete": null
-      },
-      "purpose": "other",
-      "criteria_authority": {
-        "propose": [],
-        "decide": []
       }
     }
   ]

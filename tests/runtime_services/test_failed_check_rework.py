@@ -73,7 +73,7 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
         }
     if historical_observation:
         stages[1]["rework_targets"].append("implementation")
-    process = {
+    workflow = {
         "route": {
             "entry": "implementation",
         },
@@ -85,7 +85,7 @@ def _scenario(project, *, passing_continuation=False, historical_observation=Fal
     }
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
-    write_json(project["root"] / "config/processes/development.json", process)
+    write_json(project["root"] / "config/workflows/development.json", workflow)
 
     method = {
         "id": "CHECK",
@@ -258,7 +258,7 @@ def test_failed_check_can_rework_to_declared_revise_stage_without_finding(projec
     worktrees_before = set(Path(worktree).parent.iterdir())
     immutable_before = tools.runtime.current_task()
     contract_before = deepcopy(immutable_before["contract"])
-    process_before = deepcopy(immutable_before["process"])
+    workflow_before = deepcopy(immutable_before["workflow"])
     wip = Path(worktree, "src", "failed-check-wip.txt")
     staged_content = "staged candidate\n"
     wip.write_text(staged_content, encoding="utf-8")
@@ -289,7 +289,7 @@ def test_failed_check_can_rework_to_declared_revise_stage_without_finding(projec
     assert _show(tools, "evidence")["observations"] == observations
     current = tools.runtime.current_task()
     assert current["contract"] == contract_before
-    assert current["process"] == process_before
+    assert current["workflow"] == workflow_before
     assert after["workflow"]["transitions"] == before["workflow"]["transitions"] + 1
     assert after["workflow"]["visits"]["implementation"] == before["workflow"]["visits"]["implementation"]
     assert after["workflow"]["visits"]["closed_finding_remediation"] == (

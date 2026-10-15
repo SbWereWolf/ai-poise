@@ -13,9 +13,9 @@ from .task_delivery import SqliteTaskDeliveryRepository
 
 class SqliteUnitOfWork:
     """Commit on successful context exit; rollback on any exception."""
-    def __init__(self, database, processes):
+    def __init__(self, database, workflows):
         self.database = database
-        self.processes = processes
+        self.workflows = workflows
 
     def __enter__(self):
         self._transaction = self.database.transaction()
@@ -27,7 +27,7 @@ class SqliteUnitOfWork:
         self.actions = SqliteActionRepository(connection,self.tasks)
         self.execution = SqliteExecutionRepository(connection)
         self.evidence = SqliteEvidenceRepository(connection)
-        self.ownership = SqliteOwnershipRepository(connection,self.processes)
+        self.ownership = SqliteOwnershipRepository(connection,self.workflows)
         self.accounting_cycles = SqliteAccountingCycles(connection)
         self.work_packets = SqliteWorkPacketRepository(connection)
         self.artifacts = SqliteArtifactRepository(connection)

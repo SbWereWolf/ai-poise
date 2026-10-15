@@ -113,10 +113,10 @@ def test_two_parallel_agents_sum_time_but_union_elapsed(project):
 
 def test_task_sections_measure_only_selected_final_content(project):
     h,w,c=setup(project)
-    p=deepcopy(project['process']) # actual on-disk route has write
-    p=json.loads((project['root']/'config/processes/development.json').read_text())
+    p=deepcopy(project['workflow']) # actual on-disk route has write
+    p=json.loads((project['root']/'config/workflows/development.json').read_text())
     p['benefit']={'git_categories':[],'sections':['report']}
-    write_json(project['root']/'config/processes/development.json',p)
+    write_json(project['root']/'config/workflows/development.json',p)
     project['cfg']['paths']['state']='sections-state';write_json(project['config_path'],project['cfg'])
     registry=seed_fixture_requirements(project['root'],project['cfg'])
     bind_task_requirements(project['task'],registry)
@@ -129,7 +129,7 @@ def test_task_sections_measure_only_selected_final_content(project):
 
 def test_missing_policy_and_benefit_do_not_get_guessed(project):
     from poise.modules.goal_config.domain import GoalTypeDefinition
-    h,w,c=setup(project);p=json.loads((project['root']/'config/processes/development.json').read_text());del p['benefit']
+    h,w,c=setup(project);p=json.loads((project['root']/'config/workflows/development.json').read_text());del p['benefit']
     with pytest.raises(PoiseError):GoalTypeDefinition.parse(p)
     del project['cfg']['accounting'];write_json(project['config_path'],project['cfg'])
     with pytest.raises(PoiseError):Poise(project['config_path'],'B',DeterministicClock())
@@ -137,7 +137,7 @@ def test_missing_policy_and_benefit_do_not_get_guessed(project):
 
 def test_benefit_is_editable_in_same_declarative_config_batch(project):
     from poise.modules.goal_config.domain import GoalTypeDefinition
-    h,w,c=setup(project);p=json.loads((project['root']/'config/processes/development.json').read_text())
+    h,w,c=setup(project);p=json.loads((project['root']/'config/workflows/development.json').read_text())
     r=GoalTypeDefinition.build('development',p,[{'op':'set_benefit','value':{'git_categories':[],'sections':['report']}}])
     assert r.data['benefit']['sections']==['report']
 

@@ -1,10 +1,10 @@
-# Явная миграция Task process snapshot
+# Явная миграция Task workflow snapshot
 
 Обновлено: **2026-10-13**. Исторические схемы ниже относятся к указанным точечным
 операциям. Отдельный текущий контракт описан в разделе
 [миграции типов и критериев этапов](#миграция-типов-и-критериев-этапов).
 
-`task-process-migrate` — публичная одноразовая операция для сохранённых Task process
+`task-workflow-migrate` — публичная одноразовая операция для сохранённых Task workflow
 snapshots, созданных до обязательного поля `worktree_required`. Это не compatibility read,
 не fallback и не общий редактор metadata. Оператор запускает её только по прямому
 разрешению пользователя для точного набора Task:
@@ -31,8 +31,8 @@ poise backup create --config PROJECT_JSON
 
 Сохраните выданное имя файла. Проверьте его наличие через `poise backup list --config
 PROJECT_JSON`. Не копируйте и не заменяйте SQLite-файл вручную. Целевые Task должны
-существовать, не быть terminal и содержать совместимый process без поля
-`worktree_required`. Их неизменяемый `goal_type` должен ссылаться на настроенный process.
+существовать, не быть terminal и содержать совместимый workflow без поля
+`worktree_required`. Их неизменяемый `goal_type` должен ссылаться на настроенный workflow.
 Существующий claim не нужно предварительно освобождать: операция сохраняет его точное
 значение и не принимает решений о liveness, передаче или замене владельца. При этом сам
 владелец не должен писать в Task DB во время backup и миграции.
@@ -43,33 +43,33 @@ PROJECT_JSON`. Не копируйте и не заменяйте SQLite-фай�
 
 ```json
 {
-  "schema": "task-process-migration-1",
-  "request_id": "migrate-authorized-six-processes-1",
+  "schema": "task-workflow-migration-1",
+  "request_id": "migrate-authorized-six-workflows-1",
   "backup_name": "tasks-backup-20260913T120000000000Z.sqlite",
   "task_ids": ["0077", "0081", "0079", "0078", "0074", "0063"],
-  "authorization": "User explicitly authorized this exact Task process migration."
+  "authorization": "User explicitly authorized this exact Task workflow migration."
 }
 ```
 
 Запуск:
 
 ```bash
-poise task-process-migrate --config PROJECT_JSON <<'JSON'
+poise task-workflow-migrate --config PROJECT_JSON <<'JSON'
 {
-  "schema": "task-process-migration-1",
-  "request_id": "migrate-authorized-six-processes-1",
+  "schema": "task-workflow-migration-1",
+  "request_id": "migrate-authorized-six-workflows-1",
   "backup_name": "BACKUP_NAME",
   "task_ids": ["0077", "0081", "0079", "0078", "0074", "0063"],
-  "authorization": "User explicitly authorized this exact Task process migration."
+  "authorization": "User explicitly authorized this exact Task workflow migration."
 }
 JSON
 ```
 
 Операция проверяет целиком названную копию и рабочую DB, все цели и lifecycle,
-process shape и соответствие `goal_type`. Значение `worktree_required` выводится из
-настроенного process definition. После внешнего preflight состояние повторно сверяется
+workflow shape и соответствие `goal_type`. Значение `worktree_required` выводится из
+настроенного workflow definition. После внешнего preflight состояние повторно сверяется
 под writer lock. Все шесть snapshots записываются **одной транзакцией** либо не меняется
-ни один. Task IDs, lifecycle, прочее содержимое process, history, submissions, evidence,
+ни один. Task IDs, lifecycle, прочее содержимое workflow, history, submissions, evidence,
 dependencies, claims, results и artifacts сохраняются. Стабильный existing claim допустим;
 его создание, снятие или замена после названного backup либо после preflight считается
 drift и отклоняет весь пакет.
@@ -77,7 +77,7 @@ drift и отклоняет весь пакет.
 ## Receipt, повтор и восстановление работы
 
 Успех возвращает статус `migrated`, `request_id`, `backup_name`, ordered Task summaries,
-старый и новый digest каждого process и общий `receipt`. Тот же точный запрос можно
+старый и новый digest каждого workflow и общий `receipt`. Тот же точный запрос можно
 повторить: валидированный audit вернёт тот же receipt с `replayed: true`. Тот же
 `request_id` с другим intent отклоняется. Повреждённый audit, несовпадение backup/live DB
 или drift также отклоняются, без частичной записи. Audit UTC получается только через
@@ -89,19 +89,19 @@ drift и отклоняет весь пакет.
 
 ## Точечное восстановление Task 0082
 
-`task-process-migration-2` — отдельное прямое разрешение только для Task 0082. Оно принимает
-точно `task_ids: ["0082"]` и не расширяет разрешение `task-process-migration-1`: смешанный
+`task-workflow-migration-2` — отдельное прямое разрешение только для Task 0082. Оно принимает
+точно `task_ids: ["0082"]` и не расширяет разрешение `task-workflow-migration-1`: смешанный
 набор, пустой набор, другой ID или несколько Task отклоняются до изменения данных. Этот путь
-добавляет в сохранённый process snapshot 0082 только отсутствующий boolean
-`worktree_required`, взятый из настроенного process того же immutable `goal_type`. Уже выданный
+добавляет в сохранённый workflow snapshot 0082 только отсутствующий boolean
+`worktree_required`, взятый из настроенного workflow того же immutable `goal_type`. Уже выданный
 старый receipt schema 2 остаётся точно replayable; этот опубликованный контракт не меняется.
 
-Корректирующая `task-process-migration-3` принимает только `0082`. Если schema 2 уже
-добавила совпадающий boolean, schema 3 сохраняет process без изменений; если boolean ещё нет,
-она добавляет его, не заменяя остальные поля старого snapshot актуальным process целиком.
+Корректирующая `task-workflow-migration-3` принимает только `0082`. Если schema 2 уже
+добавила совпадающий boolean, schema 3 сохраняет workflow без изменений; если boolean ещё нет,
+она добавляет его, не заменяя остальные поля старого snapshot актуальным workflow целиком.
 Та же атомарная операция инициализирует отсутствующий `stage_contracts` в Task contract. Она
-создаёт один contract на каждый сохранённый process stage в исходном порядке, переносит
-его `allowed_paths` и назначает entry/exit gates из сохранённых process/task content requirements
+создаёт один contract на каждый сохранённый workflow stage в исходном порядке, переносит
+его `allowed_paths` и назначает entry/exit gates из сохранённых workflow/task content requirements
 по их stage и phase. Уже существующий `stage_contracts` либо несовпадающий boolean означает,
 что точечный recovery неприменим, и весь запрос отклоняется. Обе правки выполняются одним
 metadata update без изменения lifecycle columns, Task version и released handoff.
@@ -111,18 +111,18 @@ metadata update без изменения lifecycle columns, Task version и rel
 
 ```json
 {
-  "schema": "task-process-migration-3",
+  "schema": "task-workflow-migration-3",
   "request_id": "migrate-task-0082-stage-contracts-2",
   "backup_name": "BACKUP_NAME",
   "task_ids": ["0082"],
-  "authorization": "User authorized process snapshot recovery for Task 0082."
+  "authorization": "User authorized workflow snapshot recovery for Task 0082."
 }
 ```
 
 Успех должен вернуть `receipt`; точный повтор того же запроса возвращает тот же receipt и
 `replayed: true`. Миграция сохраняет lifecycle, verified result, stage, iteration, content,
 feedback, evidence, history, ownership, Git binding и config identity. Summary также фиксирует,
-был ли добавлен process boolean, факт инициализации stage contracts и
+был ли добавлен workflow boolean, факт инициализации stage contracts и
 old/new digests обоих изменяемых snapshots. После сравнения публичных
 проекций передайте сохранённую released Task назначенному проверяющему и выполните native bootstrap
 Task `0082`. Ожидаемый восстановленный контекст — исходная verified итерация
@@ -130,10 +130,10 @@ Task `0082`. Ожидаемый восстановленный контекст 
 
 ## Восстановление текущей задачи планирования
 
-`task-process-migration-4` — одноразовая точечная операция только для
+`task-workflow-migration-4` — одноразовая точечная операция только для
 `ERP-HARNESS-COMPARISON-PLAN`. Она исправляет legacy Task, которой не хватает
 `stage_contracts`, без restart: сохраняет ID, lifecycle, текущие stage/iteration, историю,
-ownership, worktree, branch и WIP. Контракты выводятся исключительно из сохранённых process и
+ownership, worktree, branch и WIP. Контракты выводятся исключительно из сохранённых workflow и
 content snapshots этой Task: для каждого stage сохраняется его `allowed_paths`, а entry/exit
 gates строятся по сохранённым requirements и их phase. Процесс не подменяется текущим
 конфигом проекта.
@@ -142,7 +142,7 @@ gates строятся по сохранённым requirements и их phase. �
 
 ```json
 {
-  "schema": "task-process-migration-4",
+  "schema": "task-workflow-migration-4",
   "request_id": "migrate-current-task-stage-contracts-1",
   "backup_name": "BACKUP_NAME",
   "task_ids": ["ERP-HARNESS-COMPARISON-PLAN"],
@@ -150,7 +150,7 @@ gates строятся по сохранённым requirements и их phase. �
 }
 ```
 
-Успешный receipt фиксирует old/new digests process и contract, а затем native `bootstrap`
+Успешный receipt фиксирует old/new digests workflow и contract, а затем native `bootstrap`
 должен вернуть сохранённый этап `framing`. Другая Task, повторный другой intent, уже
 инициализированный contract или drift базы отклоняются до записи.
 
@@ -162,7 +162,7 @@ writes и используйте только `poise backup restore --config PRO
 ## Миграция типов и критериев этапов
 
 `task-stage-criteria-migration-1` — отдельная схема того же публичного
-`poise task-process-migrate --config PROJECT_JSON`. Она не является пятой версией
+`poise task-workflow-migrate --config PROJECT_JSON`. Она не является пятой версией
 исторических точечных схем выше и не расширяет их списки Task.
 Операция требует прямой авторизации, исключительного окна без writers и публичной
 резервной копии всей выбранной Task DB. Она классифицирует сохранённые этапы
@@ -172,12 +172,12 @@ writes и используйте только `poise backup restore --config PRO
 
 Выберите владельца, который опубликовал настроенные процессы проекта.
 Без `--project-settings` операция использует настроенный редактор каталога:
-каждый process должен совпадать с его зарегистрированным target и managed head.
+каждый workflow должен совпадать с его зарегистрированным target и managed head.
 Если процессы созданы владельцем подготовки проекта и находятся в его отдельном
 пакете, передайте путь к действующим setup settings:
 
 ```bash
-poise task-process-migrate \
+poise task-workflow-migrate \
   --config PROJECT_JSON \
   --project-settings PROJECT_SETUP_SETTINGS < MIGRATION_JSON
 ```
@@ -209,13 +209,13 @@ poise task-process-migrate \
 
 | `kind` ресурса | Поля, кроме `kind` и `stages` |
 |---|---|
-| `process_definition` | `goal_type`, `expected_revision` — точная revision редактора каталога либо digest исходного process при выбранных project settings |
-| `executable_task` | `task_id`, `expected_version` — целое число, `expected_process_digest` |
-| `newborn_task` — с договорами этапов | `task_id`, `expected_revision` — целое число, `expected_process_digest` |
+| `workflow_definition` | `goal_type`, `expected_revision` — точная revision редактора каталога либо digest исходного workflow при выбранных project settings |
+| `executable_task` | `task_id`, `expected_version` — целое число, `expected_workflow_digest` |
+| `newborn_task` — с договорами этапов | `task_id`, `expected_revision` — целое число, `expected_workflow_digest` |
 | `newborn_draft` — до подготовки договоров этапов | `task_id`, `expected_revision`, `expected_metadata_digest` |
 
 В `stages` каждый исторический этап указан ровно один раз в исходном порядке.
-Для process definition элемент содержит ровно `stage_id`, `purpose`,
+Для workflow definition элемент содержит ровно `stage_id`, `purpose`,
 `criteria_authority`. Для Task с существующими договорами этапов добавляются
 `criteria` и `execution`. Для `newborn_draft` применяются
 [правила переноса постановки](#постановки-без-договоров-этапов).
@@ -261,7 +261,7 @@ metadata: канонический JSON с отсортированными кл
 шестнадцатеричные цифры. Переданный digest и версия сверяются с текущей строкой;
 совпадение базы с backup не заменяет эти проверки.
 
-До выбора типа процесса в metadata отсутствует `process`, в черновике отсутствует
+До выбора типа процесса в metadata отсутствует `workflow`, в черновике отсутствует
 `goal_type`, а `stages` явно равен `[]`. Миграция сохраняет исходный текст metadata
 без перезаписи, включая его форматирование. Идентичность, версия, владение и
 история постановки остаются прежними.
@@ -288,7 +288,7 @@ metadata: канонический JSON с отсортированными кл
 ### Публикация, атомарность и восстановление
 
 До intent проверяются целостность backup, равенство снимка исходной DB,
-полнота ресурсов, точные версии, process bytes/digests и metadata digests
+полнота ресурсов, точные версии, workflow bytes/digests и metadata digests
 постановок. При выборе редактора
 каталога проверяются его managed heads, зарегистрированные targets и привязки.
 При выборе project settings проверяются реестр, квитанция подготовки и

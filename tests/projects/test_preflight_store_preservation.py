@@ -21,7 +21,7 @@ def create_available(project, config, identifier):
     body = task(project, identifier)
     body['sprint_id'] = None
     runtime.task_commands.create(
-        body, runtime.session, runtime.processes['development'], [],
+        body, runtime.session, runtime.workflows['development'], [],
         {'config_hash': runtime.config_hash}, None, runtime.cfg.get('task_ids'),
         runtime._creation_base(), runtime.cfg['task_decomposition'])
     return runtime
@@ -180,7 +180,7 @@ def test_selected_store_denial_retains_canonical_owner_cause_and_all_state(case,
 @pytest.mark.parametrize('condition', ['stale', 'claimed', 'pending'])
 def test_advertised_git_update_keeps_revision_claim_and_pending_guards(project, condition):
     setup(project)
-    del project['cfg']['processes']['documentation']
+    del project['cfg']['workflows']['documentation']
     write_json(project['config_path'], project['cfg'])
     settings, config, created = installed_project(project)
     if condition != 'stale':

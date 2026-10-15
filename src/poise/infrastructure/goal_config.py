@@ -81,7 +81,7 @@ class EditorSettings:
         c=self.raw
         configuration_fields(c,{"schema","root","database","lock","responses","file_mode","json_indent",
                       "lock_seconds","lock_poll_seconds","max_changes","max_input_bytes","output_chars",
-                      "exit_codes","processes","templates"},"goal editor settings")
+                      "exit_codes","workflows","templates"},"goal editor settings")
         if c["schema"]!="goal-config-editor-1":
             raise PoiseError("Неподдерживаемый формат редактора; нет автоматической миграции")
         if not isinstance(c["root"],str) or not c["root"]:
@@ -102,10 +102,10 @@ class EditorSettings:
         codes = configuration_fields(c["exit_codes"],{"success","rejected","pending"},"exit_codes")
         if any(type(v) is not int or not 0<=v<=255 for v in codes.values()) or len(set(codes.values()))!=3:
             raise PoiseError("exit_codes: нужны три различных явных кода")
-        if not isinstance(c["processes"],dict) or not c["processes"] or not isinstance(c["templates"],dict):
-            raise PoiseError("processes/templates должны быть явными mappings")
+        if not isinstance(c["workflows"],dict) or not c["workflows"] or not isinstance(c["templates"],dict):
+            raise PoiseError("workflows/templates должны быть явными mappings")
         paths=[]
-        for goal, relative in c["processes"].items():
+        for goal, relative in c["workflows"].items():
             if not isinstance(goal,str) or not goal.strip() or any(x in goal for x in "/\\\x00") or goal in (".",".."):
                 raise PoiseError("Некорректный goal_type в registry")
             target=descendant(self.root,relative)
@@ -127,9 +127,9 @@ class EditorSettings:
             raise PoiseError("output_chars недостаточен для обязательного адреса результата; публикация не начата")
 
     def target(self,goal):
-        if goal not in self.raw["processes"]:
+        if goal not in self.raw["workflows"]:
             raise PoiseError(f"goal_type {goal} не зарегистрирован в editor settings")
-        rel=self.raw["processes"][goal]
+        rel=self.raw["workflows"][goal]
         if (self.root/rel).is_symlink():
             raise PoiseError("Конфиг не может быть symlink")
         return descendant(self.root,rel)

@@ -150,12 +150,12 @@ def assert_materials(context, proof, files, git):
 
 def two_stage_plan(project):
     setup(project)
-    process = project['process']
-    second = deepcopy(process['stages'][0])
+    workflow = project['workflow']
+    second = deepcopy(workflow['stages'][0])
     second.update(id='next', transitions={'complete': None}, rework_targets=['next'])
-    process['stages'][0]['transitions'] = {'complete': 'next'}
-    process['stages'].append(second)
-    write_json(project['root'] / 'config/processes/development.json', process)
+    workflow['stages'][0]['transitions'] = {'complete': 'next'}
+    workflow['stages'].append(second)
+    write_json(project['root'] / 'config/workflows/development.json', workflow)
     planner = client(project, 'planner')
     members = [task(project, 'A'), task(project, 'B')]
     for member in members:

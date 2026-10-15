@@ -19,7 +19,7 @@ Supported generator packets: [project setup](../../docs/configuration/project-se
    foreign work and native history; validate actual bytes and references before
    retiring the old path. Parent/child relocation is rejected by the native mover;
    use only authorized audited recovery, not an automatic copy or blind retry.
-5. Check the generated manifest and processes, registry selection, hook settings
+5. Check the generated manifest and workflows, registry selection, hook settings
    and actual consumer behavior. Keep a missing installation or unperformed check
    explicit. Create backups or archives only under separate user authority.
 

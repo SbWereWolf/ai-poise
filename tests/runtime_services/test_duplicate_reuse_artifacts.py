@@ -33,7 +33,7 @@ def artifact_family(project, *, scope='task', content_rule=False, optional=False
         from sprints.helpers import publish_existing_contract
         publish_existing_contract(h, contract, 'SOURCE')
     else:
-        h.task_commands.create(contract, h.session, h.processes['development'], [],
+        h.task_commands.create(contract, h.session, h.workflows['development'], [],
             {'config_hash': h.config_hash}, None, h.cfg.get('task_ids'), h._creation_base(),
             h.cfg['task_decomposition'])
     client = WorkTools(h)

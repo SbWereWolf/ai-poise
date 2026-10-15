@@ -10,23 +10,23 @@ from batch.helpers import configure, request, result, verify
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from runtime_services.test_task_restart import (
-    execution, git, immutable_audit_rows, process_contract, restart,
+    execution, git, immutable_audit_rows, workflow_contract, restart,
 )
 
 
 def prepare(project, *, dedicated=True):
     configure(project)
-    process = deepcopy(project['process'])
-    stage = deepcopy(process['stages'][0])
+    workflow = deepcopy(project['workflow'])
+    stage = deepcopy(workflow['stages'][0])
     stage.update(id='baseline', read_only=True, allowed_paths=[],
                  transitions={'complete': None}, rework_targets=['baseline'])
-    process.update(worktree_required=dedicated, stages=[stage], route={'entry': 'baseline'},
+    workflow.update(worktree_required=dedicated, stages=[stage], route={'entry': 'baseline'},
                    content_contract={'sections': [], 'routes': [], 'requirements': []})
     project['cfg']['automatic_checks'] = []
     write_json(project['config_path'], project['cfg'])
-    write_json(project['root'] / 'config/processes/development.json', process)
+    write_json(project['root'] / 'config/workflows/development.json', workflow)
     task = deepcopy(project['task'])
-    task.update(process_contract('development', process))
+    task.update(workflow_contract('development', workflow))
     owner = WorkTools(WorkPoise(project['config_path'], 'restart-owner'))
     ctx = owner.invoke(request('bootstrap', {
         'task': task, 'decision': None, 'feedback': None, 'rework_stage': None,

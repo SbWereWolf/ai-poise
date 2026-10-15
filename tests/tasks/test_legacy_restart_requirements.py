@@ -286,8 +286,8 @@ def test_revised_ready_retains_real_prior_proof_without_reusing_it(project):
     import json
 
     task_id = "PROOF-REVISED"
-    project["process"]["stages"][0]["sections"]["test_registry"] = "Register the audited method."
-    write_json(project["root"] / "config/processes/development.json", project["process"])
+    project["workflow"]["stages"][0]["sections"]["test_registry"] = "Register the audited method."
+    write_json(project["root"] / "config/workflows/development.json", project["workflow"])
     client = tools(project, "proof-owner")
     initial = deepcopy(project["task"])
     initial["id"] = task_id

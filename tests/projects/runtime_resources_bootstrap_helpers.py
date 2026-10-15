@@ -56,7 +56,7 @@ def arrange_bootstrap(project, tmp_path, *, native_hooks=False):
         state = root / state
     state.mkdir(parents=True, exist_ok=True)
     (state / 'operator.bin').write_bytes(b'\x00\xffexisting operator work\x80\n')
-    editor, selection = editor_settings(root, {'writing': 'config/processes/writing.json'})
+    editor, selection = editor_settings(root, {'writing': 'config/workflows/writing.json'})
     head = goal_config_tools(editor).apply_batch(
         editor_request('create', 'writing', None, [], selection=selection))
     assert head['status'] == 'applied'

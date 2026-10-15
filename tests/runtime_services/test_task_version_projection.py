@@ -20,7 +20,7 @@ def _configure_single_stage(project):
         "transitions": {"complete": None},
         "rework_targets": ["write"],
     }
-    process = {
+    workflow = {
         "route": {"entry": "write"},
         "goal_type": "development",
         "worktree_required": True,
@@ -30,7 +30,7 @@ def _configure_single_stage(project):
     }
     project["cfg"]["automatic_checks"] = []
     write_json(project["config_path"], project["cfg"])
-    write_json(project["root"] / "config/processes/development.json", process)
+    write_json(project["root"] / "config/workflows/development.json", workflow)
     task = {
         "id": "T1",
         "sprint_id": None,

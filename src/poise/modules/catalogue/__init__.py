@@ -1,1 +1,1 @@
-"""Independent process/task template contracts; no execution engine."""
+"""Independent workflow/task template contracts; no execution engine."""

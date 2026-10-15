@@ -53,12 +53,12 @@ def prepare(project, tmp_path, *, released=True, native_hooks=False):
         project['cfg']['batch']['message_source'] = {'id': 'codex-hook-main', 'mode': 'runtime_event'}
         project['cfg']['accounting']['time_mode'] = 'reported'
     stage = json.loads((Path(__file__).parents[1] / 'verification/fixtures/retention_stage.json').read_text())
-    project['process'].update(route={'entry': 'implementation'}, stages=[stage])
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    project['workflow'].update(route={'entry': 'implementation'}, stages=[stage])
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     settings, config_path, _ = installed_project(project)
-    root, cfg, processes = load_config(config_path)
+    root, cfg, workflows = load_config(config_path)
     project.update(root=root, config_path=config_path, cfg=cfg,
-                   process=processes['development'],
+                   workflow=workflows['development'],
                    requirements_registry=seed_fixture_requirements(root, cfg))
     marker = tmp_path / 'consumer-marker.txt'
     method = consumer(marker)

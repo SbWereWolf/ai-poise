@@ -74,16 +74,16 @@ def setup_current(project, *, initially_empty=False, allow_method_edit=True, wit
     project["task"]["planning"] = {
         "schema": "task-planning-1", "template": None,
         "restart_revision_policy": {
-            "reviewer": ["process"],
-            "user": (["process", "methods", "method_inputs", "checks"]
-                     if allow_method_edit else ["process"]),
+            "reviewer": ["workflow"],
+            "user": (["workflow", "methods", "method_inputs", "checks"]
+                     if allow_method_edit else ["workflow"]),
         },
     }
     original = deepcopy(project["task"])
     if initially_empty:
         project["task"]["methods"] = []
         project["task"]["method_inputs"] = []
-        project["task"]["checks"] = {stage["id"]: [] for stage in project["process"]["stages"]}
+        project["task"]["checks"] = {stage["id"]: [] for stage in project["workflow"]["stages"]}
         project["cfg"]["automatic_checks"][0]["by_stage"] = deepcopy(project["task"]["checks"])
     tools = public_tools(project, "registry-executor")
     boot = bootstrap(tools, project)
@@ -133,24 +133,24 @@ def ready_task(tools, task_id, revision, request_id="ready-current"):
 
 
 @pytest.mark.parametrize("initially_empty", [False, True], ids=["replaced-and-deleted", "empty-creation"])
-def test_process_only_restart_ready_preserves_complete_current_registry(project, initially_empty):
+def test_workflow_only_restart_ready_preserves_complete_current_registry(project, initially_empty):
     tools, before = setup_current(project, initially_empty=initially_empty, allow_method_edit=False)
     task_id = project["task"]["id"]
     record = deepcopy(tools.runtime.task_queries.record(task_id))
     rows = persisted(tools, task_id)
     newborn = restart_task(tools, task_id)
     # Change actual process content, leaving route identities and registry untouched.
-    process = deepcopy(newborn["process"])
-    process["stages"][0]["instruction"] = "Use the revised, compatible process instruction."
-    assert process != newborn["process"]
+    workflow = deepcopy(newborn["workflow"])
+    workflow["stages"][0]["instruction"] = "Use the revised, compatible process instruction."
+    assert workflow != newborn["workflow"]
     edited = tools.invoke(request("task", {
         "action": "edit", "task_id": task_id, "request_id": "process-description",
         "expected_revision": newborn["revision"],
-        "patch": {"process": process}, "remove": [],
+        "patch": {"workflow": workflow}, "remove": [],
     }))
     assert ready_task(tools, task_id, edited["revision"])["status"] == "available"
     after = tools.runtime.task_queries.record(task_id)
-    assert after["process"] == process
+    assert after["workflow"] == workflow
     assert projection(tools) == before
     saved = persisted(tools, task_id)
     assert saved["methods"] == rows["methods"]
@@ -177,7 +177,7 @@ def test_authorised_method_replacement_preserves_unchanged_entries_and_audit(pro
     methods = [deepcopy(before["current"][0]["method"]), replacement["registration"]["method"]]
     inputs = [deepcopy(value) for value in project["task"]["method_inputs"]
               if value["method_id"] in ("RED", "GREEN")]
-    checks = {stage["id"]: [] for stage in project["process"]["stages"]}
+    checks = {stage["id"]: [] for stage in project["workflow"]["stages"]}
     checks["test_implementation"] = ["RED"]
     checks["implementation"] = ["GREEN"]
     edited = tools.invoke(request("task", {
@@ -273,7 +273,7 @@ def test_authorised_registry_addition_or_removal_has_one_exact_delta(project, ca
     methods = [deepcopy(entry["method"]) for entry in expected]
     inputs = [deepcopy(item) for item in project["task"]["method_inputs"]
               if item["method_id"] in ("RED", "GREEN")]
-    checks = {stage["id"]: [] for stage in project["process"]["stages"]}
+    checks = {stage["id"]: [] for stage in project["workflow"]["stages"]}
     checks["test_implementation"] = ["RED"]
     checks["implementation"] = ["GREEN"]
     if case == "addition":
@@ -302,16 +302,16 @@ def test_authorised_registry_addition_or_removal_has_one_exact_delta(project, ca
 def test_incompatible_edited_route_is_rejected_without_publication(project):
     tools, _ = setup_current(project)
     newborn = restart_task(tools, "T1")
-    process = deepcopy(newborn["process"])
-    process["stages"][-1]["id"] = "incompatible_implementation"
-    for stage in process["stages"]:
+    workflow = deepcopy(newborn["workflow"])
+    workflow["stages"][-1]["id"] = "incompatible_implementation"
+    for stage in workflow["stages"]:
         stage["transitions"] = {event: ("incompatible_implementation" if target == "implementation" else target)
                                 for event, target in stage["transitions"].items()}
         stage["rework_targets"] = ["incompatible_implementation" if target == "implementation" else target
                                    for target in stage["rework_targets"]]
     edited = tools.invoke(request("task", {
         "action": "edit", "task_id": "T1", "request_id": "incompatible-route",
-        "expected_revision": newborn["revision"], "patch": {"process": process}, "remove": [],
+        "expected_revision": newborn["revision"], "patch": {"workflow": workflow}, "remove": [],
     }))
     rows = persisted(tools, "T1")
     query = [{"id": "requirements", "kind": "registry"}]
@@ -326,7 +326,7 @@ def test_historical_success_requires_fresh_execution_after_method_and_candidate_
     configure_public_registry_case(project)
     project["task"]["planning"] = {
         "schema": "task-planning-1", "template": None,
-        "restart_revision_policy": {"reviewer": ["process"], "user": ["methods"]},
+        "restart_revision_policy": {"reviewer": ["workflow"], "user": ["methods"]},
     }
     counter = project["root"] / "verification-probe-calls.txt"
     probe = changes_fixture()["probe"]
@@ -336,7 +336,7 @@ def test_historical_success_requires_fresh_execution_after_method_and_candidate_
         "method_id": "PROBE", "repository_inputs": [], "future_outputs": [],
         "reference_profile": {"runner": "python", "parser": "inline-no-path-arguments", "version": 1},
     }]
-    checks = {stage["id"]: [] for stage in project["process"]["stages"]}
+    checks = {stage["id"]: [] for stage in project["workflow"]["stages"]}
     checks["test_implementation"] = ["PROBE"]
     project["task"]["checks"] = checks
     project["cfg"]["automatic_checks"][0]["by_stage"] = deepcopy(checks)
@@ -411,7 +411,7 @@ def test_failed_ready_rolls_back_task_registry_and_requirements(project, monkeyp
     assert tools.runtime.requirements_commands.query(query) == requirements
 
 
-def test_process_only_grant_rejects_unauthorised_method_edit_without_writes(project):
+def test_workflow_only_grant_rejects_unauthorised_method_edit_without_writes(project):
     tools, _ = setup_current(project, allow_method_edit=False)
     task_id = project["task"]["id"]
     newborn = restart_task(tools, task_id)
@@ -454,9 +454,9 @@ def test_legitimately_empty_current_registry_is_preserved_without_resurrection(p
     project["task"]["method_inputs"] = []
     project["task"]["planning"] = {
         "schema": "task-planning-1", "template": None,
-        "restart_revision_policy": {"reviewer": ["process"], "user": ["process"]},
+        "restart_revision_policy": {"reviewer": ["workflow"], "user": ["workflow"]},
     }
-    project["task"]["checks"] = {stage["id"]: [] for stage in project["process"]["stages"]}
+    project["task"]["checks"] = {stage["id"]: [] for stage in project["workflow"]["stages"]}
     project["cfg"]["automatic_checks"][0]["by_stage"] = deepcopy(project["task"]["checks"])
     tools = public_tools(project, "registry-executor")
     bootstrap(tools, project)

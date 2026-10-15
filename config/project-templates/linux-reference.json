@@ -38,20 +38,20 @@
       "author_email": "REPLACE_WITH_COMMIT_AUTHOR_EMAIL",
       "push_required": true
     },
-    "processes": {
-      "analysis": "config/processes/analysis.json",
-      "design": "config/processes/design.json",
-      "development": "config/processes/development.json",
-      "documentation": "config/processes/documentation.json",
-      "environment_diagnostics": "config/processes/environment_diagnostics.json",
-      "environment_remediation": "config/processes/environment_remediation.json",
-      "integration": "config/processes/integration.json",
-      "profiling": "config/processes/profiling.json",
-      "review": "config/processes/review.json",
-      "sprint_planning": "config/processes/sprint_planning.json",
-      "task_planning": "config/processes/task_planning.json",
-      "test_development": "config/processes/test_development.json",
-      "verification": "config/processes/verification.json"
+    "workflows": {
+      "analysis": "config/workflows/analysis.json",
+      "design": "config/workflows/design.json",
+      "development": "config/workflows/development.json",
+      "documentation": "config/workflows/documentation.json",
+      "environment_diagnostics": "config/workflows/environment_diagnostics.json",
+      "environment_remediation": "config/workflows/environment_remediation.json",
+      "integration": "config/workflows/integration.json",
+      "profiling": "config/workflows/profiling.json",
+      "review": "config/workflows/review.json",
+      "sprint_planning": "config/workflows/sprint_planning.json",
+      "task_planning": "config/workflows/task_planning.json",
+      "test_development": "config/workflows/test_development.json",
+      "verification": "config/workflows/verification.json"
     },
     "environment_names": [
       "PATH",
@@ -211,106 +211,6 @@
         "chunk_bytes": 65536,
         "worker_timeout_seconds": 15,
         "file_mode": 384
-      },
-      "handoff": {
-        "directory": "handoffs",
-        "receipt": "handoff.json",
-        "bundle": "source.bundle",
-        "preserved_directory": "preserved",
-        "file_mode": 384
-      },
-      "transfer": {
-        "directory": "transfers",
-        "archive": "work.tar.gz",
-        "manifest": "manifest.json",
-        "database": "snapshot.sqlite",
-        "files_directory": "files",
-        "max_tasks": 1000,
-        "max_files": 10000,
-        "max_file_bytes": 33554432,
-        "max_total_bytes": 134217728,
-        "chunk_bytes": 65536,
-        "file_mode": 384,
-        "recovery": {
-          "format": "poise-recovery-1",
-          "tool_argv": [
-            "/example/bin/node",
-            "/example/workspace-recover/bin/workspace-recover.mjs"
-          ],
-          "mapping": {
-            "version": "task-materials-1",
-            "materials": []
-          },
-          "systems": {
-            "poise": {
-              "repository": "/example/poise",
-              "configs": [
-                "/example/poise/project.json"
-              ]
-            },
-            "project": {
-              "repository": "/example/project",
-              "configs": [
-                "/example/project/project.json"
-              ]
-            }
-          },
-          "repositories": {
-            "task": "/example/project"
-          },
-          "paths": {
-            "staging": "prepared",
-            "create_session": "create-session",
-            "restore_session": "restore-session"
-          },
-          "placement_decisions": [],
-          "create_flow": {
-            "schema": "workspace-recover/flow/v3",
-            "workspace": "${variables.workspace}",
-            "steps": [
-              {
-                "id": "archive",
-                "op": "archive",
-                "from": "${variables.staging}",
-                "to": "${variables.package}",
-                "onError": "stop"
-              }
-            ]
-          },
-          "restore_flow": {
-            "schema": "workspace-recover/flow/v3",
-            "workspace": "${variables.workspace}",
-            "steps": [
-              {
-                "id": "extract",
-                "op": "extract",
-                "from": "${variables.package}",
-                "to": "${variables.staging}",
-                "existingTarget": "merge",
-                "onError": "stop"
-              },
-              {
-                "id": "place",
-                "op": "command",
-                "argv": "${variables.place_argv}",
-                "onError": "stop"
-              },
-              {
-                "id": "components",
-                "op": "command",
-                "argv": "${variables.components_argv}",
-                "onError": "stop"
-              },
-              {
-                "id": "validate",
-                "op": "verification",
-                "argv": "${variables.validate_argv}",
-                "onError": "stop"
-              }
-            ]
-          },
-          "component_steps": []
-        }
       }
     },
     "accounting": {
@@ -447,57 +347,57 @@
       "prompt": "Explicit absolute Task worktree directory inside the selected code repository"
     }
   ],
-  "process_sources": {
+  "workflow_sources": {
     "analysis": {
-      "path": "config/catalogue/processes/analysis.json",
+      "path": "config/catalogue/workflows/analysis.json",
       "digest": "8ec458b3faa6ee6606e66da53b66cc5d2a85408538f348313b2ba41bdef7592d"
     },
     "design": {
-      "path": "config/catalogue/processes/design.json",
+      "path": "config/catalogue/workflows/design.json",
       "digest": "215833a9e090cef8b64c8d22e240e24df01eb65f51534eec9b92a4956fdf721f"
     },
     "development": {
-      "path": "config/catalogue/processes/development.json",
+      "path": "config/catalogue/workflows/development.json",
       "digest": "215ab230942c69d4cae4856ebbc2ded1e332ad6be7be68b135e18150acfd9709"
     },
     "documentation": {
-      "path": "config/catalogue/processes/documentation.json",
+      "path": "config/catalogue/workflows/documentation.json",
       "digest": "af22db74c31d4ccfeec8ff787565d1a1ea46808b006d2828c6f1448c2eb92c4a"
     },
     "environment_diagnostics": {
-      "path": "config/catalogue/processes/environment_diagnostics.json",
+      "path": "config/catalogue/workflows/environment_diagnostics.json",
       "digest": "d4ddb9c1ed88742085e3b349967509b3d13d4884a8ac2e28179766de8a5c370a"
     },
     "environment_remediation": {
-      "path": "config/catalogue/processes/environment_remediation.json",
+      "path": "config/catalogue/workflows/environment_remediation.json",
       "digest": "d5bdb2324ca5248284e1a224b6a2ec362a453d922e5a9b21b5d9f336c6cdcbd3"
     },
     "integration": {
-      "path": "config/catalogue/processes/integration.json",
+      "path": "config/catalogue/workflows/integration.json",
       "digest": "f30424b3d0b217aa9fc82c8c177fb93984456a3821edc0a875046a3c77cb66ef"
     },
     "profiling": {
-      "path": "config/catalogue/processes/profiling.json",
+      "path": "config/catalogue/workflows/profiling.json",
       "digest": "d43ccad3b750b333a762adafac7dd6c990aeb243889b0634b077356230731be1"
     },
     "review": {
-      "path": "config/catalogue/processes/review.json",
+      "path": "config/catalogue/workflows/review.json",
       "digest": "779ba7ec7e0d830fd830cd61ac371a46f92b32fd6ebb204efb29b60a9b16d13d"
     },
     "sprint_planning": {
-      "path": "config/catalogue/processes/sprint_planning.json",
+      "path": "config/catalogue/workflows/sprint_planning.json",
       "digest": "9f3dfba3c367e75aa0e3c95bc9163b219208ced5a038fd6248f737663ff1e884"
     },
     "task_planning": {
-      "path": "config/catalogue/processes/task_planning.json",
-      "digest": "7678f69cbab8b219e366e71dd288fd802535081164d89fbb8d218c0cfa244219"
+      "path": "config/catalogue/workflows/task_planning.json",
+      "digest": "76b9ed7835c5fe6c85632482352723a92e51b9aa2f97a0051368c231df33c1d4"
     },
     "test_development": {
-      "path": "config/catalogue/processes/test_development.json",
+      "path": "config/catalogue/workflows/test_development.json",
       "digest": "80cb825755941dd66e1c622498e80559dd83e31e6ef5a72ec2fd4e5ed944696e"
     },
     "verification": {
-      "path": "config/catalogue/processes/verification.json",
+      "path": "config/catalogue/workflows/verification.json",
       "digest": "6a2caef44396c71b5ee259ee23dc25fd1fdbc6335634b4f76ea1a06be7b475ba"
     }
   }

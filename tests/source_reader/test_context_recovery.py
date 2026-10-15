@@ -54,8 +54,8 @@ def test_compaction_rereads_unchanged_bytes_despite_old_ack(project, tmp_path):
 
 
 def test_active_task_metadata_preserves_exact_owner_state_without_worktree(project):
-    project['process']['worktree_required'] = False
-    write_json(project['root'] / 'config/processes/development.json', project['process'])
+    project['workflow']['worktree_required'] = False
+    write_json(project['root'] / 'config/workflows/development.json', project['workflow'])
     h = WorkPoise(project['config_path'], 'R'); reader(h)
     h.bootstrap(project['task']); before = deepcopy(h.current_task())
     out = WorkTools(h).invoke(packet(cwd=project['app']))

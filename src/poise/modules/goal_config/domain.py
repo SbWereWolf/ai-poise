@@ -1,4 +1,4 @@
-"""Pure independent process definition; declarative changes, not raw JSON Patch."""
+"""Pure independent workflow definition; declarative changes, not raw JSON Patch."""
 from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
@@ -11,7 +11,7 @@ from ..content.domain import SectionRule
 from ..content_requirements.domain import ContentPolicy
 
 # Structural protocol vocabulary, not task-stage policy or runtime defaults.
-PROCESS_FIELDS = frozenset({
+WORKFLOW_FIELDS = frozenset({
     "goal_type", "stages", "content_contract", "route", "benefit", "worktree_required"
 })
 STAGE_FIELDS = frozenset({"id", "instruction", "read_only", "allowed_paths", "normalization",
@@ -80,11 +80,11 @@ def validate_stage(stage):
             raise DomainError("Неверные границы количества артефактов")
 
 
-def validate_process(data):
+def validate_workflow(data):
     """Validate independent pack; task-specific IDs are resolved again at task creation."""
     issues = []
     try:
-        require_shape(data, PROCESS_FIELDS, "process")
+        require_shape(data, WORKFLOW_FIELDS, "workflow")
         if not isinstance(data["goal_type"], str) or not data["goal_type"].strip():
             raise DomainError("goal_type: непустое имя")
         if not isinstance(data["stages"], list) or not data["stages"]:
@@ -92,7 +92,7 @@ def validate_process(data):
         if type(data["worktree_required"]) is not bool:
             raise DomainError("worktree_required: нужен явный bool")
     except DomainError as exc:
-        raise BatchValidationError([problem("process", "shape", str(exc))]) from exc
+        raise BatchValidationError([problem("workflow", "shape", str(exc))]) from exc
     from ..accounting.domain import BenefitDefinition
     try: BenefitDefinition.parse(data["benefit"])
     except DomainError as exc: issues.append(problem("benefit", "benefit_contract", str(exc)))
@@ -104,7 +104,7 @@ def validate_process(data):
     if issues:
         raise BatchValidationError(issues)
     try:
-        RouteDefinition.from_process(data)
+        RouteDefinition.from_workflow(data)
     except DomainError as exc:
         issues.append(problem("route", "route_contract", str(exc)))
     try:
@@ -142,13 +142,13 @@ class GoalTypeDefinition:
 
     @classmethod
     def parse(cls, data):
-        validate_process(data)
+        validate_workflow(data)
         return cls(canonical(data))
 
     @classmethod
     def from_configuration(cls, raw):
-        """Ignore config extensions before producing a strict Task process."""
-        data = deepcopy(configuration_fields(raw, PROCESS_FIELDS, 'process', DomainError))
+        """Ignore config extensions before producing a strict Task workflow."""
+        data = deepcopy(configuration_fields(raw, WORKFLOW_FIELDS, 'workflow', DomainError))
         data['route'] = configuration_fields(data['route'], ROUTE_FIELDS, 'route', DomainError)
         data['benefit'] = configuration_fields(data['benefit'], {'git_categories', 'sections'}, 'benefit', DomainError)
         data['content_contract'] = ContentPolicy.configuration_layer(data['content_contract'])
@@ -197,7 +197,7 @@ class GoalTypeDefinition:
             raise BatchValidationError([problem("changes", "shape", "Нужен явный список изменений")])
         data = deepcopy(source)
         if not isinstance(data, dict):
-            raise BatchValidationError([problem("process", "shape", "Нужен полный объект шаблона/конфига")])
+            raise BatchValidationError([problem("workflow", "shape", "Нужен полный объект шаблона/конфига")])
         # Owner identity is the explicitly requested goal type, not an inferred default.
         data["goal_type"] = goal_type
         groups, issues = {}, []
@@ -209,7 +209,7 @@ class GoalTypeDefinition:
                     raise DomainError("Объекты должны иметь уникальные ID")
                 groups[kind] = {v["id"]: deepcopy(v) for v in values}
         except (KeyError, TypeError, DomainError) as exc:
-            raise BatchValidationError([problem("process", "shape", f"Неполный исходный контракт: {exc}")]) from exc
+            raise BatchValidationError([problem("workflow", "shape", f"Неполный исходный контракт: {exc}")]) from exc
         touched = {}
         prepared = []
         for index, change in enumerate(changes):

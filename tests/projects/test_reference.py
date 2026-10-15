@@ -8,7 +8,7 @@ from .helpers import setup_case
 ROOT=Path(__file__).resolve().parents[2]
 
 
-def test_installed_reference_template_builds_all_thirteen_processes(project):
+def test_installed_reference_template_builds_all_thirteen_workflows(project):
     root=project['root']
     shutil.copytree(ROOT/'config',root/'catalogue-config')
     # This copy is the explicitly mounted Poise configuration, not the target application.
@@ -25,9 +25,9 @@ def test_installed_reference_template_builds_all_thirteen_processes(project):
              'edits':[{'path':q['path'],'value':values[q['id']]} for q in blueprint['questions']],
              'probe_repository':True}
     result=project_tools(settings).apply(request)
-    _,_,processes=load_config(Path(result['config_path']))
-    assert len(processes)==13
-    assert set(processes)==set(blueprint['config']['processes'])
+    _,_,workflows=load_config(Path(result['config_path']))
+    assert len(workflows)==13
+    assert set(workflows)==set(blueprint['config']['workflows'])
     assert not (Path(result['config_path']).parent/'state').exists()
 
 

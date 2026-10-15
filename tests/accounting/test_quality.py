@@ -8,7 +8,7 @@ import pytest
 from conftest import write_json
 from poise.runtime import Poise
 from poise.application.work import WorkTools
-from tests.runner.helpers import process, inspect, finding, resolution, decision
+from tests.runner.helpers import workflow, inspect, finding, resolution, decision
 from tests.batch.helpers import request
 from .test_paths import DeterministicClock, metrics, send
 from .test_domain import sample
@@ -29,11 +29,11 @@ def advance(work):
 
 def quality_session(project, mode):
     project['cfg']['accounting']['time_mode'] = mode
-    p = process('development')
+    p = workflow('development')
     project['cfg']['automatic_checks'] = []
     for stage in p['stages']:
         stage['role'] = 'executor'
-    write_json(project['root']/'config/processes/development.json', p)
+    write_json(project['root']/'config/workflows/development.json', p)
     write_json(project['config_path'], project['cfg'])
     task = deepcopy(project['task'])
     task.update(methods=[], method_inputs=[], checks={s['id']: [] for s in p['stages']})
@@ -125,7 +125,7 @@ def test_finding_worker_does_not_read_or_write_authoritative_storage(project, mo
             worker.active = False
 
     monkeypatch.setattr(database, 'transaction', guarded_transaction)
-    monkeypatch.setattr(runtime.telemetry.dispatcher.processor, 'process', observed_process)
+    monkeypatch.setattr(runtime.telemetry.dispatcher.processor, 'workflow', observed_process)
     send(work, [sample()], cause='delivered_rework', finding_targets=targets())
     runtime.telemetry.flush()
     report = metrics(work)

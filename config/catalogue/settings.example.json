@@ -1,5 +1,5 @@
 {
-  "schema": "process-catalogue-1",
+  "schema": "workflow-catalogue-1",
   "editor": "editor.example.json",
   "task_templates": {
     "development-v1": {

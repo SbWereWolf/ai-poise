@@ -8,7 +8,7 @@ from poise.infrastructure.project_config import FileProjectConfigUpdate
 from poise.infrastructure.projects import ProjectSettings
 from tests.conftest import git, write_json
 from tests.projects.helpers import setup_case
-from tests.projects.test_update import process_change, read_process, update_request
+from tests.projects.test_update import workflow_change, read_workflow, update_request
 
 
 def native_receipt(project, producer, enabled):
@@ -24,7 +24,7 @@ def native_receipt(project, producer, enabled):
     else:
         packet = update_request(
             config, created["revision"], probe_repository=enabled,
-            process_updates=[process_change(read_process(config), "Verified receipt source.")],
+            workflow_updates=[workflow_change(read_workflow(config), "Verified receipt source.")],
         )
         result = project_config_tools(settings).apply(packet)
         assert result["status"] == "updated"

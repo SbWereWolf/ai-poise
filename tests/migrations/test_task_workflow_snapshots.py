@@ -24,7 +24,7 @@ class FakeClock:
     def observe(self):
         from poise.modules.accounting.clock import ClockObservation
 
-        return ClockObservation(FIXED_NOW.isoformat(), 1, "task-process-migration-test")
+        return ClockObservation(FIXED_NOW.isoformat(), 1, "task-workflow-migration-test")
 
 
 def _database(project: dict) -> Path:
@@ -35,22 +35,22 @@ def _database(project: dict) -> Path:
     return state / config["paths"]["database"]
 
 
-def _configured_processes(project: dict) -> dict[str, dict]:
+def _configured_workflows(project: dict) -> dict[str, dict]:
     config = json.loads(project["config_path"].read_text(encoding="utf-8"))
-    development_path = project["config_path"].parent / config["processes"]["development"]
+    development_path = project["config_path"].parent / config["workflows"]["development"]
     development = json.loads(development_path.read_text(encoding="utf-8"))
     documentation = deepcopy(development)
     documentation["goal_type"] = "documentation"
     documentation["worktree_required"] = False
-    documentation_path = project["root"] / "config/processes/documentation.json"
+    documentation_path = project["root"] / "config/workflows/documentation.json"
     write_json(documentation_path, documentation)
     analysis = deepcopy(development)
     analysis["goal_type"] = "analysis"
     analysis["worktree_required"] = True
-    analysis_path = project["root"] / "config/processes/analysis.json"
+    analysis_path = project["root"] / "config/workflows/analysis.json"
     write_json(analysis_path, analysis)
-    config["processes"]["documentation"] = "config/processes/documentation.json"
-    config["processes"]["analysis"] = "config/processes/analysis.json"
+    config["workflows"]["documentation"] = "config/workflows/documentation.json"
+    config["workflows"]["analysis"] = "config/workflows/analysis.json"
     write_json(project["config_path"], config)
     return {"development": development, "documentation": documentation, "analysis": analysis}
 
@@ -58,18 +58,18 @@ def _configured_processes(project: dict) -> dict[str, dict]:
 def _configured_worktree_values(project: dict) -> dict[str, bool]:
     config = json.loads(project["config_path"].read_text(encoding="utf-8"))
     values = {}
-    for goal_type, relative in config["processes"].items():
-        process = json.loads(
+    for goal_type, relative in config["workflows"].items():
+        workflow = json.loads(
             (project["config_path"].parent / relative).read_text(encoding="utf-8")
         )
-        values[goal_type] = process["worktree_required"]
+        values[goal_type] = workflow["worktree_required"]
     return values
 
 
 def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
     from poise.infrastructure.sqlite.database import Database
 
-    processes = _configured_processes(project)
+    workflows = _configured_workflows(project)
     Poise(project["config_path"], "schema-initializer")
     database = _database(project)
     config = json.loads(project["config_path"].read_text(encoding="utf-8"))
@@ -84,12 +84,12 @@ def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
                 else "documentation" if task_id == "0074"
                 else "development"
             )
-            process = deepcopy(processes[goal_type])
-            process.pop("worktree_required")
+            workflow = deepcopy(workflows[goal_type])
+            workflow.pop("worktree_required")
             metadata = {
                 "contract": {"id": task_id, "goal_type": goal_type},
                 "goal": f"legacy-{task_id}",
-                "process": process,
+                "workflow": workflow,
                 "marker": {"preserve": task_id},
             }
             connection.execute(
@@ -194,7 +194,7 @@ def _seed_legacy_tasks(project: dict) -> tuple[Path, dict[str, dict]]:
 
 def _request(backup_name: str, **changes: object) -> dict:
     value = {
-        "schema": "task-process-migration-1",
+        "schema": "task-workflow-migration-1",
         "request_id": "migrate-chain-processes-1",
         "backup_name": backup_name,
         "task_ids": list(TASKS),
@@ -231,7 +231,7 @@ def _invoke_cli(project: dict, request: dict) -> subprocess.CompletedProcess[str
     source = str(root / "src")
     environment["PYTHONPATH"] = source + os.pathsep + environment.get("PYTHONPATH", "")
     return subprocess.run(
-        [sys.executable, "-m", "poise", "task-process-migrate", "--config", str(project["config_path"])],
+        [sys.executable, "-m", "poise", "task-workflow-migrate", "--config", str(project["config_path"])],
         cwd=root,
         env=environment,
         input=json.dumps(request),
@@ -242,32 +242,32 @@ def _invoke_cli(project: dict, request: dict) -> subprocess.CompletedProcess[str
 
 
 def test_domain_plans_only_missing_field_for_exact_batch():
-    from poise.modules.tasks.process_migration import MigrationRequest, ProcessSnapshotMigration
+    from poise.modules.tasks.workflow_migration import MigrationRequest, WorkflowSnapshotMigration
 
     request = MigrationRequest.parse(_request("tasks-backup.sqlite"))
     rows = []
-    processes = {}
+    workflows = {}
     for task_id in TASKS:
         goal_type = (
             "analysis" if task_id == "0063"
             else "documentation" if task_id == "0077"
             else "development"
         )
-        process = {"goal_type": goal_type, "route": {"entry": "start"}}
+        workflow = {"goal_type": goal_type, "route": {"entry": "start"}}
         rows.append({"id": task_id, "status": "available", "claimed_by": None,
-                     "metadata": {"contract": {"goal_type": goal_type}, "process": process}})
+                     "metadata": {"contract": {"goal_type": goal_type}, "workflow": workflow}})
         configured_value = {"documentation": False, "development": True, "analysis": False}[goal_type]
-        processes[goal_type] = {**process, "worktree_required": configured_value}
+        workflows[goal_type] = {**workflow, "worktree_required": configured_value}
 
-    plan = ProcessSnapshotMigration.plan(request, rows, processes)
+    plan = WorkflowSnapshotMigration.plan(request, rows, workflows)
 
     assert tuple(item.task_id for item in plan.updates) == TASKS
-    assert [item.process["worktree_required"] for item in plan.updates] == [False, True, True, True, True, False]
-    assert all(set(item.process) == {"goal_type", "route", "worktree_required"} for item in plan.updates)
+    assert [item.workflow["worktree_required"] for item in plan.updates] == [False, True, True, True, True, False]
+    assert all(set(item.workflow) == {"goal_type", "route", "worktree_required"} for item in plan.updates)
 
 
 def test_migration_preserves_task_state_and_replays_receipt(project):
-    from poise.modules.tasks.process_migration import MigrationRequest
+    from poise.modules.tasks.workflow_migration import MigrationRequest
 
     database, expected_metadata = _seed_legacy_tasks(project)
     backup = backup_commands(project).create()
@@ -288,15 +288,15 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     configured_values = _configured_worktree_values(project)
     expected_tasks = []
     for task_id in TASKS:
-        old_process = expected_metadata[task_id]["process"]
+        old_workflow = expected_metadata[task_id]["workflow"]
         goal_type = expected_metadata[task_id]["contract"]["goal_type"]
         worktree_required = configured_values[goal_type]
-        new_process = {**old_process, "worktree_required": worktree_required}
+        new_workflow = {**old_workflow, "worktree_required": worktree_required}
         expected_tasks.append({
             "task_id": task_id,
             "worktree_required": worktree_required,
-            "old_process_digest": _digest(old_process),
-            "new_process_digest": _digest(new_process),
+            "old_workflow_digest": _digest(old_workflow),
+            "new_workflow_digest": _digest(new_workflow),
         })
     assert result["tasks"] == expected_tasks
     parsed_request = MigrationRequest.parse(_request(backup["name"]))
@@ -330,7 +330,7 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
         metadata = json.loads(raw)
         expected = deepcopy(expected_metadata[task_id])
         if task_id in TASKS:
-            expected["process"]["worktree_required"] = configured_values[
+            expected["workflow"]["worktree_required"] = configured_values[
                 expected["contract"]["goal_type"]
             ]
         assert metadata == expected
@@ -338,7 +338,7 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
         journal = connection.execute(
             "SELECT at,session_id,task_id,event,data FROM journal ORDER BY seq DESC LIMIT 1"
         ).fetchone()
-    assert journal[1:4] == ("task-process-migrate", None, "task_process_snapshot_migrated")
+    assert journal[1:4] == ("task-workflow-migrate", None, "task_workflow_snapshot_migrated")
     assert datetime.fromisoformat(journal[0]).utcoffset() == timedelta(0)
     audit = json.loads(journal[4])
     assert set(audit) == {"request_digest", "request_id", "result"}
@@ -363,11 +363,11 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
 
     with sqlite3.connect(database) as connection:
         original_audit = connection.execute(
-            "SELECT data FROM journal WHERE event='task_process_snapshot_migrated'"
+            "SELECT data FROM journal WHERE event='task_workflow_snapshot_migrated'"
         ).fetchone()[0]
         malformed = {**audit, "result": {"bogus": "accepted"}}
         connection.execute(
-            "UPDATE journal SET data=? WHERE event='task_process_snapshot_migrated'",
+            "UPDATE journal SET data=? WHERE event='task_workflow_snapshot_migrated'",
             (json.dumps(malformed, ensure_ascii=False, sort_keys=True, separators=(",", ":")),),
         )
     malformed_before = _snapshot(database)
@@ -377,7 +377,7 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
     assert _snapshot(database) == malformed_before
     with sqlite3.connect(database) as connection:
         connection.execute(
-            "UPDATE journal SET data=? WHERE event='task_process_snapshot_migrated'",
+            "UPDATE journal SET data=? WHERE event='task_workflow_snapshot_migrated'",
             (original_audit,),
         )
 
@@ -389,13 +389,13 @@ def test_migration_preserves_task_state_and_replays_receipt(project):
 
 
 def test_claimed_task_is_migrated_without_changing_ownership(project):
-    from poise.application.task_process_migration import TaskProcessMigrationCommands
+    from poise.application.task_workflow_migration import TaskWorkflowMigrationCommands
     from poise.application.work import WorkTools
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
     from poise.modules.foundation.errors import PoiseError
     from tests.batch.helpers import request
 
-    processes = _configured_processes(project)
+    workflows = _configured_workflows(project)
     owner = WorkTools(WorkPoise(project["config_path"], "owner-session-0063"))
     task = deepcopy(project["task"])
     task["id"] = "0063"
@@ -409,19 +409,19 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
     with sqlite3.connect(database) as connection:
         raw = connection.execute("SELECT metadata FROM tasks WHERE id='0063'").fetchone()[0]
         metadata = json.loads(raw)
-        metadata["process"].pop("worktree_required")
+        metadata["workflow"].pop("worktree_required")
         connection.execute(
             "UPDATE tasks SET metadata=? WHERE id='0063'",
             (json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")),),
         )
         for task_id in TASKS[:-1]:
             goal_type = "documentation" if task_id == "0074" else "development"
-            process = deepcopy(processes[goal_type])
-            process.pop("worktree_required")
+            workflow = deepcopy(workflows[goal_type])
+            workflow.pop("worktree_required")
             legacy = {
                 "contract": {"id": task_id, "goal_type": goal_type},
                 "goal": f"legacy-{task_id}",
-                "process": process,
+                "workflow": workflow,
                 "marker": {"preserve": task_id},
             }
             connection.execute(
@@ -475,10 +475,10 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
         old_metadata = json.loads(old[7])
         new_metadata = json.loads(new[7])
         if task_id in TASKS:
-            old_process = old_metadata.pop("process")
-            new_process = new_metadata.pop("process")
-            assert new_process == {
-                **old_process,
+            old_workflow = old_metadata.pop("workflow")
+            new_workflow = new_metadata.pop("workflow")
+            assert new_workflow == {
+                **old_workflow,
                 "worktree_required": result["tasks"][TASKS.index(task_id)]["worktree_required"],
             }
         assert new_metadata == old_metadata
@@ -517,13 +517,13 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
                 ("replacement-session",),
             )
 
-    port = SqliteTaskProcessMigration(
+    port = SqliteTaskWorkflowMigration(
         project["config_path"],
         clock=FakeClock(),
         after_preflight=replace_claim_after_preflight,
     )
     with pytest.raises(PoiseError, match="differs from the named backup after migration preflight"):
-        TaskProcessMigrationCommands(port).migrate(
+        TaskWorkflowMigrationCommands(port).migrate(
             _request(backup["name"], request_id="claimed-0063-drift")
         )
 
@@ -536,53 +536,53 @@ def test_claimed_task_is_migrated_without_changing_ownership(project):
 
 
 def test_rolls_back_complete_batch_and_receipt_on_fault(project):
-    from poise.application.task_process_migration import TaskProcessMigrationCommands
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.application.task_workflow_migration import TaskWorkflowMigrationCommands
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
     database, _ = _seed_legacy_tasks(project)
     backup = backup_commands(project).create()
     before = _snapshot(database)
     with pytest.raises(TypeError):
-        SqliteTaskProcessMigration(project["config_path"])
+        SqliteTaskWorkflowMigration(project["config_path"])
 
     def fail_after_first(task_id: str) -> None:
         if task_id == TASKS[0]:
             raise RuntimeError("injected migration failure")
 
-    port = SqliteTaskProcessMigration(project["config_path"], clock=FakeClock(),
+    port = SqliteTaskWorkflowMigration(project["config_path"], clock=FakeClock(),
                                       after_update=fail_after_first)
     with pytest.raises(RuntimeError, match="injected migration failure"):
-        TaskProcessMigrationCommands(port).migrate(_request(backup["name"]))
+        TaskWorkflowMigrationCommands(port).migrate(_request(backup["name"]))
 
     assert _snapshot(database) == before
-    completed = TaskProcessMigrationCommands(
-        SqliteTaskProcessMigration(project["config_path"], clock=FakeClock())
+    completed = TaskWorkflowMigrationCommands(
+        SqliteTaskWorkflowMigration(project["config_path"], clock=FakeClock())
     ).migrate(_request(backup["name"]))
     assert completed["status"] == "migrated"
     with sqlite3.connect(database) as connection:
         assert connection.execute(
-            "SELECT at FROM journal WHERE event='task_process_snapshot_migrated'"
+            "SELECT at FROM journal WHERE event='task_workflow_snapshot_migrated'"
         ).fetchone()[0] == FIXED_NOW.isoformat()
 
 
-def test_rejects_invalid_targets_and_conflicting_process_values(project):
+def test_rejects_invalid_targets_and_conflicting_workflow_values(project):
     from poise.modules.foundation.errors import DomainError
-    from poise.modules.tasks.process_migration import MigrationRequest, ProcessSnapshotMigration
+    from poise.modules.tasks.workflow_migration import MigrationRequest, WorkflowSnapshotMigration
 
     request = MigrationRequest.parse(_request("tasks-backup.sqlite"))
     configured = {"development": {"goal_type": "development", "worktree_required": True}}
     good = [{"id": task_id, "status": "available", "claimed_by": None,
              "metadata": {"contract": {"goal_type": "development"},
-                          "process": {"goal_type": "development"}}} for task_id in TASKS]
+                          "workflow": {"goal_type": "development"}}} for task_id in TASKS]
     variants = []
     variants.append(good[:-1])
     terminal = deepcopy(good); terminal[0]["status"] = "completed"; variants.append(terminal)
-    conflicting = deepcopy(good); conflicting[0]["metadata"]["process"]["worktree_required"] = False; variants.append(conflicting)
-    mismatch = deepcopy(good); mismatch[0]["metadata"]["process"]["goal_type"] = "documentation"; variants.append(mismatch)
+    conflicting = deepcopy(good); conflicting[0]["metadata"]["workflow"]["worktree_required"] = False; variants.append(conflicting)
+    mismatch = deepcopy(good); mismatch[0]["metadata"]["workflow"]["goal_type"] = "documentation"; variants.append(mismatch)
     invalid_goal = deepcopy(good); invalid_goal[0]["metadata"]["contract"]["goal_type"] = []; variants.append(invalid_goal)
     for rows in variants:
         with pytest.raises(DomainError):
-            ProcessSnapshotMigration.plan(request, rows, configured)
+            WorkflowSnapshotMigration.plan(request, rows, configured)
 
     database, _ = _seed_legacy_tasks(project)
     with sqlite3.connect(database) as connection:
@@ -598,7 +598,7 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
         with sqlite3.connect(database) as connection:
             raw = connection.execute("SELECT metadata FROM tasks WHERE id=?", (task_id,)).fetchone()[0]
             metadata = json.loads(raw)
-            metadata["process"][field] = value
+            metadata["workflow"][field] = value
             connection.execute(
                 "UPDATE tasks SET metadata=? WHERE id=?",
                 (json.dumps(metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")), task_id),
@@ -650,8 +650,8 @@ def test_rejects_invalid_targets_and_conflicting_process_values(project):
 
 def test_stale_backup_or_live_row_drift_rejects_every_update(project):
     from poise.modules.foundation.errors import PoiseError
-    from poise.modules.tasks.process_migration import MigrationRequest
-    from poise.infrastructure.task_process_migration import SqliteTaskProcessMigration
+    from poise.modules.tasks.workflow_migration import MigrationRequest
+    from poise.infrastructure.task_workflow_migration import SqliteTaskWorkflowMigration
 
     database, expected = _seed_legacy_tasks(project)
     backup = backup_commands(project).create()
@@ -666,7 +666,7 @@ def test_stale_backup_or_live_row_drift_rejects_every_update(project):
     assert payload["status"] == "rejected"
     assert "backup" in payload["reason"].lower()
     assert _snapshot(database) == before
-    assert all("worktree_required" not in item["process"] for item in expected.values())
+    assert all("worktree_required" not in item["workflow"] for item in expected.values())
 
     backup_commands(project).restore(backup["name"])
     before_interposed = _snapshot(database)
@@ -675,7 +675,7 @@ def test_stale_backup_or_live_row_drift_rejects_every_update(project):
         with sqlite3.connect(database) as connection:
             connection.execute("UPDATE tasks SET version=version+1 WHERE id=?", (TASKS[1],))
 
-    port = SqliteTaskProcessMigration(
+    port = SqliteTaskWorkflowMigration(
         project["config_path"], clock=FakeClock(), after_preflight=drift_after_preflight
     )
     with pytest.raises(
@@ -695,7 +695,7 @@ def test_stale_backup_or_live_row_drift_rejects_every_update(project):
 
 
 def test_cli_requires_exact_authorized_batch(project):
-    from poise.modules.tasks.process_migration import MigrationRequest
+    from poise.modules.tasks.workflow_migration import MigrationRequest
 
     invalid = [
         {},
@@ -712,6 +712,6 @@ def test_cli_requires_exact_authorized_batch(project):
         with pytest.raises(Exception):
             MigrationRequest.parse(value)
 
-    result = run_cli("task-process-migrate", "--config", str(project["config_path"]))
+    result = run_cli("task-workflow-migrate", "--config", str(project["config_path"]))
     assert result.returncode == 2
     assert "traceback" not in result.stderr.lower()

@@ -92,7 +92,7 @@ Full view возвращает ссылку на полный файл. Чтен
 [интерактивная подготовка](../configuration/project-setup.md#интерактивный-путь),
 [обновление проекта](../configuration/project-setup.md#обновление-действующего-проекта),
 [goal-config](../configuration/goal-config.md#пакет),
-[каталог процессов](../configuration/process-catalogue.md#cli-и-api).
+[каталог процессов](../configuration/workflow-catalogue.md#cli-и-api).
 
 ## Runtime и native hooks
 
@@ -185,7 +185,7 @@ writers по процедуре владельца.
 | `backup create` | `--config PATH`. | Создание копии Task DB. |
 | `backup restore` | `--config PATH NAME`. | Восстановление явно названной копии. |
 | `route-migrate` | `--config PATH`; без stdin. | Явная миграция снятых ограничений route. |
-| `task-process-migrate` | `--config PATH`, необязательный `--project-settings PATH`; JSON stdin. | Явная миграция выбранных process snapshots. |
+| `task-workflow-migrate` | `--config PATH`, необязательный `--project-settings PATH`; JSON stdin. | Явная миграция выбранных workflow snapshots. |
 
 ```bash
 "${poise[@]}" local-assets --manifest "$manifest" < "$packet"
@@ -194,8 +194,8 @@ writers по процедуре владельца.
 "${poise[@]}" backup create --config "$project_json"
 "${poise[@]}" backup restore --config "$project_json" "$backup_name"
 "${poise[@]}" route-migrate --config "$project_json"
-"${poise[@]}" task-process-migrate --config "$project_json" < "$packet"
-"${poise[@]}" task-process-migrate --config "$project_json" \
+"${poise[@]}" task-workflow-migrate --config "$project_json" < "$packet"
+"${poise[@]}" task-workflow-migrate --config "$project_json" \
   --project-settings "$settings" < "$packet"
 ```
 
@@ -208,5 +208,5 @@ writers по процедуре владельца.
 [условие резервного копирования](../task-db-backups.md#обязательное-условие),
 [восстановление копии](../task-db-backups.md#восстановление),
 [route migration](../route-count-limit-migration.md),
-[process snapshot
-migration](../task-process-snapshot-migration.md#миграция-типов-и-критериев-этапов).
+[workflow snapshot
+migration](../task-workflow-snapshot-migration.md#миграция-типов-и-критериев-этапов).

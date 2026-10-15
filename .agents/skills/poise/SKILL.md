@@ -34,7 +34,7 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |
 | `skills` | Read metadata or validate decomposition without a Task. | `"${poise[@]}" skills --catalog "$skill_catalog" --root "$skill_root" < "$packet"` |
 
-### Project and process configuration
+### Project and workflow configuration
 
 [Arguments and packets](../../../docs/operator/poise-command-reference.md#проект-и-его-настройки).
 
@@ -45,8 +45,8 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 | `project check` | Check the explicitly selected project. | `"${poise[@]}" project check --settings "$settings" < "$packet"` |
 | `project-config` | Update an existing project's settings. | `"${poise[@]}" project-config --settings "$settings" < "$packet"` |
 | `project-init` | Prepare a selected template interactively. | `"${poise[@]}" project-init --settings "$settings" --template "$template_id" --destination "$destination" --request-id "$request_id" --probe-repository yes` |
-| `goal-config` | Edit goal/process configuration declaratively. | `"${poise[@]}" goal-config --settings "$settings" < "$packet"` |
-| `catalogue` | Install processes or prepare typed Tasks. | `"${poise[@]}" catalogue --settings "$settings" < "$packet"` |
+| `goal-config` | Edit goal/workflow configuration declaratively. | `"${poise[@]}" goal-config --settings "$settings" < "$packet"` |
+| `catalogue` | Install workflows or prepare typed Tasks. | `"${poise[@]}" catalogue --settings "$settings" < "$packet"` |
 
 ### Runtime and hooks
 
@@ -92,7 +92,7 @@ procedures](../../../docs/operator/poise-command-reference.md#локальные
 | `backup create` | Create a backup with writers stopped. | `"${poise[@]}" backup create --config "$project_json"` |
 | `backup restore` | Restore a named backup with writers stopped. | `"${poise[@]}" backup restore --config "$project_json" "$backup_name"` |
 | `route-migrate` | Apply the authorized route migration. | `"${poise[@]}" route-migrate --config "$project_json"` |
-| `task-process-migrate` | Migrate an explicitly authorized process-snapshot batch. | `"${poise[@]}" task-process-migrate --config "$project_json" --project-settings "$settings" < "$packet"` |
+| `task-workflow-migrate` | Migrate an explicitly authorized workflow-snapshot batch. | `"${poise[@]}" task-workflow-migrate --config "$project_json" --project-settings "$settings" < "$packet"` |
 
 Keep brief and expanded agent views distinct and within configured budgets.
 Full output is always a saved-file link, not inline data. Preserve complete machine
@@ -113,7 +113,7 @@ For explicit stage-criteria migration, a genuine native runtime-resources bootst
 may prove the source revision. Preserve its original identity and saved bytes; use the
 ordinary migration update receipt to prove completion. Follow the canonical
 [source and recovery
-contract](../../../docs/task-process-snapshot-migration.md#публикация-атомарность-и-восстановление).
+contract](../../../docs/task-workflow-snapshot-migration.md#публикация-атомарность-и-восстановление).
 
 AI poise is a declarative harness whose job is to remove mechanical administration and tooling
 implementation details from the agent's work. Templates accelerate planning; they must not become a
@@ -121,8 +121,8 @@ reason to force a valid Task into a starter shape. The planner owns the newborn 
 `ready`; execution consumes the resolved Task contract.
 
 Use the explicitly selected project configuration. Each project owns its Task DB and its copied
-process catalogue; never
-edit managed SQLite, process JSON, or task artifacts as bookkeeping.
+workflow catalogue; never
+edit managed SQLite, workflow JSON, or task artifacts as bookkeeping.
 
 Before storage setup or recovery, read the current [owners and schema
 versions](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии). Configuration schema
@@ -192,17 +192,17 @@ detailed corrections belong in canonical docs, with a short skill link.
 
 ## Harness refusal and manual continuation
 
-For historical processes missing `purpose` or `criteria_authority`, follow
+For historical workflows missing `purpose` or `criteria_authority`, follow
 [explicit publication-owner
-selection](../../../docs/task-process-snapshot-migration.md#выбор-владельца-публикации)
+selection](../../../docs/task-workflow-snapshot-migration.md#выбор-владельца-публикации)
 and [source-bound
-recovery](../../../docs/task-process-snapshot-migration.md#публикация-атомарность-и-восстановление).
-Use the actual existing project settings when that owner published the processes;
+recovery](../../../docs/task-workflow-snapshot-migration.md#публикация-атомарность-и-восстановление).
+Use the actual existing project settings when that owner published the workflows;
 do not guess stage mappings or create an editor to evade a target mismatch.
 Include every newborn identity in the inventory. Use `newborn_draft` only when
 `stage_contracts` is absent; full-contract newborns use `newborn_task`. Follow the
 [draft resource
-contract](../../../docs/task-process-snapshot-migration.md#постановки-без-договоров-этапов).
+contract](../../../docs/task-workflow-snapshot-migration.md#постановки-без-договоров-этапов).
 Preserve missing future contracts; migration does not perform task preparation.
 Track installed-runtime continuation through the
 [open
@@ -240,7 +240,7 @@ output](../../../docs/workflows/runner.md#полный-вывод-и-preview).
 
 Apply the canonical [ownership
 rule](../../../docs/governance/development-rules.md#владение-task-и-worktree):
-at most one Task and one worktree per session, independently owned. The process snapshot
+at most one Task and one worktree per session, independently owned. The workflow snapshot
 defines a dependent worktree; release it with its Task but preserve independent ownership.
 Acquire the complete set through the public owner, recognizing self-ownership and replacing
 old same-kind claims atomically. Never steal an uncertain live claim. Automatic acquisition is
@@ -254,7 +254,7 @@ WIP, cwd or launch roots and do not authorize cleanup or integration. At a role 
 the sender saves results, confirms public release, then directly messages the known counterpart;
 the recipient acquires through bootstrap before working, under existing Task authorization.
 
-Use one `bootstrap` package to obtain the current task/sprint, stage, process snapshot, required
+Use one `bootstrap` package to obtain the current task/sprint, stage, workflow snapshot, required
 content, worktree,
 findings/evidence and available capabilities. For the WSL invocation, read [Local installation →
 Start
@@ -263,7 +263,7 @@ work](../../../docs/configuration/wsl-local-delivery.md#начало-работ�
 Use public `operation: task` actions to prepare a real newborn Task. A real newborn Task has a
 permanent identity and history and uses the shared ownership API. With explicit project
 `task_planning`, selecting a `goal_type` materializes its registered starter draft. The planner may
-reshape task-owned fields and the local process before `ready`; template provenance is not runtime
+reshape task-owned fields and the local workflow before `ready`; template provenance is not runtime
 policy. Projects without that setting retain their existing creation path. Use the [planning
 API](../../../docs/workflows/task-planning.md#создание-по-типу-цели); never edit managed files or
 databases to enable it.
@@ -283,10 +283,10 @@ substantive result. After that confirmation, agents must keep the goal unchanged
 when a lawful restart returns the Task to newborn. The API's newborn edit capability
 does not enforce this historical agent rule.
 
-Read task_decomposition from the selected project's project-specific routing. Declare every process
+Read task_decomposition from the selected project's project-specific routing. Declare every workflow
 phase before an
 ordinary or integration Task is made ready. Each phase names its
-skills and areas; the phase set must exactly match the selected process snapshot. Meta and general
+skills and areas; the phase set must exactly match the selected workflow snapshot. Meta and general
 skills do not split a
 Task; peer narrow responsibilities do. Phase boundaries cannot
 hide a cross-responsibility ordinary Task. Across every phase, each area routed to a policy-owned
@@ -367,7 +367,7 @@ repository. On failure, remove only the worktree and branch created by that invo
 changes Task ownership, lifecycle, result, or handoff. An idle session or the current owner of
 that same Task may invoke it; an owner of another Task may not.
 
-If a lawful external process publication leaves the goal-config editor head stale, first use
+If a lawful external workflow publication leaves the goal-config editor head stale, first use
 the read-only `goal-config-status-1` diagnostic and establish the provenance of the live file.
 Adopt it only through an exact `goal-config-reconcile-1` request with the observed managed and
 live revisions, reason and authority. Do not create a fresh editor database to bypass stale
@@ -418,7 +418,7 @@ cross-read-model SQL snapshot, and no token saving has been measured or may be c
 [Evidence-based review → Batched subject
 reads](../../../docs/workflows/evidence-based-review.md#пакетное-чтение-предмета).
 
-Let the exact process schema decide whether Task creation contains
+Let the exact workflow schema decide whether Task creation contains
 `executable_obligations`. A schema with a `test_registry` inspection route requires the field,
 including an explicit empty list; a schema without it must omit the field and receives an empty
 public registry classification without requirement/DoD inference. For repository verification,
@@ -568,7 +568,7 @@ Sprint, copy required prerequisite Tasks or chains as local conditional duplicat
 IDs and local edges. Do not search similar Tasks or manually maintain a reciprocal family
 list. Task has two axes: ordinary/duplicate, then parent/child for a duplicate. A root
 with children is itself a parent duplicate. One shared library method resolves the original
-parent, lists all children, then batch-reads the parent's and all children's stages, processes,
+parent, lists all children, then batch-reads the parent's and all children's stages, workflows,
 statuses and session owners in a consistent DB read. Only parent resolution differs by role.
 Context and stage admission reuse this method; no per-task lookup loop or copied traversal.
 The harness derives reciprocal family views from a canonical parent relation.
@@ -663,7 +663,7 @@ backup create --config PROJECT_JSON`, and `poise backup restore --config PROJECT
 do not substitute
 manual filesystem copies or database replacement. Create and restore require an exclusive operator
 window in which no
-agent or process writes the Task DB. Read the exact [exclusive operator
+agent or workflow writes the Task DB. Read the exact [exclusive operator
 window](../../../docs/task-db-backups.md#обязательное-условие) and [Task DB restore
 contract](../../../docs/task-db-backups.md#восстановление). Task-only backup is not a full
 checkpoint: preserve the

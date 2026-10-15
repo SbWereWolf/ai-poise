@@ -124,7 +124,7 @@ def test_reconciliation_preserves_binding_without_completed_dependent_proof(proj
     with tools.runtime.store.transaction() as db:
         if guard == 'independent':
             metadata = json.loads(db.execute("SELECT metadata FROM tasks WHERE id='T1'").fetchone()[0])
-            metadata['process']['worktree_required'] = False
+            metadata['workflow']['worktree_required'] = False
             db.execute("UPDATE tasks SET metadata=? WHERE id='T1'", (json.dumps(metadata),))
         elif guard == 'claimed':
             db.execute("UPDATE tasks SET claimed_by=? WHERE id='T1'", ('foreign-worker',))

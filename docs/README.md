@@ -4,7 +4,7 @@
 
 - [route-count-limit-migration.md](route-count-limit-migration.md)
 - [task-db-backups.md](task-db-backups.md)
-- [task-process-snapshot-migration.md](task-process-snapshot-migration.md)
+- [task-workflow-snapshot-migration.md](task-workflow-snapshot-migration.md)
 - [task-status-retirement.md](task-status-retirement.md)
 
 ## Оглавления разделов
@@ -55,7 +55,7 @@
 
 - [Каталог этапов](configuration/catalogue-stage-map.md)
 - [Конфигурация типов целей](configuration/goal-config.md)
-- [Каталог процессов](configuration/process-catalogue.md)
+- [Каталог процессов](configuration/workflow-catalogue.md)
 - [Настройка проекта](configuration/project-setup.md)
 - [Запуск операций проекта через Stride](configuration/stride-launcher.md)
 - [Восстановление локальной конфигурации](configuration/local-assets.md)
@@ -137,7 +137,7 @@
 - `docs/architecture-design/stage-library-map.md` → `docs/architecture/design/stage-library-map.md`
 - `docs/spec-data/README.md` → `docs/governance/spec-data/README.md`
 - `docs/spec-data/lifecycle-contracts.json` → `docs/governance/spec-data/lifecycle-contracts.json`
-- `docs/spec-data/process-matrices.json` → `docs/governance/spec-data/process-matrices.json`
+- `docs/spec-data/workflow-matrices.json` → `docs/governance/spec-data/workflow-matrices.json`
 - `docs/spec-data/requirements.json` → `docs/governance/spec-data/requirements.json`
 - `docs/spec-data/stateful-scenarios.json` → `docs/governance/spec-data/stateful-scenarios.json`
 

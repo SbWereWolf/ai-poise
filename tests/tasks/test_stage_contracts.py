@@ -32,7 +32,7 @@ def _stage(stage_id, *, handler="produce", transitions=None, rework_targets=None
     }
 
 
-def _process():
+def _workflow():
     return {
         "route": {"entry": "prepare"},
         "stages": [
@@ -64,8 +64,8 @@ def _artifact(rule_id, stage, phase, source, pattern="build/**"):
     }
 
 
-def _policy(process, requirements):
-    stages = tuple(stage["id"] for stage in process["stages"])
+def _policy(workflow, requirements):
+    stages = tuple(stage["id"] for stage in workflow["stages"])
     return ContentPolicy.from_layers(
         EMPTY,
         {"sections": [], "routes": [], "requirements": requirements},
@@ -107,11 +107,11 @@ def _requirements():
     ]
 
 
-def _parse(*, process=None, contracts=None, requirements=None):
+def _parse(*, workflow=None, contracts=None, requirements=None):
     feature = _feature()
-    process = _process() if process is None else process
-    route = RouteDefinition.from_process(process)
-    policy = _policy(process, _requirements() if requirements is None else requirements)
+    workflow = _workflow() if workflow is None else workflow
+    route = RouteDefinition.from_workflow(workflow)
+    policy = _policy(workflow, _requirements() if requirements is None else requirements)
     return feature.parse(
         _contracts() if contracts is None else contracts,
         route,
@@ -171,26 +171,26 @@ def test_stage_output_is_exit_only_for_its_producer():
 
 
 def test_artifact_stage_output_must_dominate_consumer():
-    process = _process()
-    process["route"]["entry"] = "inspect"
-    process["stages"][0]["transitions"] = {"complete": "consume"}
-    process["stages"][1]["transitions"] = {
+    workflow = _workflow()
+    workflow["route"]["entry"] = "inspect"
+    workflow["stages"][0]["transitions"] = {"complete": "consume"}
+    workflow["stages"][1]["transitions"] = {
         "clear": "prepare",
         "changes_requested": "consume",
     }
     with pytest.raises(DomainError, match="dominate"):
-        _parse(process=process)
+        _parse(workflow=workflow)
 
 
 def test_artifact_dominance_covers_rework_entry_paths():
-    process = _process()
-    process["stages"][2]["rework_targets"] = ["inspect"]
-    process["stages"][1]["transitions"] = {
+    workflow = _workflow()
+    workflow["stages"][2]["rework_targets"] = ["inspect"]
+    workflow["stages"][1]["transitions"] = {
         "clear": "consume",
         "changes_requested": "prepare",
     }
     with pytest.raises(DomainError, match="rework.*dominate"):
-        _parse(process=process)
+        _parse(workflow=workflow)
 
 
 def test_declared_arrival_cannot_satisfy_earlier_entry():

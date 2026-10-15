@@ -12,7 +12,7 @@ def test_goal_definition_and_application_are_free_of_io():
             assert not any(x.split(".")[0] in {"os","pathlib","sqlite3","fcntl","subprocess","datetime","time"} or "infrastructure" in x for x in imports), (p,imports)
 
 
-def test_runtime_and_editor_share_one_process_validator():
+def test_runtime_and_editor_share_one_workflow_validator():
     root=Path(__file__).resolve().parents[2]/"src/poise"
     assert "GoalTypeDefinition" in (root/"common.py").read_text()
     assert "GoalTypeDefinition" in (root/"application/goal_config.py").read_text()

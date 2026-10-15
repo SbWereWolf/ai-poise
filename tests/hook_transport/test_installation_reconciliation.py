@@ -130,6 +130,7 @@ def test_reconciliation_cli_is_public_and_pending_write_is_recoverable(project, 
                    io.BytesIO(json.dumps({'operation': 'reconcile', 'input': packet}).encode()), output, error)
     assert code == 0, (output.getvalue(), error.getvalue())
     result = json.loads(output.getvalue())
+    result = json.loads(Path(result['response_path']).read_text())
     assert_single_current(service, result, foreign)
     assert result['capability_checks']['ready']
 

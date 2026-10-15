@@ -1,0 +1,16 @@
+{
+  "description": "Target-owned content",
+  "hooks": {
+    "PostToolUse": [
+      {"hooks": [{"type": "command", "command": "echo foreign"}]}
+    ],
+    "SessionStart": [
+      {
+        "matcher": "^foreign$",
+        "hooks": [
+          {"type": "command", "command": "echo target foreign"}
+        ]
+      }
+    ]
+  }
+}

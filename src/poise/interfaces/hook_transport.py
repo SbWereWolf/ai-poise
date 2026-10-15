@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import uuid
 from ..common import PoiseError,exact_keys,load_config
-from ..infrastructure.hook_transport import HookService
+from ..infrastructure.hook_transport import HookService, HookSettings, matches_repository_scope
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
 from ..modules.result_views.domain import bounded_envelope, require_result_budget
@@ -20,10 +20,16 @@ def _write(service,result,output):
 def execute(command,args,stream,output,error):
     service=None
     try:
-        service=HookService(args.settings);cfg=service.settings.raw
+        settings=HookSettings(args.settings);cfg=settings.raw
         raw=stream.read(cfg['max_input_bytes']+1)
         if len(raw)>cfg['max_input_bytes']:raise PoiseError('Hook/adapter packet exceeds configured input limit')
         packet=strict_json(raw.decode('utf-8'))
+        if command == 'hook' and not isinstance(packet, dict):
+            raise PoiseError('Native hook JSON object required')
+        if command == 'hook' and not matches_repository_scope(settings, packet.get('cwd')):
+            output.write('{}\n')
+            return cfg['exit_codes']['success']
+        service=HookService(args.settings)
         if command=='hook':
             result=service.event(args.definition,packet)
             if len(json.dumps(result,ensure_ascii=False))>cfg['output_chars']:
@@ -39,11 +45,16 @@ def execute(command,args,stream,output,error):
         exact_keys(packet,{'operation','input'},'runtime-config packet')
         predicted=service.settings.observations/uuid.uuid4().hex/cfg['response_file']
         require_result_budget(predicted,cfg['output_chars'],'inconclusive')
-        if packet['operation'] in ('install','reconcile'):
-            action=service.install if packet['operation']=='install' else service.reconcile
+        if packet['operation'] in ('install','reconcile','reconfigure'):
+            action=getattr(service,packet['operation'])
             result=action(packet['input'])
-            _,project,_=load_config(service.settings.project_config)
-            checks=service.probes(result['definition_path'],project['git']['repository'])
+            if packet['operation'] == 'reconfigure':
+                current=HookSettings(args.settings)
+                workspace=current.raw['repository_scope']['repository']
+            else:
+                _,project,_=load_config(service.settings.project_config)
+                workspace=project['git']['repository']
+            checks=service.probes(result['definition_path'],workspace)
             result={**result,'capability_checks':checks}
         elif packet['operation']=='diagnose':
             result=service.diagnose(packet['input'])

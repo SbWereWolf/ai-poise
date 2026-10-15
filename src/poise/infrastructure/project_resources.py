@@ -32,12 +32,17 @@ class ProjectRuntimeFence:
         if self.hook_settings is None:
             return load_config(self.config_path)
         # Binding a native entry uses transport authority, not Task workflows.
-        from ..modules.foundation.validation import nonempty
+        from ..modules.foundation.validation import configuration_fields, nonempty
         config = read_document(self.config_path)
         nonempty(config.get('project'), 'hook project')
         paths = config.get('paths')
         if not isinstance(paths, dict) or 'state' not in paths:
             raise PoiseError('Hook project requires explicit paths.state')
+        batch = configuration_fields(config.get('batch'), {'message_source'}, 'hook project.batch')
+        source = configuration_fields(batch['message_source'], {'id', 'mode'},
+                                      'hook project.batch.message_source')
+        for field in ('id', 'mode'):
+            nonempty(source[field], 'hook project.batch.message_source.' + field)
         return self.config_path.parent, config, None
 
     def hook_manifest(self):

@@ -24,6 +24,10 @@ Read its exact path from the current native context, including after `fork`;
 `AI_POISE_WORK` is not automatically exported. An entry delivered with a runtime
 warning is available for recovery, not evidence that Task work is ready. See
 [session entry delivery](../../../docs/configuration/runtime-hooks.md#доставка-launcher-при-старте).
+For worktree-wide discovery, use the public `runtime-config` reconfiguration
+owner and the explicit shared repository scope; retain the common native-file
+writer lock. Follow [shared installation](../../../docs/configuration/runtime-hooks.md#общая-установка-для-рабочих-деревьев).
+Host hook trust and genuine native delivery remain separate observations.
 
 ### Task work and reads
 

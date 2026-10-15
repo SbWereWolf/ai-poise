@@ -96,6 +96,13 @@ Full view возвращает ссылку на полный файл. Чтен
 
 ## Runtime и native hooks
 
+Для общей доставки launcher из рабочих деревьев используйте
+`runtime-config` с `operation: reconfigure`: полный целевой settings и definition,
+наблюдённые редакции исходных settings и обоих native-файлов, стабильный request ID.
+Настройте одну область репозитория и общий writer lock, затем выполните штатный
+review/trust hooks в Codex. Поля, повтор после частичной записи и проверка реального
+startup/fork описаны в [общей установке](../configuration/runtime-hooks.md#общая-установка-для-рабочих-деревьев).
+
 | Команда | Аргументы | Назначение |
 |---|---|---|
 | `runtime` | `--settings PATH`; JSON stdin. | Identity, capabilities, transcript и один work-пакет через общий владелец сессии. |

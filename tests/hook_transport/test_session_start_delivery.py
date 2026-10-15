@@ -1,13 +1,17 @@
 """Session entry remains available across native starts and subject failures."""
 import json
+import io
 from pathlib import Path
 import re
 import sqlite3
+from types import SimpleNamespace
 
 import pytest
 
 from poise.common import PoiseError
 from poise.infrastructure.hook_transport import HookService
+from poise.interfaces.hook_transport import execute
+from conftest import write_json
 from hook_transport.helpers import event, install, settings
 from batch.helpers import request
 
@@ -106,3 +110,65 @@ def test_start_keeps_launcher_and_reports_runtime_failure(project, tmp_path, mon
                                   (binding['session_id'],)).fetchall()
     assert [(kind, json.loads(raw)) for kind, raw in rows] == [
         ('SessionStart', {'turn_id': None, 'source': 'startup'})]
+
+
+@pytest.mark.parametrize('batch', [None, [], {}, {'message_source': None},
+                                  {'message_source': []}, {'message_source': {}},
+                                  {'message_source': {'id': 'codex-hook-main'}},
+                                  {'message_source': {'mode': 'runtime_event'}}])
+def test_invalid_required_message_authority_refuses_before_hook_effects(project, tmp_path, batch):
+    service = HookService(settings(project, tmp_path))
+    installed = install(service)
+    with sqlite3.connect(service.settings.database) as connection:
+        before = connection.execute('SELECT id,at,binding,event,data FROM hook_events ORDER BY id').fetchall()
+    config = json.loads(project['config_path'].read_text())
+    config['batch'] = batch
+    write_json(project['config_path'], config)
+    native = event(session='invalid-message-authority')
+    native['cwd'] = str(project['app'])
+    output, error = io.StringIO(), io.StringIO()
+
+    code = execute('hook', SimpleNamespace(settings=service.settings.path,
+        definition=Path(installed['definition_path'])), io.BytesIO(json.dumps(native).encode()), output, error)
+
+    assert code == 1
+    assert output.getvalue() == ''
+    assert 'batch' in error.getvalue()
+    with sqlite3.connect(service.settings.database) as connection:
+        assert connection.execute('SELECT id,at,binding,event,data FROM hook_events ORDER BY id').fetchall() == before
+        assert connection.execute('SELECT COUNT(*) FROM bindings').fetchone()[0] == 0
+
+
+def test_fork_restores_its_reader_context_and_preserves_parent(project, tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    project['cfg']['source_reader'] = {'receipt_file': 'reader.json',
+        'policy': str(root / 'config/development/source-reader.json')}
+    write_json(project['config_path'], project['cfg'])
+    service = HookService(settings(project, tmp_path))
+    installed = install(service)
+    parent = event(session='fork-parent')
+    parent['cwd'] = str(project['app'])
+    service.event(installed['definition_path'], parent)
+    parent_binding = service.latest_binding('fork-parent', 'primary')
+    parent_reader = service.bound_runtime(parent_binding['binding_path']).context_reader.receipts.path
+    parent_before = parent_reader.read_bytes()
+    child = event(session='fork-child')
+    child.update(source='fork', cwd=str(project['app']))
+
+    result = service.event(installed['definition_path'], child)
+
+    assert 'systemMessage' not in result
+    assert 'Context generation:' in result['hookSpecificOutput']['additionalContext']
+    child_binding = service.latest_binding('fork-child', 'primary')
+    reader = service.bound_runtime(child_binding['binding_path']).context_reader
+    assert reader.observe_context()['reason'] == 'fork'
+    assert parent_reader.read_bytes() == parent_before
+    assert child_binding['launcher'] != parent_binding['launcher']
+    with sqlite3.connect(service.settings.database) as connection:
+        observed_id = connection.execute(
+            "SELECT id FROM hook_events WHERE binding=? AND event='SessionStart' ORDER BY id DESC LIMIT 1",
+            ('fork-child',)).fetchone()[0]
+    diagnostic = service.diagnose({'definition_path': installed['definition_path'],
+        'session_id': 'fork-child', 'event': 'SessionStart', 'event_id': observed_id,
+        'run_ids': [], 'probe_cwd': None})
+    assert diagnostic['effect']['status'] == 'confirmed'

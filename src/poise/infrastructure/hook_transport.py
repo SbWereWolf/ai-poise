@@ -3,6 +3,7 @@
 The adapter never edits Codex trust or starts task transitions from native events.
 """
 from copy import deepcopy
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -59,12 +60,34 @@ class HookSettings:
         self.root=(self.path.parent/s['root']).resolve()
         if not self.root.is_dir():raise PoiseError('hook settings.root: existing directory required')
         self.project_config=descendant(self.root,s['project_config'])
-        self.hooks_file=descendant(self.root,s['hooks_file'])
+        native_path = Path(s['hooks_file'])
+        if native_path.is_absolute():
+            if 'repository_scope' not in s:
+                raise PoiseError('An absolute native hooks file requires explicit repository_scope')
+            self.hooks_file = native_path.resolve()
+        else:
+            self.hooks_file=descendant(self.root,s['hooks_file'])
         self.definitions=descendant(self.root,s['definitions'])
         self.state=descendant(self.root,s['state']);self.lock=descendant(self.root,s['lock'])
         self.database=descendant(self.state,s['database'])
         self.bindings=descendant(self.state,s['bindings'])
         self.observations=descendant(self.state,s['observations'])
+        self.hooks_lock = None
+        if 'repository_scope' in s:
+            scope = configuration_fields(s['repository_scope'], {'repository', 'timeout_seconds'},
+                                         'repository_scope')
+            nonempty(scope['repository'], 'repository_scope.repository')
+            if not Path(scope['repository']).is_absolute() or not Path(scope['repository']).is_dir():
+                raise PoiseError('repository_scope.repository requires an existing absolute directory')
+            positive(scope['timeout_seconds'], 'repository_scope.timeout_seconds')
+            nonempty(s.get('hooks_lock'), 'hooks_lock')
+            if not Path(s['hooks_lock']).is_absolute():
+                raise PoiseError('hooks_lock requires an explicit absolute path')
+            self.hooks_lock = Path(s['hooks_lock']).resolve()
+            if self.hooks_lock in (self.hooks_file, self.database, self.lock, self.path):
+                raise PoiseError('The shared native-file lock must have its own path')
+        elif 'hooks_lock' in s:
+            raise PoiseError('hooks_lock requires explicit repository_scope')
         for name in files.values():descendant(self.state,name)
         for key in ('launcher','binding_file','response_file'):descendant(self.state,s[key])
         if s['launcher']==s['binding_file']:raise PoiseError('Binding and launcher filenames must differ')
@@ -81,6 +104,15 @@ class HookSettings:
         if not s['executable_mode'] & 0o100:raise PoiseError('Launcher mode must allow owner execution')
         minimal=encoded({'status':'capabilities_unavailable','response_path':str(self.observations/('0'*32)/s['response_file'])})+'\n'
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
+
+    @contextmanager
+    def native_file_locked(self):
+        if self.hooks_lock is None:
+            yield
+            return
+        from .locking import exclusive_lock
+        with exclusive_lock(self.hooks_lock, self.raw['lock_seconds'], self.raw['lock_poll_seconds']):
+            yield
 
     def require_runtime(self,launcher=None):
         """Check selected executable paths without choosing a replacement runtime."""
@@ -126,6 +158,9 @@ class HookSettings:
     def command(self,verb,*args):
         return self._direct_command(['-B'],verb,*args)
 
+    def launcher_bytes(self, binding_path):
+        return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + '\n').encode()
+
     def prior_launcher_commands(self,verb,*args):
         """Exact superseded forms accepted only for an owned launcher upgrade."""
         return (
@@ -144,11 +179,40 @@ def _read_definition(settings,path):
     return HookDefinition.parse(value)
 
 
+def matches_repository_scope(settings, cwd):
+    """A shared native source selects its Git repository before Task runtime."""
+    if 'repository_scope' not in settings.raw:
+        return True
+    from .git_transport import run_git_receipt
+    nonempty(cwd, 'Native cwd')
+    if not Path(cwd).is_absolute():
+        raise PoiseError('Native cwd requires an absolute path')
+    scope = settings.raw['repository_scope']
+    arguments = ['rev-parse', '--path-format=absolute', '--git-common-dir']
+    selected = run_git_receipt(scope['repository'], arguments, scope['timeout_seconds'], None)
+    if selected['actual_exit_code'] != 0:
+        raise PoiseError('Configured session repository is unavailable: ' + selected['stderr'])
+    def common_directory(receipt):
+        value = receipt['stdout'].removesuffix('\n')
+        if not value or not Path(value).is_absolute():
+            raise PoiseError('An absolute Git common directory is required from the selected Git command')
+        return Path(value).resolve()
+    selected_directory = common_directory(selected)
+    observed = run_git_receipt(cwd, arguments, scope['timeout_seconds'], None)
+    if observed['actual_exit_code'] != 0:
+        return False
+    return selected_directory == common_directory(observed)
+
+
 class FileHookRepository:
     def __init__(self,settings,registry):self.settings,self.registry=settings,registry
 
     def relocate(self, target, installation, request_id):
         """Publish this installation under an already held project/source lease."""
+        with self.settings.native_file_locked():
+            return self._relocate(target, installation, request_id)
+
+    def _relocate(self, target, installation, request_id):
         import hashlib
         import shutil
         proposed = HookSettings.proposed(target['settings_path'], target['settings'])
@@ -161,7 +225,8 @@ class FileHookRepository:
         definition = _read_definition(source, definition_path)
         if definition.data['id'] != target['installation_id']:
             raise PoiseError('Hook relocation installation identity differs')
-        if proposed.definitions != source.definitions or proposed.hooks_file != source.hooks_file:
+        if (proposed.definitions != source.definitions or proposed.hooks_file != source.hooks_file
+                or proposed.hooks_lock != source.hooks_lock):
             raise PoiseError('Hook relocation requires explicit unchanged definition/native-file owners')
         if not proposed.state.exists():
             shutil.copytree(source.state, proposed.state)
@@ -273,11 +338,13 @@ class FileHookRepository:
         return removed,proof,row[0]
 
     def install(self,request_id,expected_revision,definition):
-        return self._install(request_id,expected_revision,definition,None)
+        with self.settings.native_file_locked():
+            return self._install(request_id,expected_revision,definition,None)
 
     def reconcile(self,request_id,expected_revision,definition,previous_installation_id,live_definition_path):
-        return self._install(request_id,expected_revision,definition,{
-            'previous_installation_id':previous_installation_id,'live_definition_path':live_definition_path})
+        with self.settings.native_file_locked():
+            return self._install(request_id,expected_revision,definition,{
+                'previous_installation_id':previous_installation_id,'live_definition_path':live_definition_path})
 
     def _install(self,request_id,expected_revision,definition,reconciliation):
         s=self.settings
@@ -385,6 +452,10 @@ class HookService:
         with self.project_fence.locked():
             return self.commands.reconcile(packet)
 
+    def reconfigure(self, packet):
+        from .hook_reconfiguration import reconfigure
+        return reconfigure(self.settings.path, packet)
+
     def definition(self,path):return _read_definition(self.settings,path)
 
     def _bind(self,definition_path,event):
@@ -396,7 +467,10 @@ class HookService:
         definition=self.definition(definition_path)
         native=parse_native_event(event,definition)
         cwd=Path(native['cwd'])
-        if not cwd.is_absolute() or not any(cwd.resolve().is_relative_to(Path(r).resolve()) for r in self.settings.raw['cwd_roots']):
+        accepted = (matches_repository_scope(self.settings, str(cwd))
+                    if 'repository_scope' in self.settings.raw else
+                    any(cwd.resolve().is_relative_to(Path(r).resolve()) for r in self.settings.raw['cwd_roots']))
+        if not cwd.is_absolute() or not accepted:
             raise PoiseError('Native cwd outside configured roots')
         cfg=self.project_fence.hook_manifest()
         d=definition.data
@@ -421,7 +495,7 @@ class HookService:
         raw=(json.dumps(record,ensure_ascii=False,indent=2)+'\n').encode()
         if binding.exists() and binding.read_bytes()!=raw:raise PoiseError('Binding file was changed externally')
         if not binding.exists():atomic_write(binding,raw,self.settings.raw['file_mode'])
-        script=('#!/bin/sh\nexec '+self.settings.command('hook-work','--binding',str(binding))+'\n').encode()
+        script=self.settings.launcher_bytes(binding)
         priors=tuple(('#!/bin/sh\nexec '+command+'\n').encode() for command in
             self.settings.prior_launcher_commands('hook-work','--binding',str(binding)))
         if launcher.exists():
@@ -460,7 +534,6 @@ class HookService:
             return self._event_locked(definition_path,event)
 
     def _event_locked(self,definition_path,event):
-        from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
         if native['event'] == 'SessionStart':
             event_id = self.registry.record_event(

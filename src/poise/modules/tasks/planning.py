@@ -20,10 +20,12 @@ def validate_planning(value):
         raise DomainError('Task planning requires schema, template and restart_revision_policy')
     template = value['template']
     if template is not None and (
-        not isinstance(template, dict) or set(template) != {'id', 'version', 'digest'}
-        or any(not isinstance(v, str) or not v.strip() for v in template.values())
+        not isinstance(template, dict) or 'id' not in template
+        or set(template) - {'id', 'version', 'digest'}
+        or not isinstance(template['id'], str) or not template['id'].strip()
+        or any(not isinstance(template[key], str) for key in ('version', 'digest') if key in template)
     ):
-        raise DomainError('Task template provenance requires id, version and digest')
+        raise DomainError('Task starter requires id; optional version/digest are historical audit text')
     policy = value['restart_revision_policy']
     if not isinstance(policy, dict) or set(policy) != {'reviewer', 'user'}:
         raise DomainError('Task restart revision policy requires explicit reviewer/user fields')

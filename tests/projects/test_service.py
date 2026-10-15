@@ -61,12 +61,11 @@ def test_conflicting_request_does_not_replace_existing_project(project):
     assert Path(r['config_path']).read_bytes()==before
 
 
-@pytest.mark.parametrize('failure',['schema','workflow','revision','repository','branch','escape','symlink','missing_policy'])
+@pytest.mark.parametrize('failure',['schema','workflow','repository','branch','escape','symlink','missing_policy'])
 def test_failed_preflight_publishes_no_project(project,failure):
     settings,raw,req=setup_case(project)
     if failure=='schema':req['schema']='old-format'
     if failure=='workflow':write_json(project['root']/'config/workflows/development.json',{'goal_type':'bad'})
-    if failure=='revision':req['template']['digest']='0'*64
     if failure=='repository':req['edits'][1]['value']=str(project['root']/'missing')
     if failure=='branch':req['edits'].append({'path':['git','base_ref'],'value':'absent'})
     if failure=='escape':req['destination']='../outside'
@@ -113,7 +112,6 @@ def test_workflow_and_manifest_destination_collision_is_rejected(project):
     raw['config']['workflows']['development']='project.json'
     write_json(project['root']/'config/project-blueprint.json',raw)
     cfg=json.loads(settings.read_text());cfg['templates']['selected']['digest']=digest(raw);write_json(settings,cfg)
-    req['template']['digest']=digest(raw)
     with pytest.raises(PoiseError):project_tools(settings).apply(req)
     assert not (project['root']/'configured/pilot').exists()
 

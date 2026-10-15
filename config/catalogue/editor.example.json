@@ -1,12 +1,12 @@
 {
   "schema": "goal-config-editor-1",
-  "root": "../..",
-  "database": "projects/ai-poise/database/catalogue-editor.sqlite",
-  "lock": "projects/ai-poise/database/catalogue-editor.lock",
-  "responses": "projects/ai-poise/.runtime/catalogue-responses",
+  "root": "${FILESYSTEM_ROOT}",
+  "database": "poise-project-data/poise-op/workflow-editor/database/catalogue-editor.sqlite",
+  "lock": "poise-project-data/poise-op/workflow-editor/lock/catalogue-editor.lock",
+  "responses": "poise-project-data/poise-op/workflow-editor/responses",
   "file_mode": 420,
   "json_indent": 2,
-  "lock_seconds": 2,
+  "lock_seconds": 2.0,
   "lock_poll_seconds": 0.01,
   "max_changes": 2000,
   "max_input_bytes": 1000000,
@@ -17,85 +17,59 @@
     "pending": 3
   },
   "workflows": {
-    "development": "config/catalogue/workflows/development.json",
-    "test_development": "config/catalogue/workflows/test_development.json",
-    "verification": "config/catalogue/workflows/verification.json",
-    "review": "config/catalogue/workflows/review.json",
-    "design": "config/catalogue/workflows/design.json",
-    "analysis": "config/catalogue/workflows/analysis.json",
-    "profiling": "config/catalogue/workflows/profiling.json",
-    "environment_diagnostics": "config/catalogue/workflows/environment_diagnostics.json",
-    "environment_remediation": "config/catalogue/workflows/environment_remediation.json",
-    "documentation": "config/catalogue/workflows/documentation.json",
-    "task_planning": "config/catalogue/workflows/task_planning.json",
-    "sprint_planning": "config/catalogue/workflows/sprint_planning.json",
-    "integration": "config/catalogue/workflows/integration.json"
+    "development": "poise-op/app/config/catalogue/workflows/development.json",
+    "test_development": "poise-op/app/config/catalogue/workflows/test_development.json",
+    "verification": "poise-op/app/config/catalogue/workflows/verification.json",
+    "review": "poise-op/app/config/catalogue/workflows/review.json",
+    "design": "poise-op/app/config/catalogue/workflows/design.json",
+    "analysis": "poise-op/app/config/catalogue/workflows/analysis.json",
+    "profiling": "poise-op/app/config/catalogue/workflows/profiling.json",
+    "environment_diagnostics": "poise-op/app/config/catalogue/workflows/environment_diagnostics.json",
+    "environment_remediation": "poise-op/app/config/catalogue/workflows/environment_remediation.json",
+    "documentation": "poise-op/app/config/catalogue/workflows/documentation.json",
+    "task_planning": "poise-op/app/config/catalogue/workflows/task_planning.json",
+    "sprint_planning": "poise-op/app/config/catalogue/workflows/sprint_planning.json",
+    "integration": "poise-op/app/config/catalogue/workflows/integration.json"
   },
   "templates": {
     "development-v1": {
-      "path": "config/catalogue/workflow-templates/development.json",
-      "version": "3",
-      "digest": "a94c6867d3a23ac7611d6866cc6043efdfa1eae3c79cd5079295ed6bed945f87"
+      "path": "poise-op/app/config/catalogue/workflow-templates/development.json"
     },
     "test_development-v1": {
-      "path": "config/catalogue/workflow-templates/test_development.json",
-      "version": "3",
-      "digest": "1feb066911c153a51c03c52b0b2f74f6ff8572345eb8fd424f85206436b88e44"
+      "path": "poise-op/app/config/catalogue/workflow-templates/test_development.json"
     },
     "verification-v1": {
-      "path": "config/catalogue/workflow-templates/verification.json",
-      "version": "2",
-      "digest": "d325a26377644320fdc3faddb322a00b145f06b719e672c9bfa96ebc18ecaea5"
+      "path": "poise-op/app/config/catalogue/workflow-templates/verification.json"
     },
     "review-v1": {
-      "path": "config/catalogue/workflow-templates/review.json",
-      "version": "2",
-      "digest": "3057d776d1048c2bf351071755d8959a954b26fa693071936658dc1e92be44a3"
+      "path": "poise-op/app/config/catalogue/workflow-templates/review.json"
     },
     "design-v1": {
-      "path": "config/catalogue/workflow-templates/design.json",
-      "version": "3",
-      "digest": "57a97c72cb968cb25e5ac95c2e32d5e1424b14dd7dab5ed24d3376b7dd6a490c"
+      "path": "poise-op/app/config/catalogue/workflow-templates/design.json"
     },
     "analysis-v1": {
-      "path": "config/catalogue/workflow-templates/analysis.json",
-      "version": "2",
-      "digest": "c68d04ce3165d83327de0b490840d4b7e0d570c3d4e89070ae9bd6ffd0d762bd"
+      "path": "poise-op/app/config/catalogue/workflow-templates/analysis.json"
     },
     "profiling-v1": {
-      "path": "config/catalogue/workflow-templates/profiling.json",
-      "version": "2",
-      "digest": "ddc98791631685ccb1d52cee0a6a6644036d863156b29beee4caf50976995e1e"
+      "path": "poise-op/app/config/catalogue/workflow-templates/profiling.json"
     },
     "environment_diagnostics-v1": {
-      "path": "config/catalogue/workflow-templates/environment_diagnostics.json",
-      "version": "2",
-      "digest": "7b90029354f31daeaa9fb871242a67e366ecbe4a2a801b64e5d81eb4cef8ab1f"
+      "path": "poise-op/app/config/catalogue/workflow-templates/environment_diagnostics.json"
     },
     "environment_remediation-v1": {
-      "path": "config/catalogue/workflow-templates/environment_remediation.json",
-      "version": "3",
-      "digest": "9a1bbf6f1e1d4af225ee1d73f4954e2979080d288f9d21278cec7cc901da463b"
+      "path": "poise-op/app/config/catalogue/workflow-templates/environment_remediation.json"
     },
     "documentation-v1": {
-      "path": "config/catalogue/workflow-templates/documentation.json",
-      "version": "3",
-      "digest": "a8b9447c0e75c4a659a30e4d49634abfe2df7d2496ca823d9359aace282a8b2d"
+      "path": "poise-op/app/config/catalogue/workflow-templates/documentation.json"
     },
     "task_planning-v1": {
-      "path": "config/catalogue/workflow-templates/task_planning.json",
-      "version": "3",
-      "digest": "daa32670822e4a2b42bf6c3fcab4a7b62997166811897d8879b635a382c88d8b"
+      "path": "poise-op/app/config/catalogue/workflow-templates/task_planning.json"
     },
     "sprint_planning-v1": {
-      "path": "config/catalogue/workflow-templates/sprint_planning.json",
-      "version": "3",
-      "digest": "cae74bb13744e0bb727c53a2db4f68a69473352a705b2c9db9ef16b250ab8453"
+      "path": "poise-op/app/config/catalogue/workflow-templates/sprint_planning.json"
     },
     "integration-v1": {
-      "path": "config/catalogue/workflow-templates/integration.json",
-      "version": "3",
-      "digest": "824d3e1342d72ad27709230b5f2997e3b4aec5e7cde7a26397b057f5c97ec688"
+      "path": "poise-op/app/config/catalogue/workflow-templates/integration.json"
     }
   }
 }

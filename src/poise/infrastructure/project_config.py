@@ -92,9 +92,8 @@ class FileProjectConfigUpdate:
                 else:
                     if 'runtime_resources' in config:
                         raise PoiseError('Runtime resources association already exists')
-                    if (revision != request['expected_revision'] or
-                            revision not in self._known_revisions(root)):
-                        raise VersionConflict('Bootstrap project revision is not the expected known revision')
+                    if revision != request['expected_revision']:
+                        raise VersionConflict('Bootstrap project revision changed since observation')
                     candidate = deepcopy(config)
                     candidate['runtime_resources'] = deepcopy(resources)
                     self._validate_candidate(root, candidate, workflows)
@@ -166,28 +165,6 @@ class FileProjectConfigUpdate:
             if not legacy or not legacy <= explicit:
                 raise failure
             return root, config, workflows
-
-    def _known_revisions(self, root):
-        known = set()
-        config_path = str(root / self.settings.raw["manifest"])
-        setup = root / self.settings.raw["receipt"]
-        candidates = [setup]
-        candidates.extend((root / "operations").glob("*.json"))
-        candidates.extend((self.settings.root / "operations").glob("*.json"))
-        for path in candidates:
-            if not path.is_file():
-                continue
-            try:
-                saved = read_document(path)
-                result = saved.get("result", {})
-                if result.get("config_path") != config_path:
-                    continue
-                for key in ("prior_revision", "revision"):
-                    if isinstance(result.get(key), str):
-                        known.add(result[key])
-            except PoiseError:
-                continue
-        return known
 
     def stage_criteria_lock(self):
         """The coordinator holds this before the Task lock, including recovery."""

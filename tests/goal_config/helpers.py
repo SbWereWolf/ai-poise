@@ -35,4 +35,4 @@ def settings(root, definitions=None):
          "workflows": {"writing":"config/workflows/writing.json", "other":"config/workflows/other.json"} if definitions is None else definitions,
          "templates":{"writing-v1":{"path":"templates/writing.json", "version":"1", "digest":digest(body)}}}
     path=root/"goal-editor.json"; path.write_text(json.dumps(cfg), encoding="utf-8")
-    return path, {"id":"writing-v1","version":"1","digest":digest(body)}
+    return path, {"id":"writing-v1"}

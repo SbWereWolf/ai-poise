@@ -32,7 +32,7 @@ def setup_case(project):
     write_json(root/'state/project-registry.json',{
         'schema':'configured-project-registry-1','projects':{}})
     request={'schema':'project-setup-1','request_id':'setup-1','destination':'configured/pilot',
-        'template':{'id':'selected','version':'1','digest':digest(blueprint)},
+        'template':{'id':'selected'},
         'edits':[{'path':['project'],'value':'pilot'},
                  {'path':['git','repository'],'value':str(project['app'])},
                  {'path':['git','push_required'],'value':False}],
@@ -67,3 +67,53 @@ def bootstrap_fixture_resources(settings_path, config_path):
     assert all((root / config['workflows'][goal]).read_bytes() == content
                for goal, content in before_workflows.items())
     return current
+
+
+def fill_markers(value, replacements):
+    """Explicit fixture input filling, not a production template renderer."""
+    if isinstance(value, dict):
+        return {key: fill_markers(item, replacements) for key, item in value.items()}
+    if isinstance(value, list):
+        return [fill_markers(item, replacements) for item in value]
+    if isinstance(value, str):
+        for key, replacement in replacements.items():
+            value = value.replace('${' + key + '}', str(replacement))
+    return value
+
+
+def shipped_setup(tools):
+    """Mount the shipped config tree at an explicit test-owned setup root."""
+    import shutil
+    source = Path(__file__).resolve().parents[2]
+    shutil.copytree(source / 'config', tools / 'config')
+    settings = json.loads((tools / 'config/project-setup.example.json').read_text())
+    settings.update(root=str(tools), registry='config/project-registry.json', lock='setup.lock')
+    for entry in settings['templates'].values():
+        entry['path'] = entry['path'].removeprefix('app/')
+        path = tools / entry['path']
+        blueprint = json.loads(path.read_text())
+        for item in blueprint['workflow_sources'].values():
+            item['path'] = item['path'].removeprefix('app/')
+        write_json(path, blueprint)
+    write_json(tools / 'config/project-registry.json', {'schema': 'configured-project-registry-1', 'projects': {}})
+    return write_json(tools / 'config/project-setup.json', settings)
+
+
+def shipped_edits(blueprint, *, tools, project, repository, data, trees, base='main'):
+    config = fill_markers(blueprint['config'], {
+        'PROJECT_ID': project, 'POISE_SOURCE_ROOT': tools,
+        'PROJECT_CONFIG_ROOT': tools / 'projects' / project / 'config',
+        'PROJECT_DATA_ROOT': data, 'REPOSITORY_ROOT': repository,
+        'COMMIT_AUTHOR_NAME': 'Fixture', 'COMMIT_AUTHOR_EMAIL': 'fixture@example.invalid',
+    })
+    config['paths']['worktrees'] = str(trees)
+    config['git'].update(base_ref=base, push_required=False)
+    config['runtime_resources'] = {'project_setup': str(tools / 'config/project-setup.json'), 'hooks': []}
+    edits = []
+    for question in blueprint['questions']:
+        value = config
+        for key in question['path']:
+            value = value[key]
+        edits.append({'path': question['path'], 'value': value})
+    edits.append({'path': ['runtime_resources', 'hooks'], 'value': []})
+    return edits

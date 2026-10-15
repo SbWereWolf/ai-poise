@@ -102,12 +102,11 @@ def main():
             settings=ProjectSettings(args.settings)
             if args.template not in settings.raw['templates']:
                 raise PoiseError('Unknown explicitly selected project template')
-            selection=settings.raw['templates'][args.template]
         except PoiseError as exc:
             print(str(exc),file=sys.stderr)
             return 2
         request={'schema':'project-setup-1','request_id':args.request_id,'destination':args.destination,
-            'template':{'id':args.template,'version':selection['version'],'digest':selection['digest']},'edits':[],
+            'template':{'id':args.template},'edits':[],
             'probe_repository':args.probe_repository=='yes'}
         return interactive(args.settings,request,sys.stdin,sys.stdout,sys.stderr)
     if args.command=='catalogue':

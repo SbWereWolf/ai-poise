@@ -1,7 +1,7 @@
 {
   "parameters": {
-    "python": "/srv/poise/bootstrap-venv/bin/python",
-    "tool_config": "/srv/poise/app/config/environment-maintenance.json"
+    "python": "${PYTHON_EXECUTABLE}",
+    "tool_config": "${POISE_SOURCE_ROOT}/config/environment-maintenance.json"
   },
   "commands": {
     "infra": [

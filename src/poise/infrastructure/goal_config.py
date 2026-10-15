@@ -113,9 +113,9 @@ class EditorSettings:
                 raise PoiseError("Редактируемый конфиг не должен быть symlink")
             paths.append(target)
         for key, value in c["templates"].items():
-            value = configuration_fields(value,{"path","version","digest"},f"template {key}")
+            value = configuration_fields(value,{"path"},f"template {key}")
             if not all(isinstance(value[k],str) and value[k] for k in value):
-                raise PoiseError("Шаблон требует path/version/digest")
+                raise PoiseError("Шаблон требует явный path")
             template=descendant(self.root,value["path"])
             if template in paths:
                 raise PoiseError("Шаблон и редактируемый pack должны быть независимы")
@@ -140,17 +140,13 @@ class FileTemplates:
         self.settings=settings
 
     def resolve(self,selection):
-        exact_keys(selection,{"id","version","digest"},"template selection")
+        exact_keys(selection,{"id"},"template selection")
         if not all(isinstance(v,str) and v for v in selection.values()):
-            raise PoiseError("Нужны явные id/version/digest шаблона")
+            raise PoiseError("Нужен явный id шаблона")
         if selection["id"] not in self.settings.raw["templates"]:
             raise PoiseError("Шаблон не зарегистрирован")
         expected=self.settings.raw["templates"][selection["id"]]
-        if (selection["version"],selection["digest"])!=(expected["version"],expected["digest"]):
-            raise VersionConflict("Выбранная версия/digest шаблона не совпадает с registry")
         data=read_document(descendant(self.settings.root,expected["path"]))
-        if fingerprint(data)!=expected["digest"]:
-            raise VersionConflict("Содержимое шаблона изменилось; digest не совпадает")
         GoalTypeDefinition.from_configuration(data)
         return data
 

@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import json
 from ..foundation.errors import DomainError
+from ..foundation.validation import configuration_fields
 from ..verification.domain import exact_keys
 
 
@@ -38,9 +39,8 @@ class ProjectBlueprint:
 
     @classmethod
     def parse(cls,raw):
-        exact_keys(raw,{'schema','version','config','workflow_sources','questions'},'project blueprint')
+        configuration_fields(raw,{'schema','config','workflow_sources','questions'},'project blueprint',DomainError)
         if raw['schema']!='project-blueprint-1':raise DomainError('Unsupported project template schema')
-        if not isinstance(raw['version'],str) or not raw['version']:raise DomainError('Explicit version required')
         if not isinstance(raw['config'],dict) or not isinstance(raw['workflow_sources'],dict):
             raise DomainError('Complete project and workflow sources required')
         if not isinstance(raw['questions'],list) or not raw['questions']:raise DomainError('Explicit questions required')
@@ -54,8 +54,8 @@ class ProjectBlueprint:
             if q['type'] not in {'text','boolean','strings'}:raise DomainError('Unknown answer type')
             ids.add(q['id']);paths.add(p)
         for item in raw['workflow_sources'].values():
-            exact_keys(item,{'path','digest'},'workflow source')
-            if any(not isinstance(item[k],str) or not item[k] for k in item):raise DomainError('Workflow path/digest required')
+            configuration_fields(item,{'path'},'workflow source',DomainError)
+            if not isinstance(item['path'],str) or not item['path']:raise DomainError('Workflow path required')
         try:return cls(json.dumps(raw,ensure_ascii=False,sort_keys=True,allow_nan=False))
         except (ValueError,TypeError) as exc:raise DomainError(f'Invalid template data: {exc}') from exc
 

@@ -1,13 +1,13 @@
 {
   "schema": "hook-settings-1",
-  "root": "/srv",
-  "project_config": "poise/app/projects/demo/config/project.json",
-  "python": "/srv/poise/app/tools/.venv/bin/python",
-  "source_root": "/srv/poise/app/tools/.venv/lib/python3.13/site-packages",
-  "hooks_file": "repositories/demo/.codex/hooks.json",
-  "definitions": "poise/app/projects/demo/config/hook-definitions",
-  "state": "poise-project-data/demo/codex-hook",
-  "lock": "poise-project-data/demo/codex-hook/sessions-runtime.lock",
+  "root": "${FILESYSTEM_ROOT}",
+  "project_config": "poise-op/app/projects/poise-op/config/project.json",
+  "python": "${PYTHON_EXECUTABLE}",
+  "source_root": "${PYTHON_PACKAGE_ROOT}",
+  "hooks_file": "poise-op/app/.codex/hooks.json",
+  "definitions": "poise-op/app/projects/poise-op/config/hook-definitions",
+  "state": "poise-project-data/poise-op/codex-hook",
+  "lock": "poise-project-data/poise-op/codex-hook/sessions-runtime.lock",
   "database": "sessions-runtime.sqlite",
   "bindings": "bindings",
   "launcher": "work.sh",
@@ -15,7 +15,7 @@
   "observations": "probes",
   "response_file": "response.json",
   "cwd_roots": [
-    "/srv/repositories/demo"
+    "${REPOSITORY_ROOT}"
   ],
   "file_mode": 384,
   "executable_mode": 448,

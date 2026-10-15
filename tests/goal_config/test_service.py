@@ -81,10 +81,12 @@ def test_missing_setting_and_oversized_batch_are_errors(tmp_path):
     with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,additions(),selection=selection))
 
 
-def test_full_template_digest_is_checked_at_execution(tmp_path):
+def test_malformed_current_template_is_rejected_before_publication(tmp_path):
     path, selection=settings(tmp_path)
     (tmp_path/"templates/writing.json").write_text("{}")
-    with pytest.raises(PoiseError): goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
+    with pytest.raises(PoiseError, match='goal_type|content_contract|worktree_required|stages'):
+        goal_config_tools(path).apply_batch(request("create","writing",None,[],selection=selection))
+    assert not (tmp_path/"config/workflows/writing.json").exists()
 
 
 def test_symlink_cannot_write_outside_config_root(tmp_path):

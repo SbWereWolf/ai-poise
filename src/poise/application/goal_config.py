@@ -30,7 +30,7 @@ def validate_batch_request(request: dict, max_changes: int) -> None:
     if mode == "create":
         if request["expected_revision"] is not None or not isinstance(request["template"], dict):
             raise DomainError("create требует явный template и expected_revision=null")
-        require_shape(request["template"], {"id", "version", "digest"}, "template selection")
+        require_shape(request["template"], {"id"}, "template selection")
     else:
         rev=request["expected_revision"]
         if request["template"] is not None or not isinstance(rev, str) or len(rev)!=64 or any(c not in "0123456789abcdef" for c in rev):

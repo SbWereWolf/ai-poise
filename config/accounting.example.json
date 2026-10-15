@@ -1,14 +1,4 @@
 {
-  "timezone": "UTC",
-  "week_start": 0,
-  "max_events": 1000,
-  "max_files": 1000,
-  "max_blob_bytes": 1048576,
-  "time_mode": "tool_cycle",
-  "storage": {
-    "database": "telemetry/events.sqlite",
-    "lock": "telemetry/events.lock"
-  },
   "causes": [
     "initial",
     "internal_qa",
@@ -16,28 +6,38 @@
     "requirement_change",
     "poise_incident"
   ],
-  "sources": {
-    "test": "reported",
-    "codex": "observed"
-  },
+  "max_blob_bytes": 1048576,
+  "max_events": 1000,
+  "max_files": 1000,
   "path_categories": {
     "code": [
       "src/**"
     ],
-    "tests": [
-      "tests/**"
+    "documentation": [
+      "docs/**",
+      "*.md"
     ],
     "fixtures": [
       "fixtures/**"
     ],
-    "documentation": [
-      "docs/**",
-      "*.md"
+    "tests": [
+      "tests/**"
     ]
   },
+  "sources": {
+    "codex": "observed",
+    "test": "reported"
+  },
+  "storage": {
+    "database": "telemetry/events.sqlite",
+    "lock": "telemetry/events.lock"
+  },
+  "time_mode": "tool_cycle",
+  "timezone": "UTC",
   "tokenizer": {
-    "kind": "unavailable",
+    "command": null,
     "identity": "not-configured",
-    "command": null
-  }
+    "kind": "unavailable"
+  },
+  "week_start": 0
 }

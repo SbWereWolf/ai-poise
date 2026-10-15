@@ -262,7 +262,9 @@ def test_goal_type_materializes_editable_task_in_one_public_request(project):
     assert out['workflow']['stages'][0]['id'] == 'tests'
     assert out['draft']['definition_of_done'] == project['task']['definition_of_done']
     template.unlink()  # The already materialized task must not consult this source again.
-    assert task_action(c, **packet) == out
+    repeated = task_action(c, **packet)
+    assert repeated['replayed'] is True
+    assert {key: value for key, value in repeated.items() if key != 'replayed'} == out
     out = edit(c, 'STARTER', out['revision'], {'goal_type': 'development'}, 'reselect')
     assert ready(c, 'STARTER', out['revision'])['status'] == 'available'
     restarted_runtime = WorkPoise(project['config_path'], 'executor')

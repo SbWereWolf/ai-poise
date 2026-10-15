@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 from demo import create, save, SOURCE
-from poise.common import digest
 from work_client import WorkClient
 from copy import deepcopy
 
@@ -23,10 +22,10 @@ def run(directory: Path):
        "responses":"state/config-responses","file_mode":420,"json_indent":2,"lock_seconds":2.0,"lock_poll_seconds":0.01,
        "max_changes":2000,"max_input_bytes":1000000,"output_chars":2200,"exit_codes":{"success":0,"rejected":2,"pending":3},
        "workflows":{"development":"config/workflows/generated.json"},
-       "templates":{"development-v1":{"path":"config/workflows/development.json","version":"1","digest":digest(template)}}}
+       "templates":{"development-v1":{"path":"config/workflows/development.json"}}}
     settings_path=home/'goal-editor.json'; save(settings_path,settings)
     cfg=json.loads((home/'project.json').read_text());cfg['workflows']['development']='config/workflows/generated.json';save(home/'project.json',cfg)
-    selection={"id":"development-v1","version":"1","digest":digest(template)}
+    selection={"id":"development-v1"}
     def packet(mode,expected,changes,rid,template):
         return {"schema":"goal-config-batch-1","request_id":rid,"mode":mode,"goal_type":"development","expected_revision":expected,"template":template,"changes":changes}
     def call(data):

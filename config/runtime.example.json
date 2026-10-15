@@ -1,152 +1,52 @@
 {
   "check_runner": {
-    "initial_seconds": 120,
+    "diagnostic_override_max_seconds": 900,
     "history_multiplier": 1.1,
-    "progress_gap_seconds": 120,
+    "initial_seconds": 120,
     "poll_seconds": 0.1,
-    "diagnostic_override_max_seconds": 900
+    "progress_gap_seconds": 120
   },
   "output": {
+    "chunk_bytes": 65536,
+    "directory": "views",
+    "file_mode": 384,
+    "job": "job.json",
     "known": [
       {
-        "id": "unittest",
         "argv_tokens": [
           "-m",
           "unittest"
         ],
-        "parser": "lines",
-        "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*",
-        "primary_chars": 512,
         "extended_bytes": 4096,
-        "selected_bytes": 4096,
         "files": {
           "extended": "extended.txt",
           "full": "full.txt",
           "selected": "selected.txt"
-        }
+        },
+        "id": "unittest",
+        "parser": "lines",
+        "primary_chars": 512,
+        "selected_bytes": 4096,
+        "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*"
       }
     ],
+    "manifest": "views.json",
     "unknown": {
-      "id": "unknown",
       "argv_tokens": [],
-      "parser": "tail",
-      "selection_pattern": null,
-      "primary_chars": 512,
       "extended_bytes": 4096,
-      "selected_bytes": 4096,
       "files": {
         "extended": "extended.txt",
         "full": "full.txt",
         "selected": null
-      }
+      },
+      "id": "unknown",
+      "parser": "tail",
+      "primary_chars": 512,
+      "selected_bytes": 4096,
+      "selection_pattern": null
     },
-    "directory": "views",
-    "manifest": "views.json",
-    "job": "job.json",
-    "worker_stdout": "worker-out.txt",
     "worker_stderr": "worker-err.txt",
-    "chunk_bytes": 65536,
-    "worker_timeout_seconds": 15,
-    "file_mode": 384
-  },
-  "handoff": {
-    "directory": "handoffs",
-    "receipt": "handoff.json",
-    "bundle": "source.bundle",
-    "preserved_directory": "preserved",
-    "file_mode": 384
-  },
-  "transfer": {
-    "directory": "transfers",
-    "archive": "work.tar.gz",
-    "manifest": "manifest.json",
-    "database": "snapshot.sqlite",
-    "files_directory": "files",
-    "max_tasks": 1000,
-    "max_files": 10000,
-    "max_file_bytes": 33554432,
-    "max_total_bytes": 134217728,
-    "chunk_bytes": 65536,
-    "file_mode": 384,
-    "recovery": {
-      "format": "poise-recovery-1",
-      "tool_argv": [
-        "/example/bin/node",
-        "/example/workspace-recover/bin/workspace-recover.mjs"
-      ],
-      "mapping": {
-        "version": "task-materials-1",
-        "materials": []
-      },
-      "systems": {
-        "poise": {
-          "repository": "/example/poise",
-          "configs": [
-            "/example/poise/project.json"
-          ]
-        },
-        "project": {
-          "repository": "/example/project",
-          "configs": [
-            "/example/project/project.json"
-          ]
-        }
-      },
-      "repositories": {
-        "task": "/example/project"
-      },
-      "paths": {
-        "staging": "prepared",
-        "create_session": "create-session",
-        "restore_session": "restore-session"
-      },
-      "placement_decisions": [],
-      "create_flow": {
-        "schema": "workspace-recover/flow/v3",
-        "workspace": "${variables.workspace}",
-        "steps": [
-          {
-            "id": "archive",
-            "op": "archive",
-            "from": "${variables.staging}",
-            "to": "${variables.package}",
-            "onError": "stop"
-          }
-        ]
-      },
-      "restore_flow": {
-        "schema": "workspace-recover/flow/v3",
-        "workspace": "${variables.workspace}",
-        "steps": [
-          {
-            "id": "extract",
-            "op": "extract",
-            "from": "${variables.package}",
-            "to": "${variables.staging}",
-            "existingTarget": "merge",
-            "onError": "stop"
-          },
-          {
-            "id": "place",
-            "op": "command",
-            "argv": "${variables.place_argv}",
-            "onError": "stop"
-          },
-          {
-            "id": "components",
-            "op": "command",
-            "argv": "${variables.components_argv}",
-            "onError": "stop"
-          },
-          {
-            "id": "validate",
-            "op": "verification",
-            "argv": "${variables.validate_argv}",
-            "onError": "stop"
-          }
-        ]
-      },
-      "component_steps": []
-    }
+    "worker_stdout": "worker-out.txt",
+    "worker_timeout_seconds": 15
   }
 }

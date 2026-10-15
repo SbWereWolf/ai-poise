@@ -1,4 +1,4 @@
-"""Create-only project bundles, atomically published within the Poise codebase.
+"""Project creation with explicit configuration and workflow destinations.
 
 Readiness probes are local Git reads. No target modifications, task DB, network,
 trust changes or implicit project selection occur here.
@@ -10,21 +10,22 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+from copy import deepcopy
 from ..common import (
     descendant,
     configured_root,
-    exact_keys,
     digest,
     load_config,
+    load_config_document,
     validate_candidate_config,
-    file_digest,
     prohibit_remote_git_publication,
 )
 from ..modules.projects.domain import ProjectBlueprint
 from ..modules.foundation.errors import PoiseError,VersionConflict
-from ..modules.foundation.validation import configuration_fields
+from ..modules.foundation.validation import configuration_fields, nonempty
 from .goal_config import read_document,atomic_write
 from .locking import exclusive_lock
+from .workflow_files import workflow_path
 
 
 def valid_project_probe_readiness(value):
@@ -68,7 +69,7 @@ def publish_registry(settings,document):
 class ProjectSettings:
     def __init__(self,path):
         self.path=Path(path).resolve();self.raw=read_document(self.path);c=self.raw
-        configuration_fields(c,{'schema','root','templates','manifest','receipt','registry','lock','file_mode','directory_mode',
+        configuration_fields(c,{'schema','root','templates','manifest','registry','lock','file_mode','directory_mode',
             'json_indent','lock_seconds','lock_poll_seconds','git_seconds','max_input_bytes','max_edits',
             'max_survey_steps','output_chars','exit_codes'},'project setup settings')
         if c['schema']!='project-setup-settings-1':raise PoiseError('Unsupported setup settings schema')
@@ -82,10 +83,9 @@ class ProjectSettings:
         for k in ('file_mode','directory_mode'):
             if type(c[k]) is not int or not 0<=c[k]<=0o777:raise PoiseError(f'Invalid {k}')
         if type(c['json_indent']) is not int or c['json_indent']<0:raise PoiseError('Explicit json_indent required')
-        for k in ('manifest','receipt'):
+        for k in ('manifest',):
             if not isinstance(c[k],str) or Path(c[k]).name!=c[k] or c[k] in ('','.','..'):
                 raise PoiseError(f'{k} must be a single filename')
-        if c['manifest']==c['receipt']:raise PoiseError('Receipt and manifest must be distinct')
         for key in ('registry','lock'):
             if not isinstance(c[key],str) or not c[key].strip():raise PoiseError(f'Explicit {key} path required')
         self.registry=confined(self.root,c['registry'])
@@ -96,9 +96,8 @@ class ProjectSettings:
             raise PoiseError('Distinct explicit exit codes required')
         if not isinstance(c['templates'],dict) or not c['templates']:raise PoiseError('Explicit template registry required')
         for item in c['templates'].values():
-            item = configuration_fields(item,{'path','version','digest'},'template registry')
-            if any(not isinstance(v,str) or not v for v in item.values()):raise PoiseError('Incomplete registry entry')
-            confined(self.root,item['path'])
+            item = configuration_fields(item,{'path'},'template registry')
+            if not isinstance(item['path'],str) or not item['path']:raise PoiseError('Incomplete registry entry')
 
 
 class FileProjectSetup:
@@ -108,11 +107,7 @@ class FileProjectSetup:
         settings=self.settings;c=settings.raw
         if selection['id'] not in c['templates']:raise PoiseError('Unknown selected project template')
         entry=c['templates'][selection['id']]
-        if any(selection[k]!=entry[k] for k in ('version','digest')):
-            raise VersionConflict('Project template selection is stale')
-        raw=read_document(confined(settings.root,entry['path']))
-        if digest(raw)!=entry['digest'] or raw['version']!=entry['version']:
-            raise VersionConflict('Selected project template has changed')
+        raw=read_document((settings.root/entry['path']).resolve())
         return ProjectBlueprint.parse(raw)
 
     def _probe(self,cfg,enabled):
@@ -155,11 +150,11 @@ class FileProjectSetup:
         relative=self._relative_config_path(target)
         existing=document['projects'].get(project)
         if existing is not None:
-            if existing['config_path']!=relative:
+            if confined(self.settings.root, existing['config_path']) != (target / self.settings.raw['manifest']).resolve():
                 raise VersionConflict(f'Project identity {project} already registered to another configuration')
             return False
-        updated={'schema':'configured-project-registry-1','projects':{
-            **document['projects'],project:{'config_path':relative}}}
+        updated=deepcopy(document)
+        updated['projects'][project]={'config_path':relative}
         publish_registry(self.settings,updated)
         return True
 
@@ -183,67 +178,175 @@ class FileProjectSetup:
             projects.append({'project':project,'config_path':str(path)})
         return {'status':'listed_with_errors' if errors else 'listed','projects':projects,'errors':errors}
 
-    def apply(self,request):
-        s=self.settings;c=s.raw;target=confined(s.root,request['destination'])
-        lock=s.lock
-        if lock.is_relative_to(target):raise PoiseError('Setup lock cannot be inside project destination')
-        if s.registry.is_relative_to(target):raise PoiseError('Project registry cannot be inside project destination')
-        request_digest=digest(request)
-        minimal={'status':'created','project':'','revision':'0'*64,'config_path':str(target/c['manifest']),
-                 'workflow_count':0,'readiness':{'repository':'not_checked','remote':'not_checked'},'replayed':False}
-        if len(json.dumps(minimal,ensure_ascii=False)+'\n')>c['output_chars']:
-            raise PoiseError('output_chars cannot hold project receipt; no publication attempted')
+    def _documents(self, blueprint, config, paths, *, resume, selection=None):
+        documents = {}
+        for goal, path in paths.items():
+            if resume and path.is_file():
+                documents[goal] = read_document(path)
+            else:
+                if blueprint is None:
+                    blueprint = self.template(selection)
+                sources = blueprint.data['workflow_sources']
+                if goal not in sources:
+                    raise PoiseError(f'No source snapshot for {goal}')
+                source = (self.settings.root / sources[goal]['path']).resolve()
+                documents[goal] = read_document(source)
+        return documents
+
+    def _destinations(self, target, config):
+        manifest = target / self.settings.raw['manifest']
+        marker = target / '.project-setup-pending.json'
+        if not isinstance(config['workflows'], dict) or not config['workflows']:
+            raise PoiseError('Explicit selected workflows required')
+        paths = {goal: workflow_path(manifest, value)
+                 for goal, value in config['workflows'].items()}
+        state = configured_root(target, config['paths']['state'])
+        if state == manifest or state.is_relative_to(manifest):
+            raise PoiseError('Mutable state overlaps project manifest')
+        reserved = [manifest, marker, self.settings.path, self.settings.registry,
+                    self.settings.lock]
+        for key in ('database', 'lock', 'requirements_database', 'requirements_lock'):
+            value = Path(config['paths'][key])
+            reserved.append(value if value.is_absolute() else state / value)
+        for key in ('database', 'lock'):
+            value = Path(config['accounting']['storage'][key])
+            reserved.append(value if value.is_absolute() else state / value)
+        selected = [path.resolve() for path in paths.values()]
+        reserved = [path.resolve() for path in reserved]
+        if any(path == state.resolve() for path in selected):
+            raise PoiseError('Workflow path overlaps mutable state directory')
+        directories = [configured_root(state, config['paths'][key])
+                       for key in ('runtime', 'standalone_tasks', 'sprints', 'worktrees')]
+        if any(directory == path or directory.is_relative_to(path)
+               for path in selected for directory in directories):
+            raise PoiseError('Workflow path overlaps a configured runtime directory')
+        if any(a == b or a.is_relative_to(b) or b.is_relative_to(a)
+               for i, a in enumerate(selected) for b in selected[i + 1:] + reserved):
+            raise PoiseError('Project manifest, reserved storage and workflow paths overlap')
+        return paths, marker
+
+    def _result(self, target, config, documents, request, replayed):
+        result = {'status': 'created', 'project': config['project'],
+                  'revision': digest({'config': config, 'workflows': documents}),
+                  'config_path': str(target / self.settings.raw['manifest']),
+                  'workflow_count': len(documents),
+                  'readiness': self._probe(config, request['probe_repository']),
+                  'replayed': replayed}
+        if len(json.dumps(result, ensure_ascii=False) + '\n') > self.settings.raw['output_chars']:
+            raise PoiseError('output_chars cannot hold project result')
+        return result
+
+    def apply(self, request):
+        settings = self.settings
+        c = settings.raw
+        target = confined(settings.root, request['destination'])
+        if settings.lock.is_relative_to(target) or settings.registry.is_relative_to(target):
+            raise PoiseError('Setup lock and registry cannot be inside project destination')
+        created_files = []
+        created_config = False
+        complete = False
+        marker = target / '.project-setup-pending.json'
         try:
-            with exclusive_lock(lock,c['lock_seconds'],c['lock_poll_seconds']):
-                registry=self._registry()
+            with exclusive_lock(settings.lock, c['lock_seconds'], c['lock_poll_seconds']):
+                registry = self._registry()
                 if target.exists():
-                    receipt_path=confined(target,c['receipt'])
-                    if not receipt_path.is_file():raise VersionConflict('Destination exists without this setup receipt')
-                    saved=read_document(receipt_path)
-                    if saved['request_digest']!=request_digest:raise VersionConflict('Different request for existing project')
-                    for rel,expected in saved['files'].items():
-                        file=confined(target,rel)
-                        if not file.is_file() or file_digest(file)!=expected:raise VersionConflict('Published project changed; replay cannot overwrite it')
-                    self._register(registry,saved['result']['project'],target)
-                    return {**saved['result'],'replayed':True}
-                blueprint=self.template(request['template']);cfg=blueprint.build(request['edits'],c['max_edits'])
-                existing=registry['projects'].get(cfg['project'])
-                relative=self._relative_config_path(target)
-                if existing is not None and existing['config_path']!=relative:
-                    raise VersionConflict(f'Project identity {cfg["project"]} already registered to another configuration')
-                sources=blueprint.data['workflow_sources'];documents={}
-                if not isinstance(cfg['workflows'],dict) or not cfg['workflows']:raise PoiseError('Explicit selected workflows required')
-                for goal,relative in cfg['workflows'].items():
-                    if goal not in sources:raise PoiseError(f'No source snapshot for {goal}')
-                    source=sources[goal];raw=read_document(confined(s.root,source['path']))
-                    if digest(raw)!=source['digest']:raise VersionConflict(f'Workflow source changed: {goal}')
-                    documents[goal]=raw
-                paths=[confined(target,rel) for rel in cfg['workflows'].values()]+[target/c['manifest'],target/c['receipt']]
-                if any(a==b or a.is_relative_to(b) or b.is_relative_to(a) for i,a in enumerate(paths) for b in paths[i+1:]):
-                    raise PoiseError('Project manifest, receipt and workflow paths overlap')
-                target.parent.mkdir(parents=True,exist_ok=True)
-                with tempfile.TemporaryDirectory(prefix='.project-setup-',dir=target.parent) as temporary:
-                    candidate=Path(temporary)/'candidate';candidate.mkdir(mode=c['directory_mode'])
-                    def write(rel,value):
-                        p=confined(candidate,rel)
-                        atomic_write(p,(json.dumps(value,ensure_ascii=False,indent=c['json_indent'],allow_nan=False)+'\n').encode(),c['file_mode'])
-                    write(c['manifest'],cfg)
-                    for goal,document in documents.items():write(cfg['workflows'][goal],document)
-                    # The runtime remains the authority on complete configuration.
-                    validate_candidate_config(candidate/c['manifest'], target)
-                    state=configured_root(target,cfg['paths']['state'])
-                    if any(state.is_relative_to(p) or p.is_relative_to(state) for p in paths):
-                        raise PoiseError('Mutable state overlaps published project files')
-                    readiness=self._probe(cfg,request['probe_repository'])
-                    result={'status':'created','project':cfg['project'],'revision':digest({'config':cfg,'workflows':documents}),
-                            'config_path':str(target/c['manifest']),'workflow_count':len(documents),'readiness':readiness,'replayed':False}
-                    if len(json.dumps(result,ensure_ascii=False)+'\n')>c['output_chars']:
-                        raise PoiseError('output_chars cannot hold project result; no publication attempted')
-                    files={str(p.relative_to(candidate)):file_digest(p) for p in candidate.rglob('*') if p.is_file()}
-                    write(c['receipt'],{'schema':'project-receipt-1','request_id':request['request_id'],
-                        'request_digest':request_digest,'template':request['template'],'files':files,'result':result})
-                    publish_directory(candidate,target)
-                self._register(registry,cfg['project'],target)
+                    manifest = target / c['manifest']
+                    config = read_document(manifest)
+                    configuration_fields(config, {'project'}, 'project config')
+                    nonempty(config['project'], 'project')
+                    identities = [edit['value'] for edit in request['edits']
+                                  if edit.get('path') == ['project']]
+                    if identities and identities != [config['project']]:
+                        raise VersionConflict('Existing project identity differs from requested project')
+                    binding = registry['projects'].get(config['project'])
+                    registered = (binding is not None
+                                  and confined(settings.root, binding['config_path']) == manifest.resolve())
+                    if registered:
+                        _, config, documents = load_config(manifest)
+                        result = self._result(target, config, documents, request, True)
+                        marker.unlink(missing_ok=True)
+                        return result
+                    if not marker.is_file():
+                        raise VersionConflict('Existing project is not registered and has no pending setup')
+                    configuration_fields(config, {'workflows'}, 'project config')
+                    if not isinstance(config['workflows'], dict) or not config['workflows']:
+                        raise PoiseError('Explicit selected workflows required')
+                    for goal, value in config['workflows'].items():
+                        if not isinstance(value, str) or not value or '\0' in value:
+                            raise PoiseError(f'workflows.{goal}: explicit string path without NUL required')
+                    selected_paths = {goal: workflow_path(manifest, value)
+                                      for goal, value in config['workflows'].items()}
+                    documents = self._documents(None, config, selected_paths, resume=True,
+                                                selection=request['template'])
+                    load_config_document(manifest, config, workflow_documents=documents)
+                    paths, marker = self._destinations(target, config)
+                    intent = read_document(marker)
+                    expected = {'schema': 'project-setup-pending-1',
+                                'request_id': request['request_id'], 'project': config['project'],
+                                'workflows': {goal: str(path) for goal, path in paths.items()}}
+                    if intent != expected:
+                        raise VersionConflict('Pending setup identifies another operation or destination set')
+                    validate_candidate_config(manifest, target, workflow_documents=documents)
+                    result = self._result(target, config, documents, request, True)
+                else:
+                    blueprint = self.template(request['template'])
+                    config = blueprint.build(request['edits'], c['max_edits'])
+                    if not isinstance(config.get('workflows'), dict) or not config['workflows']:
+                        raise PoiseError('Explicit selected workflows required')
+                    documents = self._documents(blueprint, config,
+                        {goal: None for goal in config['workflows']}, resume=False)
+                    load_config_document(target / c['manifest'], config, workflow_documents=documents)
+                    existing = registry['projects'].get(config['project'])
+                    if existing is not None:
+                        raise VersionConflict('Project identity already registered to another configuration')
+                    paths, marker = self._destinations(target, config)
+                    for path in paths.values():
+                        if path.exists():
+                            raise VersionConflict(f'Workflow destination already exists: {path}')
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with tempfile.TemporaryDirectory(prefix='.project-setup-', dir=target.parent) as temporary:
+                        candidate = Path(temporary) / 'candidate'
+                        candidate.mkdir(mode=c['directory_mode'])
+                        def write(path, value):
+                            atomic_write(path, (json.dumps(value, ensure_ascii=False,
+                                indent=c['json_indent'], allow_nan=False) + '\n').encode(), c['file_mode'])
+                        write(candidate / c['manifest'], config)
+                        validate_candidate_config(candidate / c['manifest'], target,
+                                                  workflow_documents=documents)
+                        result = self._result(target, config, documents, request, False)
+                        write(candidate / marker.name, {'schema': 'project-setup-pending-1',
+                            'request_id': request['request_id'], 'project': config['project'],
+                            'workflows': {goal: str(path) for goal, path in paths.items()}})
+                        publish_directory(candidate, target)
+                        created_config = True
+                try:
+                    for goal, path in paths.items():
+                        if not created_config and path.is_file():
+                            continue  # Reserved by this explicit pending operation; preserve operator edits.
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        with path.open('xb') as stream:
+                            created_files.append(path)
+                            os.fchmod(stream.fileno(), c['file_mode'])
+                            stream.write((json.dumps(documents[goal], ensure_ascii=False,
+                                indent=c['json_indent'], allow_nan=False) + '\n').encode())
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                    load_config(target / c['manifest'])
+                    complete = True
+                    self._register(registry, config['project'], target)
+                    marker.unlink()
+                except BaseException:
+                    if not complete:
+                        for path in reversed(created_files):
+                            path.unlink(missing_ok=True)
+                        if created_config:
+                            marker.unlink(missing_ok=True)
+                            (target / c['manifest']).unlink(missing_ok=True)
+                            try:
+                                target.rmdir()
+                            except OSError:
+                                pass  # Preserve any unrelated files that appeared in the directory.
+                    raise
                 return result
         except OSError as exc:
             raise PoiseError(f'Project storage operation failed; retry same request to inspect publication: {exc}') from exc

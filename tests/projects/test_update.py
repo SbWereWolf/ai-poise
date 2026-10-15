@@ -260,7 +260,7 @@ def test_stale_workflow_revision_never_partially_publishes(project):
     assert not (project["root"] / request["receipt_path"]).exists()
 
 
-def test_external_file_change_is_not_adopted_as_a_known_revision(project):
+def test_current_valid_external_file_change_is_accepted_without_provenance(project):
     settings, config_path, created = installed_project(project)
     workflow_path = config_path.parent / "config/workflows/development.json"
     external = json.loads(workflow_path.read_text())
@@ -268,9 +268,9 @@ def test_external_file_change_is_not_adopted_as_a_known_revision(project):
     write_json(workflow_path, external)
     request = update_request(config_path, project_revision(config_path))
 
-    with pytest.raises(PoiseError, match="вне|external|known"):
-        update_tools(settings).apply(request)
+    result = update_tools(settings).apply(request)
 
+    assert result["revision"] == project_revision(config_path)
     assert json.loads(workflow_path.read_text()) == external
 
 

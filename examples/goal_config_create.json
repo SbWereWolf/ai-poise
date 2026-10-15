@@ -5,9 +5,7 @@
   "goal_type": "generated_notes",
   "expected_revision": null,
   "template": {
-    "id": "documentation-v1",
-    "version": "2",
-    "digest": "04c409f1c71f48301cf7e69af79025212ef060cf071b2b1649fa6c32635f97d4"
+    "id": "documentation-v1"
   },
   "changes": [
     {

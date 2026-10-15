@@ -1,141 +1,60 @@
 {
-  "schema": "ddd-accounting-12",
-  "project": "demo",
-  "paths": {
-    "state": "/srv/poise-project-data/demo",
-    "database": "tasks/tasks.sqlite",
-    "lock": "tasks/tasks.lock",
-    "runtime": "runtime",
-    "standalone_tasks": "standalone",
-    "sprints": "sprints",
-    "worktrees": "/srv/repositories/demo/worktrees",
-    "git_index": "snapshot.index",
-    "runs": "runs",
-    "stdout": "stdout.txt",
-    "stderr": "stderr.txt",
-    "response": "response.json",
-    "requirements_database": "requirements/requirements.sqlite",
-    "requirements_lock": "requirements/requirements.lock"
-  },
-  "limits": {
-    "lock_seconds": 2.0,
-    "lock_poll_seconds": 0.01,
-    "git_seconds": 15.0,
-    "verify_attempts": 5,
-    "output_chars": 2200,
-    "preview_chars": 300
-  },
-  "git": {
-    "repository": "REPLACE_WITH_ABSOLUTE_APPLICATION_REPOSITORY",
-    "base_ref": "main",
-    "remote": "REPLACE_WITH_CONFIGURED_REMOTE_NAME",
-    "branch_template": "tasks/{task_id}",
-    "commit_pattern": "(?s).+",
-    "author_name": "REPLACE_WITH_COMMIT_AUTHOR_NAME",
-    "author_email": "REPLACE_WITH_COMMIT_AUTHOR_EMAIL",
-    "push_required": true
-  },
-  "workflows": {
-    "development": "config/workflows/development.json",
-    "documentation": "config/workflows/documentation.json"
-  },
-  "environment_names": [
-    "PATH",
-    "HOME"
-  ],
-  "automatic_checks": [
-    {
-      "paths": [
-        "src/**",
-        "tests/**"
-      ],
-      "by_stage": {
-        "tests": [
-          "RED"
-        ],
-        "test_review": [],
-        "test_fix": [
-          "RED"
-        ],
-        "test_recheck": [],
-        "implementation": [
-          "GREEN"
-        ],
-        "code_review": [],
-        "code_fix": [
-          "GREEN"
-        ],
-        "code_recheck": [],
-        "draft": [],
-        "editorial": [],
-        "amend": [],
-        "editorial_followup": []
-      }
-    }
-  ],
-  "task_decomposition": {
-    "skills": [
-      {
-        "id": "workflow",
-        "class": "meta",
-        "responsibility": null
-      },
-      {
-        "id": "general",
-        "class": "general",
-        "responsibility": null
-      },
-      {
-        "id": "backend",
-        "class": "narrow",
-        "responsibility": "backend"
-      },
-      {
-        "id": "frontend",
-        "class": "narrow",
-        "responsibility": "frontend"
-      }
+  "accounting": {
+    "causes": [
+      "initial",
+      "internal_qa",
+      "delivered_rework",
+      "requirement_change",
+      "poise_incident"
     ],
-    "areas": [
-      {
-        "path": "src/**",
-        "responsibility": "application"
-      },
-      {
-        "path": "tests/**",
-        "responsibility": "application"
-      },
-      {
-        "path": "docs/**",
-        "responsibility": "documentation"
-      }
-    ]
+    "max_blob_bytes": 1048576,
+    "max_events": 1000,
+    "max_files": 1000,
+    "path_categories": {
+      "code": [
+        "src/**"
+      ],
+      "documentation": [
+        "docs/**",
+        "*.md"
+      ],
+      "fixtures": [
+        "fixtures/**"
+      ],
+      "tests": [
+        "tests/**"
+      ]
+    },
+    "sources": {
+      "codex": "observed",
+      "test": "reported"
+    },
+    "storage": {
+      "database": "telemetry/events.sqlite",
+      "lock": "telemetry/events.lock"
+    },
+    "time_mode": "tool_cycle",
+    "timezone": "UTC",
+    "tokenizer": {
+      "command": null,
+      "identity": "not-configured",
+      "kind": "unavailable"
+    },
+    "week_start": 0
   },
+  "automatic_checks": [],
   "batch": {
-    "max_input_bytes": 1048576,
-    "max_items": 1000,
-    "max_artifact_bytes": 262144,
-    "file_mode": 384,
-    "artifact_lock": "artifact.lock",
     "artifact_directories": {
       "runtime": "generated",
-      "task": "artifacts",
-      "sprint": "artifacts"
+      "sprint": "artifacts",
+      "task": "artifacts"
     },
-    "templates": {
-      "note": {
-        "version": "1",
-        "text": "# ${title}\n\n${body}\n",
-        "parameters": [
-          "title",
-          "body"
-        ]
-      }
-    },
-    "message_source": {
-      "id": "chat-visible",
-      "mode": "agent_reported"
-    },
+    "artifact_lock": "artifact.lock",
+    "file_mode": 384,
+    "initial_read_lines": 50,
+    "max_artifact_bytes": 262144,
+    "max_input_bytes": 1048576,
+    "max_items": 1000,
     "message_reasons": [
       "initial",
       "continue",
@@ -145,130 +64,308 @@
       "authorization",
       "cancel"
     ],
-    "initial_read_lines": 50
-  },
-  "sprint": {
-    "max_tasks": 1000,
-    "max_dependencies": 3000,
-    "acceptable_terminal_states": [
-      "completed",
-      "cancelled"
-    ],
-    "templates": {
-      "basic": {
-        "version": "1",
-        "goal": "",
-        "requirements": [],
-        "definition_of_done": [],
-        "sections": {
-          "plan": "Заполнить план."
-        },
-        "tasks": [],
-        "dependencies": []
-      }
+    "message_source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
     },
-    "section_rules": [
-      {
-        "name": "plan",
-        "template": "Заполнить план.",
-        "normalization": "strip",
-        "required": true
+    "templates": {
+      "note": {
+        "parameters": [
+          "title",
+          "body"
+        ],
+        "text": "# ${title}\n\n${body}\n",
+        "version": "1"
       }
-    ]
+    }
   },
+  "environment_names": [
+    "PATH",
+    "HOME"
+  ],
+  "git": {
+    "author_email": "${COMMIT_AUTHOR_EMAIL}",
+    "author_name": "${COMMIT_AUTHOR_NAME}",
+    "base_ref": "master",
+    "branch_template": "tasks/{task_id}",
+    "commit_pattern": "(?s).+",
+    "push_required": false,
+    "remote": "origin",
+    "repository": "${REPOSITORY_ROOT}"
+  },
+  "limits": {
+    "git_seconds": 15.0,
+    "lock_poll_seconds": 0.01,
+    "lock_seconds": 2.0,
+    "output_chars": 2200,
+    "preview_chars": 300,
+    "verify_attempts": 5
+  },
+  "paths": {
+    "database": "tasks/tasks.sqlite",
+    "git_index": "snapshot.index",
+    "lock": "tasks/tasks.lock",
+    "requirements_database": "${PROJECT_DATA_ROOT}/requirements/requirements.sqlite",
+    "requirements_lock": "${PROJECT_DATA_ROOT}/requirements/requirements.lock",
+    "response": "response.json",
+    "runs": "runs",
+    "runtime": ".runtime",
+    "sprints": "sprint",
+    "standalone_tasks": "standalone",
+    "state": "${PROJECT_DATA_ROOT}",
+    "stderr": "stderr.txt",
+    "stdout": "stdout.txt",
+    "worktrees": "worktrees"
+  },
+  "project": "${PROJECT_ID}",
   "runtime_services": {
     "check_runner": {
-      "initial_seconds": 120,
+      "diagnostic_override_max_seconds": 900,
       "history_multiplier": 1.1,
-      "progress_gap_seconds": 120,
+      "initial_seconds": 120,
       "poll_seconds": 0.1,
-      "diagnostic_override_max_seconds": 900
+      "progress_gap_seconds": 120
     },
     "output": {
+      "chunk_bytes": 65536,
+      "directory": "views",
+      "file_mode": 384,
+      "job": "job.json",
       "known": [
         {
-          "id": "unittest",
           "argv_tokens": [
             "-m",
             "unittest"
           ],
-          "parser": "lines",
-          "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*",
-          "primary_chars": 512,
           "extended_bytes": 4096,
-          "selected_bytes": 4096,
           "files": {
             "extended": "extended.txt",
             "full": "full.txt",
             "selected": "selected.txt"
-          }
+          },
+          "id": "unittest",
+          "parser": "lines",
+          "primary_chars": 512,
+          "selected_bytes": 4096,
+          "selection_pattern": "^(Ran [0-9]+ test|OK|FAILED|FAIL:|ERROR:).*"
         }
       ],
+      "manifest": "views.json",
       "unknown": {
-        "id": "unknown",
         "argv_tokens": [],
-        "parser": "tail",
-        "selection_pattern": null,
-        "primary_chars": 512,
         "extended_bytes": 4096,
-        "selected_bytes": 4096,
         "files": {
           "extended": "extended.txt",
           "full": "full.txt",
           "selected": null
-        }
+        },
+        "id": "unknown",
+        "parser": "tail",
+        "primary_chars": 512,
+        "selected_bytes": 4096,
+        "selection_pattern": null
       },
-      "directory": "views",
-      "manifest": "views.json",
-      "job": "job.json",
-      "worker_stdout": "worker-out.txt",
       "worker_stderr": "worker-err.txt",
-      "chunk_bytes": 65536,
-      "worker_timeout_seconds": 15,
-      "file_mode": 384
+      "worker_stdout": "worker-out.txt",
+      "worker_timeout_seconds": 15
     }
   },
-  "accounting": {
-    "timezone": "UTC",
-    "week_start": 0,
-    "storage": {
-      "database": "telemetry/events.sqlite",
-      "lock": "telemetry/events.lock"
-    },
-    "max_events": 1000,
-    "max_files": 1000,
-    "max_blob_bytes": 1048576,
-    "time_mode": "tool_cycle",
-    "causes": [
-      "initial",
-      "internal_qa",
-      "delivered_rework",
-      "requirement_change",
-      "poise_incident"
+  "schema": "ddd-accounting-12",
+  "sprint": {
+    "acceptable_terminal_states": [
+      "completed",
+      "cancelled"
     ],
-    "sources": {
-      "test": "reported",
-      "codex": "observed"
-    },
-    "path_categories": {
-      "code": [
-        "src/**"
-      ],
-      "tests": [
-        "tests/**"
-      ],
-      "fixtures": [
-        "fixtures/**"
-      ],
-      "documentation": [
-        "docs/**",
-        "*.md"
-      ]
-    },
-    "tokenizer": {
-      "kind": "unavailable",
-      "identity": "not-configured",
-      "command": null
+    "max_dependencies": 3000,
+    "max_tasks": 1000,
+    "section_rules": [
+      {
+        "name": "plan",
+        "normalization": "strip",
+        "required": true,
+        "template": "Заполнить план."
+      }
+    ],
+    "templates": {
+      "basic": {
+        "definition_of_done": [],
+        "dependencies": [],
+        "goal": "",
+        "requirements": [],
+        "sections": {
+          "plan": "Заполнить план."
+        },
+        "tasks": [],
+        "version": "1"
+      }
     }
+  },
+  "task_decomposition": {
+    "areas": [
+      {
+        "path": "src/**",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "tests/**",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "config/**",
+        "responsibility": "project-configuration"
+      },
+      {
+        "path": "docs/**",
+        "responsibility": "documentation"
+      },
+      {
+        "path": ".agents/**",
+        "responsibility": "agent-instructions"
+      },
+      {
+        "path": "AGENTS.md",
+        "responsibility": "agent-instructions"
+      },
+      {
+        "path": ".gitignore",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "README.md",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "fixtures/**",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "pyproject.toml",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "requirements*.txt",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "stride.sh",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "uv.lock",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "bootstrap",
+        "responsibility": "ai-poise"
+      },
+      {
+        "path": "apps/bootstrap/**",
+        "responsibility": "ai-poise"
+      }
+    ],
+    "skills": [
+      {
+        "class": "meta",
+        "id": "poise-workflow",
+        "responsibility": null
+      },
+      {
+        "class": "general",
+        "id": "poise-development",
+        "responsibility": null
+      },
+      {
+        "class": "general",
+        "id": "ast-index",
+        "responsibility": null
+      },
+      {
+        "class": "narrow",
+        "id": "task-domain",
+        "responsibility": "tasks"
+      },
+      {
+        "class": "narrow",
+        "id": "sprint-domain",
+        "responsibility": "sprints"
+      },
+      {
+        "class": "narrow",
+        "id": "verification-domain",
+        "responsibility": "verification"
+      },
+      {
+        "class": "narrow",
+        "id": "project-config-domain",
+        "responsibility": "project-configuration"
+      }
+    ]
+  },
+  "task_ids": {
+    "namespace": {
+      "maximum": 9999,
+      "minimum": 1
+    },
+    "progression": {
+      "first": 1,
+      "step": 1
+    },
+    "width": 4
+  },
+  "task_planning": {
+    "catalogue": "${POISE_SOURCE_ROOT}/config/catalogue/settings.json",
+    "restart_revision_policy": {
+      "reviewer": [
+        "goal",
+        "requirements",
+        "requirements_snapshot",
+        "requirements_agreement",
+        "stage_contracts",
+        "workflow"
+      ],
+      "user": [
+        "goal",
+        "goal_type",
+        "requirements",
+        "requirements_snapshot",
+        "requirements_agreement",
+        "definition_of_done",
+        "methods",
+        "method_inputs",
+        "checks",
+        "artifact_requirements",
+        "content_contract",
+        "evidence_plan",
+        "executable_obligations",
+        "stage_contracts",
+        "decomposition",
+        "workflow",
+        "planning"
+      ]
+    }
+  },
+  "runtime_resources": {
+    "project_setup": "${POISE_SOURCE_ROOT}/config/project-setup.json",
+    "hooks": [
+      {
+        "installation_id": "poise-main",
+        "settings_path": "${PROJECT_CONFIG_ROOT}/hooks-data-settings.json"
+      }
+    ]
+  },
+  "workflows": {
+    "analysis": "${PROJECT_DATA_ROOT}/workflows/analysis.json",
+    "design": "${PROJECT_DATA_ROOT}/workflows/design.json",
+    "development": "${PROJECT_DATA_ROOT}/workflows/development.json",
+    "documentation": "${PROJECT_DATA_ROOT}/workflows/documentation.json",
+    "environment_diagnostics": "${PROJECT_DATA_ROOT}/workflows/environment_diagnostics.json",
+    "environment_remediation": "${PROJECT_DATA_ROOT}/workflows/environment_remediation.json",
+    "integration": "${PROJECT_DATA_ROOT}/workflows/integration.json",
+    "profiling": "${PROJECT_DATA_ROOT}/workflows/profiling.json",
+    "review": "${PROJECT_DATA_ROOT}/workflows/review.json",
+    "sprint_planning": "${PROJECT_DATA_ROOT}/workflows/sprint_planning.json",
+    "task_planning": "${PROJECT_DATA_ROOT}/workflows/task_planning.json",
+    "test_development": "${PROJECT_DATA_ROOT}/workflows/test_development.json",
+    "verification": "${PROJECT_DATA_ROOT}/workflows/verification.json"
   }
 }

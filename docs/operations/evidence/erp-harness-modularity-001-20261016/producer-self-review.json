@@ -1,0 +1,51 @@
+{
+  "task": "ERP-HARNESS-MODULARITY-001",
+  "finding": "MOD-SOURCE-CONFIG-001",
+  "status": "manual-subject-remediation-accepted-native-reconciliation-unresolved",
+  "authority": "Human explicitly ordered continued work with Povodyr, correction of the identified defect, and acceptance on 2026-10-16.",
+  "source_before": "0bc51569923afa98382f93a8b69a2470b56ca1f6",
+  "native_state": {"task_version":159,"claimed_by":null,"execution_version":117,"submission":1081},
+  "preserved_attempt": "c5637de0-7b3d-4239-bf63-84dd3707289f",
+  "preserved_unknown_run": "75f5c88a-6ab0-4c09-8dbf-60d4ea80975a",
+  "continuation": "Canonical harness-failure contract permits authorized subject work in the existing Task checkout. No managed state, receipt, claim or previous result is altered. Source revision before remediation remains immutable in Git. Povodyr is read-only; own previous native calls and test processes have terminated.",
+  "incident": "Bootstrap after ordinary release rejects current clean source against an older handoff. Public ownership read 2099107c-650d-420b-a05c-ad72f7c9ac23 confirms actual active159/unclaimed/execution117. Diagnostic owner route requested; no new repair task assigned.",
+  "placement": "Reuse CommandProfile, CacheProfile and Prerequisites in command_profile_lib.py. Existing scalar validators reject missing values; remove nine silent substitutions and the null-cache branch. CLI, MCP and configuration consumers keep using the canonical owner.",
+  "SR-TEST-MOD-SOURCE-CONFIG-001": {
+    "oracle": "Thirty literal required field paths from the accepted profile contract, each removed with and without an unknown extension; no production-derived expectations. Separate real TOML loader counterexample deletes the cache table.",
+    "red": "Complete 24-test suite exited1: exactly19 failures (nine missing fields with and without extensions, plus real loader missing-cache case). Original22 tests remained green.",
+    "green_initial": "Complete24 tests passed exit0 after removing substitutions; unknown extensions and explicit zero/empty-array fixture still accepted.",
+    "complexity": "No new dependency, schema interpreter, abstraction or compatibility path. Reuse existing validators."
+  },
+  "SR-REMEDIATION-MOD-SOURCE-CONFIG-001": {
+    "scope": ["ai-assistant/checks/command_profile_lib.py", "ai-assistant/tests/checks/harness-modularity.py", "ai-assistant/tests/checks/check-runner.py", "docs/tools/system-dev-tooling/registered-command-runner.md"],
+    "mapping": "All production hunks remove required-field substitutions named by MOD-SOURCE-CONFIG-001; tests prove missing required values reject with and without ignored extensions; documentation explicitly states the same contract. No unrelated production behavior, schema or fixture changed.",
+    "source_sha256": ["dada2e288c2f52fcb4a9c52098e18e1883ef2c6fcf627b1d53c34a2e9abd8cae", "6d5f6235014c4647caa78415f27326b558206d00305fbbf9c6ab21ed6fcd71b6", "3ad7698c60c7b787e391381810dd95a766637e1ada7897ddc3fe7ead2bae51ff"],
+    "flow": "TOML loader calls CommandProfile.from_raw, which delegates required nested objects to CacheProfile and Prerequisites. Existing typed validators reject missing known fields with ProfileError identifying the field. Explicit false/zero/empty arrays remain accepted. Optional declared fields and unknown-key behavior are unchanged. Existing CheckConfiguration and RegisteredCheckService consumers retain the single owner.",
+    "checks_passed": ["complete24 harness-modularity tests", "complete20 runner contracts chk_20261015T214538Z_a26ab5fc87", "complete21 cache contracts", "complete9 evidence contracts", "complete adoption contracts", "provider-binding-verification chk_20261015T214921Z_6c689edb33 verified_success=true and complete evidence", "test-package-contracts chk_20261015T214817Z_7d726fb5ed verified_success=true", "exact5 documentation chk_20261015T214527Z_c5c932554d verified_success=true", "PyCharm exact child production and test files errors=[]", "git diff --check"],
+    "independent_review": "Povodyr independently passed37 cases and complete24 tests, inspected the three-file diff, and provisionally accepted correction of the same finding. Manual report artifacts/review/CONFIG-RECHECK-20261016.md SHA256 b8940da8e04f700e4dfba9ed85d8f4a4f3bc7ac5c9eb5987457fecccd02aff51; independent stage-final checkpoint awaits this self-review record.",
+    "timeout_incidents": "Provider first timed out17s with empty buffered log, no remaining process tree. Saved unit fixture files written sequentially at terminal21:47:27Z demonstrated forward progress; one evidence-linked60s diagnostic passed in19.065s. Package first timed out1s with running --describe child; one evidence-linked30s diagnostic passed. Initial timeout records remain immutable. Profiles and timeout calibration configuration were not edited.",
+    "complexity": "Reuse existing validators, remove branches/defaults, no new dependency, class, compatibility path or schema engine. New tests retain all original assertions and add literal negative oracles.",
+    "documentation": "co-delivered: docs/tools/system-dev-tooling/registered-command-runner.md; affected executable claims verified through actual loader, strict-field tests, and exact-five documentation profile.",
+    "fixture_correction": "Declared toolingfast chk_20261015T215245Z_0fdf5f540f correctly rejected an existing unsupported-input_selection test whose cache input omitted required fields. Complete only that literal input with enabled=false,input_paths=[],environment=[]; preserve original input_selection rejection assertion. Fourth file Gitclean before first write; SHA256 5ac2362bbc113183e2f7c3715eb8c2b033f98b5f5592dbbaad913874000ef2ff. Complete14 input fingerprint contracts passed after correction; PyCharm errors=[] and diffcheck passed. Production and original three reviewed hashes are unchanged.",
+    "final_gates": "Complete MCP consumer suite passed exit0. Registered agent-tooling-fast-verification chk_20261015T215444Z_78e1f6ab96 passed, verified_success=true, exit0, actual run40.886s, cache.hit=false. Existing ResourceWarning was emitted but no failing test; no unrelated repair applied. All declared subject gates now have real successful execution evidence; initial timeouts and fixture failure remain recorded.",
+    "limitations": "Native Task remains active159/unclaimed with original execution117 and unknown attempt preserved; no native finding closure, whole-Task acceptance, integration or completion is claimed. These genuine standalone/registered results do not retroactively establish the original unknown run outcome."
+  },
+  "final_state_readback": {
+    "response": "/home/sbwerewolf/workdata/poise-project-data/erp/runtime/01a138d3-c841-7c01-a4c2-ca6aaccfffc5/runs/f5ee0455-4d3b-4883-ae7a-d2c8a1975228/response.json",
+    "task_status": "active",
+    "task_version": 159,
+    "claimed_by": null,
+    "execution_version": 117,
+    "canonical_executions_sha256": "4d7cf0ecee9889e8fae3139e0fb469e1eb3d88a713120414df18c95005d1faa1",
+    "unchanged_from_pre_remediation": true
+  },
+  "final_independent_review": {
+    "checkpoint": "SR-REMEDIATION-REVIEW-MOD-SOURCE-CONFIG-001-20261016",
+    "finding_id": "MOD-SOURCE-CONFIG-001",
+    "decision": "accepted correction at all four frozen file identities; no new actionable source finding",
+    "report": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/CONFIG-RECHECK-20261016.md",
+    "report_sha256": "343b7e1c69dac0d09807d339301b9f1f67183e6411b71ac3f48056f8187983d8",
+    "independently_verified": "Actual producer SR, co-delivered documentation impact, registered fast record, public state readback, 37-case matrix, complete24 suite and complete14 fingerprint suite."
+  },
+  "acceptance": "Independent manual source-remediation acceptance completed. All declared required checks passed. Native lifecycle reconciliation remains unresolved; existing owner diagnostic request is pending. Separate standalone adoption success does not reconcile original unknown run. Source changes and temporary evidence retain active purpose; no integration, worktree cleanup or whole-Task completion is claimed."
+}

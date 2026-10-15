@@ -1,0 +1,27 @@
+s_an_unknown_cache_extension) ... ok
+test_hm03_root_extension_does_not_change_loaded_profile (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm03_root_extension_does_not_change_loaded_profile) ... ok
+test_hm04_every_nested_extension_is_ignored_by_its_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm04_every_nested_extension_is_ignored_by_its_owner) ... ok
+test_hm05_known_required_values_remain_strict_with_extensions (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_known_required_values_remain_strict_with_extensions) ... ok
+test_hm05_loader_rejects_missing_cache (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_loader_rejects_missing_cache) ... ok
+test_hm05_missing_required_profile_fields_fail_with_extensions (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_missing_required_profile_fields_fail_with_extensions) ... ok
+test_hm05_schema_retains_required_fields_and_known_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm05_schema_retains_required_fields_and_known_types) ... ok
+test_hm06_loader_rejects_unsupported_or_wrongly_typed_version (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm06_loader_rejects_unsupported_or_wrongly_typed_version) ... ok
+test_hm06_schema_does_not_equate_boolean_true_with_version_one (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm06_schema_does_not_equate_boolean_true_with_version_one) ... ok
+test_hm07_semantic_combinations_fail_even_with_extensions (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm07_semantic_combinations_fail_even_with_extensions) ... ok
+test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm08_selection_is_exact_and_never_chooses_an_ambiguous_variant) ... ok
+test_hm09_render_reload_preserves_the_literal_contract (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm09_render_reload_preserves_the_literal_contract) ... ok
+test_hm10_file_errors_are_lazy_and_keep_original_exception_types (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm10_file_errors_are_lazy_and_keep_original_exception_types) ... ok
+test_hm12_context_profile_use_has_no_unrelated_prerequisites (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm12_context_profile_use_has_no_unrelated_prerequisites) ... ok
+test_hm13_service_keeps_selected_configuration_separate_from_data_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm13_service_keeps_selected_configuration_separate_from_data_owner) ... /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/checks/registered_check_service.py:60: ResourceWarning: unclosed file <_io.BufferedReader name=4>
+  record, result = run_registered_command(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm14_actual_cli_and_mcp_delegate_once_to_the_shared_operation) ... ok
+test_hm16_existing_success_contract_proves_the_execution_fixture (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm16_existing_success_contract_proves_the_execution_fixture) ... ok
+test_hm18_real_consumers_import_the_canonical_profile_owner (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_hm18_real_consumers_import_the_canonical_profile_owner) ... ok
+test_profile_writer_preserves_atomic_replacement_permissions_and_failure (ai-assistant.tests.checks.harness-modularity.HarnessModularityContracts.test_profile_writer_preserves_atomic_replacement_permissions_and_failure) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 3.886s
+
+OK

@@ -398,7 +398,7 @@ class HookService:
         cwd=Path(native['cwd'])
         if not cwd.is_absolute() or not any(cwd.resolve().is_relative_to(Path(r).resolve()) for r in self.settings.raw['cwd_roots']):
             raise PoiseError('Native cwd outside configured roots')
-        _,cfg,_=load_config(self.settings.project_config)
+        cfg=self.project_fence.hook_manifest()
         d=definition.data
         if cfg['batch']['message_source']!={'id':d['message_source'],'mode':'runtime_event'}:
             raise PoiseError('Do not combine hook and transcript/reported message sources')
@@ -462,6 +462,24 @@ class HookService:
     def _event_locked(self,definition_path,event):
         from .clock import SystemClock
         definition,native,binding=self._bind(definition_path,event)
+        if native['event'] == 'SessionStart':
+            event_id = self.registry.record_event(
+                binding['session_id'], native['event'], native['turn_id'], None,
+                {'source': event['source']})
+            try:
+                return self._runtime_event(definition, native, binding, event, event_id)
+            except Exception as exc:
+                # Transport authority/binding already succeeded. Subject runtime
+                # recovery cannot take the session's own entry away from it.
+                context = definition.data['context_template'].format(
+                    launcher=binding['launcher'], state=event['source'])
+                return {'hookSpecificOutput': {'hookEventName': native['event'],
+                                               'additionalContext': context},
+                        'systemMessage': str(exc)}
+        return self._runtime_event(definition, native, binding, event, None)
+
+    def _runtime_event(self,definition,native,binding,event,event_id):
+        from .clock import SystemClock
         caller=CallerIdentity.native(binding['project'],binding['external_session'])
         h=establish_poise(self.settings.project_config,caller,[],SystemClock(),binding['session_id']).runtime
         task=h.current_task()
@@ -471,8 +489,8 @@ class HookService:
             message={'conversation_id':native['session_id'],'message_id':native['turn_id'],
                      'occurred_at':None,'reason':None,'subject':None}
             h.interactions.record(h.interactions.prepare([message]),h.session,active)
-        event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message,
-            {'source': event['source']} if native['event'] == 'SessionStart' else None)
+        if native['event'] != 'SessionStart':
+            event_id = self.registry.record_event(h.session,native['event'],native['turn_id'],message)
         recovery = None
         if native['event'] == 'SessionStart' and h.context_reader is not None:
             recovery = h.restore_context(reason=event['source'], event_id=f'hook-event:{event_id}',

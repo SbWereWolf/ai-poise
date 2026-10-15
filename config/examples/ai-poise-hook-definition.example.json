@@ -6,7 +6,7 @@
       "async": false,
       "context_limit": 2000,
       "event": "SessionStart",
-      "matcher": "startup|resume|compact|clear",
+      "matcher": "",
       "status_message": "Bind AI poise session",
       "timeout_seconds": 15
     },

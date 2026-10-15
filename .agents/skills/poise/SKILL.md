@@ -20,6 +20,10 @@ owner. Define `poise=( "${poise_python:?Select installed Poise Python}" -I -B -m
 Here `settings` means the settings of the particular operation, not one universal
 file. Operator examples document capabilities; they do not authorize mutations.
 For Task work retain the native hook-issued session launcher and caller identity.
+Read its exact path from the current native context, including after `fork`;
+`AI_POISE_WORK` is not automatically exported. An entry delivered with a runtime
+warning is available for recovery, not evidence that Task work is ready. See
+[session entry delivery](../../../docs/configuration/runtime-hooks.md#доставка-launcher-при-старте).
 
 ### Task work and reads
 
@@ -28,7 +32,7 @@ packets](../../../docs/operator/poise-command-reference.md#работа-и-чт�
 
 | Command | Purpose | Correct example |
 |---|---|---|
-| `work` | Execute one declarative Task/Sprint packet. | `bash "${AI_POISE_WORK:?Native session work.sh}" < "$packet"` |
+| `work` | Execute one declarative Task/Sprint packet. | `bash "${native_launcher:?Exact path from native context}" < "$packet"` |
 | `result-view` | Read a saved bounded view without replay. | `"${poise[@]}" result-view --response "$response" --view expanded --output-chars 3000` |
 | `next` | List startable Tasks without claiming. | `"${poise[@]}" next --settings "$settings" --project "$project_id"` |
 | `requirements` | Query/change Requirements through their owner. | `"${poise[@]}" requirements --config "$project_json" < "$packet"` |

@@ -1,0 +1,390 @@
+{
+  "requirements_meta": {
+    "columns": [
+      "revision",
+      "schema_version"
+    ],
+    "rows": [
+      [
+        2,
+        1
+      ]
+    ]
+  },
+  "requirements": {
+    "columns": [
+      "id",
+      "level",
+      "current_revision"
+    ],
+    "rows": [
+      [
+        "SYS-A",
+        "system",
+        2
+      ],
+      [
+        "SYS-B",
+        "system",
+        1
+      ],
+      [
+        "APP-A",
+        "application",
+        2
+      ],
+      [
+        "APP-B",
+        "application",
+        1
+      ]
+    ]
+  },
+  "requirement_revisions": {
+    "columns": [
+      "id",
+      "revision",
+      "status",
+      "text",
+      "owner_revision",
+      "origin"
+    ],
+    "rows": [
+      [
+        "SYS-A",
+        1,
+        "current",
+        "Исходная цель: хранить требования.",
+        1,
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "SYS-A",
+        2,
+        "current",
+        "Уточнённая цель: хранить требования и историю.",
+        2,
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "SYS-B",
+        1,
+        "current",
+        "Сохранять связи нескольких оснований.",
+        1,
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "APP-A",
+        1,
+        "current",
+        "Сохранять первую редакцию.",
+        1,
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "APP-A",
+        2,
+        "current",
+        "Сохранять обе редакции.",
+        2,
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "APP-B",
+        1,
+        "current",
+        "Открывать сохранённые постановки.",
+        1,
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ]
+    ]
+  },
+  "application_purposes": {
+    "columns": [
+      "application_id",
+      "purpose",
+      "current_revision"
+    ],
+    "rows": [
+      [
+        "APP-A",
+        "behavioral",
+        2
+      ],
+      [
+        "APP-B",
+        "behavioral",
+        1
+      ]
+    ]
+  },
+  "application_purpose_revisions": {
+    "columns": [
+      "application_id",
+      "revision",
+      "rationale",
+      "origin"
+    ],
+    "rows": [
+      [
+        "APP-A",
+        1,
+        "Сохранять данные.",
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "APP-A",
+        2,
+        "Сохранять данные и историю.",
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "APP-B",
+        1,
+        "Читать постановки.",
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ]
+    ]
+  },
+  "system_application_versions": {
+    "columns": [
+      "system_id",
+      "application_id",
+      "valid_from",
+      "valid_to"
+    ],
+    "rows": [
+      [
+        "SYS-A",
+        "APP-A",
+        1,
+        null
+      ],
+      [
+        "SYS-B",
+        "APP-A",
+        1,
+        null
+      ],
+      [
+        "SYS-A",
+        "APP-B",
+        1,
+        2
+      ],
+      [
+        "SYS-A",
+        "APP-B",
+        2,
+        null
+      ]
+    ]
+  },
+  "task_identities": {
+    "columns": [
+      "task_id",
+      "origin",
+      "current_statement_revision"
+    ],
+    "rows": [
+      [
+        "0007",
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}",
+        2
+      ]
+    ]
+  },
+  "task_creation_requests": {
+    "columns": [
+      "creation_request_id",
+      "intent",
+      "task_id",
+      "response"
+    ],
+    "rows": [
+      [
+        "create-7",
+        "{\"goal\":\"Сохранять требования и постановки.\"}",
+        "0007",
+        "{\"task_id\":\"0007\",\"statement_revision\":1}"
+      ]
+    ]
+  },
+  "task_statements": {
+    "columns": [
+      "task_id",
+      "statement_revision",
+      "goal",
+      "definition_of_done",
+      "origin"
+    ],
+    "rows": [
+      [
+        "0007",
+        1,
+        "Сохранять требования и постановки.",
+        "[\"Данные сохранены\",\"Связи сохранены\"]",
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ],
+      [
+        "0007",
+        2,
+        "Сохранять требования и постановки.",
+        "[\"Данные сохранены\",\"Связи сохранены\",\"История доступна\"]",
+        "{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}"
+      ]
+    ]
+  },
+  "task_requirement_keys": {
+    "columns": [
+      "task_id",
+      "key"
+    ],
+    "rows": [
+      [
+        "0007",
+        "storage"
+      ],
+      [
+        "0007",
+        "history"
+      ]
+    ]
+  },
+  "task_requirement_versions": {
+    "columns": [
+      "task_id",
+      "statement_revision",
+      "key",
+      "position",
+      "status",
+      "text"
+    ],
+    "rows": [
+      [
+        "0007",
+        1,
+        "storage",
+        0,
+        "current",
+        "Требования сохранены."
+      ],
+      [
+        "0007",
+        2,
+        "storage",
+        1,
+        "current",
+        "Требования и связи сохранены."
+      ],
+      [
+        "0007",
+        2,
+        "history",
+        0,
+        "current",
+        "Предыдущая редакция доступна."
+      ]
+    ]
+  },
+  "application_task_links": {
+    "columns": [
+      "task_id",
+      "statement_revision",
+      "key",
+      "application_id"
+    ],
+    "rows": [
+      [
+        "0007",
+        1,
+        "storage",
+        "APP-A"
+      ],
+      [
+        "0007",
+        1,
+        "storage",
+        "APP-B"
+      ],
+      [
+        "0007",
+        2,
+        "storage",
+        "APP-A"
+      ],
+      [
+        "0007",
+        2,
+        "storage",
+        "APP-B"
+      ],
+      [
+        "0007",
+        2,
+        "history",
+        "APP-A"
+      ]
+    ]
+  },
+  "task_snapshots": {
+    "columns": [
+      "task_id",
+      "snapshot_revision",
+      "statement_revision",
+      "registry_revision",
+      "payload"
+    ],
+    "rows": [
+      [
+        "0007",
+        1,
+        1,
+        1,
+        "{\"schema\":\"stride-requirements-snapshot/v2\",\"snapshot\":{\"task_id\":\"0007\",\"snapshot_revision\":1,\"statement_revision\":1,\"registry_revision\":1,\"statement\":{\"task_id\":\"0007\",\"statement_revision\":1,\"goal\":\"Сохранять требования и постановки.\",\"task_requirements\":[{\"key\":\"storage\",\"status\":\"current\",\"text\":\"Требования сохранены.\",\"applications\":[\"APP-A\",\"APP-B\"]}],\"definition_of_done\":[\"Данные сохранены\",\"Связи сохранены\"]},\"requirements\":{\"SYS-A\":{\"id\":\"SYS-A\",\"level\":\"system\",\"status\":\"current\",\"text\":\"Исходная цель: хранить требования.\"},\"SYS-B\":{\"id\":\"SYS-B\",\"level\":\"system\",\"status\":\"current\",\"text\":\"Сохранять связи нескольких оснований.\"},\"APP-A\":{\"id\":\"APP-A\",\"level\":\"application\",\"status\":\"current\",\"text\":\"Сохранять первую редакцию.\"},\"APP-B\":{\"id\":\"APP-B\",\"level\":\"application\",\"status\":\"current\",\"text\":\"Открывать сохранённые постановки.\"}},\"links\":{\"system_application\":[{\"system\":\"SYS-A\",\"application\":\"APP-A\"},{\"system\":\"SYS-B\",\"application\":\"APP-A\"},{\"system\":\"SYS-A\",\"application\":\"APP-B\"}],\"application_task\":[{\"application\":\"APP-A\",\"task_id\":\"0007\",\"key\":\"storage\"},{\"application\":\"APP-B\",\"task_id\":\"0007\",\"key\":\"storage\"}]}},\"application_basis\":[{\"application_id\":\"APP-A\",\"purpose\":\"behavioral\",\"purpose_revision\":1,\"rationale\":\"Сохранять данные.\",\"origin\":{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}},{\"application_id\":\"APP-B\",\"purpose\":\"behavioral\",\"purpose_revision\":1,\"rationale\":\"Читать постановки.\",\"origin\":{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}}]}"
+      ],
+      [
+        "0007",
+        2,
+        2,
+        2,
+        "{\"schema\":\"stride-requirements-snapshot/v2\",\"snapshot\":{\"task_id\":\"0007\",\"snapshot_revision\":2,\"statement_revision\":2,\"registry_revision\":2,\"statement\":{\"task_id\":\"0007\",\"statement_revision\":2,\"goal\":\"Сохранять требования и постановки.\",\"task_requirements\":[{\"key\":\"history\",\"status\":\"current\",\"text\":\"Предыдущая редакция доступна.\",\"applications\":[\"APP-A\"]},{\"key\":\"storage\",\"status\":\"current\",\"text\":\"Требования и связи сохранены.\",\"applications\":[\"APP-A\",\"APP-B\"]}],\"definition_of_done\":[\"Данные сохранены\",\"Связи сохранены\",\"История доступна\"]},\"requirements\":{\"SYS-A\":{\"id\":\"SYS-A\",\"level\":\"system\",\"status\":\"current\",\"text\":\"Уточнённая цель: хранить требования и историю.\"},\"SYS-B\":{\"id\":\"SYS-B\",\"level\":\"system\",\"status\":\"current\",\"text\":\"Сохранять связи нескольких оснований.\"},\"APP-A\":{\"id\":\"APP-A\",\"level\":\"application\",\"status\":\"current\",\"text\":\"Сохранять обе редакции.\"},\"APP-B\":{\"id\":\"APP-B\",\"level\":\"application\",\"status\":\"current\",\"text\":\"Открывать сохранённые постановки.\"}},\"links\":{\"system_application\":[{\"system\":\"SYS-A\",\"application\":\"APP-A\"},{\"system\":\"SYS-B\",\"application\":\"APP-A\"},{\"system\":\"SYS-A\",\"application\":\"APP-B\"}],\"application_task\":[{\"application\":\"APP-A\",\"task_id\":\"0007\",\"key\":\"storage\"},{\"application\":\"APP-B\",\"task_id\":\"0007\",\"key\":\"storage\"},{\"application\":\"APP-A\",\"task_id\":\"0007\",\"key\":\"history\"}]}},\"application_basis\":[{\"application_id\":\"APP-A\",\"purpose\":\"behavioral\",\"purpose_revision\":2,\"rationale\":\"Сохранять данные и историю.\",\"origin\":{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}},{\"application_id\":\"APP-B\",\"purpose\":\"behavioral\",\"purpose_revision\":1,\"rationale\":\"Читать постановки.\",\"origin\":{\"type\":\"explicit\",\"request_id\":\"fixture-request\",\"operation_id\":\"fixture-operation\"}}]}"
+      ]
+    ]
+  },
+  "requirement_outcomes": {
+    "columns": [
+      "outcome_id",
+      "task_id",
+      "snapshot_revision",
+      "kind",
+      "keys"
+    ],
+    "rows": [
+      [
+        "outcome-7",
+        "0007",
+        1,
+        "positive",
+        "[\"storage\"]"
+      ]
+    ]
+  },
+  "requirement_requests": {
+    "columns": [
+      "protocol_namespace",
+      "request_id",
+      "intent",
+      "response"
+    ],
+    "rows": [
+      [
+        "standalone",
+        "request-7",
+        "{\"task_id\":\"0007\",\"statement_revision\":2}",
+        "{\"task_id\":\"0007\",\"statement_revision\":2,\"changed\":true}"
+      ]
+    ]
+  }
+}

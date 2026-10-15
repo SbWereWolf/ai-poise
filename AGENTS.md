@@ -133,6 +133,12 @@ limits honestly.
 
 ## Start and finish work
 
+Use the session launcher supplied in the current native hook context, including
+after fork, resume, clear and compaction. Its delivery does not set AI_POISE_WORK
+and does not prove Task readiness. A subject-runtime warning does not invalidate
+the delivered entry; ordinary work still validates its full contract. Follow
+[session entry delivery](docs/configuration/runtime-hooks.md#доставка-launcher-при-старте).
+
 Work from this AI poise repository and explicitly select the configured project. Target codebases have their own
 applicable `AGENTS.md` files; read those before working on them. Use the [AI poise skill](.agents/skills/poise/SKILL.md)
 for task work and the [development skill](.agents/skills/poise-development/SKILL.md) when changing AI poise itself. The

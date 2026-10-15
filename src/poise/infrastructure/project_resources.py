@@ -19,17 +19,39 @@ class ProjectRuntimeFence:
     def __init__(self, config_path, expected_state=None, hook_settings=None):
         from .projects import ProjectSettings
         self.config_path = Path(config_path).resolve()
-        root, config, _ = load_config(self.config_path)
+        self.hook_settings = hook_settings
+        root, config, _ = self._configuration()
         if 'runtime_resources' not in config:
             raise PoiseError('Mutable runtime requires explicit runtime_resources association')
         resources = validate_resources(config['runtime_resources'])
         self.settings = ProjectSettings(resources['project_setup'])
         self.state = configured_root(root, config['paths']['state']) if expected_state is None else expected_state
-        self.hook_settings = hook_settings
         self._validate()
 
+    def _configuration(self):
+        if self.hook_settings is None:
+            return load_config(self.config_path)
+        # Binding a native entry uses transport authority, not Task workflows.
+        from ..modules.foundation.validation import configuration_fields, nonempty
+        config = read_document(self.config_path)
+        nonempty(config.get('project'), 'hook project')
+        paths = config.get('paths')
+        if not isinstance(paths, dict) or 'state' not in paths:
+            raise PoiseError('Hook project requires explicit paths.state')
+        batch = configuration_fields(config.get('batch'), {'message_source'}, 'hook project.batch')
+        source = configuration_fields(batch['message_source'], {'id', 'mode'},
+                                      'hook project.batch.message_source')
+        for field in ('id', 'mode'):
+            nonempty(source[field], 'hook project.batch.message_source.' + field)
+        return self.config_path.parent, config, None
+
+    def hook_manifest(self):
+        if self.hook_settings is None:
+            raise PoiseError('Hook manifest requires a selected hook association')
+        return self._configuration()[1]
+
     def _validate(self):
-        root, config, _ = load_config(self.config_path)
+        root, config, _ = self._configuration()
         require_project_association(self.settings, self.config_path, config, config['runtime_resources'])
         if self.hook_settings is None and configured_root(root, config['paths']['state']) != self.state:
             raise PoiseError('Cached runtime configuration state placement changed')

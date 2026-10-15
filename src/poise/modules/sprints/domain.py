@@ -359,6 +359,9 @@ class Sprint:
         waived={(d['predecessor'],d['successor']) for d in self.waivers}
         blocked=[];eligible=[];active=[]
         for i in ids:
+            if states[i]=='newborn':
+                blocked.append({'task':i,'reasons':[{'reason':'task_not_ready'}]})
+                continue
             if states[i] in ('active','verified','accepted') and i not in resumable:active.append(i);continue
             if states[i] in ('completed','cancelled'):continue
             if states[i]!='available' and i not in resumable:raise DomainError('Unknown task state')

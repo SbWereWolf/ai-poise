@@ -1,5 +1,5 @@
 """Rebuild current workflow metadata through its owners; persist only reader receipts."""
-from ..modules.source_reader.domain import exact, text, parse_read
+from ..modules.source_reader.domain import CONTEXT_RESET_REASONS, exact, text, parse_read
 from ..modules.skills.selection import strings
 from ..modules.foundation.errors import PoiseError
 
@@ -10,7 +10,7 @@ class ContextRecovery:
 
     def restore(self, request):
         exact(request, {'reason', 'event_id', 'facts', 'cwd', 'reads'}, 'context recovery')
-        if request['reason'] not in ('startup', 'resume', 'compact', 'clear', 'manual'):
+        if request['reason'] not in CONTEXT_RESET_REASONS:
             raise PoiseError('Unsupported context reset reason')
         text(request['event_id'], 'event_id'); text(request['cwd'], 'cwd')
         strings(request['facts'], 'context facts')

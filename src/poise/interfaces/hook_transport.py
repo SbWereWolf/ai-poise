@@ -1,34 +1,53 @@
 """CLI envelopes for managed configuration, native hooks and bound work."""
-import json
 from pathlib import Path
 import uuid
 from ..common import PoiseError,exact_keys,load_config
-from ..infrastructure.hook_transport import HookService
+from ..infrastructure.hook_transport import HookService, HookSettings, matches_repository_scope
 from ..infrastructure.goal_config import strict_json,atomic_write
 from ..modules.work.domain import BUSINESS_INCOMPLETE_STATUSES
-from ..modules.result_views.domain import bounded_envelope, require_result_budget
+from ..modules.result_views.domain import (
+    bounded_envelope, native_context_view, require_result_budget, utf8_json_text,
+)
 from .work import write_result
 
 
-def _write(service,result,output):
+def _save_response(service,result):
     settings=service.settings
     path=settings.observations/uuid.uuid4().hex/settings.raw['response_file']
-    atomic_write(path,(json.dumps(result,ensure_ascii=False,indent=2)+'\n').encode(),settings.raw['file_mode'])
+    atomic_write(path,(utf8_json_text(result,indent=2)+'\n').encode('utf-8'),settings.raw['file_mode'])
+    return path
+
+
+def _write(service,result,output):
+    path=_save_response(service,result)
+    settings=service.settings
     output.write(bounded_envelope(result,path,settings.raw['output_chars'],{}, {}, []))
 
 
 def execute(command,args,stream,output,error):
     service=None
     try:
-        service=HookService(args.settings);cfg=service.settings.raw
+        settings=HookSettings(args.settings);cfg=settings.raw
         raw=stream.read(cfg['max_input_bytes']+1)
         if len(raw)>cfg['max_input_bytes']:raise PoiseError('Hook/adapter packet exceeds configured input limit')
         packet=strict_json(raw.decode('utf-8'))
+        if command == 'hook' and not isinstance(packet, dict):
+            raise PoiseError('Native hook JSON object required')
+        if command == 'hook' and not matches_repository_scope(settings, packet.get('cwd')):
+            output.write('{}\n')
+            return cfg['exit_codes']['success']
+        service=HookService(args.settings)
         if command=='hook':
             result=service.event(args.definition,packet)
-            if len(json.dumps(result,ensure_ascii=False))>cfg['output_chars']:
-                raise PoiseError('Configured hook context cannot fit output limit')
-            output.write(json.dumps(result,ensure_ascii=False)+'\n')
+            if 'systemMessage' in result and 'hookSpecificOutput' in result:
+                path=_save_response(service,result)
+                notice=service.definition(args.definition).data['unknown_outcome_message']
+                text=native_context_view(result,path,cfg['output_chars'],notice)
+            else:
+                text=utf8_json_text(result)+'\n'
+                if len(text)>cfg['output_chars']:
+                    raise PoiseError('Configured hook context cannot fit output limit')
+            output.write(text)
             return cfg['exit_codes']['success']
         if command=='hook-work':
             require_result_budget('',cfg['output_chars'],'rejected')
@@ -39,11 +58,16 @@ def execute(command,args,stream,output,error):
         exact_keys(packet,{'operation','input'},'runtime-config packet')
         predicted=service.settings.observations/uuid.uuid4().hex/cfg['response_file']
         require_result_budget(predicted,cfg['output_chars'],'inconclusive')
-        if packet['operation'] in ('install','reconcile'):
-            action=service.install if packet['operation']=='install' else service.reconcile
+        if packet['operation'] in ('install','reconcile','reconfigure'):
+            action=getattr(service,packet['operation'])
             result=action(packet['input'])
-            _,project,_=load_config(service.settings.project_config)
-            checks=service.probes(result['definition_path'],project['git']['repository'])
+            if packet['operation'] == 'reconfigure':
+                current=HookSettings(args.settings)
+                workspace=current.raw['repository_scope']['repository']
+            else:
+                _,project,_=load_config(service.settings.project_config)
+                workspace=project['git']['repository']
+            checks=service.probes(result['definition_path'],workspace)
             result={**result,'capability_checks':checks}
         elif packet['operation']=='diagnose':
             result=service.diagnose(packet['input'])

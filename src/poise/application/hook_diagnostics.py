@@ -2,6 +2,7 @@
 from copy import deepcopy
 
 from ..modules.foundation.errors import PoiseError
+from ..modules.hook_transport.domain import SESSION_START_SOURCES
 
 
 def _text(value, name):
@@ -70,7 +71,7 @@ class HookDiagnostics:
                 context = effect['context']
                 matched = (context['event_id'] == f"hook-event:{event['id']}"
                            and context['reason'] == event.get('source')
-                           and event.get('source') in ('startup', 'resume', 'compact', 'clear'))
+                           and event.get('source') in SESSION_START_SOURCES)
                 effect['status'] = 'confirmed' if matched else 'not_correlated'
             elif req['event'] == 'UserPromptSubmit':
                 effect['status'] = 'confirmed'

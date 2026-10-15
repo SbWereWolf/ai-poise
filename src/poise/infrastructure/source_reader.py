@@ -8,7 +8,7 @@ from pathlib import Path
 import stat
 
 from ..application.source_reader import SourceReader
-from ..modules.source_reader.domain import ReadLimits
+from ..modules.source_reader.domain import CONTEXT_RESET_REASONS, ReadLimits
 from ..common import PoiseError, encoded, digest
 from .locking import exclusive_lock
 from .goal_config import atomic_write, strict_json
@@ -105,7 +105,7 @@ class FileSourceReader(SourceReader):
         state = json_file(self.receipts.path, 16 * 1024 * 1024)
         if (not isinstance(state, dict) or state.get('schema') != 'source-read-receipts-1'
                 or type(state.get('generation')) is not int or state['generation'] < 1
-                or state.get('reason') not in ('startup', 'resume', 'clear', 'compact', 'manual')
+                or state.get('reason') not in CONTEXT_RESET_REASONS
                 or (state.get('event_id') is not None and not isinstance(state['event_id'], str))
                 or not isinstance(state.get('receipts'), list)
                 or len(state['receipts']) > self.limits.max_receipts

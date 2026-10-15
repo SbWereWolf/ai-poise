@@ -8,6 +8,7 @@ from ..modules.tasks.definition import path_identifier, validate_creation
 from ..modules.tasks.newborn import NewbornTask
 from ..modules.verification.domain import exact_keys
 from ..modules.foundation.errors import PoiseError, DomainError, VersionConflict
+from .task_cleanup import initialize_cleanup_in
 from .tasks import (create_planned_in_uow, creation_batch_reservations, creation_intent_alias,
                     rewrite_task_plan, validate_creation_intent, materialize_draft_task_identity_in)
 
@@ -81,17 +82,6 @@ class SprintCommands:
                 )
             except PoiseError as exc:errors.append(f"Task creation intent: {exc}")
         return errors
-
-    @staticmethod
-    def _save_cleanup(uow, task_id, pending):
-        if not uow.execution.exists(task_id):
-            uow.execution.create(task_id,{"worktree":None,"branch":None,"base":None,"attempts":0,
-                "publication":None,"pending":pending,"entry_tree":None,"last_report":None})
-            return
-        execution,version=uow.execution.load(task_id)
-        if execution['pending'] is not None:raise DomainError('External operation outcome must be resolved first')
-        execution['pending']=pending
-        uow.execution.save(task_id,execution,version)
 
     @staticmethod
     def _available_membership(snapshot, expected_sprint):
@@ -544,7 +534,7 @@ class SprintCommands:
                             raise VersionConflict('Task changed after cancellation preflight')
                         change=task.cancel_from_sprint(packet['reason'])
                         u.tasks.save(change,task.state.version)
-                        self._save_cleanup(u,tid,expected['cleanup_pending'])
+                        initialize_cleanup_in(u,tid,expected['cleanup_pending'])
                     self._detach_draft_members(u,sid,draft_members)
                     s=s.cancel(ids,packet['reason']) if whole else s.record_task_cancellation(ids,packet['reason'])
                 record={**record,'actor':self.actor,'aggregate':s.to_dict()}

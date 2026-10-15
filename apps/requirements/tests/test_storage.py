@@ -162,7 +162,14 @@ class StorageTests(unittest.TestCase):
             def __init__(connection, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 connection.observing = False
+                connection.commit_pending = False
+                connection.set_authorizer(connection.observe_transaction)
                 connection.set_trace_callback(connection.observe_statement)
+
+            def observe_transaction(connection, action, first, second, database, trigger):
+                if action == sqlite3.SQLITE_TRANSACTION and first == "COMMIT":
+                    connection.commit_pending = True
+                return sqlite3.SQLITE_OK
 
             def observe_statement(connection, sql):
                 # SQLite traces statements from Connection and Cursor APIs alike.
@@ -179,8 +186,9 @@ class StorageTests(unittest.TestCase):
                             reader.execute("BEGIN")
                             reader.execute("SELECT name FROM sqlite_master ORDER BY name").fetchall()
                             events.append(("reader_holds_lock", reader.in_transaction))
-                    if sql.strip().upper() == "COMMIT":
+                    if connection.commit_pending:
                         events.append(("commit_attempt_with_reader", reader.in_transaction))
+                        connection.commit_pending = False
                 except Exception as exc:
                     # sqlite3 suppresses callback exceptions; preserve setup errors.
                     observation_errors.append(f"{type(exc).__name__}: {exc}")

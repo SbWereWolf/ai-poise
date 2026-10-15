@@ -109,7 +109,7 @@ def test_start_keeps_launcher_and_reports_runtime_failure(project, tmp_path, mon
         rows = connection.execute('SELECT event,data FROM hook_events WHERE binding=?',
                                   (binding['session_id'],)).fetchall()
     assert [(kind, json.loads(raw)) for kind, raw in rows] == [
-        ('SessionStart', {'turn_id': None, 'source': 'startup'})]
+        ('SessionStart', {'turn_id': None, 'source': 'startup', 'workspace': str(project['app'])})]
 
 
 @pytest.mark.parametrize('batch', [None, [], {}, {'message_source': None},

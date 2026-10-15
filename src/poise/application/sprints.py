@@ -256,7 +256,7 @@ class SprintCommands:
             'dependencies':deepcopy(s.plan.data['dependencies']),
             'tasks':[{'id':i,**{k:value for k,value in v.items()
                                 if not k.startswith('_')}} for i,v in facts.items()],
-            'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('available','active','verified','accepted','completed','cancelled')},
+            'counts':{k:sum(f['status']==k for f in facts.values()) for k in ('newborn','available','active','verified','accepted','completed','cancelled')},
             'errors':self._errors(record,facts) if s.state=='draft' else [],
             'next_work':'Исправить draft и опубликовать одним пакетом' if s.state=='draft' else
                         'Выбрать одну доступную задачу; продолжать поручение через advance с действующими ограничениями',

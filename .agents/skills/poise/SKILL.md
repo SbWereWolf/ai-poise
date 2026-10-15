@@ -570,6 +570,11 @@ rules](../../../docs/governance/development-rules.md#интеграция-зав
 
 ## Sprint work
 
+Published Sprint discovery includes preparing members in `counts.newborn` and marks them
+blocked with `task_not_ready`; unrelated ready branches remain eligible. Read-only discovery
+does not grant execution readiness or alter ownership. See the [Sprint
+contract](../../../docs/workflows/sprints.md#обзор-опубликованного-спринта).
+
 Plan only one connected dependency chain per Sprint. Keep independent Tasks standalone;
 neither a shared topic nor execution priority creates a dependency. When splitting a long
 Sprint, copy required prerequisite Tasks or chains as local conditional duplicates with new

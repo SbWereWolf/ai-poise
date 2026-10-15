@@ -382,8 +382,26 @@ def test_allocated_workspace_is_preserved_not_silently_replaced(project):
 
 
 def test_registered_goal_materializes_without_global_project_route(project):
+    import shutil
+
+    repository = Path(__file__).resolve().parents[2]
+    fixture = project['root'] / 'catalogue-fixture'
+    (fixture / 'sources').mkdir(parents=True)
+    shutil.copyfile(repository / 'config/catalogue/workflows/test_development.json', fixture / 'sources/workflow.json')
+    shutil.copyfile(repository / 'config/catalogue/task-templates/test_development.json', fixture / 'sources/task.json')
+    editor = json.loads((repository / 'config/catalogue/editor.example.json').read_text())
+    editor.update(root=str(fixture), database='database/editor.sqlite', lock='lock/editor.lock',
+                  responses='responses', workflows={'test_development': 'published/test_development.json'},
+                  templates={'test_development-v1': {'path': 'sources/workflow.json'}})
+    write_json(fixture / 'editor.json', editor)
+    catalogue = write_json(fixture / 'catalogue.json', {
+        'schema': 'workflow-catalogue-1', 'editor': 'editor.json', 'max_items': 10,
+        'task_templates': {'test_development-v1': {
+            'path': 'sources/task.json', 'goal_type': 'test_development',
+        }},
+    })
     project['cfg']['task_planning'] = {
-        'catalogue': str(Path(__file__).resolve().parents[2] / 'config/catalogue/settings.example.json'),
+        'catalogue': str(catalogue),
         'restart_revision_policy': deepcopy(POLICY)}
     c = client(project)
     out = task_action(c, action='create', task_id='TEST-WORK', sprint_id=None,

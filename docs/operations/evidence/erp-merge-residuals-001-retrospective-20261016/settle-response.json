@@ -1,0 +1,43 @@
+{
+  "task": "ERP-MERGE-RESIDUALS-001",
+  "status": "delivery_blocked",
+  "replayed": false,
+  "agreement_id": "merge-local-master-delivery-20261015-1",
+  "outputs": [],
+  "retired_artifacts": [],
+  "reason": "integration_required",
+  "recovery": {
+    "operation": "delivery",
+    "action": "settle",
+    "task_id": "ERP-MERGE-RESIDUALS-001",
+    "reason": "integration_required"
+  },
+  "interaction": {
+    "user_messages_count": 2,
+    "observed_messages_count": 2,
+    "coverage": "partial",
+    "source": {
+      "id": "codex-hook-main",
+      "mode": "runtime_event"
+    },
+    "reason_counts": {
+      "initial": 0,
+      "continue": 0,
+      "feedback": 0,
+      "requirement_change": 0,
+      "clarification": 0,
+      "authorization": 0,
+      "cancel": 0
+    },
+    "unclassified_messages": 2,
+    "task": "ERP-MERGE-RESIDUALS-001",
+    "goal_type": "development",
+    "outcome": "completed",
+    "planned_content_stages_count": 13,
+    "delivered_stages_count": 11,
+    "delivered_iterations_count": 11,
+    "delivery_observation": "tool_result_returned"
+  },
+  "capability_checks": null,
+  "hook_session": "01a138ea-a400-7273-82da-527a190135b1"
+}

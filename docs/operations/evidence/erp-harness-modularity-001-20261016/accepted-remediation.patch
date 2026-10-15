@@ -1,0 +1,149 @@
+diff --git a/ai-assistant/checks/command_profile_lib.py b/ai-assistant/checks/command_profile_lib.py
+index 2d7ae5c6..27f17fe5 100644
+--- a/ai-assistant/checks/command_profile_lib.py
++++ b/ai-assistant/checks/command_profile_lib.py
+@@ -246,11 +246,11 @@ class Prerequisites:
+     def from_raw(cls, raw: object, label: str) -> "Prerequisites":
+         if not isinstance(raw, Mapping):
+             raise ProfileError(f"{label} must be an inline table")
+-        files = _string_list(raw.get("files", []), f"{label}.files", allow_empty=True)
++        files = _string_list(raw.get("files"), f"{label}.files", allow_empty=True)
+         return cls(
+-            _string_list(raw.get("executables", []), f"{label}.executables", allow_empty=True),
++            _string_list(raw.get("executables"), f"{label}.executables", allow_empty=True),
+             tuple(_relative_path(item, f"{label}.files[{index}]") for index, item in enumerate(files)),
+-            _string_list(raw.get("environment", []), f"{label}.environment", allow_empty=True),
++            _string_list(raw.get("environment"), f"{label}.environment", allow_empty=True),
+         )
+ 
+ 
+@@ -265,12 +265,10 @@ class CacheProfile:
+ 
+     @classmethod
+     def from_raw(cls, raw: object, label: str) -> "CacheProfile":
+-        if raw is None:
+-            return cls(False, (), ())
+         if not isinstance(raw, Mapping):
+             raise ProfileError(f"{label} must be an inline table")
+         input_paths = _string_list(
+-            raw.get("input_paths", []),
++            raw.get("input_paths"),
+             f"{label}.input_paths",
+             allow_empty=True,
+         )
+@@ -279,7 +277,7 @@ class CacheProfile:
+             for index, item in enumerate(input_paths)
+         )
+         environment = _string_list(
+-            raw.get("environment", []),
++            raw.get("environment"),
+             f"{label}.environment",
+             allow_empty=True,
+         )
+@@ -319,7 +317,7 @@ class CacheProfile:
+             max_input_files = None
+             max_input_bytes = None
+         return cls(
+-            _boolean(raw.get("enabled", False), f"{label}.enabled"),
++            _boolean(raw.get("enabled"), f"{label}.enabled"),
+             normalized_paths,
+             environment,
+             input_selection,
+@@ -371,7 +369,7 @@ class CommandProfile:
+         parser_name = _required_string(raw.get("parser"), f"{label}.parser")
+         if parser_name not in _SUPPORTED_PARSERS:
+             raise ProfileError(f"{label}.parser must be one of {sorted(_SUPPORTED_PARSERS)}")
+-        stall_raw = raw.get("stall_timeout_seconds", 0)
++        stall_raw = raw.get("stall_timeout_seconds")
+         if isinstance(stall_raw, bool) or not isinstance(stall_raw, int) or stall_raw < 0:
+             raise ProfileError(f"{label}.stall_timeout_seconds must be a non-negative integer")
+         progress = ProgressProfile.from_raw(raw.get("progress"), f"{label}.progress")
+@@ -390,7 +388,7 @@ class CommandProfile:
+             _positive_int(raw.get("execution_timeout_seconds"), f"{label}.execution_timeout_seconds"),
+             _non_negative_number(raw.get("observed_max_success_seconds"), f"{label}.observed_max_success_seconds"),
+             _non_negative_number(
+-                raw.get("observed_max_progress_gap_seconds", 0),
++                raw.get("observed_max_progress_gap_seconds"),
+                 f"{label}.observed_max_progress_gap_seconds",
+             ),
+             stall_raw or None,
+diff --git a/ai-assistant/tests/checks/check-runner.py b/ai-assistant/tests/checks/check-runner.py
+index 2139e636..0325295a 100644
+--- a/ai-assistant/tests/checks/check-runner.py
++++ b/ai-assistant/tests/checks/check-runner.py
+@@ -379,7 +379,10 @@ def test_tracked_markdown_selection_rejects_invalid_git_or_profile_identity() ->
+         raise AssertionError("missing Git identity must fail explicitly")
+ 
+     try:
+-        CacheProfile.from_raw({"input_selection": "unknown"}, "cache")
++        CacheProfile.from_raw(
++            {"enabled": False, "input_paths": [], "environment": [], "input_selection": "unknown"},
++            "cache",
++        )
+     except ProfileError as error:
+         assert "input_selection" in str(error)
+     else:
+diff --git a/ai-assistant/tests/checks/harness-modularity.py b/ai-assistant/tests/checks/harness-modularity.py
+index d8d7d3ad..43c17ea5 100644
+--- a/ai-assistant/tests/checks/harness-modularity.py
++++ b/ai-assistant/tests/checks/harness-modularity.py
+@@ -214,6 +214,44 @@ class HarnessModularityContracts(unittest.TestCase):
+                 with self.assertRaises(owner.ProfileError):
+                     owner.CommandProfile.from_raw(value, 0)
+ 
++    def test_hm05_missing_required_profile_fields_fail_with_extensions(self):
++        owner = profile_owner()
++        raw = tomllib.loads(profile_text())["commands"][0]
++        required_paths = (
++            ("command_id",), ("workload_class",), ("runtime_class",),
++            ("platforms",), ("invocation",), ("argv",), ("cwd",),
++            ("parser",), ("require_parser_confirmation",),
++            ("execution_timeout_seconds",), ("observed_max_success_seconds",),
++            ("observed_max_progress_gap_seconds",), ("stall_timeout_seconds",),
++            ("progress",), ("output",), ("prerequisites",), ("cache",),
++            ("initial_limit_reason",), ("last_calibrated_at",),
++            ("progress", "mode"),
++            ("output", "success_bytes"), ("output", "failure_bytes"),
++            ("output", "timeout_bytes"), ("output", "max_failures"),
++            ("prerequisites", "executables"), ("prerequisites", "files"),
++            ("prerequisites", "environment"),
++            ("cache", "enabled"), ("cache", "input_paths"),
++            ("cache", "environment"),
++        )
++        for path in required_paths:
++            for extension in (False, True):
++                with self.subTest(path=path, extension=extension):
++                    value = copy.deepcopy(raw)
++                    target = value if len(path) == 1 else value[path[0]]
++                    del target[path[-1]]
++                    if extension:
++                        target["future"] = {path[-1]: "cannot replace the missing field"}
++                    with self.assertRaisesRegex(owner.ProfileError, path[-1]):
++                        owner.CommandProfile.from_raw(value, 0)
++
++    def test_hm05_loader_rejects_missing_cache(self):
++        owner = profile_owner()
++        with tempfile.TemporaryDirectory() as name:
++            path = Path(name) / "profiles.toml"
++            path.write_text(profile_text().split("[commands.cache]", 1)[0], encoding="utf-8")
++            with self.assertRaisesRegex(owner.ProfileError, "commands\\[0\\]\\.cache"):
++                owner.load_profiles(path)
++
+     def test_hm05_schema_retains_required_fields_and_known_types(self):
+         schema = json.loads((CHECKS / "schemas/command-profiles.schema.json").read_text(encoding="utf-8"))
+         raw = tomllib.loads(profile_text())
+diff --git a/docs/tools/system-dev-tooling/registered-command-runner.md b/docs/tools/system-dev-tooling/registered-command-runner.md
+index 724304b5..b884c306 100644
+--- a/docs/tools/system-dev-tooling/registered-command-runner.md
++++ b/docs/tools/system-dev-tooling/registered-command-runner.md
+@@ -55,6 +55,10 @@ SQLite, запуск процессов, реестр тестовых паке
+ Обязательные известные параметры, их типы, допустимые значения и версия
+ контракта проверяются явно. `schema_version` имеет целочисленный тип и
+ поддерживаемое значение `1`; логическое `true` ему не соответствует.
++Таблица `cache`, её поля `enabled`, `input_paths`, `environment`, все
++три поля `prerequisites`, а также `stall_timeout_seconds` и
++`observed_max_progress_gap_seconds` обязательны. Отключение задаётся
++явными `false`, `0` и пустыми массивами; отсутствие поля вызывает отказ.
+ Схема JSON проверяет заявленные структурные ограничения. Расчётные и
+ межполевые правила, включая согласованность прогресса и лимитов,
+ принадлежат моделям профилей.

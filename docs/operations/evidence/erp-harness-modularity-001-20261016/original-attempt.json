@@ -1,0 +1,140 @@
+{
+  "actor": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+  "attempt_id": "c5637de0-7b3d-4239-bf63-84dd3707289f",
+  "execution_key": "e2d23167ab56861c48a08c5ca805e08592d809d8c3da182fcb22edbb2b7b7c0e",
+  "identity": {
+    "definition": "10ad4ba6927d43b83f0e2d247126031497cb0d56a86e3efd647e6321fcae0724",
+    "environment": "30095ad93955a5dc01066cd085c204ec2657f76bd4291978edc1653cd015930d",
+    "source": "3dd839463e65a58145f0c91b07c3198029a56543b252a6334ffeca145e69373b"
+  },
+  "iteration": 1,
+  "kind": "check_attempt",
+  "runs": [
+    {
+      "method_id": "MODULARITY-CONTRACTS",
+      "run_id": "c9bcc9b4-a68b-45df-ba14-1b42e2130a7c",
+      "started": true,
+      "termination": {
+        "actor": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+        "actual_exit_code": 0,
+        "attempt_id": "c5637de0-7b3d-4239-bf63-84dd3707289f",
+        "capture_complete": true,
+        "child_reaped": true,
+        "execution_key": "e2d23167ab56861c48a08c5ca805e08592d809d8c3da182fcb22edbb2b7b7c0e",
+        "iteration": 1,
+        "process_group_stopped": true,
+        "run_id": "c9bcc9b4-a68b-45df-ba14-1b42e2130a7c",
+        "schema": "check-run-termination-1",
+        "stage": "implement",
+        "submission_digest": "9e84ed0356bcfe6c81314572cefbc77dec4b4af4c157c0f3306132276f9c2c3b",
+        "task_id": "ERP-HARNESS-MODULARITY-001",
+        "tree": "b7b0dad6afcb5245446ff6c9ece86bd59d1e2d14"
+      }
+    },
+    {
+      "method_id": "MODULARITY-REGRESSION-RUN-CHECK",
+      "run_id": "5be39beb-f5de-4f80-8760-648614506704",
+      "started": true,
+      "termination": {
+        "actor": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+        "actual_exit_code": 0,
+        "attempt_id": "c5637de0-7b3d-4239-bf63-84dd3707289f",
+        "capture_complete": true,
+        "child_reaped": true,
+        "execution_key": "e2d23167ab56861c48a08c5ca805e08592d809d8c3da182fcb22edbb2b7b7c0e",
+        "iteration": 1,
+        "process_group_stopped": true,
+        "run_id": "5be39beb-f5de-4f80-8760-648614506704",
+        "schema": "check-run-termination-1",
+        "stage": "implement",
+        "submission_digest": "9e84ed0356bcfe6c81314572cefbc77dec4b4af4c157c0f3306132276f9c2c3b",
+        "task_id": "ERP-HARNESS-MODULARITY-001",
+        "tree": "b7b0dad6afcb5245446ff6c9ece86bd59d1e2d14"
+      }
+    },
+    {
+      "method_id": "MODULARITY-REGRESSION-CHECK-CACHE",
+      "run_id": "8fc0b22c-f323-44a0-9a3b-930c402de581",
+      "started": true,
+      "termination": {
+        "actor": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+        "actual_exit_code": 0,
+        "attempt_id": "c5637de0-7b3d-4239-bf63-84dd3707289f",
+        "capture_complete": true,
+        "child_reaped": true,
+        "execution_key": "e2d23167ab56861c48a08c5ca805e08592d809d8c3da182fcb22edbb2b7b7c0e",
+        "iteration": 1,
+        "process_group_stopped": true,
+        "run_id": "8fc0b22c-f323-44a0-9a3b-930c402de581",
+        "schema": "check-run-termination-1",
+        "stage": "implement",
+        "submission_digest": "9e84ed0356bcfe6c81314572cefbc77dec4b4af4c157c0f3306132276f9c2c3b",
+        "task_id": "ERP-HARNESS-MODULARITY-001",
+        "tree": "b7b0dad6afcb5245446ff6c9ece86bd59d1e2d14"
+      }
+    },
+    {
+      "method_id": "MODULARITY-REGRESSION-EVIDENCE-MANIFEST",
+      "run_id": "87643571-4d41-4de8-92c8-f997f5f1db8d",
+      "started": true,
+      "termination": {
+        "actor": "01a138d3-c841-7c01-a4c2-ca6aaccfffc5",
+        "actual_exit_code": 0,
+        "attempt_id": "c5637de0-7b3d-4239-bf63-84dd3707289f",
+        "capture_complete": true,
+        "child_reaped": true,
+        "execution_key": "e2d23167ab56861c48a08c5ca805e08592d809d8c3da182fcb22edbb2b7b7c0e",
+        "iteration": 1,
+        "process_group_stopped": true,
+        "run_id": "87643571-4d41-4de8-92c8-f997f5f1db8d",
+        "schema": "check-run-termination-1",
+        "stage": "implement",
+        "submission_digest": "9e84ed0356bcfe6c81314572cefbc77dec4b4af4c157c0f3306132276f9c2c3b",
+        "task_id": "ERP-HARNESS-MODULARITY-001",
+        "tree": "b7b0dad6afcb5245446ff6c9ece86bd59d1e2d14"
+      }
+    },
+    {
+      "method_id": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION",
+      "run_id": "75f5c88a-6ab0-4c09-8dbf-60d4ea80975a",
+      "started": true,
+      "termination": null
+    },
+    {
+      "method_id": "MODULARITY-MCP-CONSUMER",
+      "run_id": "359678b0-f1fc-4b7d-b7a5-d9cd09738e66",
+      "started": false,
+      "termination": null
+    },
+    {
+      "method_id": "MODULARITY-GATE-PROVIDER-BINDING-VERIFICATION",
+      "run_id": "2835e044-60d3-48aa-a79f-5644baa43cec",
+      "started": false,
+      "termination": null
+    },
+    {
+      "method_id": "MODULARITY-GATE-TEST-PACKAGE-CONTRACTS",
+      "run_id": "4e722c8a-c835-418f-ab6a-3674887d7998",
+      "started": false,
+      "termination": null
+    },
+    {
+      "method_id": "MODULARITY-GATE-AGENT-TOOLING-FAST-VERIFICATION",
+      "run_id": "45bc2806-5b0f-4968-a722-d794fca81164",
+      "started": false,
+      "termination": null
+    },
+    {
+      "method_id": "MODULARITY-DOCUMENTATION-EXACT-SCOPE",
+      "run_id": "0402920c-ddf0-4e71-94eb-58c45a1a50db",
+      "started": false,
+      "termination": null
+    }
+  ],
+  "stage": "implement",
+  "submission_digest": "9e84ed0356bcfe6c81314572cefbc77dec4b4af4c157c0f3306132276f9c2c3b",
+  "task_id": "ERP-HARNESS-MODULARITY-001",
+  "task_version": 158,
+  "verified_tree": "b7b0dad6afcb5245446ff6c9ece86bd59d1e2d14",
+  "version": 2
+}

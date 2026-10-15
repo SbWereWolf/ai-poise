@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from batch.helpers import request
-from conftest import git
+from conftest import git, track_runtime_dispatchers
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from result_integration.helpers import prepare_completed_task
@@ -13,6 +13,16 @@ from runtime_services.test_duplicate_reuse import family_result, reuse
 from terminal_materials.test_cancelled_draft_agreement import cancelled_draft
 
 from .helpers import branch_exists, prepare_cancelled_task
+
+
+@pytest.fixture(autouse=True)
+def close_runtime_dispatchers(monkeypatch):
+    dispatchers = track_runtime_dispatchers(monkeypatch)
+    try:
+        yield
+    finally:
+        for dispatcher in dispatchers:
+            dispatcher.close()
 
 
 def test_cancelled_draft_without_execution_retires_materials_and_replays(project):

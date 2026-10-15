@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from batch.helpers import request
+from conftest import git
 from poise.application.work import WorkTools
 from poise.modules.foundation.errors import PoiseError
 from result_integration.helpers import prepare_completed_task
@@ -153,7 +154,8 @@ def test_nonterminal_draft_is_rejected(project):
 
 
 def test_completed_duplicate_cleanup_remains_supported(project):
-    runtime, _ = family_result(project, start_target=True)
+    runtime, source = family_result(project, start_target=True)
+    git(Path(runtime.task_queries.record("D")["worktree"]), "merge", "--ff-only", source["commit"])
     tools = WorkTools(runtime)
     assert reuse(tools)["status"] == "reuse_verified"
     assert tools.invoke(request("accept", {}))["completion_kind"] == "duplicate_reuse"

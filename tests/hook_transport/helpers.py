@@ -76,7 +76,9 @@ def settings(project,tmp_path):
         resources = deepcopy(current['runtime_resources'])
         resources['hooks'] = [{'installation_id': 'primary-hooks', 'settings_path': str(path)}]
         revision = digest({'config': current, 'workflows': workflows})
-        identity = 'fixture-hook-resources-' + digest([revision, resources])
+        selected_options = {key: candidate[key] for key in ('source_reader', 'telemetry_delivery')
+                            if key in candidate}
+        identity = 'fixture-hook-resources-' + digest([revision, resources, selected_options])
         packet = update_request(project['config_path'], revision, request_id=identity,
                                 manifest_edits=[
                                     {'path': ['batch', 'message_source'],
@@ -84,6 +86,9 @@ def settings(project,tmp_path):
                                     {'path': ['accounting', 'time_mode'], 'value': 'reported'},
                                     {'path': ['runtime_resources'], 'value': resources},
                                 ])
+        # Only these explicit fixture selections belong to this bounded correction.
+        for option, value in selected_options.items():
+            packet['manifest_edits'].append({'path': [option], 'value': value})
         packet['receipt_path'] = 'operations/' + identity + '.json'
         result = project_config_tools(selected).apply(packet)
         assert result['status'] == 'updated'

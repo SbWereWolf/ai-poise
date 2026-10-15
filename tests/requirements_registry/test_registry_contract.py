@@ -24,8 +24,8 @@ def _load_contract():
         from poise.common import load_config
         from poise.infrastructure.requirements_registry import (
             RequirementsStore,
-            TaskRequirementsSnapshotStore,
         )
+        from requirements_registry.snapshot_store import TaskRequirementsSnapshotStore
         from poise.modules.requirements_registry.domain import RequirementsRegistry
         from poise.modules.requirements_registry.service import TaskRequirementsGate
         from poise.modules.tasks.domain import TaskStatus

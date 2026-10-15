@@ -222,10 +222,21 @@ SQL-публикация не объявляет filesystem/Git атомарны
 launcher вызывает прежний WorkTools с текущим сообщением и запрещает запись Python bytecode в source
 checkout; точная предыдущая управляемая форма launcher обновляется при native rebind, а произвольное
 изменение не перезаписывается. Public interfaces: runtime-setup (полный settings + install + probe),
-runtime-config (install/probe), hook (native event), hook-work (bound packet).
+runtime-config (install/reconcile/probe/diagnose/summary/refresh), hook (native event),
+hook-work (bound packet).
 `HookSettings.proposed` проверяет кандидат настроек до его записи; `setup_runtime` использует тот же
 FileHookRepository и не переписывает активные bindings. См. [полный
 контракт](../configuration/runtime-hooks.md).
+
+`CapabilitySummary.from_mapping` проверяет строгую структуру сохранённого результата;
+`to_dict` возвращает независимое представление. Порт `SummaryStore.load/save` хранит
+этот результат. `SessionReadiness.read(session_id)` возвращает сводку своей сессии без
+probes и наблюдения часов. `refresh(session_id, workspace, probe_values, clock)` повторно
+использует `CapabilityChecks`, получает время от явного Clock и сохраняет завершённую
+сводку. `FileCapabilitySummary` реализует bounded JSON I/O через существующие владельцы.
+`HookService.read_summary/refresh_summary` проверяют прежнюю native ownership, а
+`HookRegistry.session_workspace` читает наблюдённый workspace независимо от файла сводки.
+Контракт и команды — [сводка готовности](../configuration/runtime-hooks.md#сводка-готовности-сессии).
 
 
 ## Accounting API — DDD-08

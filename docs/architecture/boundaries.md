@@ -407,6 +407,16 @@ owner-relative location и переживает перенос. Runtime sessions
 - `modules/capabilities` и `modules/hook_transport`: pure contracts; нет subprocess, времени и
   filesystem.
 - `application/CapabilityChecks`, `HookCommands`: пакетные сценарии через порты.
+- `CapabilitySummary` задаёт полный завершённый результат сессионной проверки;
+  `SummaryStore` — порт его сохранения. `SessionReadiness` компонует прежний
+  `CapabilityChecks`: обычное чтение возвращает сохранённое, явное обновление наблюдает
+  capabilities и получает UTC через переданный `Clock`. Готовность и requiredness
+  остаются решением существующего владельца проверок.
+- `FileCapabilitySummary` сохраняет полный файл через прежний `atomic_write` и явные
+  режим/лимит; короткие файловые эффекты защищены `ProjectRuntimeFence`. Новые probes
+  выполняются вне длительной общей блокировки native события. `HookRegistry` сохраняет
+  workspace настоящего SessionStart в существующих event metadata для обновления,
+  в том числе после потери файла сводки. Новая схема БД или привязка к Task не вводится.
 - `infrastructure/HookService`: composition с прежним WorkTools/InteractionStore; native hook не
   принимает и не
   завершает Task.
@@ -417,6 +427,9 @@ owner-relative location и переживает перенос. Runtime sessions
 - Сохранение native hooks — отдельный конфигурационный effect; не меняет Codex trust и не выполняет
   скрыто приёмку AI
   poise этапа.
+
+Настройки, показ и отказы описаны в [сводке готовности
+сессии](../configuration/runtime-hooks.md#сводка-готовности-сессии).
 
 ### session-scoped source resolution
 

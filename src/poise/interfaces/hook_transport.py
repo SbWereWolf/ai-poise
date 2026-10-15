@@ -53,6 +53,13 @@ def execute(command,args,stream,output,error):
             exact_keys(packet['input'],{'definition_path','workspace'},'probe packet')
             value=packet['input']
             result={'status':'probed','capability_checks':service.probes(value['definition_path'],value['workspace'])}
+        elif packet['operation'] in ('summary', 'refresh'):
+            action = service.read_summary if packet['operation'] == 'summary' else service.refresh_summary
+            summary = action(packet['input'])
+            result = {'status': 'summary' if packet['operation'] == 'summary' else 'refreshed',
+                      'summary': summary}
+            _write(service, result, output)
+            return cfg['exit_codes']['success' if summary['ready'] else 'incomplete']
         else:raise PoiseError('Unknown runtime-config operation')
         _write(service,result,output)
         return cfg['exit_codes']['success' if result['capability_checks']['ready'] else 'incomplete']

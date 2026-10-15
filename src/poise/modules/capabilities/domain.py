@@ -5,6 +5,7 @@ import math
 from ..artifact_factory.domain import exact
 from ..foundation.errors import PoiseError
 from ..foundation.validation import nonempty
+from ..accounting.clock import validate_source_observation
 
 
 def positive(value, label, integer=False):
@@ -36,6 +37,53 @@ def bind_workspace(value, workspace):
     if isinstance(value, list):return [bind_workspace(v, workspace) for v in value]
     if isinstance(value, dict):return {k:bind_workspace(v, workspace) for k,v in value.items()}
     return value
+
+
+@dataclass(frozen=True)
+class CapabilitySummary:
+    """One completed session observation; parsing never reruns readiness policy."""
+
+    data: dict
+
+    @classmethod
+    def from_mapping(cls, raw):
+        exact(raw, {'schema', 'session_id', 'workspace', 'checked_at', 'ready',
+                    'missing_required', 'observations'}, 'capability summary')
+        if raw['schema'] != 'capability-summary-1':
+            raise PoiseError('Unsupported capability summary schema')
+        for key in ('session_id', 'workspace', 'checked_at'):
+            nonempty(raw[key], 'capability summary.' + key)
+        validate_source_observation(raw['checked_at'])
+        if not raw['checked_at'].endswith(('+00:00', 'Z')):
+            raise PoiseError('Capability summary checked_at requires explicit UTC')
+        if type(raw['ready']) is not bool:
+            raise PoiseError('Capability summary ready requires a boolean')
+        if not isinstance(raw['missing_required'], list):
+            raise PoiseError('Capability summary missing_required requires a list')
+        for value in raw['missing_required']:
+            nonempty(value, 'missing_required identity')
+        if not isinstance(raw['observations'], list):
+            raise PoiseError('Capability summary observations requires a list')
+        for item in raw['observations']:
+            exact(item, {'id', 'status', 'tool_ref', 'project_path', 'version', 'observation',
+                         'tools', 'receipt', 'remediation', 'required', 'reason'}, 'summary observation')
+            for key in ('id', 'tool_ref', 'observation', 'receipt', 'remediation'):
+                nonempty(item[key], 'summary observation.' + key)
+            if item['status'] not in ('available', 'unavailable'):
+                raise PoiseError('Unsupported summary observation status')
+            if type(item['required']) is not bool:
+                raise PoiseError('Summary observation required requires a boolean')
+            for key in ('project_path', 'version', 'reason'):
+                if item[key] is not None:
+                    nonempty(item[key], 'summary observation.' + key)
+            if not isinstance(item['tools'], list):
+                raise PoiseError('Summary observation tools requires a list')
+            for tool in item['tools']:
+                nonempty(tool, 'summary observation tool')
+        return cls(deepcopy(raw))
+
+    def to_dict(self):
+        return deepcopy(self.data)
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,28 @@
+{
+  "history_evidence_ids": [
+    "bbd1518e-430c-426f-b8c1-ae71f2d3b193"
+  ],
+  "profile": {
+    "command": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/tests/checks/registered-command-adoption.py"
+    ],
+    "runtime": {
+      "executable": "/usr/bin/bash",
+      "platform": "linux"
+    },
+    "workload": "MODULARITY-REGRESSION-REGISTERED-COMMAND-ADOPTION"
+  },
+  "selection": {
+    "basis": "verified_success_history",
+    "diagnostic_evidence_run_id": null,
+    "diagnostic_override_reason": null,
+    "history_count": 1,
+    "history_multiplier": 1.1,
+    "longest_verified_success_seconds": 49.19415912000113,
+    "poll_seconds": 0.1,
+    "progress_gap_seconds": 360.0,
+    "seconds": 360.0
+  }
+}

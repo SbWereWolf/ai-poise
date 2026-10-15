@@ -1,0 +1,113 @@
+{
+  "artifacts": {
+    "evidence_bytes": 0,
+    "evidence_files": 0,
+    "evidence_manifest_path": null,
+    "evidence_manifest_sha256": null,
+    "evidence_root": null,
+    "evidence_status": "not_declared",
+    "ledger_path": "ai-assistant/checks/data/ledger.sqlite3",
+    "log_bytes": 0,
+    "log_path": ".runtime/checks/chk_20261015T214749Z_251d624c02/result/command.log",
+    "log_sha256": null,
+    "progress_path": null,
+    "record_path": ".runtime/checks/chk_20261015T214749Z_251d624c02/result/record.json"
+  },
+  "calibration": {
+    "automatic": true,
+    "command": null,
+    "observed_progress_gap_seconds": null,
+    "observed_success_seconds": null,
+    "previous_observed_max_progress_gap_seconds": 0.0,
+    "previous_observed_max_success_seconds": 0.803,
+    "recommended_execution_timeout_seconds": 1,
+    "recommended_stall_timeout_seconds": null,
+    "required": false,
+    "status": "current"
+  },
+  "check_id": "chk_20261015T214749Z_251d624c02",
+  "dependencies": {
+    "missing_environment": [],
+    "missing_executables": [],
+    "missing_files": []
+  },
+  "duration_ms": 1096,
+  "evidence_scope": null,
+  "exit_code": -15,
+  "finished_at": "2026-10-15T21:47:50Z",
+  "parser": {
+    "confirmed": false,
+    "counts": {},
+    "failures": [],
+    "name": "generic"
+  },
+  "profile": {
+    "argv": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/tests/checks/test-packages.py"
+    ],
+    "command_id": "test-package-contracts",
+    "cwd": ".",
+    "evidence_id": null,
+    "parser": "generic",
+    "runtime_class": "posix-host",
+    "workload_class": "default"
+  },
+  "progress": {
+    "age_seconds": null,
+    "anomaly_count": 0,
+    "event_count": 0,
+    "last_event_at": null,
+    "last_output_at": null,
+    "last_value": null,
+    "max_gap_seconds": 0.0,
+    "observability": "unavailable",
+    "output_age_seconds": null,
+    "output_bytes": 0
+  },
+  "runtime": {
+    "pid": 3062821,
+    "platform": "linux",
+    "platform_release": "6.18.40.1-microsoft-standard-WSL2",
+    "python": "3.12.3"
+  },
+  "schema_version": 1,
+  "started_at": "2026-10-15T21:47:49Z",
+  "status": "timed_out",
+  "summary": "Command completed without a textual summary",
+  "termination": {
+    "errors": [],
+    "forced_kill_sent": false,
+    "graceful_signal_sent": true,
+    "kind": "empirical_timeout",
+    "process_tree": [
+      {
+        "command": "/usr/bin/python3 ai-assistant/tests/checks/test-packages.py",
+        "pid": 3093968,
+        "ppid": 3062821,
+        "state": "S"
+      },
+      {
+        "command": "/usr/bin/python3 /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/checks/run_test_package.py --describe --package-id integration.planning-workspace-to-document-ui.host-contract --json",
+        "pid": 3094002,
+        "ppid": 3093968,
+        "state": "R"
+      }
+    ],
+    "process_tree_killed": true,
+    "remaining_process_tree": []
+  },
+  "timeout": {
+    "configured_seconds": 1,
+    "effective_seconds": 1,
+    "evidence_check_id": null,
+    "override_reason": null,
+    "override_seconds": null
+  },
+  "verified_success": false,
+  "workspace": {
+    "head": "0bc51569923afa98382f93a8b69a2470b56ca1f6",
+    "status_sha256": "fd48290836317fd3ff4b40a3005ec6ff3e4ec0b0f951a4b549231fe93251333e"
+  }
+}

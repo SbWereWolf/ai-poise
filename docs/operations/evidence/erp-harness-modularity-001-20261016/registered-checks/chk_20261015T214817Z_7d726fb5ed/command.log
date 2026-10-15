@@ -1,0 +1,6 @@
+[test-package] package=unit.a step=1/1 driver=document-ui-npm
+[test-package] package=integration.b-to-a step=1/1 driver=document-ui-npm
+[test-package] package=integration.b-to-a status=passed steps=2
+[test-package] package=unit.aggregate step=1/1 driver=document-ui-npm
+[test-package] package=unit.aggregate status=passed steps=1
+test package contracts passed: 15

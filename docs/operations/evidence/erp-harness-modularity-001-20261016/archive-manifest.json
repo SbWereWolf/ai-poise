@@ -1,0 +1,494 @@
+{
+  "task": "ERP-HARNESS-MODULARITY-001",
+  "source_head": "0bc51569923afa98382f93a8b69a2470b56ca1f6",
+  "outcome": "UNKNOWN original run; no native termination or acceptance invented",
+  "database_mutated": false,
+  "original_run_ids": [
+    "c9bcc9b4-a68b-45df-ba14-1b42e2130a7c",
+    "5be39beb-f5de-4f80-8760-648614506704",
+    "8fc0b22c-f323-44a0-9a3b-930c402de581",
+    "87643571-4d41-4de8-92c8-f997f5f1db8d",
+    "75f5c88a-6ab0-4c09-8dbf-60d4ea80975a",
+    "359678b0-f1fc-4b7d-b7a5-d9cd09738e66",
+    "2835e044-60d3-48aa-a79f-5644baa43cec",
+    "4e722c8a-c835-418f-ab6a-3674887d7998",
+    "45bc2806-5b0f-4968-a722-d794fca81164",
+    "0402920c-ddf0-4e71-94eb-58c45a1a50db"
+  ],
+  "files": [
+    {
+      "path": "preimage.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/tasks/tasks.sqlite",
+      "sha256": "ad88cde18a312de2abf63fb96c10dca2226e55db878f1cebbaaf914ca0ead91c",
+      "bytes": 312842
+    },
+    {
+      "path": "original-execution.json",
+      "original": "task_execution.data",
+      "sha256": "141ad0cf5923df2faa2c685ec7e0e0e3aac2f6f6944e8696d6f3b1ee599849bc",
+      "bytes": 27058
+    },
+    {
+      "path": "original-attempt.json",
+      "original": "task_execution.data.pending",
+      "sha256": "abb8565d8ef02deca5271cb32739758636c2c172139a3b9bb54aab64805d3e94",
+      "bytes": 5421
+    },
+    {
+      "path": "native-history/evidence.json",
+      "original": "evidence",
+      "sha256": "163c94d0f6074547e5970665e291470a2309736dd281d743849d155804545a96",
+      "bytes": 63122
+    },
+    {
+      "path": "native-history/submissions.json",
+      "original": "submissions",
+      "sha256": "b8c2c0786d4af0a2ba917b6ca6f253aeb2028646f44de81718eb9a2636d29915",
+      "bytes": 44780
+    },
+    {
+      "path": "native-history/task_methods.json",
+      "original": "task_methods",
+      "sha256": "533c45c4df042f84e0f19af63559a4e129249f2c0af2e73649055fd76dabfd5b",
+      "bytes": 19424
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/stderr.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/stderr.txt",
+      "sha256": "7303130678c26a99832f76c9c2e0e15ca0fe1f0679f41421034bf30f208aea7c",
+      "bytes": 4909
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/stdout.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/timeout-policy.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/timeout-policy.json",
+      "sha256": "423cdbbe4b0a4f40ada4227d343269139c95aef73abb9043400b7513fdcb36e0",
+      "bytes": 775
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/extended.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/extended.txt",
+      "sha256": "5200169e87a59adbba6553d42ba84f1ffadb0dfe988b44eb9bae3764c5e51600",
+      "bytes": 4096
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/full.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/full.txt",
+      "sha256": "7303130678c26a99832f76c9c2e0e15ca0fe1f0679f41421034bf30f208aea7c",
+      "bytes": 4909
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/job.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/job.json",
+      "sha256": "bc40596972ea349c658c8574fafb8c7bf4484a586c95e5e322d56b5eae03c7bc",
+      "bytes": 3557
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/views.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/views.json",
+      "sha256": "cc7b39eb21046b93e7156c17126ad9db5a257aec185e3939cff5a41ea8845ef7",
+      "bytes": 957
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/worker-err.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/worker-err.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/worker-out.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/c9bcc9b4-a68b-45df-ba14-1b42e2130a7c/views/worker-out.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/stderr.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/stdout.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/stdout.txt",
+      "sha256": "733ed96d43511e4ec5051ee513c0289c26ec3d2ac95e0f8affeb587cfc7e734a",
+      "bytes": 1901
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/timeout-policy.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/timeout-policy.json",
+      "sha256": "123fc95b6eedea92f82068d0b2af5057ed13482408816799c92a56ff3cf7da6c",
+      "bytes": 920
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/views/extended.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/views/extended.txt",
+      "sha256": "733ed96d43511e4ec5051ee513c0289c26ec3d2ac95e0f8affeb587cfc7e734a",
+      "bytes": 1901
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/views/full.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/views/full.txt",
+      "sha256": "733ed96d43511e4ec5051ee513c0289c26ec3d2ac95e0f8affeb587cfc7e734a",
+      "bytes": 1901
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/views/job.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/views/job.json",
+      "sha256": "6ef3e5c9e91937988a5378c6e5f1afd6679ff0d9b528cd18daa803004dfc35ee",
+      "bytes": 3763
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/views/views.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/views/views.json",
+      "sha256": "1189d61352fce6bad4ce6c13316a526e4ed1881e80f8b6fa6a9cf28aca45b340",
+      "bytes": 955
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/views/worker-err.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/views/worker-err.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/5be39beb-f5de-4f80-8760-648614506704/views/worker-out.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/5be39beb-f5de-4f80-8760-648614506704/views/worker-out.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/stderr.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/stdout.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/stdout.txt",
+      "sha256": "d77cc30971556c46e00cca950d7c77cdf099e79161f1b358aa6bf45be88feba5",
+      "bytes": 1410
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/timeout-policy.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/timeout-policy.json",
+      "sha256": "c927f87893314e78cf4044d711f6981f1bff37043473a1f659ddfdd0a3d91131",
+      "bytes": 714
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/extended.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/extended.txt",
+      "sha256": "d77cc30971556c46e00cca950d7c77cdf099e79161f1b358aa6bf45be88feba5",
+      "bytes": 1410
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/full.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/full.txt",
+      "sha256": "d77cc30971556c46e00cca950d7c77cdf099e79161f1b358aa6bf45be88feba5",
+      "bytes": 1410
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/job.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/job.json",
+      "sha256": "821aaa77d26f68492eb2355f5a8fd946b5f3f6b8a29bc705332be0febc89412a",
+      "bytes": 3459
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/views.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/views.json",
+      "sha256": "263607a9febd3c553a482850205a0ec15a0caf502ee00c1619c3a0a17c4f71de",
+      "bytes": 957
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/worker-err.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/worker-err.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/worker-out.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/8fc0b22c-f323-44a0-9a3b-930c402de581/views/worker-out.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/stderr.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/stdout.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/stdout.txt",
+      "sha256": "b02fd48853002b39e0f44279005afe64308fdd449ab758661ec3582c6ce04977",
+      "bytes": 46
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/timeout-policy.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/timeout-policy.json",
+      "sha256": "2187d58006b5d8152520ed8ee912734fa2a7c51c2ba7dc76aafd02157e897ee7",
+      "bytes": 725
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/extended.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/extended.txt",
+      "sha256": "b02fd48853002b39e0f44279005afe64308fdd449ab758661ec3582c6ce04977",
+      "bytes": 46
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/full.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/full.txt",
+      "sha256": "b02fd48853002b39e0f44279005afe64308fdd449ab758661ec3582c6ce04977",
+      "bytes": 46
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/job.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/job.json",
+      "sha256": "47232bdebbc94713651492767c7225a44266c477381351c4ac97d26ca42e7edf",
+      "bytes": 3229
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/views.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/views.json",
+      "sha256": "5772f41348637018b32659a2278945ae9f8dac29778870ce52690503786f114b",
+      "bytes": 951
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/worker-err.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/worker-err.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/worker-out.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/87643571-4d41-4de8-92c8-f997f5f1db8d/views/worker-out.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/75f5c88a-6ab0-4c09-8dbf-60d4ea80975a/stderr.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/75f5c88a-6ab0-4c09-8dbf-60d4ea80975a/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/75f5c88a-6ab0-4c09-8dbf-60d4ea80975a/stdout.txt",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/75f5c88a-6ab0-4c09-8dbf-60d4ea80975a/stdout.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "original-runs/75f5c88a-6ab0-4c09-8dbf-60d4ea80975a/timeout-policy.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/runs/75f5c88a-6ab0-4c09-8dbf-60d4ea80975a/timeout-policy.json",
+      "sha256": "e31589f7d3815ea8ce928e2c790f91c9963a103aeaad6a9611384d8879429dd2",
+      "bytes": 745
+    },
+    {
+      "path": "original-review-report.md",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/CONFIG-RECHECK-20261016.md",
+      "sha256": "343b7e1c69dac0d09807d339301b9f1f67183e6411b71ac3f48056f8187983d8",
+      "bytes": 16278
+    },
+    {
+      "path": "source-review/DOC-IMPACT.md",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/DOC-IMPACT.md",
+      "sha256": "7bb783cf5e2b85fbcad8db3acbf2bd1f5667014e006a7513c68417f41142150b",
+      "bytes": 1227
+    },
+    {
+      "path": "source-review/executor-self-review.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/executor-self-review.json",
+      "sha256": "51abaae87d7a11f7ce768113f24d0b7cdc9b9bb56dc05d623badf41e010ab897",
+      "bytes": 5277
+    },
+    {
+      "path": "source-review/mod-source-config-after.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/mod-source-config-after.json",
+      "sha256": "2c2346011cdce488ec687aca016b3c80e1c33c8012a3d8b4c2cf0bd56b3ad139",
+      "bytes": 5696
+    },
+    {
+      "path": "source-review/mod-source-config-before.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/mod-source-config-before.json",
+      "sha256": "2e92d352130b219397dddbcf110bf4e266068b6b11026f4ff20dbcec19bde802",
+      "bytes": 5476
+    },
+    {
+      "path": "source-review/mod-source-config-modularity-green.log",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/mod-source-config-modularity-green.log",
+      "sha256": "268d896c8d73758411be37e3d6f9fc373cf014885edff04cf450ded23030a79e",
+      "bytes": 5275
+    },
+    {
+      "path": "source-review/mod-source-config-profile-controls.log",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/mod-source-config-profile-controls.log",
+      "sha256": "fbebb8b839b4315414343429e2eadec5d7eb1869ff31728a6d09e14be20d56a6",
+      "bytes": 979
+    },
+    {
+      "path": "source-review/mod-source-config-review.py",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/mod-source-config-review.py",
+      "sha256": "aa165a789aabad54ace9a5bcdde2631d5d9d767847a2fb23a8ddf73aeba21ed2",
+      "bytes": 3316
+    },
+    {
+      "path": "source-review/tooling-fast-record.json",
+      "original": "/home/sbwerewolf/workdata/poise-project-data/erp/standalones/ERP-HARNESS-MODULARITY-001/artifacts/review/config-recheck-20261016/tooling-fast-record.json",
+      "sha256": "38e3dbbc888a5a7a790676ae5608fce0aad51db325929376d2288b7d9d8bb5d0",
+      "bytes": 191533
+    },
+    {
+      "path": "accepted-source/ai-assistant/checks/command_profile_lib.py",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/checks/command_profile_lib.py",
+      "sha256": "dada2e288c2f52fcb4a9c52098e18e1883ef2c6fcf627b1d53c34a2e9abd8cae",
+      "bytes": 33820
+    },
+    {
+      "path": "accepted-source/ai-assistant/tests/checks/harness-modularity.py",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/harness-modularity.py",
+      "sha256": "6d5f6235014c4647caa78415f27326b558206d00305fbbf9c6ab21ed6fcd71b6",
+      "bytes": 25380
+    },
+    {
+      "path": "accepted-source/ai-assistant/tests/checks/check-runner.py",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/check-runner.py",
+      "sha256": "5ac2362bbc113183e2f7c3715eb8c2b033f98b5f5592dbbaad913874000ef2ff",
+      "bytes": 16895
+    },
+    {
+      "path": "accepted-source/docs/tools/system-dev-tooling/registered-command-runner.md",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/docs/tools/system-dev-tooling/registered-command-runner.md",
+      "sha256": "3ad7698c60c7b787e391381810dd95a766637e1ada7897ddc3fe7ead2bae51ff",
+      "bytes": 32902
+    },
+    {
+      "path": "accepted-remediation.patch",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001",
+      "sha256": "4276f98fb2bddda0207c71565b6a188b25c827545c8a30af44ca2cfef7cc7052",
+      "bytes": 8477
+    },
+    {
+      "path": "producer-self-review.json",
+      "original": null,
+      "sha256": "673507debb25b8e15451155a00a174049546cdcf2c55c11b6aee93637f2827e6",
+      "bytes": 8213
+    },
+    {
+      "path": "registered-checks/chk_20261015T214527Z_c5c932554d/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214527Z_c5c932554d/result/command.log",
+      "sha256": "5b2c12dc4098ce055653b6e9380fa3fac61b638c3c56dba20a127b7009f18251",
+      "bytes": 99
+    },
+    {
+      "path": "registered-checks/chk_20261015T214527Z_c5c932554d/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214527Z_c5c932554d/result/record.json",
+      "sha256": "481c2cfc7196679c760c197fb9a939a673c7aefc3e5bb379614a716005ad6270",
+      "bytes": 3055
+    },
+    {
+      "path": "registered-checks/chk_20261015T214538Z_a26ab5fc87/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214538Z_a26ab5fc87/result/command.log",
+      "sha256": "05ca7072584ff0ec76d98f153b0b9e99275417e511a5e988d7493174828b7363",
+      "bytes": 47
+    },
+    {
+      "path": "registered-checks/chk_20261015T214538Z_a26ab5fc87/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214538Z_a26ab5fc87/result/record.json",
+      "sha256": "82e0e901c639c76a08822919afbf06b3fa83e2b714f3032880bad559448bc154",
+      "bytes": 2618
+    },
+    {
+      "path": "registered-checks/chk_20261015T214707Z_101b703069/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214707Z_101b703069/result/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "registered-checks/chk_20261015T214707Z_101b703069/evidence/evidence-manifest.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214707Z_101b703069/result/evidence/evidence-manifest.json",
+      "sha256": "8f559d7e99d0bd61bc3f912834c3be64ec8fe9677a9c815c46ef0e072e7d6b70",
+      "bytes": 596
+    },
+    {
+      "path": "registered-checks/chk_20261015T214707Z_101b703069/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214707Z_101b703069/result/record.json",
+      "sha256": "304e1c41e6746f906be6bf3b975bd984d50ce858e178c2a7d0ca52c8da425e24",
+      "bytes": 20587
+    },
+    {
+      "path": "registered-checks/chk_20261015T214749Z_251d624c02/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214749Z_251d624c02/result/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "registered-checks/chk_20261015T214749Z_251d624c02/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214749Z_251d624c02/result/record.json",
+      "sha256": "7a571be3d7496310152bbf5de256df5a5e21d5aae72886ab14aff0cfa5afb787",
+      "bytes": 3300
+    },
+    {
+      "path": "registered-checks/chk_20261015T214817Z_7d726fb5ed/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214817Z_7d726fb5ed/result/command.log",
+      "sha256": "6e677f1e9e6d50c0557e1fbf83640e5b816bf410e15f0975ff62e488504c2cc3",
+      "bytes": 364
+    },
+    {
+      "path": "registered-checks/chk_20261015T214817Z_7d726fb5ed/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214817Z_7d726fb5ed/result/record.json",
+      "sha256": "fce7e86e5b39107f1b5e17c21c28476cb1a4dc3ef6c6815e5d9dc6c46da8d7a3",
+      "bytes": 2963
+    },
+    {
+      "path": "registered-checks/chk_20261015T214921Z_6c689edb33/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214921Z_6c689edb33/result/command.log",
+      "sha256": "ea0641aa43fae6b4d57bfbfdfd50eeb4232b69a4939009bfc255c1b336abd980",
+      "bytes": 34
+    },
+    {
+      "path": "registered-checks/chk_20261015T214921Z_6c689edb33/evidence/evidence-manifest.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214921Z_6c689edb33/result/evidence/evidence-manifest.json",
+      "sha256": "679542f4c97ef415ef9742982590d8260811e05549617b6f67b14963677a3c72",
+      "bytes": 640
+    },
+    {
+      "path": "registered-checks/chk_20261015T214921Z_6c689edb33/evidence/provider-binding-report.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214921Z_6c689edb33/result/evidence/provider-binding-report.json",
+      "sha256": "4339c9b75e092fd5d6bfbe5fdbde02033382e9c204406da174d0d37c9e8bbe8e",
+      "bytes": 6307
+    },
+    {
+      "path": "registered-checks/chk_20261015T214921Z_6c689edb33/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T214921Z_6c689edb33/result/record.json",
+      "sha256": "4e8d915f470775d406595203c9522594ddf556cdf260c3b468d69f517bd67358",
+      "bytes": 20719
+    },
+    {
+      "path": "registered-checks/chk_20261015T215245Z_0fdf5f540f/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T215245Z_0fdf5f540f/result/command.log",
+      "sha256": "f7b2b2ad16744dfd9bc29585910a381a27bef766838c27f15e922c467f20da88",
+      "bytes": 12996
+    },
+    {
+      "path": "registered-checks/chk_20261015T215245Z_0fdf5f540f/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T215245Z_0fdf5f540f/result/record.json",
+      "sha256": "ede7c0cf5ee580d6ef0c536a8673844e78d410d24125e0956acd1f3fed0a0d56",
+      "bytes": 192428
+    },
+    {
+      "path": "registered-checks/chk_20261015T215444Z_78e1f6ab96/command.log",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T215444Z_78e1f6ab96/result/command.log",
+      "sha256": "74f1bd23a680c882aa21e71ec441c2c49d1df4c972c3bffb78e0c2b26f7035c1",
+      "bytes": 9603
+    },
+    {
+      "path": "registered-checks/chk_20261015T215444Z_78e1f6ab96/record.json",
+      "original": "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/.runtime/checks/chk_20261015T215444Z_78e1f6ab96/result/record.json",
+      "sha256": "38e3dbbc888a5a7a790676ae5608fce0aad51db325929376d2288b7d9d8bb5d0",
+      "bytes": 191533
+    }
+  ]
+}

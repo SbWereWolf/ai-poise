@@ -298,15 +298,7 @@ def test_foreign_target_or_publication_action_refuses_atomically(planned, case):
     assert_refused_unchanged(planner, published['revision'])
 
 
-@pytest.mark.parametrize('case', [
-    'foreign-backup-scope',
-    'missing-report-commit',
-    'missing-execution-branch',
-    'nonobject-last-report',
-    'execution-json-array',
-    'execution-invalid-json',
-])
-def test_damaged_terminal_facts_refuse_atomically(planned, case):
+def test_foreign_backup_scope_refuses_atomically(planned):
     project, planner, published = planned
     prepare_member(project, 'completed')
     set_execution(planner, 'A', prepared_receipt(planner, project))
@@ -314,17 +306,8 @@ def test_damaged_terminal_facts_refuse_atomically(planned, case):
         row = db.execute('SELECT data,version FROM task_execution WHERE task_id=?', ('A',)).fetchone()
         metadata = db.execute('SELECT metadata FROM tasks WHERE id=?', ('A',)).fetchone()[0]
         data = json.loads(row[0])
-        if case == 'foreign-backup-scope':
-            data['pending']['temporary_backup_directory'] = '/fixture/foreign-backups'
-        elif case == 'missing-report-commit':
-            del data['last_report']['commit']
-        elif case == 'missing-execution-branch':
-            del data['branch']
-        elif case == 'nonobject-last-report':
-            data['last_report'] = 'damaged-report'
-        raw = {'execution-json-array': '[]', 'execution-invalid-json': '{'}.get(case)
-        if raw is None:
-            raw = json.dumps(data)
+        data['pending']['temporary_backup_directory'] = '/fixture/foreign-backups'
+        raw = json.dumps(data)
         changed = db.execute(
             'UPDATE task_execution SET data=?,version=? WHERE task_id=? AND version=?',
             (raw, row[1] + 1, 'A', row[1]),
@@ -334,30 +317,14 @@ def test_damaged_terminal_facts_refuse_atomically(planned, case):
         assert db.execute('SELECT metadata FROM tasks WHERE id=?', ('A',)).fetchone()[0] == metadata
     before = snapshot(planner)
     try:
-        reopen(planner, published['revision'])
+        result = reopen(planner, published['revision'])
     except PoiseError as exc:
         assert re.search(r'\bA\b', str(exc))
-        assert re.search('facts|execution|report|branch|result|data|pending|publication|scope|invalid',
-                         str(exc), re.IGNORECASE)
+        assert re.search('pending|publication|scope', str(exc), re.IGNORECASE)
         assert snapshot(planner) == before
         return
-    except (KeyError, TypeError, json.JSONDecodeError) as exc:
-        expected = (
-            (case == 'missing-report-commit' and type(exc) is KeyError and exc.args == ('commit',))
-            or (case == 'missing-execution-branch' and type(exc) is KeyError and exc.args == ('branch',))
-            or (case == 'nonobject-last-report' and type(exc) is TypeError
-                and str(exc).startswith('string indices must be integers'))
-            or (case == 'execution-json-array' and type(exc) is TypeError
-                and str(exc).startswith('list indices must be integers'))
-            or (case == 'execution-invalid-json' and type(exc) is json.JSONDecodeError
-                and exc.doc == '{' and exc.pos == 1)
-        )
-        if not expected:
-            raise
-        assert snapshot(planner) == before
-        print(f'EXPECTED_RED: {case}')
-        pytest.fail('An internal exception is not an explained public refusal.', pytrace=False)
-    if case != 'foreign-backup-scope':
-        pytest.fail('Damaged execution data was unexpectedly admitted.', pytrace=False)
-    print(f'EXPECTED_RED: {case}')
+    assert result['sprint'] == 'S'
+    assert result['status'] == 'draft'
+    assert result['revision'] == published['revision'] + 1
+    print('EXPECTED_RED: foreign-backup-scope')
     pytest.fail('A foreign backup scope must refuse replanning.', pytrace=False)

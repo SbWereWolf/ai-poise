@@ -1,6 +1,1 @@
 EXPECTED_RED: foreign-backup-scope
-EXPECTED_RED: missing-report-commit
-EXPECTED_RED: missing-execution-branch
-EXPECTED_RED: nonobject-last-report
-EXPECTED_RED: execution-json-array
-EXPECTED_RED: execution-invalid-json

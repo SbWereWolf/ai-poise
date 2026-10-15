@@ -141,7 +141,11 @@ def _prepare(db, root, config, workflows, request, backup_snapshot, project_owne
                     raise PoiseError('Historical workflow must match the exact managed editor head')
                 binding = owner.migration_binding(goal)
             try:
-                candidate = workflow_candidate(source, mapping['stages'])
+                if request.schema == 'task-stage-criteria-process-migration-1':
+                    from .process_stage_criteria import process_workflow_candidate
+                    candidate = process_workflow_candidate(source, mapping['stages'])
+                else:
+                    candidate = workflow_candidate(source, mapping['stages'])
             except ValueError as exc:
                 if project_owner is not None:
                     raise PoiseError(str(exc)) from exc
@@ -159,7 +163,14 @@ def _prepare(db, root, config, workflows, request, backup_snapshot, project_owne
             if len(matches) != 1:
                 raise PoiseError('Migration Task source is missing')
             row = matches[0]
-            if mapping['kind'] == 'newborn_draft':
+            if request.schema == 'task-stage-criteria-process-migration-1':
+                from .process_stage_criteria import process_candidate
+                candidate, summary = process_candidate(row, mapping, events, submissions, receipt)
+                if 'workflow' in candidate:
+                    GoalTypeDefinition.from_configuration(candidate['workflow'])
+                if mapping['kind'] != 'newborn_draft':
+                    StageCriteriaBook.from_dict(candidate['stage_criteria'])
+            elif mapping['kind'] == 'newborn_draft':
                 candidate, summary = draft_candidate(row, mapping)
                 if 'workflow' in candidate:
                     GoalTypeDefinition.from_configuration(candidate['workflow'])

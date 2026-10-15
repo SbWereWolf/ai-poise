@@ -40,7 +40,9 @@ class MigrationRequest:
 
     @classmethod
     def parse(cls, value: object) -> "MigrationRequest":
-        if isinstance(value, dict) and value.get("schema") == "task-stage-criteria-migration-1":
+        if isinstance(value, dict) and value.get("schema") in {
+            "task-stage-criteria-migration-1", "task-stage-criteria-process-migration-1"
+        }:
             return StageCriteriaMigrationRequest.parse(value)
         fields = {"schema", "request_id", "backup_name", "task_ids", "authorization"}
         exact_keys(value, fields, "task workflow migration request")

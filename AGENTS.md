@@ -648,6 +648,16 @@ Before recording Tasks or relocating installation state, read
 Use the selected operator installation; do not cancel a Task to repair its contract
 or delete a hook registry to compensate for an unsupported relocation.
 
+Keep ordinary project work running during isolated copy preparation and rehearsal.
+For live cutover, exclude only affected writers and reconcile all later source and
+destination effects by provenance while preserving newer and complementary work.
+Verify readers, writers and late effects before reopening; apply updates after
+switching and retire old storage only after separate acceptance. Preserve native
+ownership/DEAD gates and terminal members of continuing Sprints. Follow
+[availability and latest-write preservation](docs/configuration/wsl-local-delivery.md#работа-во-время-подготовки-переноса).
+Use public owners or an explicitly authorized audited manual route; rehearsal
+does not prove native lifecycle completion.
+
 
 ## Harness failure and manual bypass
 

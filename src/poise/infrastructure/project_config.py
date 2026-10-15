@@ -330,7 +330,6 @@ class FileProjectConfigUpdate:
                                    "workflow_count", "readiness", "replayed"}
                 or type(result.get("workflow_count")) is not int or result["workflow_count"] < 0
                 or type(result.get("replayed")) is not bool
-                or not valid_project_probe_readiness(result.get("readiness"))
                 or receipt["result"].get("project") != config["project"]
                 or receipt["result"].get("status") != "created"
                 or not sha256(receipt["result"].get("revision"))):

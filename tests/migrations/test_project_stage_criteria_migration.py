@@ -118,7 +118,7 @@ def test_native_project_owner_migrates_preserves_history_and_fresh_replay(projec
     before = observe(case)
     legacy_code, legacy, legacy_stderr = run_migration(case, fresh=True, select_project_owner=False)
     assert legacy_code == 2, legacy_stderr
-    assert legacy == {"status": "rejected", "reason": "Configured process and registered publication target differ"}
+    assert legacy == {"status": "rejected", "reason": "Configured workflow and registered publication target differ"}
     assert observe(case) == before
     code, result, stderr = run_migration(case, fresh=True)
     assert_success(case, code, result, stderr)

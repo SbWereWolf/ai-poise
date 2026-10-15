@@ -1,0 +1,74 @@
+{
+  "settings": {
+    "file": "capabilities.json",
+    "header_template": "Infrastructure ready={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}",
+    "item_template": "{id}: {status}; required={required}; reason={reason}; remediation={remediation}"
+  },
+  "times": {
+    "first": "2026-10-15T10:00:00+00:00",
+    "second": "2026-10-15T10:01:00+00:00"
+  },
+  "command_remediation": "Restore the configured readiness marker, then explicitly refresh.",
+  "mcp_remediation": "Restore the configured MCP peer protocol, then explicitly refresh.",
+  "available_projection": {
+    "status": "available",
+    "observation": "command_executed",
+    "version": null,
+    "tools": [],
+    "reason": null
+  },
+  "mcp_available_projection": {
+    "status": "available",
+    "observation": "mcp_smoke_passed",
+    "version": "1",
+    "tools": [
+      "read_project",
+      "rename_refactoring"
+    ],
+    "reason": null
+  },
+  "mcp_unavailable_projection": {
+    "status": "unavailable",
+    "observation": "probe_failed",
+    "version": null,
+    "tools": [],
+    "reason": "MCP protocol version mismatch; no fallback negotiation"
+  },
+  "invalid_structure": {
+    "schema": "capability-summary-1",
+    "session_id": "A",
+    "workspace": "${workspace}",
+    "checked_at": "2026-10-15T10:00:00+00:00",
+    "ready": "yes",
+    "missing_required": [],
+    "observations": []
+  },
+  "saved_snapshot": {
+    "schema": "capability-summary-1",
+    "session_id": "A",
+    "workspace": "${workspace}",
+    "checked_at": "2026-10-15T10:00:00+00:00",
+    "ready": true,
+    "missing_required": [],
+    "observations": [
+      {
+        "id": "python",
+        "status": "available",
+        "required": true,
+        "tool_ref": "python",
+        "project_path": null,
+        "version": null,
+        "observation": "command_executed",
+        "tools": [],
+        "receipt": "${receipt}",
+        "remediation": "Restore the configured readiness marker, then explicitly refresh.",
+        "reason": null
+      }
+    ]
+  },
+  "expected_start_header": "Infrastructure ready=True; checked_at=2026-10-15T10:00:00+00:00; workspace=${workspace}; snapshot=${snapshot}",
+  "expected_start_rows": [
+    "python: available; required=True; reason=None; remediation=Restore the configured readiness marker, then explicitly refresh.",
+    "optional: available; required=False; reason=None; remediation=Restore the configured readiness marker, then explicitly refresh."
+  ]
+}

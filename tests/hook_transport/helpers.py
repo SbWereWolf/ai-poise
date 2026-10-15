@@ -62,6 +62,10 @@ def settings(project,tmp_path):
         'cwd_roots':[str(tmp_path)],'file_mode':384,'executable_mode':448,
         'lock_seconds':3.0,'lock_poll_seconds':0.01,
         'max_input_bytes':1048576,'output_chars':5000,'max_probes':30,
+        'capability_summary':{
+            'file':'capabilities.json',
+            'header_template':'Infrastructure ready={ready}; checked_at={checked_at}; workspace={workspace}; snapshot={snapshot_path}',
+            'item_template':'{id}: {status}; required={required}; reason={reason}; remediation={remediation}'},
         'probe_files':{'stdout':'stdout.txt','stderr':'stderr.txt','receipt':'receipt.json'},
         'exit_codes':{'success':0,'incomplete':1,'rejected':2}})
     if managed:

@@ -1797,8 +1797,10 @@ class Poise:
 
     def _check_configuration_systems(self):
         from .modules.transfers.domain import RecoveryPolicy
-        transfer = self.cfg['runtime_services']['transfer']
-        return RecoveryPolicy.configuration_systems(transfer.get('recovery'))
+        transfer = self.cfg['runtime_services'].get('transfer')
+        return RecoveryPolicy.configuration_systems(
+            transfer.get('recovery') if transfer is not None else None
+        )
 
     def _verification_execution(self, data, tree, checks, worktree):
         from .infrastructure.evidence_configuration import EvidenceConfigurationCapture

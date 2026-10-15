@@ -195,7 +195,8 @@ class LocalHandoff:
         h=self.h;record=self.commands.latest(data['id'])
         if record is None:raise PoiseError('No explicit preserved handoff; cannot adopt unowned state')
         receipt=record['receipt']
-        delivery = h.transfer_tools.port.repo.delivery_for_task(data['id'])
+        with h.store.unit_of_work() as uow:
+            delivery = uow.transfers.delivery_for_task(data['id'])
         if delivery is not None and not delivery['verification_opened']:
             manifest = delivery['manifest']
             spec = manifest['workspaces'][data['id']]

@@ -233,9 +233,10 @@ timeout или несовместимый ответ MCP сохраняет ре
 Результат чтения: `{status: "summary", summary: <saved-value>}`; обновления:
 `{status: "refreshed", summary: <completed-value>}`. При `ready=true` используется
 настроенный `exit_codes.success`, при `ready=false` — `exit_codes.incomplete`. Неудачная
-операция при успешно прочитанных settings возвращает `status: rejected`, причину и
-`exit_codes.rejected`. Если сам settings не может быть прочитан/проверен, `runtime-config`
-завершается до создания сервиса с exit `2` и stderr; структурированного ответа ещё нет.
+операция после успешной инициализации `HookService` возвращает `status: rejected`, причину
+и `exit_codes.rejected`. Ошибка при создании сервиса, включая чтение/проверку settings,
+связанной конфигурации проекта или runtime association, завершает `runtime-config`
+с exit `2` и stderr; структурированного ответа ещё нет.
 Полный ответ сохраняется существующим владельцем вывода; если краткое представление возвращает
 `response_path`, полный JSON читают из этого файла.
 

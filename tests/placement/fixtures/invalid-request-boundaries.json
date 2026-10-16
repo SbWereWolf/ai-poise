@@ -1,0 +1,384 @@
+[
+  {
+    "id": "request-operation-0",
+    "request": {
+      "operation": null,
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "request-operation-1",
+    "request": {
+      "operation": 4,
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "request-operation-2",
+    "request": {
+      "operation": " ",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "request-items-3",
+    "request": {
+      "operation": "prepare",
+      "items": null,
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "request-items-4",
+    "request": {
+      "operation": "prepare",
+      "items": {},
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "request-authorizations-5",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": null
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "request-authorizations-6",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": {}
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-key-7",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": null,
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-key-8",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": 4,
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-key-9",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": " ",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-purpose-10",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": null,
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-purpose-11",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": 4,
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-purpose-12",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": " ",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-recipient-13",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": null,
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-recipient-14",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": 4,
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-recipient-15",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": " ",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-lifetime-16",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": null,
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-lifetime-17",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": 4,
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "item-lifetime-18",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": " ",
+          "name": "report.py",
+          "path": null
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_request",
+    "field": "request",
+    "action": "provide:request"
+  },
+  {
+    "id": "basename-mismatch",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "src/different.py"
+        }
+      ],
+      "authorizations": []
+    },
+    "code": "invalid_paths",
+    "field": "items",
+    "action": "provide:paths"
+  }
+]

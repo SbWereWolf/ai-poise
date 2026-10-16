@@ -122,6 +122,18 @@ def test_known_locations_reuse_authority(project, tmp_path):
 def test_unknown_root_before_creation_and_explicit_agreement(project, tmp_path):
     s = scene(project, tmp_path)
     before = s.initial()
+    # Each scope case starts with an independently literal ungranted state.
+    # A previously stored correct grant cannot mask a wrongly scoped grant.
+    for case in s.fixture('scoped-approval-cases.template.json'):
+        s.seed(case['before'])
+        value = s.assert_result(s.invoke(case['request']), status=case['status'],
+                                rows=[case['row']], diagnostics=case['diagnostics'])
+        expected = canonical(case['expected_state'])
+        assert s.state.read_bytes() == expected, case['id']
+        if case['status'] != 'ready':
+            assert expected == before and s.read()['authorizations'] == [], case['id']
+        assert not Path(case['row']['absolute_path']).exists()
+    s.seed(s.fixture('state-source.template.json'))
     request = s.request(items=[item(path='new-area/report.py')])
     row = s.row(status='needs_agreement', path='new-area/report.py',
                 absolute_path=str(s.checkout / 'new-area/report.py'), reserved=False)
@@ -264,6 +276,26 @@ def test_rule_priority_deduplication_and_order(project, tmp_path):
 def test_malformed_missing_and_ambiguous_input_diagnostics(project, tmp_path):
     s = scene(project, tmp_path)
     before = s.initial()
+    # Prove the entry point first, then exercise rejection before state creation.
+    s.state.unlink()
+    for case in s.fixture('invalid-request-boundaries.json'):
+        s.assert_rejected(s.invoke(raw=canonical(case['request'])),
+                          case['code'], case['field'], case['action'])
+        assert not s.state.exists(), case['id']
+    cfg = json.loads(s.config.read_bytes())
+    bounded = deepcopy(cfg)
+    boundary = s.fixture('batch-boundaries.template.json')
+    bounded['batch']['max_items'] = boundary['max_items']
+    write_json(s.config, bounded)
+    s.assert_rejected(s.invoke(boundary['overflow_request']), 'invalid_request', 'request', 'provide:request')
+    assert not s.state.exists()
+    value = s.assert_result(s.invoke(boundary['boundary_request']), rows=boundary['expected_rows'])
+    expected = canonical(boundary['expected_state'])
+    assert s.state.read_bytes() == expected
+    s.assert_effect(value, None, expected, 'committed', 'confirmed')
+    assert len(s.read()['reservations']) == 2
+    write_json(s.config, cfg)
+    s.seed(s.fixture('state-source.template.json'))
     malformed = [None, {}, {'operation': 'prepare'}, {**s.request(), 'extra': 1},
                  s.request(items=[]), s.request(items=[item(), item()])]
     for field in ['key', 'purpose', 'recipient', 'lifetime', 'name', 'path']:
@@ -348,6 +380,26 @@ def test_atomic_batch_repeat_and_conflicting_declarations(project, tmp_path, mon
 def test_current_policy_and_new_root_recheck(project, tmp_path, monkeypatch):
     s = scene(project, tmp_path)
     before = s.initial()
+    for case in s.fixture('component-glob-cases.template.json'):
+        s.policy_data['rules'][0]['paths'] = [case['pattern']]
+        s.save_policy()
+        s.seed(s.fixture('state-source.template.json'))
+        request = deepcopy(case['request'])
+        request['operation'] = 'check'
+        value = s.assert_result(s.invoke(request), status=case['status'], rows=[case['row']],
+                                diagnostics=case['diagnostics'])
+        s.assert_effect(value, before, None, 'none', 'not_applicable')
+        assert s.state.read_bytes() == before, case['id']
+        # The same literal path must have the same admission under prepare.
+        allowed = case['status'] == 'ready'
+        value = s.assert_result(s.invoke(case['request']), status=case['status'],
+                                rows=[{**case['row'], 'reserved': allowed}],
+                                diagnostics=case['diagnostics'])
+        expected = canonical(case['expected_prepare_state'])
+        assert s.state.read_bytes() == expected, case['id']
+        if not allowed:
+            assert expected == before
+    s.seed(s.fixture('state-source.template.json'))
     s.policy_data['rules'][0]['paths'] = ['src/allowed/**']
     s.save_policy()
     value = s.assert_result(s.invoke(s.request(operation='check')), status='needs_inputs',
@@ -440,6 +492,22 @@ def test_policy_and_state_read_failures_preserve_truth(project, tmp_path, monkey
     code, value = s.invoke()
     assert code == 1 and value['diagnostics'] == [diagnostic('invalid_state', None, 'state', 'inspect:state')]
     assert s.state.read_bytes() == foreign_bytes
+    for case in s.fixture('invalid-state-boundaries.template.json'):
+        state = s.fixture('state-source.template.json')
+        target = state
+        for key in case['path'][:-1]:
+            target = target[key]
+        key = case['path'][-1]
+        if case['operation'] == 'remove':
+            target.pop(key)
+        else:
+            target[key] = case['value']
+        s.seed(state)
+        corrupted = canonical(state)
+        value = s.assert_result(s.invoke(), status='needs_inputs', rows=[s.row(reserved=False)],
+                                diagnostics=[diagnostic('invalid_state', None, 'state', 'inspect:state')])
+        assert value['state']['after_sha256'] is None and value['state']['effect'] == 'none'
+        assert s.state.read_bytes() == corrupted, case['id']
 
 
 def next_expected(s):
@@ -574,6 +642,20 @@ def test_caller_binding_and_checkout_namespace_isolation(project, tmp_path):
 def test_configuration_extensions_and_explicit_required_fields(project, tmp_path):
     s = scene(project, tmp_path)
     before = s.initial()
+    original = deepcopy(s.policy_data)
+    s.state.unlink()
+    for case in s.fixture('invalid-policy-boundaries.template.json'):
+        s.policy_data = deepcopy(original)
+        target = s.policy_data
+        for key in case['path'][:-1]:
+            target = target[key]
+        target[case['path'][-1]] = case['value']
+        s.save_policy()
+        s.assert_rejected(s.invoke(), 'invalid_policy', 'policy', 'correct:policy')
+        assert not s.state.exists(), case['id']
+    s.policy_data = original
+    s.save_policy()
+    s.seed(s.fixture('state-source.template.json'))
     s.policy_data['future-extension'] = {'opaque': 'preserve this raw value'}
     s.policy_data['roots'][0]['future-root-option'] = 'retained'
     s.save_policy()

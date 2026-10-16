@@ -1,0 +1,451 @@
+[
+  {
+    "id": "star-one",
+    "pattern": "src/*/report.py",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "star-one",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "src/a/report.py"
+        }
+      ],
+      "authorizations": []
+    },
+    "row": {
+      "key": "star-one",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/a/report.py",
+      "absolute_path": "@CHECKOUT@/src/a/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "ready",
+    "diagnostics": [],
+    "expected_prepare_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        },
+        {
+          "key": "star-one",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/a/report.py",
+          "absolute_path": "@CHECKOUT@/src/a/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "star-two",
+    "pattern": "src/*/report.py",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "star-two",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "src/a/b/report.py"
+        }
+      ],
+      "authorizations": []
+    },
+    "row": {
+      "key": "star-two",
+      "status": "denied",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/a/b/report.py",
+      "absolute_path": "@CHECKOUT@/src/a/b/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_inputs",
+    "diagnostics": [
+      {
+        "key": "star-two",
+        "code": "path_not_allowed",
+        "field": "items:star-two:path",
+        "action": "choose:placement"
+      }
+    ],
+    "expected_prepare_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "star-zero",
+    "pattern": "src/*/report.py",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "star-zero",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "src/report.py"
+        }
+      ],
+      "authorizations": []
+    },
+    "row": {
+      "key": "star-zero",
+      "status": "denied",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/report.py",
+      "absolute_path": "@CHECKOUT@/src/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "needs_inputs",
+    "diagnostics": [
+      {
+        "key": "star-zero",
+        "code": "path_not_allowed",
+        "field": "items:star-zero:path",
+        "action": "choose:placement"
+      }
+    ],
+    "expected_prepare_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "deep-zero",
+    "pattern": "src/**/report.py",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "deep-zero",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "src/report.py"
+        }
+      ],
+      "authorizations": []
+    },
+    "row": {
+      "key": "deep-zero",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/report.py",
+      "absolute_path": "@CHECKOUT@/src/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "ready",
+    "diagnostics": [],
+    "expected_prepare_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "deep-zero",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  },
+  {
+    "id": "deep-many",
+    "pattern": "src/**/report.py",
+    "request": {
+      "operation": "prepare",
+      "items": [
+        {
+          "key": "deep-many",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "path": "src/a/b/report.py"
+        }
+      ],
+      "authorizations": []
+    },
+    "row": {
+      "key": "deep-many",
+      "status": "allowed",
+      "category": "product-versioned",
+      "rule": "source",
+      "root": "product",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "src/a/b/report.py",
+      "absolute_path": "@CHECKOUT@/src/a/b/report.py",
+      "reserved": false,
+      "authorization_refs": [
+        "configured-product"
+      ],
+      "versioning": "versioned"
+    },
+    "status": "ready",
+    "diagnostics": [],
+    "expected_prepare_state": {
+      "schema": "poise-placement-state-1",
+      "project": "@PROJECT@",
+      "checkout": "@CHECKOUT@",
+      "caller_key": "@CALLER_KEY@",
+      "baseline": {
+        "entries": [
+          ".git",
+          "AGENTS.md",
+          "docs",
+          "src"
+        ]
+      },
+      "authorizations": [],
+      "reservations": [
+        {
+          "key": "deep-many",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/a/b/report.py",
+          "absolute_path": "@CHECKOUT@/src/a/b/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        },
+        {
+          "key": "source-report",
+          "purpose": "source",
+          "recipient": "product",
+          "lifetime": "versioned",
+          "name": "report.py",
+          "root": "product",
+          "owner": {
+            "kind": "product",
+            "id": "@PROJECT@"
+          },
+          "category": "product-versioned",
+          "rule": "source",
+          "path": "src/report.py",
+          "absolute_path": "@CHECKOUT@/src/report.py",
+          "authorization_refs": [
+            "configured-product"
+          ],
+          "versioning": "versioned"
+        }
+      ]
+    }
+  }
+]

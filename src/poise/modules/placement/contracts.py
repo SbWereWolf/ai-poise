@@ -26,7 +26,13 @@ class PlacementInputError(DomainError):
 
 
 def text(value):
-    return isinstance(value, str) and bool(value.strip()) and '\0' not in value
+    if not isinstance(value, str) or not value.strip() or '\0' in value:
+        return False
+    try:
+        value.encode('utf-8')
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def strings(value, *, empty=True, ordered=False):

@@ -1,0 +1,1013 @@
+{
+  "resources": {
+    "erp-git-repository": {
+      "kind": "repository"
+    },
+    "erp-service-tools": {
+      "kind": "service_tools",
+      "commands": [
+        "bash",
+        "git",
+        "php",
+        "composer",
+        "node",
+        "npm",
+        "jq",
+        "curl",
+        "ss",
+        "date",
+        "grep",
+        "install",
+        "kill",
+        "mkdir",
+        "mv",
+        "nohup",
+        "ps",
+        "readlink",
+        "sed",
+        "setsid",
+        "sleep",
+        "sort",
+        "python3",
+        "mktemp"
+      ]
+    },
+    "erp-php-runtime": {
+      "kind": "tool",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(['majorMinor'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION]);"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "expected": {
+        "majorMinor": "8.4"
+      }
+    },
+    "erp-php-extension-bcmath": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "bcmath"
+    },
+    "erp-php-extension-ctype": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "ctype"
+    },
+    "erp-php-extension-curl": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "curl"
+    },
+    "erp-php-extension-dom": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "dom"
+    },
+    "erp-php-extension-fileinfo": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "fileinfo"
+    },
+    "erp-php-extension-filter": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "filter"
+    },
+    "erp-php-extension-hash": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "hash"
+    },
+    "erp-php-extension-iconv": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "iconv"
+    },
+    "erp-php-extension-intl": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "intl"
+    },
+    "erp-php-extension-json": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "json"
+    },
+    "erp-php-extension-libxml": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "libxml"
+    },
+    "erp-php-extension-mbstring": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "mbstring"
+    },
+    "erp-php-extension-openssl": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "openssl"
+    },
+    "erp-php-extension-pcntl": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "pcntl"
+    },
+    "erp-php-extension-pdo": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "pdo"
+    },
+    "erp-php-extension-pdo_sqlite": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "pdo_sqlite"
+    },
+    "erp-php-extension-posix": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "posix"
+    },
+    "erp-php-extension-session": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "session"
+    },
+    "erp-php-extension-simplexml": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "simplexml"
+    },
+    "erp-php-extension-sqlite3": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "sqlite3"
+    },
+    "erp-php-extension-tokenizer": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "tokenizer"
+    },
+    "erp-php-extension-xml": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "xml"
+    },
+    "erp-php-extension-xmlreader": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "xmlreader"
+    },
+    "erp-php-extension-xmlwriter": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "xmlwriter"
+    },
+    "erp-php-extension-zip": {
+      "kind": "php_extension",
+      "argv": [
+        "${php_executable}",
+        "-r",
+        "echo json_encode(get_loaded_extensions());"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "extension": "zip"
+    },
+    "erp-node-runtime": {
+      "kind": "tool",
+      "argv": [
+        "${node_executable}",
+        "-p",
+        "JSON.stringify({majorMinor:process.versions.node.split('.').slice(0,2).join('.'),modulesAbi:Number(process.versions.modules)})"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 10,
+      "expected": {
+        "majorMinor": "22.23",
+        "modulesAbi": 127
+      }
+    },
+    "erp-composer": {
+      "kind": "tool",
+      "argv": [
+        "${composer_executable}",
+        "--version",
+        "--no-ansi"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 30,
+      "expected": {}
+    },
+    "erp-npm": {
+      "kind": "tool",
+      "argv": [
+        "${node_executable}",
+        "${npm_entry_point}",
+        "--version"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 30,
+      "expected": {}
+    },
+    "erp-runtime-directories": {
+      "kind": "directories",
+      "paths": [
+        "${repository}/planning-workspace/database",
+        "${repository}/planning-workspace/bootstrap/cache",
+        "${repository}/planning-workspace/storage/app",
+        "${repository}/planning-workspace/storage/framework/cache/data",
+        "${repository}/planning-workspace/storage/framework/sessions",
+        "${repository}/planning-workspace/storage/framework/views",
+        "${repository}/planning-workspace/storage/logs",
+        "${repository}/calculation-service/database",
+        "${repository}/calculation-service/bootstrap/cache",
+        "${repository}/calculation-service/storage/app",
+        "${repository}/calculation-service/storage/framework/cache/data",
+        "${repository}/calculation-service/storage/framework/sessions",
+        "${repository}/calculation-service/storage/framework/views",
+        "${repository}/calculation-service/storage/logs",
+        "${repository}/system-admin/database",
+        "${repository}/system-admin/bootstrap/cache",
+        "${repository}/system-admin/storage/app",
+        "${repository}/system-admin/storage/framework/cache/data",
+        "${repository}/system-admin/storage/framework/sessions",
+        "${repository}/system-admin/storage/framework/views",
+        "${repository}/system-admin/storage/logs",
+        "${repository}/var/local-development/browser-home"
+      ],
+      "mode": "0750"
+    },
+    "erp-local-settings": {
+      "kind": "json",
+      "source": "${local_settings_source}",
+      "target": "${local_settings_path}"
+    },
+    "erp-host-runtime-settings": {
+      "kind": "json",
+      "source": "${host_runtime_settings_source}",
+      "target": "${host_runtime_settings_path}"
+    },
+    "erp-cjm-settings": {
+      "kind": "json",
+      "source": "${cjm_settings_source}",
+      "target": "${cjm_settings_path}"
+    },
+    "erp-environment": {
+      "kind": "environment",
+      "read_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read",
+        "${environment_file}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60,
+      "reader": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read"
+      ],
+      "validation_argv": [
+        "${python}",
+        "-B",
+        "${repository}/platform-infrastructure/tools/application-env-validation.py",
+        "--repository-root",
+        "${repository}",
+        "--settings-path",
+        "${local_settings_path}",
+        "--environment-file",
+        "${environment_file}"
+      ],
+      "configure_argv": [
+        "bash",
+        "${repository}/platform-infrastructure/tools/wsl-host-dev-start.sh",
+        "--repository-root",
+        "${repository}",
+        "--action",
+        "configure",
+        "--settings-path",
+        "${local_settings_path}",
+        "--environment-file",
+        "${environment_file}",
+        "--write-mode",
+        "replace"
+      ],
+      "settings": "${local_settings_path}"
+    },
+    "erp-composer-planning-workspace": {
+      "kind": "composer",
+      "php": "${php_executable}",
+      "helper": "${profile_root}/runtime/application.php",
+      "projects": [
+        {
+          "root": "${repository}/erp-calendar-optimizer",
+          "required_files": [
+            "composer.lock",
+            "vendor/autoload.php",
+            "vendor/composer/installed.json"
+          ],
+          "autoload": "vendor/autoload.php",
+          "classes": [],
+          "install_argv": [
+            "${composer_executable}",
+            "install",
+            "--no-interaction",
+            "--no-scripts",
+            "--prefer-dist",
+            "--no-progress"
+          ]
+        },
+        {
+          "root": "${repository}/planning-workspace",
+          "required_files": [
+            "composer.lock",
+            "vendor/autoload.php",
+            "vendor/composer/installed.json"
+          ],
+          "autoload": "vendor/autoload.php",
+          "classes": [
+            "Illuminate\\Foundation\\Application"
+          ],
+          "install_argv": [
+            "${composer_executable}",
+            "install",
+            "--no-interaction",
+            "--no-scripts",
+            "--prefer-dist",
+            "--no-progress"
+          ]
+        }
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "probe_bound_seconds": 20,
+      "install_bound_seconds": 600
+    },
+    "erp-composer-calculation-service": {
+      "kind": "composer",
+      "php": "${php_executable}",
+      "helper": "${profile_root}/runtime/application.php",
+      "projects": [
+        {
+          "root": "${repository}/calculation-service",
+          "required_files": [
+            "composer.lock",
+            "vendor/autoload.php",
+            "vendor/composer/installed.json"
+          ],
+          "autoload": "vendor/autoload.php",
+          "classes": [
+            "Illuminate\\Foundation\\Application"
+          ],
+          "install_argv": [
+            "${composer_executable}",
+            "install",
+            "--no-interaction",
+            "--no-scripts",
+            "--prefer-dist",
+            "--no-progress"
+          ]
+        }
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "probe_bound_seconds": 20,
+      "install_bound_seconds": 600
+    },
+    "erp-composer-system-admin": {
+      "kind": "composer",
+      "php": "${php_executable}",
+      "helper": "${profile_root}/runtime/application.php",
+      "projects": [
+        {
+          "root": "${repository}/system-admin",
+          "required_files": [
+            "composer.lock",
+            "vendor/autoload.php",
+            "vendor/composer/installed.json"
+          ],
+          "autoload": "vendor/autoload.php",
+          "classes": [
+            "Illuminate\\Foundation\\Application"
+          ],
+          "install_argv": [
+            "${composer_executable}",
+            "install",
+            "--no-interaction",
+            "--no-scripts",
+            "--prefer-dist",
+            "--no-progress"
+          ]
+        }
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "probe_bound_seconds": 20,
+      "install_bound_seconds": 600
+    },
+    "erp-installation-units": {
+      "kind": "units",
+      "php": "${php_executable}",
+      "helper": "${profile_root}/runtime/application.php",
+      "cwd": "${repository}",
+      "bound_seconds": 30,
+      "applications": [
+        {
+          "autoload": "${repository}/calculation-service/vendor/autoload.php",
+          "environment": "${repository}/calculation-service/.env"
+        },
+        {
+          "autoload": "${repository}/planning-workspace/vendor/autoload.php",
+          "environment": "${repository}/planning-workspace/.env"
+        }
+      ],
+      "values": {
+        "QUANTITY_UNITS_LENGTH": "мм",
+        "QUANTITY_UNITS_WIDTH": "мм",
+        "QUANTITY_UNITS_HEIGHT": "мм",
+        "QUANTITY_UNITS_PIECES": "шт",
+        "QUANTITY_UNITS_CALENDAR_DAYS": "д",
+        "PRICE_UNITS_WIRE": "руб./м.",
+        "PRICE_UNITS_CONCRETE": "руб./куб.м.",
+        "PRICE_UNITS_SETUP": "руб./усл.",
+        "COST_UNITS": "руб"
+      },
+      "canonical_keys": [
+        "QUANTITY_UNITS_LENGTH",
+        "QUANTITY_UNITS_WIDTH",
+        "QUANTITY_UNITS_HEIGHT"
+      ]
+    },
+    "erp-application-databases": {
+      "kind": "databases",
+      "read_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read",
+        "${environment_file}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60,
+      "keys": [
+        "PLANNING_WORKSPACE_DATABASE_PATH",
+        "SYSTEM_ADMIN_DATABASE_PATH"
+      ]
+    },
+    "erp-queue-schema": {
+      "kind": "queues",
+      "read_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read",
+        "${environment_file}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60,
+      "keys": [
+        "PLANNING_WORKSPACE_TO_CALCULATION_SERVICE_QUEUE_DATABASE_PATH",
+        "PLANNING_WORKSPACE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH",
+        "CALCULATION_SERVICE_TO_PLANNING_WORKSPACE_QUEUE_DATABASE_PATH"
+      ],
+      "command": [
+        "${php_executable}",
+        "${repository}/platform-infrastructure/tools/local-database-schema.php"
+      ]
+    },
+    "erp-mirrored-packages": {
+      "kind": "mirrors",
+      "cwd": "${repository}/planning-workspace",
+      "paths_argv": [
+        "${php_executable}",
+        "${profile_root}/runtime/application.php",
+        "package-paths",
+        "${repository}/planning-workspace/vendor/autoload.php",
+        "[\"kv1me/excel-output\",\"kv1me/excel-input\",\"kv1me/planning-workspace-core\",\"kv1me/calculation-core\",\"kv1me/erp-calendar-optimizer\"]"
+      ],
+      "repair_argv": [
+        "${composer_executable}",
+        "reinstall",
+        "kv1me/excel-output",
+        "kv1me/excel-input",
+        "kv1me/planning-workspace-core",
+        "kv1me/calculation-core",
+        "kv1me/erp-calendar-optimizer",
+        "--no-interaction",
+        "--no-scripts",
+        "--prefer-dist",
+        "--no-progress"
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "bound_seconds": 600,
+      "packages": {
+        "kv1me/excel-output": "${repository}/planning-workspace/packages/excel-output",
+        "kv1me/excel-input": "${repository}/excel-input",
+        "kv1me/planning-workspace-core": "${repository}/planning-workspace-core",
+        "kv1me/calculation-core": "${repository}/calculation-core",
+        "kv1me/erp-calendar-optimizer": "${repository}/erp-calendar-optimizer"
+      },
+      "excluded_directories": [
+        ".git",
+        "vendor",
+        "node_modules",
+        ".runtime",
+        "__pycache__"
+      ]
+    },
+    "erp-node-document-ui": {
+      "kind": "node",
+      "runtime": "${node_executable}",
+      "cwd": "${repository}/document-ui",
+      "required_files": [
+        "package-lock.json",
+        "node_modules/.package-lock.json"
+      ],
+      "install_argv": [
+        "${node_executable}",
+        "${npm_entry_point}",
+        "ci",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "environment": {},
+      "bound_seconds": 600
+    },
+    "erp-node-playwright": {
+      "kind": "node",
+      "runtime": "${node_executable}",
+      "cwd": "${repository}/platform-infrastructure/tests/playwright",
+      "required_files": [
+        "package-lock.json",
+        "node_modules/.package-lock.json"
+      ],
+      "install_argv": [
+        "${node_executable}",
+        "${npm_entry_point}",
+        "ci",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "environment": {},
+      "bound_seconds": 600
+    },
+    "erp-playwright": {
+      "kind": "playwright",
+      "required_files": [
+        "${repository}/platform-infrastructure/tests/playwright/node_modules/@playwright/test/cli.js",
+        "${repository}/platform-infrastructure/tests/playwright/playwright.cjm.local-development.config.mjs"
+      ]
+    },
+    "erp-cli": {
+      "kind": "artifact",
+      "path": "${repository}/planning-workspace/vendor/kv1me/erp-calendar-optimizer/bin/erp",
+      "format": "php",
+      "validator": [
+        "${php_executable}",
+        "-l"
+      ],
+      "root_tag": "{http://www.w3.org/2001/XMLSchema}schema",
+      "include_tag": "{http://www.w3.org/2001/XMLSchema}include",
+      "cwd": "${repository}/planning-workspace",
+      "bound_seconds": 30,
+      "repair_argv": [
+        "${composer_executable}",
+        "reinstall",
+        "kv1me/erp-calendar-optimizer",
+        "--no-interaction",
+        "--no-scripts",
+        "--prefer-dist"
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "repair_bound_seconds": 600
+    },
+    "erp-verifier": {
+      "kind": "artifact",
+      "path": "${repository}/planning-workspace/vendor/kv1me/erp-calendar-optimizer/bin/verify",
+      "format": "php",
+      "validator": [
+        "${php_executable}",
+        "-l"
+      ],
+      "root_tag": "{http://www.w3.org/2001/XMLSchema}schema",
+      "include_tag": "{http://www.w3.org/2001/XMLSchema}include",
+      "cwd": "${repository}/planning-workspace",
+      "bound_seconds": 30,
+      "repair_argv": [
+        "${composer_executable}",
+        "reinstall",
+        "kv1me/erp-calendar-optimizer",
+        "--no-interaction",
+        "--no-scripts",
+        "--prefer-dist"
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "repair_bound_seconds": 600
+    },
+    "erp-xsd": {
+      "kind": "artifact",
+      "path": "${repository}/planning-workspace/vendor/kv1me/erp-calendar-optimizer/config/schema/spec.xsd",
+      "format": "xml",
+      "validator": [
+        "${php_executable}",
+        "-l"
+      ],
+      "root_tag": "{http://www.w3.org/2001/XMLSchema}schema",
+      "include_tag": "{http://www.w3.org/2001/XMLSchema}include",
+      "cwd": "${repository}/planning-workspace",
+      "bound_seconds": 30,
+      "repair_argv": [
+        "${composer_executable}",
+        "reinstall",
+        "kv1me/erp-calendar-optimizer",
+        "--no-interaction",
+        "--no-scripts",
+        "--prefer-dist"
+      ],
+      "environment": {
+        "COMPOSER_MIRROR_PATH_REPOS": "1"
+      },
+      "repair_bound_seconds": 600
+    },
+    "erp-discovery-planning-workspace": {
+      "kind": "discovery",
+      "command": [
+        "${php_executable}",
+        "artisan",
+        "package:discover",
+        "--no-interaction"
+      ],
+      "probe_argv": [
+        "${php_executable}",
+        "-r",
+        "exit(is_array(require $$argv[1])?0:2);",
+        "${repository}/planning-workspace/bootstrap/cache/packages.php"
+      ],
+      "path": "${repository}/planning-workspace/bootstrap/cache/packages.php",
+      "cwd": "${repository}/planning-workspace",
+      "bound_seconds": 180
+    },
+    "erp-discovery-calculation-service": {
+      "kind": "discovery",
+      "command": [
+        "${php_executable}",
+        "artisan",
+        "package:discover",
+        "--no-interaction"
+      ],
+      "probe_argv": [
+        "${php_executable}",
+        "-r",
+        "exit(is_array(require $$argv[1])?0:2);",
+        "${repository}/calculation-service/bootstrap/cache/packages.php"
+      ],
+      "path": "${repository}/calculation-service/bootstrap/cache/packages.php",
+      "cwd": "${repository}/calculation-service",
+      "bound_seconds": 180
+    },
+    "erp-discovery-system-admin": {
+      "kind": "discovery",
+      "command": [
+        "${php_executable}",
+        "artisan",
+        "package:discover",
+        "--no-interaction"
+      ],
+      "probe_argv": [
+        "${php_executable}",
+        "-r",
+        "exit(is_array(require $$argv[1])?0:2);",
+        "${repository}/system-admin/bootstrap/cache/packages.php"
+      ],
+      "path": "${repository}/system-admin/bootstrap/cache/packages.php",
+      "cwd": "${repository}/system-admin",
+      "bound_seconds": 180
+    },
+    "erp-migrations-planning-workspace": {
+      "kind": "migrations",
+      "read_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read",
+        "${environment_file}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60,
+      "keys": [
+        "PLANNING_WORKSPACE_DATABASE_PATH"
+      ],
+      "tables": [
+        [
+          "draft",
+          "plan",
+          "plan_calculation",
+          "terminal_operation_notifications",
+          "migrations",
+          "calculation_lifecycle_outbox",
+          "calculation_lifecycle_receipts",
+          "calculation_lifecycle_projection"
+        ]
+      ],
+      "command": [
+        "${php_executable}",
+        "artisan",
+        "migrate",
+        "--force",
+        "--no-interaction"
+      ],
+      "command_cwd": "${repository}/planning-workspace"
+    },
+    "erp-migrations-system-admin": {
+      "kind": "migrations",
+      "read_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read",
+        "${environment_file}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60,
+      "keys": [
+        "SYSTEM_ADMIN_DATABASE_PATH"
+      ],
+      "tables": [
+        [
+          "artifact_packages",
+          "artifact_package_upload_audits",
+          "sessions",
+          "migrations"
+        ]
+      ],
+      "command": [
+        "${php_executable}",
+        "artisan",
+        "migrate",
+        "--force",
+        "--no-interaction"
+      ],
+      "command_cwd": "${repository}/system-admin"
+    },
+    "erp-bootstrap-settings": {
+      "kind": "settings",
+      "read_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "read",
+        "${environment_file}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60,
+      "keys": [
+        "PLANNING_WORKSPACE_DATABASE_PATH"
+      ],
+      "query": "SELECT \"group\", name FROM settings",
+      "required_rows": [
+        [
+          "guest_rate_limit_profile",
+          "version"
+        ],
+        [
+          "system_wide_effective_values",
+          "values"
+        ]
+      ],
+      "command": [
+        "${php_executable}",
+        "artisan",
+        "runtime:bootstrap-settings",
+        "--no-interaction"
+      ],
+      "command_cwd": "${repository}/planning-workspace"
+    },
+    "erp-readiness": {
+      "kind": "readiness",
+      "databases": {
+        "read_argv": [
+          "${node_executable}",
+          "${profile_root}/runtime/environment.mjs",
+          "read",
+          "${environment_file}"
+        ],
+        "cwd": "${repository}",
+        "bound_seconds": 60,
+        "keys": [
+          "PLANNING_WORKSPACE_DATABASE_PATH",
+          "SYSTEM_ADMIN_DATABASE_PATH"
+        ],
+        "tables": [
+          [
+            "draft",
+            "plan",
+            "plan_calculation",
+            "terminal_operation_notifications",
+            "migrations",
+            "calculation_lifecycle_outbox",
+            "calculation_lifecycle_receipts",
+            "calculation_lifecycle_projection"
+          ],
+          [
+            "artifact_packages",
+            "artifact_package_upload_audits",
+            "sessions",
+            "migrations"
+          ]
+        ]
+      },
+      "settings": {
+        "read_argv": [
+          "${node_executable}",
+          "${profile_root}/runtime/environment.mjs",
+          "read",
+          "${environment_file}"
+        ],
+        "cwd": "${repository}",
+        "bound_seconds": 60,
+        "keys": [
+          "PLANNING_WORKSPACE_DATABASE_PATH"
+        ],
+        "query": "SELECT \"group\", name FROM settings",
+        "required_rows": [
+          [
+            "guest_rate_limit_profile",
+            "version"
+          ],
+          [
+            "system_wide_effective_values",
+            "values"
+          ]
+        ],
+        "command": [
+          "${php_executable}",
+          "artisan",
+          "runtime:bootstrap-settings",
+          "--no-interaction"
+        ],
+        "command_cwd": "${repository}/planning-workspace"
+      },
+      "cjm_argv": [
+        "${node_executable}",
+        "${profile_root}/runtime/environment.mjs",
+        "cjm",
+        "${repository}/platform-infrastructure/tests/playwright/support/cjm-configuration.mjs",
+        "${repository}",
+        "${cjm_settings_path}"
+      ],
+      "cwd": "${repository}",
+      "bound_seconds": 60
+    }
+  }
+}

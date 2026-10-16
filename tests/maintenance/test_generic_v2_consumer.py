@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import time
 import venv
@@ -21,11 +22,12 @@ def consumer(tmp_path_factory):
     wheel = Path(os.environ["AIP_GENERIC_WHEEL"])
     build = json.loads(Path(os.environ["AIP_GENERIC_BUILD"]).read_text())
     assert hashlib.sha256(wheel.read_bytes()).hexdigest() == build["wheel_sha256"]
-    assert build["source_commit"] == "a980fcd54d0958e0a491efb385ede406453d6899"
+    assert build["source_commit"] == "482b11417f8e74d9bcc1d885767bb16837f3284a"
+    assert hashlib.sha256(wheel.read_bytes()).hexdigest() == "01932116ea61f7da6f6f613ce910bd978a5b46fb91ab1d14b74b9c6ad78e3ba7"
     with zipfile.ZipFile(wheel) as package:
-        metadata = package.read("environment_maintenance-0.2.0.dist-info/METADATA")
+        metadata = package.read("environment_maintenance-0.2.1.dist-info/METADATA")
         assert b"Name: environment-maintenance\n" in metadata
-        assert b"Version: 0.2.0\n" in metadata
+        assert b"Version: 0.2.1\n" in metadata
         assert b"Requires-Python: >=3.11\n" in metadata
         assert not any(name.startswith("poise/") for name in package.namelist())
     root = tmp_path_factory.mktemp("generic-v2-interpreter")
@@ -34,6 +36,25 @@ def consumer(tmp_path_factory):
     installed = subprocess.run([str(python), "-I", "-B", "-m", "pip", "install",
                                 "--no-index", "--no-deps", str(wheel)], capture_output=True)
     assert installed.returncode == 0, (installed.stdout, installed.stderr)
+    layout = root / "bootstrap-layout"
+    layout.mkdir()
+    shutil.copy2(REPO / "bootstrap", layout / "bootstrap")
+    shutil.copytree(REPO / "apps/bootstrap", layout / "apps/bootstrap")
+    # Conditional transport guard: test-owned selection, never the repository lock.
+    shutil.copy2(ACTION.parent / "v2_selected_component.json",
+                 layout / "apps/bootstrap/component.json")
+    identity = subprocess.run([str(python), "-I", "-B", "-c",
+        "import importlib.metadata as m,environment_maintenance as e; "
+        "print(m.version('environment-maintenance')); print(e.__file__)"], capture_output=True)
+    assert identity.returncode == 0, (identity.stdout, identity.stderr)
+    assert identity.stderr == b""
+    version, origin = identity.stdout.decode().splitlines()
+    assert version == "0.2.1"
+    assert Path(origin).is_relative_to(root)
+    with zipfile.ZipFile(wheel) as package:
+        for name in package.namelist():
+            if name.startswith("environment_maintenance/") and name.endswith(".py"):
+                assert (Path(origin).parent.parent / name).read_bytes() == package.read(name)
     return python
 
 
@@ -49,10 +70,12 @@ def catalog(tmp_path, consumer):
     return tmp_path, data
 
 
-def invoke(consumer, catalog, verb="run", *, bootstrap=False, extra=(), env=None):
+def invoke(consumer, catalog, verb="run", *, bootstrap=False, extra=(), env=None,
+           selected_repository=False):
     root, data = catalog
     (root / "catalog.json").write_text(json.dumps(data))
-    entry = [str(REPO / "bootstrap")] if bootstrap else ["-m", "environment_maintenance"]
+    bootstrap_root = REPO if selected_repository else consumer.parent.parent / "bootstrap-layout"
+    entry = [str(bootstrap_root / "bootstrap")] if bootstrap else ["-m", "environment_maintenance"]
     return subprocess.run([str(consumer), "-I", "-B", *entry, verb,
                            "--catalog-dir", str(root), *extra],
                           cwd=root, env=env, capture_output=True)
@@ -288,7 +311,8 @@ def test_package_cli_independent_from_poise(consumer):
 def test_old_directory_without_v2_manifest_never_falls_back(consumer, tmp_path, old):
     fixture = "v1_poison_requirements.json" if old == "requirements.json" else "v1_poison_repairs.json"
     (tmp_path / old).write_bytes((ACTION.parent / fixture).read_bytes())
-    for entry in (["-m", "environment_maintenance"], [str(REPO / "bootstrap")]):
+    for entry in (["-m", "environment_maintenance"],
+                  [str(consumer.parent.parent / "bootstrap-layout/bootstrap")]):
         result = subprocess.run([str(consumer), "-I", "-B", *entry, "check", "--catalog-dir", str(tmp_path)], capture_output=True)
         assert result.returncode == 2
         assert result.stdout == b""
@@ -432,3 +456,190 @@ def test_parameter_expansion_is_exactly_one_pass(consumer, catalog):
     assert result["parameters"]["selected"] == "${count}"
     for item in calls(root):
         assert item["env"]["BOUND"] == "${count}"
+
+
+def test_accepted_supply_inputs(consumer):
+    inputs = json.loads((ACTION.parent / "v2_supply_inputs.json").read_text())
+    for item in inputs["files"]:
+        source = Path(os.environ[item["environment"]])
+        assert source.name == item["name"]
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item["sha256"]
+    manifest = json.loads(Path(os.environ["AIP_GENERIC_DELIVERY"]).read_text())
+    build = json.loads(Path(os.environ["AIP_GENERIC_BUILD"]).read_text())
+    assert manifest["build"] == build
+    assert manifest["version"] == "0.2.1"
+    assert manifest["source_commit"] == "482b11417f8e74d9bcc1d885767bb16837f3284a"
+    assert build["exit_code"] == 0
+    assert build["source_bundle_sha256"] == hashlib.sha256(Path(os.environ["AIP_GENERIC_SOURCE"]).read_bytes()).hexdigest()
+    for stream in ("stdout", "stderr"):
+        assert build[stream + "_sha256"] == hashlib.sha256(Path(os.environ["AIP_GENERIC_BUILD_" + stream.upper()]).read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize("verb,initial,roles", [
+    ("check", "satisfied", ["check"]),
+    ("infra", "missing", ["check", "install", "check"]),
+    ("deps", "invalid", ["check", "repair", "check"]),
+])
+def test_selected_repository_bootstrap(consumer, catalog, verb, initial, roles):
+    root, _ = catalog
+    state(root, initial)
+    row = report(invoke(consumer, catalog, verb, bootstrap=True,
+                        selected_repository=True), 0, "ready")["requirements"][0]
+    assert row["initial_state"] == initial
+    assert row["state"] == "satisfied"
+    observed = calls(root)
+    assert [item["role"] for item in observed] == roles
+    assert observed[0] == observed[-1]
+    if initial != "satisfied":
+        assert row["initial_check"]["invocation"] == row["final_check"]["invocation"]
+        assert row["mutation"]["response"]["action"] == roles[1]
+    assert (root / "resource").read_text() == "valid"
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("bootstrap", [False, True])
+@pytest.mark.parametrize("value", ["\ud800", "\udc80", "\U00010000"])
+def test_opaque_unicode_parameter_has_valid_utf8_json(consumer, catalog, bootstrap, value):
+    root, data = catalog
+    data["parameters"] = {"opaque": {"type": "string", "default": value}}
+    result = invoke(consumer, catalog, "infra" if bootstrap else "run", bootstrap=bootstrap)
+    result.stdout.decode("utf-8", errors="strict")
+    packet = report(result, 0, "ready")
+    assert packet["parameters"]["opaque"] == value
+    assert [item["role"] for item in calls(root)] == ["check", "install", "check"]
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("bootstrap", [False, True])
+def test_posix_catalog_path_round_trips_valid_utf8_json(consumer, catalog, bootstrap):
+    parent, data = catalog
+    raw = os.fsencode(parent) + b"/catalog-\xff"
+    os.mkdir(raw)
+    root = Path(os.fsdecode(raw))
+    (root / "unrelated").write_text("preserve")
+    for role in ("check", "install", "repair"):
+        data["requirements"][0][role]["argv"][4] = str(root)
+        data["requirements"][0][role]["cwd"] = str(root)
+    result = invoke(consumer, (root, data), "infra" if bootstrap else "run", bootstrap=bootstrap)
+    result.stdout.decode("utf-8", errors="strict")
+    row = report(result, 0, "ready")["requirements"][0]
+    assert row["initial_check"]["invocation"]["cwd"] == str(root)
+    assert [item["role"] for item in calls(root)] == ["check", "install", "check"]
+    assert (root / "resource").read_text() == "valid"
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize("field", ["argv", "cwd", "env"])
+def test_unsupported_os_text_rejected_before_any_action(consumer, catalog, role, field):
+    root, data = catalog
+    action = data["requirements"][0][role]
+    if field == "argv":
+        action["argv"].append("\ud800")
+    elif field == "cwd":
+        action["cwd"] += "\ud800"
+    else:
+        action["env"] = {"OPAQUE": "\ud800"}
+    result = invoke(consumer, catalog, "infra", bootstrap=True)
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert ("invalid " + field + " encoding").encode() in result.stderr
+    assert b"Traceback" not in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("initial,role", [("missing", "install"), ("invalid", "repair")])
+@pytest.mark.parametrize("depth", [1100, 12000])
+def test_deep_mutation_response_keeps_final_check(consumer, catalog, initial, role, depth):
+    root, data = catalog
+    state(root, initial)
+    action = data["requirements"][0][role]
+    action["argv"][-1] = f"deep-response={depth}"
+    action["max_output_bytes"] = 32768
+    row = report(invoke(consumer, catalog, "infra", bootstrap=True), 4, "failed")["requirements"][0]
+    assert row["status"] == "failed"
+    assert row["state"] == "satisfied"
+    assert row["mutation"]["status"] == "protocol_failure"
+    assert row["mutation"]["capture_complete"] is True
+    assert row["mutation"]["error"].startswith("Invalid action output:")
+    assert row["final_check"]["status"] == "passed"
+    assert row["initial_check"]["invocation"] == row["final_check"]["invocation"]
+    observed = calls(root)
+    assert [item["role"] for item in observed] == ["check", role, "check"]
+    assert observed[0] == observed[-1]
+    assert (root / "resource").read_text() == "valid"
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("source", ["catalog", "values", "cli", "environment"])
+@pytest.mark.parametrize("depth", [1100, 12000])
+def test_deep_input_is_controlled_before_actions(consumer, catalog, source, depth):
+    root, data = catalog
+    data["parameters"] = {"count": {"type": "integer", "default": 3, "env": "V2_COUNT"}}
+    deep = "[" * depth + "0" + "]" * depth
+    extra = ()
+    env = {}
+    if source == "catalog":
+        # invoke writes the normal fixture first; the entry reads this raw input below.
+        raw = json.dumps(data)[:-1] + ',"extra":' + deep + "}"
+        (root / "catalog.json").write_text(raw)
+        result = subprocess.run([str(consumer), "-I", "-B",
+            str(consumer.parent.parent / "bootstrap-layout/bootstrap"), "infra",
+            "--catalog-dir", str(root)], capture_output=True, env={})
+    else:
+        if source == "values":
+            values = root / "values.json"
+            values.write_text('{"count":' + deep + "}")
+            extra = ("--values", str(values))
+        elif source == "cli":
+            extra = ("--set", "count=" + deep)
+        else:
+            env["V2_COUNT"] = deep
+        result = invoke(consumer, catalog, "infra", bootstrap=True, extra=extra, env=env)
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert result.stderr
+    assert b"Traceback" not in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+    assert (root / "unrelated").read_text() == "preserve"
+
+
+@pytest.mark.parametrize("source", ["cli", "environment"])
+def test_nested_looking_string_is_opaque(consumer, catalog, source):
+    root, data = catalog
+    value = "[" * 12000 + "0" + "]" * 12000
+    data["parameters"] = {"opaque": {"type": "string", "env": "V2_OPAQUE"}}
+    extra = ("--set", "opaque=" + value) if source == "cli" else ()
+    env = {"V2_OPAQUE": value} if source == "environment" else {}
+    packet = report(invoke(consumer, catalog, "infra", bootstrap=True, extra=extra, env=env), 0, "ready")
+    assert packet["parameters"]["opaque"] == value
+    assert [item["role"] for item in calls(root)] == ["check", "install", "check"]
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize("bound", [10**1000, 0, -1, 3601, True, "1", float("nan"), float("inf")],
+                         ids=["huge-integer", "zero", "negative", "above-upper", "boolean", "text", "nan", "infinity"])
+def test_invalid_numeric_bound_rejected_before_actions(consumer, catalog, role, bound):
+    root, data = catalog
+    data["requirements"][0][role]["execution_bound_seconds"] = bound
+    result = invoke(consumer, catalog, "infra", bootstrap=True)
+    assert result.returncode == 2
+    assert result.stdout == b""
+    assert b"execution_bound_seconds" in result.stderr
+    assert b"Traceback" not in result.stderr
+    assert calls(root) == []
+    assert not (root / "resource").exists()
+
+
+@pytest.mark.parametrize("bound", [0.001, 3600])
+def test_numeric_bound_valid_controls(consumer, catalog, bound):
+    root, data = catalog
+    state(root, "satisfied")
+    data["requirements"][0]["install"]["execution_bound_seconds"] = bound
+    data["requirements"][0]["check"]["execution_bound_seconds"] = 3600
+    row = report(invoke(consumer, catalog, "infra", bootstrap=True), 0, "ready")["requirements"][0]
+    assert row["state"] == "satisfied"
+    assert [item["role"] for item in calls(root)] == ["check"]
+    assert (root / "resource").read_text() == "valid"

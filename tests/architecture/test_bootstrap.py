@@ -13,7 +13,8 @@ import venv
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCK = json.loads((ROOT / "apps/bootstrap/component.json").read_text(encoding="utf-8"))
+LOCK_FIXTURE = ROOT / "tests/maintenance/fixtures/v2_selected_component.json"
+LOCK = json.loads(LOCK_FIXTURE.read_text(encoding="utf-8"))
 ERROR_FIELDS = {
     "schema", "source", "status", "code", "command", "cause",
     "recommendations", "exit_code",
@@ -33,6 +34,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
         self.layout.mkdir()
         shutil.copy2(ROOT / "bootstrap", self.layout / "bootstrap")
         shutil.copytree(ROOT / "apps/bootstrap", self.layout / "apps/bootstrap")
+        shutil.copy2(LOCK_FIXTURE, self.layout / "apps/bootstrap/component.json")
         self.venv_root = self.root / "venv"
         venv.EnvBuilder(with_pip=False).create(self.venv_root)
         self.python = self.venv_root / "bin/python"
@@ -44,7 +46,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
         self.calls = self.root / "calls.jsonl"
         self.install_component()
 
-    def install_component(self, *, version: str = "0.2.0", module: bool = True) -> None:
+    def install_component(self, *, version: str = "0.2.1", module: bool = True) -> None:
         metadata = self.site_packages / f"environment_maintenance-{version}.dist-info"
         metadata.mkdir()
         (metadata / "METADATA").write_text(
@@ -112,7 +114,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
         lock = json.loads((self.layout / "apps/bootstrap/component.json").read_text())
         self.assertEqual(lock["schema"], "ai-poise/bootstrap-component/v1")
         self.assertEqual(lock["distribution"], "environment-maintenance")
-        self.assertEqual(lock["version"], "0.2.0")
+        self.assertEqual(lock["version"], "0.2.1")
 
     def test_bootstrap_surface_excludes_engine_copy_and_legacy_route(self) -> None:
         source = (self.layout / "bootstrap").read_text(encoding="utf-8")
@@ -243,21 +245,21 @@ class BootstrapBoundaryTest(unittest.TestCase):
         )
 
     def test_wrong_distribution_version_is_rejected(self) -> None:
-        shutil.rmtree(self.site_packages / "environment_maintenance-0.2.0.dist-info")
+        shutil.rmtree(self.site_packages / "environment_maintenance-0.2.1.dist-info")
         self.install_component(version="0.1.1", module=False)
         self.assert_bootstrap_error(
             self.invoke("infra", "--catalog-dir", "/selected"), "component_version_mismatch", 3, "infra",
         )
 
     def test_parent_visible_but_isolated_child_invisible_is_missing(self) -> None:
-        shutil.rmtree(self.site_packages / "environment_maintenance-0.2.0.dist-info")
+        shutil.rmtree(self.site_packages / "environment_maintenance-0.2.1.dist-info")
         shutil.rmtree(self.site_packages / "environment_maintenance")
         parent_site = self.root / "parent-site"
         parent_site.mkdir()
-        metadata = parent_site / "environment_maintenance-0.2.0.dist-info"
+        metadata = parent_site / "environment_maintenance-0.2.1.dist-info"
         metadata.mkdir()
         (metadata / "METADATA").write_text(
-            "Metadata-Version: 2.1\nName: environment-maintenance\nVersion: 0.2.0\n",
+            "Metadata-Version: 2.1\nName: environment-maintenance\nVersion: 0.2.1\n",
             encoding="utf-8",
         )
         package = parent_site / "environment_maintenance"
@@ -269,7 +271,7 @@ class BootstrapBoundaryTest(unittest.TestCase):
             [str(self.python), "-B", "-c", "import importlib.metadata as m; print(m.version('environment-maintenance'))"],
             capture_output=True, env={**os.environ, **environment},
         )
-        self.assertEqual(visible.stdout, b"0.2.0\n")
+        self.assertEqual(visible.stdout, b"0.2.1\n")
         self.assert_bootstrap_error(
             self.invoke("check", "--catalog-dir", "/selected", extra_env=environment),
             "component_missing", 3, "check",

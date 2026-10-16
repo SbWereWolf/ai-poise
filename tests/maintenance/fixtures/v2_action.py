@@ -31,6 +31,9 @@ else:
     response = {"schema": "environment-maintenance/action-result/v2",
                 "requirement_id": identifier, "action": role, "outcome": "completed"}
 output = json.dumps(response, separators=(",", ":")).encode()
+if mode.startswith("deep-response="):
+    depth = int(mode.split("=")[1])
+    output = output[:-1] + b',"extra":' + b"[" * depth + b"0" + b"]" * depth + b"}"
 if "V2_BAD_FIELD" in os.environ:
     response[os.environ["V2_BAD_FIELD"]] = os.environ["V2_BAD_VALUE"]
     output = json.dumps(response, separators=(",", ":")).encode()

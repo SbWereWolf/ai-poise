@@ -1,0 +1,35 @@
+{
+  "source_commit": "482b11417f8e74d9bcc1d885767bb16837f3284a",
+  "files": [
+    {
+      "name": "environment_maintenance-0.2.1-py3-none-any.whl",
+      "environment": "AIP_GENERIC_WHEEL",
+      "sha256": "01932116ea61f7da6f6f613ce910bd978a5b46fb91ab1d14b74b9c6ad78e3ba7"
+    },
+    {
+      "name": "source.bundle",
+      "environment": "AIP_GENERIC_SOURCE",
+      "sha256": "ad742873b12521979c5c6d824a8082c00e11194e3bf42b842d1cd822d406b250"
+    },
+    {
+      "name": "build-record.json",
+      "environment": "AIP_GENERIC_BUILD",
+      "sha256": "e5d13db9baae94b92e756ac2f4aa82a8d1a62bbf120b772e5731a61af5643213"
+    },
+    {
+      "name": "manifest.json",
+      "environment": "AIP_GENERIC_DELIVERY",
+      "sha256": "e8a8a9d398c022a00267737f9847c842418b5da6892e4bdebc1215accab1341b"
+    },
+    {
+      "name": "build.stdout",
+      "environment": "AIP_GENERIC_BUILD_STDOUT",
+      "sha256": "66abc3aa34e3d907c9781742f2ae2851095dd33db8f8582d8f24f747373107fd"
+    },
+    {
+      "name": "build.stderr",
+      "environment": "AIP_GENERIC_BUILD_STDERR",
+      "sha256": "8995e8cc62d964b7fedcbe7e25c28a9639531d076bc4981c73e741bf687c51eb"
+    }
+  ]
+}

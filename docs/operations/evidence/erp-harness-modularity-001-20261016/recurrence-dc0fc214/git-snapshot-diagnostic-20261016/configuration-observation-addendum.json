@@ -1,0 +1,8 @@
+{
+  "kind": "later-independent-configuration-observation",
+  "original_proposal_preserved": "process-configuration-plan.json",
+  "earlier_executor_observation": "Shared /erp/.git/config core.fsmonitor=true; native Git2.43.0 reported unsupported builtin fsmonitor",
+  "later_reviewer_observation": "Effective and explicit shared-file core.fsmonitor queries both returned exit1/no value; reviewer made no configuration writes",
+  "writer_or_unique_timeout_cause_attributed": false,
+  "scope_approval_unchanged": "Only explicitly append process-level core.fsmonitor=false, preserve inherited entries, same15s and real checks"
+}

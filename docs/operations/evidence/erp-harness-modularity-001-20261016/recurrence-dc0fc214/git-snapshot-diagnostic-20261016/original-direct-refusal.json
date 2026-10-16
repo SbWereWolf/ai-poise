@@ -1,0 +1,4 @@
+{
+  "status": "rejected",
+  "reason": "Git не завершил операцию add: Command '['git', '-C', '/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001', 'add', '--all']' timed out after 15.0 seconds"
+}

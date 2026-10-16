@@ -1,0 +1,92 @@
+{
+  "artifacts": {
+    "evidence_bytes": 0,
+    "evidence_files": 0,
+    "evidence_manifest_path": null,
+    "evidence_manifest_sha256": null,
+    "evidence_root": null,
+    "evidence_status": "not_declared",
+    "ledger_path": "ai-assistant/checks/data/ledger.sqlite3",
+    "log_bytes": 47,
+    "log_path": ".runtime/checks/chk_20261016T051717Z_f5b0943c78/result/command.log",
+    "log_sha256": "05ca7072584ff0ec76d98f153b0b9e99275417e511a5e988d7493174828b7363",
+    "progress_path": null,
+    "record_path": ".runtime/checks/chk_20261016T051717Z_f5b0943c78/result/record.json"
+  },
+  "calibration": {
+    "automatic": true,
+    "command": null,
+    "observed_progress_gap_seconds": null,
+    "observed_success_seconds": 72.867,
+    "previous_observed_max_progress_gap_seconds": 0.0,
+    "previous_observed_max_success_seconds": 78.77,
+    "recommended_execution_timeout_seconds": 87,
+    "recommended_stall_timeout_seconds": null,
+    "required": false,
+    "status": "current"
+  },
+  "check_id": "chk_20261016T051717Z_f5b0943c78",
+  "dependencies": {
+    "missing_environment": [],
+    "missing_executables": [],
+    "missing_files": []
+  },
+  "duration_ms": 72867,
+  "evidence_scope": null,
+  "exit_code": 0,
+  "finished_at": "2026-10-16T05:18:30Z",
+  "parser": {
+    "confirmed": true,
+    "counts": {},
+    "failures": [],
+    "name": "generic"
+  },
+  "profile": {
+    "argv": [
+      "bash",
+      "ai-assistant/bootstrap/python-runtime.sh",
+      "ai-assistant/tests/checks/run-check.py"
+    ],
+    "command_id": "harness-runner-contracts",
+    "cwd": ".",
+    "evidence_id": null,
+    "parser": "generic",
+    "runtime_class": "posix-host",
+    "workload_class": "default"
+  },
+  "progress": {
+    "age_seconds": null,
+    "anomaly_count": 0,
+    "event_count": 0,
+    "last_event_at": null,
+    "last_output_at": "2026-10-16T05:18:30Z",
+    "last_value": null,
+    "max_gap_seconds": 0.0,
+    "observability": "unavailable",
+    "output_age_seconds": 0.093,
+    "output_bytes": 47
+  },
+  "runtime": {
+    "pid": 362682,
+    "platform": "linux",
+    "platform_release": "6.18.40.1-microsoft-standard-WSL2",
+    "python": "3.12.3"
+  },
+  "schema_version": 1,
+  "started_at": "2026-10-16T05:17:18Z",
+  "status": "passed",
+  "summary": "registered command runner contracts passed: 20",
+  "termination": null,
+  "timeout": {
+    "configured_seconds": 87,
+    "effective_seconds": 87,
+    "evidence_check_id": null,
+    "override_reason": null,
+    "override_seconds": null
+  },
+  "verified_success": true,
+  "workspace": {
+    "head": "a8ae8509d8c1204805e892bf6b2f24bb37e7b91a",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

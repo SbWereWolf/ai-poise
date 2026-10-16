@@ -530,3 +530,20 @@ def test_native_context_explains_explicit_project_selection(
                                              'primary')
     assert binding['launcher'] in text
     assert '--project' in text
+
+
+@pytest.mark.parametrize('option', ['--settings', '--binding'])
+def test_entry_arguments_cannot_override_the_owned_transport_location(
+        selected_case, option):
+    case = selected_case
+    before = rows(case['source_db'])
+    value = str(case['hook_settings']) if option == '--settings' else \
+    case['binding']['binding_path']
+
+    result = invoke(case, '--project', 'selected-project', option,
+                    value)
+
+    assert result.returncode == 2
+    assert result.stdout or result.stderr
+    assert rows(case['source_db']) == before
+    assert not case['selected_db'].exists()

@@ -1,1 +1,1 @@
-{"operation":"show","input":{"queries":[{"id":"current","kind":"task"}]},"messages":[{"conversation_id":"selected-conversation","message_id":"selected-visible-turn","occurred_at":null,"reason":null,"subject":null}]}
+{"operation":"show","input":{"queries":[{"id":"current","kind":"task"}]},"messages":[{"conversation_id":"selected-conversation","message_id":"selected-visible-turn","occurred_at":"2026-10-16T00:00:00+00:00","reason":"authorization","subject":"selected-subject"}]}

@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import shlex
 import string
+from dataclasses import replace
 from ..common import PoiseError,descendant,exact_keys,digest,file_digest,encoded,load_config
 from ..modules.hook_transport.domain import HookDefinition,parse_native_event,merge_hook_document
 from ..modules.capabilities.domain import positive
@@ -107,6 +108,18 @@ class HookSettings:
         if len(minimal)>s['output_chars']:raise PoiseError('Output budget cannot fit the configured receipt address')
         if 'capability_summary' in s:
             self.require_summary()
+        if 'project_launcher' in s:
+            value=configuration_fields(s['project_launcher'],{'settings_path','context_template'},'project_launcher')
+            nonempty(value['settings_path'],'project_launcher.settings_path')
+            if not Path(value['settings_path']).is_absolute():
+                raise PoiseError('project_launcher.settings_path requires an absolute path')
+            nonempty(value['context_template'],'project_launcher.context_template')
+            try:
+                fields={field for _,field,_,_ in string.Formatter().parse(value['context_template']) if field is not None}
+                if fields!={'launcher'}:raise ValueError('Expected launcher field')
+                value['context_template'].format(launcher='sample')
+            except (KeyError,ValueError,IndexError) as exc:
+                raise PoiseError('Invalid project_launcher.context_template') from exc
 
     def require_summary(self):
         """The feature is mandatory for its operations, independent of core inspection."""
@@ -187,11 +200,12 @@ class HookSettings:
         return self._direct_command(['-B'],verb,*args)
 
     def launcher_bytes(self, binding_path):
-        return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + '\n').encode()
+        return ('#!/bin/sh\nexec ' + self.command('hook-work', '--binding', str(binding_path)) + ' "$@"\n').encode()
 
     def prior_launcher_commands(self,verb,*args):
         """Exact superseded forms accepted only for an owned launcher upgrade."""
         return (
+            self._direct_command(['-B'],verb,*args),
             self._superseded_guarded_command(['-B'],verb,*args),
             self._superseded_guarded_command([],verb,*args),
             self._direct_command([],verb,*args),
@@ -602,6 +616,11 @@ class HookService:
                           'systemMessage': str(exc)}
         else:
             result = self._runtime_event(definition, native, binding, event, None)
+        if native['event'] in ('SessionStart','UserPromptSubmit') and 'project_launcher' in self.settings.raw:
+            result['hookSpecificOutput']['additionalContext'] += '\n' + self.settings.raw['project_launcher']['context_template'].format(launcher=binding['launcher'])
+            limit=next(e['context_limit'] for e in definition.data['events'] if e['event']==native['event'])
+            if len(result['hookSpecificOutput']['additionalContext'])>limit:
+                raise PoiseError('Project selection context exceeds configured native context limit')
         return result, definition, native, binding
 
     def _runtime_event(self,definition,native,binding,event,event_id):
@@ -710,9 +729,57 @@ class HookService:
             raise PoiseError('Invoking native session identity does not own this launcher; use its own SessionStart launcher')
         return record, message
 
-    def work(self,binding_path,packet):
+    def _selected_work(self, project_id, record, packet):
+        from ..application.project_launch import ProjectLaunchCommands
+        from .project_launch import FileProjectLaunch
+        from ..modules.projects.launch import text
+        from ..modules.hook_transport.domain import MissingHookBinding
+        from .clock import SystemClock
+        from ..modules.work.domain import parse_request
+        from .result_views import preflight_work_result
+        text(project_id,'project_id')
+        options=self.settings.raw.get('project_launcher')
+        if options is None:raise PoiseError('Explicit project selection requires project_launcher configuration')
+        port=FileProjectLaunch()
+        selected=replace(port.read_settings(options['settings_path']),project_id=project_id)
+        config_path=Path(ProjectLaunchCommands(port).resolve(selected)).resolve()
+        if config_path==self.settings.project_config:
+            return None
+        _,cfg,_=load_config(config_path)
+        hooks=cfg['runtime_resources']['hooks']
+        if hooks:
+            candidates=[]
+            for association in hooks:
+                target=HookService(association['settings_path'])
+                if target.settings.project_config!=config_path:
+                    raise PoiseError('Selected hook association does not bind its project manifest')
+                try:
+                    binding=target.registry.find(record['external_session'],None)
+                except MissingHookBinding:
+                    continue
+                if target.definition(binding['definition_path']).data['id']!=association['installation_id']:
+                    raise PoiseError('Selected hook installation does not match its native binding')
+                candidates.append((target,binding))
+            if len(candidates)!=1:
+                raise PoiseError('Selected hooked project requires its own native binding; use its own native launcher')
+            target,binding=candidates[0]
+            result=target.work(binding['binding_path'],packet)
+            self.runtime=target.runtime
+            return result
+        caller=CallerIdentity.native(cfg['project'],record['external_session'])
+        h=establish_poise(config_path,caller,[],SystemClock()).runtime
+        self.runtime=h
+        h.store.ensure_session(h.session)
+        req=parse_request(packet,h.cfg['batch'])
+        preflight_work_result(h,req)
+        return WorkTools(h).invoke(req)
+
+    def work(self,binding_path,packet,project_id=None):
         from .clock import SystemClock
         record,message=self._owned_record(binding_path)
+        if project_id is not None:
+            selected=self._selected_work(project_id,record,packet)
+            if selected is not None:return selected
         caller=CallerIdentity.native(record['project'],record['external_session'])
         h=establish_poise(
             self.settings.project_config,

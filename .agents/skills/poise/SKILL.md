@@ -995,3 +995,7 @@ is initial audit,
 not admission. Keep actual owner/path/type/link/foreign-material checks. Follow the
 [operator
 scope](../../../docs/workflows/terminal-materials.md#владение-каталогом-и-намеренная-замена).
+
+For explicit project selection through the supplied native entry, follow the short
+[setup instruction](../../references/project-storage-setup.md#session-launcher-project-selection).
+Use one exact selector and the selected project's own message contract.

@@ -8,6 +8,10 @@ from ..capabilities.domain import ProbeSpec,positive
 from ..foundation.validation import nonempty
 from ..foundation.errors import PoiseError
 
+class MissingHookBinding(PoiseError):
+    """No genuine binding exists for the requested native identity."""
+
+
 EVENTS={'SessionStart','UserPromptSubmit','Stop','SessionEnd'}
 CONTEXT_EVENTS={'SessionStart','UserPromptSubmit'}
 SESSION_START_SOURCES=('startup','resume','clear','compact','fork')

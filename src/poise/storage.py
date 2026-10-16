@@ -33,6 +33,11 @@ class Store:
         with self.transaction() as db:
             db.execute('INSERT INTO sessions VALUES(?,?) ON CONFLICT(id) DO UPDATE SET task_id=excluded.task_id', (session,task_id))
 
+    def ensure_session(self, session: str) -> None:
+        """Register an idle session without changing an existing worktree claim."""
+        with self.transaction() as db:
+            db.execute('INSERT INTO sessions(id,task_id) VALUES(?,NULL) ON CONFLICT(id) DO NOTHING', (session,))
+
     def current(self, session: str) -> dict | None:
         with self.transaction() as db:
             rows=db.execute('SELECT id FROM tasks WHERE claimed_by=? ORDER BY id',(session,)).fetchall()

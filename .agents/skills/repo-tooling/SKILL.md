@@ -22,6 +22,16 @@ The authorized tooling behavior, actual owner/API and protocol, current Task/sta
 8. Verify the changed behavior and boundaries with targeted tests and the maintained fast smoke; full suites belong only to release preparation. Exercise a second run and interrupted-run recovery where idempotency is required. Inspect tests and code under the existing two-role workflow; self-review does not count as independent review.
 9. Update the owned instruction/example/schema that changed. Use [rule ownership](references/agent-rules-architecture.md) and [bounded context](references/agent-prompting-and-token-policy.md) rather than copying a document-read registry or adding a second policy owner. Check all directly affected links and executable claims.
 
+## General instruction selection
+
+Reuse the existing skills dispatcher for general file-scoped preparation and
+preserve the specialized selector's ownership. Execute the selected operation
+once; do not introduce another controller or Task lifecycle. Machine responses
+retain complete bodies and diagnostics; only the common caller owns bounded
+agent presentation. Follow
+[the canonical preparation contract](../../../docs/configuration/development-routing.md#подготовка-инструкций-по-файлам)
+for explicit roots, policy, refresh and readiness.
+
 ## Output
 
 The implemented tool contract and focused tests, exact input/result/exit/error behavior, replay/recovery evidence, source/runtime identity and bounded diagnostic links in the existing Task/evidence/artifact owners. Link remaining external capabilities, not invented successes. Transfer via public handoff; this skill does not authorize acceptance, master integration or publication.

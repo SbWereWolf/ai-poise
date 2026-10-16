@@ -724,10 +724,39 @@ Cleanup state хранится в существующем Task execution snapsh
 ## Метаданные skills (C005.1)
 
 Обновлено: 2026-09-15. `modules/skills` владеет неизменяемыми дескрипторами навыков.
-Infrastructure проверяет явно выбранный каталог и пути, но не читает тела инструкций.
+В metadata режимах infrastructure проверяет явно выбранный каталог и пути;
+получение тел выбранных инструкций принадлежит отдельному prepare.
 Task/Sprint продолжают владеть готовностью и жизненным циклом; чистый владелец
 FocusedDecomposition потребляет классификацию, а не поддерживает второй inventory.
 Контракт и отображение классов: [каталог skills](../configuration/skill-catalog.md).
+
+Общий file-selection имеет следующих владельцев:
+
+| Владелец | Ответственность |
+|---|---|
+| modules/skills/instructions | Чистые policy, profile matching, scopes/reasons, identity, availability diagnostics и delta. |
+| modules/skills/instruction_ports | InstructionSource: узкий порт наблюдения контекста и материалов. |
+| application/ProjectInstructions | Композиция request → project context → policy/catalogue → paths/previous → selection → observation → result. |
+| infrastructure/FileInstructionSource | Read-only manifest/Git binding, metadata, exact ancestor discovery и UTF-8 byte observation. |
+| interfaces.skills | Единственный operation dispatcher, полное JSON представление и exit code. |
+
+Обратная проверка content/SHA ведёт к одному чтению исходных bytes;
+required/scopes/reasons — к policy и конкретным рабочим путям; delta — к текущим
+наблюдениям и проверенному previous. Domain не читает диск, application не создаёт
+Task/runner, CLI не ведёт второй lifecycle. Общий prepare выбирается перед eager
+legacy loader; специализированный DevelopmentRouting сохраняет stage/facts/checks
+и не заменяется общим file-selection.
+
+ERP donor: commit16c5b906615e57a5b5f89b495c42b79f51eab87e,
+ai-assistant/agent/effective-policy-manifest.py. Повторно использованы
+OrderedValues/ReasonMap, universal/profile selection, ancestor rules и file_delta;
+адаптации ограничены явными file scopes, обязательностью, identity и шестью
+сравниваемыми полями. ERP runtime/Task policy не перенесены.
+Действующий load_config читает полный project manifest; отсутствие Task API/DB
+в этом потоке не означает полного удаления Task plugins.
+Автоматическая nativehook интеграция и доказательство применения инструкций моделью
+не реализованы. Операторский договор:
+[подготовка инструкций по файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
 
 
 ## Проверенное повторное использование семейного результата

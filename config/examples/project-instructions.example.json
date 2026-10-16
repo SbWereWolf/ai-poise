@@ -1,0 +1,33 @@
+{
+  "schema": "poise-project-instruction-policy-1",
+  "version": "1",
+  "universal_skills": [
+    "self-review"
+  ],
+  "profiles": [
+    {
+      "name": "application",
+      "paths": [
+        "src/"
+      ],
+      "baseline": [
+        "ddd"
+      ],
+      "recommended_skills": [
+        "tdd"
+      ],
+      "profile_file": null
+    },
+    {
+      "name": "documentation",
+      "paths": [
+        "docs/"
+      ],
+      "baseline": [
+        "documentation"
+      ],
+      "recommended_skills": [],
+      "profile_file": null
+    }
+  ]
+}

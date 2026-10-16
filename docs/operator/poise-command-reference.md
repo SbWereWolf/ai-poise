@@ -34,7 +34,7 @@ poise=( "${poise_python:?Укажите абсолютный путь устан
 | `result-view` | Обязательные `--response PATH --view brief\|expanded\|full --output-chars INT`. | Представление уже сохранённого полного ответа с явным бюджетом. |
 | `next` | Обязательный `--settings PATH`, необязательный `--project EXACT_ID`. | Доступные задачи настроенных проектов без захвата. |
 | `requirements` | Обязательный `--config PATH`; JSON stdin. | Query/Command реестра требований выбранного проекта. |
-| `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Чтение метаданных навыков и проверка декомпозиции без Task. |
+| `skills` | Обязательные `--catalog PATH --root PATH`; JSON stdin. | Метаданные, проверка декомпозиции и prepare инструкций по файлам без Task. |
 
 Обычная работа использует launcher, выданный нативным hook для этой сессии:
 
@@ -50,6 +50,15 @@ bash "${AI_POISE_WORK:?Путь родного session work.sh}" < "$packet"
 `response` — существующий response.json; `project_id` — точный настроенный ID;
 `skill_catalog` и `skill_root` — явно выбранные каталог метаданных и корень навыков.
 Full view возвращает ссылку на полный файл. Чтение результата не повторяет операцию.
+
+Для skills/prepare packet содержит ровно operation=prepare, project_config,
+checkout, policy, paths, previous. Первые три пути абсолютные, paths — непустой
+набор конкретных относительных файлов, previous=null при первом запросе.
+--catalog и --root выбирают metadata и корень инструкций независимо от checkout.
+Полная форма, заполнение обезличенного примера, BODY/готовность/диагностика/refresh:
+[подготовка инструкций по файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
+Это отдельный режим того же dispatcher; вызов не требует Task и не подключает
+автоматическое получение инструкций к native hooks.
 
 Владельцы: [API работы](../workflows/batch-work.md),
 [представления сохранённого

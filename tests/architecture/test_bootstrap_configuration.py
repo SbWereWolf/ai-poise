@@ -29,7 +29,7 @@ def test_external_tool_config_has_a_versioned_example():
     value = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
     assert isinstance(value.get("python"), str) and value["python"], "TOOL-EXAMPLE: explicit interpreter value required"
-    assert Path(value["python"]).is_absolute(), "TOOL-EXAMPLE: explicit absolute interpreter path required"
+    assert value["python"] == "${PYTHON_EXECUTABLE}", "TOOL-EXAMPLE: explicit interpreter placeholder required"
 
 
 def test_working_configs_are_ignored_and_only_examples_are_versioned():

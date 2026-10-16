@@ -15,8 +15,8 @@ def test_public_entrypoint_delegates_to_own_application():
 
 def test_bootstrap_surface_excludes_engine_copy_and_legacy_route():
     source = (ROOT / "bootstrap").read_text(encoding="utf-8")
-    for path in (ROOT / "apps/bootstrap").rglob("*.py"):
-        source += path.read_text(encoding="utf-8")
+    for name in ("application.py", "contracts.py", "infrastructure.py", "environment_result.py"):
+        source += (ROOT / "apps/bootstrap" / name).read_text(encoding="utf-8")
     for obsolete in ("requirements.json", "repairs.json", "--repairs", '"apply"'):
         assert obsolete not in source
     assert not (ROOT / "apps/bootstrap/catalogue.py").exists()

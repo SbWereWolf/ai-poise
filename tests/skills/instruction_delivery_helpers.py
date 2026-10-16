@@ -25,6 +25,9 @@ def fixture(name):
 
 
 def body(name):
+    if name in ('core', 'changed-billing'):
+        # Escaped JSON line endings survive Git's text normalization.
+        return fixture(name + '.json')['content'].encode('utf-8')
     return (FIXTURES / (name + '.md')).read_bytes()
 
 

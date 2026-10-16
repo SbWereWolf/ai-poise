@@ -9,7 +9,7 @@ import sys
 
 from poise.application.requirements_registry import RequirementsCommands
 from poise.modules.foundation.strict_json import strict_json
-from poise.infrastructure.requirements_registry import RequirementsStore
+from apps.requirements.storage import RequirementsStore
 from poise.modules.foundation.errors import PoiseError
 from poise.modules.tasks.allocation import TaskIdPolicy
 

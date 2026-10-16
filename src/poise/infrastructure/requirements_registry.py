@@ -28,6 +28,12 @@ class RequirementsStore:
     SCHEMA_VERSION = 2
 
     def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None):
+        self._configure(database, lock, lock_seconds, poll_seconds, project_fence)
+        with self._transaction() as connection:
+            self._initialize_legacy(connection)
+
+    def _configure(self, database, lock, lock_seconds, poll_seconds, project_fence=None):
+        self._backend = None
         self.project_fence = project_fence
         self.database = Path(database)
         self.lock = Path(lock)
@@ -36,37 +42,48 @@ class RequirementsStore:
                 raise PoiseError("Requirements store requires positive finite lock limits")
         self.lock_seconds = lock_seconds
         self.poll_seconds = poll_seconds
-        with self._transaction() as connection:
-            version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
-                if connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
-                    raise PoiseError("Unknown Requirements DB; automatic migration is forbidden")
-                connection.execute("CREATE TABLE requirements_meta(revision INTEGER NOT NULL)")
-                connection.execute("INSERT INTO requirements_meta(revision) VALUES(0)")
-                connection.execute(
-                    "CREATE TABLE requirements("
-                    "id TEXT PRIMARY KEY, level TEXT NOT NULL, status TEXT NOT NULL, text TEXT NOT NULL)"
-                )
-                connection.execute(
-                    "CREATE TABLE requirement_links("
-                    "system_id TEXT NOT NULL REFERENCES requirements(id), "
-                    "application_id TEXT NOT NULL REFERENCES requirements(id), "
-                    "PRIMARY KEY(system_id,application_id))"
-                )
-                connection.execute(
-                    "CREATE TABLE requirement_requests("
-                    "request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, response TEXT NOT NULL)"
-                )
-                schema_2(connection)
-            elif version == 1:
-                raise PoiseError(
-                    'Requirements DB schema 1 requires explicit migration. Send '
-                    '{"operation":"migrate","input":{}} to python -m poise requirements '
-                    '--config <selected-project-config> using the same project manifest; '
-                    'automatic migration is forbidden.'
-                )
-            elif version != self.SCHEMA_VERSION:
-                raise PoiseError("Requirements DB schema is incompatible; migration is not performed")
+
+    @classmethod
+    def standalone(cls, database, lock, lock_seconds, poll_seconds, backend):
+        """Compose an explicitly selected persistence backend with this owner."""
+        store = cls.__new__(cls)
+        store._configure(database, lock, lock_seconds, poll_seconds)
+        store._backend = backend
+        with store._transaction() as connection:
+            backend.initialize(connection)
+        return store
+
+    def _initialize_legacy(self, connection):
+        version = connection.execute("PRAGMA user_version").fetchone()[0]
+        if version == 0:
+            if connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
+                raise PoiseError("Unknown Requirements DB; automatic migration is forbidden")
+            connection.execute("CREATE TABLE requirements_meta(revision INTEGER NOT NULL)")
+            connection.execute("INSERT INTO requirements_meta(revision) VALUES(0)")
+            connection.execute(
+                "CREATE TABLE requirements("
+                "id TEXT PRIMARY KEY, level TEXT NOT NULL, status TEXT NOT NULL, text TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE requirement_links("
+                "system_id TEXT NOT NULL REFERENCES requirements(id), "
+                "application_id TEXT NOT NULL REFERENCES requirements(id), "
+                "PRIMARY KEY(system_id,application_id))"
+            )
+            connection.execute(
+                "CREATE TABLE requirement_requests("
+                "request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, response TEXT NOT NULL)"
+            )
+            schema_2(connection)
+        elif version == 1:
+            raise PoiseError(
+                'Requirements DB schema 1 requires explicit migration. Send '
+                '{"operation":"migrate","input":{}} to python -m poise requirements '
+                '--config <selected-project-config> using the same project manifest; '
+                'automatic migration is forbidden.'
+            )
+        elif version != self.SCHEMA_VERSION:
+            raise PoiseError("Requirements DB schema is incompatible; migration is not performed")
 
     @staticmethod
     def migrate(database, lock, lock_seconds, poll_seconds):
@@ -90,14 +107,21 @@ class RequirementsStore:
     def _transaction(self):
         # Reserve the writer before reading revision/request state. Only the
         # shared BEGIN/COMMIT boundary may retry; this body is never replayed.
-        with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-            with write_transaction(
-                self.database, self.lock, self.lock_seconds, self.poll_seconds
-            ) as connection:
-                yield connection
+        try:
+            with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+                with write_transaction(
+                    self.database, self.lock, self.lock_seconds, self.poll_seconds
+                ) as connection:
+                    yield connection
+        except (sqlite3.Error, OSError) as exc:
+            if self._backend is not None:
+                raise PoiseError(f"Requirements database operation failed: {exc}") from exc
+            raise
 
-    @staticmethod
-    def _registry(connection):
+    def _registry(self, connection):
+        if self._backend is not None:
+            rows = self._backend.registry_rows(connection)
+            return RequirementsRegistry.restore(rows['requirements'], rows['links'])
         requirements = [
             dict(row)
             for row in connection.execute(
@@ -140,6 +164,8 @@ class RequirementsStore:
         try:
             with self._transaction() as connection:
                 revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
+                if self._backend is not None:
+                    self._backend.prepare_queries(connection)
                 registry = None
                 results = []
                 for index, item in enumerate(queries):
@@ -212,16 +238,24 @@ class RequirementsStore:
             raise DomainError("Requirements request_id must be nonempty")
         if type(request["expected_revision"]) is not int or request["expected_revision"] < 0:
             raise DomainError("Requirements expected_revision must be nonnegative")
-        digest = hashlib.sha256(_encoded(request).encode()).hexdigest()
+        digest = (hashlib.sha256(_encoded(request).encode()).hexdigest()
+                  if self._backend is None else None)
         with self._transaction() as connection:
-            previous = connection.execute(
-                "SELECT digest,response FROM requirement_requests WHERE request_id=?",
-                (request_id,),
-            ).fetchone()
+            if self._backend is not None:
+                previous = self._backend.previous_request(connection, 'registry.apply', request_id)
+            else:
+                previous = connection.execute(
+                    "SELECT digest,response FROM requirement_requests WHERE request_id=?",
+                    (request_id,),
+                ).fetchone()
             if previous is not None:
-                if previous["digest"] != digest:
+                matches = (previous['intent'] == request if self._backend is not None
+                           else previous['digest'] == digest)
+                if not matches:
                     raise DomainError("Requirements request_id was used for another request")
-                return {**json.loads(previous["response"]), "replayed": True}
+                saved = (previous['response'] if self._backend is not None
+                         else json.loads(previous['response']))
+                return {**saved, "replayed": True}
             revision = connection.execute("SELECT revision FROM requirements_meta").fetchone()[0]
             if revision != request["expected_revision"]:
                 raise VersionConflict("Requirements revision changed")
@@ -229,6 +263,13 @@ class RequirementsStore:
             registry = current.apply(request["operations"], max_items)
             before = current.to_dict()
             after = registry.to_dict()
+            if self._backend is not None:
+                revision += 1
+                response = {'revision': revision, 'replayed': False}
+                self._backend.persist_apply(
+                    connection, before, after, revision, request_id, request, response,
+                )
+                return deepcopy(response)
             for requirement in after["requirements"].values():
                 if before["requirements"].get(requirement["id"]) == requirement:
                     continue

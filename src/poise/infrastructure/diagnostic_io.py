@@ -62,5 +62,5 @@ def readonly_transaction(path, wait, poll):
     with readonly_database(path) as db:
         # BEGIN is deferred. Pin the read snapshot here, where a short physical
         # writer conflict can use the existing explicit boundary budget.
-        _boundary(db, 'PRAGMA user_version', Path(path), wait, poll)
+        _boundary(db, 'PRAGMA user_version', Path(path), wait, poll, limit_name='sqlite_read_seconds')
         yield db

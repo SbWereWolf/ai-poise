@@ -28,9 +28,13 @@ class RequirementsStore:
     SCHEMA_VERSION = 2
 
     def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None,
-                 *, read_only=False):
+                 *, read_only=False, read_wait=None):
         self.project_fence = project_fence
         self.read_only = read_only
+        self.read_wait = read_wait
+        if read_wait is not None and (type(read_wait) not in (int,float)
+                                     or not math.isfinite(read_wait) or read_wait <= 0):
+            raise PoiseError('sqlite_read_seconds: требуется конечное положительное число')
         self.database = Path(database)
         self.lock = Path(lock)
         for value in (lock_seconds, poll_seconds):
@@ -96,9 +100,11 @@ class RequirementsStore:
     def _transaction(self):
         if self.read_only:
             from .diagnostic_io import readonly_transaction
+            if self.read_wait is None:
+                raise PoiseError('read-only: требуется явный sqlite_read_seconds')
             try:
                 with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-                    with readonly_transaction(self.database, self.lock_seconds, self.poll_seconds) as connection:
+                    with readonly_transaction(self.database, self.read_wait, self.poll_seconds) as connection:
                         yield connection
             except (OSError, sqlite3.Error) as exc:
                 raise PoiseError(f'read-only: хранилище требований недоступно: {self.database}: {exc}') from exc

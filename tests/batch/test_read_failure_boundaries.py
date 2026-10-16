@@ -16,7 +16,7 @@ from poise.infrastructure.sqlite.database import Database
 
 def test_transient_busy_is_resolved_before_read_body_without_replay(tmp_path, monkeypatch):
     path = tmp_path / 'state.sqlite'
-    database = Database(path, tmp_path / 'state.lock', 1, 0.01)
+    database = Database(path, tmp_path / 'state.lock', 1, 0.01, read_wait=1)
     original_connect = sqlite3.connect
     writer = original_connect(path, timeout=0, isolation_level=None, check_same_thread=False)
     writer.execute('BEGIN EXCLUSIVE')

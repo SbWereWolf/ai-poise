@@ -107,7 +107,7 @@ class Poise:
         self.store = Store(descendant(self.state, self.paths['database']),
                            descendant(self.state, self.paths['lock']),
                            limits['lock_seconds'], limits['lock_poll_seconds'], self.workflows,
-                           self.project_fence,read_only=read_only)
+                           self.project_fence,read_only=read_only,read_wait=limits['sqlite_read_seconds'])
         from .infrastructure.repository_tree import GitRepositoryTree
         repository_tree = GitRepositoryTree(
             self.cfg['git']['repository'], limits['git_seconds'], limits['preview_chars']
@@ -125,6 +125,7 @@ class Poise:
             limits['lock_poll_seconds'],
             self.project_fence,
             read_only=read_only,
+            read_wait=limits['sqlite_read_seconds'],
         )
         self.requirements_commands = RequirementsCommands(
             self.requirements_store,

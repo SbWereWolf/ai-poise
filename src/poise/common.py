@@ -193,10 +193,15 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
             cfg['paths'][key], f'paths.{key}',
             nonblank=key in {'state', 'database', 'lock', 'requirements_database', 'requirements_lock'},
         )
-    limits = configuration_fields(cfg['limits'], {'lock_seconds','lock_poll_seconds','git_seconds','verify_attempts',
+    limits = configuration_fields(cfg['limits'], {'lock_seconds','lock_poll_seconds','sqlite_read_seconds','git_seconds','verify_attempts',
                               'output_chars','preview_chars'}, 'limits')
     for key, value in limits.items():
-        if not isinstance(value, (int,float)) or isinstance(value,bool) or value <= 0 or not math.isfinite(value):
+        try:
+            valid = (isinstance(value, (int,float)) and not isinstance(value,bool)
+                     and value > 0 and math.isfinite(value))
+        except OverflowError:
+            valid = False
+        if not valid:
             raise PoiseError(f'limits.{key}: требуется конечное положительное число')
     for key in ('verify_attempts','output_chars','preview_chars'):
         if not isinstance(cfg['limits'][key], int):

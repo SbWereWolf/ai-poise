@@ -177,6 +177,7 @@ def project(tmp_path, monkeypatch):
         },
         'limits': {
             'lock_seconds': 2.0, 'lock_poll_seconds': 0.01,
+            'sqlite_read_seconds': 2.0,
             'git_seconds': 15.0, 'verify_attempts': 5,
             'output_chars': 2200, 'preview_chars': 300,
         },

@@ -75,9 +75,13 @@ SCHEMA = (
 class Database:
     """Linux-only external lock + short SQL transaction with one owned v12 upgrade."""
     def __init__(self, path: Path, lock: Path, wait: float, poll: float, project_fence=None,
-                 *, read_only=False):
+                 *, read_only=False, read_wait=None):
         self.project_fence = project_fence
         self.read_only = read_only
+        self.read_wait = read_wait
+        if read_wait is not None and (type(read_wait) not in (int,float)
+                                     or not math.isfinite(read_wait) or read_wait <= 0):
+            raise PoiseError('sqlite_read_seconds: требуется конечное положительное число')
         for value in (wait, poll):
             if type(value) not in (int,float) or not math.isfinite(value) or value <= 0:
                 raise PoiseError("Требуются явные конечные положительные пределы lock")
@@ -112,9 +116,11 @@ class Database:
     @contextmanager
     def read_transaction(self):
         from ..diagnostic_io import readonly_transaction
+        if self.read_wait is None:
+            raise PoiseError('read-only: требуется явный sqlite_read_seconds')
         try:
             with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-                with readonly_transaction(self.path, self.wait, self.poll) as db:
+                with readonly_transaction(self.path, self.read_wait, self.poll) as db:
                     yield db
         except (OSError, sqlite3.Error) as exc:
             raise PoiseError(f'read-only: существующее хранилище недоступно: {self.path}: {exc}') from exc

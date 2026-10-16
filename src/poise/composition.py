@@ -26,7 +26,9 @@ def requirements_tools(config_path, *, read_only=False):
     from .infrastructure.project_resources import ProjectRuntimeFence
     fence = ProjectRuntimeFence(config_path)
     return RequirementsCommands(RequirementsStore(*storage, project_fence=fence,
-                                                 read_only=read_only), config['batch']['max_items']), config
+                                                 read_only=read_only,
+                                                 read_wait=config['limits']['sqlite_read_seconds']),
+                                config['batch']['max_items']), config
 
 
 def migrate_requirements(config_path):

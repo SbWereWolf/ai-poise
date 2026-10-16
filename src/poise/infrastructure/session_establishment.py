@@ -105,7 +105,8 @@ def _database(root, cfg, config_path, read_only):
     state = configured_root(root, cfg['paths']['state'])
     return Database(descendant(state, cfg['paths']['database']), descendant(state, cfg['paths']['lock']),
                     cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'],
-                    ProjectRuntimeFence(config_path, state), read_only=read_only)
+                    ProjectRuntimeFence(config_path, state), read_only=read_only,
+                    read_wait=cfg['limits']['sqlite_read_seconds'])
 
 
 def _validate_observation_requirements(root, cfg):
@@ -113,7 +114,8 @@ def _validate_observation_requirements(root, cfg):
     state = configured_root(root, cfg['paths']['state'])
     RequirementsStore(configured_storage_path(state, cfg['paths']['requirements_database']),
                       configured_storage_path(state, cfg['paths']['requirements_lock']),
-                      cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'], read_only=True)
+                      cfg['limits']['lock_seconds'], cfg['limits']['lock_poll_seconds'], read_only=True,
+                      read_wait=cfg['limits']['sqlite_read_seconds'])
 
 
 def establish_direct_poise(config_path, environ, clock, *, read_only):

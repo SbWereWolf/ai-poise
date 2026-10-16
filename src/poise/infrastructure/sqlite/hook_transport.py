@@ -3,7 +3,7 @@ import json
 import sqlite3
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
-from ...common import PoiseError,encoded
+from ...common import PoiseError,encoded,load_config
 from ...modules.hook_transport.domain import MissingHookBinding
 from .transaction import write_transaction
 
@@ -39,10 +39,12 @@ class HookRegistry:
     @contextmanager
     def read_transaction(self):
         from ..diagnostic_io import readonly_transaction
+        _,config,_=load_config(self.settings.project_config)
+        limits=config['limits']
         try:
             with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-                with readonly_transaction(self.settings.database, self.settings.raw['lock_seconds'],
-                                          self.settings.raw['lock_poll_seconds']) as db:
+                with readonly_transaction(self.settings.database, limits['sqlite_read_seconds'],
+                                          limits['lock_poll_seconds']) as db:
                     if db.execute('PRAGMA user_version').fetchone()[0] != 1:
                         raise PoiseError('read-only: несовместимая schema реестра hooks; миграция не выполняется')
                     yield db

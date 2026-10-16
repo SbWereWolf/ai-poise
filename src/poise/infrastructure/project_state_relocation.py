@@ -354,7 +354,7 @@ class FileProjectStateRelocation:
         from .diagnostic_io import readonly_transaction
         database = self._database(self.destination)
         reader = SavedMaterialReader(database, read_transaction=lambda: readonly_transaction(
-            database, self.candidate['limits']['lock_seconds'], self.candidate['limits']['lock_poll_seconds']))
+            database, self.candidate['limits']['sqlite_read_seconds'], self.candidate['limits']['lock_poll_seconds']))
         with readonly_database(self._database(self.destination)) as db:
             for task in self.tasks:
                 delivery = SqliteTaskDeliveryRepository(db).read(task['id'])

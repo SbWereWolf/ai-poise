@@ -1,0 +1,170 @@
+Warning: truncated output (original token count: 3522)
+Total output lines: 294
+
+{
+  "errors": [],
+  "edges": [
+    {
+      "source": ".agents/skills/poise/SKILL.md",
+      "line": 216,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "recovery-publication-owner-001--исторические-процессы-блокируют-чтение",
+      "context": "[open",
+      "kind": "markdown"
+    },
+    {
+      "source": "AGENTS.md",
+      "line": 103,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "Turn every accepted agreement into product documentation. Maintain the [known-bugs",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/README.md",
+      "line": 83,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "",
+      "context": "- [Известные баги и ограничения](operations/known-bugs.md) — актуальные неисправленные замечания;",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/architecture/cache-evidence-completeness-design.md",
+      "line": 119,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "rv2-02--прерванная-запись-индекса-кэша",
+      "context": "[реестре известных багов](../operations/known-bugs.md#rv2-02--прерванная-запись-индекса-кэша)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/configuration/runtime-hooks.md",
+      "line": 217,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "hook-settings-continuity-001--изменение-settings-нарушает-согласованность-привязок",
+      "context": "требует отдельно согласованного действия владельца: [известное ограничение",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/configuration/test-package-cache.md",
+      "line": 103,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "rv2-02--прерванная-запись-индекса-кэша",
+      "context": "неполный JSON. Это [известное ограничение RV2-02](../operations/known-bugs.md#rv2-02--прерванная-запись-индекса-кэша),",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/governance/development-rules.md",
+      "line": 560,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "22. Подтверждённые неисправленные замечания и принятые ограничения поддерживаются в [реестре известных",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/governance/development-rules.md",
+      "line": 961,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "в [известных багах harness](../operations/known-bugs.md#ведение-реестра). Неизвестная",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/README.md",
+      "line": 12,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "",
+      "context": "- [known-bugs.md](known-bugs.md)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/ddd-baseline-analysis.md",
+      "line": 525,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+     …1522 tokens truncated…"[session_establishment.py](../../src/poise/infrastructure/session_establishment.py)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 259,
+      "target": "docs/workflows/sprints.md",
+      "target_file": "docs/workflows/sprints.md",
+      "fragment": "замкнутость-зависимостей-и-локальные-дубли",
+      "context": "описана в [Sprint workflow](../workflows/sprints.md#замкнутость-зависимостей-и-локальные-дубли).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 352,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "",
+      "context": "точный план сохранены в [долговременном журнале инцидента](evidence/erp-harness-modularity-001-20261016/README.md).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 360,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json",
+      "fragment": "",
+      "context": "блокировки. [Второй снимок и уточнённый план](evidence/erp-harness-modularity-001-20261016/recurrence-dc0fc214/operator-plan-v2.json)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 372,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/README.md",
+      "fragment": "подтверждённая-штатная-проверка-реализации",
+      "context": "не менялись. [Полный журнал продолжения](evidence/erp-harness-modularity-001-20261016/README.md#подтверждённая-штатная-проверка-реализации)",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operations/known-bugs.md",
+      "line": 388,
+      "target": "docs/operations/evidence/erp-harness-modularity-001-20261016/completion-20261016/README.md",
+      "target_file": "docs/operations/evidence/erp-harness-modularity-001-20261016/completion-20261016/README.md",
+      "fragment": "",
+      "context": "[архиве завершения](evidence/erp-harness-modularity-001-20261016/completion-20261016/README.md).",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/operator/poise-command-reference.md",
+      "line": 110,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "hook-settings-continuity-001--изменение-settings-нарушает-согласованность-привязок",
+      "context": "[граница",
+      "kind": "markdown"
+    },
+    {
+      "source": "docs/workflows/pilot-task-preflight.md",
+      "line": 44,
+      "target": "docs/operations/known-bugs.md",
+      "target_file": "docs/operations/known-bugs.md",
+      "fragment": "ведение-реестра",
+      "context": "[Реестр известных багов](../operations/known-bugs.md#ведение-реестра) допускает малую очевидную",
+      "kind": "markdown"
+    }
+  ],
+  "skipped": [],
+  "scanned_documents": 3353,
+  "changed_paths": [
+    "docs/operations/evidence/erp-harness-modularity-001-20261016/completion-20261016/INTEGRATION-SELF-REVIEW.md",
+    "docs/operations/evidence/erp-harness-modularity-001-20261016/completion-20261016/README.md",
+    "docs/operations/known-bugs.md"
+  ],
+  "read_only": true,
+  "network_access": false,
+  "status": "valid"
+}

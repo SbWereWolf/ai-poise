@@ -1,0 +1,101 @@
+[verify] running: /usr/bin/python3 ai-assistant/agent/literal-boundary-policy.py --root /home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001
+Literal-boundary policy passed.
+[verify] Markdown formatting: repository-documentation-verification owns task-scoped Markdown validation
+[verify] agent-tooling suites run sequentially; product application suites are outside this lifecycle
+[verify] tooling-fast-agent-contracts: cache miss; running sequentially
+[verify] tooling-fast-agent-contracts: completed with exit code 0
+[verify] tooling-fast-agent-contracts: running suite
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/artifact-path-policy.py
+hidden-root/tracked.txt
+agent artifact path policy tests passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/effective-policy-manifest.py
+effective-policy-manifest: passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/literal-boundary-policy.py
+literal-boundary policy Python contract tests passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/minimal-workflow-skills.py
+minimal workflow skill contracts passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/poise-workflow-contract.py
+Canonical links, fixture rendering, entry points and invalid-link sensitivity: passed
+Poise workflow static contract: passed; installed API not checked
+[verify] running: PIP_NO_INDEX=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PYTHONPATH= bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/agent/session-temp-runtime.py --repository-root . --config ai-assistant/agent/artifact-path-policy.json -- task-management/.venv/bin/python -m unittest discover -s task-management/tests -p 'test_*.py' -v
+test_erp_launcher_example_imports_configured_source (test_installation.InstallationTests.test_erp_launcher_example_imports_configured_source) ... ok
+test_erp_launcher_example_transports_selected_runtime_arguments (test_installation.InstallationTests.test_erp_launcher_example_transports_selected_runtime_arguments) ... ok
+test_installed_commands_work_outside_erp_sources (test_installation.InstallationTests.test_installed_commands_work_outside_erp_sources) ... ok
+test_ledger_detects_discarded_duplicate_call (test_workflow_proxy.LedgerFixtureTests.test_ledger_detects_discarded_duplicate_call) ... ok
+test_backend_failure_is_not_masked (test_workflow_proxy.WorkflowProxyTests.test_backend_failure_is_not_masked) ... ok
+test_backend_signal_is_not_masked (test_workflow_proxy.WorkflowProxyTests.test_backend_signal_is_not_masked) ... ok
+test_binding_rejection_receipt_is_not_masked (test_workflow_proxy.WorkflowProxyTests.test_binding_rejection_receipt_is_not_masked) ... ok
+test_boolean_schema_version_is_rejected (test_workflow_proxy.WorkflowProxyTests.test_boolean_schema_version_is_rejected) ... ok
+test_both_native_aliases_missing_are_rejected (test_workflow_proxy.WorkflowProxyTests.test_both_native_aliases_missing_are_rejected) ... ok
+test_canonical_erp_manifest_is_forwarded (test_workflow_proxy.WorkflowProxyTests.test_canonical_erp_manifest_is_forwarded) ... ok
+test_command_mode_covers_all_public_families_with_literal_transport (test_workflow_proxy.WorkflowProxyTests.test_command_mode_covers_all_public_families_with_literal_transport) ... ok
+test_command_mode_preserves_backend_unknown_errors_and_signal_status (test_workflow_proxy.WorkflowProxyTests.test_command_mode_preserves_backend_unknown_errors_and_signal_status) ... ok
+test_command_mode_rejects_invalid_configuration_before_launch (test_workflow_proxy.WorkflowProxyTests.test_command_mode_rejects_invalid_configuration_before_launch) ... ok
+test_command_mode_rejects_local_syntax_and_invalid_caller_before_launch (test_workflow_proxy.WorkflowProxyTests.test_command_mode_rejects_local_syntax_and_invalid_caller_before_launch) ... ok
+test_command_mode_streams_prompt_before_stdin_eof (test_workflow_proxy.WorkflowProxyTests.test_command_mode_streams_prompt_before_stdin_eof) ... ok
+test_conflicting_or_blank_native_identity_is_rejected (test_workflow_proxy.WorkflowProxyTests.test_conflicting_or_blank_native_identity_is_rejected) ... ok
+test_duplicate_config_key_is_rejected (test_workflow_proxy.WorkflowProxyTests.test_duplicate_config_key_is_rejected) ... ok
+test_four_root_commands_execute_the_selected_backend (test_workflow_proxy.WorkflowProxyTests.test_four_root_commands_execute_the_selected_backend) ... ok
+test_invalid_configuration_never_calls_backend (test_workflow_proxy.WorkflowProxyTests.test_invalid_configuration_never_calls_backend) ... ok
+test_invalid_packet_is_reported_before_backend_call (test_workflow_proxy.WorkflowProxyTests.test_invalid_packet_is_reported_before_backend_call) ... ok
+test_known_operations_preserve_packet_and_identity (test_workflow_proxy.WorkflowProxyTests.test_known_operations_preserve_packet_and_identity) ... ok
+test_launcher_symlink_uses_the_validated_installation_root (test_workflow_proxy.WorkflowProxyTests.test_launcher_symlink_uses_the_validated_installation_root) ... ok
+test_legacy_erp_manifest_is_rejected_before_backend_call (test_workflow_proxy.WorkflowProxyTests.test_legacy_erp_manifest_is_rejected_before_backend_call) ... ok
+test_missing_config_is_dependency_error (test_workflow_proxy.WorkflowProxyTests.test_missing_config_is_dependency_error) ... ok
+test_missing_launcher_is_dependency_error (test_workflow_proxy.WorkflowProxyTests.test_missing_launcher_is_dependency_error) ... ok
+test_native_aliases_are_forwarded_to_erp_launcher (test_workflow_proxy.WorkflowProxyTests.test_native_aliases_are_forwarded_to_erp_launcher) ... ok
+test_native_identity_is_not_invented (test_workflow_proxy.WorkflowProxyTests.test_native_identity_is_not_invented) ... ok
+test_nonempty_messages_are_forwarded_unchanged (test_workflow_proxy.WorkflowProxyTests.test_nonempty_messages_are_forwarded_unchanged) ... ok
+test_other_manifest_is_rejected_before_any_backend_call (test_workflow_proxy.WorkflowProxyTests.test_other_manifest_is_rejected_before_any_backend_call) ... ok
+test_paths_with_spaces_are_single_arguments (test_workflow_proxy.WorkflowProxyTests.test_paths_with_spaces_are_single_arguments) ... ok
+test_requirements_do_not_require_native_identity (test_workflow_proxy.WorkflowProxyTests.test_requirements_do_not_require_native_identity) ... ok
+test_same_manifest_symlink_is_not_a_false_mismatch (test_workflow_proxy.WorkflowProxyTests.test_same_manifest_symlink_is_not_a_false_mismatch) ... ok
+test_same_settings_forward_each_callers_native_session (test_workflow_proxy.WorkflowProxyTests.test_same_settings_forward_each_callers_native_session) ... ok
+test_selected_project_overrides_inherited_project_without_mutating_parent (test_workflow_proxy.WorkflowProxyTests.test_selected_project_overrides_inherited_project_without_mutating_parent) ... ok
+test_unknown_configuration_key_is_ignored (test_workflow_proxy.WorkflowProxyTests.test_unknown_configuration_key_is_ignored) ... ok
+test_unknown_operation_is_reported_before_backend_call (test_workflow_proxy.WorkflowProxyTests.test_unknown_operation_is_reported_before_backend_call) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 7.014s
+
+OK
+Installed task-management 3.0.0; wheel SHA256 5225dfc1fd1d902c93fe14e385b055bd84bf3bcb85bfda90d1eeab207f2765e8
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/session-temp-runtime.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 2.690s
+
+OK
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/checks/reference-trigger-audit.py --json
+{"schema_version":1,"status":"passed","summary":{"skills":42,"owned_references":217,"direct_reference_links":253,"nested_reference_links":13,"records":254,"findings":0,"classifications":{"OK":254,"CORE-DUPLICATION":0,"TRIGGER-TOO-BROAD":0,"NO-TRIGGER":0,"UNCONDITIONAL-READ":0,"UNREACHABLE":0}},"findings":[]}
+[verify] running: bash ai-assistant/tests/agent/preflight.sh
+Preflight contracts passed.
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/agent/workflow-manifest.py
+workflow manifest contracts passed
+[verify] running: bash ai-assistant/tests/agent/tooling-verification-profile.sh
+agent tooling verification profile contracts passed
+[verify] tooling-fast-check-runtime: cache miss; running sequentially
+[verify] tooling-fast-check-runtime: completed with exit code 1
+[verify] tooling-fast-check-runtime: running suite
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/delta-artifact-hygiene.py
+delta artifact hygiene contracts: 3116 tracked paths, 0 findings
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/poise-source-test-package.py
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 5.104s
+
+OK
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/repository-documentation-contracts.py
+repository documentation contracts: 6 passed
+[verify] running: bash ai-assistant/bootstrap/python-runtime.sh ai-assistant/tests/checks/evidence-manifest.py
+Traceback (most recent call last):
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/evidence-manifest.py", line 510, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/evidence-manifest.py", line 504, in main
+    test()
+  File "/home/sbwerewolf/workdata/erp/worktrees/ERP-HARNESS-MODULARITY-001/ai-assistant/tests/checks/evidence-manifest.py", line 384, in test_cache_reuses_complete_source_and_rejects_corrupt_manifest
+    _, without_hashes = run_registered_command(root, data, current)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_registered_command() missing 1 required keyword-only argument: 'configuration'
+[verify] tooling-fast-check-runtime failed with exit code 1

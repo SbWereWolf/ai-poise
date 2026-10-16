@@ -15,7 +15,10 @@ try:
         handle = open(lock, 'a')
         fcntl.flock(handle, fcntl.LOCK_EX)
     elif kind in ('sqlite-writer', 'wal-message'):
-        connection = sqlite3.connect(database, timeout=0, isolation_level=None)
+        # Test preparation has a four-second admission budget inside the parent's
+        # five-second READY guard. SQLite retries this BEGIN boundary only; no
+        # application code, transaction body or public subject is replayed.
+        connection = sqlite3.connect(database, timeout=4, isolation_level=None)
         connection.execute('BEGIN IMMEDIATE')
         if kind == 'wal-message':
             connection.execute('INSERT INTO interaction_events(id,project,data,received_at) VALUES(?,?,?,?)',

@@ -1,5 +1,6 @@
 """R4: real publication, configured readback, honest public-stream limitations."""
 import copy
+import hashlib
 import json
 import os
 import sys
@@ -77,6 +78,44 @@ def test_interrupted_publication_preserves_truthful_whole_state(
         assert target['path'].read_bytes() == expected, 'No partially written configuration'
         observe_exact(record, identifier=identifier, kind=target['kind'], content=expected)
     assert report['observations'], 'Keep the original failure diagnosis, not only readback'
+
+
+@pytest.mark.parametrize('identifier', TARGET_IDS)
+@pytest.mark.parametrize('previous', [False, True], ids=['initial', 'repeat'])
+def test_actual_replacement_refusal_keeps_prior_whole_configuration(
+        erp_deployed, identifier, previous):
+    case = erp_deployed
+    arrange_target_bytes(case)
+    target = next(t for t in targets(case) if t['id'] == identifier)
+    old = (FIXTURES / 'erp-json-old.json').read_bytes()
+    if previous:
+        target['path'].write_bytes(old)
+    else:
+        target['path'].unlink()
+    overrides = source_override(case, target)
+    write_json(case['profile'] / 'values.json', values(case, overrides))
+    events = case['root'] / 'replacement-refusals.jsonl'
+    prefix = [sys.executable, '-B', FIXTURES / 'erp_publication_refusal.py',
+              '--target', target['path'], '--events', events]
+    catalog = selected_catalog(case, 'erp-' + identifier,
+                               role='repair' if previous else 'install', prefix=prefix)
+    result, report = bootstrap(case, 'infra', catalog=catalog)
+    assert result.returncode != 0 and report['status'] == 'error'
+    attempts = [json.loads(line) for line in events.read_text().splitlines()]
+    assert len(attempts) == 1, 'Actual boundary reached once; not a fixture setup failure'
+    expected = (FIXTURES / 'erp-json-new.json').read_bytes()
+    assert attempts[0]['prepared_sha256'] == hashlib.sha256(expected).hexdigest()
+    assert attempts[0]['errno'] == 13
+    record = observations(report)[identifier]
+    if previous:
+        assert target['path'].read_bytes() == old, 'Removing old before failed replacement is rejected'
+        observe_exact(record, identifier=identifier, kind=target['kind'], content=old)
+    else:
+        assert not target['path'].exists()
+        assert record['state'] == 'absent' and record['sha256'] is None
+    assert report['observations'], 'The ordinary publication error remains available'
+    diagnostic = '\n'.join(item['stdout'] + item['stderr'] for item in report['observations'])
+    assert any(cause in diagnostic for cause in ('Permission denied', 'PermissionError', 'EACCES', 'permission-denied'))
 
 
 @pytest.mark.parametrize('diagnostic', ['', 'ordinary log\n', '{broken json\n', '[REDACTED]\n', 'ambiguous'])

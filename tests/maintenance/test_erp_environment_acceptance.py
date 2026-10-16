@@ -3,15 +3,18 @@
 Missing managers/network/source inputs fail setup; they are never RED or skips.
 No business/browser scenario or service is started.
 """
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
+from xml.etree import ElementTree
 
 import pytest
 pytest.register_assert_rewrite('erp_support')
 from erp_support import (
-    CONTRACT, FIXTURES, action, bootstrap, export_erp_source, invoke, observations,
-    observe_exact, publish_configuration_inputs, read_json, require_input, targets,
+    CONTRACT, FIXTURES, action, bootstrap, cjm_consumer_inputs, export_erp_source, invoke, observations,
+    observe_exact, publish_configuration_inputs, read_json, require_input, snapshot,
+    targets, write_json,
 )
 
 pytest_plugins = ['erp_support']
@@ -154,6 +157,60 @@ def assert_local_package_refresh(case):
     assert_action(case, 'erp-mirrored-packages', 'check', 'satisfied')
 
 
+def assert_required_artifacts(case):
+    for expected in read_json(FIXTURES / 'erp-artifacts.json'):
+        artifact = case['repository'] / expected['path']
+        original = artifact.read_bytes()
+        assert hashlib.sha256(original).hexdigest() == expected['sha256']
+        if expected['kind'] == 'php':
+            lint = invoke([require_input('P003_PHP_EXECUTABLE'), '-l', artifact])
+            assert lint.returncode == 0 and 'No syntax errors' in lint.stdout
+            damaged = b'<?php\nfunction broken( {\n'
+        else:
+            document = ElementTree.parse(artifact)
+            assert document.getroot().tag == '{http://www.w3.org/2001/XMLSchema}schema'
+            inclusion = document.getroot().find('{http://www.w3.org/2001/XMLSchema}include')
+            assert inclusion is not None and inclusion.get('schemaLocation') == '3.0/spec.xsd'
+            included = ElementTree.parse(artifact.parent / '3.0/spec.xsd')
+            assert included.getroot().tag == '{http://www.w3.org/2001/XMLSchema}schema'
+            damaged = b'<not-well-formed'
+        for damage, state in [('absent', 'missing'), ('damaged', 'invalid')]:
+            if damage == 'absent':
+                artifact.unlink()
+            else:
+                artifact.write_bytes(damaged)
+            try:
+                assert_action(case, expected['id'], 'check', state)
+            finally:
+                artifact.write_bytes(original)
+        assert_action(case, expected['id'], 'check', 'satisfied')
+
+
+def test_published_cjm_is_usable_by_real_loader_and_invalid_input_is_rejected(erp_deployed):
+    case = erp_deployed
+    root, relative, selected, command = cjm_consumer_inputs(case)
+    target = root / relative
+    result, response = action(case, 'erp-cjm-settings', 'install', {
+        'repository': str(root), 'cjm_settings_path': str(target),
+        'cjm_settings_source': str(selected),
+    })
+    assert result.returncode == 0 and response['outcome'] == 'completed'
+    assert target.read_bytes() == selected.read_bytes()
+    before = snapshot(root)
+    loaded = invoke(command)
+    assert loaded.returncode == 0, (loaded.stdout, loaded.stderr)
+    assert json.loads(loaded.stdout) == {'wirePrice': 15, 'setupPrice': 0, 'draftSlabCountLimit': 7}
+    assert snapshot(root) == before
+    invalid = read_json(selected)
+    invalid['businessFixture']['setupPrice'] = -1
+    write_json(target, invalid)
+    invalid_before = snapshot(root)
+    refused = invoke(command)
+    assert refused.returncode != 0 and 'CJM-CONFIG:' in refused.stderr
+    assert 'setupPrice' in refused.stderr and refused.stdout == ''
+    assert snapshot(root) == invalid_before
+
+
 def test_actual_selected_erp_reaches_readiness_and_preserves_repeated_state(erp_deployed, monkeypatch):
     case = export_erp_source(erp_deployed)
     # Real installation caches are test-owned; HOME itself remains unchanged.
@@ -177,6 +234,7 @@ def test_actual_selected_erp_reaches_readiness_and_preserves_repeated_state(erp_
             observe_exact(observations(report)[target['id']], identifier=target['id'],
                           kind=target['kind'], content=desired[target['id']])
     assert_real_dependencies(case)
+    assert_required_artifacts(case)
     assert_databases_and_preserve_rows(case)
     assert_unit_maintenance(case)
     assert_local_package_refresh(case)

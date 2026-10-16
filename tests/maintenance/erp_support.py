@@ -254,10 +254,13 @@ def export_erp_source(case):
     inventory = invoke(['git', '-C', source, 'ls-tree', '-r', '--name-only', reference,
                         '--', *selected])
     assert inventory.returncode == 0, (inventory.stdout, inventory.stderr)
-    names = inventory.stdout.splitlines()
-    assert not any(Path(n).name == '.env' or '/vendor/' in n or '/node_modules/' in n
-                   for n in names), 'Working dependency/config files are not fixture input'
-    archive = invoke(['git', '-C', source, 'archive', reference, '--', *selected], text=False)
+    # The pinned tree also tracks test specimens named vendor/.env. They are
+    # unnecessary for this source closure; export only the exact allowed files.
+    names = [name for name in inventory.stdout.splitlines()
+             if Path(name).name != '.env' and '/vendor/' not in name
+             and '/node_modules/' not in name]
+    assert names, 'The explicitly selected source closure must be nonempty'
+    archive = invoke(['git', '-C', source, 'archive', reference, '--', *names], text=False)
     assert archive.returncode == 0, archive.stderr
     exported = invoke(['tar', '-x', '-C', case['repository']], text=False, input=archive.stdout)
     assert exported.returncode == 0, exported.stderr
@@ -270,3 +273,26 @@ def copy_executable_fixture(case, name):
     shutil.copyfile(FIXTURES / name, target)
     target.chmod(0o755)
     return target
+
+
+def cjm_consumer_inputs(case):
+    """Pinned sanitized configuration inputs; never use a live ERP .env."""
+    export_erp_source(case)
+    reference = case['repository'] / 'platform-infrastructure/tests/playwright'
+    inputs = reference / 'contracts/fixtures/cjm-configuration'
+    root = case['root'] / 'CJM consumer Ω'
+    (root / 'config').mkdir(parents=True)
+    (root / 'planning-workspace').mkdir()
+    (root / 'tests/cjm').mkdir(parents=True)
+    for source, destination in [
+        ('local-development.example.env', 'config/local-development.env'),
+        ('planning-workspace.example.env', 'planning-workspace/.env'),
+        ('test-execution.json', 'config/test-execution.json'),
+    ]:
+        shutil.copyfile(inputs / source, root / destination)
+    relative = 'platform-infrastructure/tests/playwright/cjm.settings.json'
+    selected = case['root'] / 'selected-cjm-source.json'
+    shutil.copyfile(inputs / 'settings.json', selected)
+    command = [require_input('P003_NODE_EXECUTABLE'), FIXTURES / 'erp_cjm_consumer.mjs',
+               reference / 'support/cjm-configuration.mjs', root, relative]
+    return root, relative, selected, command

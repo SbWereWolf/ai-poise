@@ -397,7 +397,9 @@ def message_rows(database):
                          uri=True) as db:
         return db.execute(
             "SELECT project,json_extract(data,'$.source.id'),json_extract(data,'$.source.mode'),"
-            "json_extract(data,'$.message_id') FROM interaction_events ORDER BY id"
+            "json_extract(data,'$.conversation_id'),json_extract(data,'$.message_id'),"
+            "json_extract(data,'$.occurred_at'),json_extract(data,'$.reason'),"
+            "json_extract(data,'$.subject') FROM interaction_events ORDER BY id"
         ).fetchall()
 
 
@@ -409,8 +411,9 @@ def record_source_prompt(case):
                           prompt)
     before = message_rows(case['source_db'])
     assert len(before) == 1
-    assert before[0][1:] == ('codex-hook-main', 'runtime_event',
-                             'source-only-turn')
+    assert before[0][1:] == (
+        'codex-hook-main', 'runtime_event', 'entry-owner',
+        'source-only-turn', None, None, None)
     return before
 
 
@@ -442,7 +445,9 @@ def test_selected_project_retains_its_own_reported_message(
     assert case['selected_db'].is_file()
     assert message_rows(case['selected_db']) == [
         ('selected-project', 'selected-visible', 'agent_reported',
-         'selected-visible-turn'),
+         'selected-conversation', 'selected-visible-turn',
+         '2026-10-16T00:00:00+00:00', 'authorization',
+         'selected-subject'),
     ]
     assert message_rows(case['source_db']) == before
 

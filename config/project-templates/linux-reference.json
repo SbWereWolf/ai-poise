@@ -100,6 +100,7 @@
       "git_seconds": 15.0,
       "lock_poll_seconds": 0.01,
       "lock_seconds": 2.0,
+      "sqlite_read_seconds": 2.0,
       "output_chars": 2200,
       "preview_chars": 300,
       "verify_attempts": 5

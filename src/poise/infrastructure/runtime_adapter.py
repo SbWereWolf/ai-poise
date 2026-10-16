@@ -13,6 +13,7 @@ from ..modules.runtime_adapter.domain import RuntimeIdentity,validate_inventory
 from ..modules.session_establishment.domain import CallerIdentity
 from ..modules.foundation.validation import configuration_fields
 from ..application.work import WorkTools
+from ..modules.work.domain import parse_request, is_observation
 from .session_establishment import establish_poise
 
 
@@ -97,13 +98,13 @@ class RuntimeAdapter:
         inventory=validate_inventory(packet['capabilities'],[])
         caller=(CallerIdentity.native(cfg['project'],identity.key) if identity.kind=='external'
                 else CallerIdentity.generated(cfg['project'],identity.key))
-        established=establish_poise(cfgpath,caller,inventory,SystemClock())
+        work=parse_request(deepcopy(packet['work']),cfg['batch'])
+        observation=is_observation(work) and packet['transcript'] is None
+        established=establish_poise(cfgpath,caller,inventory,SystemClock(),read_only=observation)
         registry=established.registry;session=established.session.session_id
-        h=established.runtime;self.runtime=h;work=deepcopy(packet['work'])
-        from ..modules.work.domain import parse_request
-        request=parse_request(work,cfg['batch'])
+        h=established.runtime;self.runtime=h
         from .result_views import preflight_work_result
-        preflight_work_result(h, request)
+        preflight_work_result(h, work)
         source=None;cursor=None;path=None
         if packet['transcript'] is not None:
             exact_keys(packet['transcript'],{'path','initial_offset'},'transcript input')
@@ -121,7 +122,8 @@ class RuntimeAdapter:
                 current if current is not None and current['status'] not in ('completed','cancelled') else None)
             if source is not None:registry.save_cursor(session,path,cursor,source['cursor'])
             raise
-        h.store.event(session,None,'adapter.bound',{'adapter':self.settings['adapter_id'],'capabilities':inventory})
+        if not observation:
+            h.store.event(session,None,'adapter.bound',{'adapter':self.settings['adapter_id'],'capabilities':inventory})
         result=WorkTools(h).invoke(work)
         if source is not None:registry.save_cursor(session,path,cursor,source['cursor'])
         return {**result,'runtime_adapter':{'id':self.settings['adapter_id'],'session_id':session,

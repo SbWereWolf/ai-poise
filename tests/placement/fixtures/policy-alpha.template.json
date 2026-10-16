@@ -1,0 +1,287 @@
+{
+  "schema": "poise-placement-policy-1",
+  "version": "alpha-1",
+  "roots": [
+    {
+      "id": "product",
+      "owner": "product",
+      "path": "@CHECKOUT@",
+      "versioning": "versioned",
+      "authority": "configured-product"
+    },
+    {
+      "id": "local",
+      "owner": "product",
+      "path": "@PRODUCT_DATA@",
+      "versioning": "ignored",
+      "authority": "agreed-product-local"
+    },
+    {
+      "id": "work",
+      "owner": "harness",
+      "path": "@WORK_ROOT@",
+      "versioning": "ignored",
+      "authority": "configured-harness-work"
+    },
+    {
+      "id": "handoff",
+      "owner": "harness",
+      "path": "@HANDOFF_ROOT@",
+      "versioning": "ignored",
+      "authority": "agreed-recipient-outbox"
+    },
+    {
+      "id": "task",
+      "owner": "task",
+      "path": null,
+      "versioning": "ignored",
+      "authority": "current-task-owner"
+    },
+    {
+      "id": "sprint",
+      "owner": "sprint",
+      "path": null,
+      "versioning": "ignored",
+      "authority": "current-sprint-owner"
+    }
+  ],
+  "rules": [
+    {
+      "id": "source",
+      "priority": 10,
+      "category": "product-versioned",
+      "when": {
+        "purposes": [
+          "source"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "versioned"
+        ]
+      },
+      "root": "product",
+      "directory": "src",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "docs",
+      "priority": 10,
+      "category": "product-versioned",
+      "when": {
+        "purposes": [
+          "documentation"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "versioned"
+        ]
+      },
+      "root": "product",
+      "directory": "docs",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "config",
+      "priority": 10,
+      "category": "product-local",
+      "when": {
+        "purposes": [
+          "installation-config"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "installation"
+        ]
+      },
+      "root": "local",
+      "directory": "config",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "data",
+      "priority": 10,
+      "category": "product-local",
+      "when": {
+        "purposes": [
+          "installation-data"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "installation"
+        ]
+      },
+      "root": "local",
+      "directory": "data",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "backup",
+      "priority": 10,
+      "category": "product-local",
+      "when": {
+        "purposes": [
+          "backup"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "handoff"
+        ]
+      },
+      "root": "local",
+      "directory": "backups",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "dependency",
+      "priority": 10,
+      "category": "product-local",
+      "when": {
+        "purposes": [
+          "generated-dependency"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "installation"
+        ]
+      },
+      "root": "local",
+      "directory": "dependencies",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "index",
+      "priority": 10,
+      "category": "product-local",
+      "when": {
+        "purposes": [
+          "code-index"
+        ],
+        "recipients": [
+          "product"
+        ],
+        "lifetimes": [
+          "installation"
+        ]
+      },
+      "root": "local",
+      "directory": "index",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "working",
+      "priority": 10,
+      "category": "agent-transient",
+      "when": {
+        "purposes": [
+          "agent-work"
+        ],
+        "recipients": [
+          "agent"
+        ],
+        "lifetimes": [
+          "session"
+        ]
+      },
+      "root": "work",
+      "directory": "verify",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "handoff",
+      "priority": 10,
+      "category": "recipient-handoff",
+      "when": {
+        "purposes": [
+          "handoff"
+        ],
+        "recipients": [
+          "reviewer"
+        ],
+        "lifetimes": [
+          "handoff"
+        ]
+      },
+      "root": "handoff",
+      "directory": "reports",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "task",
+      "priority": 10,
+      "category": "task-material",
+      "when": {
+        "purposes": [
+          "task-material"
+        ],
+        "recipients": [
+          "reviewer"
+        ],
+        "lifetimes": [
+          "task"
+        ]
+      },
+      "root": "task",
+      "directory": "artifacts",
+      "paths": [
+        "**"
+      ]
+    },
+    {
+      "id": "sprint",
+      "priority": 10,
+      "category": "sprint-material",
+      "when": {
+        "purposes": [
+          "sprint-material"
+        ],
+        "recipients": [
+          "team"
+        ],
+        "lifetimes": [
+          "sprint"
+        ]
+      },
+      "root": "sprint",
+      "directory": "artifacts",
+      "paths": [
+        "**"
+      ]
+    }
+  ],
+  "owner_provider": null,
+  "state": {
+    "directory": "@HARNESS_DATA@/placement",
+    "filename": "placement.json",
+    "lock": "placement.lock"
+  }
+}

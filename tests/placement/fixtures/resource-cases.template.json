@@ -1,0 +1,198 @@
+[
+  {
+    "item": {
+      "key": "config",
+      "purpose": "installation-config",
+      "recipient": "product",
+      "lifetime": "installation",
+      "name": "config.json",
+      "path": null
+    },
+    "row": {
+      "key": "config",
+      "status": "allowed",
+      "category": "product-local",
+      "rule": "config",
+      "root": "local",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "config/config.json",
+      "absolute_path": "@PRODUCT_DATA@/config/config.json",
+      "reserved": true,
+      "authorization_refs": [
+        "agreed-product-local"
+      ]
+    }
+  },
+  {
+    "item": {
+      "key": "data",
+      "purpose": "installation-data",
+      "recipient": "product",
+      "lifetime": "installation",
+      "name": "data.json",
+      "path": null
+    },
+    "row": {
+      "key": "data",
+      "status": "allowed",
+      "category": "product-local",
+      "rule": "data",
+      "root": "local",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "data/data.json",
+      "absolute_path": "@PRODUCT_DATA@/data/data.json",
+      "reserved": true,
+      "authorization_refs": [
+        "agreed-product-local"
+      ]
+    }
+  },
+  {
+    "item": {
+      "key": "backup",
+      "purpose": "backup",
+      "recipient": "product",
+      "lifetime": "handoff",
+      "name": "backup.json",
+      "path": null
+    },
+    "row": {
+      "key": "backup",
+      "status": "allowed",
+      "category": "product-local",
+      "rule": "backup",
+      "root": "local",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "backups/backup.json",
+      "absolute_path": "@PRODUCT_DATA@/backups/backup.json",
+      "reserved": true,
+      "authorization_refs": [
+        "agreed-product-local"
+      ]
+    }
+  },
+  {
+    "item": {
+      "key": "deps",
+      "purpose": "generated-dependency",
+      "recipient": "product",
+      "lifetime": "installation",
+      "name": "deps.json",
+      "path": null
+    },
+    "row": {
+      "key": "deps",
+      "status": "allowed",
+      "category": "product-local",
+      "rule": "dependency",
+      "root": "local",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "dependencies/deps.json",
+      "absolute_path": "@PRODUCT_DATA@/dependencies/deps.json",
+      "reserved": true,
+      "authorization_refs": [
+        "agreed-product-local"
+      ]
+    }
+  },
+  {
+    "item": {
+      "key": "index",
+      "purpose": "code-index",
+      "recipient": "product",
+      "lifetime": "installation",
+      "name": "index.json",
+      "path": null
+    },
+    "row": {
+      "key": "index",
+      "status": "allowed",
+      "category": "product-local",
+      "rule": "index",
+      "root": "local",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "product",
+        "id": "@PROJECT@"
+      },
+      "path": "index/index.json",
+      "absolute_path": "@PRODUCT_DATA@/index/index.json",
+      "reserved": true,
+      "authorization_refs": [
+        "agreed-product-local"
+      ]
+    }
+  },
+  {
+    "item": {
+      "key": "tool-output",
+      "purpose": "agent-work",
+      "recipient": "agent",
+      "lifetime": "session",
+      "name": "tool-output.json",
+      "path": null
+    },
+    "row": {
+      "key": "tool-output",
+      "status": "allowed",
+      "category": "agent-transient",
+      "rule": "working",
+      "root": "work",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "harness",
+        "id": "@PROJECT@"
+      },
+      "path": "verify/tool-output.json",
+      "absolute_path": "@WORK_ROOT@/verify/tool-output.json",
+      "reserved": true,
+      "authorization_refs": [
+        "configured-harness-work"
+      ]
+    }
+  },
+  {
+    "item": {
+      "key": "review-report",
+      "purpose": "handoff",
+      "recipient": "reviewer",
+      "lifetime": "handoff",
+      "name": "review-report.json",
+      "path": null
+    },
+    "row": {
+      "key": "review-report",
+      "status": "allowed",
+      "category": "recipient-handoff",
+      "rule": "handoff",
+      "root": "handoff",
+      "versioning": "ignored",
+      "owner": {
+        "kind": "harness",
+        "id": "@PROJECT@"
+      },
+      "path": "reports/review-report.json",
+      "absolute_path": "@HANDOFF_ROOT@/reports/review-report.json",
+      "reserved": true,
+      "authorization_refs": [
+        "agreed-recipient-outbox"
+      ]
+    }
+  }
+]

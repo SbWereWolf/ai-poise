@@ -1,0 +1,8 @@
+{
+  "source": {"id": "chat-visible", "mode": "agent_reported"},
+  "conversation_id": "wal-conversation",
+  "message_id": "wal-message",
+  "occurred_at": "2026-10-16T00:00:00+00:00",
+  "reason": "authorization",
+  "subject": "committed-value"
+}

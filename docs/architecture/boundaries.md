@@ -756,7 +756,8 @@ OrderedValues/ReasonMap, universal/profile selection, ancestor rules и file_del
 в этом потоке не означает полного удаления Task plugins.
 Автоматическая nativehook интеграция и доказательство применения инструкций моделью
 не реализованы. Операторский договор:
-[подготовка инструкций по файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
+[подготовка инструкций по
+файлам](../configuration/development-routing.md#подготовка-инструкций-по-файлам).
 
 
 ## Проверенное повторное использование семейного результата
@@ -858,3 +859,30 @@ TaskDelivery координирует намерение и минимальны
 интеграции, экспортирования и публикации файлов. Общий material resolver сохраняет
 логическую identity артефакта, выбирая явно поставленный физический источник.
 Исторические DB-результаты не дают права воскресить удалённые raw evidence.
+
+## Размещение рабочих результатов
+
+`modules/placement` владеет чистыми решениями о текущем размещении: строгими
+входами, выбором правила по смысловым осям и приоритету, scoped согласованием,
+baseline и совместимостью деклараций. Правила путей используют общий
+`foundation.paths.matches_component_path`; impact matching делегирует тому же
+владельцу вместо второй реализации component glob.
+
+`application/placement.PlacementCommands` координирует решение, текущего владельца
+и порт хранения. `infrastructure/placement.FilePlacementWorkspace` отвечает за
+чтение baseline/байтов, существующий project resource fence, lock, atomic writer
+и fsync/readback. Равенство байтов допускает подтверждение без replace; ошибка
+подтверждения сохраняет неопределённость эффекта в ответе.
+
+`infrastructure/project_binding` переиспользуется общими инструментами для
+проверки configured project/зарегистрированного checkout. Caller предоставляет
+существующий `direct_caller`; идентичность не дублируется. Необязательный
+`PoiseCurrentPlacementOwners` читает текущие Task/Sprint через существующие
+repositories в защищённом read-only snapshot только при необходимости выбранного
+правила. Он не приобретает Task, не создаёт DB и не выполняет lifecycle.
+
+CLI transport разбирает полный JSON, composition root соединяет владельцев.
+Placement декларации не заменяют immutable artifact publication, transfers или
+управление Task. Их владельцы и полномочия сохранены. Полный операторский контракт:
+[пакеты](../configuration/result-placement.md#пакет-prepare-и-check),
+[эффекты и повтор](../configuration/result-placement.md#отказы-и-повтор).

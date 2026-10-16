@@ -27,8 +27,14 @@ def _encoded(value):
 class RequirementsStore:
     SCHEMA_VERSION = 2
 
-    def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None):
+    def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None,
+                 *, read_only=False, read_wait=None):
         self.project_fence = project_fence
+        self.read_only = read_only
+        self.read_wait = read_wait
+        if read_wait is not None and (type(read_wait) not in (int,float)
+                                     or not math.isfinite(read_wait) or read_wait <= 0):
+            raise PoiseError('sqlite_read_seconds: требуется конечное положительное число')
         self.database = Path(database)
         self.lock = Path(lock)
         for value in (lock_seconds, poll_seconds):
@@ -38,7 +44,18 @@ class RequirementsStore:
         self.poll_seconds = poll_seconds
         with self._transaction() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
+            if version == 1:
+                raise PoiseError(
+                    'Requirements DB schema 1 requires explicit migration. Send '
+                    '{"operation":"migrate","input":{}} to python -m poise requirements '
+                    '--config <selected-project-config> using the same project manifest; '
+                    'automatic migration is forbidden.'
+                )
+            if read_only:
+                if version != self.SCHEMA_VERSION:
+                    raise PoiseError(f'read-only: несовместимая Requirements schema {version}; '
+                                     'инициализация и миграция при наблюдении не выполняются')
+            elif version == 0:
                 if connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
                     raise PoiseError("Unknown Requirements DB; automatic migration is forbidden")
                 connection.execute("CREATE TABLE requirements_meta(revision INTEGER NOT NULL)")
@@ -58,13 +75,6 @@ class RequirementsStore:
                     "request_id TEXT PRIMARY KEY, digest TEXT NOT NULL, response TEXT NOT NULL)"
                 )
                 schema_2(connection)
-            elif version == 1:
-                raise PoiseError(
-                    'Requirements DB schema 1 requires explicit migration. Send '
-                    '{"operation":"migrate","input":{}} to python -m poise requirements '
-                    '--config <selected-project-config> using the same project manifest; '
-                    'automatic migration is forbidden.'
-                )
             elif version != self.SCHEMA_VERSION:
                 raise PoiseError("Requirements DB schema is incompatible; migration is not performed")
 
@@ -88,6 +98,17 @@ class RequirementsStore:
 
     @contextmanager
     def _transaction(self):
+        if self.read_only:
+            from .diagnostic_io import readonly_transaction
+            if self.read_wait is None:
+                raise PoiseError('read-only: требуется явный sqlite_read_seconds')
+            try:
+                with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+                    with readonly_transaction(self.database, self.read_wait, self.poll_seconds) as connection:
+                        yield connection
+            except (OSError, sqlite3.Error) as exc:
+                raise PoiseError(f'read-only: хранилище требований недоступно: {self.database}: {exc}') from exc
+            return
         # Reserve the writer before reading revision/request state. Only the
         # shared BEGIN/COMMIT boundary may retry; this body is never replayed.
         with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):

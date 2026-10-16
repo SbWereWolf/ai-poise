@@ -47,6 +47,8 @@ class Reporter:
             actual = call.excinfo.value
             if exception == 'PreparationUnavailable' and getattr(actual, 'code', None) == 'PREPARE_UNSUPPORTED':
                 code = 'PREPARE_UNSUPPORTED'
+            elif exception == 'PlacementUnavailable' and getattr(actual, 'code', None) == 'PLACEMENT_UNSUPPORTED':
+                code = 'PLACEMENT_UNSUPPORTED'
             elif exception == 'DomainError' and str(actual) == 'Every catalog skill must be selected or explicitly excluded':
                 code = 'CATALOGUE_COVERAGE'
         row = {'nodeid': report.nodeid, 'phase': report.when, 'outcome': report.outcome,

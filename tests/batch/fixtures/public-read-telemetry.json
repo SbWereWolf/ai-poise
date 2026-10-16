@@ -1,0 +1,25 @@
+{
+  "operation": "show",
+  "input": {"queries": [{"id": "messages", "kind": "messages"}]},
+  "messages": [],
+  "telemetry": {
+    "usage": [{
+      "source": "test",
+      "stream": "agent",
+      "event_id": "read-usage-1",
+      "sequence": 1,
+      "mode": "delta",
+      "timestamp": "2026-10-16T00:00:00+00:00",
+      "counters": {
+        "input_tokens": 5,
+        "output_tokens": 3,
+        "total_tokens": 8,
+        "cached_input_tokens": 2,
+        "reasoning_output_tokens": 1
+      }
+    }],
+    "intervals": [],
+    "cause": "initial",
+    "finding_targets": []
+  }
+}

@@ -35,3 +35,16 @@ class SessionEstablisher:
             session = self.registry.reserve(caller.key, candidate, inventory)
             if session is not None:
                 return self._result(caller, session)
+
+    def observe(self, caller, preferred_session=None):
+        """Resolve committed identity without registering or refreshing it."""
+        existing = self.registry.lookup(caller.key)
+        if existing is not None:
+            return self._result(caller, existing)
+        fixed = preferred_session if preferred_session is not None else caller.native_session
+        if fixed is None:
+            return None  # A generated caller still needs its ordinary admission.
+        owner = self.registry.owner(fixed)
+        if owner is not None and owner != caller.key:
+            raise PoiseError('Native session is already assigned to another caller')
+        return self._result(caller, fixed)

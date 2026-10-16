@@ -1,0 +1,11 @@
+{
+  "operation": "show",
+  "input": {"queries": [{"id": "messages", "kind": "messages"}]},
+  "messages": [{
+    "conversation_id": "read-conversation",
+    "message_id": "reported-1",
+    "occurred_at": "2026-10-16T00:00:00+00:00",
+    "reason": "authorization",
+    "subject": "read-subject"
+  }]
+}

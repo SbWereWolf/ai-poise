@@ -115,6 +115,29 @@ def configured_storage_path(state: Path, value: str) -> Path:
 from .modules.verification.domain import validate_method
 
 
+def _validated_limits(value):
+    limits = configuration_fields(value, {'lock_seconds','lock_poll_seconds','sqlite_read_seconds','git_seconds','verify_attempts',
+                              'output_chars','preview_chars'}, 'limits')
+    for key, value in limits.items():
+        try:
+            valid = (isinstance(value, (int,float)) and not isinstance(value,bool)
+                     and value > 0 and math.isfinite(value))
+        except OverflowError:
+            valid = False
+        if not valid:
+            raise PoiseError(f'limits.{key}: требуется конечное положительное число')
+    for key in ('verify_attempts','output_chars','preview_chars'):
+        if not isinstance(limits[key], int):
+            raise PoiseError(f'limits.{key}: требуется целое число')
+    return limits
+
+
+def load_config_limits(path: Path):
+    """Read common operational limits without loading subject workflows."""
+    document = configuration_fields(read_json(path), {'limits'}, 'project config')
+    return _validated_limits(document['limits'])
+
+
 def load_config(path: Path, legacy_workflow_requirements: dict[str, bool] | None = None) -> tuple[Path, dict, dict]:
     return load_config_document(path, read_json(path), legacy_workflow_requirements)
 
@@ -193,19 +216,7 @@ def _load_config_document(path: Path, final_root: Path, cfg: dict,
             cfg['paths'][key], f'paths.{key}',
             nonblank=key in {'state', 'database', 'lock', 'requirements_database', 'requirements_lock'},
         )
-    limits = configuration_fields(cfg['limits'], {'lock_seconds','lock_poll_seconds','sqlite_read_seconds','git_seconds','verify_attempts',
-                              'output_chars','preview_chars'}, 'limits')
-    for key, value in limits.items():
-        try:
-            valid = (isinstance(value, (int,float)) and not isinstance(value,bool)
-                     and value > 0 and math.isfinite(value))
-        except OverflowError:
-            valid = False
-        if not valid:
-            raise PoiseError(f'limits.{key}: требуется конечное положительное число')
-    for key in ('verify_attempts','output_chars','preview_chars'):
-        if not isinstance(cfg['limits'][key], int):
-            raise PoiseError(f'limits.{key}: требуется целое число')
+    _validated_limits(cfg['limits'])
     configuration_fields(cfg['git'], {'repository','base_ref','remote','branch_template','commit_pattern',
                            'author_name','author_email','push_required'}, 'git')
     if not isinstance(cfg['project'],str) or not cfg['project'].strip():

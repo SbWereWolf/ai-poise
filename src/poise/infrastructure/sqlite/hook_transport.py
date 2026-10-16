@@ -3,7 +3,7 @@ import json
 import sqlite3
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
-from ...common import PoiseError,encoded,load_config
+from ...common import PoiseError,encoded,load_config_limits
 from ...modules.hook_transport.domain import MissingHookBinding
 from .transaction import write_transaction
 
@@ -39,8 +39,7 @@ class HookRegistry:
     @contextmanager
     def read_transaction(self):
         from ..diagnostic_io import readonly_transaction
-        _,config,_=load_config(self.settings.project_config)
-        limits=config['limits']
+        limits=load_config_limits(self.settings.project_config)
         try:
             with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
                 with readonly_transaction(self.settings.database, limits['sqlite_read_seconds'],

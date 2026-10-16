@@ -29,6 +29,50 @@ interfaces обслуживает CLI. [Wire-контракт и
 восстановление](../workflows/requirements-registry.md#пакетный-crud)
 принадлежат руководству реестра, а не второму описанию схемы API.
 
+## Самостоятельное хранилище Requirements
+
+`poise.infrastructure.requirements_registry.RequirementsStore.standalone(database,
+lock,lock_seconds,poll_seconds,backend)` явно создаёт store с переданным backend
+самостоятельного формата. Настройка состояния и соединений принадлежит самому
+владельцу. Существующий constructor `RequirementsStore(...)` сохраняет прежнюю
+композицию другого потребителя; выбор новой фабрики выполняет вызывающая сторона.
+
+Backend приложения реализует пять методов:
+
+| Метод | Вход и результат |
+| --- | --- |
+| `initialize(connection)` | Подготовить новую схему или прочитать обязательную metadata своего формата. Вернуть `None`. |
+| `registry_rows(connection)` | Вернуть dict с `requirements`: list объектов `id/level/status/text` и `links`: list объектов `system/application`. |
+| `prepare_queries(connection)` | Подготовить TEMP-представления `requirements(id,level,status,text)` и `requirement_links(system_id,application_id)` для общего SQL-владельца. Вернуть `None`. |
+| `previous_request(connection,namespace,request_id)` | Вернуть `None` либо dict с декодированными JSON objects `intent` и `response`. Описанный отказ при нечитаемых необходимых данных — `PoiseError`. |
+| `persist_apply(connection,before,after,revision,request_id,intent,response)` | Сохранить итоговые обычные структуры реестра, новую общую ревизию и точный запрос/ответ. Вернуть `None`. |
+
+Соединение передано во временное пользование: транзакцию открывает и завершает
+общий store, backend выполняет SQL в ней. Backend не импортирует доменные
+классы. `RequirementsRegistry`, проверка пакетов, последовательные доменные
+операции, запросы страниц, сравнение намерений и обработка повторов остаются
+у общего владельца. Когда TEMP-представление совпадает с именем таблицы,
+SQL backend указывает исходные таблицы через `main`.
+
+Метаданные backend содержат единственную `requirements_meta.revision`, которую
+читают общие методы. При `apply` новое пространство повторов — `registry.apply`;
+намерение сравнивается как структура с сохранением порядка списков. Новая
+композиция не вычисляет digest намерения. Backend сохраняет общую ревизию,
+изменения и ответ в одной caller-транзакции. SQLite/filesystem ошибки новой
+композиции выходят как `PoiseError` после завершения rollback.
+
+Самостоятельная композиция использует `revision`, `registry`, `read`, `query`,
+`apply`, `read_bootstrap`. `RequirementsCommands` предоставляет её shell операции
+`apply/query/import_bootstrap`. Наследуемые старые `command` и `migrate` относятся
+к другому формату и не включены в этот список поддерживаемых методов.
+
+Приложение [Requirements](../../apps/requirements/docs/storage-req.md) владеет
+своей схемой и backend. Примеры запуска относятся к текущему checkout. Потребитель
+общего пакета выбирает и обновляет его версию отдельно; наличие метода в этом
+срезе исходников не является сведением о публикации пакета.
+
+## Остальные доменные библиотеки
+
 - `Task`:
   create/submit/assess_content/record_observations/assess_evidence/mark_verified/accept/rework/cancel.
   Владелец stage, итераций, submissions и оценки evidence. Никакого I/O.

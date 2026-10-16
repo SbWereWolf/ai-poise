@@ -1,20 +1,36 @@
-# Requirements standalone CLI
+# Самостоятельный CLI Requirements
 
-## Entry point
+## Запуск и окружение
 
-Requirements is launched through its app-owned provider:
+Используйте Python 3.13 (`>=3.13,<3.14` в `pyproject.toml`) со стандартным модулем
+`sqlite3` и зависимостями проекта. Инструкция относится к checkout, содержащему
+эту реализацию. Проверки выполнены на Python 3.13.15 и SQLite 3.53.1.
+
+Точка входа приложения:
 
 ```text
-apps/requirements/bin/requirements --config <path-to-requirements.json>
+apps/requirements/bin/requirements --config /absolute/path/to/requirements.json
 ```
 
-There is no root alias for this provider. The executable resolves its installation-relative repository and `src` locations from its own file location; callers supply the Requirements config explicitly with `--config`. Installation paths are not embedded in the config or command contract.
+Интерпретатор можно выбрать явно:
 
-The provider accepts one UTF-8 JSON request on stdin and writes one newline-terminated JSON result on stdout. Current operations are `apply`, `query`, and `import_bootstrap`; their packet and result contracts remain defined by [Requirements public contract](contract-req.md).
+```sh
+"$requirements_python" -B "$requirements_checkout/apps/requirements/bin/requirements" \
+  --config "$requirements_work/config/requirements.json"
+```
 
-## Requirements-owned config
+Исполняемый файл разрешает корень своих исходников и `src` относительно собственного
+расположения. `--config` задаётся вызывающей стороной. Приложение принимает один
+UTF-8 JSON object через stdin и возвращает один JSON object с завершающим переводом
+строки через stdout. Успех соответствует exit 0, описанный отказ — exit 2.
 
-The config schema is `stride-requirements-config/v1`. The top-level object is exact: every field is required and unknown fields are rejected.
+Текущий пакет содержит `operation` и `input`. Реализованы `apply`, `query` и
+`import_bootstrap`. [Публичный проект контракта](contract-req.md) описывает также
+будущие операции; фактический запуск и пакет текущей версии определяет эта страница.
+
+## Конфигурация приложения
+
+Используйте полный объект `stride-requirements-config/v1`:
 
 ```json
 {
@@ -40,36 +56,125 @@ The config schema is `stride-requirements-config/v1`. The top-level object is ex
 }
 ```
 
-`paths.state` may be absolute or relative to the config file directory. `paths.database` and `paths.lock` are relative to the resolved Requirements state root, must remain inside it, and must be distinct. The database and lock are therefore owned by Requirements and can be relocated by relocating the config/state paths; no repository-wide absolute path is required.
+| Параметр | Правило заполнения |
+| --- | --- |
+| `paths.state` | Абсолютный путь или путь относительно каталога конфигурации. |
+| `paths.database`, `paths.lock` | Различные относительные пути внутри `state`; собственные database и lock приложения. |
+| `batch.max_input_bytes` | Положительное целое число: предел байтов входного пакета. |
+| `batch.max_items` | Положительное целое число: предел элементов одного пакета. |
+| `lock.seconds`, `lock.poll_seconds` | Положительные конечные числа: ожидание и интервал проверки локальной границы записи. |
+| `task_ids` | Целые `minimum >= 0`, `maximum >= minimum`, `first` внутри namespace; положительные целые `width` и `step`. Ширина вмещает десятичную запись maximum. Проверяется при каждом запуске. |
 
-`batch.max_input_bytes` and `batch.max_items` are required positive integers. `lock.seconds` and `lock.poll_seconds` are required positive finite numbers. `task_ids` is required and validated as a Task ID allocation policy even when the current operation does not allocate a Task ID. There are no hidden defaults for missing required values.
+Используйте одну выбранную конфигурацию для последующих обращений к одному
+хранилищу. Каталоги `state` и его файлов должны быть доступны процессу для записи.
+Каждая установка Requirements владеет своим состоянием; конфигурация соседнего
+приложения (`neighbor`) относится к его отдельному владельцу.
 
-## Ownership and isolation
+## Создание и повторное открытие
 
-The standalone shell composes the existing Requirements command/store boundary directly. It does not load the shared project configuration and does not read a neighbor application's config or database. In particular, its configuration does not require `config/processes`, Tasks state, Execution state, or Sequencing state.
+Выберите новый каталог для примера и задайте три фактических абсолютных пути:
 
-The entire Requirements config is validated before the Requirements database or lock is opened. A second provider invocation with another config therefore uses that config's own Requirements state and does not inherit the first invocation's paths.
-
-## Failure behavior
-
-Configuration and packet validation failures are fail-closed. The provider writes a JSON result with `"status": "rejected"` and exits with `exit 2`. Examples include a missing required top-level field, an unsupported schema, invalid path containment, invalid limits, invalid `task_ids`, oversized stdin beyond `max_input_bytes`, or an unknown operation.
-
-A missing/invalid config is rejected before creation of Requirements database/lock state. It does not fall back to shared configuration or inspect neighbor state.
-
-## Verification
-
-Behavior and isolation are verified through the real executable:
-
-```text
-python -B apps/requirements/tests/test_shell.py --suite behavior
+```sh
+requirements_python=/absolute/path/to/python3.13
+requirements_checkout=/absolute/path/to/ai-poise
+requirements_work=/absolute/path/to/requirements-example
+export PATH="$(dirname "$requirements_python"):$PATH"
+mkdir -p "$requirements_work/config"
+cp "$requirements_checkout/apps/requirements/config/requirements.example.json" \
+  "$requirements_work/config/requirements.json"
 ```
 
-The behavior suite covers executable discovery, isolated storage with poisoned neighbor config/database sentinels, independent configs, fail-closed required fields, input bounds, `task_ids`, replay stability, and requirement-chain preservation.
+Первый запрос подготавливает собственное хранилище формата 1 с ревизией 0.
+`read_only` описывает запрос к требованиям: создание структуры при первом
+открытии входит в подготовку хранилища.
 
-Documentation literals are checked with:
-
-```text
-python -B apps/requirements/tests/test_shell.py --suite documentation
+```sh
+"$requirements_python" -B "$requirements_checkout/apps/requirements/bin/requirements" \
+  --config "$requirements_work/config/requirements.json" <<'JSON'
+{"operation":"query","input":{"queries":[{"id":"registry","kind":"registry"}]}}
+JSON
 ```
 
-These checks map the standalone Requirements boundary to GEN-03, GEN-04, and REQ-06 and preserve the task DoD: independent configuration/state and co-delivered command/config documentation.
+Результат:
+
+```json
+{"status":"read_only","revision":0,"results":[{"id":"registry","value":{"requirements":{},"links":[]}}]}
+```
+
+Сохраните пакет изменения:
+
+```sh
+cat > "$requirements_work/create.json" <<'JSON'
+{
+  "operation": "apply",
+  "input": {
+    "request_id": "example-create",
+    "expected_revision": 0,
+    "operations": [
+      {"kind":"put_requirement","requirement":{"id":"SYS-KEEP","level":"system","status":"current","text":"Сохранять требования."}},
+      {"kind":"put_requirement","requirement":{"id":"APP-STORE","level":"application","status":"current","text":"Открывать самостоятельное хранилище."}},
+      {"kind":"link","system":"SYS-KEEP","application":"APP-STORE"}
+    ]
+  }
+}
+JSON
+"$requirements_python" -B "$requirements_checkout/apps/requirements/bin/requirements" \
+  --config "$requirements_work/config/requirements.json" < "$requirements_work/create.json"
+```
+
+Ответ содержит `status:applied`, `revision:1`, `replayed:false`. Повторите первый
+запрос `query` с той же конфигурацией: новый процесс повторно откроет файл и вернёт
+оба требования и их связь на ревизии 1. Повторное исполнение сохранённого
+`create.json` вернёт `revision:1`, `replayed:true` с сохранением данных.
+
+## Операции и данные
+
+`apply` получает `request_id`, `expected_revision` и упорядоченный список
+`operations`. Поддержаны `put_requirement` и `link` между System и Application.
+Для нового изменения выбирайте новый `request_id` и актуальную ревизию из ответа
+`query`. Для повтора передавайте тот же пакет: порядок операций является частью
+намерения, порядок ключей JSON objects на его равенство не влияет.
+
+`query` получает список `queries`. Доступны запросы реестра и существующие
+доменные запросы, включая `plan_task`, а также типизированные страницы сущностей
+и связей через общий владелец запросов. Каталог предметных сущностей доступен в
+новом хранилище с подготовленными metadata-таблицами.
+
+`import_bootstrap` получает абсолютный путь `path` к документу
+`requirements-bootstrap-1` и `request_id`. Он публикует начальные требования и
+связи в пустое хранилище с ревизией 0 через тот же `apply`.
+
+[Формат хранения и публичная композиция](storage-req.md) описывают модель,
+повторное открытие и поддерживаемые методы. Таблицы постановок Task подготовлены
+для следующих операций приложения; нынешний `plan_task` вычисляет контекст
+постановки из реестра требований.
+
+## Ошибки и продолжение работы
+
+Описание отказа возвращается в `reason` вместе с `status:rejected` и exit 2.
+Конфигурация и пакет проверяются до открытия хранилища. Ошибки подготовки,
+занятость SQLite и ошибки файловой системы возвращаются вызывающей стороне;
+изменения схемы и строк внутри незавершённой транзакции откатываются.
+
+Для продолжения обеспечьте доступность выбранного каталога, корректные входные
+данные и завершение конкурирующей записи, затем повторите нужную операцию.
+Восстановление повреждённых файлов выполняет оператор отдельным инструментом.
+Повтор конкретного запроса использует читаемые сохранённые JSON objects намерения
+и ответа. Ошибка этих данных относится к этому повтору; она не вводит общую
+проверку целостности при запуске остальных запросов.
+
+## Проверки
+
+Проверки фактического CLI и документации:
+
+```sh
+"$requirements_python" -B "$requirements_checkout/apps/requirements/tests/test_shell.py" --suite behavior
+"$requirements_python" -B "$requirements_checkout/apps/requirements/tests/test_shell.py" --suite documentation
+```
+
+Проверки хранилища и потребителя:
+
+```sh
+"$requirements_python" -B "$requirements_checkout/apps/requirements/tests/test_storage.py"
+"$requirements_python" -B "$requirements_checkout/apps/requirements/tests/test_storage_consumer.py"
+```

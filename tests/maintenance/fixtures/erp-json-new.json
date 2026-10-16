@@ -1,0 +1,78 @@
+{
+  "version": "local-development.1.0.0",
+  "schemaVersion": 1,
+  "acceptanceMarker": "new test-owned configuration Ω",
+  "environmentFile": "fixture.env",
+  "planningWorkspaceEnvironmentFile": "planning-workspace/.env",
+  "compatibilityContractPath": "platform-infrastructure/contracts/local-development-compatibility.json",
+  "executionConfiguration": "execution.json",
+  "applications": {
+    "planning-workspace": {
+      "directory": "planning-workspace",
+      "environmentFile": "planning-workspace/.env",
+      "variables": []
+    },
+    "calculation-service": {
+      "directory": "calculation-service",
+      "environmentFile": "calculation-service/.env",
+      "variables": []
+    },
+    "system-admin": {
+      "directory": "system-admin",
+      "environmentFile": "system-admin/.env",
+      "variables": []
+    }
+  },
+  "phpExecutable": "php",
+  "phpArguments": [],
+  "nodeExecutable": "node",
+  "nodeArguments": [],
+  "composerExecutable": "composer",
+  "npmEntryPoint": "npm",
+  "localBootstrap": {
+    "schemaVersion": 1,
+    "variant": "test-owned-publication",
+    "phpApplications": ["planning-workspace", "calculation-service", "system-admin"],
+    "nodeApplications": ["document-ui", "platform-infrastructure/tests/playwright"],
+    "runtimeDirectories": ["database", "storage/logs"],
+    "rootDirectories": ["var/local-development/browser-home"],
+    "applicationDatabases": ["PLANNING_WORKSPACE_DATABASE_PATH", "SYSTEM_ADMIN_DATABASE_PATH"],
+    "queueDatabases": [],
+    "initialization": [],
+    "requiredTables": {}
+  },
+  "businessFixture": {
+    "draftSlabCountLimit": 500,
+    "productionPeriod": {
+      "start": "2030-01-07",
+      "end": "2030-01-08",
+      "weekendMode": "weekdays",
+      "tracks": 1
+    },
+    "readyDate": "2030-01-09",
+    "dueDate": "2030-01-09",
+    "trackLength": 85000,
+    "wirePrice": 15,
+    "setupPrice": 0,
+    "classes": [{"name": "B25", "rank": 25, "price": 6600}],
+    "positions": [{"article": "fixture-position", "quantity": 1, "length": 7100, "width": 1000, "height": 220, "concreteClass": "B25", "topWire": 4, "bottomWire": 28}]
+  },
+  "testDirectory": "tests",
+  "testMatch": "*.spec.mjs",
+  "artifactsDirectory": "artifacts",
+  "fullyParallel": false,
+  "retries": 0,
+  "forbidOnly": true,
+  "browser": {
+    "name": "firefox",
+    "source": "configured-executable",
+    "executablePath": "fixture-browser",
+    "headless": true,
+    "environment": {},
+    "environmentPaths": {}
+  },
+  "viewport": {"width": 1440, "height": 1000},
+  "timeouts": {"testMs": 800000, "expectMs": 20000, "actionMs": 20000, "navigationMs": 30000, "happyPathMs": 540000},
+  "artifacts": {"screenshot": "only-on-failure", "trace": "retain-on-failure"},
+  "visualReview": {"enabled": false, "evidenceDirectory": "visual-review", "timeoutMs": 300000, "pollMs": 200, "testTimeoutMs": 3600000}
+}

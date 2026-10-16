@@ -12,8 +12,9 @@ from .infrastructure.sqlite.artifacts import SqliteArtifactRepository
 
 class Store:
     """Composition/receipt facade of the original slice; no Task lifecycle writes."""
-    def __init__(self, database: Path, lock: Path, wait: float, poll: float, workflows: dict, project_fence=None):
-        self.database=Database(database,lock,wait,poll,project_fence)
+    def __init__(self, database: Path, lock: Path, wait: float, poll: float, workflows: dict,
+                 project_fence=None, *, read_only=False):
+        self.database=Database(database,lock,wait,poll,project_fence,read_only=read_only)
         self.path=database
         self.workflows=workflows
         self.queries=TaskQueries(self.database)
@@ -39,7 +40,7 @@ class Store:
             db.execute('INSERT INTO sessions(id,task_id) VALUES(?,NULL) ON CONFLICT(id) DO NOTHING', (session,))
 
     def current(self, session: str) -> dict | None:
-        with self.transaction() as db:
+        with self.database.read_transaction() as db:
             rows=db.execute('SELECT id FROM tasks WHERE claimed_by=? ORDER BY id',(session,)).fetchall()
             if len(rows)>1:raise PoiseError(f'Session {session} owns more than one Task')
             return None if not rows else self.queries.record_in(db,rows[0][0])

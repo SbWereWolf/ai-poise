@@ -27,8 +27,10 @@ def _encoded(value):
 class RequirementsStore:
     SCHEMA_VERSION = 2
 
-    def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None):
+    def __init__(self, database, lock, lock_seconds, poll_seconds, project_fence=None,
+                 *, read_only=False):
         self.project_fence = project_fence
+        self.read_only = read_only
         self.database = Path(database)
         self.lock = Path(lock)
         for value in (lock_seconds, poll_seconds):
@@ -38,7 +40,11 @@ class RequirementsStore:
         self.poll_seconds = poll_seconds
         with self._transaction() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
+            if read_only:
+                if version != self.SCHEMA_VERSION:
+                    raise PoiseError(f'read-only: несовместимая Requirements schema {version}; '
+                                     'инициализация и миграция при наблюдении не выполняются')
+            elif version == 0:
                 if connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
                     raise PoiseError("Unknown Requirements DB; automatic migration is forbidden")
                 connection.execute("CREATE TABLE requirements_meta(revision INTEGER NOT NULL)")
@@ -88,6 +94,15 @@ class RequirementsStore:
 
     @contextmanager
     def _transaction(self):
+        if self.read_only:
+            from .diagnostic_io import readonly_database
+            try:
+                with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+                    with readonly_database(self.database) as connection:
+                        yield connection
+            except (OSError, sqlite3.Error) as exc:
+                raise PoiseError(f'read-only: хранилище требований недоступно: {self.database}: {exc}') from exc
+            return
         # Reserve the writer before reading revision/request state. Only the
         # shared BEGIN/COMMIT boundary may retry; this body is never replayed.
         with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):

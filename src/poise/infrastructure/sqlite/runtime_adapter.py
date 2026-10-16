@@ -8,14 +8,14 @@ class RuntimeRegistry:
     def __init__(self,database):self.database=database
 
     def existing(self,identity_key,inventory):
-        with self.database.transaction() as db:
+        with self.database.write_transaction() as db:
             row=db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',(identity_key,)).fetchone()
             if row is None:return None
             db.execute('UPDATE runtime_bindings SET inventory=? WHERE identity_key=?',(encoded(inventory),identity_key))
             return row[0]
 
     def reserve(self,identity_key,session,inventory):
-        with self.database.transaction() as db:
+        with self.database.write_transaction() as db:
             row=db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',(identity_key,)).fetchone()
             if row is not None:
                 db.execute('UPDATE runtime_bindings SET inventory=? WHERE identity_key=?',(encoded(inventory),identity_key))
@@ -27,12 +27,24 @@ class RuntimeRegistry:
             return session
 
     def cursor(self,session,path):
-        with self.database.transaction() as db:
+        with self.database.read_transaction() as db:
             row=db.execute('SELECT data FROM runtime_cursors WHERE session_id=? AND path=?',(session,path)).fetchone()
             return None if row is None else json.loads(row[0])
 
+    def lookup(self, identity_key):
+        with self.database.read_transaction() as db:
+            row = db.execute('SELECT session_id FROM runtime_bindings WHERE identity_key=?',
+                             (identity_key,)).fetchone()
+            return None if row is None else row[0]
+
+    def owner(self, session):
+        with self.database.read_transaction() as db:
+            row = db.execute('SELECT identity_key FROM runtime_bindings WHERE session_id=?',
+                             (session,)).fetchone()
+            return None if row is None else row[0]
+
     def save_cursor(self,session,path,before,after):
-        with self.database.transaction() as db:
+        with self.database.write_transaction() as db:
             row=db.execute('SELECT data FROM runtime_cursors WHERE session_id=? AND path=?',(session,path)).fetchone()
             previous=None if row is None else json.loads(row[0])
             if previous!=before:

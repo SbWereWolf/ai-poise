@@ -1,5 +1,6 @@
 """Operational hook registry only: no Task/Sprint table access."""
 import json
+import sqlite3
 from contextlib import contextmanager, nullcontext
 from datetime import datetime,timezone
 from ...common import PoiseError,encoded
@@ -35,6 +36,18 @@ class HookRegistry:
             elif version!=1:raise PoiseError('Unsupported hook registry schema; no migrations')
             yield db
 
+    @contextmanager
+    def read_transaction(self):
+        from ..diagnostic_io import readonly_database
+        try:
+            with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+                with readonly_database(self.settings.database) as db:
+                    if db.execute('PRAGMA user_version').fetchone()[0] != 1:
+                        raise PoiseError('read-only: несовместимая schema реестра hooks; миграция не выполняется')
+                    yield db
+        except (OSError, sqlite3.Error) as exc:
+            raise PoiseError(f'read-only: реестр hooks недоступен: {self.settings.database}: {exc}') from exc
+
     @staticmethod
     def event_in(db,binding,kind,data):
         cursor=db.execute('INSERT INTO hook_events(at,binding,event,data) VALUES(?,?,?,?)',
@@ -56,13 +69,13 @@ class HookRegistry:
             return self.event_in(db,binding,kind,{'turn_id':turn, **({} if metadata is None else metadata)})
 
     def get(self,session):
-        with self.transaction() as db:
+        with self.read_transaction() as db:
             row=db.execute('SELECT data,latest_message FROM bindings WHERE id=?',(session,)).fetchone()
             if row is None:raise PoiseError('Unknown hook session binding')
             return json.loads(row[0]),None if row[1] is None else json.loads(row[1])
 
     def session_workspace(self, session):
-        with self.transaction() as db:
+        with self.read_transaction() as db:
             row = db.execute('SELECT data FROM hook_events WHERE binding=? AND event=? ORDER BY id DESC LIMIT 1',
                              (session, 'SessionStart')).fetchone()
         metadata = None if row is None else json.loads(row[0])
@@ -71,7 +84,7 @@ class HookRegistry:
         return metadata['workspace']
 
     def find(self,external,agent):
-        with self.transaction() as db:
+        with self.read_transaction() as db:
             matches=[json.loads(r[0]) for r in db.execute('SELECT data FROM bindings')]
         matches=[r for r in matches if r['external_session']==external and (agent is None or r['agent_id']==agent)]
         if not matches:raise MissingHookBinding('No unique hook binding for this external identity')
@@ -79,7 +92,7 @@ class HookRegistry:
         return matches[0]
 
     def liveness(self, binding):
-        with self.transaction() as db:
+        with self.read_transaction() as db:
             return self.binding_liveness(db, binding)
 
     @staticmethod

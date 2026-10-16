@@ -10,14 +10,19 @@ from ..infrastructure.result_views import task_response_root, preflight_work_res
 from ..modules.result_views.domain import bounded_envelope
 
 
-def execute(runtime,stream,output):
+def read_request(config, stream):
+    raw = stream.read(config['batch']['max_input_bytes'] + 1)
+    if len(raw) > config['batch']['max_input_bytes']:
+        raise PoiseError('Packet exceeds configured max_input_bytes')
+    return parse_request(strict_json(raw.decode('utf-8')), config['batch'])
+
+
+def execute(runtime,stream,output,request=None):
     h=runtime
     category='rejected'
     try:
-        raw=stream.read(h.cfg['batch']['max_input_bytes']+1)
-        if len(raw)>h.cfg['batch']['max_input_bytes']:
-            raise PoiseError('Packet exceeds configured max_input_bytes')
-        request=parse_request(strict_json(raw.decode('utf-8')),h.cfg['batch'])
+        if request is None:
+            request=read_request(h.cfg,stream)
         preflight_work_result(h, request)
         result=WorkTools(h).invoke(request)
         category = (
@@ -27,8 +32,9 @@ def execute(runtime,stream,output):
         )
     except (PoiseError,UnicodeError,RecursionError) as exc:
         result={'status':'rejected','reason':str(exc)}
-        current=h.store.current(h.session)
-        h.store.event(h.session,None if current is None else current['id'],'work.blocked',result)
+        if not h.store.database.read_only:
+            current=h.store.current(h.session)
+            h.store.event(h.session,None if current is None else current['id'],'work.blocked',result)
     write_result(h,result,output)
     return {'success':0,'business_incomplete':1,'rejected':2}[category]
 

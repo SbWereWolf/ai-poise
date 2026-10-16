@@ -1,5 +1,6 @@
 from __future__ import annotations
 import math
+import sqlite3
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from ...modules.foundation.errors import PoiseError
@@ -73,15 +74,21 @@ SCHEMA = (
 
 class Database:
     """Linux-only external lock + short SQL transaction with one owned v12 upgrade."""
-    def __init__(self, path: Path, lock: Path, wait: float, poll: float, project_fence=None):
+    def __init__(self, path: Path, lock: Path, wait: float, poll: float, project_fence=None,
+                 *, read_only=False):
         self.project_fence = project_fence
+        self.read_only = read_only
         for value in (wait, poll):
             if type(value) not in (int,float) or not math.isfinite(value) or value <= 0:
                 raise PoiseError("Требуются явные конечные положительные пределы lock")
         self.path, self.lock, self.wait, self.poll = path, lock, wait, poll
         with self.transaction() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0:
+            if read_only:
+                if version != SCHEMA_VERSION:
+                    raise PoiseError(f'read-only: несовместимая schema {version}; требуется {SCHEMA_VERSION}. '
+                                     'Инициализация и миграция при наблюдении не выполняются')
+            elif version == 0:
                 if db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone():
                     raise PoiseError("Неизвестная БД; автоматическая миграция запрещена")
                 for statement in SCHEMA:
@@ -99,6 +106,21 @@ class Database:
 
     @contextmanager
     def transaction(self):
+        with (self.read_transaction() if self.read_only else self.write_transaction()) as db:
+            yield db
+
+    @contextmanager
+    def read_transaction(self):
+        from ..diagnostic_io import readonly_database
+        try:
+            with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
+                with readonly_database(self.path) as db:
+                    yield db
+        except (OSError, sqlite3.Error) as exc:
+            raise PoiseError(f'read-only: существующее хранилище недоступно: {self.path}: {exc}') from exc
+
+    @contextmanager
+    def write_transaction(self):
         with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
             with write_transaction(self.path, self.lock, self.wait, self.poll) as db:
                 yield db

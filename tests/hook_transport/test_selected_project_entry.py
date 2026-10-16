@@ -558,6 +558,25 @@ def test_entry_arguments_cannot_override_the_owned_transport_location(
 def test_public_reconfigure_enables_project_selection(selected_case):
     case = selected_case
     raw = json.loads(case['hook_settings'].read_text())
+    # Establish the existing shared-installation prerequisite through its owner.
+    shared = deepcopy(raw)
+    shared.update(
+        hooks_file=str(case['tools'] / 'native-user' / 'hooks.json'),
+        hooks_lock=str(case['tools'] / 'native-user' / 'hooks.lock'),
+        repository_scope={'repository': str(case['project']['app']),
+                          'timeout_seconds': 3.0},
+    )
+    case['service'].reconfigure({
+        'request_id': 'prepare-shared-entry-before-enabling',
+        'expected_settings_digest': digest(raw),
+        'expected_revision': case['service'].revision(),
+        'target_revision': None,
+        'settings': shared,
+        'definition': case['service'].definition(
+            case['installed']['definition_path']).data,
+    })
+    case['service'] = HookService(case['hook_settings'])
+    raw = json.loads(case['hook_settings'].read_text())
     proposed = deepcopy(raw)
     proposed['project_launcher'] = {
         'settings_path': str(case['launch_path']),

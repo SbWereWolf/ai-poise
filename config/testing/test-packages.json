@@ -4,7 +4,11 @@
     {
       "id": "contract-migration",
       "owner": "migrations",
-      "integration_boundaries": ["tasks", "projects", "verification-runner"],
+      "integration_boundaries": [
+        "tasks",
+        "projects",
+        "verification-runner"
+      ],
       "members": {
         "source": [
           "src/poise/**/*.py",
@@ -42,7 +46,12 @@
     {
       "id": "cancelled-draft-delivery",
       "owner": "terminal-materials",
-      "integration_boundaries": ["tasks", "sprints", "evidence", "verification-runner"],
+      "integration_boundaries": [
+        "tasks",
+        "sprints",
+        "evidence",
+        "verification-runner"
+      ],
       "members": {
         "source": [
           "src/poise/**/*.py",
@@ -228,13 +237,41 @@
           "src/poise/modules/goal_config/domain.py",
           "src/poise/application/catalogue.py",
           "src/poise/infrastructure/catalogue.py",
-          "src/poise/modules/catalogue/domain.py"
+          "src/poise/modules/catalogue/domain.py",
+          "src/poise/__main__.py",
+          "src/poise/application/session_establishment.py",
+          "src/poise/infrastructure/diagnostic_io.py",
+          "src/poise/infrastructure/hook_transport.py",
+          "src/poise/infrastructure/project_state_relocation.py",
+          "src/poise/infrastructure/requirements_registry.py",
+          "src/poise/infrastructure/runtime_adapter.py",
+          "src/poise/infrastructure/saved_materials.py",
+          "src/poise/infrastructure/session_establishment.py",
+          "src/poise/infrastructure/sqlite/database.py",
+          "src/poise/infrastructure/sqlite/hook_transport.py",
+          "src/poise/infrastructure/sqlite/interactions.py",
+          "src/poise/infrastructure/sqlite/runtime_adapter.py",
+          "src/poise/infrastructure/telemetry.py",
+          "src/poise/interfaces/work.py",
+          "src/poise/modules/work/domain.py",
+          "src/poise/storage.py"
         ],
         "tests": [
-          "tests/runtime_services/test_*.py"
+          "tests/runtime_services/test_*.py",
+          "tests/batch/test_public_read_transactions.py",
+          "tests/batch/test_read_failure_boundaries.py"
         ],
         "fixtures": [
-          "tests/conftest.py"
+          "tests/conftest.py",
+          "tests/batch/fixtures/*",
+          "tests/batch/__init__.py",
+          "tests/hook_transport/__init__.py",
+          "tests/hook_transport/helpers.py",
+          "tests/projects/__init__.py",
+          "tests/projects/helpers.py",
+          "tests/projects/test_update.py",
+          "config/batch.example.json",
+          "config/accounting.example.json"
         ]
       }
     },

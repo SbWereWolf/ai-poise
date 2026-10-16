@@ -95,10 +95,10 @@ class RequirementsStore:
     @contextmanager
     def _transaction(self):
         if self.read_only:
-            from .diagnostic_io import readonly_database
+            from .diagnostic_io import readonly_transaction
             try:
                 with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-                    with readonly_database(self.database) as connection:
+                    with readonly_transaction(self.database, self.lock_seconds, self.poll_seconds) as connection:
                         yield connection
             except (OSError, sqlite3.Error) as exc:
                 raise PoiseError(f'read-only: хранилище требований недоступно: {self.database}: {exc}') from exc

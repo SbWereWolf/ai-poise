@@ -111,10 +111,10 @@ class Database:
 
     @contextmanager
     def read_transaction(self):
-        from ..diagnostic_io import readonly_database
+        from ..diagnostic_io import readonly_transaction
         try:
             with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-                with readonly_database(self.path) as db:
+                with readonly_transaction(self.path, self.wait, self.poll) as db:
                     yield db
         except (OSError, sqlite3.Error) as exc:
             raise PoiseError(f'read-only: существующее хранилище недоступно: {self.path}: {exc}') from exc

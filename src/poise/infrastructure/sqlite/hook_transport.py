@@ -38,10 +38,11 @@ class HookRegistry:
 
     @contextmanager
     def read_transaction(self):
-        from ..diagnostic_io import readonly_database
+        from ..diagnostic_io import readonly_transaction
         try:
             with (self.project_fence.locked() if self.project_fence is not None else nullcontext()):
-                with readonly_database(self.settings.database) as db:
+                with readonly_transaction(self.settings.database, self.settings.raw['lock_seconds'],
+                                          self.settings.raw['lock_poll_seconds']) as db:
                     if db.execute('PRAGMA user_version').fetchone()[0] != 1:
                         raise PoiseError('read-only: несовместимая schema реестра hooks; миграция не выполняется')
                     yield db

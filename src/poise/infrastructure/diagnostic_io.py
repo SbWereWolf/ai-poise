@@ -53,3 +53,14 @@ def readonly_database(path):
         if db.in_transaction:
             db.execute('ROLLBACK')
         db.close()
+
+
+@contextmanager
+def readonly_transaction(path, wait, poll):
+    """Admit a committed operational snapshot before running its body once."""
+    from .sqlite.transaction import _boundary
+    with readonly_database(path) as db:
+        # BEGIN is deferred. Pin the read snapshot here, where a short physical
+        # writer conflict can use the existing explicit boundary budget.
+        _boundary(db, 'PRAGMA user_version', Path(path), wait, poll)
+        yield db

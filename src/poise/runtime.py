@@ -150,7 +150,8 @@ class Poise:
         self.runner = StageRunner(self.task_commands)
         self.evidence_commands = EvidenceCommands(self.store.unit_of_work)
         from .infrastructure.saved_materials import SavedMaterialReader
-        self.saved_materials = SavedMaterialReader(self.store.path)
+        self.saved_materials = SavedMaterialReader(self.store.path,
+                                                  read_transaction=self.store.database.read_transaction)
         from .infrastructure.sqlite.interactions import InteractionStore
         from .infrastructure.work import WorkResources
         self.interactions=InteractionStore(self.store.database,self.cfg['project'],self.cfg['batch'])

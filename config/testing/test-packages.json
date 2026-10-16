@@ -14,12 +14,14 @@
           "src/poise/**/*.py",
           "src/poise_environment/**/*.py",
           "tools/run_ai_poise_test_package.py",
-          "pyproject.toml"
+          "pyproject.toml",
+          "recovery-tools/retire_task_status.py"
         ],
         "tests": [
           "tests/migrations/test_project_stage_criteria_drafts.py",
           "tests/migrations/test_project_stage_criteria_migration.py",
-          "tests/migrations/test_stage_criteria_migration.py"
+          "tests/migrations/test_stage_criteria_migration.py",
+          "tests/migrations/test_retired_task_status.py"
         ],
         "fixtures": [
           "fixtures/stage-criteria/**/*",
@@ -39,7 +41,9 @@
           "config/accounting.example.json",
           "config/runtime.example.json",
           "config/batch.example.json",
-          "config/sprint.example.json"
+          "config/sprint.example.json",
+          "tests/sprints/__init__.py",
+          "tests/sprints/helpers.py"
         ]
       }
     },
@@ -278,7 +282,11 @@
           "tests/projects/helpers.py",
           "tests/projects/test_update.py",
           "config/batch.example.json",
-          "config/accounting.example.json"
+          "config/accounting.example.json",
+          "config/project.example.json",
+          "config/project-templates/linux-reference.json",
+          "config/project-templates/wsl-poise.json",
+          "tests/requirements_registry/fixtures/schema_v1.sql"
         ]
       }
     },
@@ -303,7 +311,10 @@
           "tests/goal_config/test_*.py"
         ],
         "fixtures": [
-          "tests/conftest.py"
+          "tests/conftest.py",
+          "config/project.example.json",
+          "config/project-templates/linux-reference.json",
+          "config/project-templates/wsl-poise.json"
         ]
       }
     },

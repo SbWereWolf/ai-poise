@@ -52,5 +52,80 @@
       "filename"
     ],
     "value": "../foreign"
+  },
+  {
+    "path": [
+      "registry",
+      "directory"
+    ],
+    "value": "@OUTSIDE_STATE@"
+  },
+  {
+    "path": [
+      "registry",
+      "lock"
+    ],
+    "value": "reads.sqlite"
+  },
+  {
+    "path": [
+      "registry"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "admission"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "registry",
+      "directory"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "registry",
+      "filename"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "registry",
+      "lock"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "registry",
+      "schema_version"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "admission",
+      "mode"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "admission",
+      "hook_settings"
+    ],
+    "delete": true
+  },
+  {
+    "path": [
+      "admission",
+      "agent_id"
+    ],
+    "delete": true
   }
 ]

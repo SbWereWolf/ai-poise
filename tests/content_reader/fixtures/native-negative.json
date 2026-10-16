@@ -1,0 +1,34 @@
+[
+  {
+    "case": "missing_binding",
+    "error": "admission_uncertain"
+  },
+  {
+    "case": "wrong_agent",
+    "error": "admission_uncertain"
+  },
+  {
+    "case": "missing_settings",
+    "error": "admission_unavailable"
+  },
+  {
+    "case": "unregistered_settings_association",
+    "error": "admission_unavailable"
+  },
+  {
+    "case": "foreign_settings_project",
+    "error": "admission_unavailable"
+  },
+  {
+    "case": "foreign_registered_settings",
+    "error": "admission_unavailable"
+  },
+  {
+    "case": "generated_caller",
+    "error": "admission_unavailable"
+  },
+  {
+    "case": "ambiguous_agent",
+    "error": "admission_unavailable"
+  }
+]

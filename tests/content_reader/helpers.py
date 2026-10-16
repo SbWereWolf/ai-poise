@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sqlite3
 import sys
 import threading
 
@@ -122,8 +123,10 @@ class Scenario:
                                 input=canonical(request).encode() if raw is None else raw,
                                 capture_output=True, cwd=self.checkout,
                                 env=self.env if env is None else env, check=False)
-        print(result.stdout.decode(), end='')
-        print(result.stderr.decode(), end='', file=sys.stderr)
+        # Bound in this test's CALL before a reader thread redirects global
+        # streams. Control diagnostics never become reader wire bytes.
+        print(result.stdout.decode(), end='', file=self.diagnostics_out)
+        print(result.stderr.decode(), end='', file=self.diagnostics_err)
         return result.returncode, result.stdout.decode(), result.stderr.decode()
 
     def invoke(self, request, **kwargs):
@@ -134,6 +137,7 @@ class Scenario:
 
     def prove(self):
         # This occurs in each test's CALL, never during collection or setup.
+        self.diagnostics_out, self.diagnostics_err = sys.stdout, sys.stderr
         result = subprocess.run(self.argv() + ['--help'], capture_output=True,
                                 cwd=self.checkout, env=self.env, check=False)
         out, err = result.stdout.decode(), result.stderr.decode()
@@ -298,3 +302,91 @@ def text_frames(raw):
         assert not item['content_follows'] or sha(content) == item['hash']
         frames.append((value, content))
     return frames
+
+
+def other_project(base, parent):
+    """Separate real registered checkout/configuration via existing setup owner."""
+    from tests.skills.instruction_delivery_helpers import Scenario as ProjectScenario
+    from tests.projects.helpers import bootstrap_fixture_resources
+    selected = ProjectScenario(base, parent, 'beta')
+    config = json.loads(selected.config.read_text())
+    if 'runtime_resources' not in config:
+        config = bootstrap_fixture_resources(selected.root / 'setup.json', selected.config)
+    return Scenario({'app': selected.checkout, 'root': selected.config.parent,
+                     'config_path': selected.config, 'cfg': config}, parent,
+                    identity='beta-reader')
+
+
+def storage_snapshot(path):
+    """Observe isolated SQLite logical values with explicit columns, read-only."""
+    if not path.exists():
+        return None
+    with sqlite3.connect(path.as_uri() + '?mode=ro', uri=True) as db:
+        names = [row[0] for row in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+        result = []
+        for name in names:
+            quoted = '"' + name.replace('"', '""') + '"'
+            columns = [row[1] for row in db.execute('PRAGMA table_info(' + quoted + ')')]
+            selection = ','.join('"' + c.replace('"', '""') + '"' for c in columns)
+            rows = db.execute('SELECT ' + selection + ' FROM ' + quoted
+                              + ' ORDER BY ' + selection).fetchall()
+            result.append((name, columns, rows))
+        return db.execute('PRAGMA user_version').fetchone()[0], result
+
+
+@contextmanager
+def before_reader_commit(monkeypatch, scenario):
+    """Pause actual owned registration transaction before SQLite COMMIT.
+
+    Observe connection.commit, connection.execute(COMMIT), and context-manager
+    exit. Hook connections stay unchanged; no new reader API is invented.
+    """
+    entered, release = threading.Event(), threading.Event()
+    original = sqlite3.connect
+
+    class CommitBoundary(sqlite3.Connection):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.mutation_seen = False
+            self.set_trace_callback(self.observe_statement)
+
+        def observe_statement(self, sql):
+            # Observe actual executed DML, including cursor/executemany calls;
+            # an earlier read-only transaction cannot satisfy this barrier.
+            if sql.lstrip().split(None, 1)[0].upper() in ('INSERT', 'UPDATE', 'DELETE', 'REPLACE'):
+                self.mutation_seen = True
+
+        def hold(self):
+            if (threading.current_thread().name == 'reader-interleaving'
+                    and self.in_transaction and self.mutation_seen
+                    and not entered.is_set()):
+                entered.set()
+                assert release.wait(10), 'Competing writer observation did not release commit'
+
+        def commit(self):
+            self.hold()
+            return super().commit()
+
+        def execute(self, sql, parameters=()):
+            if sql.strip().upper().rstrip(';') in ('COMMIT', 'END', 'END TRANSACTION', 'COMMIT TRANSACTION'):
+                self.hold()
+            return super().execute(sql, parameters)
+
+        def __exit__(self, kind, value, traceback):
+            if kind is None:
+                self.hold()
+            return super().__exit__(kind, value, traceback)
+
+    def connect(database, *args, **kwargs):
+        if str(scenario.db) in str(database) or scenario.db.as_uri() in str(database):
+            assert 'factory' not in kwargs, 'Review actual connection adapter before replacing factory'
+            kwargs['factory'] = CommitBoundary
+        return original(database, *args, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(sqlite3, 'connect', connect)
+        try:
+            yield entered, release
+        finally:
+            release.set()

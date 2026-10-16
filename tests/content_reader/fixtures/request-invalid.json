@@ -21,5 +21,53 @@
   {
     "operation": "read",
     "reads": true
+  },
+  {
+    "operation": "reset",
+    "reason": "manual",
+    "event_id": ""
+  },
+  {
+    "operation": "reset",
+    "reason": "manual",
+    "event_id": null
+  },
+  {
+    "operation": "reset",
+    "reason": "manual",
+    "event_id": false
+  },
+  {
+    "operation": "reset",
+    "reason": "manual",
+    "event_id": []
+  },
+  {
+    "operation": "clear",
+    "reason": "manual",
+    "event_id": ""
+  },
+  {
+    "operation": "clear",
+    "reason": "manual",
+    "event_id": null
+  },
+  {
+    "operation": "clear",
+    "reason": "manual",
+    "event_id": false
+  },
+  {
+    "operation": "clear",
+    "reason": "manual",
+    "event_id": []
+  },
+  {
+    "operation": "reset",
+    "reason": "manual"
+  },
+  {
+    "operation": "clear",
+    "reason": "manual"
   }
 ]

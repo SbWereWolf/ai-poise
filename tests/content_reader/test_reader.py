@@ -2,7 +2,9 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import io
+import fcntl
 import json
+import os
 import sqlite3
 from pathlib import Path
 import subprocess
@@ -12,7 +14,8 @@ import threading
 import pytest
 
 from tests.content_reader.helpers import (
-    Scenario, before_final_guard, canonical, files, fixture, sha, text_frames,
+    Scenario, before_final_guard, before_reader_commit, canonical, files,
+    fixture, other_project, sha, storage_snapshot, text_frames,
 )
 
 
@@ -223,16 +226,7 @@ def test_project_checkout_and_caller_isolation(s, project, tmp_path):
     other.native_identity(); assert other.invoke({'operation': 'prepare'})[0] == 0
     assert other.read()['items'][0]['classification'] == 'first_read'
     # A separate configured project and repository via the existing setup owner.
-    from tests.skills.instruction_delivery_helpers import Scenario as ProjectScenario
-    from tests.projects.helpers import bootstrap_fixture_resources
-    beta_project = ProjectScenario(project, tmp_path, 'beta')
-    beta_config = json.loads(beta_project.config.read_text())
-    if 'runtime_resources' not in beta_config:
-        beta_config = bootstrap_fixture_resources(
-            beta_project.root / 'setup.json', beta_project.config)
-    beta = Scenario({'app': beta_project.checkout, 'root': beta_project.config.parent,
-                     'config_path': beta_project.config,
-                     'cfg': beta_config}, tmp_path, identity='beta-reader')
+    beta = other_project(project, tmp_path)
     beta.ready(); assert beta.read()['items'][0]['classification'] == 'first_read'
     original = s.checkout
     s.checkout = beta.checkout
@@ -291,12 +285,30 @@ def test_strict_request_and_policy_shapes(s):
         s.error(s.invoke(request), 'invalid_request'); assert not s.db.exists()
     for raw in [b'{', b'{"operation":"context","operation":"prepare"}', b'NaN']:
         s.error(s.invoke({}, raw=raw), 'invalid_request'); assert not s.db.exists()
+    for case in fixture('read-invalid.json'):
+        request = s.request()
+        if case.get('delete'):
+            del request['reads'][0][case['field']]
+        else:
+            request['reads'][0][case['field']] = case['value']
+        s.error(s.invoke(request), case['error'])
+        assert not s.db.exists() and not s.lock.exists()
     base = deepcopy(s.data)
+    owned_db, owned_lock = s.db, s.lock
     for case in fixture('policy-invalid.json'):
         s.data = deepcopy(base); target = s.data
         for key in case['path'][:-1]: target = target[key]
-        target[case['path'][-1]] = case['value']; s.save_policy()
-        s.error(s.invoke({'operation': 'prepare'}), 'invalid_policy'); assert not s.db.exists()
+        if case.get('delete'):
+            del target[case['path'][-1]]
+        else:
+            target[case['path'][-1]] = (str(s.root / 'outside-reader')
+                                      if case['value'] == '@OUTSIDE_STATE@' else case['value'])
+        s.save_policy()
+        before_state = files(s.state)
+        s.error(s.invoke({'operation': 'prepare'}), 'invalid_policy')
+        assert not owned_db.exists() and not owned_lock.exists()
+        assert files(s.state) == before_state
+        assert not (s.root / 'outside-reader').exists()
     s.data = deepcopy(base); del s.data['complete']; s.save_policy()
     s.error(s.invoke({'operation': 'prepare'}), 'invalid_policy')
 
@@ -323,12 +335,19 @@ def test_source_failure_diagnostics(s, monkeypatch):
     assert s.context() == before
 
 
-def test_prepared_storage_and_schema_preservation(s):
+def test_prepared_storage_and_schema_preservation(s, project, tmp_path):
     s.prove()
     directory = s.db.parent
     assert not directory.exists()
     s.error(s.invoke(s.request()), 'registry_missing'); assert not directory.exists()
+    s.error(s.invoke({'operation': 'context'}), 'registry_missing')
+    assert not directory.exists()
     s.ready()
+    other = Scenario(project, tmp_path, identity='missing-reader-context')
+    other.prove()
+    before_logical = storage_snapshot(s.db)
+    other.error(other.invoke({'operation': 'context'}), 'context_missing')
+    assert storage_snapshot(s.db) == before_logical
     s.lock.unlink()
     before = s.db.read_bytes()
     s.error(s.invoke(s.request()), 'registry_missing')
@@ -337,13 +356,30 @@ def test_prepared_storage_and_schema_preservation(s):
     with sqlite3.connect(s.db) as db: db.execute('PRAGMA user_version=71')
     before = files(directory)
     s.error(s.invoke(s.request()), 'registry_schema')
+    s.error(s.invoke({'operation': 'context'}), 'registry_schema')
     s.error(s.invoke({'operation': 'prepare'}), 'registry_schema')
     assert files(directory) == before
     # Unknown/corrupt storage belongs to its existing owner and is not replaced.
     s.db.write_bytes(b'foreign database marker')
     before = files(directory)
+    s.error(s.invoke(s.request()), 'registry_invalid')
+    s.error(s.invoke({'operation': 'context'}), 'registry_invalid')
     s.error(s.invoke({'operation': 'prepare'}), 'registry_invalid')
     assert files(directory) == before
+    # Publicly prepare a compatible store for an independently configured project.
+    foreign = other_project(project, tmp_path)
+    foreign.ready(); foreign.read()
+    foreign_before = storage_snapshot(foreign.db)
+    s.db.unlink()  # Fixture replacement only after corruption-preservation assertions.
+    with sqlite3.connect(foreign.db) as source, sqlite3.connect(s.db) as destination:
+        source.backup(destination)
+    with sqlite3.connect(s.db) as db:
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 1
+    copied = storage_snapshot(s.db)
+    for request in [s.request(), {'operation': 'context'}, {'operation': 'prepare'}]:
+        s.error(s.invoke(request), 'registry_invalid')
+        assert storage_snapshot(s.db) == copied
+        assert storage_snapshot(foreign.db) == foreign_before
 
 
 def test_genuine_caller_admission_profile(s):
@@ -399,11 +435,109 @@ def test_native_hook_observation_profile(s, tmp_path):
     before = s.db.read_bytes()
     s.error(s.invoke(s.request()), 'admission_unavailable')
     assert not s.hooks.settings.lock.exists() and s.db.read_bytes() == before
+    # Explicit fixture owner restores its lock; the reader never recreates it.
+    current_binding = s.hooks.latest_binding(s.identity, 'primary')
+    s.hooks.registry.record_event(current_binding['session_id'], 'PostToolUse', 'restored', None)
+    foreign = other_project(s.base, tmp_path)
+    foreign.ready(); foreign.read(); foreign.native_hooks(tmp_path)
+    foreign.event()
+    original_data, original_env = deepcopy(s.data), dict(s.env)
+    original_identity, original_origin = s.identity, s.origin
+    raw_settings = json.loads((s.root / 'hook-settings.json').read_text())
+    missing = s.root / 'missing-reader-hook-settings.json'
+    unregistered = s.root / 'unregistered-reader-hook-settings.json'
+    unregistered.write_text(json.dumps(raw_settings), encoding='utf-8')
+    foreign_copy = s.root / 'foreign-reader-hook-settings.json'
+    copied_settings = dict(raw_settings, project_config=str(foreign.config))
+    foreign_copy.write_text(json.dumps(copied_settings), encoding='utf-8')
+    for case in fixture('native-negative.json'):
+        s.data, s.env = deepcopy(original_data), dict(original_env)
+        s.identity, s.origin = original_identity, original_origin
+        name = case['case']
+        if name == 'missing_binding':
+            s.native_identity('missing-native-reader')
+        elif name == 'wrong_agent':
+            s.data['admission']['agent_id'] = 'not-installed-reader-agent'
+        elif name == 'missing_settings':
+            s.data['admission']['hook_settings'] = str(missing)
+        elif name == 'unregistered_settings_association':
+            s.data['admission']['hook_settings'] = str(unregistered)
+        elif name == 'foreign_settings_project':
+            s.data['admission']['hook_settings'] = str(foreign_copy)
+        elif name == 'foreign_registered_settings':
+            s.data['admission']['hook_settings'] = str(foreign.root / 'hook-settings.json')
+        elif name == 'generated_caller':
+            s.env.pop('CODEX_THREAD_ID'); s.env['POISE_CALLER_BINDING'] = str(s.binding)
+            s.identity, s.origin = 'reader-fixture-caller', 'generated'
+        elif name == 'ambiguous_agent':
+            # Last case: two existing-owner bindings match the exact external/agent.
+            record = deepcopy(current_binding); record['session_id'] = 'duplicate-native-reader'
+            s.hooks.registry.bind(record)
+        else:
+            raise AssertionError('Unrecognized frozen native case: ' + name)
+        s.save_policy()
+        own, external = storage_snapshot(s.db), storage_snapshot(foreign.db)
+        hooks = storage_snapshot(s.hooks.settings.database)
+        foreign_hooks = storage_snapshot(foreign.hooks.settings.database)
+        for request in [s.request(), {'operation': 'context'}, {'operation': 'prepare'}]:
+            s.error(s.invoke(request), case['error'])
+            assert storage_snapshot(s.db) == own
+            assert storage_snapshot(foreign.db) == external
+            assert storage_snapshot(s.hooks.settings.database) == hooks
+            assert storage_snapshot(foreign.hooks.settings.database) == foreign_hooks
+        assert not missing.exists()
 
 
 def test_native_end_serializes_registration_admission(s, tmp_path, monkeypatch):
     s.prove(); s.native_hooks(tmp_path); s.event()
     assert s.invoke({'operation': 'prepare'})[0] == 0
+    # End competes AFTER observation, while actual general DML awaits COMMIT.
+    results, failures, end_attempt, end_lock_result = [], [], threading.Event(), []
+    original_flock = fcntl.flock
+
+    def observe_end(fd, operation):
+        observed, target = os.fstat(fd), s.hooks.settings.lock.stat()
+        watching = (threading.current_thread().name == 'end-writer'
+                    and operation & fcntl.LOCK_EX
+                    and (observed.st_dev, observed.st_ino) == (target.st_dev, target.st_ino))
+        try:
+            result = original_flock(fd, operation)
+        except BlockingIOError:
+            if watching and not end_attempt.is_set():
+                end_lock_result.append('blocked'); end_attempt.set()
+            raise
+        if watching and not end_attempt.is_set():
+            end_lock_result.append('acquired'); end_attempt.set()
+        return result
+
+    def registering_reader():
+        try: results.append(s.transport(monkeypatch, s.request()))
+        except BaseException as exc: failures.append(exc)
+
+    def competing_end():
+        try: s.event('SessionEnd')
+        except BaseException as exc: failures.append(exc)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(fcntl, 'flock', observe_end)
+        with before_reader_commit(patch, s) as (entered, release):
+            reader = threading.Thread(target=registering_reader, name='reader-interleaving')
+            ending = threading.Thread(target=competing_end, name='end-writer')
+            reader.start()
+            try:
+                assert entered.wait(10), 'Reader did not reach its real registration commit'
+                ending.start()
+                assert end_attempt.wait(10), 'End writer never attempted the existing hook lock'
+                assert end_lock_result == ['blocked'], 'Hook lock was released before registration committed'
+            finally:
+                release.set(); reader.join(10)
+                if ending.ident is not None: ending.join(10)
+            assert not reader.is_alive() and not ending.is_alive() and not failures
+    assert len(results) == 1
+    code, out, err = results[0]
+    assert code == 0 and err == '' and json.loads(out)['items'][0]['classification'] == 'first_read'
+    s.error(s.invoke(s.request()), 'admission_dead')
+    s.event(); assert s.invoke({'operation': 'prepare'})[0] == 0
     for resume in [False, True]:
         if resume:
             s.event(); assert s.invoke({'operation': 'prepare'})[0] == 0

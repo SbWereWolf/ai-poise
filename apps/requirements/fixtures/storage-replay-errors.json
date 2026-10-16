@@ -1,0 +1,28 @@
+{
+  "request": {
+    "request_id": "replay-shape",
+    "expected_revision": 1,
+    "operations": [
+      {
+        "kind": "link",
+        "system": "SYS-A",
+        "application": "APP-A"
+      }
+    ]
+  },
+  "saved_response": {
+    "revision": 2,
+    "replayed": false
+  },
+  "replayed_response": {
+    "status": "applied",
+    "revision": 2,
+    "replayed": true
+  },
+  "invalid_cases": [
+    {"column": "intent", "value": "[]"},
+    {"column": "intent", "value": "{"},
+    {"column": "response", "value": "[]"},
+    {"column": "response", "value": "{"}
+  ]
+}

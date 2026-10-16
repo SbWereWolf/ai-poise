@@ -63,7 +63,14 @@ class StandaloneBackend:
         ).fetchone()
         if row is None:
             return None
-        return {'intent': json.loads(row['intent']), 'response': json.loads(row['response'])}
+        try:
+            intent = json.loads(row['intent'])
+            response = json.loads(row['response'])
+        except json.JSONDecodeError as exc:
+            raise PoiseError('Requirements saved request or response contains unreadable JSON') from exc
+        if not isinstance(intent, dict) or not isinstance(response, dict):
+            raise PoiseError('Requirements saved request and response must be JSON objects')
+        return {'intent': intent, 'response': response}
 
     def persist_apply(self, connection, before, after, revision, request_id, intent, response):
         origin = _json({'type': 'explicit', 'request_id': request_id})
